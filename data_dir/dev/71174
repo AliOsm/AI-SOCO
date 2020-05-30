@@ -1,0 +1,28 @@
+#include <cstdio>
+#include <vector>
+using namespace std;
+int ans,hh;
+vector<pair<int,int> > mp[101];
+void dfs(int x,int from,int h,int temp)
+{
+    if(temp>ans)
+        ans=temp;
+    for(int i=0;i<mp[x].size();i++)
+        if(mp[x][i].first!=from)
+            dfs(mp[x][i].first,x,h+1,temp+mp[x][i].second);
+    return;
+}
+int main()
+{
+    int n,u,v,c;
+    scanf("%d",&n);
+    for(int i=0;i<n-1;i++)
+    {
+        scanf("%d%d%d",&u,&v,&c);
+        mp[u].push_back(make_pair(v,c));
+        mp[v].push_back(make_pair(u,c));
+    }
+    dfs(0,-1,1,0);
+    printf("%d\n",ans);
+    return 0;
+}

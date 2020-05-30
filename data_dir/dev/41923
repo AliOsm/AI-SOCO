@@ -1,0 +1,67 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 5005;
+int n, m, a[maxn], gc[maxn];
+set<int> bad;
+
+int f(int x) {
+    for (int i = 2; i*i <= x; i++) {
+        if (x % i == 0) {
+            int cnt = 0;
+            while (x % i == 0) {
+                x /= i;
+                cnt++;
+            }
+            return (bad.count(i)?-1:1)*cnt+f(x);
+        }
+    }
+    if (x > 1) return bad.count(x)?-1:1;
+    else return 0;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> n >> m;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        gc[i] = __gcd(gc[i-1],a[i]);
+    }
+    for (int i = 0; i < m; i++) {
+        int ai; cin >> ai;
+        bad.insert(ai);
+    }
+    int tot = 0;
+    for (int i = 1; i <= n; i++) {
+        //cout << i << ": " << gc[i] << ' ' << f(gc[i]) << endl;
+        tot += f(a[i]);
+    }
+    map<int,int> mp;
+    mp[1] = 0;
+    for (int i = n; i >= 1; i--) {
+        //cout << "i = " << i << endl;
+        for (auto p: mp) {
+            int ng = gc[i]/p.first;
+            if (!mp.count(gc[i])) {
+                mp[gc[i]] = mp[p.first]+f(ng)*i;
+            }
+            else mp[gc[i]] = min(mp[gc[i]],mp[p.first]+f(ng)*i);
+            //cout << p.first << ": " << mp[p.first] << ' ' << f(ng) << ' ' << i << endl;
+        }
+        //cout << mp[gc[i]] << endl;
+        /*
+        cout << "i = " << i << endl;
+        for (auto p: mp) {
+            cout << p.first << ' ' << p.second << endl;
+        }
+        */
+    }
+    int mn = 0;
+    for (auto p: mp) {
+        mn = min(mn,p.second);
+        //cout << p.first << ": " << p.second << endl;
+    }
+    //cout << "tot = " << tot << endl;
+    cout << (tot-mn) << endl;
+}

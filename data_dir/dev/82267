@@ -1,0 +1,68 @@
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+using namespace std;
+
+inline void boostIO() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	cout.tie(0);
+}
+
+typedef long long Long;
+
+const int N = 40;
+
+int n, m, i, ans, sz[2], a[N];
+vector<int> vec[2];
+
+void solve(int id, int idx, int sum = 0) {
+	if (idx >= sz[id]) {
+		vec[id].push_back(sum);
+		return;
+	}
+
+	solve(id, idx + 1, sum);
+	solve(id, idx + 1, (sum + a[idx]) % m);
+}
+
+int main() {
+	boostIO();
+	cin >> n >> m;
+	for (i = 0; i < n; ++i) {
+		cin >> a[i];
+		a[i] %= m;
+		ans = max(ans, a[i]);
+	}
+
+	if (n == 1) {
+		return cout << a[0] % m << endl, 0;
+	}
+
+	sz[0] = n / 2;
+	sz[1] = n;
+
+	solve(0, 0);
+	solve(1, sz[0]);
+
+	sort(vec[0].begin(), vec[0].end());
+	sort(vec[1].begin(), vec[1].end());
+
+	for (int x : vec[0]) {
+		i = upper_bound(vec[1].begin(), vec[1].end(), m - x - 1) - vec[1].begin() - 1;
+
+		if (i >= 0) {
+			ans = max(ans, (x + vec[1][i]) % m);
+		}
+
+		ans = max(ans, (x + vec[1].back()) % m);
+	}
+
+	cout << ans << endl;
+	return 0;
+}

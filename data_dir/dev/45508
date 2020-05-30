@@ -1,0 +1,145 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <memory.h>
+
+#if !defined(__GNUC__)
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#endif
+
+typedef std::string string8_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<vector_uint64_t> vector_2d_uint64_t;
+
+const uint64_t Mod = 1000000007;
+
+// <eq>..<eq><gt><any>..<any>
+size_t GetAddition(const size_t gtPos, const size_t eqPrefixLength, const size_t totalLength)
+{
+    LOCAL_ASSERT(gtPos >= eqPrefixLength);
+    LOCAL_ASSERT(gtPos < totalLength);
+    const size_t c = (eqPrefixLength + 1) * (totalLength - gtPos);
+    return c;
+}
+
+size_t GetGreaterCount(const char ch)
+{
+    return (size_t)('z' - ch);
+}
+
+size_t GetLessCount(const char ch)
+{
+    return (size_t)(ch - 'a');
+}
+
+uint64_t GetAnsFast(const string8_t& s, const size_t kRequired)
+{
+    const size_t n = s.size();
+
+    vector_2d_uint64_t dpe(n + 1, vector_uint64_t(kRequired + 1));
+    vector_2d_uint64_t dpl(n + 1, vector_uint64_t(kRequired + 1));
+    vector_2d_uint64_t dpg(n + 1, vector_uint64_t(kRequired + 1));
+    dpe[0][0] = 1;
+
+    for (size_t partLength = 1; partLength <= n; partLength++)
+    {
+        const char currentChar = s[partLength - 1];
+        for (size_t k = 0; k <= kRequired; k++)
+        {
+            const uint64_t prevLengthAnsK = (dpe[partLength - 1][k] + dpl[partLength - 1][k] + dpg[partLength - 1][k]) % Mod;
+            dpe[partLength][k] += prevLengthAnsK;
+            dpl[partLength][k] += prevLengthAnsK * GetLessCount(currentChar);
+
+            dpe[partLength][k] %= Mod;
+            dpl[partLength][k] %= Mod;
+
+            for (size_t equalLength = 0; equalLength < partLength; equalLength++)
+            {
+                const size_t kAdded = GetAddition(partLength - 1, equalLength, n);
+                if (kAdded > k)
+                    break;
+
+                dpg[partLength][k] += (dpg[partLength - equalLength - 1][k - kAdded] + dpl[partLength - equalLength - 1][k - kAdded]) * GetGreaterCount(currentChar);
+                dpg[partLength][k] %= Mod;
+
+                if ((partLength == equalLength + 1) && (k == kAdded))
+                {
+                    dpg[partLength][k] += GetGreaterCount(currentChar); // "<eq>..<eq><gt>" from the beginning
+                }
+            }
+        }
+    }
+
+    uint64_t ans = dpe[n][kRequired] + dpg[n][kRequired] + dpl[n][kRequired];
+    ans %= Mod;
+    return ans;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    // 
+    size_t n, kRequired;
+    ist >> n >> kRequired;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    // 
+    string8_t s;
+    ist >> s;
+    LOCAL_ASSERT(s.size() == n);
+    
+    const uint64_t ansFast = GetAnsFast(s, kRequired);
+    ost << ansFast << std::endl;
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

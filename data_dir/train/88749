@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 5e4 + 7;
+const int M = 2 * N;
+const int SS = 4 * M;
+
+int n, m, k;
+int X1[N], Y1[N], X2[N], Y2[N];
+vector<int> x, y;
+vector<pair<pair<int, int>, int> > add[M];
+int seg[SS];
+int cnt[SS];
+
+void comp(vector<int> &v)
+{
+	sort(v.begin(), v.end());
+	v.resize(unique(v.begin(), v.end()) - v.begin());
+}
+
+int find(int val, vector<int> &v)
+{
+	return lower_bound(v.begin(), v.end(), val) - v.begin();
+}
+
+void modify(int l, int r, int val, int s = 0, int e = y.size()-1, int v = 1)
+{
+	if (l >= e || r <= s)
+		return;
+	if (l <= s && e <= r)
+	{
+		cnt[v] += val;
+		return;
+	}
+	int mid = (s + e) / 2;
+	modify(l, r, val, s, mid, 2 * v);
+	modify(l, r, val, mid, e, 2 * v + 1);
+	seg[v] =  cnt[2 * v] ? y[mid] - y[s] : seg[2 * v];
+	seg[v] += cnt[2 * v + 1] ? y[e] - y[mid] : seg[2 * v + 1];
+}
+
+	
+ll rect_union(int n)
+{
+	for (int i=0; i<n; i++)
+	{
+		x.push_back(X1[i]);
+		x.push_back(X2[i]);
+		y.push_back(Y1[i]);
+		y.push_back(Y2[i]);
+	}
+	comp(x);
+	comp(y);
+	for (int i=0; i<n; i++)
+	{
+		add[find(X1[i], x)].push_back({{find(Y1[i], y), find(Y2[i], y)}, 1});
+		add[find(X2[i], x)].push_back({{find(Y1[i], y), find(Y2[i], y)}, -1});
+	}
+	ll out = 0;
+	for (int i=0; i<x.size(); i++)
+	{
+		for (int j=0; j<add[i].size(); j++)
+			modify(add[i][j].first.first, add[i][j].first.second, add[i][j].second);
+		add[i].clear();
+		if (i == x.size() - 1)
+			continue;
+		out += 1LL * (cnt[1] ? y.back() - y[0] : seg[1]) * (x[i+1] - x[i]);
+	}
+	x.clear();
+	y.clear();
+	return out;
+}
+
+int main()
+{
+	cin >> n >> m >> k;
+	for (int i=0; i<m; i++)
+	{
+		cin >> X1[i] >> Y1[i] >> X2[i] >> Y2[i];
+		X1[i]--;
+		Y1[i]--;
+	}
+	ll grundy = 0;
+	for (int i=0; 1 << i <= k; i++)
+	{
+		ll out = rect_union(m);
+		if (i > 0)
+			grundy ^= (1 << (i-1)) * (out & 1);
+		grundy ^= (1 << i) * (out & 1);
+		for (int i=0; i<m; i++)
+		{
+			X1[i] /= 2;
+			X2[i] /= 2;
+			Y1[i] /= 2;
+			Y2[i] /= 2;
+		}
+	}
+	cout << (grundy == 0 ? "Malek" : "Hamed") << "\n";
+	return 0;
+}

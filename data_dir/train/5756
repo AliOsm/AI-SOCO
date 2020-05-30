@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define ld long double
+#define oo 666666666
+
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+const int RANDOM = chrono::high_resolution_clock::now().time_since_epoch().count();
+struct pair_hash {
+    template <class T1, class T2>
+    std::size_t operator () (const std::pair<T1,T2> &p) const {
+        auto h1 = std::hash<ll>{}((p.first<<31LL) + p.second);
+        return h1;
+    }
+};
+cc_hash_table<pair<ll,ll>, ll, pair_hash> mp,mp2;
+
+int best = -oo;
+ll ats=0;
+
+void solve(vector<vector<int>>&A, int pos, int a, int b, int c, ll path, int h)
+{
+    if(pos>=A.size())
+    {
+        if(!h)
+        {
+            auto it = mp.find({a-b,a-c});
+            if(it==mp.end() || it->second < a)
+            mp[{a-b,a-c}]=a,mp2[{a-b,a-c}]=path;
+        }
+        else
+        {
+            auto it = mp.find({b-a,c-a});
+            if(it!=mp.end() && it->second + a > best)
+                best=it->second + a, ats = (mp2[{b-a,c-a}]<<(2*A.size()))|path;
+        }
+        return;
+    }
+    solve(A,pos+1,a+A[pos][0],b+A[pos][1],c,(path<<2)|1,h);
+    solve(A,pos+1,a+A[pos][0],b,c+A[pos][2],(path<<2)|2,h);
+    solve(A,pos+1,a,b+A[pos][1],c+A[pos][2],(path<<2)|3,h);
+}
+
+string decode(ll ats)
+{
+    string s;
+    vector<string>S;
+    while(ats!=0)
+    {
+        if(ats%4==3)S.push_back("MW\n");
+        if(ats%4==2)S.push_back("LW\n");
+        if(ats%4==1)S.push_back("LM\n");
+        ats>>=2;
+    }
+    reverse(S.begin(),S.end());
+    for(auto&x:S)
+        s+=x;
+    return s;
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);cin.tie(0);
+    int n;
+    cin>>n;
+    vector<vector<int>>A(n/2,(vector<int>(3))),B(n-n/2,vector<int>(3));
+    for(int i=0; i<A.size(); i++)
+        for(int j=0; j<3; j++)
+        cin>>A[i][j];
+
+    for(int i=0; i<B.size(); i++)
+        for(int j=0; j<3; j++)
+        cin>>B[i][j];
+
+    solve(A,0,0,0,0,0,0);
+    solve(B,0,0,0,0,0,1);
+
+    if(best<=-oo)
+        cout<<"Impossible\n";
+    else
+        cout<<decode(ats);
+}

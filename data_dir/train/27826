@@ -1,0 +1,196 @@
+/*  */
+#include <iostream>
+#include <string>
+#include <map>
+#include <queue>
+#include <set>
+#include <stack>
+#include <vector>
+#include <deque>
+#include <algorithm>
+#include <cstdio>
+#include <cmath>
+#include <ctime>
+#include <cstring>
+#include <climits>
+#include <cctype>
+#include <cassert>
+#include <functional>
+#include <iterator>
+#include <iomanip>
+using namespace std;
+//#pragma comment(linker,"/STACK:102400000,1024000")
+
+#define sti				set<int>
+#define stpii			set<pair<int, int> >
+#define mpii			map<int,int>
+#define vi				vector<int>
+#define pii				pair<int,int>
+#define vpii			vector<pair<int,int> >
+#define rep(i, a, n) 	for (int i=a;i<n;++i)
+#define per(i, a, n) 	for (int i=n-1;i>=a;--i)
+#define clr				clear
+#define pb 				push_back
+#define mp 				make_pair
+#define fir				first
+#define sec				second
+#define all(x) 			(x).begin(),(x).end()
+#define SZ(x) 			((int)(x).size())
+#define lson			l, mid, rt<<1
+#define rson			mid+1, r, rt<<1|1
+
+const int maxn = 1005;
+int c[maxn];
+int a[maxn], b[maxn];
+int cap[maxn], flow[maxn];
+int to[maxn], prev[maxn], last[maxn], used[maxn], level[maxn];
+
+struct MaxFlow {
+	int V, E;
+	
+	MaxFlow(int n) {
+		V = n;
+		E = 0;
+		memset(last, -1, sizeof(last));
+	}
+	
+	void addEdge(int x, int y, int f) {
+		cap[E] = f;
+		flow[E] = 0;
+		to[E] = y;
+		prev[E] = last[x];
+		last[x] = E;
+		++E;
+		
+		cap[E] = 0;
+		flow[E] = 0;
+		to[E] = x;
+		prev[E] = last[y];
+		last[y] = E;
+		++E;
+	}
+	
+	bool bfs(int s, int t) {
+		memset(level, -1, sizeof(level));
+		queue<int> Q;
+		Q.push(s);
+		level[s] = 0;
+		int u, v;
+		
+		while (!Q.empty()) {
+			u = Q.front();
+			Q.pop();
+			for (int i=last[u]; i>=0; i=prev[i]) {
+				v = to[i];
+				if (level[v]==-1 && cap[i]>flow[i]) {
+					Q.push(v);
+					level[v] = level[u] + 1;
+				}
+			}
+		}
+		
+		return level[t]>=0;
+	}
+	
+	int dfs(int u, int t, int f) {
+		if (u == t)
+			return f;
+		int v;
+		
+		for(int i=used[u]; i>=0; used[u]=i=prev[i]) {
+			v = to[i];
+			if(level[v]>level[u] && cap[i]>flow[i]) {
+				int tmp = dfs(v, t, min(f, cap[i]-flow[i]));
+				if(tmp > 0) {
+					flow[i] += tmp;
+					flow[i^1] -= tmp;
+					return tmp;
+				}
+			}
+        }
+		
+		return 0;
+	}
+	
+	int maxFlow(int s, int t) {
+		while (bfs(s, t)) {
+			rep(i, 0, V)
+				used[i] = last[i];
+			while (dfs(s, t, INT_MAX) != 0)
+				;
+		}
+		int ans = 0;
+		for (int i=last[s]; i>=0; i=prev[i])
+			ans += flow[i];
+		return ans;
+	}
+};
+
+int main() {
+	ios::sync_with_stdio(false);
+	#ifndef ONLINE_JUDGE
+		freopen("data.in", "r", stdin);
+		freopen("data.out", "w", stdout);
+	#endif
+	
+	int n, m;
+	sti st;
+	sti::iterator iter;
+	
+	scanf("%d %d", &n, &m);
+	rep(i, 0, n)
+		scanf("%d", &c[i]);
+	rep(i, 0, m) {
+		scanf("%d %d", &a[i], &b[i]);
+		--a[i];
+		--b[i];
+		if (a[i] & 1)
+			swap(a[i], b[i]);
+	}
+	
+	rep(i, 0, n) {
+		int tmp = c[i];
+		for (int i=2; i*i<=tmp; ++i) {
+			if (tmp%i == 0) {
+				st.insert(i);
+				while (tmp%i == 0)
+					tmp /= i;
+			}
+		}
+		if (tmp > 1)
+			st.insert(tmp);
+	}
+	
+	int ans = 0;
+	
+	for (iter=st.begin(); iter!=st.end(); ++iter) {
+		int z = *iter;
+		MaxFlow mf(n+2);
+		
+		rep(i, 0, n) {
+			int tmp = c[i], cnt = 0;
+			while (tmp%z == 0) {
+				tmp /= z;
+				++cnt;
+			}
+			if (i & 1) {
+				mf.addEdge(i, n+1, cnt);
+			} else {
+				mf.addEdge(n, i, cnt);
+			}
+		}
+		
+		rep(i, 0, m)
+			mf.addEdge(a[i], b[i], 100);
+			
+		ans += mf.maxFlow(n, n+1);
+	}
+	
+	printf("%d\n", ans);
+	
+	#ifndef ONLINE_JUDGE
+		printf("time = %d.\n", (int)clock());
+	#endif
+	
+	return 0;
+}

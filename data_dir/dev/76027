@@ -1,0 +1,130 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+//.define
+// #define FILE_IN_OUT
+#define RET(_x)                       return cout << (_x) << '\n', 0;
+#define all(_obj)                     (_obj).begin(), (_obj).end()
+#define loop(_n)                      for (int i = 0; i < (_n); ++i)
+#define CeilDiv(_dividend, _divider)  (((_dividend) - 1LL + (_divider)) / (_divider))
+#define sz(_obj)                      static_cast<int>((_obj).size())
+#ifdef SHJ_LOCAL
+#define debug(_x)                     std::cerr << (#_x) << " = " << (_x) << '\n' << std::flush;
+#else
+#define debug(_x)                     {}
+#endif
+#define endl "\n"
+template<typename Tp>
+inline void outarr(Tp _begin, Tp _end, const char* _delim = " ") {
+    for (Tp current = _begin; current != _end; ++current) {
+        std::cout << *current << _delim;
+    }
+    std::cout << '\n';
+}
+
+//.constant
+using ll  = long long;
+using pii = std::pair<int, int>;
+constexpr int INF = 0x3f3f3f3f;
+constexpr int MOD = static_cast<const int>(1e9 + 7);
+
+//.data
+constexpr int MAXN = 100000;
+
+vector<int> gr[MAXN];
+int color[MAXN];
+vector<pii> query[MAXN];
+int ans[MAXN];
+map<int, int> col[MAXN];
+map<int, int> cnt[MAXN];
+
+void Dfs(int from, int p = -1) {
+    int big = -1;
+    int id = -1;
+    for (int to : gr[from]) {
+        if (to != p) {
+            Dfs(to, from);
+            if (big < sz(col[to])) {
+                big = sz(col[to]);
+                id = to;
+            }
+        }
+    }
+    if (id != -1) {
+        swap(col[from], col[id]);
+        swap(cnt[from], cnt[id]);
+    }
+    const int x = col[from][color[from]];
+    if (x > 0) {
+        --cnt[from][x];
+    }
+    ++col[from][color[from]];
+    ++cnt[from][x + 1];
+    for (int to : gr[from]) {
+        if (to != p && to != id) {
+            for (auto [c, k] : col[to]) {
+                auto it = col[from].find(c);
+                if (it == col[from].end()) {
+                    col[from][c] = k;
+                    ++cnt[from][k];
+                } else {
+                    --cnt[from][it->second];
+                    it->second += k;
+                    ++cnt[from][it->second];
+                }
+            }
+            col[to].clear();
+            cnt[to].clear();
+        }
+    }
+    vector<pii> suff(cnt[from].size());
+    int sum = 0;
+    int j = sz(suff);
+    for (auto it = cnt[from].rbegin(); it != cnt[from].rend(); ++it) {
+        sum += it->second;
+        suff[--j] = {it->first, sum};
+    }
+    for (auto [k, i] : query[from]) {
+        auto it = lower_bound(all(suff), make_pair(k, 0));
+        if (it != suff.end()) {
+            ans[i] = it->second;
+        }
+    }
+}
+
+//.code
+int main() {
+#ifdef FILE_IN_OUT
+    std::ifstream cin ("input.txt",  std::ios::in);
+    std::ofstream cout("output.txt", std::ios::out);
+#else
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+#endif
+
+    int n, m;
+    cin >> n >> m;
+    loop(n) {
+        cin >> color[i];
+    }
+    loop(n - 1) {
+        int a, b;
+        cin >> a >> b;
+        --a; --b;
+        gr[a].push_back(b);
+        gr[b].push_back(a);
+    }
+    loop(m) {
+        int v, k;
+        cin >> v >> k;
+        query[v - 1].emplace_back(k, i);
+    }
+    Dfs(0);
+    outarr(ans, ans + m, endl);
+
+#ifdef FILE_IN_OUT
+    cin.close();
+    cout.close();
+#endif
+    return 0;
+}

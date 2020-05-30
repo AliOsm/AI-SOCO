@@ -1,0 +1,118 @@
+//              +-- -- --++-- +-In the name of ALLAH-+ --++-- -- --+              \\
+
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define _sz(x) (int)x.size()
+
+using namespace std ;
+using ll = long long ;
+using ld = long double ;
+using pii = pair <int , int> ;
+
+int const N = 1e5 + 20 ;
+int n , h[N] , ord[N] ;
+int q , ql[N] , qr[N] , qw[N] , low[N] , high[N] ;
+
+int seg[N << 2] ;
+int dpar[N] , dl[N] ;
+bool mark[N] ;
+vector <int> vec[N] ;
+
+inline bool cmp (int a , int b) { return h[a] < h[b] ; }
+
+inline void init () {
+	memset(mark , 0 , sizeof mark) ;
+	memset(dpar , -1 , sizeof dpar) ;
+	memset(seg , 0 , sizeof seg) ;
+	for (int i = 0 ; i < n ; i ++) dl[i] = n , vec[i].clear() ;
+}
+
+void add (int p , int val , int v = 1 , int s = 0 , int e = n) {
+	seg[v] = max(seg[v] , val) ;
+
+	if (s + 1 == e) return ;
+
+	int mid = (s + e) >> 1 , lc = v << 1 , rc = lc | 1 ;
+
+	if (p < mid) add(p , val , lc , s , mid) ;
+	else add(p , val , rc , mid , e) ;
+}
+
+int get (int l , int r , int v = 1 , int s = 0 , int e = n) {
+	if (s >= r || e <= l) return 0 ;
+	if (s >= l && e <= r) return seg[v] ;
+
+	int mid = (s + e) >> 1 , lc = v << 1 , rc = lc | 1 ;
+
+	return max( get(l , r , lc , s , mid) , get(l , r , rc , mid , e) ) ;
+}
+
+int droot (int v) { return dpar[v] < 0 ? v : dpar[v] = droot(dpar[v]) ; }
+
+inline void merge (int u , int v) {
+	u = droot(u) , v = droot(v) ;
+	dpar[u] = v , dl[v] = dl[u] ;
+	add(v , v - dl[v] + 1) ;
+}
+
+inline void activate (int i) {
+	mark[i] = 1 ;
+	dl[i] = i ;
+	add(i , 1) ;
+
+	if (i + 1 < n && mark[i + 1]) merge(i , i + 1) ;
+	if (i - 1 >= 0 && mark[i - 1]) merge(i - 1 , i) ;
+}
+
+inline int calc (int l , int r) {
+	int res = 0 ;
+
+	if (mark[l]) {
+		int x = min(r - 1 , droot(l)) ;
+		res = max(res , x - l + 1) ;
+		l = x + 1 ;
+	}
+	if (l < r && mark[r - 1]) {
+		int x = max(l , dl[droot(r - 1)]) ;
+		res = max(res , r - x) ;
+		r = x ;
+	}
+	if (l < r) res = max(res , get(l , r)) ;
+
+	return res ;
+}
+
+int main(){
+	ios::sync_with_stdio(false) , cin.tie(0) , cout.tie(0) ;
+
+	cin >> n ;
+	for (int i = 0 ; i < n ; i ++) cin >> h[i] ;
+
+	iota(ord , ord + n , 0) ;
+	sort(ord , ord + n , cmp) ;
+
+	cin >> q ;
+	for (int i = 0 ; i < q ; i ++) {
+		cin >> ql[i] >> qr[i] >> qw[i] ;
+		ql[i] -- ;
+		low[i] = -1 , high[i] = n ;
+	}
+
+	for (int t = 0 ; t < 20 ; t ++) {
+		init() ;
+
+		for (int i = 0 ; i < q ; i ++) vec[(low[i] + high[i]) / 2].push_back(i) ;
+
+		for (int i = n - 1 ; i >= 0 ; i --) {
+			activate(ord[i]) ;
+			for (int j : vec[i]) {
+				if (calc(ql[j] , qr[j]) >= qw[j]) low[j] = i ;
+				else high[j] = i ;
+			}
+		}
+	}
+
+	for (int i = 0 ; i < q ; i ++) cout << h[ord[low[i]]] << '\n' ;
+}

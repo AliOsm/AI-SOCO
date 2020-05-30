@@ -1,0 +1,126 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+int N;
+bool root[100010];
+vector <int> child[100010];
+string name[100010];
+map <string, int> mp;
+int nameid[100010];
+char buf[30];
+
+int X;
+int L[100010],R[100010],depth[100010];
+vector <int> level[100010];
+
+int Q;
+int qroot[100010],qdepth[100010];
+vector <pair <pair <int, int>, int> > queries; // depth, root, id
+int ans[100010];
+
+int dfs(int x, int d){
+    int i;
+    depth[x] = d;
+    level[d].push_back(x);
+    L[x] = X; X++;
+    REP(i,child[x].size()) dfs(child[x][i], d+1);
+    R[x] = X; X++;
+}
+
+int count_smaller(int depth, int bound){
+    int sz = level[depth].size();
+    
+    int low = 0, high = sz + 1;
+    while(high-low > 1){
+        int mid = (high + low) / 2;
+        if(L[level[depth][mid-1]] < bound) low = mid; else high = mid;
+    }
+    
+    return low;
+}
+
+map <pair <int, pair <int, int> >, int> cache;
+bool used[100010];
+
+int query(int root, int depth){ // cout << root << ' ' << depth << endl;
+    if(depth > 100005) return 0;
+    
+    int low = count_smaller(depth, L[root]);
+    int high = count_smaller(depth, R[root]);
+    if(low >= high) return 0;
+    
+    pair <int, pair <int, int> > state = make_pair(depth, make_pair(low, high));
+    if(cache.find(state) != cache.end()) return cache[state];
+    
+    int ans = 0;
+    int i;
+    
+    for(i=low;i<high;i++){
+        int x = nameid[level[depth][i]];
+        if(!used[x]){
+            ans++;
+            used[x] = true;
+        }
+    }
+    
+    for(i=low;i<high;i++){
+        int x = nameid[level[depth][i]];
+        used[x] = false;
+    }
+    
+    return cache[state] = ans;
+}
+
+void solve(void){
+    int i;
+    REP(i,N) if(root[i]) dfs(i, 0);
+    REP(i,Q) ans[i] = query(qroot[i], qdepth[i] + depth[qroot[i]]);
+}
+
+int main(void){
+    int i;
+    
+    scanf("%d", &N);
+    REP(i,N){
+        scanf("%s", buf);
+        name[i] = buf;
+        int p;
+        scanf("%d", &p);
+        if(p == 0) root[i] = true; else child[p-1].push_back(i);
+    }
+    
+    scanf("%d", &Q);
+    REP(i,Q){
+        scanf("%d%d", &qroot[i], &qdepth[i]);
+        qroot[i]--;
+    }
+    
+    REP(i,N) mp[name[i]] = 0;
+    i = 0;
+    foreach(mp,itr) {(itr->second) = i; i++;}
+    REP(i,N) nameid[i] = mp[name[i]];
+    
+    solve();
+    
+    REP(i,Q) printf("%d\n", ans[i]);
+    
+    return 0;
+}

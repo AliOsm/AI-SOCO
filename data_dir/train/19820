@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+int mod = 1e9 + 7;
+
+int add(int a, int b)
+{
+  a = (a + mod) % mod;
+  b = (b + mod) % mod;
+  return (a + b) % mod;
+}
+
+int mul(int a, int b)
+{
+  a = (a + mod) % mod;
+  b = (b + mod) % mod;
+  return ((ll)a * b) % mod;
+}
+
+const int N = 2e5 + 5;
+int dp[N], ans[N];
+vector<int> g[N], pre[N], suf[N];
+
+void dfs(int node, int parent)
+{
+    dp[node] = 1;
+    for(int i = 0; i < g[node].size(); i++)
+    {
+      int child = g[node][i];
+      if(child == parent)
+      {
+        g[node].erase(g[node].begin() + i);
+        i--;
+        continue;
+      }
+      dfs(child, node);
+      dp[node] = mul(dp[node], dp[child] + 1);
+      pre[node].push_back(add(dp[child], 1));
+      suf[node].push_back(add(dp[child], 1));
+    }
+    for(int i = 0, j = (int)pre[node].size() - 1; j >= 0; j--, i++)
+    {
+      if(j + 1 < pre[node].size())
+        suf[node][j] = mul(suf[node][j], suf[node][j + 1]);
+      if(i)
+        pre[node][i] = mul(pre[node][i], pre[node][i - 1]);
+    }
+}
+
+void dfs2(int node, int parent, int up)
+{
+  ans[node] = dp[node];
+  for(int i = 0; i < g[node].size(); i++)
+  {
+    int child = g[node][i];
+    assert(child != parent);
+    dp[node] = 1;
+    if(i)
+      dp[node] = mul(dp[node], pre[node][i - 1]);
+    if(i + 1 < g[node].size())
+      dp[node] = mul(dp[node], suf[node][i + 1]);
+    dp[node] = mul(dp[node], up);
+    dp[child] = mul(dp[child], dp[node] + 1);
+    dfs2(child, node, dp[node] + 1);
+    dp[child] = 1;
+    if(suf[child].size())
+      dp[child] = suf[child][0];
+    dp[node] = mul(suf[node][0], up);
+  }
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+    int n;
+    cin >> n;
+    for(int i = 2; i <= n; i++)
+    {
+      int pr;
+      cin >> pr;
+      g[i].push_back(pr);
+      g[pr].push_back(i);
+    }
+    dfs(1, 0);
+    dfs2(1, 0, 1);
+    for(int i = 1; i <= n; i++)
+      cout << ans[i] << ' ';
+    return 0;
+}

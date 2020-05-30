@@ -1,0 +1,31 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int limN = 1e5 + 5;
+const int K = 26;
+
+int N ;
+int vals[K];
+ll sms[limN];
+char str[limN];
+map <ll, int> igs[K];
+
+int main() {
+    ll ans = 0;
+    for(int i=0; i<K; i++)
+        scanf("%d", &vals[i]);
+    scanf("%s", str+1);
+    N = strlen(str+1);
+
+    auto it = igs[0].begin();
+    for(int i=1, w; i<=N; i++) {
+        w = str[i]-'a';
+        sms[i] = vals[w] + sms[i-1];
+        it = igs[w].find(sms[i-1]);
+        if(it != igs[w].end())
+            ans += it->second;
+        igs[w][sms[i]] ++;
+    }
+
+    printf("%lld\n", ans);
+}

@@ -1,0 +1,188 @@
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <stack>
+#include <set>
+using namespace std;
+
+typedef long long ll;
+
+#define rep(i, n) for (int i = 0, _##i = (n); i < _##i; ++i)
+#define repi(i, a) for (__typeof((a).begin()) i = (a).begin(), _##i=(a).end(); i != _##i; ++i)
+
+const int MAXN = 100100;
+
+vector<int> adj[MAXN];
+
+int cnt = 0;
+int ind[MAXN], low[MAXN];
+
+typedef pair<int, int> edge;
+
+stack<edge> s;
+
+int par[MAXN];
+bool iscyc[MAXN];
+
+int getpar(int a) {
+    return par[a] == a ? a : par[a] = getpar(par[a]);
+}
+
+void print(edge targ) {
+    set<int> curis;
+    edge p;
+    do {
+        p = s.top();
+        s.pop();
+        curis.insert(p.first);
+        curis.insert(p.second);
+    } while (p != targ);
+    if (curis.size() > 2) {
+        int s = *curis.begin();
+//      cout << "comp " << endl;
+        repi (i, curis) {
+//          cout << *i << endl;
+            par[getpar(*i)] = getpar(s);
+        }
+        iscyc[getpar(s)] = true;
+    }
+}
+
+void dfs(int a, int p = -1) {
+    low[a] = ind[a] = cnt;
+    cnt++;
+    
+    for (int i = 0; i < (int)adj[a].size(); i++) {
+        int b = adj[a][i];
+        if (ind[b] == -1) {
+            s.push(edge(a, b));
+            dfs(b, a);
+            if (low[b] >= ind[a]) {
+                print(edge(a, b));
+            }
+            low[a] = min(low[a], low[b]);
+        } else if (b != p && ind[b] < ind[a]) {
+            s.push(edge(a, b));
+            low[a] = min(low[a], ind[b]);
+        }
+    }
+}
+
+vector<int> tadj[100100];
+int tpar[100100];
+int msum[100100];
+int depth[100100];
+int n;
+
+void dfs2(int a, int p, int s, int d) {
+    s += iscyc[a];
+    d++;
+    msum[a] = s;
+    tpar[a] = p;
+    depth[a] = d;
+    repi (i, tadj[a]) {
+        int b = *i;
+        if (b != p) {
+            dfs2(b, a, s, d);
+        }
+    }
+}
+
+int lca[100100][19];
+
+void makelca()
+{
+    int i, j;
+ 
+    for (i = 0; i < n; i++)
+        for (j = 0; 1 << j < n; j++)
+            lca[i][j] = -1;
+ 
+    for (i = 0; i < n; i++)
+        lca[i][0] = tpar[i];
+ 
+    for (j = 1; 1 << j < n; j++)
+       for (i = 0; i < n; i++)
+           if (lca[i][j - 1] != -1)
+               lca[i][j] = lca[lca[i][j - 1]][j - 1];
+}
+int querylca(int p, int q)
+{
+    int lg, i;
+ 
+    if (depth[p] < depth[q])
+        swap(p,q);
+
+    for (lg = 1; 1 << lg <= depth[p]; lg++);
+    lg--;
+ 
+    for (i = lg; i >= 0; i--)
+        if (depth[p] - (1 << i) >= depth[q])
+            p = lca[p][i];
+ 
+    if (p == q)
+        return p;
+ 
+    for (i = lg; i >= 0; i--)
+        if (lca[p][i] != -1 && lca[p][i] != lca[q][i])
+            p = lca[p][i], q = lca[q][i];
+ 
+    return tpar[p];
+}
+
+int pow2[100100];
+
+int main() {
+    memset(ind, -1, sizeof(ind));
+    
+    int m;
+    cin >> n >> m;
+    rep (i, n) par[i] = i;
+    
+    vector<edge> v;
+    while (m--) {
+        int a, b;
+        cin >> a >> b;
+        a--; b--;
+        v.push_back(edge(a, b));
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+    }
+    for (int i = 0; i < n; i++) {
+        if (ind[i] == -1) dfs(i);
+    }
+    
+    repi (i, v) {
+        edge cur = *i;
+        int pa = getpar(cur.first);
+        int pb = getpar(cur.second);
+        if (pa == pb) continue;
+        tadj[pa].push_back(pb);
+        tadj[pb].push_back(pa);
+    }
+    
+    dfs2(getpar(0), -1, 0, -1);
+    makelca();
+    
+    pow2[0] = 1;
+    rep(i, 100000) {
+        pow2[i + 1] = pow2[i] * 2 % 1000000007;
+    }
+    
+    int q;
+    cin >> q;
+    rep (i, q) {
+        int a, b;
+        cin >> a >> b;
+        a--; b--;
+//      cout << a << ' ' << b << endl;
+        a = getpar(a);
+        b = getpar(b);
+        int c = querylca(a, b);
+//      cout << a << ' ' << b << ' ' << c << endl;
+//      cout << msum[a] << ' ' << msum[b] << ' ' << msum[c] << endl;
+        cout << pow2[msum[a] + msum[b] - 2 * msum[c] + iscyc[c]] << '\n';
+    }
+}

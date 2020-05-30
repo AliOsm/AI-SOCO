@@ -1,0 +1,188 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+
+//<editor-fold desc="debugger">
+
+template <class X, class Y>
+ostream & operator << (ostream & os, const pair <X, Y>& p) {
+    return os << "[" << p.first << ", " << p.second << "]" ;
+}
+
+template <class Ch, class Tr, class Container>
+basic_ostream <Ch, Tr> & operator << (basic_ostream <Ch, Tr> & os, const Container& x) {
+    os << "{";
+    bool f = 1;
+    for (auto&y : x) {
+        if (!f) os << ", ";
+        else f = 0;
+        os << y;
+    }
+    return os << "}";
+}
+
+struct Debug {
+#ifndef ONLINE_JUDGE
+    template<class T>
+    Debug& operator << (const T& x) {
+        cerr << x << " , ";
+        return *this;
+    }
+    ~Debug() {cerr << endl;}
+#define debug cerr << "Line(" << __LINE__ << ") : " , Debug()
+#else
+    template<class T>
+    Debug& operator << (const T& x) {
+        return *this;
+    }
+    #define debug Debug()
+#endif
+};
+
+//</editor-fold>
+
+class segtree {
+    struct node {
+        long long v = 0 ; // default value for the leafs
+        long long lazy = 0; // no lazy value
+
+        void apply(int l, int r, long long x) {
+            v += x;
+            // set v to the new value of range [l , r] when updated with x
+        }
+
+        void add_lazy(long long x) {
+            lazy += x;
+            // lazy combine
+        }
+
+        node operator +(const node &other) const {
+            node ret;
+            ret.v = min(v , other.v);
+            // combine v with other.v
+            return ret;
+        }
+
+        bool isLazy() {return lazy != 0;}
+        void cancel() {lazy = 0;}
+    };
+
+    void push(int l, int r, int p) {
+        if (tree[p].isLazy()) {
+            tree[p].apply(l, r, tree[p].lazy);
+            if (l != r) {
+                tree[left(p)].add_lazy(tree[p].lazy);
+                tree[right(p)].add_lazy(tree[p].lazy);
+            }
+            tree[p].cancel();
+        }
+    }
+
+    int left(int p) { return p << 1; }
+    int right(int p) { return (p << 1) + 1; }
+
+    int n;
+    vector<node> tree;
+
+    void build(int l, int r, int p, const vector<int> &v) {
+        if (l == r) {
+            tree[p].v = v[l];
+            return;
+        }
+        int mid = (l + r) >> 1;
+        build(l, mid, left(p), v);
+        build(mid + 1, r, right(p), v);
+        tree[p] = tree[left(p)] + tree[right(p)];
+    }
+
+    void update(int s, int e, long long v, int l, int r, int p) {
+        push(l, r, p);
+        if (l > e || r < s)
+            return;
+        if (l >= s && r <= e) {
+            tree[p].apply(l, r, v);
+            if (l != r) {
+                tree[left(p)].add_lazy(v);
+                tree[right(p)].add_lazy(v);
+            }
+            return;
+        }
+        int mid = (l + r) >> 1;
+        update(s, e, v, l, mid, left(p));
+        update(s, e, v, mid + 1, r, right(p));
+        tree[p] = tree[left(p)] + tree[right(p)];
+    }
+
+    node query(int s , int e , int l , int r , int p) {
+        push(l , r , p);
+        if (l >= s && r <= e) return tree[p];
+        int mid = (l + r) >> 1;
+        if (e <= mid)
+            return query(s , e , l , mid , left(p));
+        else if (s > mid)
+            return query(s , e , mid + 1 , r , right(p));
+        return query(s , e , l , mid , left(p)) + query(s , e , mid + 1 , r , right(p));
+    }
+
+public:
+    segtree(int _n) : n(_n + 1) {tree.resize(4 * n);}
+    segtree(const vector<int> &v) : n(v.size()) {
+        tree.resize(4 * n);
+        build(0, n - 1, 1, v);
+    }
+
+    void update(int s, int e, long long v) {
+        update(s, e, v, 0, n - 1, 1);
+    }
+
+    long long query(int s, int e) {
+        return query(s, e, 0, n - 1, 1).v;
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(0) , cin.tie(0) , cout.tie(0);
+#ifndef ONLINE_JUDGE
+    freopen("input.in" , "r" , stdin);
+#endif
+    int n;
+    cin >> n;
+
+    map<int , int> NEW;
+
+    vector<array<int , 2> > a(n);
+    for (int i = 0 ;i < n ;i++) {
+        cin >> a[i][0] >> a[i][1];
+        NEW[a[i][0]];
+        NEW[a[i][1]];
+    }
+
+    int nxt = 0 , prev = 0;
+    for (auto &p : NEW) {
+        if (p.first == prev + 1)
+            p.second = nxt++;
+        else {
+            p.second = ++nxt;
+            nxt++;
+        }
+
+        prev = p.first;
+    }
+
+    segtree st(nxt);
+    for (int i = 0 ;i < n ;i++) {
+        a[i][0] = NEW[a[i][0]];
+        a[i][1] = NEW[a[i][1]];
+        st.update(a[i][0] , a[i][1] , 1);
+    }
+
+    for (int i = 0 ;i < n ;i++) {
+        if (st.query(a[i][0] , a[i][1]) >= 2) {
+            cout << i + 1;
+            return 0;
+        }
+    }
+
+    cout << -1;
+}

@@ -1,0 +1,149 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+using namespace std;
+
+typedef long long lld;
+const int N = 101000;
+
+
+struct Node *nill;
+struct Node {
+        int sz,col;
+        Node *ch[2],*fa;
+        void up() {
+                if (this==nill) return ;
+                sz = ch[0]->sz + ch[1]->sz + 1;
+        }
+        void down() {
+                if (this==nill) return ;
+                ch[0]->col = ch[1]->col = col;
+        }
+        bool d() {
+                return fa->ch[1]==this;
+        }
+        void setc(Node *o,int c) {
+                ch[c] = o;
+                o->fa = this;
+                up();
+        }
+        void rot() {
+                int c = d(),cc = fa->d();
+                Node *z = fa->fa;
+                Node *tmp = fa;
+                fa->setc(ch[c^1],c);
+                setc(tmp,c^1);
+                z->setc(this,cc);
+        }
+        void D() {
+                if (this==nill) return ;
+                fa->D();
+                down();
+        }
+        void splay(Node *aim = nill) {
+                if (this==nill) return ;
+                D();
+                while (fa!=aim) {
+                        if (fa->fa!=aim) {
+                                d()==fa->d() ? fa->rot() : rot();
+                        }
+                        rot();
+                }
+        }
+};
+
+int n,m;
+Node dot[N];
+
+struct Sgt {
+#define lson l,mid,rt<<1
+#define rson mid+1,r,rt<<1|1
+        lld t[N<<2],lazy[N<<2];
+        void down(int l,int r,int rt) {
+                if (lazy[rt]==0) return ;
+                lld val = lazy[rt];
+                lazy[rt] = 0;
+                int mid = l+r>>1;
+                t[rt<<1] += val * (mid-l+1);
+                lazy[rt<<1] += val;
+                t[rt<<1|1] += val * (r-mid);
+                lazy[rt<<1|1] += val;
+        }
+        void up(int rt) {
+                t[rt] = t[rt<<1] + t[rt<<1|1];
+        }
+        void modify(int L,int R,lld val,int l,int r,int rt) {
+                if (L<=l && r<=R) {
+                        t[rt] += val*(r-l+1);
+                        lazy[rt] += val;
+                        return ;
+                }
+                int mid = l+r>>1;
+                down(l,r,rt);
+                if (L<=mid) modify(L,R,val,lson);
+                if (R>mid)  modify(L,R,val,rson);
+                up(rt);
+        }
+        lld query(int L,int R,int l,int r,int rt) {
+                if (L<=l && r<=R) {
+                        return t[rt];
+                }
+                int mid = l+r>>1;
+                down(l,r,rt);
+                if (L<=mid && mid<R) 
+                        return query(L,R,lson) + query(L,R,rson);
+                if (L<=mid)
+                        return query(L,R,lson);
+                return query(L,R,rson);
+        }
+}sgt;
+
+void modify(int l,int r,int val) {
+        int BB = r;
+        dot[r].splay();
+        dot[r].ch[1]->fa = nill;
+        dot[r].setc(nill,1);
+        while (l<=r) {
+                dot[r].splay();
+                int nr = r-dot[r].sz;
+                if (nr<l-1) {
+                        nr = l-1;
+                        if (nr!=0) {
+                                dot[nr].splay();
+                                dot[nr].ch[1]->fa = nill;
+                                dot[nr].setc(nill,1);
+                                dot[r].splay();
+                        }
+                }
+                sgt.modify(nr+1,r,abs(dot[r].col-val),1,n,1);
+                dot[r].col = val;
+
+                if (r!=BB) {
+                        dot[r+1].splay();
+                        dot[r].setc(dot+r+1,1);
+                }
+
+                r = nr;
+        }
+}
+
+int main() {
+        scanf("%d%d",&n,&m);
+        nill = &dot[0];
+        for (int i = 0; i <= n; ++ i) {
+                dot[i].ch[0] = dot[i].ch[1] = dot[i].fa = nill;
+                dot[i].col = i;
+                dot[i].sz = 1;
+        }
+        nill->sz = 0;
+        while (m--) {
+                int op,l,r,x;
+                scanf("%d%d%d",&op,&l,&r);
+                if (op==1) {
+                        scanf("%d",&x);
+                        modify(l,r,x);
+                } else {
+                        printf("%I64d\n",sgt.query(l,r,1,n,1));
+                }
+        }
+}

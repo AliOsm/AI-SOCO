@@ -1,0 +1,122 @@
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <iomanip>
+#include <sstream>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#include <stack>
+#include <set>
+#include <map>
+#include <bitset>
+#include <cstring>
+#include <cctype>
+#include <queue>
+#include <deque>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define pf push_front
+#define pb push_back
+#define mk make_pair
+#define all(c) (c).begin(), (c).end()
+#define sz(x) (int)x.size()
+#define SWS ios_base::sync_with_stdio(false)
+#define rfile freopen("input.txt", "r", stdin)
+#define wfile freopen("output.txt", "w", stdout)
+#define files rfile; wfile
+
+typedef long long ll;
+typedef long double ld;
+
+const int Z = (int)2e5 + 111;
+const int inf = (int)1e9 + 111;
+const ll llinf = (ll)1e18 + 5;
+const int MOD = (int)1e9 + 7;
+
+vector <pair<int, int> > g[Z], G[Z];
+bool used[Z];
+pair<pair<int, int> , pair<int, int> > query[Z];
+pair<int, int> pr[Z];
+ll sum = 0;
+int timer = 0, tin[Z], tout[Z], l, d[Z];
+pair <int, int> up[Z][30];
+
+void dfs(int v, int p, int len) {
+    tin[v] = ++timer;
+    up[v][0].fi = p;
+    up[v][0].se = len;
+    for (int i = 1; i <= l; ++i) {
+        up[v][i].fi = up[up[v][i-1].fi][i-1].fi;
+        up[v][i].se = max(up[v][i-1].se, up[up[v][i-1].fi][i-1].se);
+    }
+    for (auto to : G[v]) {
+        if (to.fi == p) continue;
+        dfs(to.fi, v, to.se);
+    }
+    tout[v] = ++timer;
+}
+
+bool isParent(int a, int b) {
+    return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int lca(int a, int b) {
+    int res = 0;
+    if (isParent(a, b)) return res;
+    for (int i = l; i >= 0; --i) {
+        if (!isParent(up[a][i].fi, b)) {
+            res = max(res, up[a][i].se);
+            a = up[a][i].fi;
+        }
+    }
+    res = max(res, up[a][0].se);
+    return res;
+}
+
+int main() {
+	//files;
+	SWS;
+	int n, m;
+	cin >> n >> m;
+	for (int i = 1; i <= m; ++i) {
+        cin >> query[i].fi.fi >> query[i].fi.se >> query[i].se.fi;
+        query[i].se.se = i;
+        g[query[i].fi.fi].pb(mk(query[i].fi.se, query[i].se.fi));
+        g[query[i].fi.se].pb(mk(query[i].fi.fi, query[i].se.fi));
+	}
+	fill(d + 1, d + 1 + n, inf);
+	d[1] = 0;
+	set <pair<int, int> > mn;
+	mn.insert(mk(0, 1));
+	while (!mn.empty()) {
+        int v = mn.begin() -> se;
+        mn.erase(mn.begin());
+        used[v] = 1;
+        if (v != 1) {
+            sum += pr[v].se;
+            G[v].pb(mk(pr[v].fi, pr[v].se));
+            G[pr[v].fi].pb(mk(v, pr[v].se));
+        }
+        for (auto to : g[v]) {
+            if (!used[to.fi] && d[to.fi] > to.se) {
+                mn.erase(mk(d[to.fi], to.fi));
+                d[to.fi] = to.se;
+                mn.insert(mk(d[to.fi], to.fi));
+                pr[to.fi].fi = v;
+                pr[to.fi].se = to.se;
+            }
+        }
+	}
+	l = 1;
+	while ((1 << l) <= n) ++l;
+	dfs(1, 1, 0);
+	for (int i = 1; i <= m; ++i) {
+        int v1 = query[i].fi.fi, v2 = query[i].fi.se, w = query[i].se.fi;
+        cout << sum - max(lca(v1, v2), lca(v2, v1)) + w << '\n';
+	}
+	return 0;
+}

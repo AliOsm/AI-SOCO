@@ -1,0 +1,211 @@
+//
+
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <map>
+#include <set>
+#include <queue>
+#include <deque>
+#include <stack>
+#include <list>
+#include <iomanip>
+#include <fstream>
+#include <unordered_map>
+
+using namespace std;
+
+typedef pair <int, int> pii;
+typedef pair <long long, long long> pll;
+typedef long long ll;
+typedef unsigned long long ull;
+
+#define mp make_pair
+
+const int mod = 1000000007;
+const int INF = 1000000000;
+const int DEFVALUE = -1000000000;
+
+struct StringTrie {
+    StringTrie *next[26];
+    int value;
+
+    StringTrie() {
+        for (int i = 0; i < 26; i++)
+            next[i] = nullptr;
+
+        value = -1;
+    }
+
+    StringTrie(StringTrie *root) {
+        if (root == nullptr)
+            root = new StringTrie();
+
+        for (int i = 0; i < 26; i++)
+            next[i] = root->next[i];
+
+        value = root->value;
+    }
+};
+
+struct IntTrie {
+    IntTrie *next[2];
+    int cnt;
+
+    IntTrie() {
+        next[0] = next[1] = nullptr;
+        cnt = 0;
+    }
+
+    IntTrie(IntTrie *root) {
+        if (root == nullptr)
+            root = new IntTrie();
+
+        for (int i = 0; i < 2; i++)
+            next[i] = root->next[i];
+
+        cnt = root->cnt;
+    }
+};
+
+StringTrie str[100005];
+IntTrie a[100005];
+int q;
+
+int remove(StringTrie *r, string str);
+void remove(IntTrie *r, int value);
+int add(StringTrie *r, string str, int value);
+void add(IntTrie *r, int value);
+int fnd(StringTrie *r, string str);
+int fnd(IntTrie *r, int value);
+
+int main() {
+	string type, name;
+	int p;
+
+	ios::sync_with_stdio(false);
+
+	cin >> q;
+
+	for (int i = 1; i <= q; i++) {
+		cin >> type;
+
+        if (type != "undo") {
+            str[i] = str[i - 1];
+            a[i] = a[i - 1];
+        }
+
+		if (type == "set") {
+			cin >> name >> p;
+
+            remove(&a[i], add(&str[i], name, p));
+            add(&a[i], p);
+		}
+		else if (type == "remove") {
+            cin >> name;
+
+            remove(&a[i], remove(&str[i], name));
+		}
+		else if (type == "query") {
+            cin >> name;
+
+            cout << fnd(&a[i], fnd(&str[i], name)) << endl;
+		}
+		else if (type == "undo") {
+			cin >> p;
+
+            str[i] = str[i - p - 1];
+            a[i] = a[i - p - 1];
+		}
+	}
+
+	cout << endl << endl;
+
+	return 0;
+}
+
+int remove(StringTrie *r, string str) {
+    for (int i = 0; i < str.size(); i++) {
+        if (r == nullptr)
+            return -1;
+
+        r->next[str[i] - 'a'] = new StringTrie(r->next[str[i] - 'a']);
+        r = r->next[str[i] - 'a'];
+    }
+
+    if (r == nullptr)
+        return -1;
+
+    int v = r->value;
+
+    r->value = -1;
+
+    return v;
+}
+
+void remove(IntTrie *r, int value) {
+    if (value == -1)
+        return;
+
+    for (int i = 31; i > -1; i--) {
+        r->next[(value >> i) & 1] = new IntTrie(r->next[(value >> i) & 1]);
+        r = r->next[(value >> i) & 1];
+        r->cnt--;
+    }
+}
+
+int add(StringTrie *r, string str, int value) {
+    for (int i = 0; i < str.size(); i++) {
+        r->next[str[i] - 'a'] = new StringTrie(r->next[str[i] - 'a']);
+        r = r->next[str[i] - 'a'];
+    }
+
+    int v = r->value;
+
+    r->value = value;
+
+    return v;
+}
+
+void add(IntTrie *r, int value) {
+    for (int i = 31; i > -1; i--) {
+        r->next[(value >> i) & 1] = new IntTrie(r->next[(value >> i) & 1]);
+        r = r->next[(value >> i) & 1];
+        r->cnt++;
+    }
+}
+
+int fnd(StringTrie *r, string str) {
+    for (int i = 0; i < str.size(); i++) {
+        if (r->next[str[i] - 'a'] == nullptr)
+            return -1;
+
+        r->next[str[i] - 'a'] = new StringTrie(r->next[str[i] - 'a']);
+        r = r->next[str[i] - 'a'];
+    }
+
+    return r->value;
+}
+
+int fnd(IntTrie *r, int value) {
+    int result = 0;
+    
+    if (value == -1)
+        return -1;
+
+    for (int i = 31; i > -1; i--) {
+        if (r == nullptr)
+            break;
+
+        if (((value >> i) & 1) && (r->next[0] != nullptr))
+            result += r->next[0]->cnt;
+
+        r->next[(value >> i) & 1] = new IntTrie(r->next[(value >> i) & 1]);
+        r = r->next[(value >> i) & 1];
+    }
+
+    return result;
+}

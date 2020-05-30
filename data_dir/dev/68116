@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+#include <ext/hash_set>
+#include <ext/numeric>
+
+using namespace __gnu_cxx;
+using namespace std;
+
+using ll = long long;
+using vi = vector<int>;
+using vll = vector<ll>;
+using vvi = vector<vi>;
+using pii = pair<int, int>;
+using vii = vector<pii>;
+using vb = vector<bool>;
+using vs = vector<string>;
+const int MOD = int(1e9 + 7);
+const long double EPS = 1e-4;
+const double PI = 3.1415926535897932384626433;
+const ll INF = ll(1e9);
+int di[] = {0, 0, 1, -1};
+int dj[] = {1, -1, 0, 0};
+#define all(x) x.begin(),x.end()
+
+int n, b;
+vi num;
+vvi cnt;
+vector<deque<int>> block;
+
+void shift(int l, int r) {
+	if (l > r) swap(l, r);
+	if (l / b == r / b) {
+		int cb = l / b;
+		l %= b, r %= b;
+		for (int i = r; i > l; --i) {
+			swap(block[cb][i], block[cb][i - 1]);
+		}
+		return;
+	}
+
+	int x = block[r / b][r % b];
+	block[r / b].erase(block[r / b].begin() + (r % b));
+	cnt[r / b][x]--;
+
+	for (int i = r / b; i > l / b; --i) {
+		int y = block[i - 1].back();
+		block[i].push_front(y);
+		cnt[i][y]++;
+		cnt[i - 1][y]--;
+		block[i - 1].pop_back();
+	}
+
+	block[l / b].insert(block[l / b].begin() + (l % b), x);
+	cnt[l / b][x]++;
+}
+
+int query(int l, int r, int k) {
+	if (l > r) swap(l, r);
+	if (l / b == r / b) {
+		int cb = l / b, ret = 0;
+		l %= b, r %= b;
+		for (int i = l; i <= r; ++i) {
+			ret += (block[cb][i] == k);
+		}
+		return ret;
+	}
+
+	int ret = count(block[l / b].begin() + (l % b), block[l / b].end(), k);
+	ret += count(block[r / b].begin(), block[r / b].begin() + (r % b) + 1, k);
+	for (int i = l / b + 1; i < r / b; ++i) {
+		ret += cnt[i][k];
+	}
+	return ret;
+}
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(nullptr);
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+#endif
+
+	cin >> n;
+	num.resize(n);
+	b = ceil(sqrt(n));
+	block.assign(b, deque<int>());
+	cnt.assign(b, vi(1e5 + 5));
+	for (int i = 0; i < n; ++i) {
+		cin >> num[i];
+		block[i / b].push_back(num[i]);
+		cnt[i / b][num[i]]++;
+	}
+
+	int q; cin >> q;
+	int last = 0;
+	while (q--) {
+		int t, l, r; cin >> t >> l >> r;
+		l = (l + last - 1) % n;
+		r = (r + last - 1) % n;
+		if (t == 1) {
+			shift(l, r);
+		}
+		else {
+			int k; cin >> k;
+			k = ((k + last - 1) % n) + 1;
+			last = query(l, r, k);
+			cout << last << endl;
+		}
+	}
+}

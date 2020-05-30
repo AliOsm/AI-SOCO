@@ -1,0 +1,188 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define fora(i, n) for (int i = 0; i < n; ++i)
+#define forb(i, n) for (int i = 1; i <= n; ++i)
+#define forc(i, n) for (const auto &i : n)
+#define sz(x) (int)(x).size()
+#define all(x) begin(x), end(x)
+#define mp make_pair
+#define pb push_back
+#define eb emplace_back
+
+using ll = long long;
+using ld = long double;
+
+vector<int> unions;
+void init(int n) {
+	unions.assign(n, -1);
+}
+int findSet(int n){
+	if(unions[n] < 0)return n;
+	return unions[n] = findSet(unions[n]);
+}
+void linkSets(int a, int b) {
+	if (unions[a] > unions[b]) unions[a] = b;
+	else if (unions[b] > unions[a]) unions[b] = a;
+	else {
+		unions[a] = b;
+		unions[b]--;
+	} 
+}
+void unionSets(int a, int b) {
+	if (findSet(a) != findSet(b)) linkSets(findSet(a),findSet(b));
+}
+
+struct edge {
+	ll a, b, w, id, mstnode;
+	bool operator<(const edge& o) const {
+		return w < o.w;
+	}
+};
+
+vector<vector<int>> adj;
+vector<int> sz, in, out, nxt, par;
+int t;
+
+void dfs_sz(int v = 0, int from = -1) {
+	sz[v] = 1;
+	for (auto &u : adj[v]) {
+		if (u != from) {
+			dfs_sz(u, v);
+			sz[v] += sz[u];
+		}
+		if (adj[v][0] == from || sz[u] > sz[adj[v][0]]) {
+			swap(u, adj[v][0]);
+		}
+	}
+}
+
+void dfs_hld(int v = 0, int from= -1) {
+	par[v] = from;
+	in[v] = t++;
+	forc(u, adj[v]) {
+		if (u == from) continue;
+		nxt[u] = (u == adj[v][0] ? nxt[v] : u);
+		dfs_hld(u, v);
+	}
+	out[v] = t;
+}
+
+vector<pair<int, int>> get_intervals(int u, int v) {
+	vector<pair<int, int>> res;
+	while (true) {
+		if (in[v] < in[u]) swap(u, v);
+		if (in[nxt[v]] <= in[u]) {
+			res.eb(in[u], in[v] + 1);
+			return res;
+		}
+		res.eb(in[nxt[v]], in[v] + 1);
+		v = par[nxt[v]];
+	}
+}
+
+vector<ll> tree;
+constexpr ll query_default = -1000000;
+
+ll combine(ll a, ll b) {
+	return max(a, b);
+}
+
+void initst(int n) {
+	tree.assign(n * 2, 0);
+}
+
+void update(int p, ll value) {
+	for (tree[p += sz(tree)/2] = value, p /= 2; p > 0; p /= 2) {
+		tree[p] = combine(tree[2 * p], tree[2 * p + 1]);
+	}
+}
+
+ll query(int l, int r) {
+	ll resL = query_default, resR = query_default;
+	for (l += sz(tree)/2, r += sz(tree)/2; l < r; l /= 2, r /= 2) {
+		if (l & 1) resL = combine(resL, tree[l++]);
+		if (r & 1) resR = combine(tree[--r], resR);
+	}
+	return combine(resL, resR);
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	ll n, m;
+	cin >> n >> m;
+	vector<edge> edges;
+	for (ll i = 0; i < m; i++) {
+		ll a, b, w;
+		cin >> a >> b >> w;
+		a--;
+		b--;
+		edges.push_back({a, b, w, i, -1});
+	}
+	sort(all(edges));
+	init(n);
+	adj.assign(2*n-1, {});
+	sz.assign(2*n-1, 0);
+	in.assign(2*n-1, 0);
+	out.assign(2*n-1, 0);
+	nxt.assign(2*n-1, 0);
+	par.assign(2*n-1, -1);
+	auto addEdge=[&](ll a, ll b) {
+		adj[a].push_back(b);
+		adj[b].push_back(a);
+	};
+	ll nextNode = n;
+	for (auto& e : edges) {
+		if (findSet(e.a) != findSet(e.b)) {
+			unionSets(e.a, e.b);
+			e.mstnode = nextNode;
+			addEdge(e.a, nextNode);
+			addEdge(e.b, nextNode);			
+			nextNode++;			
+		}
+	}
+	dfs_sz();
+	dfs_hld();
+	initst(2*n-1);
+	for (auto e : edges) {
+		if (e.mstnode >= 0) {
+			update(in[e.mstnode], e.w);
+		}
+	}
+	
+	/*fora(i, sz(tree)) {
+		cout << tree[i] << " ";
+	}
+	cout << endl;*/
+	
+	vector<ll> res(m, query_default);
+	for (auto e : edges) {
+		if (e.mstnode < 0) {
+			//cout << "Blubb " << e.id << endl;
+			auto intvs = get_intervals(e.a, e.b);
+			for (auto a : intvs) {
+				res[e.id] = max(res[e.id], query(a.first, a.second));
+				//cout << a.first << " " << a.second << " " << res[e.id] << endl;
+			}
+		}
+	}
+	for (ll i = 0; i < m; i++) {
+		if (res[i] >= 0) {
+			cout << res[i] << " ";
+		}
+	}
+	cout << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+

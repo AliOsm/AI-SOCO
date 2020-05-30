@@ -1,0 +1,262 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+
+
+using namespace std;
+
+#ifdef WIN32
+    #define LLD "%I64d"
+#else
+    #define LLD "%lld"
+#endif
+
+typedef pair<int, int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<bool> vb;
+typedef vector<vb> vvb;
+typedef vector<ll> vll;
+typedef vector<vll> vvll;
+
+ll rdtsc() {
+    ll tmp;
+    asm("rdtsc" : "=A"(tmp));
+    return tmp;
+}
+
+inline int myrand() {
+	return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+	return myrand() % x;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define EPS (1e-9)
+#define INF ((int)1e9)
+#define sqr(x) ((x) * (x))         
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+const char* goChar = "LURD";
+const int go[4][2] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}};
+
+const int maxc = 302;
+int trees[maxc * 2 + 1][maxc * 2 + 1];
+
+inline bool inBorder(int x, int y) {
+	return x == maxc || x == -maxc || y == maxc || y == -maxc;
+}
+
+inline bool ok(int x, int y) {
+	return -maxc <= x && x <= maxc && -maxc <= y && y <= maxc;
+}
+
+inline bool haveTrees(int x, int y) {
+	return ok(x, y) && trees[y + maxc][x + maxc];
+}
+
+struct Point {
+	int x, y;
+
+	bool makeMove(int g) {
+		int nx = x + go[g][0], ny = y + go[g][1];
+		if (!haveTrees(nx, ny)) {
+			x = nx, y = ny; 
+			return 1;
+		}	
+		return 0;
+	}
+
+	inline bool operator == (const Point &p) const {
+		return x == p.x && y == p.y;
+	}
+} she, team;
+
+
+string res;
+bool makeMove(int g, int should = -1) {
+	res += goChar[g];
+	//eprintf("go %c\n", goChar[g]);
+	int tmp = team.makeMove(g);
+	if (should != -1)
+		assert(tmp == should);
+	assert(she.makeMove(g));
+	//eprintf("she: (%d,%d)  team: (%d,%d)\n", she.x, she.y, team.x, team.y);
+	return tmp;
+}
+
+
+int path[maxc * 5];
+
+
+const int maxx = 2 * maxc + 1;
+int dist[maxx][maxx], pr[maxx][maxx];
+int st[maxx * maxx][2];
+
+void findPath(int x0, int y0, int xe, int ye, int *gs, int &len, int border = 0) {
+	for (int y = -maxc; y <= maxc; ++y)
+		for (int x = -maxc; x <= maxc; ++x)
+			dist[y + maxc][x + maxc] = INF;
+	
+	if (border)
+		assert(abs(x0) == maxc || abs(y0) == maxc);
+	int r = 0;				
+	st[r][0] = x0, st[r][1] = y0, ++r;
+	dist[y0 + maxc][x0 + maxc] = 0;
+
+	bool found = 0;
+	for (int l = 0; !found && l < r; ++l) {
+		int x = st[l][0], y = st[l][1];
+		int curd = dist[y + maxc][x + maxc] + 1;
+		for (int g = 0; g < 4; ++g) {
+			int nx = x + go[g][0], ny = y + go[g][1];
+			if (!ok(nx, ny) || haveTrees(nx, ny))
+				continue;
+			if (border && (abs(nx) != maxc && abs(ny) != maxc))
+				continue;
+			int &toupdate = dist[ny + maxc][nx + maxc];
+			if (toupdate > curd) {
+				toupdate = curd;
+				pr[ny + maxc][nx + maxc] = g;
+				st[r][0] = nx, st[r][1] = ny, ++r;
+				if (nx == xe && ny == ye) {
+					found = 1;
+					break;
+				}
+			}
+		}
+	}
+	
+	len = dist[ye + maxc][xe + maxc];
+	if (len == INF)
+		return;
+
+	for (int x = xe, y = ye, it = 0; !(x == x0 && y == y0); ++it) {
+		assert(it <= len - 1);
+		int g = gs[len - 1 - it] = pr[y + maxc][x + maxc]; 	
+		x -= go[g][0], y -= go[g][1];
+	}
+}
+
+bool solve() {
+	int n;
+	if (scanf("%d%d%d%d%d", &she.x, &she.y, &team.x, &team.y, &n) < 5)
+		return 0;
+	memset(trees, 0, sizeof(trees));
+	for (int i = 0; i < n; ++i) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		trees[y + maxc][x + maxc] = 1;
+	}
+
+	if (!n) {
+		assert(!(she == team));
+		printf("-1\n");
+	 	return 1;
+	}         
+
+	{
+		int len;
+		findPath(team.x, team.y, she.x, she.y, path, len);	
+		if (len == INF) {
+			printf("-1\n");
+			return 1;
+		}	
+	}
+
+	res = "";
+
+	int len = 0;
+	int l = 0;
+	while (!(team == she) && !inBorder(team.x, team.y)) {
+		if (l == len) {
+			findPath(she.x, she.y, team.x, team.y, path, len);	
+			l = 0;
+		}
+		assert(len != INF && len > 0);
+		makeMove(path[l]);
+		++l;
+	}
+	
+
+	for (int g = 0; g < 4; g++) {
+		//eprintf("----------------------------------------------------G = %d\n", g);
+		if ((team.x - she.x) * go[g][0] + (team.y - she.y) * go[g][1] <= 0)
+			continue;
+		Point where;
+		where.x = -INF;
+
+		for (int x = -maxc, tmp = INF; x <= maxc; x++) {
+			for (int y = -maxc; y <= maxc; y++) {
+				if (haveTrees(x, y) && x * go[g][0] + y * go[g][1] < tmp) {
+					tmp = x * go[g][0] + y * go[g][1];
+					where.x = x, where.y = y;
+				}
+			}
+		}
+		assert(where.x != -INF);
+
+		int added = 0;
+		Point firstly = where;
+		while (abs(firstly.x) < maxc && abs(firstly.y) < maxc) {
+			assert(firstly.makeMove(g ^ 2));
+			added++;
+		}
+
+		//eprintf("added = %d\n", added);
+
+		int len;
+		findPath(team.x, team.y, firstly.x, firstly.y, path, len, 1); 
+		assert(len != INF);
+		for (int i = 0; i < len; i++)
+			makeMove(path[i], 1);
+		//eprintf("done!\n");
+		for (int i = 0; i < added - 1; i++)
+			makeMove(g, 1);
+	
+
+  	while ((team.x - she.x) * go[g][0] + (team.y - she.y) * go[g][1])
+  		makeMove(g, 0);
+  
+  	for (int i = 0; i < added - 1; i++)
+			makeMove(g ^ 2, 1);
+  	assert(abs(team.x) == maxc || abs(team.y) == maxc);
+  }
+
+	assert(team == she);
+	printf("%s\n", res.c_str());
+
+	return 1;
+}
+
+int main() {
+	srand(rdtsc());
+#ifdef DEBUG
+	freopen(TASKNAME".in", "r", stdin);
+	freopen(TASKNAME".out", "w", stdout);
+#endif
+	
+	while (1) {
+		if (!solve())
+			break;
+		#ifdef DEBUG
+			eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+		#endif
+	}
+	return 0;
+}

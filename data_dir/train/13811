@@ -1,0 +1,157 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace __gnu_pbds;
+using namespace std;
+
+template <class T>
+using ordered_set =
+tree <T,null_type,less <T>,rb_tree_tag,tree_order_statistics_node_update> ;
+///find_by_order()
+///order_of_key()
+
+template <class T,class U>
+void maximize(T &x,U y){
+    if(x < y)x=y;
+}
+template <class T,class U>
+void minimize(T &x,U y){
+    if(x > y)x=y;
+}
+template <class T>
+T Abs(T x){
+    return (x < (T)0 ? -x : x);
+}
+template <class T>
+T safe_sqrt(T x){
+    return sqrt(max(x,(T)0));
+}
+template <class T,class U,class V>
+T addmod(T x,U k,V MOD){
+    return ((x+k)%MOD + MOD)%MOD;
+}
+template <class T,class U,class V>
+T submod(T x,U k,V MOD){
+    return ((x-k)%MOD + MOD)%MOD;
+}
+template <class T,class U,class V>
+T mul(T x,U y,V MOD){
+    return ( (x % MOD) * (y % MOD) ) % MOD;
+}
+
+#define ll long long
+#define pll pair <ll,ll>
+#define pii pair <int,int>
+#define fir first
+#define sec second
+#define mp make_pair
+#define pb push_back
+#define emp emplace_back
+#define MASK(i) ((1LL)<<(i))
+#define BIT(x,i) (((x)>>(i))&1)
+#define all(c) (c).begin(),(c).end()
+#define sz(c) (int)((c).size())
+#define fn "test"    ///FILE_NAME_HERE
+
+/*------------------------------------------END_OF_TEMPLATE------------------------------------------*/
+
+namespace task{
+
+    const int N = 1e3 + 3;
+    const int tx[] = {0,1,0,-1};
+    const int ty[] = {1,0,-1,0};
+    int n,m,p;
+    int s[10];
+    char a[N][N];
+    int vis[N][N];
+    bool inque[10][N][N];
+    int ans[10];
+    vector <pii> ve[10];
+    queue < pair <pii,int> > que[10];
+
+    bool insize(int u,int v){
+        return 1 <= u and u <= n and 1 <= v and v <= m and a[u][v] == '.';
+    }
+
+    bool bfs(int idx){
+        queue <pair <pii,int> > q = que[idx];
+        while(!que[idx].empty()){
+            que[idx].pop();
+        }
+        bool canMove = false;
+        while(!q.empty()){
+            pair <pii,int> top = q.front();
+            q.pop();
+            int stp = top.sec;
+            int u = top.fir.fir;
+            int v = top.fir.sec;
+            if(stp + 1 > s[idx]){
+                if(!inque[idx][u][v]){
+                    inque[idx][u][v] = true;
+                    que[idx].push(mp(mp(u,v),0));
+                }
+                continue;
+            }
+            for(int i = 0;i < 4;++i){
+                int nxt_u = u + tx[i];
+                int nxt_v = v + ty[i];
+                if(insize(nxt_u,nxt_v) and !vis[nxt_u][nxt_v]) {
+                    vis[nxt_u][nxt_v] = idx;
+                    canMove = true;
+                    q . push(mp(mp(nxt_u, nxt_v), stp + 1));
+                }
+            }
+        }
+        return canMove;
+    }
+
+    void solve(){
+        cin>>n>>m>>p;
+        for(int i = 1;i <= p;++i){
+            cin>>s[i];
+            minimize(s[i],n + m - 2);
+        }
+        for(int i = 1;i <= n;++i){
+            for(int j = 1;j <= m;++j){
+                cin>>a[i][j];
+                if('1' <= a[i][j] and a[i][j] <= '9'){
+                    ve[a[i][j] - '0'].emp(mp(i,j));
+                }
+            }
+        }
+        for(int i = 1;i <= p;++i){
+            for(auto val : ve[i]){
+                que[i].push(mp(val,0));
+                inque[i][val.fir][val.sec] = true;
+                vis[val.fir][val.sec] = i;
+            }
+        }
+        while(true){
+            bool ret = false;
+            for(int i = 1;i <= p;++i){
+                ret |= bfs(i);
+            }
+            if(!ret){
+                break;
+            }
+        }
+        for(int i = 1;i <= n;++i){
+            for(int j = 1;j <= m;++j){
+                ++ans[vis[i][j]];
+            }
+        }
+        for(int i = 1;i <= p;++i){
+            cout<<ans[i]<<' ';
+        }
+    }
+}
+
+int main(void){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+#ifndef ONLINE_JUDGE
+    freopen(fn".inp","r",stdin);
+    freopen(fn".out","w",stdout);
+#endif // ONLINE_JUDGE
+    task::solve();
+}

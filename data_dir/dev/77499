@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+#ifdef BUG
+    #include "debug.hpp"
+#else
+    #define DEBUG(var)
+    #define EXPECT(expr)
+#endif
+#define NO_IO_TIE ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+using namespace std;
+template< class T1, class T2 > inline istream &
+operator>>( istream & fin, pair< T1, T2 > & pr )
+{ fin >> pr.first >> pr.second; return fin; }
+template< class T0, class T1, class T2 > inline istream &
+operator>>( istream & fin, tuple< T0, T1, T2 > & t )
+{ fin >> get<0>(t) >> get<1>(t) >> get<2>(t); return fin; }
+template< class T > inline istream &
+operator>>( istream & fin, vector< T > & a ) {
+for(auto & u: a) fin >> u; return fin; }
+template<class T, size_t n> inline istream &
+operator>>( istream & fin, array<T, n> & a ) {
+for(auto & u: a) fin >> u; return fin; }
+/* @@@ ----------------------------------- */
+
+string probE()
+{
+    string str;
+    size_t k;
+    cin >> str >> k;
+
+    const auto len = str.length();
+
+    if(str.length() == 1)
+        return str;
+
+    typedef struct {
+        size_t count; /* number of half-palindromes in sub-tree of this node */
+        size_t left;  /* index of left & right child */
+        size_t right;
+    } node_t;
+
+    vector<node_t> tree;
+    tree.reserve(len * (len + 1) / 2);
+    tree.push_back({0, 0, 0});
+
+    const auto walk =
+        [&str, &tree](const size_t head,
+                      const vector<size_t> & idx)
+    {
+        const auto last = idx.back() + 1;
+        auto iter = begin(idx);
+
+        size_t node = 0; /* start @ root of tree */
+        tree[node].count += idx.size();
+
+        for(size_t i = head; i < last; ++ i)
+        {
+            auto & next = str[i] == 'a' ? tree[node].left : tree[node].right;
+            if(!next)
+                next = tree.size(), tree.push_back({0, 0, 0});
+
+            node = next;
+            tree[node].count += end(idx) - iter;
+            if(iter != end(idx) && i == *iter)
+                ++ iter;
+        }
+    };
+
+    str += "xxx"; /* buffer for overshoot */
+    vector<size_t> a, b;
+
+    for(size_t l = len - 1; l < len; -- l )
+    {
+        const auto head = str[l];
+
+        vector<size_t> buf({l});
+        if(head == str[l + 1]) buf.emplace_back(l + 1);
+        if(head == str[l + 2]) buf.emplace_back(l + 2);
+        if(head == str[l + 3]) buf.emplace_back(l + 3);
+
+        for(const auto i: a)
+            if(head == str[i + 2])
+                buf.emplace_back(i + 2);
+
+        walk(l, buf);
+        a.swap(b);
+        b.swap(buf);
+    }
+
+    string out;
+    for(size_t i = 0; 0 < k; )
+    {
+        const auto & node = tree[i];
+        const auto lcnt = node.left  ? tree[node.left].count  : 0;
+        const auto rcnt = node.right ? tree[node.right].count : 0;
+
+        /* those which end right at this node */
+        if(k < node.count - lcnt - rcnt + 1)
+            break;
+
+        k -= node.count - lcnt - rcnt;
+
+        if(lcnt < k)
+        {
+            k -= lcnt;
+            i = node.right;
+            out += 'b';
+        }
+        else
+            i = node.left, out += 'a';
+    }
+
+    return out;
+}
+
+
+int main( const int argc, char * argv [])
+{
+    NO_IO_TIE;
+    cout << probE();
+
+    return EXIT_SUCCESS;
+}

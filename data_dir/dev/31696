@@ -1,0 +1,164 @@
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <iostream>
+#include <iterator>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <unordered_map>
+#include <string>
+using namespace std;
+ 
+int p[20010] = { 1, 1 };
+ 
+int n, a[210];
+ 
+struct Edge {
+    int a, b, capacity, flow;
+public:
+    Edge(int a, int b, int capacity) : a(a), b(b), capacity(capacity), flow(0) {}
+    int other(int v) const {
+        return v == a ? b : a;
+    }
+    int capacityTo(int v) const {
+        return v == b ? capacity - flow : flow;
+    }
+    void addFlowTo(int v, int f) {
+        flow += (v == b ? f : -f);
+    }
+};
+ 
+struct Graph {
+    vector<Edge> edges;
+    vector< vector<int> > g;
+    vector<bool> used;
+    vector<int> edgeTo;
+    void bfs(int v) {
+        queue<int> q;
+        used[v] = 1;
+        q.push(v);
+        while (!q.empty()) {
+            v = q.front();
+            q.pop();
+            for (int i = 0; i < g[v].size(); i++) {
+                int e = g[v][i], to = edges[e].other(v);
+                if (!used[to] && edges[e].capacityTo(to)) {
+                    edgeTo[to] = e;
+                    used[to] = 1;
+                    q.push(to);
+                }
+            }
+        }
+    }
+    bool hasPath(int from, int to) {
+        fill(used.begin(), used.end(), 0);
+        bfs(from);
+        return used[to];
+    }
+    int bottleneckCapacity(int from, int to) {
+        int bCapacity = 1 << 30;
+        for (int v = to; v != from; v = edges[edgeTo[v]].other(v))
+            bCapacity = min(bCapacity, edges[edgeTo[v]].capacityTo(v));
+        return bCapacity;
+    }
+    void addFlow(int from, int to, int flow) {
+        for (int v = to; v != from; v = edges[edgeTo[v]].other(v))
+            edges[edgeTo[v]].addFlowTo(v, flow);
+    }
+public:
+    Graph(int verticesCount) {
+        g.resize(verticesCount);
+        used.resize(verticesCount);
+        edgeTo.resize(verticesCount);
+    }
+    void addEdge(int from, int to, int capacity) {
+        edges.push_back(Edge(from, to, capacity));
+        g[from].push_back(edges.size() - 1);
+        g[to].push_back(edges.size() - 1);
+    }
+    long long maxFlow(int from, int to) {
+        long long flow = 0;
+        while (hasPath(from, to)) {
+            int deltaFlow = bottleneckCapacity(from, to);
+            addFlow(from, to, deltaFlow);
+            flow += deltaFlow;
+        }
+        return flow;
+    }
+};
+ 
+vector<int> g1[210];
+int u[210];
+vector<vector<int>> ans;
+ 
+void dfs(int v) {
+    u[v] = 1;
+    ans.back().push_back(v);
+    for (int to : g1[v])
+        if (!u[to])
+            dfs(to);
+}
+ 
+int main() {
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+ 
+    for (int i = 2; i < 20010; i++) {
+        if (!p[i])
+            for (int j = i * i; j < 20010; j += i)
+                p[j] = 1;
+    }
+ 
+    cin >> n;
+    for (int i = 0; i < n; i++)
+        cin >> a[i];
+ 
+    Graph g(1 + n + 1);
+ 
+    for (int i = 0; i < n; i++) {
+        if (a[i] % 2 == 0) {
+            g.addEdge(0, 1 + i, 2);
+            for (int j = 0; j < n; j++)
+                if (!p[a[i] + a[j]])
+                    g.addEdge(1 + i, 1 + j, 1);
+        } else {
+            g.addEdge(1 + i, 1 + n, 2);
+        }
+    }
+ 
+    int f = g.maxFlow(0, 1 + n);
+ 
+    if (f != n) {
+        cout << "Impossible";
+        return 0;
+    }
+ 
+    for (const Edge &e : g.edges) {
+        if (e.a == 0 || e.b == 1 + n || e.flow == 0)
+            continue;
+        int a = e.a - 1, b = e.b - 1;
+        g1[a].push_back(b);
+        g1[b].push_back(a);
+    }
+ 
+    for (int i = 0; i < n; i++) {
+        if (!u[i]) {
+            ans.push_back(vector<int>());
+            dfs(i);
+        }
+    }
+ 
+    cout << ans.size() << "\n";
+    for (int i = 0; i < ans.size(); i++) {
+        cout << ans[i].size();
+        for (int j = 0; j < ans[i].size(); j++) {
+            cout << " " << ans[i][j] + 1;
+        }
+        cout << "\n";
+    }
+} 

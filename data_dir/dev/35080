@@ -1,0 +1,150 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+#define ll long long
+const int N = 2005;
+int a[N], id = 0;
+vector<int> ind[N];
+int n, start;
+int dist(int x, int y, int f = 2) {
+  if (f == 2) return min(dist(x, y, 1), dist(x, y, 0));
+  if (!f) swap(x, y);
+  return (y - x + n) % n;
+}
+int dp[N][2];
+int solve(int indx, bool f) {
+  if (a[indx] == id && f) return 0;
+  int &ret = dp[indx][f];
+  if (ret != -1) return ret;
+  ret = 1e8;
+  int v = a[indx];
+  if (!f) {
+    int cur = lower_bound(ind[v].begin(), ind[v].end(), indx) - ind[v].begin();
+    int sz = ind[v].size();
+
+    for (int i = 0; i < sz; i++) {
+      int x = ind[v][(cur + i) % sz];
+      int y = ind[v][(cur + i + 1) % sz];
+      if (x == indx) continue;
+      if (y == indx) y = x;
+      ret = min(ret, solve(y, 1) + dist(indx, x, 1) + dist(x, y, 0));
+    }
+    for (int i = 0; i < sz; i++) {
+      int x = ind[v][(cur - i + sz) % sz];
+      int y = ind[v][(cur - i - 1 + sz) % sz];
+      if (x == indx) continue;
+      if (y == indx) y = x;
+      ret = min(ret, solve(y, 1) + dist(indx, x, 0) + dist(x, y, 1));
+    }
+  } else {
+    v++;
+    for (int i = 0; i < ind[v].size(); i++)
+      ret = min(ret,
+                solve(ind[v][i], (ind[v].size() == 1)) + dist(indx, ind[v][i]));
+  }
+  return ret;
+}
+bool done[N];
+void move(int s, int d, int f) {
+  int cnt = 0;
+  if (s != d) assert(done[d] == 0);
+  while (s != d) {
+    if (f)
+      s++;
+    else
+      s--;
+    s = (s + n) % n;
+    cnt++;
+    if (!done[s] && a[s] == a[d]) {
+      if (f)
+        cout << "+";
+      else
+        cout << "-";
+      done[s] = 1;
+      cout << cnt << '\n';
+      cnt = 0;
+    }
+  }
+}
+void print(int indx, bool f) {
+  if (a[indx] == id && f) return;
+  done[indx] = 1;
+  int v = a[indx];
+  int &ret = dp[indx][f];
+  if (!f) {
+    int cur = lower_bound(ind[v].begin(), ind[v].end(), indx) - ind[v].begin();
+    int sz = ind[v].size();
+
+    for (int i = 0; i < sz; i++) {
+      int x = ind[v][(cur + i) % sz];
+      int y = ind[v][(cur + i + 1) % sz];
+      if (x == indx) continue;
+      if (y == indx) y = x;
+
+      if (ret == solve(y, 1) + dist(indx, x, 1) + dist(x, y, 0)) {
+        move(indx, x, 1);
+        move(x, y, 0);
+        return print(y, 1);
+      }
+    }
+    for (int i = 0; i < sz; i++) {
+      int x = ind[v][(cur - i + sz) % sz];
+      int y = ind[v][(cur - i - 1 + sz) % sz];
+      if (x == indx) continue;
+      if (y == indx) y = x;
+
+      if (ret == solve(y, 1) + dist(indx, x, 0) + dist(x, y, 1)) {
+        move(indx, x, 0);
+        move(x, y, 1);
+        return print(y, 1);
+      }
+    }
+  } else {
+    v++;
+    for (int i = 0; i < ind[v].size(); i++)
+      if (ret ==
+          solve(ind[v][i], (ind[v].size() == 1)) + dist(indx, ind[v][i])) {
+        if (dist(indx, ind[v][i], 0) < dist(indx, ind[v][i], 1))
+          cout << "-";
+        else
+          cout << "+";
+        cout << dist(indx, ind[v][i]) << '\n';
+        return print(ind[v][i], ind[v].size() == 1);
+      }
+  }
+}
+int main() {
+  ios_base::sync_with_stdio(0), cin.tie(0);
+#ifndef ONLINE_JUDGE
+  cout << "\x1B[34m";
+#endif
+  cin >> n >> start;
+  start--;
+  map<int, int> mp;
+  for (int i = 0; i < n; i++) cin >> a[i], mp[a[i]] = 0;
+  for (auto &it : mp) it.second = ++id;
+
+  for (int i = 0; i < n; i++) {
+    a[i] = mp[a[i]];
+    ind[a[i]].push_back(i);
+  }
+  memset(dp, -1, sizeof dp);
+  int ans = 1e8;
+  bool F = ind[1].size() == 1;
+  for (int i = 0; i < ind[1].size(); i++) {
+    ans = min(ans, solve(ind[1][i], F) + dist(start, ind[1][i]));
+  }
+  cout << ans << endl;
+  for (int i = 0; i < ind[1].size(); i++) {
+    if (ans == solve(ind[1][i], F) + dist(start, ind[1][i])) {
+      if (dist(start, ind[1][i], 0) < dist(start, ind[1][i], 1))
+        cout << "-";
+      else
+        cout << "+";
+      cout << dist(start, ind[1][i]) << "\n";
+      print(ind[1][i], F);
+      return 0;
+    }
+  }
+  return 0;
+}

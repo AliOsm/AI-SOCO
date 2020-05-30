@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 5;
+int tree[N << 2];
+bool lazy[N << 2];
+int n , q , x , y , z;
+int arr[N];
+int cap[N];
+
+void build(int s = 1 , int e = n , int idx = 1)
+{
+    if(s == e)
+        return void(tree[idx] = s);
+    int mid = (s + e) >> 1;
+    build(s , mid , idx << 1);
+    build(mid + 1 , e , idx << 1 | 1);
+
+    tree[idx] = tree[idx << 1];
+}
+
+void update(int l , int r , int s = 1 , int e = n , int idx = 1)
+{
+    if(r < s || l > e) return;
+    if(lazy[idx])
+    {
+        tree[idx] = -1;
+        if(s != e)
+            lazy[idx << 1] = lazy[idx << 1 | 1] = lazy[idx];
+        lazy[idx] = 0;
+    }
+
+    if(l <= s && r >= e)
+    {
+        tree[idx] = -1;
+        if(s != e)
+            lazy[idx << 1] = lazy[idx << 1 | 1] = 1;
+        return;
+    }
+
+    int mid = (s + e) >> 1;
+    update(l , r , s , mid , idx << 1);
+    update(l , r , mid + 1 , e , idx << 1 | 1);
+
+    if(tree[idx << 1] == -1)
+        tree[idx] = tree[idx << 1 | 1];
+    else tree[idx] = tree[idx << 1];
+}
+
+int qry(int l , int r , int s = 1 , int e = n , int idx = 1)
+{
+    if(r < s || l > e) return -1;
+
+    if(lazy[idx])
+    {
+        tree[idx] = -1;
+        if(s != e)
+            lazy[idx << 1] = lazy[idx << 1 | 1] = lazy[idx];
+        lazy[idx] = 0;
+    }
+
+    if(l <= s && r >= e)
+        return tree[idx];
+
+    int mid = (s + e) >> 1;
+
+    int f = qry(l , r , s , mid , idx << 1);
+    int se = qry(l , r , mid + 1 , e , idx << 1 | 1);
+
+    if(f == -1)
+        return se;
+
+    return f;
+}
+
+int main()
+{
+    ios::sync_with_stdio(0) , cout.tie(0) , cin.tie(0);
+
+    cin >> n;
+    for(int i = 0 ; i < n ; i++)
+        cin >> arr[i+1];
+
+    build();
+
+    cin >> q;
+    while(q--)
+    {
+        cin >> x;
+        if(x == 1)
+        {
+            cin >> y >> z;
+            int s = qry(y , n);
+
+            if(s == -1) continue;
+
+            int l = -1 , r = -1;
+            for(int i = s ; i <= n ; i++)
+            {
+                if(cap[i] < arr[i])
+                {
+                    int req = arr[i] - cap[i];
+                    cap[i] += min(req , z);
+                    z -= min(z , req);
+                }
+
+                if(cap[i] == arr[i] && l == -1)
+                    l = i , r = i;
+                else if(cap[i] == arr[i]) r = i;
+                
+                if(!z) break;
+            }
+
+            if(l != -1)
+                update(l , r);
+        }
+        else
+        {
+            cin >> y;
+            cout << cap[y] << '\n';
+        }
+    }
+
+    return 0;
+}

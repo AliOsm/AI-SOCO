@@ -1,0 +1,91 @@
+#include <bits/stdc++.h>
+using namespace std;
+class Seg {
+  int l, r, m;
+  Seg* ch[2];
+public:
+  long long sum = 0, num = 0;
+  void pull() {
+    sum = ch[0]->sum + ch[1]->sum;
+    num = ch[0]->num + ch[1]->num;
+  }
+  Seg(int l, int r) : l(l), r(r), m(l + r >> 1) {
+    if (r - l == 1) sum = num = 0;
+    else {
+      ch[0] = new Seg(l, m);
+      ch[1] = new Seg(m, r);
+      pull();
+    }
+  }
+  void add(int p, long long times) {
+    if (r - l == 1) num += times, sum = num * p;
+    else {
+      if (p < m) ch[0]->add(p, times);
+      else ch[1]->add(p, times);
+      pull();
+    }
+  }
+  long long cheapestCookies(long long money) {
+    if (money < 0) return 0;
+    if (sum <= money) return num;
+    if (r - l == 1) return l == 0 ? num : min(money / l, num);
+    long long ans = 0;
+    if (ch[0]->sum <= money) 
+      return ch[0]->num + ch[1]->cheapestCookies(money - ch[0]->sum);
+    else 
+      return ch[0]->cheapestCookies(money);
+  }
+  ~Seg() {
+    if (r - l > 1) {
+      ch[0]->~Seg();
+      ch[1]->~Seg();
+    }
+  }
+};
+
+class Solution {
+  Seg* tool;
+  struct Edge {
+    int v;
+    long long w;
+    Edge(int u, long long w) : v(u), w(w) {}
+  };
+  vector<vector<Edge>> g;
+  vector<long long> x, t;
+  int n;
+  long long T;
+  long long dfs(int u, long long dis = 0) {
+    tool->add(t[u], x[u]);
+    long long mx[2] = {0};
+    long long ans = tool->cheapestCookies(T - dis * 2);
+    for (Edge e : g[u]) {
+      long long len = e.w;
+      int v = e.v;
+      long long dx = dfs(v, dis + e.w);
+      if (dx > mx[0]) mx[1] = mx[0], mx[0] = dx;
+      else mx[1] = max(mx[1], dx);
+    }
+    tool->add(t[u], -x[u]);
+    return max(ans, u == 0 ? mx[0] : mx[1]);
+  }
+public:
+  void run(istream &in, ostream &out) {
+    tool = new Seg(0, 1000001);
+    in >> n >> T;
+    g.resize(n), x.resize(n), t.resize(n);
+    for (int i = 0; i < n; ++i) in >> x[i];
+    for (int i = 0; i < n; ++i) in >> t[i];
+    for (int i = 1; i < n; ++i) {
+      int u;
+      long long w;
+      in >> u >> w;
+      --u;
+      g[u].emplace_back(i, w);
+    }
+    out << dfs(0) << '\n';
+  }
+};
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0);
+  Solution().run(cin, cout);
+}

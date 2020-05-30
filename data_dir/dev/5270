@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+
+#define int long long
+
+#define double long double
+
+using namespace std;
+
+class ST{
+    int *t, *a, n;
+    inline void build(int v, int l, int r){
+        if(l == r) t[v] = a[l];
+        else{
+            int m = (r + l) >> 1;
+            build(v + v + 1, l, m);
+            build(v + v + 2, m + 1, r);
+            t[v] = max(t[v + v + 1], t[v + v + 2]);
+        }
+    }
+    inline void update(int v, int l, int r, int pos, int val){
+        if(l == r) t[v] = val;
+        else{
+            int m = (r + l) >> 1;
+            if(pos <= m){
+                update(v + v + 1, l, m, pos, val);
+            }
+            else{
+                update(v + v + 2, m + 1, r, pos, val);
+            }
+            t[v] = max(t[v + v + 1], t[v + v + 2]);
+        }
+    }
+    inline int query(int v, int l, int r, int tl, int tr){
+        if(l > r || tl > tr) return -1e18;
+        if(tl == l && tr == r){
+            return t[v];
+        }
+        else{
+            int m = (r + l) >> 1;
+            int t1 = query(v + v + 1, l, m, tl, min(tr, m));
+            int t2 = query(v + v + 2, m + 1, r, max(tl, m + 1), tr);
+            return max(t1, t2);
+        }
+    }
+public:
+    ST(){};
+    ST(int n) : n(n){
+        t = new int[4 * n];
+        a = new int[n];
+        for(int i = 0; i < n; ++i) a[i] = -1e18;
+        build(0, 0, n - 1);
+    }
+    void update(int pos, int val){
+        update(0, 0, n - 1, pos, val);
+    }
+    int query(int l, int r){
+        return query(0, 0, n - 1, l, r);
+    }
+};
+
+signed main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr); cout.tie(nullptr);
+
+    int n;
+    cin >> n;
+
+    pair < pair < int, int >, int > a[n];
+    set < pair < int, int > > s;
+    for(int i = 0; i < n; ++i){
+        cin >> a[i].first.first >> a[i].first.second;
+        s.insert({a[i].first.first, 0});
+        s.insert({a[i].first.first + a[i].first.second - 1, 1});
+        a[i].second = i;
+    }
+
+    sort(a, a + n);
+
+    map < int, int > pos, near;
+
+    int cnt = 0;
+    for(auto to : s){
+        if(to.second) near[to.first] = cnt - 1;
+        else pos[to.first] = cnt++;
+    }
+
+    ST st = ST(cnt);
+
+    int ans[n];
+    for(int i = n - 1; i >= 0; --i){
+        int x = a[i].first.first;
+        int h = a[i].first.second;
+        int val = max(i, st.query(pos[x] + 1, near[x + h - 1]));
+        st.update(pos[x], val);
+        ans[a[i].second] = val - i + 1;
+    }
+
+    for(int to : ans) cout << to << ' ';
+}

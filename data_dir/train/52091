@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+using namespace std;
+typedef long long ll;
+typedef pair <int, int> pii;
+
+const int maxN = 1e5 + 10;
+int n,h[maxN];
+int par[maxN][20];
+vector <int> adj[maxN];
+
+void dfs(int v, int p = -1)
+{
+    if (p != -1)
+        h[v] = h[p] + 1;
+
+    par[v][0] = p;
+    for (int i = 1 ; i < 20 ; i++)
+        par[v][i] = par[ par[v][i - 1] ][i - 1];
+
+    for (int i = 0 ; i < adj[v].size() ; i++)
+    {
+        int u = adj[v][i];
+        if (u != p)
+            dfs(u,v);
+    }
+}
+
+int getPar(int v, int k)
+{
+    for (int i = 0 ; i < 20 ; i++)
+        if (k >> i & 1)
+            v = par[v][i];
+    return v;
+}
+
+int LCA(int v, int u)
+{
+    if (h[v] < h[u])
+        swap(v, u); //v: ertefa bishtar
+    
+    v = getPar(v , h[v] - h[u]); //ham ertefa kon
+    if (v == u)
+        return v; //lca found
+
+    for (int i = 19 ; i >= 0 ; i--)
+        if (par[v][i] != par[u][i])
+            v = par[v][i] , u = par[u][i];
+
+    return par[v][0]; 
+}
+
+int dist(int v, int u)
+{
+    int lca = LCA(v, u);
+    return (h[v] - h[lca]) + (h[u] - h[lca]);
+}
+
+int best[maxN]; //nazdiktarin ghermez be harki
+bool mark[maxN];
+int col[maxN];
+
+void bfs() //nazdiktarin red be harki peyda
+{   
+    for (int i = 0 ; i < n ; i++)
+        mark[i] = 0, best[i] = 2e9; //INF
+
+    queue <int> q;
+    for (int i = 0 ; i < n ; i++)
+        if (col[i] == 1) //red bood
+            q.push(i), best[i] = 0, mark[i] = true;
+
+    while (q.size())
+    {
+        int v = q.front();
+        q.pop();
+        for (int i = 0 ; i < adj[v].size() ; i++)
+        {
+            int u = adj[v][i];
+            if (!mark[u])
+            {
+                best[u] = best[v] + 1;
+                q.push(u);
+                mark[u] = true;
+            }
+        }
+    }
+}
+
+
+int32_t main()
+{
+    int q;
+    cin >> n >> q;
+    for (int i = 1 ; i < n ; i++)
+    {
+        int v,u;
+        cin >> v >> u;
+        v--, u--;
+        adj[v].pb(u);
+        adj[u].pb(v);
+    }
+
+    h[0] = 0;
+    dfs(0);
+    col[0] = 1; //red
+    bfs(); //nazdiktarin ghermez be harki
+
+    vector <int> block; //bolooke 300 taayie konooni
+    while (q--)
+    {
+        int type;
+        cin >> type;
+        if (type == 1)
+        {
+            int v;
+            cin >> v;
+            v--;
+            col[v] = 1; //red shod
+            block.pb(v);
+        }
+        if (type == 2)
+        {
+            int v;
+            cin >> v;
+            v--;
+            int res = best[v]; //nazdiktarin ghermezesh ta ghable in bolook
+            for (int i = 0 ; i < block.size() ; i++)
+            {
+                int u = block[i];
+                int dis = dist(v, u);
+                res = min(res, dis);
+            }
+            cout << res << endl;
+        }
+
+        if (block.size() == 300)
+        {
+            bfs();
+            block.clear();
+        }
+    }
+    return 0;
+}

@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+using namespace std;
+template <class T> int size(const T &x) { return x.size(); }
+#define rep(i,a,b) for (auto i=(a); i<(b); ++i)
+#define iter(it,c) for (auto it = (c).begin(); it != (c).end(); ++it)
+typedef pair<int, int> ii;
+typedef vector<int> vi;
+typedef vector<ii> vii;
+typedef vector<vi> vvi;
+typedef long long ll;
+const int INF = 2147483647;
+
+vi adj[510];
+int dist[510][510];
+int n;
+map<ii,int> edges;
+map<int,int> ask;
+int CNT = 0;
+
+int doit(vector<bool> left) {
+    int here = CNT++;
+    int herecnt = 0;
+    rep(i,0,n) {
+        if (left[i]) {
+            herecnt++;
+        }
+    }
+    if (herecnt == 1) {
+        rep(i,0,n) {
+            if (left[i]) {
+                ask[here] = i;
+            }
+        }
+        return here;
+    } else if (herecnt == 0) {
+        return -1;
+    }
+
+    int best = -1,
+        bestval = INF;
+    rep(i,0,n) {
+        if (!left[i]) continue;
+        int largest = 0;
+        iter(it,adj[i]) {
+            int cur = 0;
+            rep(j,0,n) {
+                if (!left[j]) continue;
+                if (dist[*it][j] < dist[i][j]) {
+                    cur++;
+                }
+            }
+            largest = max(largest, cur);
+        }
+        if (largest < bestval) {
+            bestval = largest;
+            best = i;
+        }
+    }
+
+    ask[here] = best;
+    iter(it,adj[best]) {
+        vector<bool> left2(n);
+        rep(j,0,n) {
+            left2[j] = best != j && left[j] && dist[*it][j] < dist[best][j];
+        }
+        int rem = doit(left2);
+        edges[ii(here, *it)] = rem;
+    }
+    return here;
+}
+
+int main() {
+    int m;
+    cin >> n >> m;
+    rep(i,0,m) {
+        int cnt;
+        cin >> cnt;
+        int last;
+        rep(j,0,cnt) {
+            int cur;
+            cin >> cur;
+            cur--;
+            if (j > 0) {
+                adj[last].push_back(cur);
+                adj[cur].push_back(last);
+            }
+            last = cur;
+        }
+    }
+
+    memset(dist,-1,sizeof(dist));
+    rep(i,0,n) {
+        queue<int> Q;
+        Q.push(i);
+        dist[i][i] = 0;
+        while (!Q.empty()) {
+            int cur = Q.front();
+            Q.pop();
+            iter(it,adj[cur]) {
+                if (dist[i][*it] == -1) {
+                    dist[i][*it] = 1 + dist[i][cur];
+                    Q.push(*it);
+                }
+            }
+        }
+    }
+
+    vector<bool> left(n, true);
+    int start = doit(left);
+
+    rep(it,0,n) {
+        int cur = start;
+        while (true) {
+            cout << ask[cur]+1 << endl;
+            string ans;
+            cin >> ans;
+            if (ans == "FOUND") {
+                break;
+            }
+            cin >> ans;
+            int nxt = atoi(ans.c_str());
+            nxt--;
+            cur = edges[ii(cur, nxt)];
+        }
+    }
+
+    return 0;
+}
+

@@ -1,0 +1,139 @@
+#include<iostream>
+#include<cstdio>
+#include<cstdlib>
+#include<algorithm>
+#include<vector>
+#include<string>
+#include<set>
+#include<map>
+#include<cmath>
+#include<memory.h>
+using namespace std;
+typedef long long ll;
+
+const int N = 2e5+5;
+const int M = 5e5+5;
+const int V = (N + N) * 2 + 10;
+
+int code(int c){
+    if(c=='$') return 26;
+    return c-'a';
+}
+
+#define link ololink
+int link[V], len[V], to[V][27];
+int d, l, sn;
+char s[N*2];
+
+void addc(int c){
+    s[sn++] = c;
+    c = code(c);
+    int x = d++;
+    len[x] = len[l]+1;
+    for(;l!=-1 && !to[l][c];l=link[l]) to[l][c] = x;
+    if(l!=-1){
+        int p = to[l][c];
+        if(len[p]==len[l]+1) link[x] = p; else{
+            int q = d++;
+            len[q] = len[l]+1;
+            link[q] = link[p];
+            memcpy(to[q], to[p], sizeof (to[q]));
+            for(;l!=-1 && to[l][c]==p;l=link[l]) to[l][c] = q;
+            link[x] = link[p] = q;
+        }
+    }
+    l=x;
+}
+
+ll ans[M];
+vector<pair<int,int>> q[N];
+
+string w[N];
+int st[N];
+
+vector<int> g[V];
+int ta[V], tb[V], tm;
+ll f[V];
+
+
+void dfs(int v){
+    ta[v] = ++tm;
+    for(int i : g[v]) dfs(i);
+    tb[v] = tm;
+}
+
+void add(int i, int x){
+    for(;i<=tm;i|=i+1) f[i]+=x;
+}
+
+ll sum(int i){
+    ll s = 0;
+    for(;~i;i=(i&(i+1))-1) s+=f[i];
+    return s;
+}
+
+int main(){
+    //freopen("input.txt","r",stdin);// freopen("output.txt","w",stdout);
+    
+    int n, m;
+    
+    scanf("%d",&n);
+    scanf("%d",&m);
+    
+    d = 0;
+    l = d++;
+    link[l] = -1;
+    for(int k=0;k<n;++k){
+        scanf("%s",&s);
+        w[k] = s;
+    }
+    
+    for(int k=0;k<n;++k){
+        for(char c : w[k]) addc(c);
+        addc('$');
+    }
+    s[sn] = 0;
+    for(int k=0;k<n;++k){
+        int v = 0;
+        for(char c : w[k]){
+            v = to[v][code(c)];
+        }
+        st[k] = v;
+    }
+    
+    for(int i=1;i<d;++i) g[link[i]].push_back(i);
+    
+    dfs(0);
+    
+    for(int k=0;k<m;++k){
+        int i,j,h;
+        scanf("%d%d%d",&i,&j,&h);
+        --i;--j;--h;
+        if(i) q[i-1].push_back({h,-(k+1)});
+        q[j].push_back({h,+(k+1)});
+    }
+    
+    
+    int vv = 0;
+    for(int k=0;k<n;++k){
+        for(char c : w[k]){
+            vv = to[vv][code(c)];
+            add(ta[vv], +1);
+        }
+        
+        for(auto z : q[k]){
+            int qi = abs(z.second) - 1;
+            int h = z.first;
+            int v = st[h];
+            int res = sum(tb[v]) - sum(ta[v]-1);
+            if(z.second<0) ans[qi]-=res; else ans[qi]+=res;
+        }
+        
+        vv = to[vv][code('$')];
+        add(ta[vv], +1);
+    }
+    
+    for(int i=0;i<m;++i) printf("%lld\n",ans[i]);
+    
+    return 0;
+}

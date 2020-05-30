@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define loop(i,n) for(int i = 0; i < n; i++)
+#define pii pair<int, int>
+typedef long long LL;
+
+const int N = 1e3 + 5;
+const int MX = 1e9 + 5;
+const int mod = 1e9 + 7;
+
+int n;
+vector<int> g[N];
+
+inline void add_edge(int u, int v) {
+    g[u].push_back(v);
+    g[v].push_back(u);
+}
+
+inline void remove_edge(int u, int v) {
+    for (int i = 0; i < g[u].size(); i++) if (g[u][i] == v) {g[u].erase(g[u].begin() + i); break; }
+    for (int i = 0; i < g[v].size(); i++) if (g[v][i] == u) {g[v].erase(g[v].begin() + i); break; }
+}
+
+int vis[N], vis2[N];
+
+pair<int, int> recurse(int u, int pa = -1) {
+    if (vis2[u]) { // cycle detected
+        return {u, pa};
+    }
+    if (vis[u]) return {-1, -1};
+    vis[u] = vis2[u] = 1;
+    pair<int, int> res = {-1, -1};
+    for (int v: g[u]) {
+        if (v == pa) continue;
+        pair<int, int> p = recurse(v, u);
+        if (p.first != -1) res = p;
+    }
+    vis2[u] = 0;
+    return res;
+}
+
+pair<int, int> get_cycle() {
+    memset(vis, 0, sizeof(vis));
+    for (int i = 1; i <= n; i++) {
+        if (!vis[i]) {
+            pair<int, int> p = recurse(i);
+            if (p.first != -1) return p;
+        }
+    }
+    return {-1, -1};
+}
+
+int get_free_node() {
+    memset(vis, 0, sizeof(vis));
+    for (int i = 1; i <= n; i++) {
+        if (!vis[i]) {
+            pair<int, int> p = recurse(i);
+            if (p.first == -1) return i;
+        }
+    }
+    assert(false);
+    return -1;
+}
+
+struct Road {
+    int u, v;
+    Road(int _u, int _v) {
+        u = _u;
+        v = _v;
+    }
+};
+
+int main() 
+{
+#ifdef DEBUG
+    freopen("in.txt", "r", stdin);
+#endif
+    cin >> n;
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        add_edge(u, v);
+    }
+    pair<int, int> p;
+    vector<pair<Road, Road> > res;
+    while ((p = get_cycle()).first != -1) {
+        int f = get_free_node();
+        remove_edge(p.first, p.second);
+        add_edge(p.first, f);
+        Road r1(p.first, p.second);
+        Road r2(p.first, f);
+        res.push_back({r1, r2});
+    }
+    cout << res.size() << endl;
+    for (int i = 0; i < res.size(); i++) {
+        cout << res[i].first.u << " " << res[i].first.v << " " << res[i].second.u << " " << res[i].second.v << endl;
+    }
+    return 0;
+} 

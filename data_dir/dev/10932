@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MOD 998244353
+
+int n, kk, x[200005];
+long long ans;
+
+using cn = long long;
+
+int si, ln, to[1 << 20];
+cn xx[1 << 20], yy[1 << 20], wn[1 << 20], invsi;
+
+void mod(long long& a) {
+	if (a >= MOD)
+		a -= MOD;
+}
+
+long long po(long long b, int p) {
+	long long re = 1;
+	while (p) {
+		if (p & 1)
+			re = re * b % MOD;
+		b = b * b % MOD;
+		p >>= 1;
+	}
+	return re;
+}
+
+void precompute(int a) {  // a = ans size, can change to reuse wn for diff si
+	for (si = 1, ln = 0; si < a; si <<= 1, ln++) ;
+	wn[0] = 1;
+	wn[1] = po(3, (MOD - 1) >> ln);
+	for (int i = 2; i <= si; i++)
+		wn[i] = wn[i - 1] * wn[1] % MOD;
+	to[0] = 0;
+	for (int i = 1; i < si; i++)
+		to[i] = (i & 1) ? to[i / 2] / 2 | si / 2 : to[i / 2] / 2;
+	invsi = po(si, MOD - 2);
+}
+
+void ntt(cn *a, bool b) {
+	for (int i = 0; i < si; i++)
+		if (i < to[i])
+			swap(a[i], a[to[i]]);
+	for (int i = 0; i < ln; i++)
+		for (int j = 0; j < si; j += 1 << i + 1)
+			for (int k = 0; k < 1 << i; k++) {
+				cn tx = a[j | k];
+				cn ty = wn[b ? si - (k << ln - 1 - i) : k << ln - 1 - i] *
+						a[(1 << i) | j | k] % MOD;
+				mod(a[j | k] = tx + ty);
+				mod(a[1 << i | j | k] = tx + MOD - ty);
+			}
+}
+
+int main() {
+	precompute(4e5);
+	scanf("%d%d", &n, &kk);
+	if (kk == 1) {
+		puts("0");
+		return 0;
+	}
+	for (int i = 0; i < n; i++)
+		scanf("%d", x + i);
+	int ca = 0, cb = 0;
+	for (int i = 0; i < n; i++) {
+		int tmp = x[i] - x[(i + 1) % n];
+		if (tmp == 0)
+			ca++;
+		else
+			cb++;
+	}
+	xx[1] = kk % MOD;
+	yy[2] = yy[0] = 1;
+	yy[1] = (kk + MOD - 2) % MOD;
+	ntt(xx, 0);
+	ntt(yy, 0);
+	for (int j = 0; j < si; j++)
+		xx[j] = po(xx[j], ca) * po(yy[j], cb) % MOD;
+	ntt(xx, 1);
+	for (int j = n + 1; j < si; j++)
+		ans = (ans + xx[j] * invsi % MOD) % MOD;
+	printf("%lld\n", ans);
+}

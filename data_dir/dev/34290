@@ -1,0 +1,255 @@
+// In the name of God
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <iomanip>
+#include <ctime>
+#include <queue>
+#include <set>
+#include <map>
+#include <vector>
+#include <list>
+#include <bitset>
+#define sqr(a) ((a)*(a))
+#define all(a) (a).begin(), (a).end()
+using namespace std;
+ 
+template <typename T>
+T next_int() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if(ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return p * x;
+}
+ 
+string next_token() {
+    char ch;
+    string ans = "";
+    do { ch = getchar(); } while(ch <= ' ');
+    while(ch > ' ') {
+        ans += ch;
+        ch = getchar();
+    }
+    return ans;
+}
+ 
+const long long INF = (long long)1e18;
+const int INFINT = (int)1e9 + 227 + 1;
+const int MAXN = (int)1e6 + 227 + 1;    
+const int MOD = (int)1e9 + 7;
+const long double EPS = 1e-9;
+ 
+long long bin_pow(long long a, long long b) {
+    if(!b) return 1;
+    long long ans = bin_pow(a, b / 2);
+    ans = ans * ans;
+    if(b % 2) ans = ans * a;
+    return ans;
+}
+
+struct tree {
+    struct node {
+        long long mn;
+        long long push;
+
+        node() {
+            push = INF;
+            mn = INF;
+        }
+    } ;
+
+    long long min(long long a, long long b) {
+        if(a == -1) return b;
+        if(b == -1) return a;
+        if(a > b) return b; else return a;
+    }
+
+    vector<node> t;
+
+    tree(int len) {
+        t.resize(len * 4 + 227 + 1);
+    }  
+
+    void push(int v) {
+        t[v * 2].push = min(t[v * 2].push, t[v].push);
+        if(t[v * 2].mn != -1) t[v * 2].mn = min(t[v * 2].mn, t[v].push);
+
+        t[v * 2 + 1].push = min(t[v * 2 + 1].push, t[v].push);
+        if(t[v * 2 + 1].mn != -1) t[v * 2 + 1].mn = min(t[v * 2 + 1].mn, t[v].push);
+
+        t[v].push = INF;
+    }
+
+    void update(int v, int l, int r, int _l, int _r, long long kek) {
+        if(_l > _r) return;
+        if(t[v].mn == -1) return;
+        if(l == _l && r == _r) {
+            if(t[v].mn != -1) t[v].mn = min(t[v].mn, kek);
+            t[v].push = min(t[v].push, kek);
+            return;
+        }
+
+        push(v);
+
+        int mid = (l + r) / 2;
+        update(v * 2, l, mid, _l, min(mid, _r), kek);
+        update(v * 2 + 1, mid + 1, r, max(_l, mid + 1), _r, kek);
+    
+        t[v].mn = min(t[v * 2].mn, t[v * 2 + 1].mn);
+    }
+
+    void del(int v, int l, int r, int p) {
+        if(l == r) {
+            t[v].mn = -1;
+
+            return;
+        }
+
+        push(v);
+
+        int mid = (l + r) / 2;
+        if(p <= mid) 
+            del(v * 2, l, mid, p);
+        else
+            del(v * 2 + 1, mid + 1, r, p);
+    
+        t[v].mn = min(t[v * 2].mn, t[v * 2 + 1].mn);
+    }
+
+    pair<long long, int> get(int v, int l, int r) {
+        if(l == r) return make_pair(t[v].mn, l);
+
+        push(v);
+
+        int mid = (l + r) / 2;
+        if(min(t[v * 2].mn, t[v * 2 + 1].mn) == t[v * 2].mn)
+            return get(v * 2, l, mid);
+        else
+            return get(v * 2 + 1, mid + 1, r);
+    }
+} ;
+
+struct query {
+    int type;
+    int l;
+    int r;
+    int v;
+    int u;
+    long long w;
+} e[MAXN];
+
+struct mda {
+    vector<set<int> > t;
+
+    mda(int len) {
+        t.resize(len * 4 + 227 + 1);
+    }
+
+    void add(int v, int l, int r, int _l, int _r, int p) {
+        if(_l > _r) return;
+        if(l == _l && r == _r) {
+            t[v].insert(p);
+            return;
+        }
+
+        int mid = (l + r) / 2;
+        add(v * 2, l, mid, _l, min(mid, _r), p);
+        add(v * 2 + 1, mid + 1, r, max(mid + 1, _l), _r, p);
+    }
+
+    vector<int> ans;
+
+    void get(int v, int l, int r, int p) {
+        while(t[v].size()) {
+            ans.push_back(*t[v].begin());
+            t[v].erase(t[v].begin());
+        }
+
+        if(l == r) return;
+
+        int mid = (l + r) / 2;
+        if(p <= mid)
+            get(v * 2, l, mid, p);
+        else
+            get(v * 2 + 1, mid + 1, r, p);
+    }
+} ;
+
+vector<int> a[MAXN], b[MAXN];
+
+int main() {
+    // freopen(".in", "r", stdin);
+
+    int n, m, p; cin >> n >> m >> p;
+
+    mda f(n);
+
+    for(int i = 0; i < m; i++) {
+        e[i].type = next_int<int>();
+
+        if(e[i].type == 1) {
+            e[i].v = next_int<int>();
+            e[i].u = next_int<int>();
+            e[i].w = next_int<int>();
+
+            b[e[i].v].push_back(i);
+        } else {
+            e[i].v = next_int<int>();
+            e[i].l = next_int<int>();
+            e[i].r = next_int<int>();
+            e[i].w = next_int<int>();
+        }
+
+        if(e[i].type == 2) {
+            a[e[i].v].push_back(i);
+        } 
+        if(e[i].type == 3) {
+            f.add(1, 1, n, e[i].l, e[i].r, i);
+        }
+    }
+
+    tree t(n);
+
+    t.update(1, 1, n, p, p, 0);
+
+    vector<long long> ans(n + 1, -1);
+    while(1) {
+        pair<long long, int> temp = t.get(1, 1, n);
+        int v = temp.second;
+
+        if(temp.first == INF || temp.first == -1) break;
+
+        ans[v] = temp.first;
+
+        for(int i = 0; i < a[v].size(); i++)
+            t.update(1, 1, n, e[a[v][i]].l, e[a[v][i]].r, temp.first + e[a[v][i]].w);
+
+        for(int i = 0; i < b[v].size(); i++)
+            t.update(1, 1, n, e[b[v][i]].u, e[b[v][i]].u, temp.first + e[b[v][i]].w);
+
+        f.ans.clear();
+        f.get(1, 1, n, v);
+
+        vector<int> kek = f.ans;
+
+        for(int i = 0; i < kek.size(); i++) {
+            t.update(1, 1, n, e[kek[i]].v, e[kek[i]].v, temp.first + e[kek[i]].w);
+        }
+
+        t.del(1, 1, n, v);
+    }
+
+    for(int i = 1; i <= n; i++)
+        cout << ans[i] << " ";
+    puts("");
+}

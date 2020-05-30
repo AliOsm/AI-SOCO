@@ -1,0 +1,183 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define SZ(x) ((int)(x).size())
+#define PB(x) push_back(x)
+#define MEMSET(x,v) memset(x,v,sizeof(x))
+#define REP(i,n) for(int (i)=0;(i)<(n);++(i))
+#define x(t) get<0>(t)
+#define y(t) get<1>(t)
+#define z(t) get<2>(t)
+
+template<class A, class B> inline bool mina(A &x, B y) {return (x > y)?(x=y,1):0;}
+template<class A, class B> inline bool maxa(A &x, B y) {return (x < y)?(x=y,1):0;}
+
+typedef long long LL;
+typedef tuple<int, int> T2;
+typedef tuple<int, int, int> T3;
+
+#define INF (0x3f3f3f3f)
+#define MAXN (100005)
+
+vector<int> people[MAXN];
+
+vector<int> merge(vector<int> a, vector<int> b, int bound) {
+    vector<int> res;
+    int p1 = 0, p2 = 0;
+    while (p1 < SZ(a) && p2 < SZ(b) && bound) {
+        if (a[p1] < b[p2]) {
+            res.PB(a[p1++]);
+        } else {
+            res.PB(b[p2++]);
+        }
+        bound--;
+    }
+    while (p1 < SZ(a) && bound) res.PB(a[p1++]), bound--;
+    while (p2 < SZ(b) && bound) res.PB(b[p2++]), bound--;
+    return res;
+}
+
+class Jumper {
+public:
+    typedef vector<int> VI;
+    typedef vector<VI> VVI;
+        typedef vector<VVI> VVVI;
+    VI depths;
+    VVI parents;
+    VVVI V;
+    int N, root, max_lvl;
+    // Vertices are 0-based indexed.
+    Jumper (int root_, VVI graph) {
+        root = root_; N = graph.size(); depths.resize(N);
+        max_lvl = 1; while ((1<<max_lvl) < N) max_lvl++;
+        V.resize(max_lvl, vector<vector<int>>(N));
+        parents.resize(max_lvl, VI(N));
+        build_lca(root, -1, graph, 0);
+        for (int i = 1; i < max_lvl; i++)
+            for (int j = 0; j < N; j++)
+                if (parents[i - 1][j] != -1) {
+                    parents[i][j] = parents[i - 1][parents[i - 1][j]];
+                    V[i][j] = merge(V[i - 1][j], V[i - 1][parents[i - 1][j]], 10);
+                }
+    }
+    vector<int> res;
+    int lca(int u, int v, int bound) {
+        if (depths[u] < depths[v]) swap(u, v);
+        int diff_dep = depths[u] - depths[v];
+        for (int i = 0; i < max_lvl; i++)
+            if ((1<<i) & diff_dep) {
+                res = merge(res, V[i][u], bound);
+                u = parents[i][u];
+            }
+        if (u == v) {
+            res = merge(res, V[0][u], bound);
+            return u;
+        }
+        for (int i = max_lvl - 1; i >= 0; i--) {
+            if (parents[i][u] != parents[i][v]) {
+                res = merge(res, V[i][u], bound);
+                res = merge(res, V[i][v], bound);
+                u = parents[i][u];
+                v = parents[i][v];
+            }
+        }
+        res = merge(res, V[0][u], bound);
+        res = merge(res, V[0][v], bound);
+        res = merge(res, V[0][parents[0][u]], bound);
+        return parents[0][u];
+    }
+    int get_depth(int u) { return depths[u]; }
+    vector<int> cal(int u, int v, int a) {
+        res.clear();
+        lca(u, v, a);
+        return res;
+    }
+private:
+    void build_lca(int at, int par, VVI &adj, int dep) {
+        for (int p : people[at]) {
+            V[0][at].PB(p);
+        }
+        parents[0][at] = par;
+        depths[at] = dep;
+        for (auto v : adj[at]) {
+            if (v != par) {
+                build_lca(v, at, adj, dep + 1);
+            }
+        }
+    }
+};
+/*
+class Jumper {
+public:
+    int N, H;
+    vector<vector<int> > P;
+    vector<vector<vector<int>>> V;
+    Jumper (int n, int *parent) { // zero-indexed
+        N = n;
+        H = log2(N) + 2;
+        P.resize(N, vector<int>(H));
+        V.resize(N, vector<vector<int>>(H));
+        REP(i, N) REP(j, H) P[i][j] = -1;
+        REP(i, N) {
+            assert(parent[i] < N);
+            P[i][0] = parent[i];
+            REP(j, min(10, SZ(people[i]))) {
+                V[i][0].PB(people[i][j]);
+            }
+        }
+        build_lca(root, -1, graph, 0);
+        for (int h = 1; h < H; h++)
+            REP(i, N)
+                if (P[i][h - 1] != -1) {
+                    P[i][h] = P[P[i][h - 1]][h - 1];
+                    // Note for a value updating
+                    V[i][h] = merge(V[i][h - 1], V[P[i][h - 1]][h - 1]);
+                }
+    }
+    vector<int> cal(int u, int v, int a) {
+        vector<int> res;
+
+
+
+        return res;
+    }
+};
+
+*/
+
+
+
+int main() {
+    int N, M, Q;
+    scanf("%d %d %d", &N, &M, &Q);
+    vector<vector<int>> adj;
+    adj.resize(N, vector<int>());
+    int u, v;
+    REP(i, N - 1) {
+        scanf("%d %d", &u, &v);
+        u--, v--;
+        adj[u].PB(v);
+        adj[v].PB(u);
+    }
+    int a;
+    REP(i, M) {
+        scanf("%d", &a);
+        a--;
+        people[a].PB(i + 1);
+    }
+    REP(i, N) {
+        sort(people[i].begin(), people[i].end());
+        people[i].resize(min(10, SZ(people[i])));
+    }
+    Jumper jump(0, adj);
+    REP(q, Q) {
+        scanf("%d %d %d", &u, &v, &a);
+        u--, v--;
+        vector<int> ans = jump.cal(u, v, a);
+        printf("%d", SZ(ans));
+        for (int u : ans) printf(" %d", u);
+        printf("\n");
+    }
+    return 0;
+}

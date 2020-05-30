@@ -1,0 +1,166 @@
+#include <bits/stdc++.h>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/pb_ds/tree_policy.hpp>
+//#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+// using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+//template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+//template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+//template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 2e6 + 1;
+int n, q, cur, lst;
+int lp[N];
+
+string t;
+
+vec <int> ind;
+
+struct State {
+    int cnt;
+    int leng;
+    int link;
+    map <char, int> adj;
+} state[N];
+
+void prefix_function(string &p) {
+    int k = 0;
+    for(int i = 1; i < len(p); ++i) {
+        while(k && p[i] != p[k]) {
+            k = lp[k - 1];
+        }
+        if(p[i] == p[k]) {
+            k++;
+        }
+        lp[i] = k;
+    }
+}
+
+void input() {
+    cin >> t;
+    n = len(t);
+}
+
+void extend(char c) {
+    int ind = ++cur;
+    state[ind].cnt = 1;
+    state[ind].leng = 
+    state[lst].leng + 1;
+    int p = lst;
+    while(p != -1 && !state[p].adj.count(c)) {
+        state[p].adj[c] = ind;
+        p = state[p].link;
+    }
+    lst = ind;
+    if(p == -1) {
+        return;
+    }
+    int q = state[p].adj[c];
+    if(state[q].leng == state[p].leng + 1) {
+        state[ind].link = q;
+    } else {
+        int r = ++cur;
+        state[r] = state[q];
+        state[r].cnt = 0;
+        state[r].leng = state[p].leng + 1;
+        while(p != -1 && state[p].adj[c] == q) {
+            state[p].adj[c] = r;
+            p = state[p].link;
+        }
+        state[q].link = state[ind].link = r;
+    }
+}
+
+void construct_automaton() {
+    state[0].link = -1;
+    state[0].leng = 0;
+    for(char c: t) {
+        extend(c);
+    }
+}
+
+int search(string &s) {
+    int res = 0;
+    int len = 0;
+    int node = 0;
+    int leng = (len(s) + 1) >> 1;
+    for(int i = 0; i < len(s); ++i) {
+        if(lp[i] >= leng) {
+            break;
+        }
+        char c = s[i];
+        while(node && !state[node].adj.count(c)) {
+            node = state[node].link;
+            len = min(len, state[node].leng);
+        }
+        if(state[node].adj.count(c)) {
+            node = state[node].adj[c];
+            len++;
+        }
+        while(state[state[node].link].leng >= leng) {
+            node = state[node].link;
+            len = min(len, state[node].leng);
+        }
+        if(len >= leng) {
+            res += state[node].cnt;
+        }
+    }
+    return res;
+}
+
+void solve() {
+    construct_automaton();
+    for(int i = 1; i <= cur; ++i) {
+        ind.pb(i);
+    }
+    sort(all(ind), [](int x, int y) {
+        return state[x].leng > state[y].leng;
+    });
+    for(int e: ind) {
+        state[state[e].link].cnt += state[e].cnt;
+    }
+    cin >> q;
+    for(int i = 0; i < q; ++i) {
+        string p; cin >> p;
+        p = p + p;
+        prefix_function(p);
+        p.pop_back();
+        cout << search(p) << "\n";
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

@@ -1,0 +1,117 @@
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+const int MAXN = 500005;
+const int MAXMASK = (1<<22)+5;
+int N;
+vector<pair<int, int> > adj[MAXN];
+int mask[MAXN];
+int sz[MAXN];
+int dep[MAXN];
+int R[MAXN][2];
+int V[MAXN];
+int idx = 0;
+int len[MAXMASK];
+int best[MAXN];
+
+void dfs1(int cur, int prefix)
+{
+    sz[cur]++;
+    V[idx] = cur;
+    R[cur][0] = idx++;
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i].first, x = adj[cur][i].second;
+        mask[next] = prefix ^ (1<<x);
+        dep[next] = dep[cur] + 1;
+        dfs1(next, mask[next]);
+        sz[cur] += sz[next];
+    }
+    R[cur][1] = idx - 1;
+}
+
+void dfs2(int cur, bool keep)
+{
+    int maxSz = -1, bigChild = -1;
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i].first;
+        if (sz[next] > maxSz)
+        {
+            maxSz = sz[next];
+            bigChild = next;
+        }
+    }
+
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i].first;
+        if (next != bigChild)
+        {
+            dfs2(next, 0);
+            best[cur] = max(best[cur], best[next]);
+        }
+    }
+
+    if (bigChild != -1)
+    {
+        dfs2(bigChild, 1);
+        best[cur] = max(best[cur], best[bigChild]);
+    }
+
+    best[cur] = max(best[cur], len[mask[cur]] - dep[cur]);
+    for (int k = 0; k < 22; k++)
+    {
+        int x = mask[cur] ^ (1<<k);
+        best[cur] = max(best[cur], len[x] - dep[cur]);
+    }
+
+    len[mask[cur]] = max(len[mask[cur]], dep[cur]);
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i].first;
+        if (next != bigChild)
+        {
+            for (int j = R[next][0]; j <= R[next][1]; j++)
+            {
+                int v = V[j];
+                best[cur] = max(best[cur], len[mask[v]] + dep[v] - 2*dep[cur]);
+                for (int k = 0; k < 22; k++)
+                {
+                    int x = mask[v] ^ (1<<k);
+                    best[cur] = max(best[cur], len[x] + dep[v] - 2*dep[cur]);
+                }
+            }
+            for (int j = R[next][0]; j <= R[next][1]; j++)
+                len[mask[V[j]]] = max(len[mask[V[j]]], dep[V[j]]);
+        }
+    }
+
+    if (!keep)
+        for (int i = R[cur][0]; i <= R[cur][1]; i++)
+            len[mask[V[i]]] = -MAXMASK;
+}
+
+int main()
+{
+    scanf("%d", &N);
+    for (int i = 2, p; i <= N; i++)
+    {
+        char c;
+        scanf("%d %c", &p, &c);
+        adj[p].push_back(make_pair(i, c - 'a'));
+    }
+
+    dfs1(1, 0);
+    for (int i = 0; i < MAXMASK; i++)
+        len[i] = -MAXMASK;
+    dfs2(1, 0);
+       
+    for (int i = 1; i <= N; i++)
+        printf("%d ", best[i]);
+    printf("\n");
+
+    return 0;
+}

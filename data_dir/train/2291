@@ -1,0 +1,145 @@
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <cstring>
+#include <cassert>
+#include <queue>
+using namespace std;
+#define forr(i, a, b) for(int i = (a); i < (int) (b); i++)
+#define forn(i, n) forr(i, 0, n)
+#define pb push_back
+#define fst first
+#define snd second
+#define SZ(x) ((int)x.size())
+typedef long long ll;
+#define dforn(i, n) for(int i = n - 1; i >= 0; i--)
+#define fore forr
+const double EPS = 1e-9;
+const double DINF = 1e100;
+const int MAXN = -1;
+
+int n;
+
+struct pt {  // for 3D add z coordinate
+	double x,y;
+	pt(double x, double y):x(x),y(y){}
+	pt(){}
+	double norm2(){return *this**this;}
+	double norm(){return sqrt(norm2());}
+	bool operator==(pt p){return abs(x-p.x)<EPS&&abs(y-p.y)<EPS;}
+	pt operator+(pt p){return pt(x+p.x,y+p.y);}
+	pt operator-(pt p){return pt(x-p.x,y-p.y);}
+	pt operator*(double t){return pt(x*t,y*t);}
+	pt operator/(double t){return pt(x/t,y/t);}
+	double operator*(pt p){return x*p.x+y*p.y;}
+//	pt operator^(pt p){ // only for 3D
+//		return pt(y*p.z-z*p.y,z*p.x-x*p.z,x*p.y-y*p.x);}
+	double angle(pt p){ // redefine acos for values out of range
+		return acos(*this*p/(norm()*p.norm()));}
+	pt unit(){return *this/norm();}
+	double operator%(pt p){return x*p.y-y*p.x;}
+	// 2D from now on
+	bool operator<(pt p)const{ // for convex hull
+		return x<p.x-EPS||(abs(x-p.x)<EPS&&y<p.y-EPS);}
+	bool left(pt p, pt q){ // is it to the left of directed line pq?
+		return (q-p)%(*this-p)>EPS;}
+	pt rot(pt r){return pt(*this%r,*this*r);}
+	pt rot(double a){return rot(pt(sin(a),cos(a)));}
+};
+pt ccw90(1,0);
+pt cw90(-1,0);
+
+int sgn2(double x){return x<0?-1:1;}
+struct ln {
+	pt p,pq;
+	ln(pt p, pt q):p(p),pq(q-p){}
+	ln(){}
+	bool has(pt r){return dist(r)<EPS;}
+	bool seghas(pt r){return has(r)&&(r-p)*(r-(p+pq))-EPS<0;}
+//	bool operator /(ln l){return (pq.unit()^l.pq.unit()).norm()<EPS;} // 3D
+	bool operator/(ln l){return abs(pq.unit()%l.pq.unit())<EPS;} // 2D
+	bool operator==(ln l){return *this/l&&has(l.p);}
+	pt operator^(ln l){ // intersection
+		if(*this/l)return pt(DINF,DINF);
+		pt r=l.p+l.pq*((p-l.p)%pq/(l.pq%pq));
+//		if(!has(r)){return pt(NAN,NAN,NAN);} // check only for 3D
+		return r;
+	}
+	double angle(ln l){return pq.angle(l.pq);}
+	int side(pt r){return has(r)?0:sgn2(pq%(r-p));} // 2D
+	pt proj(pt r){return p+pq*((r-p)*pq/pq.norm2());}
+	pt ref(pt r){return proj(r)*2-r;}
+	double dist(pt r){return (r-proj(r)).norm();}
+//	double dist(ln l){ // only 3D
+//		if(*this/l)return dist(l.p);
+//		return abs((l.p-p)*(pq^l.pq))/(pq^l.pq).norm();
+//	}
+};
+ln bisector(ln l, ln m){ // angle bisector
+	pt p=l^m;
+	return ln(p,p+l.pq.unit()+m.pq.unit());
+}
+
+int sgn(double x){return x<-EPS?-1:x>EPS;}
+struct pol {
+	int n;vector<pt> p;
+	pol(){}
+	pol(vector<pt> _p){p=_p;n=p.size();}
+	bool has(pt q){ // O(n)
+		fore(i,0,n)if(ln(p[i],p[(i+1)%n]).seghas(q))return true;
+		int cnt=0;
+		fore(i,0,n){
+			int j=(i+1)%n;
+			int k=sgn((q-p[j])%(p[i]-p[j]));
+			int u=sgn(p[i].y-q.y),v=sgn(p[j].y-q.y);
+			if(k>0&&u<0&&v>=0)cnt++;
+			if(k<0&&v<0&&u>=0)cnt--;
+		}
+		return cnt!=0;
+	}
+};
+
+
+int main() {
+  //~ freopen("input.in", "r", stdin);
+  while(true){
+    pol A[2];
+    forn(i,2){
+      vector<pt> V;
+      forn(j,4){
+        int x,y;
+        if(scanf("%d%d",&x,&y)!=2)return 0;
+        V.pb(pt(x,y));
+      }
+      A[i]=pol(V);
+    }
+    bool ok=false;
+    forn(i,4){
+      if(A[0].has(A[1].p[i]))ok=true;
+      if(A[1].has(A[0].p[i]))ok=true;
+    }
+    forn(i,4){
+      forn(j,4){
+        int ii=(i+1)%4;
+        int jj=(j+1)%4;
+        ln l1(A[0].p[i],A[0].p[ii]);
+        ln l2(A[1].p[j],A[1].p[jj]);
+        pt in = l1^l2;
+        if(in.x > 1e50) continue;
+        if(l1.seghas(in) && l2.seghas(in)){
+          //~ printf("(%f,%f) -> (%f,%f) puede tener (%f,%f)\n",A[0].p[i].x,A[0].p[i].y,
+            //~ A[0].p[ii].x, A[0].p[ii].y, in.x, in.y);
+          //~ printf("(%f,%f) -> (%f,%f) puede tener (%f,%f)\n",A[1].p[j].x,A[1].p[j].y,
+            //~ A[1].p[jj].x, A[1].p[jj].y, in.x, in.y);
+          ok=true;
+        }
+      }
+    }
+    printf("%s\n",ok?"YES":"NO");
+  }
+  return 0;
+}

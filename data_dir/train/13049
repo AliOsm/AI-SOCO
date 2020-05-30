@@ -1,0 +1,244 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// Template Headers {{{
+using pii = pair<int, int>; using vpii = vector<pii>;
+using vi = vector<int>; using vvi = vector<vi>;
+using ll = long long; using vll = vector<long long>;
+template <class T> using min_queue = priority_queue<T, vector<T>, greater<T>>;
+template <class T> istream &operator>>(istream &, vector<T> &);
+template <class T> ostream &operator<<(ostream &, const vector<T> &);
+template <class T, class U> istream &operator>>(istream &, pair<T, U> &);
+template <class T, class U> ostream &operator<<(ostream &, const pair<T, U> &);
+template <class T> struct Inf { static constexpr T inf() { return std::numeric_limits<T>::has_infinity ? std::numeric_limits<T>::infinity() : std::numeric_limits<T>::max(); } };
+template <> struct Inf<int> { static constexpr int inf() { return 0x3f3f3f3f; } };
+template <> struct Inf<long long> { static constexpr long long inf() { return 0x3f3f3f3f3f3f3f3fLL; } };
+constexpr int INF = Inf<int>::inf(); constexpr ll BINF = Inf<ll>::inf();
+// mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+// }}}
+
+// Graph Template {{{
+template <class T = void, bool DIRECTED = false>
+class Graph : public vector<vector<pair<int, T>>> {
+	private:
+		int n, m;
+	public:
+		Graph(int n, int m = 0) : vector<vector<pair<int, T>>>(n), n(n), m(m) {}
+
+		friend istream &operator>>(istream &is, Graph &g);
+
+		template<class ...Args>
+		void addDiEdge(int u, int v, Args &&...args) { (*this)[u].emplace_back(v, std::forward<Args>(args)...); }
+
+		template<class ...Args>
+		void addEdge(int u, int v, Args &&...args) {
+			addDiEdge(u, v, std::forward<Args>(args)...);
+			if (!DIRECTED) addDiEdge(v, u, std::forward<Args>(args)...);
+		}
+
+		pair<vector<T>, vector<int>> dijkstra(vector<int> src) {
+			const T &INF = Inf<T>::inf();
+			auto &g = *this;
+			vector<T> dist(n, INF);
+			vector<int> par(n, -1);
+			min_queue<pair<T, int>> q;
+			for (int s : src) q.emplace(dist[s] = 0, s);
+			while (!q.empty()) {
+				auto [du, u] = q.top(); q.pop();
+				if (du > dist[u]) continue;
+				for (auto [v, l] : g[u]) if (T dv = dist[u] + l; dv < dist[v])
+					q.emplace(dist[v] = dv, v), par[v] = u;
+			}
+			return {dist, par};
+		}
+
+		tuple<vector<T>, vector<int>, vector<int>> prims(int src) {
+			const T &INF = Inf<T>::inf();
+			auto &g = *this;
+			vector<T> dist(n, INF);
+			vector<int> par(n, -1), dep(n), vis(n);
+			min_queue<pair<T, int>> q;
+			q.emplace(dist[src] = 0, src);
+			while (!q.empty()) {
+				auto [du, u] = q.top(); q.pop();
+				vis[u] = true;
+				for (auto [v, l] : g[u]) if (T dv = l; !vis[v] && dv < dist[v])
+					q.emplace(dist[v] = dv, v), par[v] = u, dep[v] = dep[u] + 1;
+			}
+			return {dist, par, dep};
+		}
+
+		vector<int> biColoring() {
+			auto &g = *this;
+			bool wtf = false;
+			vector<int> res(n, -1);
+			function<void(int)> dfs = [&] (int u) {
+				for (int v : g[u]) {
+					if (res[v] == -1) {
+						res[v] = 1 - res[u];
+						dfs(v);
+					} else if (res[v] == res[u]) {
+						wtf = true;
+						return;
+					}
+				}
+			};
+			for (int i = 0; i < n && !wtf; i++) if (res[i] == -1) {
+				res[i] = 0;
+				dfs(i);
+			}
+			if (wtf) return vector<int>();
+			return res;
+		}
+
+};
+template <class T> using DiGraph = Graph<T, true>;
+template <class U, bool D>
+istream &operator>>(istream &is, Graph<U, D> &g) {
+	for (int i=0;i<g.m;i++) {
+		int u, v; U l; is >> u >> v >> l; u--, v--;
+		g.addEdge(u, v, l);
+	}
+	return is;
+}
+template <class U, bool D>
+istream &operator>>(istream &is, Graph<void, D> &g) {
+	for (int i=0;i<g.m;i++) {
+		int u, v; is >> u >> v; u--, v--;
+		g.addEdge(u, v);
+	}
+	return is;
+}
+
+template <class T>
+class LCA {
+	protected:
+		const int M = 20;
+		int n;
+		vector<int> dep;
+		vector<vector<T>> dp2;
+		vector<vector<int>> dp;
+	public:
+		LCA(vector<T> dist, vector<T> par, vector<int> dep) : n(dist.size()), dep(dep), dp2(M, vector<T>(n, -Inf<T>::inf())), dp(M, vector<int>(n, -1)) {
+			dp2[0] = dist;
+			dp[0] = par;
+			for (int j = 1; j < M; j++) for (int i = 0; i < n; i++) {
+				if (dp[j - 1][i] == -1) continue;
+				dp2[j][i] = max(dp2[j - 1][i], dp2[j - 1][dp[j - 1][i]]);
+				dp[j][i] = dp[j - 1][dp[j - 1][i]];
+			}
+		}
+
+		pair<T, int> operator()(int u, int v) {
+			T ans = -Inf<T>::inf();
+			if (dep[u] > dep[v]) swap(u, v);
+			for (int j = M - 1; j >= 0; j--) if (int nv = dp[j][v]; nv != -1 && dep[nv] >= dep[u])
+				ans = max(ans, dp2[j][v]), v = nv;
+			if (u == v) return {ans, v};
+			for (int j = M - 1; j >= 0; j--) if (dp[j][u] != dp[j][v])
+				ans = max(ans, dp2[j][u]), ans = max(ans, dp2[j][v]), u = dp[j][u], v = dp[j][v];
+			return {max(ans, max(dp2[0][u], dp2[0][v])), dp[0][u]};
+		}
+
+};
+// }}}
+
+// Fake Pair Template {{{
+template <class T>
+class pair<T, void> {
+	public:
+		typedef T first_type;
+		T first;
+
+		constexpr pair(const T &x) : first(x) {}
+		constexpr pair(const T &x, const T &) : pair(x) {}
+		constexpr pair() : first() {}
+		constexpr pair(const pair &p) = default;
+		constexpr pair(pair &&p) = default;
+
+		template <class U1>
+		constexpr pair(U1 &&x) : first(std::forward<U1>(x)) {}
+		template <class U1, class U2>
+		constexpr pair(U1 &&x, U2 &&y) : pair(std::forward<U1>(x)) {}
+		template <class U1, class U2>
+		constexpr pair(const pair<U1, U2> &p) : first(p.first) {}
+		template <class U1, class U2>
+		constexpr pair(pair<U1, U2> &&p) : first(std::forward<U1>(p.first)) {}
+
+		constexpr pair &operator=(const pair &other) {
+			first = other.first;
+			return *this;
+		}
+		constexpr pair &operator=(const pair &&other) {
+			first = std::forward<T>(other.first);
+			return *this;
+		}
+		template <class U1, class U2>
+		constexpr pair &operator=(const pair<U1, U2> &other) {
+			first = other.first;
+			return *this;
+		}
+		template <class U1, class U2>
+		constexpr pair &operator=(pair<U1, U2> &&other) {
+			first = std::forward<U1>(other.first);
+			return *this;
+		}
+
+		void swap(pair &p) { std::swap(first, p.first); }
+
+		operator T() const { return first; }
+
+};
+
+template <class U1>
+void swap(pair<U1, void> &lhs, pair<U1, void> &rhs) { lhs.swap(rhs); }
+
+// }}}
+
+int solve() {
+	int n, m; cin >> n >> m;
+	vpii ge(m); cin >> ge;
+	for (auto &[u, v] : ge) u--, v--;
+	Graph g(n, m);
+	for (auto [u, v] : ge) g.addEdge(u, v);
+	vi clr = g.biColoring();
+	if (clr.empty()) {
+		cout << "NO" << endl;
+	} else {
+		cout << "YES" << endl;
+		for (auto [u, v] : ge) cout << clr[u];
+		cout << endl;
+	}
+	return 0;
+}
+
+// Template Main {{{
+int main() {
+	ios::sync_with_stdio(0);
+	// precompute();
+	// int t; cin >> t; for (int i=1;i<=t;i++)
+	solve();
+	// cout << "Case #" << i << ": ", solve();
+	return 0;
+}
+
+template <class T> istream &operator>>(istream &is, vector<T> &v) {
+	for (auto it=v.begin();it!=v.end();++it) is >> *it;
+	return is;
+}
+
+template <class T> ostream &operator<<(ostream &os, const vector<T> &v) {
+	for (auto it=v.begin();it!=v.end();) os << *it, os << " \n"[++it==v.end()];
+	return os;
+}
+
+template <class T, class U> istream &operator>>(istream &is, pair<T, U> &p) {
+	return is >> p.first >> p.second;
+}
+
+template <class T, class U> ostream &operator<<(ostream &os, const pair<T, U> &p) {
+	return os << p.first << ' ' << p.second;
+}
+// }}}
+
+// vim: fdm=marker

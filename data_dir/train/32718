@@ -1,0 +1,28 @@
+#include <bits/stdc++.h>
+#define pii pair<int,int>
+#define mp make_pair
+using namespace std;
+vector<pii>v;
+int n, t, a, b, ans;
+double dist;
+int main()
+{
+    cin>>n>>t;
+    for (int i=1;i<=n;++i)
+    {
+        cin>>a>>b;
+        v.push_back(mp(a,b));
+    }
+    sort(v.begin(), v.end());
+    ans = 2;
+    for (int i=0;i<v.size()-1;++i)
+    {
+        dist = v[i+1].first - v[i].first;
+        dist -= (v[i].second + v[i+1].second) / 2.0;
+        if (dist == t)
+            ++ans;
+        else if (dist > t) ans += 2;
+    }
+    cout<<ans<<'\n';
+    return 0;
+}

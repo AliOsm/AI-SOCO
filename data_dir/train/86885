@@ -1,0 +1,232 @@
+#pragma optimization_level 3
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math")
+#include<bits/stdc++.h>
+#define F first
+#define S second
+#define vec vector
+#define ms multiset
+#define pb push_back
+#define pll pair<ll,ll>
+#define pdd pair<ld, ld>
+#define pq priority_queue
+#define umap unordered_map
+#define uset unordered_set
+#define pii pair<int, int>
+#define pnn pair<Node*, Node*>
+#define uid uniform_int_distribution
+#define FILE ifstream in("board.in");ofstream out("board.out");
+#define fast cin.tie(0);cout.tie(0);cin.sync_with_stdio(0);cout.sync_with_stdio(0);
+using namespace std;
+typedef string str;
+typedef long long ll;
+typedef long double ld;
+mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count()); //uid<int> u1(5, 10); u1(rnd);
+uid<ll> gn(1, 9000000000000000000);
+
+struct Node{
+    char x;
+    ll sz;
+    Node *l = 0, *r = 0;
+    Node(int a){
+        x = a;
+        sz = 1;
+    }
+    Node(Node *n){
+        l = n->l; r = n->r;
+        x = n->x;
+        sz = n->sz;
+    }
+};
+Node* root = 0, *rl=0, *rm=0, *rr=0;
+ll gs(Node *n){return n ? n->sz : 0;}
+void upd(Node *n){
+    n->sz = gs(n->l)+1+gs(n->r);
+}
+
+Node* Persmerge(Node *l, Node *r){
+    if(!l) return r;
+    if(!r) return l;
+    if(gn(rnd)%(gs(l)+gs(r))<gs(l)){
+        Node *n = new Node(l);
+        n->r = Persmerge(n->r, r); upd(n);
+        return n;
+    }
+    Node *n = new Node(r);
+    n->l = Persmerge(l, n->l); upd(n);
+    return n;
+}
+
+Node* merge(Node *l, Node *r){
+    if(!l) return r;
+    if(!r) return l;
+    if(rnd()%(gs(l)+gs(r))<gs(l)){
+        l->r = merge(l->r, r); upd(l);
+        return l;
+    }
+    r->l = merge(l, r->l); upd(r);
+    return r;
+}
+
+pnn splitKey(Node *n, int k){
+    if(!n) return {nullptr, nullptr};
+    Node *nw = new Node(n);
+    if(k<n->x){
+        pnn p = splitKey(nw->l, k);
+        nw->l = p.S; upd(nw);
+        p.S = nw;
+        return p;
+    }
+    pnn p = splitKey(nw->r, k);
+    nw->r = p.F; upd(nw);
+    p.F = nw;
+    return p;
+}
+
+pnn splitSz(Node *n, int k){
+    if(!n) return {nullptr, nullptr};
+    Node *nw = new Node(n);
+    if(k < gs(n->l)+1){
+        pnn p = splitSz(nw->l, k);
+        nw->l = p.S; upd(nw);
+        p.S = nw;
+        return p;
+    }
+    pnn p = splitSz(nw->r, k-gs(n->l)-1);
+    nw->r = p.F; upd(nw);
+    p.F = nw;
+    return p;
+}
+
+void noPersAdd(int x){
+    root = merge(root, new Node(x));
+}
+
+Node* add(int pos, int x, Node *n){
+    pnn p = splitSz(n, pos-1);
+    return merge(merge(p.F, new Node(x)), p.S);
+}
+
+int get(ll pos, Node *n){
+    if(pos == gs(n->l)+1) return n->x;
+    if(pos<gs(n->l)+1) return get(pos, n->l);
+    return get(pos-gs(n->l)-1, n->r);
+}
+
+Node* remKey(int key, Node *n){
+    pnn p = splitKey(n, key - 1), p1 = splitKey(p.S, key);
+    return merge(p.F, p1.S);
+}
+
+Node* ctrlC_ctrlV(int s1, int s2, int d, Node* n){
+    int r1 = s1+d-1, r2 = s2+d-1;
+    pnn p = splitSz(n, r1), p1 = splitSz(p.F, s1-1);
+    pnn p2 = splitSz(n, r2), p3 = splitSz(p2.F, s2-1);
+    return merge(p3.F, merge(p1.S, p2.S));
+}
+
+Node* ctrlC_pushback(int l, int r, Node* n){
+    pnn p = splitSz(n, r), p1 = splitSz(p.F, l-1);
+    return Persmerge(Persmerge(p1.F, p1.S), Persmerge(p.S, p1.S));
+}
+
+Node* remPos(int pos, Node *n){
+    pnn p = splitSz(n, pos-1), p1 = splitSz(p.S, 1);
+    return merge(p.F, p1.S);
+}
+
+void print(Node *n){
+    if(!n) return;
+    print(n->l);
+    cout<<n->x;
+    print(n->r);
+}
+void print(){print(root); cout<<endl;}
+
+int main() {
+    fast;
+    vec<Node*> m;
+    str t0 = "What are you doing at the end of the world? Are you busy? Will you save us?";
+    str tl = "What are you doing while sending \"", tm = "\"? Are you busy? Will you send \"", tr = "\"?", tst = "123456789";
+    for(char c : t0) noPersAdd(c);
+    Node *ts = 0;
+    for(int q=0; q<tl.size(); q++) rl = add(q+1, tl[q], rl);
+    for(int q=0; q<tm.size(); q++) rm = add(q+1, tm[q], rm);
+    for(int q=0; q<tr.size(); q++) rr = add(q+1, tr[q], rr);
+   // for(int q=0; q<tst.size(); q++) ts = add(q+1, tst[q], ts);
+    m.pb(root);
+    //print(root); cout<<endl;
+    //print(rl); cout<<endl;
+    //print(rm); cout<<endl;
+    //print(rr); cout<<endl;
+    //print(Persmerge(Persmerge(ts,ts),ts)); cout<<endl;
+    int DEP = 53;
+    for(int q=1; q<=DEP; q++){
+        m.pb(Persmerge(Persmerge(Persmerge(Persmerge(rl, m.back()), rm), m.back()), rr));
+        //cout<<q<<": "<<gs(m.back())<<endl;
+    }
+    int z; cin>>z;
+    for(; z; z--){
+        ll v,pos; cin>>v>>pos;
+        if(v<=DEP && gs(m[v])<pos){
+            cout<<".";
+            continue;
+        }
+        for(; v>DEP; v--){
+            if(pos<=tl.size()){
+                cout<<tl[pos-1];
+                pos=0;
+                break;
+            }
+            pos-=tl.size();
+        }
+        if(pos==0) continue;
+        char ans = get(pos, m[v]);
+        cout<<ans;
+    }
+    /*
+    for(int q=0; q<100; q++){
+        str t; int v, x; cin>>t>>v>>x;
+        if(t[0]=='a'){
+            int xx; cin>>xx;
+            m.pb(add(x, xx, m[v]));
+            for(int w=0; w<m.size(); w++){
+                cout<<w<<":  "; print(m[w]); cout<<endl;
+            }
+            cout<<endl;
+        }
+        if(t[0]=='P'){
+            int r; cin>>r;
+            m.pb(ctrlC_pushback(x,r,m[v]));
+            for(int w=0; w<m.size(); w++){
+                cout<<w<<":  "; print(m[w]); cout<<endl;
+            }
+            cout<<endl;
+        }
+        if(t[0]=='C'){
+            int r1, l2, r2; cin>>r1>>l2>>r2;
+            m.pb(ctrlC_ctrlV(x, l2, r2-l2+1, m[v]));
+            for(int w=0; w<m.size(); w++){
+                cout<<w<<":  "; print(m[w]); cout<<endl;
+            }
+            cout<<endl;
+        }
+        if(t[0]=='g'){
+            cout<<get(x, m[v])<<endl;
+        }
+        if(t[0]=='r'){
+            m.pb(remKey(x, m[v]));
+            for(int w=0; w<m.size(); w++){
+                cout<<w<<":  "; print(m[w]); cout<<endl;
+            }
+            cout<<endl;
+        }
+        if(t[0]=='d'){
+            m.pb(remPos(x, m[v]));
+            for(int w=0; w<m.size(); w++){
+                cout<<w<<":  "; print(m[w]); cout<<endl;
+            }
+            cout<<endl;
+        }
+    }
+     */
+}

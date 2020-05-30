@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#ifdef DGC
+#include "debug.h"
+#else
+#define debug(...) 9715
+#endif
+typedef long long ll;
+typedef long double ld;
+typedef complex<ll> point;
+#define F first
+#define S second
+
+#include <ext/pb_ds/assoc_container.hpp> // Common file
+#include <ext/pb_ds/tree_policy.hpp>     // Including tree_order_statistics_node_update
+
+using namespace __gnu_pbds;
+
+template<typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+bool find(ordered_set<pair<int, int>> &S, int x, int y)
+{
+	auto it = S.lower_bound({ x, y });
+	return (it != S.end() && it->first <= x && it->second >= y)
+			|| (it != S.begin() && (--it)->first <= x && it->second >= y);
+}
+
+void insert(ordered_set<pair<int, int>> &S, int x, int y)
+{
+	if (find(S, x, y))
+		return;
+
+	auto it = S.lower_bound({ x, y });
+	while (it != S.end() && it->first >= x && it->second <= y)
+		it = S.erase(it);
+
+	it = S.insert({ x, y }).first;
+
+	if (++it != S.end() && y >= it->first)
+	{
+		int t = it->second;
+		S.erase({ x, y });
+		S.erase(it);
+		it = S.insert({ x, y = t }).first;
+	}
+	else --it;
+
+	if (it != S.begin() && (--it)->second >= x)
+	{
+		int t = it->first;
+		S.erase({ x, y });
+		S.erase(it);
+		S.insert({ x = t, y });
+	}
+}
+
+int main()
+{
+	#ifdef DGC
+		//freopen("a.in", "r", stdin);
+		//freopen("b.out", "w", stdout);
+	#endif
+
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int t;
+	cin >> t;
+	while (t--)
+	{
+		int n;
+		cin >> n;
+		vector<pair<int, int>> a(n);
+		for (auto &i : a) cin >> i.F >> i.S;
+		sort(a.begin(), a.end());
+
+		const int inf = -2e9;
+		vector<pair<int, int>> w(1, make_pair(inf, 0));
+		for (auto i : a)
+		{
+			int last = w.back().F;
+			int val = w.back().S;
+			if (i.F > last)
+			{
+				w.push_back({ i.S, val + 1 });
+			}
+			else
+			{
+				w.push_back({ max(last, i.S), val });
+			}
+		}
+
+		int ans = 0;
+		ordered_set<pair<int, int>> s;
+		for (int i = n-1; i >= 0; --i)
+		{
+			int g = s.size() - s.order_of_key(make_pair(w[i].F+1, inf));
+			ans = max(ans, w[i].S + g);
+			insert(s, a[i].F, a[i].S);
+		}
+		cout << ans << "\n";
+	}
+
+	return 0;
+}
+

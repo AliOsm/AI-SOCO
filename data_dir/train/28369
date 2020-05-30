@@ -1,0 +1,168 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <stack>
+#include <string>
+#include <assert.h>
+#include <queue>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <cstdio>
+ 
+#define ll long long
+#define ld long double
+#define pb push_back
+#define mp make_pair
+#define int long long
+ 
+using namespace std;
+ 
+const int INF = 2e9;
+const int MOD = 998244353;
+ 
+ 
+ 
+struct FenvikTree {
+	vector<int> t;
+	FenvikTree(int n) {
+		t.resize(n + 1);
+	}
+ 
+	void update(int l, int r, int delta) {
+		l++; r++;
+		update(l, delta);
+		update(r + 1, -delta);
+	}
+ 
+	void update(int i, int delta) {
+		for (; i < t.size(); i += (i & (-i))) {
+			t[i] += delta;
+		}
+	}
+ 
+	int get(int i) {
+		int res = 0;
+		i++;
+		for (; i > 0; i -= (i & (-i))) {
+			res += t[i];
+		}
+		return res;
+	}
+};
+ 
+vector<vector<int>> g;
+ 
+void solve() {
+	int n, m;
+	cin >> n >> m;
+	g.resize(n);
+	for (int i = 0; i < n - 1; i++) {
+		int from, to;
+		cin >> from >> to;
+		from--; to--;
+		g[from].pb(to);
+		g[to].pb(from);
+	}
+ 
+	queue<int> q;
+	vector<bool> used(n);
+	vector<int> h(n), all;
+	all.pb(0);
+	used[0] = true;
+	q.push(0);
+	vector<int> linkA(n);
+	while (!q.empty()) {
+		int v = q.front();
+		q.pop();
+		for (int u : g[v]) {
+			if (!used[u]) {
+				h[u] = h[v] + 1;
+				linkA[u] = all.size();
+				used[u] = true;
+				all.pb(u);
+				q.push(u);
+			}
+		}
+	}
+ 
+	vector<int> link(n, -1);
+	for (int i = 1; i < n; i++) {
+		int height = h[all[i]];
+		if (link[height - 1] == -1) link[height - 1] = i - 1;
+	}
+	int maxH = h[all[n - 1]];
+	link[maxH] = n - 1;
+ 
+	vector<int> colors(n);
+	vector<vector<int>> groups;
+	vector<int> linkG(n);
+	for (int v : g[0]) {
+		int p = 0;
+		groups.pb({ v });
+		linkG[v] = groups[groups.size() - 1].size() - 1;
+		colors[v] = groups.size() - 1;
+		while (g[v].size() > 1) {
+			for (int u : g[v]) {
+				if (u != p) {
+					colors[u] = groups.size() - 1;
+					groups[groups.size() - 1].pb(u);
+					linkG[u] = groups[groups.size() - 1].size() - 1;
+					p = v;
+					v = u;
+					break;
+				}
+			}
+		}
+	}
+ 
+	FenvikTree* allTree = new FenvikTree(n);
+	vector<FenvikTree*> trees(groups.size());
+	int w = 0;
+	for (auto & v : groups) {
+		trees[w++] = new FenvikTree(v.size());
+	}
+ 
+	for (int i = 0; i < m; i++) {
+		int c;
+		cin >> c;
+		if (c) {
+			int v;
+			cin >> v;
+			v--;
+			int ans = (v ? trees[colors[v]]->get(linkG[v]) : 0) + allTree->get(linkA[v]);
+			cout << ans << '\n';
+		}
+		else {
+			int v, x, d;
+			cin >> v >> x >> d;
+			v--;
+			if (v) {
+				int l = max(0LL, linkG[v] - d);
+				int r = min(linkG[v] + d, groups[colors[v]].size() - 1LL);
+				trees[colors[v]]->update(l, r, x);
+				if (linkG[v] - d < 0) {
+					int dis = min(maxH, d - linkG[v] - 1);
+					l = 0;
+					r = link[dis];
+					allTree->update(l, r, x);
+					if (dis - 1 >= 0) trees[colors[v]]->update(0, min(groups[colors[v]].size() - 1LL, dis - 1), -x);
+				}
+			}
+			else {
+				int l = 0;
+				int r = link[min(d, maxH)];
+				allTree->update(l, r, x);
+			}
+		}
+	}
+}
+signed main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.tie(nullptr);
+	cout.precision(12);
+	solve();
+}

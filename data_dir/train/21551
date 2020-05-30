@@ -1,0 +1,142 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <memory.h>
+#include <sstream>
+#include <fstream>
+#include <iomanip>
+#include <assert.h>
+#include <bitset>
+#include <string>
+#include <cstdio>
+#include <math.h>
+#include <complex>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <bitset>
+#include <map>
+using namespace std;
+
+#define int64 long long
+#define mp make_pair
+
+#ifdef _DEBUG
+const int N = 30000;
+#else
+const int N = 500000;
+#endif
+
+const int INF = 1e9;
+const int MOD = 1e9+7;
+const int mx = 10000;
+
+int n, k, f[N], x[N], r[N], y[N], z[N], t[N];
+vector <pair<int, int> > q1[N], q2[N];
+pair <int, int> p[N];
+
+void update(int sz, int pos, int val)
+{
+	while (pos < N)
+	{
+		t[pos] += val;
+		pos |= pos + 1;
+	}
+}
+
+int get(int r)
+{
+	int res = 0;
+	while (r >= 0)
+	{
+		res += t[r];
+		r &= r + 1;
+		r--;
+	}
+	return res;
+}
+
+void compress()
+{
+	for (int i = 1; i <= n; i++) p[i] = mp(x[i], i);
+	for (int i = 1; i <= n; i++) p[i + n] = mp(y[i], i + n);
+	for (int i = 1; i <= n; i++) p[i + 2 * n] = mp(z[i], i + 2 * n);
+	sort(p + 1, p + 3 * n + 1);
+	int val = 1;
+	for (int i = 1; i <= 3 * n; i++)
+	{
+		if (i > 1 && p[i].first != p[i - 1].first) val++;
+		if (p[i].second <= n) x[p[i].second] = val;
+		else if (p[i].second <=  2 * n) y[p[i].second - n] = val;
+		else z[p[i].second - 2 * n] = val;
+	}
+}
+
+int64 solve(vector<pair<int, int> > &v1, vector<pair<int, int> > &v2)
+{
+	int64 res = 0;
+	int j = 0;
+	for (int i = 0; i < v1.size(); i++)
+	{
+		while (j < v2.size() && v2[j].first <= v1[i].first)
+		{
+			update(v2.size(), v2[j].second, 1);
+			j++;
+		}
+		res += get(v1[i].second);
+	}
+	j = 0;
+	for (int i = 0; i < v1.size(); i++)
+	{
+		while (j < v2.size() && v2[j].first <= v1[i].first)
+		{
+			update(v2.size(), v2[j].second, -1);
+			j++;
+		}
+	}
+	return res;
+}
+
+int main()
+{
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	scanf("%d%d", &n, &k);
+	for (int i = 1; i <= n; i++) scanf("%d%d%d", &x[i], &r[i], &f[i]);
+	for (int i = 1; i <= n; i++) y[i] = x[i] + r[i];
+	for (int i = 1; i <= n; i++) z[i] = x[i] - r[i];
+	compress();
+	for (int i = 1; i <= n; i++)
+	{
+		q1[f[i]].push_back(mp(x[i], y[i]));
+		q2[f[i]].push_back(mp(z[i], x[i]));
+	}
+	for (int i = 1; i <= mx; i++)
+	{
+		if (q1[i].size() > 0)
+		{
+			sort(q1[i].begin(), q1[i].end());
+			sort(q2[i].begin(), q2[i].end());
+		}
+	}
+	int64 ans = 0;
+	for (int i = 1; i <= mx; i++)
+	{
+		for (int j = max(1, i - k); j <= min(mx, i + k); j++)
+		{
+			int64 tmp = solve(q1[i], q2[j]);
+			ans += tmp;
+		}
+	}
+	for (int i = 1; i <= mx; i++)
+		for (int j = max(1, i - k); j <= i; j++)
+			if (i != j) ans -= 1ll * q1[i].size() * q2[j].size();
+			else ans -= 1ll * q1[i].size() * (q1[i].size() + 1) / 2;
+	cout << ans;
+	return 0;
+}

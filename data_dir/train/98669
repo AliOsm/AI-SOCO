@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 1e6+6;
+int n, m, a[maxn], pre[maxn];
+
+struct Node {
+	int s, e, m;
+	//covers s,e;
+	int sum;
+	Node *l, *r;
+	
+	Node(int a, int b) {
+		s = a;
+		e = b;
+		sum = 0;
+		if (s != e) {
+			m = (s+e)/2;
+			l = new Node(s,m);
+			r = new Node(m+1,e);
+		}
+		else {
+			l = NULL;
+			r = NULL;
+		}
+	}
+
+
+	void add(int i, int x) {
+		if (s == e) {
+            sum = x;
+			return;
+		}
+		if (i <= m) {
+			l->add(i,x);
+		}
+		else if (i > m) {
+			r->add(i,x);
+		}
+		else assert(false);
+		sum = l->sum ^ r->sum;
+	}
+
+	int getsum(int st, int en) {
+		if (st <= s && e <= en) {
+			return sum;
+		}
+		int ret = 0;
+		if (st <= m) {
+			ret ^= l->getsum(st,en);
+		}
+		if (en > m) {
+			ret ^= r->getsum(st,en);
+		}
+		return ret;
+	}
+};
+
+int ans[maxn];
+map<int,int> last;
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> n;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        pre[i] = a[i] ^ pre[i-1];
+    }
+    cin >> m;
+    vector<pair<pair<int,int>,int>> queries;
+    for (int i = 0; i < m; i++) {
+        int l, r; cin >> l >> r;
+        queries.push_back({{l,r},i});
+    }
+    sort(queries.begin(),queries.end(),[](auto a, auto b) {
+            return a.first.second < b.first.second;
+            });
+    int pt = 1;
+    Node *root = new Node(1,n);
+    for (auto p: queries) {
+        int l = p.first.first;
+        int r = p.first.second;
+        int id = p.second;
+        while (pt <= r) {
+            if (last.count(a[pt])) {
+                root->add(last[a[pt]],0);
+            }
+            root->add(pt,a[pt]);
+            last[a[pt]] = pt;
+            pt++;
+        }
+        int res = root->getsum(l,r);
+        //cout << l << ' ' << r << ": " << res << '\n';
+        ans[id] = res ^ (pre[r] ^ pre[l-1]);
+    }
+    for (int i = 0; i < m; i++) {
+        cout << ans[i] << '\n';
+    }
+}

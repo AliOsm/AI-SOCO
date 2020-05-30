@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define F first
+#define S second
+#define all(x) x.begin(), x.end()
+#define debugV(v) cerr << #v << ": [ "; for(int __ = 0; __ < v.size(); __++) cerr << v[__] << ((__ != v.size() - 1) ? ", " : " "); cerr << ']' << endl
+using namespace std;
+typedef long long ll ; 
+typedef long double ld ;
+typedef pair<ll , ll> pll ;
+
+const ll N = 2e5 + 30 , Mod = 1e9 + 7 ;
+const ll SQ = 330 ;
+const ll LOG = 24 ;
+ll P[LOG][N] , m , n , q  , H[N];
+vector<ll> a[LOG][N]  , G[N];
+vector<ll> ans;
+
+vector<ll> merge(vector<ll> v1 , vector<ll> v2) {
+    vector<ll> ans1 ;
+    int cnt  = 0 , p1 = 0 , p2 = 0 ;
+    while (p1 < v1.size() and p2 < v2.size() and ans1.size() < 10) {
+        if (v1[p1] < v2[p2]) ans1.pb(v1[p1]) , p1 ++ ;
+        else ans1.pb(v2[p2]) , p2 ++ ;
+    }
+    for (int i = p1 ; i < v1.size() and ans1.size() < 10; i ++) ans1.pb(v1[i]) ;
+    for (int i = p2 ; i < v2.size() and ans1.size() < 10; i ++) ans1.pb(v2[i]) ;
+    //ans1.resize(unique(ans1.begin(),ans1.end())-ans1.begin());
+    //if (ans1.size() > 10 ) ans.resize(10) ;
+    return ans1; 
+}
+void DFS(ll v = 1 , ll par = -1 , ll h = 0 ) {
+    P[0][v] = par ;
+    H[v] = h ;
+    for (int i = 1 ; i < LOG ; i ++) {
+        P[i][v] = P[i - 1][P[i - 1][v]] ;
+        a[i][v] = merge(a[i - 1][v] , a[i - 1][P[i - 1][v]]);
+    }
+    for (auto u : G[v]) if (u != par) DFS(u , v , h + 1) ;
+}
+ll Up(ll v , ll h) {
+    for (int i = LOG  - 1 ; i >= 0 ; i --) {
+        if (h >= (1 << i)) {
+            h -= 1 << i ;
+            v = P[i][v] ;
+        }
+    }
+    return v ;
+}
+ll LCA (ll v , ll u ) {
+    if (H[u] > H[v]) return LCA(u , v) ;
+    v = Up(v , H[v] - H[u]) ;
+    if (v == u) return v ;
+    for (int i = LOG - 1 ; i >= 0 ; i --) {
+        if (P[i][v] != P[i][u]) {
+            u = P[i][u] ;
+            v = P[i][v] ;
+        }
+    }
+    return P[0][v] ;
+}
+/*
+5 5 1
+2 5
+3 2
+2 1
+4 2
+1 3 5 1 1
+1 4 6*/
+
+void Query(ll v , ll u , ll x) {
+    ll w = LCA(v , u) ;
+    ll h = H[v] - H[w] ;
+    ans.clear() ;
+    ans = a[0][w];
+    //debugV(ans) ;
+    for (int i  = LOG - 1  ; i >= 0 ; i --) {
+        if (h >= (1 << i)) {
+            h -= 1 << i ;
+            ans = merge(ans , a[i][v]) ; 
+            v = P[i][v] ;
+        }
+    }
+    h = H[u] - H[w]  ;
+    for (int i  = LOG - 1  ; i >= 0 ; i --) {
+        if (h >= (1 << i)) {
+            h -= 1 << i ;
+            ans = merge(ans , a[i][u]) ; 
+            u = P[i][u] ;
+        }
+    }
+    if (x < ans.size()) ans.resize(x) ;
+    cout << ans.size() << ' ' ;
+    for (auto u : ans) cout << u << ' ' ;
+    cout << endl ;
+    
+}
+int main () {
+    ios::sync_with_stdio(0), cin.tie(0) ;
+    cin >> n >> m >> q ;
+    for (int i = 0 ; i < n -  1 ; i ++) {
+        ll v , u ; cin >> v >> u ;
+        G[v].pb(u) ; 
+        G[u].pb(v) ;
+    }
+    for (int i = 0 ; i < m ; i ++) {
+        ll x ; cin >> x ;
+        a[0][x].pb(i +  1) ; 
+    }
+    DFS() ;
+    //cout << a[1][5].size() << endl  << endl ;
+    while (q --) {
+        ll v, u , x; 
+        cin >> v >> u >> x ;
+        //cout << H[v]  << ' ' << H[u]<< endl ;
+        Query(v ,  u , x) ;
+    }
+    
+    return (0) ;
+}

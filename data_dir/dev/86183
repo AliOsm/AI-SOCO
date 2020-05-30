@@ -1,0 +1,180 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define all(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+namespace CH {
+
+    int n;
+    vector<PII> points;
+
+    bool check(PLL a, PLL b, PLL c)
+    {
+        return (b.first - a.first) * (c.second - a.second) - (b.second - a.second) * (c.first - a.first) >= 0LL;
+    }
+
+    vector<PII> make_half()
+    {
+        vector<PII> ans = {points[0], points[1]};
+        for (int i = 2; i < n; i++)
+        {
+            int x = ans.size() - 1;
+            while (x > 0 && check(ans[x - 1], ans[x], points[i]))
+                ans.pop_back(), x--;
+            ans.push_back(points[i]);
+        }
+        ans.pop_back();
+        return ans;
+    }
+
+    vector<PII> convex_hull()
+    {
+        sort(points.begin(), points.end());
+        vector<PII> ans = make_half();
+        reverse(points.begin(), points.end());
+        for (auto &x : make_half())
+            ans.push_back(x);
+        return ans;
+    }
+};
+
+LL dist(PLL x, PLL y)
+{
+    return (x.first - y.first) * (x.first - y.first) + (x.second - y.second) * (x.second - y.second);
+}
+
+LL ilo1(PLL a, PLL b, PLL c)
+{
+    return (b.first - a.first) * (c.second - a.second) - (b.second - a.second) * (c.first - a.first);
+}
+
+LL ilo2(PLL a, PLL b, PLL c)
+{
+    return (b.first - a.first) * (c.first - a.first) + (b.second - a.second) * (c.second - a.second);
+}
+
+vector < int > KMP(vector < pair < LL, PLL > > s)
+{
+    int n = s.size();
+    vector<int> T(n + 1, 0);
+    for (int i = 2; i <= n; i++)
+    {
+        int t = T[i - 1];
+        while (t > 0 && s[i] != s[t + 1])
+            t = T[t];
+        if (s[i] == s[t + 1])
+            t++;
+        T[i] = t;
+    }
+    return T;
+}
+
+int n, m;
+vector < PII > A, B;
+
+vector < pair < LL, PLL > > X, Y;
+
+int main()
+{
+    _upgrade
+    cin >> n >> m;
+    for(int i = 0; i < n; i++)
+    {
+        int x, y; cin >> x >> y;
+        A.push_back({x, y});
+    }  
+    for(int i = 0; i < m; i++)
+    {
+        int x, y; cin >> x >> y;
+        B.push_back({x, y});
+    }
+    
+    CH::n = n;
+    CH::points = A;
+    A = CH::convex_hull();
+    n = sz(A);
+    CH::n = m;
+    CH::points = B;
+    B = CH::convex_hull();
+    m = sz(A);
+    CH::points.clear();
+    if(n != m)
+    {
+        cout << "NO\n";
+        return 0;
+    }
+
+    if(n == 1)
+    {
+        cout << "YES\n";
+        return 0;
+    }
+    if(n == 2)
+    {
+        if(dist(A[0], A[1]) == dist(B[0], B[1]))
+        {
+            cout << "YES\n";
+        }
+        else
+        {
+            cout << "NO\n";
+        }
+        return 0;
+    }
+
+    A.push_back(A[0]);
+    A.push_back(A[1]);
+    B.push_back(B[0]);
+    B.push_back(B[1]);
+
+    X.push_back({-3, {-1, -1}});
+    for(int i = 0; i < n; i++)
+    {
+        pair < LL, pair < LL, LL > > p = {dist(A[i], A[i + 1]), 
+            {ilo1(A[i + 1], A[i], A[i + 2]), ilo2(A[i + 1], A[i], A[i + 2])}};
+        X.push_back(p);
+    }
+    A.clear();
+    for (int i = 0; i < n; i++)
+    {
+        pair<LL, pair<LL, LL>> p = {dist(B[i], B[i + 1]),
+            {ilo1(B[i + 1], B[i], B[i + 2]), ilo2(B[i + 1], B[i], B[i + 2])}};
+        Y.push_back(p);
+    }
+    B.clear();
+
+    X.push_back({-1, {-1, -1}});
+    X.push_back({-2, {-1, -1}});
+    for(auto y: Y) X.push_back(y);
+    for(auto y: Y) X.push_back(y);
+    vector < int > res = KMP(X);
+    for(auto u: res)
+    {
+        if(u >= n)
+        {
+            cout << "YES\n";
+            return 0;
+        }
+    }
+    cout << "NO\n";
+    return 0;
+}

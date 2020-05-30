@@ -1,0 +1,121 @@
+/*input
+7 6
+2 1 2 1
+4 2 4 3
+2 5 2 5
+2 3 5 3
+1 2 1 2
+3 2 5 3
+*/
+#include "bits/stdc++.h"
+using namespace std;
+
+// Reference: My (forked) ICPC codebook: https://github.com/aayush9/ICPC-CodeBook/blob/master/code/Dinic.cc
+struct Dinic {
+	struct Edge {
+		int u, v;
+		long long cap, flow;
+		Edge() {}
+		Edge(int u, int v, long long cap): u(u), v(v), cap(cap), flow(0) {}
+	}; 
+	int N;
+	vector<Edge> E;
+	vector<vector<int>> g;
+	vector<int> d, pt;
+
+	Dinic(int N): N(N), E(0), g(N), d(N), pt(N) {}
+
+	void AddEdge(int u, int v, long long cap) {
+		if (u != v) {
+			E.emplace_back(Edge(u, v, cap));
+			g[u].emplace_back(E.size() - 1);
+			E.emplace_back(Edge(v, u, 0));
+			g[v].emplace_back(E.size() - 1);
+		}
+	}
+
+	bool BFS(int S, int T) {
+		queue<int> q({S});
+		fill(d.begin(), d.end(), N + 1);
+		d[S] = 0;
+		while(!q.empty()) {
+			int u = q.front(); q.pop();
+			if (u == T) break;
+			for (int k: g[u]) {
+				Edge &e = E[k];
+				if (e.flow < e.cap && d[e.v] > d[e.u] + 1) {
+		 			d[e.v] = d[e.u] + 1;
+		 			q.emplace(e.v);
+		    	}
+		  	}
+		}
+		return d[T] != N + 1;
+	}
+
+	long long DFS(int u, int T, long long flow = -1) {
+		if (u == T || flow == 0) return flow;
+		for (int &i = pt[u]; i < g[u].size(); ++i) {
+			Edge &e = E[g[u][i]];
+			Edge &oe = E[g[u][i]^1];
+			if (d[e.v] == d[e.u] + 1) {
+				long long amt = e.cap - e.flow;
+				if (flow != -1 && amt > flow) amt = flow;
+				if (long long pushed = DFS(e.v, T, amt)) {
+					e.flow += pushed;
+					oe.flow -= pushed;
+					return pushed;
+				}
+			}
+		}
+		return 0;
+	}
+
+	long long MaxFlow(int S, int T) {
+		long long total = 0;
+		while (BFS(S, T)) {
+			fill(pt.begin(), pt.end(), 0);
+			while (long long flow = DFS(S, T))
+				total += flow;
+		}
+		return total;
+	}
+};
+
+map<int,int> mp_x,mp_y;
+vector<tuple<int,int,int,int>> pts;
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);cout.tie(0);
+	int n,m; cin >> n >> m;
+	for(int i=0;i<m;++i){
+		int x1,y1,x2,y2;
+		cin >> x1 >> y1 >> x2 >> y2;
+		mp_x[x1];mp_x[x2+1];
+		mp_y[y1];mp_y[y2+1];
+		pts.push_back({x1,y1,x2,y2});
+	}
+	mp_x[n+1]; mp_y[n+1];
+	int CLK = 0, last;
+	int S = 0, T = mp_x.size()+mp_y.size()+1;
+	Dinic d(T+1);
+	
+	last = 0; for(auto &p:mp_x){
+		p.second = ++CLK;
+		if(last) d.AddEdge(S,mp_x[last],p.first-last);
+		last = p.first;
+	}
+
+	last = 0; for(auto &p:mp_y){
+		p.second = ++CLK;
+		if(last) d.AddEdge(mp_y[last],T,p.first-last);
+		last = p.first;
+	}
+	for(auto t:pts){
+		int x1,y1,x2,y2; tie(x1,y1,x2,y2) = t;
+		auto it_x = mp_x.lower_bound(x1), it_y = mp_y.lower_bound(y1);
+		for(auto i=it_x;i->first <= x2;++i)
+			for(auto j=it_y;j->first <= y2;++j)
+				d.AddEdge(i->second,j->second,1e10);
+	}
+	cout << d.MaxFlow(S,T);
+}

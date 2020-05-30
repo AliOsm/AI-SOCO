@@ -1,0 +1,126 @@
+#include<bits/stdc++.h>
+#define MAX 500
+#define N 402
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long lu;
+
+///typedef tree < ll,  null_type,  less < ll >,  rb_tree_tag,  tree_order_statistics_node_update > o_set;
+
+int dp[N][N], dp2[N][N], nxt[N], par[N];
+
+map < pair < int,int > , int > edge;
+
+vector < int > v[N];
+
+void dfs(int n)
+{
+    int pre = 0;
+    for(int i = 0; i<v[n].size(); i++){
+        if(v[n][i]!=par[n]){
+            nxt[pre] = v[n][i];
+            pre = v[n][i];
+            par[v[n][i]] = n;
+            dfs(v[n][i]);
+        }
+    }
+}
+
+int call(int n, int k);
+
+int distribute(int n, int k)
+{
+    if(n==0){
+        if(k==0) return dp2[n][k] = 0;
+        return dp2[n][k] = MAX;
+    }
+
+    if(dp2[n][k]!=-1) return dp2[n][k];
+    dp2[n][k] = MAX;
+
+    for(int i = 0; i<=k; i++){
+        dp2[n][k] = min(dp2[n][k],call(n,i)+distribute(nxt[n],k-i));
+    }
+
+    return dp2[n][k];
+}
+
+int call(int n, int k)
+{
+
+    if(k==0) return dp[n][k] = 1;
+    if(v[n].size()==1 && par[n]!=0){
+        if(k==1) return dp[n][k] = 0;
+        return dp[n][k] = MAX;
+    }
+
+    if(dp[n][k]!=-1) return dp[n][k];
+
+    if(par[n]==v[n][0]) dp[n][k] = distribute(v[n][1],k-1);
+    else dp[n][k] = distribute(v[n][0],k-1);
+
+    return dp[n][k];
+}
+
+void print_edge(int n, int k);
+
+void print_edge2(int n, int k)
+{
+    if(n==0) return;
+
+    for(int i = 0; i<=k; i++){
+        if(dp2[n][k]==dp[n][i]+dp2[nxt[n]][k-i]){
+            print_edge(n,i);
+            print_edge2(nxt[n],k-i);
+            return;
+        }
+    }
+}
+
+void print_edge(int n, int k){
+    if(k==0){
+        printf("%d ",edge[make_pair(n,par[n])]);
+        return;
+    }
+
+    if(v[n].size()==1 && par[n]!=0){
+        return;
+    }
+
+    if(par[n]==v[n][0]) print_edge2(v[n][1],k-1);
+    else print_edge2(v[n][0],k-1);
+}
+
+int main()
+{
+    int n, k;
+    scanf("%d %d",&n,&k);
+    if(n==1){
+        printf("0\n");
+        return 0;
+    }
+    for(int i = 1; i<n; i++){
+        int a, b;
+        scanf("%d %d",&a,&b);
+        v[a].push_back(b);
+        v[b].push_back(a);
+        edge[make_pair(a,b)] = edge[make_pair(b,a)] = i;
+    }
+    dfs(1);
+    memset(dp,-1,sizeof dp);
+    memset(dp2,-1,sizeof dp2);
+    int ans = MAX;
+    for(int i = 1; i<=n; i++){
+        ans = min(ans,call(i,k)+(par[i]>0));
+    }
+    printf("%d\n",ans);
+    for(int i = 1; i<=n; i++){
+        if(ans==call(i,k)+(par[i]>0)){
+            if(par[i]>0) printf("%d ",edge[make_pair(i,par[i])]);
+            print_edge(i,k);
+            return 0;
+        }
+    }
+}

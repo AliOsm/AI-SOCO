@@ -1,0 +1,75 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct MaxFlow {
+	struct edge { int to, cap, rev; };
+	vector<int> dist, it;
+	vector<vector<edge>> g;
+	MaxFlow(int n) : g(n), dist(n), it(n) {}
+	void add(int u, int v, int c) {
+		g[u].push_back({ v, c, (int)g[v].size() });
+		g[v].push_back({ u, 0, (int)g[u].size() - 1 });
+	}
+	int flow(int s, int t) {
+		int res = 0;
+		while (bfs(s, t)) {
+			fill(it.begin(), it.end(), 0);
+			while (int f = dfs(s, t, 1e9)) res += f;
+		}
+		return res;
+	}
+	bool bfs(int s, int t) {
+		fill(dist.begin(), dist.end(), -1);
+		queue<int> q;
+		q.push(s);
+		dist[s] = 0;
+		while (!q.empty()) {
+			int v = q.front(); q.pop();
+			for (edge e : g[v]) if (e.cap > 0 && dist[e.to] < 0) {
+				dist[e.to] = dist[v] + 1;
+				q.push(e.to);
+			}
+		}
+		return dist[t] >= 0;
+	}
+	int dfs(int v, int t, int f) {
+		if (v == t) return f;
+		for (int &i = it[v]; i < g[v].size(); i++) {
+			edge &e = g[v][i];
+			if (e.cap > 0 && dist[v] < dist[e.to]) {
+				if (int d = dfs(e.to, t, min(f, e.cap))) {
+					e.cap -= d;
+					g[e.to][e.rev].cap += d;
+					return d;
+				}
+			}
+		}
+		return 0;
+	}
+};
+
+int main() {
+	int n, m, x;
+	cin >> n >> m >> x;
+	
+	vector<int> u(m), v(m), c(m);
+
+	for (int i = 0; i < m; i++) {
+		cin >> u[i] >> v[i] >> c[i];
+		u[i]--; v[i]--;
+	}
+
+	const int Lim = x;
+	double low = 0, high = 1e9;
+	for (int ii = 0; ii < 300; ii++) {
+		double mid = (low + high) / 2;
+		MaxFlow mf(n);
+		for (int i = 0; i < m; i++) {
+			mf.add(u[i], v[i], (int)min<double>(Lim, c[i] / mid));
+		}
+		if (mf.flow(0, n - 1) >= x) low = mid;
+		else high = mid;
+	}
+
+	printf("%.20f\n", high * x);
+}

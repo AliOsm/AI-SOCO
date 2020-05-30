@@ -1,0 +1,156 @@
+// KALAM
+# include<bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100000 + 77 , L = 17;
+int n , q , root , T[N] , A[N];
+int Fen[N] , d[N] , Par[N][L];
+int Qtp[N] , Qa[N] , Qb[N] , Qc[N] , Qd[N] , F[N];
+int Le[N] , Ri[N] , Mid[N] , Dist[N];
+int W[N];
+vector < int > a[N];
+vector < pair < int , pair < int , int > > > Q[N];
+inline int GetPar(int v , int k) {
+   for(int i = 0;i < L;++ i)
+      if(k & (1 << i))
+         v = Par[v][i];
+   return v;
+}
+inline int GetLca(int v , int u) {
+   if(d[v] < d[u])
+      swap(v , u);
+   v = GetPar(v , d[v] - d[u]);
+   if(v == u)
+      return v;
+   for(int i = L - 1;i >= 0;-- i)
+      if(Par[v][i] != Par[u][i])
+         v = Par[v][i] , u = Par[u][i];
+   return Par[v][0];
+}
+inline int GetVertex(int v , int u , int k) {
+   int Lca = GetLca(v , u);
+   if(d[v] - d[Lca] + 1 >= k)
+      return GetPar(v , k - 1);
+   k -= d[v] - d[Lca];
+   v = Lca;
+   return GetPar(u , d[u] - d[v] - k + 1);
+}
+inline void Add(int x , int y) {
+   for(;x < N;x += x & - x)
+      Fen[x] += y;
+}
+inline int Get(int x) {
+   int r = 0;
+   for(;x;x -= x & - x)
+      r += Fen[x];
+   return r;
+}
+void dfsPre(int v) {
+   for(int i = 1;i < L;++ i)
+      Par[v][i] = Par[Par[v][i - 1]][i - 1];
+   for(int u : a[v])
+      d[u] = d[v] + 1 , dfsPre(u);
+}
+void dfs(int v) {
+   Add(T[v] , 1);
+   for(auto x : Q[v]) {
+      int id = x.first;
+      int coeff = x.second.second;
+      W[id] += (Get(N - 1) - Get(id) + Get(x.second.first)) * coeff;
+   }
+   for(int u : a[v])
+      dfs(u);
+   Add(T[v] , - 1);
+}
+inline void Check() {
+   dfs(root);
+}
+int main() {
+   fill(T , T + N , N - 10);
+   scanf("%d" , & n);
+   for(int i = 1;i <= n;++ i)
+      scanf("%d" , & Par[i][0]) , a[Par[i][0]].push_back(i);
+   root = a[0][0];
+   d[root] = 1;
+   dfsPre(root);
+
+   scanf("%d" , & q);
+   for(int i = 1;i <= q;++ i) {
+      scanf("%d %d" , Qtp + i , Qa + i);
+      if(Qtp[i] == 1) {
+         T[Qa[i]] = i;
+         continue ;
+      }
+      scanf("%d %d %d" , Qb + i , Qc + i , Qd + i);
+      Dist[i] = d[Qa[i]] + d[Qb[i]] - 2 * d[GetLca(Qa[i] , Qb[i])];
+      if(Dist[i] <= 1) {
+         A[i] = - 1;
+         continue ;
+      }
+      Qa[i] = GetVertex(Qa[i] , Qb[i] , 2);
+      Qb[i] = GetVertex(Qb[i] , Qa[i] , 2);
+      Dist[i] = d[Qa[i]] + d[Qb[i]] - 2 * d[GetLca(Qa[i] , Qb[i])];
+      //cout << Qa[i] << ' ' << Qb[i] << '\n';
+      Ri[i] = Dist[i] + 2;
+      Le[i] = 1;
+   }
+   for(int t = 0;t < L;++ t) {
+      for(int i = 1;i <= q;++ i) {
+         if(Qtp[i] == 1)
+            continue ;
+         Mid[i] = ((Le[i] + Ri[i]) >> 1);
+         F[i] = GetVertex(Qa[i] , Qb[i] , Mid[i]);
+         Q[Qa[i]].push_back(make_pair(i , make_pair(Qd[i] , 1)));
+         Q[F[i]].push_back(make_pair(i , make_pair(Qd[i] , 1)));
+         int Lca = GetLca(Qa[i] , F[i]);
+         Q[Lca].push_back(make_pair(i , make_pair(Qd[i] , - 1)));
+         Q[Par[Lca][0]].push_back(make_pair(i , make_pair(Qd[i] , - 1)));
+
+      }
+      Check();
+      for(int i = 1;i <= q;++ i) {
+         if(Qtp[i] == 1)
+            continue ;
+         if(W[i] >= Qc[i])
+            Ri[i] = Mid[i];
+         else
+            Le[i] = Mid[i];
+         W[i] = 0;
+      }
+      for(int i = 1;i <= n;++ i)
+         Q[i].clear();
+      memset(Fen , 0 , sizeof(Fen));
+   }
+
+   for(int i = 1;i <= q;++ i) {
+      if(Qtp[i] == 1)
+         continue ;
+      //cout << Ri[i] << '\n';
+      if(Ri[i] == Dist[i] + 2 || A[i] == - 1)
+         printf("-1\n");
+      else {
+       //  cout << Qa[i] << ' ' << Qb[i] << ' ' << Ri[i] << '\n';
+         printf("%d\n" , GetVertex(Qa[i] , Qb[i] , Ri[i]));
+         //printf("%d\n" , Ri[i]);
+      }
+   }
+
+   return 0;
+}
+/*
+6
+2 5 2 2 0 5
+1
+2 1 6 2 0
+*/
+/*
+3
+0 1 2
+5
+2 1 3 1 0
+1 2
+2 1 3 1 0
+2 1 3 1 1
+2 1 3 1 2
+*/

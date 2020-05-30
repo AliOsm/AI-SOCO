@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+#define int long long 
+using namespace std;
+
+
+const int N = 1e5 + 7;
+
+
+typedef long long LL;
+
+struct Line {
+    mutable LL m, b, p, idx;
+    bool operator<(const Line &o) const { return m < o.m; }
+    bool operator<(const LL &x) const { return p < x; }
+};
+
+struct LineContainer : multiset<Line, less<>> { // upper convex hull.
+    // (for doubles, use inf = 1/.0, div(a,b) = a/b)
+    const LL inf = LLONG_MAX;
+    LL div(LL a, LL b) { return a / b - ((a ^ b) < 0 && a % b); }
+    bool isect(iterator x, iterator y) {
+        if (y == end()) {
+            x->p = inf;
+            return false;
+        }
+        if (x->m == y->m)
+            x->p = x->b > y->b ? inf : -inf;
+        else
+            x->p = div(y->b - x->b, x->m - y->m);
+        return x->p >= y->p;
+    }
+    void add(LL m, LL b, LL idx) {
+        auto z = insert({m, b, 0, idx}), y = z++, x = y;
+        while (isect(y, z))
+            z = erase(z);
+        if (x != begin() && isect(--x, y))
+            isect(x, y = erase(y));
+        while ((y = x) != begin() && (--x)->p >= y->p)
+            isect(x, erase(y));
+    }
+    pair <LL, LL> query(LL x) {
+        assert(!empty());
+        auto l = *lower_bound(x);
+        return {l.m * x + l.b, l.idx};
+    }
+}t[N * 4];
+
+void update(int v, int l, int r, int pos, int a, int b) {
+	t[v].add(b, a, pos);
+	if(l == r) return;
+	int mid = (l + r) >> 1;
+	if(pos <= mid) update(v * 2, l, mid, pos, a, b);
+	else update(v * 2 + 1, mid + 1, r, pos, a, b);
+}
+
+pair <int, int>  query(int v, int l, int r, int L, int R, int x) {
+	if(r < L || l > R) return {0, 0};
+	if(l >= L && r <= R) {
+		return t[v].query(x);
+	}
+	int mid = (l + r) >> 1;
+	return max(query(v * 2, l, mid, L, R, x), query(v * 2 + 1, mid + 1, r, L, R, x));
+}
+
+int32_t main() {
+	ios_base :: sync_with_stdio(0); cin.tie(0); cout.tie(0);
+	int n, q; cin >> n >> q;
+	for(int i = 1; i <= n; i++) {
+		int a, b; cin >> a >> b;
+		update(1, 1, n, i, a, b);
+	}
+	for(int i = 1; i <= q; i++) {
+		int l, r, x; cin >> l >> r >> x;
+		cout << query(1, 1, n, l, r, x).second << endl;
+	}
+	
+}  

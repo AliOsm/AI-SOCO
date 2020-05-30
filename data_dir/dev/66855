@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int maxn = 300009;
+const ll mod = 1000000009;
+
+int a[maxn];
+ll F[maxn];
+
+struct {
+    int L, R;
+    int pl, pr;
+    ll sum, a, b;
+} T[2 * maxn];
+
+int buildTree(int L, int R) {
+    static int sz = 1;
+    int cur = sz++;
+    T[cur].L = L;
+    T[cur].R = R;
+    if (L < R) {
+        T[cur].pl = buildTree(L, (L + R) / 2);
+        T[cur].pr = buildTree((L + R) / 2 + 1, R);
+        T[cur].sum = (T[ T[cur].pl ].sum + T[ T[cur].pr ].sum) % mod;
+    }
+    else {
+        T[cur].sum = a[L];
+    }
+    return cur;
+}
+
+void calcDebt(int cur) {
+    int len1 = T[ T[cur].pl ].R - T[ T[cur].pl ].L + 1;
+    int len2 = T[ T[cur].pr ].R - T[ T[cur].pr ].L + 1;
+
+    T[ T[cur].pl ].sum = (T[ T[cur].pl ].sum + (F[len1 + 2] - 1) * T[cur].a + (F[len1 + 3] - 2) * T[cur].b) % mod;
+    T[ T[cur].pl ].a = (T[ T[cur].pl ].a + T[cur].a) % mod;
+    T[ T[cur].pl ].b = (T[ T[cur].pl ].b + T[cur].b) % mod;
+
+    ll a = T[cur].a;
+    ll b = T[cur].b;
+
+    T[cur].a = (F[len1 - 1] * a + F[len1] * b) % mod;
+    T[cur].b = (F[len1] * a + F[len1 + 1] * b) % mod;
+
+    T[ T[cur].pr ].sum = (T[ T[cur].pr ].sum + (F[len2 + 2] - 1) * T[cur].a + (F[len2 + 3] - 2) * T[cur].b) % mod;
+    T[ T[cur].pr ].a = (T[ T[cur].pr ].a + T[cur].a) % mod;
+    T[ T[cur].pr ].b = (T[ T[cur].pr ].b + T[cur].b) % mod;
+
+    T[cur].a = T[cur].b = 0;
+}
+
+ll get(int L, int R, int cur)
+{
+    if (L <= T[cur].L && R >= T[cur].R) return T[cur].sum;
+    calcDebt(cur);
+    ll sum = 0;
+    if (L <= T[ T[cur].pl ].R && T[ T[cur].pl ].L <= R) sum += get(L, R, T[cur].pl);
+    if (L <= T[ T[cur].pr ].R && T[ T[cur].pr ].L <= R) sum += get(L, R, T[cur].pr);
+    return sum % mod;
+}
+
+void add(int L, int R, int cur, ll a, ll b)
+{
+    if (L <= T[cur].L && R >= T[cur].R) {
+        ll ta = a;
+        ll tb = b;
+        int len1 = T[cur].L - L;
+
+        if (len1 >= 1) {
+            a = (F[len1 - 1] * ta + F[len1] * tb) % mod;
+            b = (F[len1] * ta + F[len1 + 1] * tb) % mod;
+        }
+
+        T[cur].a = (T[cur].a + a) % mod;
+        T[cur].b = (T[cur].b + b) % mod;
+
+        int len = T[cur].R - T[cur].L + 1;
+        T[cur].sum = (T[cur].sum + (F[len + 2] - 1) * a + (F[len + 3] - 2) * b) % mod;
+        return;
+    }
+
+    calcDebt(cur);
+
+    if (L <= T[ T[cur].pl ].R && T[ T[cur].pl ].L <= R) add(L, R, T[cur].pl, a, b);
+    if (L <= T[ T[cur].pr ].R && T[ T[cur].pr ].L <= R) add(L, R, T[cur].pr, a, b);
+
+    T[cur].sum = (T[ T[cur].pl ].sum + T[ T[cur].pr ].sum) % mod;
+}
+
+int main()
+{
+    //freopen("input.txt", "r", stdin);
+
+    int n, m;
+    scanf("%d %d", &n, &m);
+
+    for (int i = 1; i <= n; i++) scanf("%d", a + i);
+    buildTree(1, n);
+
+    F[1] = F[2] = 1;
+    for (int i = 3; i <= n + 5; i++) {
+        F[i] = (F[i - 1] + F[i - 2]) % mod;
+    }
+
+    while (m--) {
+        int t, l, r;
+        scanf("%d %d %d", &t, &l, &r);
+
+        if (t == 1) {
+            add(l, r, 1, 1, 0);
+        }
+        else {
+            cout << get(l, r, 1) << endl;
+        }
+    }
+}

@@ -1,0 +1,119 @@
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#include<vector>
+#include<algorithm>
+#define N 100010
+using namespace std;
+int n, m;
+vector<int> edges[N];
+int level[N];
+int par[N], son[N];
+int logPar[N][20];
+void dfs (int cur, int lev, int far) {
+	level[cur] = lev;
+	par[cur] = far;
+	son[cur] = 1;
+	for (int i = 0; i <edges[cur].size(); ++i) {
+		int v = edges[cur][i];
+		if (v == far) continue;
+		dfs (v, lev + 1, cur);
+		son[cur] += son[v];
+	}
+}
+void getLogPar () {
+	for (int i = 0; i < 20; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            if (i == 0) logPar[j][i] = par[j];
+            else {
+                 logPar[j][i] = logPar[logPar[j][i - 1]][i - 1];
+            }
+        }
+    }
+}
+int stepUp (int x, int steps) {
+	int pw = 0;
+	while (steps) {
+		if (steps & 1) {
+			x = logPar[x][pw];
+		}
+		pw++;
+		steps /= 2;
+	}
+	return x;
+}
+int getLca (int x, int y) {
+	if (level[x] > level[y]) {
+		x = stepUp (x, level[x] - level[y]);
+	} 
+	if (level[y] > level[x]) {
+		y = stepUp (y, level[y] - level[x]);
+	}
+	for (int i = 19; i >= 0; --i) {
+		if (logPar[x][i] == logPar[y][i]) {
+			continue;
+		}
+		x = logPar[x][i];
+		y = logPar[y][i];
+	}
+	return x == y ? x : logPar[x][0];
+}
+int main() {
+	int u, v;
+	int x, y;
+	while (cin>>n) {
+		for (int i = 1; i < n; ++i) {
+			scanf("%d%d", &u, &v);
+			edges[u].push_back(v);
+			edges[v].push_back(u);
+		}
+		cin>>m;
+		memset(son, 0, sizeof(son));
+		dfs (1, 0, 0);
+		memset(logPar, 0, sizeof(logPar));
+		getLogPar ();
+		for (int i = 0; i < m; ++i) {
+			scanf("%d%d", &x, &y);
+			if (x == y) {
+               cout<<n<<endl;
+               continue;
+            }
+			int delta = abs(level[x] - level[y]);
+			if (delta & 1) {
+				cout<<0<<endl;
+			} else {
+				delta /= 2;
+				int lca = getLca (x, y);
+			//	cout<<lca<<endl;
+				if (level[x] == level[y]) {
+					int prex = stepUp (x, level[x] - level[lca] - 1);
+					int prey = stepUp (y, level[y] - level[lca] - 1);
+				//	cout<<prex<<" "<<prey<<endl;
+					cout<<n - son[prex] - son[prey]<<endl;
+				} else {
+					if (level[x] > level[y]) {
+						int tmp = stepUp (x, level[x] - level[lca] - delta);
+						int pre = stepUp (x, level[x] - level[lca] - delta - 1);
+						cout<<son[tmp] - son[pre]<<endl;
+					} else {
+						int tmp = stepUp (y, level[y] - level[lca] - delta);
+						int pre = stepUp (y, level[y] - level[lca] - delta - 1);
+						cout<<son[tmp] - son[pre]<<endl;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+/*
+9
+1 2
+1 3
+2 4
+2 5
+5 6
+5 7
+3 8
+3 9
+*/

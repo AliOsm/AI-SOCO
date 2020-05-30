@@ -1,0 +1,61 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define sz(a) int(a.size())
+
+struct Centroid {
+	struct Edge { int u, v; };
+	vector<vector<Edge>> adj;
+	vector<vector<int>> centAdj;
+
+	vector<int> SZ, L, P; // parent in the centroid tree
+	int root;
+	Centroid(int N): adj(N), centAdj(N), SZ(N), L(N, -1), P(N, -1), root(-1){ }
+	void addEdge(int u,int v) {
+		adj[u].push_back((Edge){u, v});
+		adj[v].push_back((Edge){v, u});
+	}
+	int dfsSz(int u, int p = -1) {
+		SZ[u] = 1;
+		for (Edge &e : adj[u])
+			if (e.v != p && L[e.v] == -1)
+				SZ[u] += dfsSz(e.v, u);
+		return SZ[u];
+	}
+	int dfsGetCentroid(int u, int sz, int p = -1) {
+		for (Edge &e : adj[u])
+			if (e.v != p && L[e.v] == -1 && SZ[e.v] > sz / 2)
+				return dfsGetCentroid(e.v, sz, u);
+		return u;
+	}
+	void computeCentroid(int root = 0, int prev = -1, int lvl = 0){
+		int cent = dfsGetCentroid(root, dfsSz(root));
+		L[cent] = lvl; P[cent] = prev; SZ[cent] = SZ[root];
+		if(prev == -1) this->root = cent; else centAdj[prev].push_back(cent);
+		for(Edge &e : adj[cent])
+			if (L[e.v] == -1)
+				computeCentroid(e.v, cent, lvl + 1);
+	}
+	int lca(int u, int v){
+		while(L[u] > L[v])u = P[u];
+		while(L[v] > L[u])v = P[v];
+		while(u != v)u = P[u], v = P[v];
+		return u;
+	}
+};
+
+int main() {
+	int n;
+	scanf("%d", &n);
+	Centroid C(n);
+	for (int i = 1; i < n; i++) {
+		int u, v;
+		scanf("%d%d", &u, &v);
+		u--, v--;
+		C.addEdge(u, v);
+	}
+	C.computeCentroid();
+	for (int i = 0; i < n; i++) printf("%c ", C.L[i]+'A');
+	puts("");
+}

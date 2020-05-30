@@ -1,0 +1,208 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+#define MAX ((int)(1e6 + 5))
+#define MAX_X ((int)(1e6 + 2))
+#define pi (2.0*acos(0))
+#define M ((ll)(1e9 + 7))
+#define NN ((ll)(305))
+#define N ((int)(1e5 + 5))
+#define eps (0)
+#define log 20
+
+
+using namespace std;
+using namespace __gnu_pbds;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+/*fast io
+ios_base::sync_with_stdio(false);
+cin.tie(NULL);
+*/
+
+
+typedef tree < pair < int, int >,  null_type,  less < pair < int, int > >,  rb_tree_tag,  tree_order_statistics_node_update > o_set;
+/// o_set s;
+/// s.order_of_key(k) : Number of items strictly smaller than k .
+/// *(s.find_by_order(k)) : K-th element in a set (counting from zero).
+
+bool vis[2+(1<<15)], dpp[2+(1<<15)];
+
+int pos[20], asi[20], val[20], too[20], arr[17][5005];
+
+
+int now ;
+
+vector < int > v[20];
+
+unordered_map < ll , int > mmm;
+
+ll tot[20];
+
+bool call(int mask)
+{
+    if(vis[mask]) return dpp[mask];
+    vis[mask] = 1;
+    if(mask==0) return dpp[mask] = 1;
+
+    int a = -1;
+    for(int i = 0; i<now; i++){
+        if(mask&(1<<i)){
+            a = i;
+            break;
+        }
+    }
+
+    int b = pos[a];
+
+    bool ans = 0;
+    for(int i = 0; i<v[b].size(); i++){
+        if(arr[a][i]!=-1 && (mask|arr[a][i])==mask){
+            ans |= call(mask^arr[a][i]);
+        }
+    }
+
+    return dpp[mask] = ans;
+}
+
+void goo(int mask)
+{
+
+    if(mask==0) return;
+
+    int a = -1;
+    for(int i = 0; i<now; i++){
+        if(mask&(1<<i)){
+            a = i;
+            break;
+        }
+    }
+
+    int b = pos[a];
+
+    for(int i = 0; i<v[b].size(); i++){
+        if(arr[a][i]!=-1 && (mask|arr[a][i])==mask && dpp[mask^arr[a][i]]){
+            ll c = v[b][i];
+            val[b] = c;
+            c = c - tot[b];
+            int d = mmm[c];
+            too[d] = b;
+            while(d!=b){
+                val[d] = c;
+                c = c - tot[d];
+                int p = mmm[c];
+                too[p] = d;
+                d = p;
+            }
+            goo(mask^arr[a][i]);
+            return;
+        }
+    }
+}
+
+
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    int n;
+    cin>>n;
+
+    ll sum = 0;
+
+    for(int i = 1; i<=n; i++)
+    {
+        int a;
+        cin>>a;
+        while(a--)
+        {
+            int b;
+            cin>>b;
+            mmm[b] = i;
+            tot[i] += b;
+            sum += b;
+            v[i].push_back(b);
+        }
+    }
+
+    if(sum%n!=0)
+    {
+        cout<<"No\n";
+        return 0;
+    }
+
+    sum /= n;
+
+    now = 0;
+
+    bool mark[17];
+
+    memset(mark,0,sizeof mark);
+
+    mark[0] = 1;
+
+    for(int i = 1; i<=n; i++)
+    {
+        tot[i] -= sum;
+        if(tot[i]==0){
+            val[i] = v[i][0];
+            too[i] = i;
+            mark[i] = 1;
+        }
+        else{
+            pos[now] = i;
+            asi[i] = now++;
+        }
+    }
+    bool chk[17];
+    for(int i = 0; i<now; i++){
+
+        int a = pos[i], idd = 0;
+        for(int b:v[a]){
+            int mask = 0;
+            ll c = b-tot[a];
+            int d = mmm[c];
+            arr[i][idd] = -1;
+            if(d!=0 && d!=a && mark[d]==0){
+                memset(chk,0,sizeof chk);
+                chk[a] = 1;
+                chk[0] = 1;
+                while(chk[d]==0){
+                    c = c-tot[d];
+                    int p = mmm[c];
+                    if(mark[p]){
+                        d = p;
+                        break;
+                    }
+                    chk[d] = 1;
+                    d = p;
+                }
+                if(d==a && c==b){
+                    for(int j = 1; j<=n; j++){
+                        if(chk[j]) mask |= 1<<asi[j];
+                    }
+                    arr[i][idd] = mask;
+                }
+            }
+
+            idd++;
+        }
+    }
+
+
+    if(call((1<<now) - 1))
+    {
+        printf("Yes\n");
+        goo((1<<now) - 1);
+        for(int i = 1; i<=n; i++)
+            printf("%d %d\n",val[i],too[i]);
+        return 0;
+    }
+
+
+    printf("No\n");
+    return 0;
+}

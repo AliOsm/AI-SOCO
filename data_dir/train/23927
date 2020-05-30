@@ -1,0 +1,139 @@
+// https://codeforces.com/problemset/problem/264/B
+
+/*
+
+My initial approach :
+Let say this number x has some divisors ( Example x - 210 having prime divisors 2,3,5,7 )
+
+Now ; we only need to focus on the prime divisors of a number as let say if the gcd of the resulting sequence is 6
+which is not prime ; then also we may track the number of entries in the array that are divisible by 2 and/or by 3
+
+so gcd is not important ; the gcd will consist of some prime divisors ; keeping a track of the prime divisors will
+keep a track of the gcd ; hence those prime divisors are important.
+
+Now I was confused with only one thing :
+Let say x = 210 ; its prime divisors = 2 , 3 , 5 , 7.
+
+Now in which chain to put 210 out of chains of 2 , 3 , 5 , 7 ?
+
+Solution ; Let say we put in all of them .
+Reason : Let say the next entry after 210 is a number 343 ( 7*7*7 ). This number is only divisible by 7.
+
+But since 210 ; we included it in all the chains ( 2 , 3 , 5 , 7 ) ; hence this number is also in 7.
+so size of dp[7] = 2. And dp[2] = 1 , dp[3] = 1 , dp[5] = 1.
+
+So now one might argue that 210 was to be kept only in one of the chains ; and it was optimal before to keep 210
+only in chain of 7. And dp[2] , dp[3] and dp[5] should all have been 0.
+
+BUT POINT - EVEN IF WE HAD PUT 210 IN ALL ; STILL THE MAX OF ALL WILL ALWAYS BE DP[7] OUT OF DP[2] , DP[3] , DP[5]
+AND DP[7] ; AND WE HAD TO GIVE MAX SIZE ONLY AS ANSWER ; AND NOT PRINT ALL DP[...] VALUES.
+
+SO BY DOING THIS ALSO ; THE ANSWER WILL NOT GET AFFECTED.
+
+*/
+
+/*
+
+TRICK 2 :
+Lets see case 1 carefully. First come numbers 2 , 3 , 4.
+So by now ; dp[2] = 2 ( using 2 and 4 )
+dp[3] = 1 ( using 3 )...
+
+Now 6 comes in.
+
+Since 6 has prime divisors 2 and 3 ; hence we say that we put it in both dp[2] and dp[3].
+But we don't do dp[2] ++ ; and dp[3] ++.
+
+This produces WA.
+Why ? : Let next number 9 come in. it has only prime_divisor = 3 ; and so we do dp[3] ++ ;
+So now ; we would have had dp[2] = 3 ; and dp[3] = 3 if we had done dp[2] ++ and dp[3] ++ while 6 came in.
+
+But answer = 4.
+
+What went wrong :
+When 6 came in ; we also added it to 2. so now we are saying that yes 6 can also be a part of the chain of prime
+divisors of 2. But if 6 is a part of chain of prime divisors of 2 ; then since 6 is the last element of the sequence ;
+it also allows 9 to be a part of the sequence.
+
+Since gcd ( 6 , 9 ) = 3 > 1.
+But we are never giving this liberty to the chain of 2 ; and we say that since 9 is not having 2 as a prime divisor ;
+we are not adding 9 to this chain !
+
+So we need to keep in mind that a bigger number ; that contains more than one prime divisor ; will always be
+a joiner of two chains. ( Here ; 6 worked as a divisor of chain of 2 and 3 ).
+
+Now since it is a joiner ( And it joins the chains of its prime divisors ) ; hence in all those chains ; we may
+update them as :
+
+dp[div] = 1 + maxx. ( Where max was calculated before as the max chain lenght )
+We will see this line in the code and before it we will also see how maxx is calculated !
+
+*/
+
+#include<bits/stdc++.h>
+using namespace std;
+
+# define line cout << "\n" ;
+
+const int N = 1e5 + 2 ;
+int max_div[N] ;
+
+void pre()
+{
+    max_div[1] = 1 ;
+
+    for ( int i=2 ; i < N ; i ++ )
+    {
+        if ( max_div[i] ) continue ;
+
+        for ( int j = i ; j < N ; j += i )
+            max_div[j] = i ;
+    }
+}
+
+int main()
+{
+    pre() ;
+
+    int n ; cin >> n ;
+    if ( n == 1 ) { cout << 1 ; line ; return 0 ; }
+
+    map < int , int > dp ;
+
+    for ( int i=0 ; i < n ; i ++ )
+    {
+        int x ; cin >> x  ;
+        int maxx = -1 ;
+        int back_up = x ;
+
+        while ( x > 1 )
+        {
+            int div = max_div[x] ;
+            maxx = max ( maxx , dp[div] ) ;
+
+            while ( x%div == 0 )
+                x /= div ;
+        }
+
+        x = back_up ;
+
+        while ( x > 1 )
+        {
+            int div = max_div[x] ;
+            dp[div] = 1 + maxx ; // that line when x works as joiner.
+
+            while ( x%div == 0 )
+                x /= div ;
+        }
+    }
+
+    int ans = 0 ;
+    # define S second
+
+    for ( auto i : dp )
+        ans = max ( ans , i.S ) ;
+
+    cout << ans ; line
+
+    return 0 ;
+}

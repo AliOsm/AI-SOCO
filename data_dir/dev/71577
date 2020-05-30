@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 4e5 + 7;
+const int SS = 4 * N;
+
+ll seg[SS], lazy[SS];
+int st[N], ft[N];
+int c[N], tim = 0;
+int n, m;
+vector<int> adj[N];
+
+void dfs(int v, int p)
+{
+	st[v] = tim++;
+	for (auto u : adj[v])
+		if (u != p)
+			dfs(u, v);
+	ft[v] = tim;
+}
+
+void update(int v, ll val)
+{
+	seg[v] = val;
+	lazy[v] = val;
+}
+
+void shift(int v)
+{
+	if (!lazy[v])
+		return;
+	update(2 * v, lazy[v]);
+	update(2 * v + 1, lazy[v]);
+	lazy[v] = 0;
+}
+
+void modif(int l, int r, ll val, int s = 0, int e = n, int v = 1)
+{
+	if (l >= e || r <= s)
+		return;
+	if (l <= s && e <= r)
+	{
+		update(v, val);
+		return;
+	}
+	shift(v);
+	int mid = (s + e) / 2;
+	modif(l, r, val, s, mid, 2 * v);
+	modif(l, r, val, mid, e, 2 * v + 1);
+	seg[v] = seg[2 * v] | seg[2 * v + 1];
+}
+
+ll get(int l, int r, int s = 0, int e = n, int v = 1)
+{
+	if (l >= e || r <= s)
+		return 0;
+	if (l <= s && e <= r)
+		return seg[v];
+	shift(v);
+	int mid = (s + e) / 2;
+	ll out = 0;
+	out |= get(l, r, s, mid, 2 * v);
+	out |= get(l, r, mid, e, 2 * v + 1);
+	return out;
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin >> n >> m;
+	for (int i=0; i<n; i++)
+		cin >> c[i];
+	for (int i=1; i<n; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		u--, v--;
+		adj[v].push_back(u);
+		adj[u].push_back(v);
+	}
+	dfs(0, -1);
+	for (int i=0; i<n; i++)
+	{
+		modif(st[i], st[i]+1, (1LL << c[i]));
+	}
+	while (m--)
+	{
+		int t, v, col;
+		cin >> t >> v;
+		v--;
+		if (t == 1)
+		{
+			cin >> col;
+			modif(st[v], ft[v], 1LL << col);
+		}
+		else
+		{
+			cout << __builtin_popcountll(get(st[v], ft[v])) << "\n";
+		}
+	}
+	return 0;
+}

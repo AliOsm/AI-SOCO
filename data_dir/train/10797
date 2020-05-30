@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define fi first
+#define se second
+#define pb push_back
+#define mp make_pair
+#define inf 1000000005
+#define all(a) (a).begin(), (a).end()
+#define ms(a,x) memset(a, x, sizeof(a))
+#define mod 1000000007
+#define sz(a) ((ll)(a).size())
+
+template<class T> int getbit(T s, int i) { return (s >> i) & 1; }
+template<class T> T onbit(T s, int i) { return s | (T(1) << i); }
+template<class T> T offbit(T s, int i) { return s & (~(T(1) << i)); }
+template<class T> int cntbit(T s) { return __builtin_popcount(s);}
+#define Rep(i,n) for(int i = 0; i < (n); ++i)
+#define Repd(i,n) for(int i = (n)-1; i >= 0; --i)
+#define For(i,a,b) for(int i = (a); i <= (b); ++i)
+#define Ford(i,a,b) for(int i = (a); i >= (b); --i)
+
+typedef unsigned long long ull;
+typedef long long ll;
+typedef long double ld;
+#define eps 1e-9
+typedef pair<int, int> II;
+typedef pair<ll, ll> LL;
+template<class T> T gcd(T a, T b){ T r; while (b != 0) { r = a % b; a = b; b = r; } return a;}
+template<class T> T lcm(T a, T b) { return a / gcd(a, b) * b; }
+#define PI (2 * acos((ld)0))
+#define linf (1ll << 60)
+#define y1 y32432
+#define y0 y435346
+
+#define maxn 200005
+
+int n, q, a[maxn], num[maxn][10], pre[maxn][10];
+string s;
+int f[maxn * 8][6];
+
+void init(int l, int r, int id, int ii){
+	if(l == r){
+//		cout << l << " " << r << " " << id << " " << ii << " zzz " << a[l] << endl;
+
+		if(ii == 0 && a[l] == 2){
+			f[id][ii] = num[l][2] - num[l][0] - 1;
+		}
+		if(ii == 1 && a[l] == 0){
+			f[id][ii] = num[l][0] - num[l][1] - 1;
+		}
+		if(ii == 2 && a[l] == 1){
+			f[id][ii] = num[l][1] - num[l][6] - 1;
+		}
+
+		return;
+	}
+
+	int mid = (l + r) >> 1;
+	init(l, mid, id + id, ii);
+	init(mid + 1, r, id + id + 1, ii);
+	f[id][ii] = min(f[id + id][ii], f[id + id + 1][ii]);
+//	cout << l << " " << r << " " << id << " " << ii << " " << f[id][ii] << endl;
+	if(ii == 3){
+		int A = f[id + id][0] + f[id + id + 1][1];
+		f[id][ii] = min(f[id][ii], A);
+	} else if(ii == 4){
+		int A = f[id + id][1] + f[id + id + 1][2];
+		f[id][ii] = min(f[id][ii], A);
+	} else if(ii == 5){
+		int A = f[id + id][0] + f[id + id + 1][4];
+		int B = f[id + id][3] + f[id + id + 1][2];
+		f[id][ii] = min(f[id][ii], min(A, B));
+	}
+
+}
+
+II que[maxn * 8 * 6];
+int F[maxn * 8][6], size;
+
+int get(int l, int r, int u, int v, int id, int ii){
+	if(l > v || r < u) return inf;
+	if(l >= u && r <= v){
+//		cout << l << " zzz " << r << " " << ii << " " << f[id][ii] << endl;
+		return f[id][ii];
+	}
+	if(F[id][ii] > -inf) return F[id][ii];
+	int &res = F[id][ii];
+	res = inf;
+	int mid = (l + r) >> 1;
+//	cout << l << " " << r << " " << id << " " << ii << endl;
+	res = min(get(l, mid, u, v, id + id, ii), get(mid + 1, r, u, v, id + id + 1, ii));
+	if(ii == 3){
+		int A = get(l, mid, u, v, id + id, 0) + get(mid + 1, r, u, v, id + id + 1, 1);
+		res = min(res, A);
+	} else if(ii == 4){
+		int A = get(l, mid, u, v, id + id, 1) + get(mid + 1, r, u, v, id + id + 1, 2);
+		res = min(res, A);
+	} else if(ii == 5){
+		int A = get(l, mid, u, v, id + id, 0) + get(mid + 1, r, u, v, id + id + 1, 4);
+		int B = get(l, mid, u, v, id + id, 3) + get(mid + 1, r, u, v, id + id + 1, 2);
+		res = min(res, min(A, B));
+	}
+	que[size++] = mp(id, ii);
+	return res;
+}
+
+int main()
+{
+//    freopen("in.txt", "r", stdin);
+//    freopen("out.txt", "w", stdout);
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin >> n >> q;
+    cin >> s;
+    ms(num, 0); ms(pre, 0);
+    For(i, 1, n){
+    	a[i] = s[i - 1] - '0';
+    	Rep(j, 10){
+    		num[i][j] = num[i - 1][j];
+    		pre[i][j] = pre[i - 1][j];
+    	}
+    	num[i][a[i]]++;
+    	pre[i][a[i]] = i;
+    }
+
+    ms(f, 0x3f);
+    Rep(i, 6) init(1, n, 1, i);
+
+    Rep(i, maxn * 8) Rep(j, 6) F[i][j] = -inf;
+    Rep(run, q){
+    	int u, v;
+    	cin >> u >> v;
+    	int cur = v;
+    	if(cur >= 0) cur = pre[cur][7];
+    	if(cur >= 0) cur = pre[cur][1];
+    	if(cur >= 0) cur = pre[cur][0];
+    	if(cur >= 0) cur = pre[cur][2];
+    	if(cur < u){
+    		cout << -1 << endl;
+    		continue;
+    	}
+    	cur = pre[v][7];
+    	size = 0;
+    	int RR = get(1, n, u, cur, 1, 5);
+
+    	Rep(i, size){
+    		II P = que[i];
+    		F[P.fi][P.se] = -inf;
+    	}
+    	RR += num[v][6] - num[u - 1][2];
+    	cout << RR << "\n";
+    }
+
+    return 0;
+}

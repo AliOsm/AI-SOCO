@@ -1,0 +1,142 @@
+/* upsolve with Dukkha */
+#include <stdio.h>
+
+#define N	300000
+#define H_	19	/* H_ = ceil(log2(N + 1)) */
+#define N_	(1 << H_)
+#define K	5
+#define A	300000
+#define MD	998244353
+
+long long power(int a, int k) {
+	long long p;
+
+	if (k == 0)
+		return 1;
+	p = power(a, k >> 1);
+	p = p * p % MD;
+	if (k & 1) 
+		p = p * a % MD;
+	return p;
+}
+
+int inv(int a) {
+	return power(a, MD - 2);
+}
+
+int ff[N + 1], gg[N + 1], p2[N + 1];
+int pp[N_], qq[N_], n_, v_;
+int ww[H_ + 1], ww_[H_ + 1];
+
+void init(int n) {
+	int h_, h, i, p;
+	long long f;
+
+	f = 1;
+	for (i = 0; i <= n; i++) {
+		gg[i] = inv(ff[i] = f);
+		f = f * (i + 1) % MD;
+	}
+	p = 1;
+	for (i = 0; i <= n; i++) {
+		p2[i] = p;
+		p = p * 2 % MD;
+	}
+	h_ = 0;
+	while (1 << h_ < n + 1)
+		h_++;
+	for (h = 0; h <= h_; h++)
+		ww_[h] = inv(ww[h] = power(3, MD - 1 >> h));
+	n_ = 1 << h_, v_ = inv(n_);
+}
+
+long long ch(int n, int k) {
+	return (long long) ff[n] * gg[k] % MD * gg[n - k] % MD;
+}
+
+void ntt(int *aa, int inverse) {
+	int h, i, j, a, b;
+
+	for (i = 1, j = 0; i < n_; i++) {
+		int tmp;
+
+		b = n_;
+		do
+			j ^= b >>= 1;
+		while ((j & b) == 0);
+		if (i < j)
+			tmp = aa[i], aa[i] = aa[j], aa[j] = tmp;
+	}
+	for (h = 0; (b = 1 << h) < n_; h++) {
+		int w = inverse ? ww_[h + 1] : ww[h + 1];
+		long long w_ = 1;
+
+		for (a = 0; a < b; a++) {
+			for (i = a; i < n_; i += b * 2) {
+				long long u = aa[i], v = aa[j = i + b] * w_ % MD;
+
+				if ((aa[i] = u + v) >= MD)
+					aa[i] -= MD;
+				if ((aa[j] = u - v) < 0)
+					aa[j] += MD;
+			}
+			w_ = w_ * w % MD;
+		}
+	}
+}
+
+void solve(int *cc, int k1, int k2) {
+	int i;
+
+	for (i = 0; i < n_; i++) {
+		pp[i] = i <= k1 ? ch(k1, i) * p2[i] % MD : 0;
+		qq[i] = i <= k2 * 2 ? ch(k2 * 2, i) : 0;
+	}
+	ntt(pp, 0);
+	ntt(qq, 0);
+	for (i = 0; i < n_; i++)
+		cc[i] = (long long) pp[i] * qq[i] % MD;
+	ntt(cc, 1);
+	for (i = 0; i < n_; i++)
+		cc[i] = (long long) cc[i] * v_ % MD;
+}
+
+int main() {
+	static int kk[A + 1], bb[K], k1[K], k2[K], cc[K][N_];
+	int n, k, q, h, i, a;
+
+	scanf("%d%d", &n, &k);
+	init(n);
+	for (i = 0; i < n; i++) {
+		scanf("%d", &a);
+		kk[a]++;
+	}
+	for (h = 0; h < k; h++) {
+		int b, c1, c2;
+
+		scanf("%d", &b);
+		bb[h] = b;
+		c1 = c2 = 0;
+		for (a = 1; a < b; a++)
+			if (kk[a] == 1)
+				c1++;
+			else if (kk[a] >= 2)
+				c2++;
+		solve(cc[h], k1[h] = c1, k2[h] = c2);
+	}
+	scanf("%d", &q);
+	while (q--) {
+		int p, ans;
+
+		scanf("%d", &p), p /= 2;
+		ans = 0;
+		for (h = 0; h < k; h++) {
+			int c = p - bb[h] - 1;
+
+			if (c >= 0 && c <= k1[h] + k2[h] * 2)
+				ans = (ans + cc[h][c]) % MD;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}

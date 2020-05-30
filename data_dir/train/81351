@@ -1,0 +1,27 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 105;
+
+int a[N];
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  for(int i = 0; i < n; i++) {
+    for(int j = 0; j < n; j++) {
+      int num;
+      scanf("%d", &num);
+      if(i == j) {
+        continue;
+      }
+      a[i] |= num;
+      a[j] |= num;
+    }
+  }
+  for(int i = 0; i < n; i++) {
+    printf("%d ", a[i]);
+  }
+  return 0;
+}

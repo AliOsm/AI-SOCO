@@ -1,0 +1,121 @@
+#include<bits/stdc++.h>
+
+#define ll long long
+#define Add_Speed ios_base::sync_with_stdio(0);cin.tie(NULL);
+#define pb push_back
+#define mp make_pair
+#define f first
+#define sz size()
+#define s second
+#define pii pair<int, int>
+#define all(s) s.begin(), s.end()
+#define file(s) freopen(s".in","r",stdin); freopen(s".out","w",stdout);
+#define inf INT_MAX
+#define int int ll 
+
+using namespace std;
+
+const int maxn = (int)2e5 + 100;
+const int mod = (int)1e9 + 7;
+const int maxlog = (int)20;
+const int P = mod;
+
+int n, res, d[maxn], a[maxn], ans[maxn], was[maxn];
+vector<int> g[maxn];
+void dfsSz(int v, int p = 0){
+  res++;
+  d[v] = 1;
+  for(int to : g[v]){
+    if(!was[to] && to != p){
+      dfsSz(to, v);
+      d[v] += d[to];
+    }
+  }
+}
+int Find(int v, int p = 0){
+  for(int to : g[v]){
+    if(!was[to] && to != p && d[to] > res / 2) return Find(to, v);
+  }
+  return v;
+}
+int mask[maxn], cnt[15000000], add[maxn], centre;
+void addMask(int v, int p){
+  cnt[mask[v]]++;
+  for(int to : g[v]){
+    if(to != p && !was[to]) addMask(to, v);
+  }
+}
+void Get(int v, int p, int ok = 0){
+  mask[v] = (mask[p] ^ (1 << a[v]));
+  if(ok)
+    add[v] += (__builtin_popcount(mask[v]) < 2);
+  add[v] += cnt[mask[v] ^ (1 << a[centre])];
+  for(int i = 0; i < 20; i++){
+    add[v] += cnt[mask[v] ^ (1 << i) ^ (1 << a[centre])];
+  }
+  for(int to : g[v]){
+    if(to != p && !was[to]){
+      Get(to, v, ok);
+      add[v] += add[to];
+    }
+  }
+  ans[v] += add[v];
+}
+void Clear(int v, int p = 0){
+  add[v] = 0; 
+  cnt[mask[v]] = 0;
+  //mask[v] = 0;
+  for(int to : g[v]){
+    if(to != p && !was[to]){
+      Clear(to, v);
+    }
+  }
+}
+void centreoid(int v){
+  res = 0;
+  dfsSz(v);
+  centre = Find(v);
+  v = centre;
+  mask[v] = (1 << a[centre]); 
+  add[v]++;
+  for(int to : g[centre]){
+    if(!was[to]){
+      Get(to, v, 1);
+      addMask(to, v);
+      add[v] += add[to];
+    }
+  }
+  ans[v] += add[v];        
+  Clear(v);
+  reverse(all(g[centre]));
+  for(int to : g[centre]){
+    if(!was[to]){
+      Get(to, v);
+      addMask(to, v);
+    }
+  }
+  Clear(v);
+  was[centre] = 1;
+  for(int to : g[centre]){
+    if(!was[to]){
+      centreoid(to);
+    }
+  }
+}
+main () {
+  //file("A");
+  cin >> n;
+  for(int i = 1; i < n; i++){
+    int u, v;
+    cin >> u >> v;
+    g[u].pb(v);
+    g[v].pb(u);
+  }
+  for(int i = 1; i <= n; i++){
+    char ch;
+    cin >> ch;
+    a[i] = ch - 'a';
+  }
+  centreoid(1);
+  for(int i = 1; i <= n; i++) cout << ans[i] << " ";                                                    
+}

@@ -1,0 +1,143 @@
+#include<bits/stdc++.h>
+#define ALL(c) (c).begin(), (c).end()
+using namespace std;
+using ll = long long;
+using ld = long double;
+
+const int N = 1e6+6;
+
+
+struct dsu{
+	vector<int> p, sz;
+	vector<pair<int,int>> hp;
+	vector<pair<int,int>> hsz;
+	dsu(){}
+	dsu(int n){
+		p.resize(n);
+		sz.resize(n);
+		hp.clear();
+		hsz.clear();
+		for(int i=0;i<n;++i) p[i]=i, sz[i]=1;
+	}
+	int get(int i){
+		return i==p[i] ? i : p[i] = get(p[i]);
+	}
+	bool unite(int i, int j){
+		i = get(i);
+		j = get(j);
+		if(i==j) return false;
+		if(sz[i]<sz[j]) swap(i,j);
+		p[j] = i;
+		sz[i]+=sz[j];
+		return true;
+	}
+	int get2(int i){
+		return i==p[i] ? i : get2(p[i]);
+	}
+	bool unite2(int i, int j){
+		int ti = i, tj = j;
+		i = get2(i);
+		j = get2(j);
+		if(i==j) return false;
+		if(sz[i]<sz[j]) swap(i,j);
+		hp.push_back({j, p[j]});
+		p[j] = i;
+		hsz.push_back({i, sz[i]});
+		sz[i]+=sz[j];
+		//cerr<<"!!!!!"<<get2(ti)<<' '<<get2(tj)<<endl;
+		return true;
+	}
+	void undo(){
+		while(hp.size()){
+			p[hp.back().first] = hp.back().second;
+			hp.pop_back();
+		}
+		while(hsz.size()){
+			sz[hsz.back().first] = hsz.back().second;
+			hsz.pop_back();
+		}
+	}
+};
+
+struct edge{
+	int i,j,len,id;
+};
+
+
+vector<int> ev[N];
+vector<pair<int,vector<int>>> t[N];
+
+int main(){
+	//freopen("input.txt","r",stdin); //freopen("output.txt","w",stdout);
+	ios::sync_with_stdio(0);cin.tie(0);//cout.precision(12);cout<<fixed;
+	
+	int n, m;
+	
+	cin>>n>>m;
+	vector<edge> e(m);
+	for(int k=0;k<m;++k){
+		int i,j,l;
+		cin>>i>>j>>l;
+		e[k] = {i-1,j-1,l,k};
+		ev[l].push_back(k);
+	}
+	
+	int qn;
+	cin>>qn;
+	vector<int> ans(qn, 1);
+	for(int qi=0;qi<qn;++qi){
+		int k;
+		cin>>k;
+		vector<int> v(k);
+		for(int &x : v){
+			cin>>x;
+			--x;
+		}
+		sort(ALL(v), [&](int e1, int e2){
+			return e[e1].len < e[e2].len;
+		});
+		for(int i=0;i<k;){
+			int j = i;
+			vector<int> sv;
+			while(j<k && e[v[j]].len==e[v[i]].len){
+				sv.push_back(v[j]);
+				++j;
+			}
+			t[e[v[i]].len].push_back({qi, sv});
+			i = j;
+		}
+	}
+	
+	
+	dsu G(n);
+	
+	for(int w=1;w<N;++w){
+		for(auto &pp : t[w]){
+			int qi = pp.first;
+			if(ans[qi]==0) continue;
+			auto &v = pp.second;
+			for(int ei : v){
+				int i = e[ei].i;
+				int j = e[ei].j;
+				//cerr<<"?"<<qi<<": "<<i+1<<' '<<j+1<<"  "<<G.get2(i)<<' '<<G.get2(j)<<endl;
+				if(!G.unite2(i, j)){
+					ans[qi] = 0;
+					break;
+				}
+				//for(int k=0;k<n;++k) cerr<<G.get2(k)<<' '; cerr<<endl;
+			}
+			//cerr<<"!!!UNDO"<<endl;
+			G.undo();
+		}
+		for(int ei : ev[w]){
+			int i = e[ei].i;
+			int j = e[ei].j;
+			G.unite(i,j);
+		}
+	}
+	
+	
+	for(int val : ans) cout<<(val ? "YES" : "NO")<<'\n';
+	
+	return 0;
+}

@@ -1,0 +1,135 @@
+#include <stdio.h>
+#include <vector>
+#include <algorithm>
+#include <set>
+#define pb push_back
+#define lli long long int
+#define INF 0x3f3f3f3f
+#define MAXN 200005
+using namespace std;
+
+struct frog {
+    int x;
+    lli t;
+    int c;
+    int idx;
+
+    frog() {}
+    frog(int x, lli t, int c, int idx):x(x), t(t), c(c), idx(idx) {}
+};
+
+struct mosquito {
+    int p;
+    int b;
+
+    mosquito() {}
+    mosquito(int p, int b):p(p), b(b) {}
+};
+
+vector <frog> v;
+lli tree[4 * MAXN];
+multiset<mosquito> s;
+int eaten[MAXN];
+lli size[MAXN];
+
+bool operator <(const mosquito &a, const mosquito &b) {
+    return a.p < b.p;
+}
+
+bool comp(const frog &a, const frog &b) {
+    return a.x < b.x;
+}
+
+void init(int node, int a, int b) {
+    if (a == b) {
+        tree[node] = v[a].x + v[a].t;
+        return;
+    }
+    int mid = (a + b) / 2;
+    init(node * 2, a, mid);
+    init(node * 2 + 1, mid + 1, b);
+    tree[node] = max(tree[node * 2], tree[node * 2 + 1]);
+    return;
+}
+
+int query(int node, int a, int b, int p) {
+    //printf("node = %d, a = %d, b = %d, p = %d, tree = %lld\n", node, a, b, p, tree[node]);
+    if (a == b) {
+        if (tree[node] >= p && v[a].x <= p) {
+            return a;
+        } else {
+            return -1;
+        }
+    }
+    int mid = (a + b) / 2;
+    lli q1 = tree[node * 2];
+    if (q1 >= p) {
+        return query(node * 2, a, mid, p);
+    } else {
+        return query(node * 2 + 1, mid + 1, b, p);
+    }
+}
+
+void update(int node, int a, int b, int i, int j, int val) {
+    if (a > b || b < i || a > j) {
+        return;
+    }
+    if (i <= a && b <= j) {
+        tree[node] += val;
+        return;
+    }
+    int mid = (a + b) / 2;
+    update(node * 2, a, mid, i, j, val);
+    update(node * 2 + 1, mid + 1, b, i, j, val);
+    tree[node] = max(tree[node * 2], tree[node * 2 + 1]);
+}
+
+int main(void) {
+    int n, m;
+    int x, t;
+    int p, b;
+
+    scanf(" %d %d", &n, &m);
+    for (int i = 0; i < n; i++) {
+        scanf(" %d %d", &x, &t);
+        v.pb(frog(x, t, 0, i));
+    }
+
+    sort(v.begin(), v.end(), comp);
+    init(1, 0, n - 1);
+    while(m--) {
+        scanf(" %d %d", &p, &b);
+        int idx = query(1, 0, n - 1, p);
+        //printf("p = %d, b = %d, idx = %d\n", p, b, idx);
+        if (idx == -1) {
+            s.insert(mosquito(p, b));
+        } else {
+            v[idx].c++;
+            v[idx].t += b;
+            update(1, 0, n - 1, idx, idx, b);
+            multiset<mosquito>::iterator it = s.lower_bound(mosquito(v[idx].x, -INF));
+            while(it != s.end()) {
+                idx = query(1, 0, n - 1, (*it).p);
+                //printf("here mosquito = %d, %d -- idx = %d\n", (*it).p, (*it).b, idx);
+                if (idx == -1) {
+                    break;
+                } else {
+                    v[idx].c++;
+                    v[idx].t += (*it).b;
+                    update(1, 0, n - 1, idx, idx, (*it).b);
+                    s.erase(it);
+                }
+                it = s.lower_bound(mosquito(v[idx].x, -INF));
+            }
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        int idx = v[i].idx;
+        size[idx] = v[i].t;
+        eaten[idx] = v[i].c;
+    }
+    for (int i = 0; i < n; i++) {
+        printf("%d %lld\n", eaten[i], size[i]);
+    }
+    return 0;
+}

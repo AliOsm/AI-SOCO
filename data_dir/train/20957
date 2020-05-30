@@ -1,0 +1,141 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#define P_B push_back
+#define M_P make_pair
+#define F first
+#define S second
+#define size(x) (int)x.size()
+#define all(x) x.begin(), x.end()
+#define FR(i, a, b) for(int i = a; i < b; i++)
+#define ROF(i, a, b) for(int i = a; i >= b; i--)
+#define mod (1000 * 1000 * 1000 + 7)
+#define fast ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+typedef pair <ll, ll> pll;
+
+struct edge{
+	ll u, v, w, c, ind;
+	bool operator< (const edge x) const {
+		return w < x.w;
+	}
+};
+
+pii maxf(pii a, pii b)
+{
+	if(a.F > b.F) return a;
+	else return b;
+}
+
+const int MAXN = 2000 * 100 + 10;
+vector <pii> vec[MAXN];
+edge e[MAXN];
+bool mark[MAXN], use[MAXN];
+int p[MAXN], dp[50][MAXN], h[MAXN], wp[MAXN];
+pii mx[50][MAXN];
+ll n, m, S;
+
+int get_par(int v) {return p[v] = (v == p[v])? v: get_par(p[v]);}
+bool merge(int v, int u)
+{
+	u = get_par(u), v = get_par(v);
+	if(u == v) return false;
+	p[u] = v;
+	return true;
+}
+
+void dfs(int v)
+{
+	mark[v] = true;
+	for(auto u: vec[v])
+		if(!mark[u.F] && use[u.S])
+		{
+			h[u.F] = h[v] + 1;
+			dp[0][u.F] = v;
+			mx[0][u.F] = {wp[u.S], u.S};
+			dfs(u.F);
+		}
+}
+
+pii get_max(int u, int v)
+{
+	if(h[u] > h[v])
+		swap(u, v);
+	pii mxx = {0, 0};
+	ROF(i, log2(n), 0)
+		if((h[v] - h[u]) & (1 << i))
+		{
+			mxx = maxf(mxx, mx[i][v]);
+			v = dp[i][v];
+		}
+	if(u == v)
+		return mxx;
+	ROF(i, log2(n), 0)
+		if(dp[i][v] != dp[i][u] && dp[i][v] != -1)
+		{
+			mxx = maxf(mxx, maxf(mx[i][u], mx[i][v]));
+			v = dp[i][v];
+			u = dp[i][u];
+		}
+	return maxf(mxx, maxf(mx[0][u], mx[0][v]));
+}
+
+int main()
+{
+	cin>> n >> m;
+	FR(i, 0, m) cin>> e[i].w;
+	FR(i, 0, m) cin>> e[i].c;
+	FR(i, 0, m){
+		int a, b;
+		cin>> a >> b;
+		a--, b--;
+		vec[a].P_B(M_P(b, i));
+		vec[b].P_B(M_P(a, i));
+		wp[i] = e[i].w;
+		e[i].u = a, e[i].v = b;
+		e[i].ind = i;
+	}
+	cin>> S;
+	FR(i, 0, n) p[i] = i;
+	ll sum = 0;
+	sort(e, e + m);
+	FR(i, 0, m)
+		if(merge(e[i].u, e[i].v))
+			sum += e[i].w, use[e[i].ind] = true;
+
+	dfs(0);
+	FR(i, 1, log2(n) + 1)
+		FR(j, 0, n)
+			if(dp[i - 1][j] != -1)
+			{
+				dp[i][j] = dp[i - 1][dp[i - 1][j]];
+				mx[i][j] = maxf(mx[i - 1][j], mx[i - 1][dp[i - 1][j]]);
+			}
+			else
+				dp[i][j] = -1;
+
+	int x = -1, y = -1;
+	ll ans = sum;
+	FR(i, 0, m)
+	{
+			pii mxv = get_max(e[i].u, e[i].v);
+			ll new_ans = sum - mxv.F + e[i].w - (S / e[i].c);
+			if(new_ans < ans)
+			{
+				ans = new_ans;
+				x = i, y = mxv.S;
+			}
+	}
+
+	cout<< ans << endl;
+	FR(i, 0, m)
+		if(use[e[i].ind] && e[i].ind != y)
+				cout<< e[i].ind + 1 << " " << e[i].w << endl;
+	if(x != -1)
+		cout<< e[x].ind + 1 << " " << e[x].w - (S / e[x].c) << endl;
+	return 0;
+}

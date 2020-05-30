@@ -1,0 +1,201 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+#define int long long
+
+using namespace std;
+const int MAXN = (1 << 20);
+const int inf = (int)1e17 + 42;
+const int mod = (int)1e9 + 7;
+
+struct aho_corasick
+{
+	int cost[MAXN], link[MAXN], psz;
+	map<char, int> to[MAXN];
+
+	void clear()
+	{
+		for(int i = 0; i < psz; i++)
+			cost[i] = 0, link[i] = 0, to[i].clear();
+		
+		psz = 1;
+		cost[0] = 0;
+	}
+
+	aho_corasick() { psz = MAXN - 2; clear(); }
+
+	void add_word(string s, int val)
+	{
+		int u = 0;
+		for(char c: s)
+		{
+			if(!to[u].count(c)) to[u][c] = psz++;
+			u = to[u][c];
+		}
+
+		cost[u] += val;
+	}
+
+	void push_links()
+	{
+		queue<int> Q;
+		int u, v, j; 
+		char c;
+		
+		Q.push(0);
+		link[0] = -1;
+		
+		while(!Q.empty())
+		{
+			u = Q.front();
+			Q.pop();
+
+			for(auto it: to[u])
+			{
+				v = it.second;
+				c = it.first;
+				j = link[u];
+			
+				while(j != -1 && !to[j].count(c)) j = link[j];
+				if(j != -1) link[v] = to[j][c];
+				else link[v] = 0;
+			
+				Q.push(v);
+			}
+		}
+	}
+};
+
+
+struct matrix
+{
+	int n;
+	vector<vector<int> > t;
+
+	matrix() { }
+	matrix(int _n, int val) {n = _n; t.assign(n, vector<int>(n, val)); }
+	matrix(int _n) {n = _n; t.assign(n, vector<int>(n, 0)); }
+
+	matrix operator * (matrix b)
+	{
+		matrix c = matrix(n, 0);
+		for(int i = 0; i < n; i++)
+			for(int k = 0; k < n; k++)
+				for(int j = 0; j < n; j++)
+					c.t[i][j] = (c.t[i][j] + t[i][k] * b.t[k][j]) % mod;
+		return c;
+	}
+
+	matrix operator ^ (matrix b)
+	{
+		matrix c = matrix(n, -inf);
+		for(int i = 0; i < n; i++)
+			for(int k = 0; k < n; k++)
+				for(int j = 0; j < n; j++)
+					c.t[i][j] = max(c.t[i][j], t[i][k] + b.t[k][j]);
+		return c;	
+	}
+};	
+
+matrix pow_max(matrix &base, int p)
+{
+	if(p == 1) return base;
+
+	if(p % 2 == 0)
+	{
+		matrix d = pow_max(base, p / 2);
+		return d ^ d;
+	}
+
+	return base ^ pow_max(base, p - 1);
+}
+
+matrix pow(matrix &base, int p)
+{
+	if(p == 1) return base;
+
+	if(p % 2 == 0)
+	{
+		matrix d = pow(base, p / 2);
+		return d * d;
+	}
+
+	return base * pow(base, p - 1);
+}
+
+void print(matrix mat)
+{	
+	for(int i = 0; i < mat.n; i++)
+		for(int j = 0; j < mat.n; j++)
+			if(mat.t[i][j] < inf) cout << mat.t[i][j] << " \n"[j == mat.n - 1];
+			else cout << "inf" << " \n"[j == mat.n - 1];
+
+	cout << endl;
+}
+
+int n, l;
+string s[MAXN];
+int a[MAXN];
+
+void read()
+{
+	cin >> n >> l;
+	for(int i = 0; i < n; i++) cin >> a[i];
+	for(int i = 0; i < n; i++)
+		cin >> s[i];
+}
+
+aho_corasick aho;
+matrix t;
+
+void solve()
+{
+	aho.clear();
+	for(int i = 0; i < n; i++)
+		aho.add_word(s[i], a[i]);
+	aho.push_links();
+	t = matrix(aho.psz, -inf);
+
+	for(int nd = 0; nd < aho.psz; nd++)
+		for(char c = 'a'; c <= 'z'; c++)
+		{
+			int u = nd;
+			while(u && !aho.to[u][c])
+				u = aho.link[u];
+
+			int nxt = 0;
+			if(aho.to[u][c])
+			{
+				nxt = aho.to[u][c];
+				u = nd;
+
+				int cst = 0;
+				while(u) 
+				{ 
+					cst += aho.cost[u];
+					u = aho.link[u]; 
+				}
+
+				t.t[nd][nxt] = cst;
+			}	
+		}
+	
+	t = pow_max(t, l + 1);
+	
+	int ans = -inf;
+	for(int i = 0; i < aho.psz; i++)
+		ans = max(ans, t.t[0][i]);
+	cout << ans << endl;
+}
+
+#undef int
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

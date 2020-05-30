@@ -1,0 +1,149 @@
+/////////////////////////   _LeMur_
+#include <iostream>
+#include <algorithm>
+#include <time.h>
+#include <stack>
+#include <string>
+#include <cstring>
+#include <cassert>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <queue>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 505;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 1000 * 1000 * 1000 + 7;
+
+int n , m;
+int S , T;
+int a[N] , b[N];
+int answ[N][N];
+
+struct edge{
+    int a , b , flow , cap;
+};
+
+vector < edge > G;
+vector <int> g[N];
+
+void add_edge(int a,int b,int c){
+    edge e1 = {a , b , 0 , c};
+    edge e2 = {b , a , 0 , 0};
+    g[a].push_back((int)G.size());
+    G.push_back(e1);
+    g[b].push_back((int)G.size());
+    G.push_back(e2);
+}
+
+int d[N];
+
+bool bfs(){
+    queue <int> q;
+    for(int i=S;i<=T;i++){
+        d[i] = -1;
+    }
+    d[S] = 0;
+    q.push(S);
+    while(!q.empty()){
+        int v = q.front();
+        q.pop();
+        for(int i=0;i<(int)g[v].size();i++){
+            int id = g[v][i];
+            int to = G[id].b;
+            if(G[id].cap - G[id].flow == 0)continue;
+            if(d[to] == -1){
+                d[to] = d[v] + 1;
+                q.push(to);
+            }
+        }
+        if(d[T] != -1)break;
+    }
+    return (d[T] != -1);
+}
+
+int pos[N];
+
+int dfs(int v,int flow){
+    if(flow == 0 || v == T)return flow;
+    for(;pos[v]<(int)g[v].size();pos[v]++){
+        int i = pos[v];
+        int id = g[v][i];
+        int to = G[id].b;
+        if(d[to] != d[v] + 1)continue;
+        int push = dfs(to , min(flow , G[id].cap - G[id].flow));
+        if(push){
+            G[id].flow += push;
+            G[id ^ 1].flow -= push;
+            return push;
+        }
+    }
+    return 0;
+}
+
+int max_flow(){
+    int answ = 0;
+    while(bfs()){
+        for(int i=S;i<=T;i++){
+            pos[i] = 0;
+        }
+        while(true){
+            int push = dfs(S , 2 * inf);
+            if(push == 0)break;
+            answ += push;
+        }
+    }
+    return answ;
+}
+
+int main(){
+    scanf("%d%d",&n,&m);
+    S = 0;
+    T = 2 * n + 1;
+    int sum1 = 0 , sum2 = 0;
+    for(int i=1;i<=n;i++){
+        int v;
+        scanf("%d",&v);
+        add_edge(S , i , v);
+        sum1 += v;
+    }
+    for(int i=1;i<=n;i++){
+        int v;
+        scanf("%d",&v);
+        add_edge(i + n , T , v);
+        sum2 += v;
+    }
+    for(int i=1;i<=m;i++){
+        scanf("%d%d",&a[i],&b[i]);
+        add_edge(a[i] , n + b[i] , inf);
+        add_edge(b[i] , n + a[i] , inf);
+    }
+    for(int i=1;i<=n;i++){
+        add_edge(i , i + n , inf);
+    }
+    if(sum1 != sum2){
+        printf("NO\n");
+        return 0;
+    }
+    if(max_flow() != sum2){
+        printf("NO\n");
+        return 0;
+    }
+    printf("YES\n");
+    for(int i=4*n;i<(int)G.size();i+=2){
+        int v = G[i].a;
+        int u = G[i].b - n;
+        answ[v][u] += G[i].flow;
+    }
+    for(int i=1;i<=n;i++){
+        for(int j=1;j<=n;j++){
+            cout<<answ[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+    return 0;
+}

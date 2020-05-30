@@ -1,0 +1,142 @@
+#include<iostream>
+#include<algorithm>
+#include<queue>
+#include<string>
+#include<vector>
+#include<map>
+#include<list>
+#include<set>
+#include<cstring>
+#include<ctime>
+#include<cmath>
+#include<limits>
+#include<iterator>
+#include<functional>
+#include<unordered_map>
+#include<stack>
+#include<bitset>
+
+#define all(v) v.begin(), v.end()
+#define setv(ar, val) memset(ar, val, sizeof(ar));
+#define ll long long int
+#define ull unsigned long long int
+#define PI 3.1415926535897932384626433832795
+#pragma comment(linker, "/STACK:536870912")
+#pragma warning(disable:4996)
+using namespace std;
+
+const int N = 2e5 + 100, D = 2, mod = 1e9;
+ll t[N * 4][2], up[N * 4], ar[N], fb[N];
+
+ll f(ll a, ll b, ll p) {
+	if (p == -1)
+		return a;
+	return (a * fb[p] + b * fb[p + 1]) % mod;
+}
+
+inline ll pl(ll a, ll b) {
+	ll r = a + b;
+	while (r >= mod)
+		r -= mod;
+	while (r < 0)
+		r += mod;
+	return r;
+}
+
+void build(int v, int L, int R) {
+	if (L == R) {
+		t[v][0] = 0;
+		t[v][1] = ar[L];
+	}
+	else {
+		int m = (L + R) >> 1;
+		build(v * 2, L, m);
+		build(v * 2 + 1, m + 1, R);
+		t[v][0] = pl(t[v * 2][0],f(t[v * 2 + 1][0], t[v * 2 + 1][1], m - L));
+		t[v][1] = pl(t[v * 2][1], f(t[v * 2 + 1][0], t[v * 2 + 1][1], m - L + 1));
+	}
+}
+
+void push(int v, int l, int r) {
+	if (up[v]) {
+		if (l != r) {
+			up[v * 2] = pl(up[v * 2], up[v]);
+			up[v * 2 + 1] = pl(up[v * 2 + 1], up[v]);
+		}
+		t[v][1] = (t[v][1] + (f(0, 1, r - l + 2) - 1) * up[v]) % mod;
+		t[v][0] = (t[v][0] + (f(0, 1, r - l + 1) - 1) * up[v]) % mod;
+		up[v] = 0;
+	}
+}
+
+void upd(int l, int r, int x, int v, int L, int R) {
+	push(v, L, R);
+	if (l > r)
+		return;
+	if (l == L && r == R) {
+		up[v] = pl(up[v], x);
+		push(v, l, r);
+	}
+	else {
+		int m = (L + R) >> 1;
+		upd(l, min(m, r), x, v * 2, L, m);
+		upd(max(l, m + 1), r, x, v * 2 + 1, m + 1, R);
+		t[v][0] = pl(t[v * 2][0], f(t[v * 2 + 1][0], t[v * 2 + 1][1], m - L));
+		t[v][1] = pl(t[v * 2][1], f(t[v * 2 + 1][0], t[v * 2 + 1][1], m - L + 1));
+	}
+}
+
+pair<ll, ll> que(int l, int r, int v, int L, int R) {
+	push(v, L, R);
+	if (l > r)
+		return { 0, 0 };
+	if (l == L && r == R)
+		return { t[v][0], t[v][1] };
+	int m = (L + R) >> 1;
+	pair<ll, ll> a = que(l, min(m, r), v * 2, L, m),
+		b = que(max(m + 1, l), r, v * 2 + 1, m + 1, R);
+	ll la = max(0, m - l + 1);
+	return { pl(a.first, f(b.first, b.second, la - 1)),
+		pl(a.second, f(b.first, b.second, la)) };
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	int n, m;
+	scanf("%d%d", &n, &m);
+
+	for (int i = 0; i < n; i++)
+		scanf("%lld", &ar[i]);
+
+	fb[1] = 1;
+	for (int i = 2; i < N; i++)
+		fb[i] = pl(fb[i - 1], fb[i - 2]);
+
+	build(1, 0, n);
+	while (m--) {
+		int t, x, v, l, r, d;
+		scanf("%d", &t);
+		if (t == 1) {
+			scanf("%d%d", &x, &v);
+			x--;
+			ll c = que(x, x, 1, 0, n).second;
+			upd(x, x, v - c, 1, 0, n);
+		}
+		else if (t == 2) {
+			scanf("%d%d", &l, &r);
+			l--, r--;
+			printf("%lld\n", que(l, r, 1, 0, n).second);
+		}
+		else {
+			scanf("%d%d%d", &l, &r, &d);
+			l--, r--;
+			upd(l, r, d, 1, 0, n);
+		}
+	}
+
+
+	return 0;
+}

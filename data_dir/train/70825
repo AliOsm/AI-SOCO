@@ -1,0 +1,186 @@
+#include <bits/stdc++.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
+#endif // M_PI
+#define endl "\n"
+#define S struct
+#define X first
+#define Y second
+#define V vector
+#ifndef __linux__
+#define LLD "%I64d"
+#else
+#define LLD "%ll""d"
+#endif
+#define FOR(x, y, z) for (int x = (y); x < (z); ++x)
+#define FORR(x, y, z) for (int x = (y); x > (z); --x)
+#define GET(a, n) for (int __i = 0; __i < (n); ++__i) cin >> a[__i];
+#define GETM(a, n, m) for (int __i = 0; __i < (n); ++__i) for (int __j = 0; __j < m; ++__j) cin >> a[__i][__j];
+#define PRINTM(a, n, m) for (int __i = 0; __i < (n); ++__i) { for (int __j = 0; __j < m; ++__j) cout << a[__i][__j] << " ";  cout << endl; };
+#define PRINT(a, n) for (int __i = 0; __i < (n); ++__i) cout << a[__i] << " ";
+#define IT(a) a.begin(), a.end()
+#define SQR(x) (x) * (x)
+#define CASE(a, s) cout << "Case #" << a << ": " << s << endl;
+#define DEB(a) cout << #a << " = " << (a) << endl; cout.flush();
+#define DEBA(a) for (auto __i: a) cout << __i << " "; cout << endl; cout.flush();
+#define IFDEB(b, a) if (b) { cout << #a << " = " << (a) << endl; cout.flush(); }
+using namespace std;
+typedef long long LL;
+typedef long double LD;
+typedef unsigned long long ULL;
+typedef pair <int, int> PII;
+typedef pair <LL, LL> PLL;
+const int MOD = 1000000009;
+void sync_stdio() { cin.tie(NULL); ios_base::sync_with_stdio(false); }
+S Sync_stdio { Sync_stdio() { cin.tie(NULL); ios_base::sync_with_stdio(false); } } _sync_stdio;
+S FAIL { FAIL () { cout << "CHANGE!!!" << endl;}};
+
+class Fib
+{
+    vector <int> fib;
+  public:
+    Fib(int n)
+    {
+        fib.resize(n);
+        fib[0] = 0;
+        fib[1] = 1;
+        FOR (i, 2, n) {
+            fib[i] = (fib[i - 1] + fib[i - 2]) % MOD;
+        }
+    }
+    int get_fib(int a, int b, int pos)
+    {
+        return ((LL)(b - a + MOD) * fib[pos] + (LL)a * fib[pos + 1]) % MOD;
+    }
+    int get_sum(int a, int b, int l, int r)
+    {
+        return (get_fib(a, b, r + 2) - get_fib(a, b, l + 1) + MOD) % MOD;
+    }
+};
+
+Fib fib(500000);
+
+template <class T = int> class SegmentTree
+{
+    int maxn = 150000;
+    vector <T> t;
+    vector <PII> delta;
+    vector <int> tl;
+    vector <int> tr;
+    vector <int> dflag;
+    //void push(int v);
+    void build (vector <T> &a, int v, int tleft, int tright)
+    {
+        tl[v] = tleft;
+        tr[v] = tright;
+        if (tleft == tright) {
+            if (tleft < a.size()) {
+                t[v] = a[tleft];
+            }
+        } else {
+            int tmid = (tleft + tright) / 2;
+            build (a, v * 2 + 1, tleft, tmid);
+            build (a, v * 2 + 2, tmid + 1, tright);
+            t[v] = (t[v * 2 + 1] + t[v * 2 + 2]) % MOD;
+        }
+    }
+    void change(int v, PII x)
+    {
+        delta[v].X = (delta[v].X + x.X) % MOD;
+        delta[v].Y = (delta[v].Y + x.Y) % MOD;
+        t[v] = (t[v] + fib.get_sum(x.X, x.Y, 0, tr[v] - tl[v])) % MOD;
+        dflag[v] = 1;
+    }
+    void update(int v, int l, int r, T x)
+    {
+        if (l > r) {
+            return;
+        }
+        push(v);
+        if (l == tl[v] && tr[v] == r) {
+            change(v, {fib.get_fib(0, 1, x), fib.get_fib(0, 1, x + 1)});
+        } else {
+            int tm = (tl[v] + tr[v]) / 2;
+            update (v * 2 + 1, l, min(r, tm), x);
+            update (v * 2 + 2, max(l, tm + 1), r, x + max(0, tl[v * 2 + 2] - l));
+            t[v] = (t[2 * v + 1] + t[2 * v + 2]) % MOD;
+        }
+    }
+    void push(int v)
+    {
+        if (dflag[v] != 0) {
+            if (tl[v] != tr[v]) {
+                change(2 * v + 1, delta[v]);
+                int f1 = fib.get_fib(delta[v].X, delta[v].Y, tl[v * 2 + 2] - tl[v]);
+                int f2 = fib.get_fib(delta[v].X, delta[v].Y, tl[v * 2 + 2] - tl[v] + 1);
+                change(2 * v + 2, {f1, f2});
+            }
+            delta[v] = {0, 0};
+            dflag[v] = 0;
+        }
+    }
+    LL sum(int v, int l, int r)
+    {
+        if (l > r) {
+            return 0;
+        }
+        push(v);
+        if (l == tl[v] && r == tr[v]) {
+            return t[v];
+        }
+        int tm = (tl[v] + tr[v]) / 2;
+        return (sum(v * 2 + 1, l, min(r, tm)) + sum(v * 2 + 2, max(l, tm + 1), r)) % MOD;
+    }
+    void build(vector <T> &a)
+    {
+        build(a, 0, 0, maxn - 1);
+    }
+public:
+    int size()
+    {
+        return maxn;
+    }
+    SegmentTree(vector <T> &a) //update delta in change
+    {
+        maxn = a.size();
+        t.resize(4 * maxn);
+        delta.resize(4 * maxn);
+        tl.resize(4 * maxn);
+        tr.resize(4 * maxn);
+        dflag.resize(4 * maxn);
+        build(a);
+    }
+    void update(int l, int r)
+    {
+        update(0, l, r, 1);
+    }
+    LL sum(int l, int r)
+    {
+        return sum(0, l, r);
+    }
+    T operator [] (int x)
+    {
+        return sum(x, x);
+    }
+};
+
+int main()
+{
+    int n, q;
+    cin >> n >> q;
+    vector <int> v(n);
+    GET(v, n);
+    SegmentTree <int> tree(v);
+    FOR (i, 0, q) {
+        int t, l, r;
+        cin >> t >> l >> r;
+        --l, --r;
+        if (t == 1) {
+            tree.update(l, r);
+        } else {
+            cout << tree.sum(l, r) << endl;
+        }
+    }
+    return 0;
+}
+

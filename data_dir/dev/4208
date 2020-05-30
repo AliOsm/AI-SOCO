@@ -1,0 +1,132 @@
+#include <iostream>
+#include <stdio.h>
+#include <cstdlib>
+#include <string>
+#include <memory.h>
+#include <sstream>
+#include <stack>
+#include <deque>
+#include <queue>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <cmath>
+using namespace std;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef pair<int, int> ii;
+#define sz(a) int((a).size()) 
+#define pb push_back 
+#define all(c) (c).begin(),(c).end()
+#define present(c,x) ((c).find(x) != (c).end())
+const int N = 100000 + 10;
+const int M = 1000000007;
+const double PI = atan(1) * 4;
+
+int n, m, low[4*N], disc[4*N], p[4*N], T;
+vvi v, g;
+set<pair<int,int> >br, newEd, newPEd;
+vector<bool> vis;
+vector<pair<int,int> >ed;
+
+void findBr(int u, int pt){
+	low[u]=disc[u]=T++;
+	vis[u]=true;
+	for(int i=0; i<v[u].size(); ++i){
+		int q = v[u][i];
+		if(q==pt)
+			continue;
+		if(!vis[q]){
+			findBr(q, u);
+			low[u]=min(low[u], low[q]);
+			if(low[q]>disc[u])
+				br.insert(make_pair(min(u,q), max(u,q)));
+		}else
+			low[u]=min(low[u], disc[q]);
+	}
+}
+
+void gfs(int u){
+	vis[u]=true;
+	for(int i=0; i<g[u].size(); ++i){
+		int q = g[u][i];
+		if(vis[q])
+			continue;
+		newPEd.insert(make_pair(q,u));
+		gfs(q);
+	}
+}
+int dfs(int u, int d){
+	vis[u]=true;
+	p[u]=d;
+	int x=1;
+	for(int i=0; i<v[u].size(); ++i){
+		int q = v[u][i];
+		if(br.find(make_pair(min(u,q),max(u,q)))!=br.end())
+			continue;
+		if(newEd.find(make_pair(q,u))==newEd.end())
+			newEd.insert(make_pair(u,q));
+		if(vis[q])
+			continue;
+		x+=dfs(q, d);
+	}
+	return x;
+}
+int main(){
+	#ifndef ONLINE_JUDGE
+		freopen("input.txt", "r", stdin);
+	#endif
+
+	cin>>n>>m;
+	v.resize(n);
+	g.resize(n);
+	for(int a,b,i=0; i<m; ++i){
+		scanf("%d%d",&a,&b);
+		--a;--b;
+		v[a].pb(b);
+		v[b].pb(a);
+		ed.pb(make_pair(a,b));
+	}
+	vis.resize(n);
+	findBr(0, -1);
+	vis.clear();
+	vis.resize(n);
+	int sz=-1, idx;
+
+	for(int i=0; i<n; ++i)
+		if(!vis[i]){
+			int x=dfs(i,i);
+			if(x>sz){
+				sz=x;
+				idx=i;
+			}
+		}
+	g.resize(n);
+	for(set<pair<int,int> >::iterator it=br.begin(); it!=br.end(); ++it){
+		int x = it->first;
+		int y = it->second;
+		g[p[x]].pb(p[y]);
+		g[p[y]].pb(p[x]);
+	}
+	vis.clear();
+	vis.resize(n);
+	gfs(idx);
+	cout<<sz<<endl;
+	for(int i=0; i<m; ++i){
+		int x = ed[i].first;
+		int y = ed[i].second;
+		if(br.find(make_pair(min(x,y), max(x,y))) == br.end()){
+			if(newEd.find(make_pair(x,y))==newEd.end())
+				printf("%d %d\n", y+1, x+1);
+			else
+				printf("%d %d\n", x+1, y+1);
+		}else{
+			if(newPEd.find(make_pair(p[x],p[y]))==newPEd.end())
+				printf("%d %d\n", y+1, x+1);
+			else
+				printf("%d %d\n", x+1, y+1);
+		}
+	}
+}

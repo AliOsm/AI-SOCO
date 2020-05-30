@@ -1,0 +1,144 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+int const N = 1e5+10, K = 30;
+typedef pair<int,int> pii;
+
+int n, q, ans[N];
+vector<int> adj[N];
+vector<pii> query[N];
+
+int sz[N], prof[N], dp[K][N];
+
+void dfs(int v){
+
+	sz[v] = 1;
+
+	for(int i = 0; i < adj[v].size(); i++){
+
+		int w = adj[v][i];
+
+		prof[w] = prof[v] + 1;
+		dp[0][w] = v;
+
+		dfs(w);
+
+		sz[v] += sz[w];
+
+	}
+
+}
+
+void build(){
+
+	for(int k = 1; k < K; k++)
+		for(int i = 0; i <= n; i++)
+			dp[k][i] = dp[k-1][dp[k-1][i]];
+
+}
+
+int find(int x, int up){
+
+	int d = up;
+
+	for(int k = K-1; k >= 0; k--)
+		if((1<<k)&d) 
+			x = dp[k][x];
+
+	return x;
+
+}
+
+int cnt[N];
+bool bad[N];
+
+void add(int v, int x){
+
+	cnt[prof[v]] += x;
+
+	for(int i = 0; i < adj[v].size(); i++){
+
+		int w = adj[v][i];
+
+		if(!bad[w])
+			add(w,x);
+
+	}
+
+}
+
+void solve(int v, bool keep){
+
+		int heavy = -1;
+
+		for(int i = 0; i < adj[v].size(); i++){
+
+			int w = adj[v][i];
+
+			if(heavy == -1 || sz[heavy] < sz[w])
+				heavy = w;
+
+		}
+
+		for(int i = 0; i < adj[v].size(); i++){
+			
+			int w = adj[v][i];
+
+			if(w != heavy)
+				solve(w,0);
+
+		}
+
+		if(heavy != -1) solve(heavy,1), bad[heavy] = 1;
+
+		add(v,1);
+
+		for(int i = 0; i < query[v].size(); i++){
+
+			int p = query[v][i].first, id = query[v][i].second;
+
+			assert(cnt[p] != 0);
+			ans[id] = cnt[p]-1;
+
+		}
+
+		if(heavy != -1)
+			bad[heavy] = 0;
+
+		if(!keep)
+			add(v,-1);
+
+}
+
+int main(){
+
+			scanf(" %d", &n);
+
+			for(int i = 1; i <= n; i++){
+				int p;
+				scanf(" %d", &p);
+				adj[p].push_back(i);
+			}
+
+			dfs(0);
+			build();
+
+			scanf(" %d", &q);
+
+			for(int i = 1; i <= q; i++){
+				int v, p;
+				scanf(" %d %d", &v, &p);
+				if(prof[v] <= p) continue;
+				v = find(v,p);
+				query[v].push_back(pii(prof[v]+p,i));
+			}
+
+			solve(0,1);
+
+			for(int i = 1; i <= q; i++) printf("%d ", ans[i]);
+			printf("\n");
+
+			return 0;
+
+}

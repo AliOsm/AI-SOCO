@@ -1,0 +1,179 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define x first
+#define y second
+#define SZ(x) ((int)((x).size()))
+#define PB(x) push_back(x);
+#define INF (0x3f3f3f3f)
+#define MEMSET(x,v) memset(x,v,sizeof(x));
+
+typedef long long LL;
+typedef pair<int, int> PII; typedef pair<PII, int> PII2;
+typedef vector<int> VI; typedef vector<VI> VVI;
+
+
+class StronglyConnectedComponent {
+    typedef vector<int> VI; typedef vector<VI> VVI;
+public:
+    struct edge{
+        int e, nxt;
+        edge() {}
+        edge(int _e, int _nxt) : e(_e), nxt(_nxt) {}
+    };  
+    int V, E;
+    vector<edge> e, er;
+    vector<int> sp, spr, group_num, stk;
+    int group_cnt; VVI graph; // reduced graph
+    vector<bool> visited;
+    // Vertices are 1-indexed based.
+    StronglyConnectedComponent(int _V) {
+        V = _V; E = 0; group_cnt = 0; group_num = vector<int>(V + 5);
+        sp = vector<int>(V + 5); spr = vector<int>(V + 5); stk = vector<int>(V + 5);
+        visited = vector<bool>(V + 5); e.push_back(edge()); er.push_back(edge());
+    }
+    void fill_forward(int x){
+        visited[x] = true;
+        for(int i = sp[x]; i; i = e[i].nxt) if (!visited[e[i].e]) fill_forward(e[i].e);
+        stk[++stk[0]] = x;
+    }
+    void fill_backward(int x){
+        visited[x] = false;
+        group_num[x] = group_cnt;
+        for(int i = spr[x]; i; i = er[i].nxt) if (visited[er[i].e]) fill_backward(er[i].e);
+    }
+    void add_edge(int v1, int v2){ // Add edge v1->v2
+        E++;
+        e.push_back(edge(v2, sp[v1])); sp[v1] = E;
+        er.push_back(edge(v1, spr[v2])); spr[v2] = E;
+    }
+    void cal_scc() {
+        stk[0] = 0;
+        fill(visited.begin(), visited.end(), false);
+        for(int i = 1; i <= V; i++) if (!visited[i]) fill_forward(i);
+        group_cnt = 0;
+        for(int i = stk[0]; i >= 1; i--) if (visited[stk[i]]) { group_cnt++; fill_backward(stk[i]); }
+    }
+    void cal_reduced_graph() { // need to call cal_scc() before
+        graph = VVI(group_cnt + 1);
+        for (int i = 1; i <= V; i++) { int u = group_num[i];
+            for (int j = sp[i]; j; j = e[j].nxt) {
+                int v = group_num[e[j].e];
+                if (u != v) graph[u].push_back(v);
+            }
+            sort(graph[u].begin(), graph[u].end());
+            graph[u].erase(unique(graph[u].begin(), graph[u].end()), graph[u].end());
+        }
+    }
+};
+
+#define MAXN (100005)
+
+int M, N;
+
+string initial_words[MAXN];
+string from[MAXN], to[MAXN];
+map<string, int> ids;
+
+int num_r[MAXN * 2];
+int min_l[MAXN * 2];
+int num_r_reduced[MAXN * 2];
+int min_l_reduced[MAXN * 2];
+
+int num_node = 0;
+void add_word(string &x) {
+    if (ids.find(x) == ids.end()) {
+        ids[x] = ++num_node;
+    }
+}
+
+bool visited[MAXN * 2];
+StronglyConnectedComponent solver(1);
+
+void dfs(int at) {
+    visited[at] = true;
+    for (auto v : solver.graph[at]) {
+        if (!visited[v]) {
+            dfs(v);
+        }
+    }
+
+    for (auto v : solver.graph[at]) {
+        if (num_r_reduced[v] < num_r_reduced[at]) {
+            num_r_reduced[at] = num_r_reduced[v];
+            min_l_reduced[at] = min_l_reduced[v];
+        } else if (num_r_reduced[v] == num_r_reduced[at]) {
+            min_l_reduced[at] = min(min_l_reduced[at], min_l_reduced[v]);
+        }
+    }
+}
+
+int main() {
+    cin >> M;
+    for (int i = 0; i < M; i++) {
+        cin >> initial_words[i];
+        for (int j = 0; j < SZ(initial_words[i]); j++) {
+            initial_words[i][j] = tolower(initial_words[i][j]);
+        }
+    }
+
+    cin >> N;
+    for (int i = 0; i < N; i++) {
+        cin >> from[i] >> to[i];
+        for (int j = 0; j < SZ(from[i]); j++) from[i][j] = tolower(from[i][j]);
+        for (int j = 0; j < SZ(to[i]); j++) to[i][j] = tolower(to[i][j]);
+        add_word(from[i]);
+        add_word(to[i]);
+    }
+    for (auto it = ids.begin(); it != ids.end(); it++) {
+        for (int j = 0; j < SZ(it->first); j++) {
+            num_r[it->second] += (it->first[j] == 'r');
+        }
+        min_l[it->second] = SZ(it->first);
+    }
+    
+    solver = StronglyConnectedComponent(num_node);
+    
+    for (int i = 0; i < N; i++) {
+        solver.add_edge(ids[from[i]], ids[to[i]]);
+    }
+    
+    solver.cal_scc();
+    solver.cal_reduced_graph();
+    
+    MEMSET(num_r_reduced, INF);
+    for (auto it = ids.begin(); it != ids.end(); it++) {
+        int id = it->second;
+        int g_id = solver.group_num[id];
+        if (num_r[id] < num_r_reduced[g_id]) {
+            num_r_reduced[g_id] = num_r[id];
+            min_l_reduced[g_id] = min_l[id];
+        } else if (num_r[id] == num_r_reduced[g_id]) {
+            min_l_reduced[g_id] = min(min_l_reduced[g_id], min_l[id]);
+        }
+    }
+
+    for (int i = 1; i <= solver.group_cnt; i++) {
+        if (!visited[i]) {
+            dfs(i);
+        }
+    }
+
+    LL min_r = 0;
+    LL min_length = 0;
+    for (int i = 0; i < M; i++) {
+        if (ids.find(initial_words[i]) == ids.end()) {
+            min_length += SZ(initial_words[i]);
+            for (int j = 0; j < SZ(initial_words[i]); j++) {
+                min_r += (initial_words[i][j] == 'r');
+            }
+        } else {
+            int id = ids[initial_words[i]];
+            min_r += num_r_reduced[solver.group_num[id]];
+            min_length += min_l_reduced[solver.group_num[id]];
+        }
+    }
+    cout << min_r << " " << min_length << endl;
+    return 0;
+}

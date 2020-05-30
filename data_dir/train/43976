@@ -1,0 +1,178 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define int long long 
+#define mp make_pair
+#define pb push_back
+#define pii pair<int,int>
+#define F first
+#define S second
+int const M=2e5+10,inf=1e9+10,M2=1e6+10,M3=2e3+10,mod=1e9+7;
+int st[M],fin[M],val[M];
+vector<int>adj[M];
+int inc=0,seg[M*4],lazy[M*4],h[M],par[M][30],zt[M],sum=0,n,flag;
+vector<int>ve;
+void dfs(int v,int l)
+{
+	ve.pb(v);
+	h[v]=h[l]+1;
+	par[v][0]=l;
+	zt[v]=1;
+	for(int j=1;j<=20;j++)
+	{
+		par[v][j]=par[par[v][j-1]][j-1];
+	}
+	st[v]=(int)ve.size()-1;
+	for(int i=0;i<adj[v].size();i++)
+	{
+		int u=adj[v][i];
+		if(u==l)continue;
+		dfs(u,v);
+		zt[v]+=zt[u];
+	}
+	fin[v]=(int)ve.size();
+}
+void shift(int node,int l,int r,int mid)
+{
+	lazy[node*2]+=lazy[node];
+	lazy[node*2+1]+=lazy[node];
+	seg[node*2]+=lazy[node]*(mid-l);
+	seg[node*2+1]+=lazy[node]*(r-mid);
+	lazy[node]=0;
+}
+void update(int l,int r,int s,int e,int x,int node)
+{
+	int mid=(l+r)/2;
+	if(s<=l && r<=e)
+	{
+		seg[node]+=x*(r-l);
+		lazy[node]+=x;
+		return;
+	}
+	if(s>=r || l>=e)return;
+	shift(node,l,r,mid);
+	update(l,mid,s,e,x,node*2);
+	update(mid,r,s,e,x,node*2+1);
+	seg[node]=seg[node*2]+seg[node*2+1];
+}
+int get(int l,int r,int s,int e,int node)
+{
+	if(s<=l && r<=e)return seg[node];
+	int mid=(l+r)/2;
+	if(s>=r || l>=e)return 0;
+	shift(node,l,r,mid);
+	return get(l,mid,s,e,node*2)+get(mid,r,s,e,node*2+1);
+}
+int fp(int v,int need)
+{
+	for(int i=20;i>=0;i--)
+	{
+		if(h[v]-(1<<i)>=need)v=par[v][i];
+	}
+	return v;
+}
+int ch(int a,int b,int c)
+{
+	int now=a;
+	if(h[b]>h[now])now=b;
+	if(h[c]>h[now])now=c;
+	return now;
+}
+int lca(int v,int u)
+{
+	if(h[v]<h[u])swap(v,u);
+	for(int i=20;i>=0;i--)
+	{
+		if(h[v]-(1<<i)>=h[u])v=par[v][i];
+	}
+	if(v==u)return v;
+	for(int i=20;i>=0;i--)
+	{
+		if(par[v][i]!=par[u][i])v=par[v][i],u=par[u][i];
+	}
+	v=par[v][0];
+	return v;
+}
+void qu(int v,int root,int x)
+{
+	//cout<<v<<"****"<<endl;
+	//if(flag)cout<<v<<" "<<root<<" "<<lca(v,root)<<"****";
+	if(lca(v,root)!=v)
+	{
+		update(0,ve.size(),st[v],fin[v],x,1);
+		//if(flag)cout<<"***";
+		sum+=zt[v]*x;
+		return;
+	}
+	if(v==root){
+		inc+=x;
+		sum+=x*n;
+		return;
+	}
+	int tmp=fp(root,h[v]+1);
+	//if(flag)cout<<tmp<<" ***";
+	inc+=x;
+	update(0,ve.size(),st[tmp],fin[tmp],-x,1);
+	sum+=x*(n-zt[tmp]);
+}
+void qu2(int v,int root)
+{
+	if(lca(v,root)!=v)
+	{
+		//if(flag)cout<<"@";
+		cout<<inc*zt[v]+get(0,ve.size(),st[v],fin[v],1);
+		return;
+	}
+	if(v==root)
+	{
+		cout<<sum;
+		return;
+	}
+	//if(flag)cout<<"@";
+	int tmp=fp(root,h[v]+1);
+	//cout<<inc<<" "<<sum<<" "<<tmp<<" "<<get(0,ve.size(),st[tmp],fin[tmp],1)<<endl;
+	cout<<sum-get(0,ve.size(),st[tmp],fin[tmp],1)-inc*zt[tmp];
+}
+main()
+{
+	int q,a,b;
+	cin>>n>>q;
+	for(int i=1;i<=n;i++)cin>>val[i];
+	for(int i=1;i<=n-1;i++)cin>>a>>b,adj[a].pb(b),adj[b].pb(a);
+	dfs(1,0);
+	for(int i=1;i<=n;i++)
+	{
+		update(0,ve.size(),st[i],st[i]+1,val[i],1);
+		sum+=val[i];
+	}
+	int root=1;
+	for(int i=1;i<=q;i++)
+	{
+		int ty;
+		cin>>ty;
+		flag=0;
+		if(ty==1)
+		{
+			int v;
+			cin>>v;
+			root=v;
+		}
+		if(ty==2)
+		{
+			int v,u,x;
+			cin>>v>>u>>x;
+			int tmp1=lca(v,u);
+			int tmp2=lca(root,v);
+			int tmp3=lca(root,u);
+			int need=ch(tmp1,tmp2,tmp3);
+			qu(need,root,x);
+		}
+		if(ty==3)
+		{
+			int v;
+			cin>>v;
+			if(i==q)flag=1;
+			qu2(v,root);
+			cout<<"\n";
+		}
+	}
+}

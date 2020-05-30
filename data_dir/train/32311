@@ -1,0 +1,212 @@
+#ifdef DEBUG
+#define _GLIBCXX_DEBUG
+#endif
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+mt19937 mrand(random_device{} ()); 
+
+int rnd(int x) {
+  return mrand() % x;
+}
+
+typedef long double ld;
+typedef long long ll;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf(stderr, __VA_ARGS__), fflush(stderr)
+#else
+#define eprintf(...) ;
+#endif
+
+#define pb push_back
+#define mp make_pair
+#define sz(x) ((int) (x).size())
+#define TASK "text"
+
+const int inf = (int) 1.01e9;
+const ld eps = 1e-9;
+const ld pi = acos((ld) -1.0);
+
+void precalc() {
+}
+
+const int mod = (int) 1e9 + 7;
+
+void add(int &x, int y) {
+  if ((x += y) >= mod) {
+    x -= mod;
+  }
+}
+
+int mult(int x, int y) {
+  return (long long) x * y % mod;
+}
+
+int myPower(int x, int pw) {
+  int res = 1;
+  for (; pw; pw >>= 1) {
+    if (pw & 1) {
+      res = mult(res, x);
+    }
+    x = mult(x, x);
+  }
+  return res;
+}
+
+const int maxc = 60;
+
+int get(vector<long long> &a) {
+  int n = sz(a);
+  vector<int> used(n, 0);
+  int res = 0;
+  for (int c = 0; c < maxc; ++c) {
+    int r = -1;
+    for (int i = 0; i < n; ++i) {
+      if (used[i]) {
+        continue;
+      }
+      if ((a[i] >> c) & 1) {
+        r = i;
+        break;
+      }
+    }
+    if (r == -1) {
+      continue;
+    }
+    ++res;
+    used[r] = 1;
+
+    for (int i = 0; i < n; ++i) {
+      if (i == r) {
+        continue;
+      }
+      if ((a[i] >> c) & 1) {
+        a[i] ^= a[r];
+      }
+    }
+  }
+  return res;
+}
+
+
+const int maxn = (int) 1e5 + 10;
+
+int n, m;
+
+vector<vector<int> > es;
+vector<vector<long long> > cs;
+
+int read() {
+  if (scanf("%d%d", &n, &m) < 2) {
+    return 0;
+  }
+  es = vector<vector<int> >(n);
+  cs = vector<vector<long long> >(n);
+  for (int i = 0; i < m; ++i) {
+    int s, t;
+    long long c;
+    scanf("%d%d%lld", &s, &t, &c);
+    --s, --t;
+    es[s].pb(t), es[t].pb(s);
+    cs[s].pb(c), cs[t].pb(c);
+  }
+  return 1;
+}
+
+int used[maxn];
+
+long long ms[maxn];
+
+vector<long long> got;
+
+vector<int> vs;
+
+void dfs(int v) {
+  vs.pb(v);
+  used[v] = 1;
+  for (int it = 0; it < sz(es[v]); ++it) {
+    int u = es[v][it];
+    if (used[u]) {
+      if (used[u] == 2) {
+        got.pb(ms[u] ^ ms[v] ^ cs[v][it]);
+      }
+      continue;
+    }
+    ms[u] = (ms[v] ^ cs[v][it]);
+    dfs(u);
+  }
+  used[v] = 2;
+}
+
+void solve() {
+  for (int i = 0; i < n; ++i) {
+    used[i] = 0;
+  }
+
+  int res = 0;
+  for (int i = 0; i < n; ++i) {
+    if (used[i]) {
+      continue;
+    }
+    vs.clear();
+    got.clear();
+    ms[i] = 0;
+    dfs(i);
+
+    int rank = get(got);
+    //eprintf("rank = %d\n", rank);
+
+    int whole = myPower(2, rank);
+    int half = myPower(2, max(0, rank - 1));
+
+    int two = 1;
+    for (int it = 0; it < maxc; ++it) {
+      int one = 0, zero = 0;
+      for (int v : vs) {
+        if ((ms[v] >> it) & 1) {
+          ++one;
+        } else {
+          ++zero;
+        }
+      }
+      //eprintf("one = %d, zero = %d\n", one, zero);
+      bool hasone = 0;
+      for (int i = 0; i < sz(got); ++i) {
+        if ((got[i] >> it) & 1) {
+          hasone = 1;
+          break;
+        }
+      }
+      //eprintf("hasone = %d\n", hasone);
+      if (hasone) {
+        add(res, mult(half, mult(two, ((long long) one * (one - 1) / 2 + (long long) zero * (zero - 1) / 2) % mod)));
+      }
+      add(res, mult(hasone ? half : whole, mult(two, (long long) one * zero % mod)));
+      //eprintf("res = %d\n", res);
+      add(two, two);
+    }
+  }
+  printf("%d\n", res);
+}
+
+int main() {
+  precalc();
+#ifdef LOCAL
+  freopen(TASK ".out", "w", stdout);
+  assert(freopen(TASK ".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time %.2f\n", (double) clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

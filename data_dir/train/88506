@@ -1,0 +1,235 @@
+/****** BISMILLAH HIR RAHMANIR RAHIM ******/
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+typedef long long ll;
+typedef pair <ll, ll> pii;
+/* Special functions:
+
+find_by_order(k) --> returns iterator to the kth largest element counting from 0
+order_of_key(val) --> returns the number of items in a set that are strictly smaller than our item
+*/
+
+typedef tree<
+ll,
+null_type,
+less<ll>,
+rb_tree_tag,
+tree_order_statistics_node_update>
+ordered_set;
+
+
+#define EPS 1e-9
+#define NL cout<<endl;
+#define MP make_pair
+#define ALL(a) a.begin(), a.end()
+#define DBG(a) cout<< #a <<" --> "<<(a)<<endl;
+#define FastIO ios::sync_with_stdio(false); cin.tie(0);cout.tie(0)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+
+/****** END OF HEADER ******/
+
+
+#define mx 200005
+
+ll W[mx];
+ll L[mx]; //লেভেল
+ll P[mx][22]; //স্পার্স টেবিল
+ll PW[mx][22]; //স্পার্স টেবিল
+ll T[mx]; //প্যারেন্ট
+vector<pii>g[mx];
+void dfs(ll from,ll u,ll dep)
+{
+    T[u]=from;
+    L[u]=dep;
+    for(ll i=0; i<(ll)g[u].size(); i++)
+    {
+        pii vw= g[u][i];
+        ll v=vw.first;
+        ll w=vw.second;
+        if(v==from)
+            continue;
+        W[v]=w;
+        dfs(u,v,dep+1);
+    }
+}
+
+ll lca_query(ll N, ll p, ll q) //N=নোড সংখ্যা
+{
+    ll tmp, log, i;
+
+    if (L[p] < L[q])
+        tmp = p, p = q, q = tmp;
+
+    log=1;
+    while(1)
+    {
+        ll next=log+1;
+        if((1<<next)>L[p])
+            break;
+        log++;
+    }
+
+    for (i = log; i >= 0; i--)
+        if (L[p] - (1 << i) >= L[q])
+            p = P[p][i];
+
+    if (p == q)
+        return p;
+
+    for (i = log; i >= 0; i--)
+        if (P[p][i] != -1 && P[p][i] != P[q][i])
+            p = P[p][i], q = P[q][i];
+
+    return T[p];
+}
+
+void lca_init(ll N)
+{
+    memset (P,-1,sizeof(P)); //শুরুতে সবগুলো ঘরে -১ থাকবে
+    memset (PW,0,sizeof(PW)); //শুরুতে সবগুলো ঘরে 0 থাকবে
+    ll i, j;
+    for (i = 0; i < N; i++)
+        P[i][0] = T[i],PW[i][0]=W[i];
+
+    for (j = 1; 1 << j < N; j++)
+        for (i = 0; i < N; i++)
+            if (P[i][j - 1] != -1)
+            {
+                P[i][j] = P[P[i][j - 1]][j - 1];
+                PW[i][j]= max(W[P[i][j-1]],max(PW[i][j-1],PW[P[i][j-1]][j-1]));
+            }
+
+
+}
+ll kthParent(ll N,ll p,ll k)
+{
+    ll lg ;
+    for( lg = 1 ; (1 << lg) <= L[p] ; ++lg )
+        ;
+    lg--;
+    for( ll i = lg ; i >= 0 ; i-- )
+    {
+        if( (1 << i) <= k )
+        {
+            p = P[p][i];
+            k -= ( 1 << i );
+        }
+    }
+    return p;
+}
+ll kthParentW(ll N,ll p,ll k)
+{
+    ll lg ;
+    for( lg = 1 ; (1 << lg) <= L[p] ; ++lg )
+        ;
+    lg--;
+    ll res=0;
+    for( ll i = lg ; i >= 0 ; i-- )
+    {
+        if( (1 << i) <= k )
+        {
+            res=max(res,PW[p][i]);
+            p = P[p][i];
+            k -= ( 1 << i );
+        }
+    }
+    return res;
+}
+ll parent[mx];
+ll rnk[mx];
+ll find_set(ll v) {
+    if (v == parent[v])
+        return v;
+    return parent[v] = find_set(parent[v]);
+}
+
+void make_set(ll v) {
+    parent[v] = v;
+    rnk[v] = 0;
+}
+
+void union_sets(ll a, ll b) {
+    a = find_set(a);
+    b = find_set(b);
+    if (a != b) {
+        if (rnk[a] < rnk[b])
+            swap(a, b);
+        parent[b] = a;
+        if (rnk[a] == rnk[b])
+            rnk[a]++;
+    }
+}
+
+
+
+void initCase()
+{
+    for(ll i=0; i<mx; i++)
+    {
+        g[i].clear();
+    }
+
+}
+
+
+
+
+int main()
+{
+//    IN;
+//    OUT;
+    ll n,m;
+    cin>>n>>m;
+    n++;
+    for(ll i=0;i<n;i++)
+        make_set(i);
+    vector < pair < ll , pii > > inp;
+    priority_queue< pair < ll , pii > > pq;
+
+    for(ll i=0;i<m;i++)
+    {
+        ll u,v,w;
+        cin>>u>>v>>w;
+        inp.push_back({w,{u,v}});
+        pq.push({-w,{u,v}});
+    }
+    ll sum=0;
+    while(!pq.empty())
+    {
+        pair < ll , pii > a= pq.top();
+        pq.pop();
+        ll u = a.second.first;
+        ll v = a.second.second;
+        ll w= -a.first;
+        if(find_set(u) != find_set(v))
+        {
+            g[u].push_back({v,w});
+            g[v].push_back({u,w});
+            union_sets(u,v);
+            sum+=w;
+        }
+    }
+    dfs(0,1,0);
+    lca_init(n);
+    for(pair < ll , pii > a : inp)
+    {
+        ll u = a.second.first;
+        ll v = a.second.second;
+        ll w= a.first;
+
+        ll lc= lca_query(n,u  ,v);
+        ll ans=sum+w;
+        ans-=max(kthParentW(n,u,L[u]-L[lc]),kthParentW(n,v,L[v]-L[lc]));
+        cout<<ans<<endl;
+    }
+}

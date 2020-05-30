@@ -1,0 +1,150 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 200005;
+int a[N];
+bool lz[4*N];
+long long tree[4*N];
+
+void build(int idx, int st, int nd)
+{
+    if (st == nd)
+    {
+        tree[idx] = a[st];
+    }
+    else
+    {
+        int mid = (st + nd) >> 1;
+        build(1+(idx<<1), st, mid);
+        build(2+(idx<<1), mid+1, nd);
+        tree[idx] = tree[1+(idx<<1)] + tree[2+(idx<<1)];
+    }
+}
+
+long long get(int idx, int st, int nd, int l, int r)
+{
+    if (l <= st && nd <= r)
+    {
+        return tree[idx];
+    }
+    if (lz[idx])
+    {
+        tree[1+(idx<<1)] = tree[2+(idx<<1)] = 0;
+        lz[1+(idx<<1)] = lz[2+(idx<<1)] = true;
+        lz[idx] = false;
+    }
+    int mid = (st + nd) >> 1;
+    if (r <= mid)
+    {
+        return get(1+(idx<<1), st, mid, l, r);
+    }
+    if (l > mid)
+    {
+        return get(2+(idx<<1), mid+1, nd, l, r);
+    }
+    return get(1+(idx<<1), st, mid, l, r) + get(2+(idx<<1), mid+1, nd, l, r);
+}
+
+int val;
+
+void update(int idx, int st, int nd, int l, int r)
+{
+    if (l <= st && nd <= r)
+    {
+        if (val != -1)
+        {
+            tree[idx] -= val;
+        }
+        else
+        {
+            tree[idx] = 0;
+            lz[idx] = true;
+        }
+    }
+    else
+    {
+        if (lz[idx])
+        {
+            tree[1+(idx<<1)] = tree[2+(idx<<1)] = 0;
+            lz[1+(idx<<1)] = lz[2+(idx<<1)] = true;
+            lz[idx] = false;
+        }
+        int mid = (st + nd) >> 1;
+        if (r <= mid)
+        {
+            update(1+(idx<<1), st, mid, l, r);
+        }
+        else if (l > mid)
+        {
+            update(2+(idx<<1), mid+1, nd, l, r);
+        }
+        else
+        {
+            update(1+(idx<<1), st, mid, l, r);
+            update(2+(idx<<1), mid+1, nd, l, r);
+        }
+        tree[idx] = tree[1+(idx<<1)] + tree[2+(idx<<1)];
+    }
+}
+
+int main()
+{
+    int n;
+    scanf("%d", &n);
+    for (int i = 0; i < n; i++)
+    {
+        scanf("%d", &a[i]);
+    }
+    build(0, 0, n-1);
+    int m;
+    scanf("%d", &m);
+    while (m--)
+    {
+        int t;
+        scanf("%d", &t);
+        if (t == 1)
+        {
+            int p, x;
+            scanf("%d %d", &p, &x);
+            p--;
+            int l = p, r = n-1;
+            long long hold = 0;
+            while (l <= r)
+            {
+                int mid = (l + r) >> 1;
+                long long temp = get(0, 0, n-1, p, mid);
+                if (temp <= x)
+                {
+                    l = mid + 1;
+                    hold = temp;
+                }
+                else
+                {
+                    r = mid - 1;
+                }
+            }
+            x -= hold;
+            l--;
+            if (l >= p)
+            {
+                val = -1;
+                update(0, 0, n-1, p, l);
+            }
+            if (x > 0 && l+1 < n)
+            {
+                val = x;
+                update(0, 0, n-1, l+1, l+1);
+            }
+        }
+        else
+        {
+            int k;
+            scanf("%d", &k);
+            k--;
+            int temp = get(0, 0, n-1, k, k);
+            printf("%d\n", a[k]-temp);
+        }
+    }
+    return 0;
+}

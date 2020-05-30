@@ -1,0 +1,121 @@
+#include <iostream>
+
+#include <vector>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+typedef vector<int> VI;
+
+#define MAXN 100004
+
+int N;
+int P[MAXN];
+VI adj[MAXN];
+
+struct Query {
+   int id;
+   int v, p;
+   int ans;
+};
+
+#define MAXQ 100008
+Query queries[MAXQ];
+
+VI query_ids_on_node[MAXN];
+
+VI query_ids_on_ancestor[MAXN];
+
+VI path;
+void dfs1(int u) {
+   REP(k, SZ(query_ids_on_node[u])) {
+      int q = query_ids_on_node[u][k];
+      int i = SZ(path) - queries[q].p;
+      if (i > 0) {
+         int v = path[i];
+         query_ids_on_ancestor[v].push_back(q);
+      }
+   }
+   path.push_back(u);
+   REP(j, SZ(adj[u])) {
+      int v = adj[u][j];
+      dfs1(v);
+   }
+   path.pop_back();
+}
+
+int freq[MAXN];
+VI freq_snapshot[MAXN];
+void dfs2(int u, int dist=0) {
+   freq[dist]++;
+
+   // grabar las frecuencias que me interesan como ancestro
+   REP(k, SZ(query_ids_on_ancestor[u])) {
+      int q = query_ids_on_ancestor[u][k];
+      freq_snapshot[u].push_back( freq[ dist + queries[q].p] );
+   }
+   
+   REP(j, SZ(adj[u])) {
+      int v = adj[u][j];
+      dfs2(v, dist+1);
+   }
+
+   // la respuesta a cada query es igual al incremento en frecuencia de la
+   // distancia que nos interesa es
+   REP(k, SZ(query_ids_on_ancestor[u])) {
+      int q = query_ids_on_ancestor[u][k];
+      queries[q].ans = freq[ dist + queries[q].p ] - freq_snapshot[u][k] - 1;
+   }
+}
+
+int main(int argc, char* argv[]) {
+   ios_base::sync_with_stdio(false); 
+   cin.tie(NULL);
+
+   int N;
+   cin >> N;
+   FOR(u, 1, N) {
+      int v;
+      cin >> v;
+      P[u] = v;
+      adj[v].push_back(u);
+   }
+
+   int Q;
+   cin >> Q;
+   FOR(q, 1, Q) {
+      int v, p;
+      cin >> v >> p;
+      queries[q].id = q;
+      queries[q].v = v;
+      queries[q].p = p;
+      query_ids_on_node[ v ].push_back(q);
+   }
+
+   dfs1(0);
+/*
+   FOR(u, 0, N) {
+      if (query_ids_on_ancestor[u].empty()) continue;
+      cerr << "Queries on ancestor " << u << endl;
+      REP(j, SZ(query_ids_on_ancestor[u])) {
+         int q = query_ids_on_ancestor[u][j];
+         cerr << q << ' ';
+      }
+      cerr << endl;
+   }
+*/
+
+   dfs2(0);
+
+   FOR(q, 1, Q) {
+      if (q > 1) cout << ' ';
+      cout << queries[q].ans;
+   }
+   cout << endl;
+
+   return 0;
+}

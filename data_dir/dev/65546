@@ -1,0 +1,194 @@
+#include <cstdio>
+#include <algorithm>
+#include <map>
+#include <cstring>
+using namespace std;
+
+const int MAXN = 30005;
+const int MAXSQRT = 175;
+const int MAXSEG = 1<<16;
+int N, M, Q, sz = 0;
+int A[MAXN];
+map<int, int> mp;
+int B[MAXN];
+pair<pair<int, int>, int> q[MAXN];
+int seg[MAXSEG][2];
+int lazy[MAXSEG];
+int ans[MAXN];
+int F[MAXN];
+int occ[MAXN];
+int BIT[MAXN];
+
+bool cmp(pair<pair<int, int>, int> a, pair<pair<int, int>, int> b)
+{
+    if (a.first.first/MAXSQRT == b.first.first/MAXSQRT)
+        return a.first.second < b.first.second;
+    return a.first.first/MAXSQRT < b.first.first/MAXSQRT;
+}
+
+inline void add(int idx, int val)
+{
+    for (; idx <= sz; idx += idx&-idx)
+        BIT[idx] += val;
+}
+
+inline int get(int idx)
+{
+    int ret = 0;
+    for (; idx > 0; idx -= idx&-idx)
+        ret += BIT[idx];
+    return ret;
+}
+
+inline void shift_up(int node, int n)
+{
+    int x = seg[node][0], y = seg[node][1];
+    seg[node][0] = (F[n + 1]*x + F[n]*y) % M;
+    seg[node][1] = (F[n]*x + F[n - 1]*y) % M;
+}
+
+inline void shift_down(int node, int n)
+{
+    int x = seg[node][0], y = seg[node][1];
+    int s = (n % 2 == 0) ? 1 : -1;
+    seg[node][0] = (s*F[n - 1]*x - s*F[n]*y) % M;
+    seg[node][1] = (-s*F[n]*x + s*F[n + 1]*y) % M;
+}
+
+inline void down(int node)
+{
+    if (lazy[node] > 0)
+    {
+        shift_up(2*node, lazy[node]);
+        shift_up(2*node + 1, lazy[node]);
+        lazy[2*node] += lazy[node];
+        lazy[2*node + 1] += lazy[node];
+        lazy[node] = 0;
+    }
+    else if (lazy[node] < 0)
+    {
+        shift_down(2*node, -lazy[node]);
+        shift_down(2*node + 1, -lazy[node]);
+        lazy[2*node] += lazy[node];
+        lazy[2*node + 1] += lazy[node];
+        lazy[node] = 0;
+    }
+}
+
+void update(int node, int left, int right, int ql, int qr, bool go_up)
+{
+    if (ql <= left && right <= qr)
+    {
+        if (go_up)
+        {
+            shift_up(node, 1);
+            lazy[node]++;
+        }
+        else
+        {
+            shift_down(node, 1);
+            lazy[node]--;
+        }
+        return;
+    }
+
+    down(node);
+
+    int mid = (left + right)/2;
+    if (ql <= mid)
+        update(2*node, left, mid, ql, qr, go_up);
+    if (mid + 1 <= qr)
+        update(2*node + 1, mid + 1, right, ql, qr, go_up);
+    seg[node][0] = (seg[2*node][0] + seg[2*node + 1][0]) % M;
+    seg[node][1] = (seg[2*node][1] + seg[2*node + 1][1]) % M;
+}
+
+void point_update(int node, int left, int right, int idx, int val0, int val1)
+{
+    if (left == idx && idx == right)
+    {
+        seg[node][0] = val0;
+        seg[node][1] = val1;
+        return;
+    }
+
+    down(node);
+    
+    int mid = (left + right)/2;
+    if (idx <= mid)
+        point_update(2*node, left, mid, idx, val0, val1);
+    else
+        point_update(2*node + 1, mid + 1, right, idx, val0, val1);
+    seg[node][0] = (seg[2*node][0] + seg[2*node + 1][0]) % M;
+    seg[node][1] = (seg[2*node][1] + seg[2*node + 1][1]) % M;
+}
+
+inline void go(int idx, int sign)
+{
+    occ[B[idx]] += sign;
+    if (sign == 1 && occ[B[idx]] == 1) //new entry
+    {
+        if (B[idx] != sz)
+            update(1, 1, sz, B[idx] + 1, sz, true);
+        int order = get(B[idx]) + 1;
+        point_update(1, 1, sz, B[idx], 1LL*F[order]*A[idx] % M, 1LL*F[order - 1]*A[idx] % M);
+        add(B[idx], 1);
+    }
+    else if (sign == -1 && occ[B[idx]] == 0) //remove entry
+    {
+        if (B[idx] != sz)
+            update(1, 1, sz, B[idx] + 1, sz, false);
+        point_update(1, 1, sz, B[idx], 0, 0);
+        add(B[idx], -1);
+    }
+}
+
+int main()
+{
+    scanf("%d %d", &N, &M);
+    for (int i = 1; i <= N; i++)
+    {
+        scanf("%d", &A[i]);
+        mp[A[i]] = 1;
+    }
+    scanf("%d", &Q);
+    for (int i = 0; i < Q; i++)
+    {
+        scanf("%d %d", &q[i].first.first, &q[i].first.second);
+        q[i].second = i;
+    }
+    sort(q, q + Q, cmp);
+
+    F[1] = F[2] = 1 % M;
+    for (int i = 3; i < MAXN; i++)
+        F[i] = (F[i - 1] + F[i - 2]) % M;
+    
+    for (map<int, int>::iterator it = mp.begin(); it != mp.end(); it++)
+        it->second = ++sz;
+    for (int i = 1; i <= N; i++)
+        B[i] = mp[A[i]];
+
+    int curl = q[0].first.first, curr = q[0].first.first - 1;
+    for (int i = 0; i < Q; i++)
+    {
+        int ql = q[i].first.first, qr = q[i].first.second;
+        while (curl < ql)
+            go(curl++, -1);
+        while (curl > ql)
+            go(--curl, 1);
+        while (curr < qr)
+            go(++curr, 1);
+        while (curr > qr)
+            go(curr--, -1);
+        ans[q[i].second] = seg[1][0];
+    }
+
+    for (int i = 0; i < Q; i++)
+    {
+        if (ans[i] < 0)
+            ans[i] += M;
+        printf("%d\n", ans[i]);
+    }
+
+    return 0;
+}

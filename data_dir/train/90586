@@ -1,0 +1,115 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef vector<int> vi;
+typedef vector<pair<int,int> > vp;
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define rep(i,n) for(int i=0;i<n;i++)
+#define MOD 1000000007
+#define N 200010
+int od = -1, ev = -1, lv = 0;
+vector<int> A[2], graph[N];
+pair<int,int> ind[N];
+pair<pair<int,int>, int> decr[N],incr[N];
+int tree[2][4*N], lazy[2][4*N], B[N], odd[N], even[N];
+void dfs(int s,int p){
+	odd[s] = od + 1;
+	even[s] = ev + 1;
+	if(lv % 2){
+		od++;
+		A[0].pb(s);
+		ind[s] = (mp(od,0));
+	}
+	else{
+		ev++;
+		A[1].pb(s);
+		ind[s] = (mp(ev,1));
+	}
+	for(int i=0;i<graph[s].size();i++){
+		if(graph[s][i] != p){
+			lv++;
+			dfs(graph[s][i], s);
+			lv--;
+		}
+	}	
+	if(lv % 2){
+		decr[s] = mp(mp(even[s],ev), 1);
+		incr[s] = mp(mp(odd[s],od), 0);
+	}
+	else{
+		decr[s] = mp(mp(odd[s],od), 0);
+		incr[s] = mp(mp(even[s],ev), 1);
+	}
+}
+void update(int low, int high, int begin, int end, int value, int node, int t){
+	if(lazy[t][node]){
+		tree[t][node] += (high - low + 1) * lazy[t][node];
+		if(low != high){
+			lazy[t][2*node] += lazy[t][node];
+			lazy[t][2*node+1] += lazy[t][node];
+		}
+		lazy[t][node] = 0;
+	}	
+	if(low > end || high < begin || begin > end)
+		return;	
+	if(low >= begin && high <= end){
+		tree[t][node] += (high - low + 1) * value;
+		if(low != high){
+			lazy[t][2*node] += value;
+			lazy[t][2*node+1] += value;
+		}
+		return;
+	}
+	int mid = (low + high)/2;
+	update(low, mid, begin, end, value, 2*node, t);
+	update(mid + 1,high, begin,end, value, 2*node+1, t);
+	tree[t][node] = tree[t][2*node] + tree[t][2*node+1];
+}
+int query(int low,int high,int begin, int end,int node,int t){
+	if(lazy[t][node]){
+		tree[t][node] += (high - low + 1) * lazy[t][node];
+		if(low != high){
+			lazy[t][2*node] += lazy[t][node];
+			lazy[t][2*node+1] += lazy[t][node];
+		}
+		lazy[t][node] = 0;
+	}	
+	if(low > end || high < begin || begin > end)
+		return 0;	
+	if(low >= begin && high <= end)
+		return tree[t][node];
+	int mid = (low + high)/2;
+	return query(low, mid, begin, end, 2*node, t) + query(mid+1,high,begin,end,2*node+1,t);
+}
+int main(){
+	ios::sync_with_stdio(false);
+	cin.tie(NULL);
+	int n,m;
+	cin>>n>>m;
+	for(int i=0;i<n;i++)cin>>B[i];
+	for(int i=0;i<n-1;i++){
+		int a,b;
+		cin>>a>>b;
+		graph[a-1].pb(b-1);
+		graph[b-1].pb(a-1);
+	}
+	dfs(0,-1);
+	for(int i=0;i<m;i++){
+		int t;
+		cin>>t;
+		if(t == 1){
+			int x,y;
+			cin>>x>>y;
+			x--;
+			update(0,n-1,incr[x].first.first,incr[x].first.second,y,1,incr[x].second);
+			update(0,n-1,decr[x].first.first,decr[x].first.second,-1*y,1,decr[x].second);
+		}
+		else{
+			int x;
+			cin>>x;
+			x--;
+			cout<<B[x] + query(0,n-1,ind[x].first,ind[x].first,1,ind[x].second)<<'\n';
+		}	
+	}	
+}

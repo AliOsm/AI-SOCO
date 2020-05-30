@@ -1,0 +1,109 @@
+#include "bits/stdc++.h"
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#define MAXN 100009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+bool s[MAXN<<2];
+int arr[MAXN],n,s1,s2;
+int M[2][MAXN][18],LOG[MAXN];
+void upd(int l,int r,int nd,int x,int y){
+	if(l>y or x>r)
+		return;
+	if(l<=x and y<=r){
+		s[nd]=1;
+		return;
+	}	
+	int mid=(x+y)>>1;
+	upd(l,r,nd<<1,x,mid);
+	upd(l,r,nd<<1|1,mid+1,y);
+}
+int tap(int p,int nd,int x,int y){
+	if(x==y)
+		return s[nd];
+	int mid=(x+y)>>1;
+	if(p<=mid)
+		return tap(p,nd<<1,x,mid)|s[nd];
+	return tap(p,nd<<1|1,mid+1,y)|s[nd];	
+}
+int get(int p,int l,int r){
+	int k=LOG[r-l+1];
+	if(!p)
+		return max(M[0][l][k],M[0][r-(1<<k)+1][k]);
+	return min(M[1][l][k],M[1][r-(1<<k)+1][k]);	
+}
+bool ok(int x,int y){
+	memset(s,0,sizeof s);
+	arr[0]=y;
+	for(int i=0;i<n;i++){
+		if(i and !tap(i,1,1,n))
+			continue;
+		int st=i+1,en=n;
+		while(st+1<en){
+			int mid=(st+en)>>1;
+			int mx=get(0,i+1,mid),mn=get(1,i+1,mid);
+			if(abs(mx-arr[i])<=x and abs(mn-arr[i])<=x)
+				st=mid;
+			else
+				en=mid;
+		}
+		int mx=get(0,i+1,en),mn=get(1,i+1,en);
+		if(abs(mx-arr[i])<=x and abs(mn-arr[i])<=x)	
+			upd(i+1,en,1,1,n);
+		else if(abs(arr[i]-arr[i+1])<=x)
+			upd(i+1,st,1,1,n);
+	}
+	return tap(n,1,1,n);
+}
+int main(){
+    //~ freopen("file.in", "r", stdin);
+    scanf("%d%d%d",&n,&s1,&s2);
+	for(int i=1;i<=n;i++){
+		scanf("%d",arr+i);
+		M[0][i][0]=M[1][i][0]=arr[i];
+		LOG[i]=log2(i);
+	}
+	for(int j=1;j<=17;j++)
+		for(int i=1;i<=n;i++){
+			if(i+(1<<(j-1))<=n)
+				M[0][i][j]=max(M[0][i][j-1],M[0][i+(1<<(j-1))][j-1]);
+			else
+				M[0][i][j]=M[0][i][j-1];
+		}
+	for(int j=1;j<=17;j++)
+		for(int i=1;i<=n;i++){
+			if(i+(1<<(j-1))<=n)
+				M[1][i][j]=min(M[1][i][j-1],M[1][i+(1<<(j-1))][j-1]);
+			else
+				M[1][i][j]=M[0][1][j-1];
+		}	
+	int st=abs(s1-s2),en=1e9;
+	while(st+1<en){
+		int mid=(st+en)>>1;
+		if(ok(mid,s1) or ok(mid,s2))
+			en=mid;
+		else
+			st=mid;
+	}	
+	if(ok(st,s1) or ok(st,s2))
+		printf("%d\n",st);
+	else
+		printf("%d\n",en);
+	return 0;
+}

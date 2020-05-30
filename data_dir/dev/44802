@@ -1,0 +1,86 @@
+#include <bits\stdc++.h>
+using namespace std;
+int n;
+long long updist[100003];
+int v[100003], vcnt;
+vector<int> gnext[100003];
+vector<int> gcost[100003];
+
+int grp[100003];
+int grpcnt[100003];
+
+int getgrp(int nod) {
+    return (nod == grp[nod]) ? (nod) : (grp[nod] = getgrp(grp[nod]));
+}
+pair<long long, int> getfarthest(int nod, long long dist)
+{
+    pair<long long, int> res(dist, nod);
+    v[nod] = vcnt;
+    updist[nod] = max(updist[nod], dist);
+    for (int i = 0; i < gnext[nod].size(); i++) {
+        auto next = gnext[nod][i];
+        auto cost = gcost[nod][i];
+        if (v[next] == vcnt) continue;
+        auto child = getfarthest(next, dist + cost);
+        res = max(res, child);
+    }
+    return res;
+}
+
+int main(){
+    scanf("%d", &n);
+    for (int i = 0; i < n - 1; ++i) {
+        int a, b, c;
+        scanf("%d %d %d", &a, &b, &c);
+        a--, b--;
+        gnext[a].push_back(b);
+        gcost[a].push_back(c);
+        gnext[b].push_back(a);
+        gcost[b].push_back(c);
+    }
+    ++vcnt;
+    auto res1 = getfarthest(0, 0);
+    ++vcnt;
+    auto res2 = getfarthest(res1.second, 0);
+    ++vcnt;
+    auto res3 = getfarthest(res2.second, 0);
+    vector<pair<long long, int>> lvdat;
+    for (int i = 0; i < n; i++) {
+        lvdat.push_back(make_pair(updist[i], i));
+    }
+    sort(lvdat.begin(), lvdat.end(), greater<pair<long long, int>>());
+    int q;
+    scanf("%d",&q);
+    while(q--){
+        long long max_diff;
+        scanf("%lld",&max_diff);
+        ++vcnt;
+        int ans = 0;
+        for (int i = 0; i < n; i++) {grp[i] = i; grpcnt[i] = 0; }
+        for (int ppp = 0, iii = 0; iii < n; iii++) {
+            long long curval = lvdat[iii].first;
+            int i = lvdat[iii].second;
+            while(ppp < iii && lvdat[ppp].first > curval + max_diff) {
+                int p = lvdat[ppp].second;
+                grpcnt[getgrp(p)]--;
+                ppp++;
+            }
+
+            v[i] = vcnt;
+            grpcnt[i] = 1;
+            for (auto next : gnext[i]) {
+                if (v[next] == vcnt) { /* merge this */
+                    auto A = getgrp(next);
+                    auto B = getgrp(i);
+                    if (A == B) continue;
+                    grp[A] = B;
+                    grpcnt[B] += grpcnt[A];
+                    ans = max(ans, grpcnt[B]);
+                }
+            }
+        }
+
+        printf("%d\n", ans);
+    }
+    return 0;
+}

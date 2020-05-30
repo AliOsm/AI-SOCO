@@ -1,0 +1,159 @@
+#include<bits/stdc++.h>
+using namespace std;
+inline int getid(int p,int c)
+{
+	return (p<<1)+c;
+}
+int n,m1,m2;
+class SAT
+{
+	public:
+		vector<int> v[2010];
+		int bel[2010],ans[2010],dfn[2010],low[2010],stk[2010],top,bcnt,tim;
+		bool fail,vis[2010],s[2010];
+		int flag[2010];
+		bitset<2010> bt[2010];
+		void addedge(int s,int e)
+		{
+			v[s].push_back(e);
+			bt[s].set(e);
+		}
+		void addregulation(int a,int b)
+		{
+			int c1=0,c2=0;
+			if(a<0)a=-a,c1=1;
+			if(b<0)b=-b,c2=1;
+			addedge(getid(a,c1),getid(b,c2^1));
+			addedge(getid(b,c2),getid(a,c1^1));
+		}
+		void dfs(int np)
+		{
+			stk[++top]=np;
+			dfn[np]=low[np]=++tim;
+			vis[np]=1;
+			for(int &x:v[np])
+			{
+				if(!dfn[x])
+				{
+					dfs(x);
+					low[np]=min(low[np],low[x]);
+				}
+				else if(!vis[x])
+				{
+					low[np]=min(low[np],dfn[x]);
+				}
+			}
+			if(low[np]==dfn[np])
+			{
+				int tmp;
+				bcnt++;
+				while(tmp=stk[top--])
+				{
+					bel[tmp]=bcnt;
+					vis[tmp]=0;
+					if(tmp==np)break;
+				}
+			}
+		}
+		void dfs2(int np)
+		{
+			if(flag[np]!=-1)return;
+			flag[np]=1;flag[np^1]=0;
+			for(int i=2;i<=n*2+1;i++)
+			{
+				if(bt[np].test(i))dfs2(i);
+			}
+		}
+		void trans()
+		{
+			for(int i=2;i<=n*2+1;i++)bt[i].set(i);
+			for(int j=2;j<=n*2+1;j++)
+			{
+				for(int i=2;i<=n*2+1;i++)
+				{
+					if(bt[i].test(j))bt[i]|=bt[j];
+				}
+			}
+			for(int i=2;i<=n*2+1;i++)
+			{
+				for(int j=2;j<=n*2+1;j++)
+				{
+					if(bt[i].test(j))s[i]=s[j]=1;
+				}
+			}
+			for(int i=1;i<=n;i++)
+			{
+				if(bt[getid(i,0)].test(getid(i,1))&&bt[getid(i,1)].test(getid(i,0)))
+				{
+					fail=1;
+					break;
+				}
+			}
+			if(fail)return;
+			memset(flag,255,sizeof(flag));
+			for(int i=2;i<=n*2+1;i++)
+			{
+				if(bt[i].test(i^1))dfs2(i^1);
+			}
+		}
+		void solve(vector<int> c)
+		{
+			for(int &x:c)dfs2(x);
+			for(int i=2;i<=n*2+1;i++)
+				if(flag[i]==-1)dfs2(i);
+			for(int i=1;i<=n;i++)printf("%c ",flag[getid(i,1)]+'0');
+		}
+}S1,S2;
+int main()
+{
+	scanf("%d%d%d",&n,&m1,&m2);
+	for(int i=1,ti,tj;i<=m1;i++)
+	{
+		scanf("%d%d",&ti,&tj);
+		S1.addregulation(ti,tj);
+	}
+	for(int i=1,ti,tj;i<=m2;i++)
+	{
+		scanf("%d%d",&ti,&tj);
+		S2.addregulation(ti,tj);
+	}
+	S1.trans();S2.trans();
+	if(S1.fail&&S2.fail)puts("SIMILAR");
+	else if(S1.fail)S2.solve(vector<int>());
+	else if(S2.fail)S1.solve(vector<int>());
+	else
+	{
+		for(int i=2;i<=n*2+1;i++)
+		{
+			if(S1.flag[i]==-1&&S2.flag[i]==1)
+			{
+				S1.solve(vector<int>({i^1}));
+				return 0;
+			}
+			if(S2.flag[i]==-1&&S1.flag[i]==1)
+			{
+				S2.solve(vector<int>({i^1}));
+				return 0;
+			}
+		}
+		for(int i=2;i<=n*2+1;i++)
+		{
+			if(S1.flag[i]==-1)
+			{
+				for(int j=2;j<=n*2+1;j++)
+				{
+					if(S1.flag[j]==-1)
+					{
+						if(S1.bt[i].test(j)&&!S2.bt[i].test(j))
+						{
+							S2.solve(vector<int>({i,j^1}));
+							return 0;
+						}
+					}
+				}
+			}
+		}
+		puts("SIMILAR");
+	}
+	return 0;
+}

@@ -1,0 +1,184 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+//.define
+// #define FILE_IN_OUT
+#define RET(_x)                       return cout << (_x) << '\n', 0;
+#define all(_obj)                     std::begin(_obj), std::end(_obj)
+#define loop(_n)                      for (int i = 0; i < (_n); ++i)
+#define ceilDiv(_dividend, _divider)  (((_dividend) - 1LL + (_divider)) / (_divider))
+#define has(_obj, _val)               ((_obj).find(_val) != (_obj).end())
+#define sz(_obj)                      static_cast<int>((_obj).size())
+#ifdef SHJ_LOCAL
+    #define debug(_x)                 std::cerr << (#_x) << " = " << (_x) << '\n'; std::cerr.flush();
+#else
+    #define debug(_x)                 ;
+#endif
+#define endl                          "\n"
+template<typename Tp>
+inline void outarr(Tp _begin, Tp _end, const char* _delim = " ") {
+    for (Tp current = _begin; current != _end; ++current) {
+        std::cout << *current << _delim;
+    }
+    std::cout << '\n';
+}
+
+//.constant
+using ll  = int64_t;
+using pii = std::pair<int, int>;
+constexpr int INF = 0x3f3f3f3f;
+constexpr int MOD = static_cast<const int>(1e9 + 7);
+
+//.data
+struct TNode {
+    int Val;
+    int LastL;
+    int LastR;
+
+    TNode(int v, int l, int r)
+        : Val(v)
+        , LastL(l)
+        , LastR(r)
+    {
+    }
+};
+
+int arr[100000];
+int brr[100000];
+int nxt[100000];
+int last[100001];
+int cnt[100001];
+vector<TNode> tree[400005];
+
+void GenBrr(int n, int k) {
+    memset(last, -1, sizeof(last));
+    loop(n) {
+        if (last[arr[i]] != -1) {
+            nxt[last[arr[i]]] = i;
+        }
+        last[arr[i]] = i;
+    }
+    memset(last, -1, sizeof(last));
+    loop(n) {
+        if (cnt[arr[i]] == k) {
+            brr[i] = last[arr[i]];
+            last[arr[i]] = nxt[last[arr[i]]];
+        } else {
+            ++cnt[arr[i]];
+            if (last[arr[i]] == -1) {
+                last[arr[i]] = i;
+            }
+            brr[i] = -1;
+        }
+    }
+}
+
+inline int Left(int v) {
+    return (v << 1) + 1;
+}
+
+inline int Right(int v) {
+    return (v << 1) + 2;
+}
+
+inline int Mid(int l, int r) {
+    return (l + r) >> 1;
+}
+
+inline void UpdateVertex(int v) {
+    auto& aL = tree[Left(v)];
+    auto& aR = tree[Right(v)];
+    int l = 0;
+    int r = 0;
+    while (l < sz(aL) && r < sz(aR)) {
+        if (aL[l].Val <= aR[r].Val) {
+            tree[v].emplace_back(aL[l].Val, l, r - 1);
+            ++l;
+        } else {
+            tree[v].emplace_back(aR[r].Val, l - 1, r);
+            ++r;
+        }
+    }
+    while (l < sz(aL)) {
+        tree[v].emplace_back(aL[l].Val, l, r - 1);
+        ++l;
+    }
+    while (r < sz(aR)) {
+        tree[v].emplace_back(aR[r].Val, l - 1, r);
+        ++r;
+    }
+}
+
+void BuildImpl(int v, int l, int r) {
+    if (l == r) {
+        tree[v].emplace_back(brr[l], -1, -1);
+        return;
+    }
+    int mid = Mid(l, r);
+    BuildImpl(Left(v), l, mid);
+    BuildImpl(Right(v), mid + 1, r);
+    UpdateVertex(v);
+}
+
+int QueryImpl(int v, int tl, int tr, int l, int r, int x) {
+    if (x == -1 || l > r) {
+        return 0;
+    }
+    if (tl == l && r == tr) {
+        return x + 1;
+    }
+    int mid = Mid(tl, tr);
+    return QueryImpl(Left(v), tl, mid, l, min(mid, r), tree[v][x].LastL)
+        + QueryImpl(Right(v), mid + 1, tr, max(l, mid + 1), r, tree[v][x].LastR);
+}
+
+inline void Build(int n) {
+    BuildImpl(0, 0, n - 1);
+}
+
+inline int Query(int l, int r, int n) {
+    auto comp = [](const TNode& a, const TNode& x) {
+        return less<int>()(a.Val, x.Val);
+    };
+    int rs = distance(begin(tree[0]), lower_bound(all(tree[0]), TNode(l, 0, 0), comp)) - 1;
+    return QueryImpl(0, 0, n - 1, l, r, rs);
+}
+
+//.code
+int main() {
+#ifdef FILE_IN_OUT
+    std::ifstream cin ("input.txt",  std::ios::in);
+    std::ofstream cout("output.txt", std::ios::out);
+#else
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+#endif
+
+    int n, k;
+    cin >> n >> k;
+    loop(n) {
+        cin >> arr[i];
+    }
+    GenBrr(n, k);
+    Build(n);
+    int q;
+    cin >> q;
+    int ans = 0;
+    loop(q) {
+        int x, y;
+        cin >> x >> y;
+        int l = (x + ans) % n;
+        int r = (y + ans) % n;
+        if (l > r) {
+            swap(l, r);
+        }
+        ans = Query(l, r, n);
+        cout << ans << endl;
+    }
+
+#ifdef FILE_IN_OUT
+    cin.close();
+    cout.close();
+#endif
+    return 0;
+}

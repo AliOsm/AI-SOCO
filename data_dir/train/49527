@@ -1,0 +1,138 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+#define fs first
+#define se second
+#define pi 2*acos(0)
+#define PI 3.14159265358979323846264338
+#define mod 1000000007
+
+typedef long long ll;
+const int N = 300005;
+
+inline int in() {int x; scanf("%d",&x); return x;}
+inline ll lin() {ll x; scanf("%I64d",&x); return x;}
+
+vector < int > G[N];
+
+int n, q, T = 0;
+int st[N], ed[N], H[N];
+
+void dfs(int u, int h){
+    st[u] = ++T; H[u] = h;
+    for(int i = 0;i < (int)G[u].size(); i++){
+        dfs(G[u][i], h + 1);
+    }
+    ed[u] = T;
+}
+
+struct ST {
+    ll *X, *Y, *Z;
+
+    ST(){
+        X = new ll[4 * N];
+        Y = new ll[4 * N];
+        Z = new ll[4 * N];
+        memset(X, 0, sizeof X);
+        memset(Y, 0, sizeof Y);
+        memset(Z, 0, sizeof Z);
+    }
+
+    ~ST(){
+        delete[] X;
+        delete[] Y;
+        delete[] Z;
+    }
+
+    void Merge(int x){
+        X[x] = (X[x + x] + X[x + x + 1]) % mod;
+        Y[x] = (Y[x + x] + Y[x + x + 1]) % mod;
+    }
+
+    void lazy(int x){
+        if(Z[x] == -1){
+            X[x + x] = (X[x + x] + X[x]) % mod;
+            Y[x + x] = (Y[x + x] + Y[x]) % mod;
+            Z[x + x] = -1;
+
+            X[x + x + 1] = (X[x + x + 1] + X[x]) % mod;
+            Y[x + x + 1] = (Y[x + x + 1] + Y[x]) % mod;
+            Z[x + x + 1] = -1;
+
+            Z[x] = 0;
+        }
+    }
+
+    void modify(int x, int s, int e, int l, int r, ll a, ll b){
+        if(s >= l && e <= r){
+            X[x] = (X[x] + a) % mod;
+            Y[x] = (Y[x] + b) % mod;
+            Z[x] = -1;
+            return ;
+        }
+
+        //lazy(x);
+
+        int mid = (s + e) >> 1;
+        if(r <= mid) modify(x + x, s, mid, l, r, a, b);
+        else if(l > mid) modify(x + x + 1, mid + 1, e, l, r, a, b);
+        else {
+            modify(x + x, s, mid, l, r, a, b);
+            modify(x + x + 1, mid + 1, e, l, r, a, b);
+        }
+    }
+
+    ll Get_A(int x, int s, int e, int v, ll carry = 0){
+        if(s >= v && e <= v) return (X[x] + carry) % mod;
+        //lazy(x);
+        int mid = (s + e) >> 1;
+        if(v <= mid) return Get_A(x + x, s, mid, v, (carry + X[x]) % mod) % mod;
+        else if(v > mid) return Get_A(x + x + 1, mid + 1, e, v, (carry + X[x]) % mod) % mod;
+        else {
+            return (Get_A(x + x, s, mid, v, (carry + X[x]) % mod) % mod +
+                    Get_A(x + x + 1, mid + 1, e, v, (carry + X[x]) % mod)) % mod;
+        }
+    }
+
+    ll Get_B(int x, int s, int e, int v, ll carry = 0){
+        if(s >= v && e <= v) return (Y[x] + carry) % mod;
+        //lazy(x);
+        int mid = (s + e) >> 1;
+        if(v <= mid) return Get_B(x + x, s, mid, v, (carry + Y[x]) % mod) % mod;
+        else if(v > mid) return Get_B(x + x + 1, mid + 1, e, v, (carry + Y[x]) % mod) % mod;
+        else {
+            return (Get_B(x + x, s, mid, v, (carry + Y[x]) % mod) % mod +
+                    Get_B(x + x + 1, mid + 1, e, v, (carry + Y[x]) % mod) % mod) % mod;
+        }
+    }
+
+};
+
+int main(){
+    n = in();
+    for(int i = 2;i <= n; i++){
+        int x = in();
+        G[x].pb(i);
+    }
+    dfs(1,0);
+
+    ST A = ST(), B = ST();
+    q = in();
+    while(q--){
+        int ty = in();
+        if(ty == 1){
+            int v = in(); ll x = lin(), k = lin();
+            ll up = x + (H[v] * k) % mod;
+            A.modify(1,1,n,st[v],ed[v],up % mod,0);
+            B.modify(1,1,n,st[v],ed[v],0,k);
+        }else {
+            int v = in();
+            ll res = A.Get_A(1,1,n,st[v]) - (B.Get_B(1,1,n,st[v]) * H[v]) % mod;
+            printf("%I64d\n",(res + mod) % mod);
+        }
+    }
+
+    return 0;
+}

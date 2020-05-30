@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+#define fio ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define ll long long
+#define en cin.close();return 0;
+#define INF ((ll)(2e18))
+#define mod (ll)(1e9+7)
+#define pb push_back
+#define fi first//printf ("%lli\n",cur);
+#define se second//scanf ("%lli",&n);
+using namespace std;
+const ll N = 2e5+5;
+const ll LOG = log2(N)+2;
+vector<pair<ll,ll> > g[N];//MST
+ll dsu[N], par[LOG][N], mx[LOG][N];
+ll tin[N], tout[N], tt;
+ll root(ll n)
+{
+    while(n!=dsu[n])
+    {
+        dsu[n]=dsu[dsu[n]];
+        n=dsu[n];
+    }
+    return n;
+}
+void dfs(ll u, ll p, ll len)
+{
+    par[0][u]=p;
+    mx[0][u]=len;
+    for(ll i = 1;i<LOG;i++)
+        par[i][u]=par[i-1][par[i-1][u]],
+        mx[i][u]=max(mx[i-1][u], mx[i-1][par[i-1][u]]);
+    tin[u]=tt++;
+    for(auto v:g[u])
+        if(v.fi!=p)
+            dfs(v.fi,u,v.se);
+    tout[u]=tt++;
+}
+bool is_anc(ll a, ll b)
+{
+    return (tin[a]<=tin[b]&&tout[b]<=tout[a]);
+}
+ll max_edge(ll a, ll b)//lca
+{
+    if(is_anc(a,b))return 0;
+    ll mxv = 0;
+    for(ll i = LOG-1;i>=0;i--)
+        if(!is_anc(par[i][a],b))
+            mxv=max(mxv,mx[i][a]),
+            a=par[i][a];
+    return max(mxv,mx[0][a]);
+}
+int main()
+{
+    fio
+    //ifstream cin("in.inn");
+    ll n, m;
+    cin >> n >> m;
+    for(ll i = 1;i<=n;i++)
+        dsu[i]=i;
+    pair<ll,pair<ll,ll> > edg[m];
+    priority_queue<pair<ll,pair<ll,ll> > > q;
+    for(auto &i:edg)
+    {
+        ll a, b, c;
+        cin >> a >> b >> c;
+        i.se.fi=a, i.se.se=b;
+        i.fi=c;
+        q.push({-c,i.se});
+    }
+    ll sum = 0;
+    while(!q.empty())
+    {
+        ll a = q.top().se.fi, b = q.top().se.se, c = -q.top().fi;
+        q.pop();
+        ll ra = root(a), rb = root(b);
+        if(ra!=rb)
+        {
+            sum+=c;
+            dsu[ra]=rb;
+            g[a].pb({b,c});
+            g[b].pb({a,c});
+        }
+    }
+    dfs(1,1,0);
+    for(auto i:edg)
+    {
+        ll a = i.se.fi, b = i.se.se, c = i.fi;
+        ll mxv = max(max_edge(a,b), max_edge(b,a));
+        cout << sum+c-mxv << "\n";
+    }
+    //cin.close();
+    return 0;
+}

@@ -1,0 +1,57 @@
+#include <bits/stdc++.h>
+#define lld long long
+using namespace std;
+lld n, ans;
+int main()
+{
+    int t;
+    cin>>t;
+    while(t--)
+    {
+        cin>>n;
+        if (!n){
+            cout<<0<<'\n';
+            continue;
+        }
+        vector<int>v;
+        lld cn = n;
+        while (n){
+            v.push_back(n%3);
+            n/=3;
+        }
+        v.push_back(0);
+        int l2 = -1;
+        for (int i=v.size()-1;i>=0;--i){
+            if (v[i] == 2){
+                l2 = i;
+                break;
+            }
+        }
+        if (l2 == -1){
+            cout<<cn<<'\n';
+            continue;
+        }
+        int p20;
+        for (int i=l2+1;i<v.size();++i)
+        {
+            if (v[i] == 0)
+            {
+                p20 = i;
+                break;
+            }
+        }
+        v[p20] = 1;
+        for (int i=0;i<p20;++i){
+            v[i] = 0;
+        }
+        reverse(v.begin(), v.end());
+        lld p3 = 1;
+        lld ans = 0;
+        for (int i=v.size()-1;i>=0;--i){
+            ans = ans + v[i]*p3;
+            p3 *= 3LL;
+        }
+        cout<<ans<<'\n';
+    }
+    return 0;
+}

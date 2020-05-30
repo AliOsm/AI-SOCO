@@ -1,0 +1,103 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MAXN = 3e5;
+vector<int> E[MAXN];
+long long below[MAXN];
+long long above[MAXN];
+const int mod = 1e9+7;
+
+vector<long long> prefix[MAXN];
+vector<long long> suffix[MAXN];
+
+void dfs(int u, int dad = -1){
+
+    if( dad == -1 )
+        above[u] = 1;
+
+    below[u] = 1;
+
+    vector<int> products;
+
+    for(int i = 0; i < E[u].size(); i++){
+        int v = E[u][i];
+        if( v == dad) continue;
+        dfs(v, u);
+        below[u] = below[u] * (below[v] + 1);
+        below[u] %= mod;
+        products.push_back( (below[v] + 1 ) % mod );
+    }
+
+    long long cur = 1;
+    for(int i = 0; i < products.size(); i++){
+        cur = cur * products[i];
+        cur %= mod;
+        prefix[u].push_back(cur);
+    }
+
+    cur = 1;
+    for(int i = products.size() - 1; i >= 0; i--){
+        cur = cur * products[i];
+        cur %= mod;
+        suffix[u].push_back(cur);
+    }
+    reverse(suffix[u].begin(), suffix[u].end() );
+
+}
+
+long long expo(long long base, long long exp){
+    if( exp == 0)
+        return 1LL;
+    if( exp & 1)
+        return (base * expo(base, exp-1) ) % mod;
+
+    long long sq = expo(base, exp >> 1);
+    return (sq*sq) % mod;
+
+}
+
+void dfs2(int u, int dad = -1, int id = 0){
+
+    if( dad != -1 ){
+
+        above[u] = above[dad];
+        if(id) above[u] = above[u] * prefix[dad][id-1];
+        above[u] %= mod;
+        if(id+1 < suffix[dad].size() ) above[u] = above[u] * suffix[dad][id+1];
+        above[u] += 1;
+        above[u] %= mod;
+    }
+
+    int cur_id = 0;
+    for(int i = 0; i < E[u].size(); i++){
+        int v = E[u][i];
+        if( v == dad) continue;
+        dfs2(v, u, cur_id++);
+    }
+}
+
+int main()
+{
+
+    int n; scanf("%d", &n);
+
+    for(int i = 1; i < n; i++){
+        int p; scanf("%d", &p);
+        p--;
+        E[p].push_back(i);
+        E[i].push_back(p);
+    }
+
+    dfs(0);
+    dfs2(0);
+
+    for(int i = 0; i < n; i++){
+        long long ans = below[i] * above[i];
+        ans %= mod;
+
+        if(i) printf(" ");
+        printf("%lld", ans);
+    }
+    return 0;
+}

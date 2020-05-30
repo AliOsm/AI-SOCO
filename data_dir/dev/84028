@@ -1,0 +1,426 @@
+#include "assert.h"
+#include <algorithm>
+#include <bitset>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <deque>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <string.h>
+#include <time.h>
+#include <vector>
+
+using namespace std;
+
+#if LOCAL
+	#define DO_NOT_SEND
+#endif
+
+typedef long long LL;
+
+int IntMaxVal = (int) 1e20;
+int IntMinVal = (int) -1e20;
+LL LongMaxVal = (LL) 1e20;
+LL LongMinVal = (LL) -1e20;
+
+#define FOR(i, a, b) for(int i = a; i < b ; ++i)
+#define FORD(i, a, b) for(int i = a; i >= b; --i)
+
+template<typename T> inline void minimize(T &a, T b) { a = std::min(a, b); }
+template<typename T> inline void maximize(T &a, T b) { a = std::max(a, b); }
+
+template<typename T> inline void swap(pair<T, T> &p) { swap(p.first , p.second ); }
+
+#define all(v) v.begin(),v.end()
+
+#define endl '\n'
+template<typename T> struct argument_type;
+template<typename T, typename U> struct argument_type<T(U)> { typedef U type; };
+#define next(t, i) argument_type<void(t)>::type i; cin >> i;
+
+template <typename T1, typename T2> istream& operator >>(istream& is, pair<T1, T2>& s) { is >> s.first >> s.second; return is; }
+template <typename T> ostream& operator << (ostream& os, const vector<T> &v) { for (int i = 0 ; i < v.size() ; i++) { if (i) os << ' '; os << v[i]; } os << endl; return os; }
+template <typename T1, typename T2> ostream& operator << (ostream& os, const vector<pair<T1, T2>> &v) { for (int i = 0 ; i < v.size() ; i++) { os << v[i] << endl; } return os; }
+template <typename T1, typename T2> ostream& operator <<(ostream& s, const pair<T1, T2>& t) { s << t.first << ' ' << t.second; return s; }
+template <typename T> vector<T> readVector(int n) { vector<T> res(n); for (int i = 0 ; i < n ; i++) cin >> res[i]; return res; }
+
+vector<int> ls;
+vector<int> rs;
+vector<int> parent;
+
+void dfs(int v, vector<vector<int>> &edges) {
+	static int next_id = 0;
+
+	int n = edges.size();
+
+	if (next_id == 0) {
+		ls.assign(n, -1);
+		rs.assign(n, -1);
+		parent.assign(n, -1);
+	}
+
+	ls[v] = next_id++;
+
+	for (auto c : edges[v]) if (c != parent[v]) {
+		parent[c] = v;
+		dfs(c, edges);
+	}
+
+	rs[v] = next_id - 1;
+}
+
+const int MOD = 1000 * 1000 * 1000 + 7;
+
+struct mod_num {
+	int x;
+	
+	mod_num() : x(0) { }
+	mod_num(int x) : x(x >= MOD ? x % MOD : x) { }
+	
+	mod_num operator + (const mod_num &b) const { int res = x + b.x; if (res >= MOD) res -= MOD; return res; }
+	mod_num operator +=(const mod_num &b) { x += b.x; if (x >= MOD) x -= MOD; return *this; }
+	
+	mod_num operator - (const mod_num &b) const { int res = x - b.x; if (res < 0) res += MOD; return res; }
+	mod_num operator -=(const mod_num &b) { if (b.x > 0) *this += MOD - b.x; return *this; }
+	
+	mod_num operator * (const mod_num &b) const { return (int) (x * (LL) b.x % MOD); }
+	mod_num operator *=(const mod_num &b) { x = x * (LL) b.x % MOD; return *this; }
+		
+	mod_num pow(int n) const {
+		if (n == 0) return 1;
+		auto res = pow(n / 2);
+		res *= res;
+		if (n & 1) res *= *this;
+		return res;
+	}
+	
+	mod_num rev() const {
+		return pow(MOD - 2);
+	}
+};
+
+mod_num operator +(int a, const mod_num &b) { return mod_num(a) + b; }
+mod_num operator *(int a, const mod_num &b) { return mod_num(a) * b; }
+istream& operator >> (istream& is, mod_num &x) { return is >> x.x; }
+ostream& operator << (ostream& os, const mod_num &x) { return os << x.x; }
+
+class dsuClass {
+	public:
+
+	int n;
+	vector<int> parent;
+	vector<int> size;
+	
+	int sccCount;
+	
+	void init(int n) {
+		this->n = n;
+		parent.resize(n);
+		size.resize(n);
+		reset();
+	}
+	
+	void reset() {
+		sccCount = n;
+		FOR (i, 0, n) parent[i] = i;
+		FOR (i, 0, n) size[i] = 1;
+	}
+	
+	int update(int a) {
+		if (parent[a] == a) return a;
+		return parent[a] = update(parent[a]);
+	}
+	
+	void join(int a, int b) {
+		a = update(a);
+		b = update(b);
+		if (size[b] > size[a]) swap(a, b);
+		if (a == b) return;
+		
+		size[a] += size[b];
+
+		parent[b] = a;
+		sccCount--;
+	}
+	
+	bool isMaster(int v) {
+		return parent[v] == v;
+	}
+
+	void updateAll() {
+		FOR (i, 0, n) update(i);
+	}
+};
+
+class Tarjan {
+	public:
+
+	int n;
+	vector<int> parent;
+	vector<int> ancestor;
+	vector<int> rank;
+	vector<char> color;
+	vector<vector<int>> children;
+	
+	void init(int n) {
+		this->n = n;
+		parent.resize(n);
+		ancestor = rank = parent;
+		color.assign(n, 'R');
+		children.resize(n);
+	}
+
+	void MakeSet(int x) {
+		parent[x] = x;
+		rank[x] = 0;
+	}
+ 
+  	int Find(int v) {
+  		return parent[v] == v ? v : parent[v] = Find(parent[v]);
+  	}
+
+	void Union(int x, int y) { 				// function Union(x, y)
+	     int xRoot = Find(x); 					// xRoot := Find(x)
+	     int yRoot = Find(y);					// yRoot := Find(y)
+	     if (rank[xRoot] > rank[yRoot]) 		// if xRoot.rank > yRoot.rank
+	         parent[yRoot] = xRoot; 			// yRoot.parent := xRoot
+	     else if (rank[xRoot] < rank[yRoot])		// else if xRoot.rank < yRoot.rank
+	         parent[xRoot] = yRoot;				// xRoot.parent := yRoot
+	     else if (xRoot != yRoot) {
+	         parent[yRoot] = xRoot;
+	         rank[xRoot]++;
+	  	}
+  	}
+
+  	void TarjanOLCA(int u, vector<int> &add_goes_up, vector<int> &add_goes_down, vector<vector<pair<int, bool>>> &lca_queries) {
+    	MakeSet(u);
+     	ancestor[u] = u;
+     	for (auto v : children[u]) {
+     		TarjanOLCA(v, add_goes_up, add_goes_down, lca_queries);
+         	Union(u,v);
+         	ancestor[Find(u)] = u;
+        }
+        color[u] = 'B';
+        for (auto vp : lca_queries[u]) {
+        	int v = vp.first;
+         	if (color[v] == 'B') {
+	             int l = ancestor[Find(v)];
+
+	             int x = u;
+	             int y = v;
+	             if (vp.second) swap(x, y);
+
+				add_goes_up[x]++;
+				add_goes_up[l]--;
+				add_goes_down[x]++;
+				add_goes_down[l]--;
+         	}
+       }
+   }
+};
+
+int get_lca(vector<int> &depth, vector<int> &parent, int a, int b) {
+	while (a != b) {
+		if (depth[a] < depth[b]) b = parent[b];
+		else if (depth[b] < depth[a]) a = parent[a];
+		else {
+			a = parent[a];
+			b = parent[b];
+		}
+	}
+
+	return a;
+}
+
+
+mod_num solve_slow(int n, vector<pair<pair<int, int>, int>> all_edges, vector<int> destinations) {
+	vector<int> order = { 0 };
+	vector<int> parent(n, -1);
+	vector<int> depth(n, 0);
+
+	vector<mod_num> cost_go_up(n);
+	vector<mod_num> cost_go_down(n);
+
+	vector<vector<int>> edges(n);
+	for (auto &e : all_edges) {
+		edges[e.first.first].push_back(e.first.second);
+		edges[e.first.second].push_back(e.first.first);
+	}
+
+	FOR (i, 0, n) {
+		int v = order[i];
+		for (auto c : edges[v]) if (c != parent[v]) {
+			parent[c] = v;
+			depth[c] = depth[v] + 1;
+			order.push_back(c);
+		}
+	}
+
+	for (auto e : all_edges) if (e.second) {
+		if (e.first.first == parent[e.first.second]) cost_go_up[e.first.second] = 1;
+		else cost_go_down[e.first.first] = 1;
+	}
+
+	mod_num res = 0;
+
+	int last = 0;
+
+	for (auto v : destinations) {
+		int l = get_lca(depth, parent, v, last);
+
+		while (last != l) {
+			res += cost_go_up[last];
+			cost_go_up[last] *= 2;
+			last = parent[last];
+		}
+
+		int tmp = v;
+		while (tmp != l) {
+			res += cost_go_down[tmp];
+			cost_go_down[tmp] *= 2;
+			tmp = parent[tmp];
+		}
+
+		last = v;
+	}
+
+	// cerr << cost_go_down << cost_go_up;
+
+	return res;
+}
+
+mod_num solve(int n, vector<pair<int, int>> all_edges, vector<int> destinations, int start) {
+	vector<int> order = { start };
+	vector<int> parent(n, -1);
+	vector<int> depth(n, 0);
+
+	set<pair<int, int>> really_bad(all(all_edges));
+
+	vector<vector<int>> edges(n);
+	for (auto &e : all_edges) {
+		edges[e.first].push_back(e.second);
+		edges[e.second].push_back(e.first);
+	}
+
+	FOR (i, 0, n) {
+		int v = order[i];
+		for (auto c : edges[v]) if (c != parent[v]) {
+			parent[c] = v;
+			depth[c] = depth[v] + 1;
+			order.push_back(c);
+		}
+	}
+
+	vector<int> add_goes_down(n);
+	vector<int> add_goes_up(n);
+
+	int last = destinations[0];
+
+	Tarjan tarjan; tarjan.init(n);
+	FOR (v, 0, n) for (auto c : edges[v]) if (c != parent[v]) tarjan.children[v].push_back(c);
+
+	vector<vector<pair<int, bool>>> lca_queries(n);
+
+	for (auto v : destinations) {
+		lca_queries[last].push_back( { v , false } );
+		lca_queries[v].push_back( { last , true } );
+		last = v;
+	}
+
+	tarjan.TarjanOLCA(start, add_goes_up, add_goes_down, lca_queries);
+
+	// cerr << destinations;
+	// cerr << last << endl;
+
+	add_goes_down[last]++;
+	// for (auto &q : lca_queries) {
+	// 	int l = lca(parent, depth, q.first, q.second);
+	// 	add_goes_up[q.first]++;
+	// 	add_goes_up[l]--;
+	// 	add_goes_down[q.second]++;
+	// 	add_goes_down[l]--;
+	// }
+
+
+
+
+
+	mod_num res = 0;
+
+	FORD (i, n - 1, 1) {
+		int v = order[i];
+		add_goes_down[parent[v]] += add_goes_down[v];
+		add_goes_up[parent[v]] += add_goes_up[v];
+
+		int cnt = really_bad.count( { parent[v] , v } ) ? add_goes_up[v] : add_goes_down[v];
+		res += mod_num(2).pow(cnt) - 1;
+	}
+
+	// cerr << add_goes_up << add_goes_down;
+
+	return res;
+}
+
+int main() {
+	srand (time(NULL));
+	ios_base::sync_with_stdio(false); cin.tie(NULL);
+	
+	next(int, n);
+	auto all_roads = readVector<pair<pair<int, int>, int>>(n - 1);
+	for (auto &r : all_roads) {
+		r.first.first--;
+		r.first.second--;
+	}
+
+	next(int, k);
+	auto destinations = readVector<int>(k);
+	for (auto &v : destinations) v--;
+
+	// auto ans_slow = solve_slow(n, all_roads, destinations);
+
+	vector<pair<int, int>> costly_edges;
+	dsuClass dsu; dsu.init(n);
+
+	for (auto &r : all_roads) {
+		int a = r.first.first;
+		int b = r.first.second;
+		int x = r.second;
+
+		if (x == 1) costly_edges.push_back( { a , b } );
+		else dsu.join(a , b);
+	}
+
+	vector<int> nodes;
+	FOR (v, 0, n) if (dsu.isMaster(v)) nodes.push_back(v);
+
+	vector<int> node_mapping(n);
+	FOR (i, 0, nodes.size()) node_mapping[nodes[i]] = i;
+	FOR (v, 0, n) if (!dsu.isMaster(v)) node_mapping[v] = node_mapping[dsu.update(v)];
+
+	// cerr << node_mapping;
+
+	// FOR (v, 0, n) cerr << v << ' ' << node_mapping[v] << endl;
+
+	for (auto &e : costly_edges) {
+		e.first = node_mapping[e.first];
+		e.second = node_mapping[e.second];
+	}
+
+	for (auto &v : destinations) v = node_mapping[v];
+
+	auto ans_fast = solve(nodes.size(), costly_edges, destinations, node_mapping.front());
+
+	// assert(ans_slow.x == ans_fast.x);
+
+	cout << ans_fast;
+}

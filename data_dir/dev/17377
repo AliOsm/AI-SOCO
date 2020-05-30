@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = int( 1e9 ) + 7;
+
+const int MAXN = 1 << 17;
+
+int N;
+int A[ MAXN ];
+vector< int > da; // uniqued A
+map< int, int > vcnt; // count of values
+int rnk[ MAXN ]; // number of A[ i ] before i
+
+int fngr[ MAXN + 1 ], fnls[ MAXN + 1 ];
+int ngr[ MAXN ], nls[ MAXN ];
+
+void fadd( int *ftree, int k, int v ) { // map to [ 1,
+  for( int i = k; i <= da.size(); i += i & -i ) {
+    ftree[ i ] += v;
+  }
+}
+
+int fsum( int *ftree, int k ) {
+  int res = 0;
+  for( int i = k; i; i -= i & -i ) {
+    res += ftree[ i ];
+  }
+  return res;
+}
+
+struct segt {
+  int l1, l2, r1, r2, ans;
+  int cnt; // count of active players
+  segt *lc, *rc;
+  segt() {
+    lc = rc = NULL;
+    cnt = 0;
+  }
+  void update( int lb, int rb, int k, int p ) {
+    if( lb + 1 == rb ) {
+      cnt ^= 1;
+      l1 = cnt * ngr[ p ];
+      r1 = cnt * nls[ p ];
+      ans = l2 = r2 = 0;
+      return;
+    }
+    int mid = lb + rb >> 1;
+    if( k < mid ) {
+      lc->update( lb, mid, k, p );
+    } else {
+      rc->update( mid, rb, k, p );
+    }
+    l1 = ( lc->l1 + rc->l1 ) % MOD;
+    r1 = ( lc->r1 + rc->r1 ) % MOD;
+    l2 = ( 1LL * lc->l1 * rc->cnt + lc->l2 + rc->l2 ) % MOD;
+    r2 = ( 1LL * lc->cnt * rc->r1 + lc->r2 + rc->r2 ) % MOD;
+    ans = ( 1LL * lc->l2 * rc->r1 + 1LL * lc->l1 * rc->r2 + lc->ans + rc->ans ) % MOD;
+    cnt = lc->cnt + rc->cnt;
+  }
+} *root[ MAXN + 1 ]; // root by unique values of A
+
+segt* build( int lb, int rb ) {
+  segt *t = new segt();
+  if( lb + 1 == rb ) return t;
+  t->lc = build( lb, lb + rb >> 1 );
+  t->rc = build( lb + rb >> 1, rb );
+  return t;
+}
+signed main() {
+  ios::sync_with_stdio( 0 );
+  cin >> N;
+  for( int i = 0; i < N; ++i ) {
+    cin >> A[ i ];
+  }
+  { // discretize
+    for( int i = 0; i < N; ++i ) {
+      da.emplace_back( A[ i ] );
+    }
+    sort( da.begin(), da.end() );
+    da.erase( unique( da.begin(), da.end() ), da.end() );
+    map< int, int > mp;
+    for( int i = 0; i < da.size(); ++i ) {
+      mp[ da[ i ] ] = i + 1;
+    }
+    for( int i = 0; i < N; ++i ) {
+      A[ i ] = mp[ A[ i ] ];
+    }
+    for( int i = 0; i < N; ++i ) {
+      rnk[ i ] = vcnt[ A[ i ] ]++;
+    }
+  }
+  for( int i = 0; i < N; ++i ) {
+    ngr[ i ] = fsum( fngr, A[ i ] );
+    fadd( fngr, A[ i ], 1 );
+    nls[ N - 1 - i ] = fsum( fnls, A[ N - 1 - i ] );
+    fadd( fnls, A[ N - 1 - i ], 1 );
+  }
+  for( int i = 0; i < N; ++i ) {
+    if( root[ A[ i ] ] == NULL ) root[ A[ i ] ] = build( 0, vcnt[ A[ i ] ] );
+    root[ A[ i ] ]->update( 0, vcnt[ A[ i ] ], rnk[ i ], i );
+  }
+  int ans = 0;
+  for( int i = 1; i <= da.size(); ++i ) {
+    ( ans += root[ i ]->ans ) %= MOD;
+  }
+  int M;
+  cin >> M;
+  for( int qi = 0; qi < M; ++qi ) {
+    int t, x;
+    cin >> t >> x;
+    --x;
+    ( ans -= root[ A[ x ] ]->ans ) %= MOD;
+    root[ A[ x ] ]->update( 0, vcnt[ A[ x ] ], rnk[ x ], x );
+    ( ans += root[ A[ x ] ]->ans ) %= MOD;
+    if( ans < 0 ) ans += MOD;
+    cout << ans << "\n";
+  }
+  return 0;
+}

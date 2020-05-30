@@ -1,0 +1,126 @@
+#include <cstdio>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+typedef long long int ll;
+
+const int limite=1000005;
+
+ll valor[limite];
+ll suma[limite];
+
+ll get(ll x)
+{
+  return x*(x+1)/2;
+}
+
+ll getvalue(ll x)
+{
+  ll inf=0;
+  ll sup=x+1;
+  while (inf+1<sup) {
+    ll med=(inf+sup)/2;
+    if (get(med)<=x) inf=med;
+    else sup=med;
+  }
+  ll res=x*(inf+1)-suma[inf];
+  return res;
+}
+
+int n,m;
+vector<pair<int,int> > g[limite];
+vector<int> ginv[limite];
+int visto[limite];
+int identificador[limite];
+vector<int> orden;
+vector<pair<int,int> > gg[limite];
+ll propio[limite];
+
+void postorden(int u)
+{
+  if (visto[u]) return;
+  visto[u]=1;
+  vector<int> &ar=ginv[u];
+  for (int i=0;i<int(ar.size());i++)
+    postorden(ar[i]);
+  orden.push_back(u);
+}
+
+void genera(int u,int idu)
+{
+  if (visto[u]) return;
+  visto[u]=1;
+  identificador[u]=idu;
+  vector<pair<int,int> > &ar=g[u];
+  for (int i=0;i<int(ar.size());i++) {
+    int v=ar[i].first;
+    int w=ar[i].second;
+    if (visto[v]!=2) propio[idu]+=getvalue(w);
+    else gg[idu].push_back(pair<int,int> (identificador[v],w));
+    genera(v,idu);
+  }
+}
+
+void traspasa(int u)
+{
+  if (visto[u]==2) return;
+  visto[u]=2;
+  vector<pair<int,int> > &ar=g[u];
+  for (int i=0;i<int(ar.size());i++)
+    traspasa(ar[i].first);
+}
+
+void genera()
+{
+  for (int u=1;u<=n;u++)
+    if (not visto[u])
+      postorden(u);
+  reverse(orden.begin(),orden.end());
+  for (int u=1;u<=n;u++)
+    visto[u]=0;
+  for (int i=0;i<int(orden.size());i++) {
+    int u=orden[i];
+    if (not visto[u]) {
+      genera(u,u);
+      traspasa(u);
+    }
+  }
+}
+
+ll memcalcula[limite];
+int calculado[limite];
+
+ll calcula(int u)
+{
+  ll &mem=memcalcula[u];
+  if (calculado[u]) return mem;
+  calculado[u]=1;
+  mem=propio[u];
+  vector<pair<int,int> > &ar=gg[u];
+  for (int i=0;i<int(ar.size());i++)
+    mem=max(mem,propio[u]+ar[i].second+calcula(ar[i].first));
+  return mem;
+}
+
+int main()
+{
+  ios::sync_with_stdio(false);
+  for (int i=1;i<limite;i++) {
+    valor[i]=valor[i-1]+i;
+    suma[i]=suma[i-1]+valor[i];
+  }
+  scanf("%d%d",&n,&m);
+  for (int i=0;i<m;i++) {
+    int u,v,w;
+    scanf("%d%d%d",&u,&v,&w);
+    g[u].push_back(pair<int,int> (v,w));
+    ginv[v].push_back(u);
+  }
+  genera();
+  int uini;
+  scanf("%d",&uini);
+  cout<<calcula(identificador[uini])<<endl;
+}

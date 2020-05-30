@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+using namespace std;
+ 
+#define int long long
+typedef pair <int, int> pii;
+typedef pair <pii, int> ppi;
+typedef pair <pii, pii> ppp;
+
+const int N = 2e5 + 10, lg = 18;
+int n, m, par[N], depth[N], ans[N], par_indx[N], dp[N][lg], mx[N][lg];
+vector <ppi> adj[N];
+vector <ppp> edge;
+
+int get_par(int v) {
+	return (par[v] == v? v: par[v] = get_par(par[v]));
+}
+
+void merge(int v, int u, int w, int indx) {
+	par[get_par(v)] = get_par(u);
+	adj[v].push_back({{u, w}, indx});
+	adj[u].push_back({{v, w}, indx});
+	ans[indx] = 1;
+}
+
+void make_par(int v, int p, int h) {
+	par[v] = dp[v][0] = p;
+	depth[v] = h;
+	for (ppi i : adj[v]) {
+		int u = i.first.first;
+		if (u != p) {
+			par_indx[u] = i.second;
+			mx[u][0] = i.first.second;
+			make_par(u, v, h + 1);
+		}
+	}
+}
+
+int go_up(int v, int d) {
+	int i = 0;
+	while (d) {
+		if (d & 1)
+			v = dp[v][i];
+		i++;
+		d /= 2;
+	}
+	return v;
+}
+
+int LCA(int v, int u) {
+	if (depth[v] < depth[u])
+		swap(v, u);
+	v = go_up(v, depth[v] - depth[u]);
+	if (v == u)
+		return v;
+	
+	for (int i = lg - 1; ~i; i--)
+		if (dp[v][i] != dp[u][i])
+			v = dp[v][i], u = dp[u][i];
+	return par[v];
+}
+
+int get_mx(int v, int d) {
+	int res = 0, i = 0;
+	while (d) {
+		if (d & 1)
+			res = max(res, mx[v][i]), v = dp[v][i];
+		i++;
+		d /= 2;
+	}
+	return res;
+}
+
+int32_t main() {
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	fill(par_indx, par_indx + N, N - 1);
+	
+	cin >> n >> m;
+	for (int i = 0; i < m; i++) {
+		int v, u, w;
+		cin >> v >> u >> w;
+		v--; u--;
+		edge.push_back({{v, u}, {w, i}});
+	}
+	sort(edge.begin(), edge.end(), [&] (ppp p1, ppp p2) { return p1.second.first < p2.second.first; });
+	
+	for (int i = 0; i < n; i++)
+		par[i] = i;
+	
+	int mst = 0;
+	for (ppp p : edge) {
+		int v = p.first.first, u = p.first.second, w = p.second.first, indx = p.second.second;
+		if (get_par(v) != get_par(u))
+			merge(v, u, w, indx), mst += w;
+	}
+	make_par(0, 0, 0);
+	
+	for (int j = 1; j < lg; j++)
+		for (int i = 0; i < n; i++) {
+			dp[i][j] = dp[dp[i][j - 1]][j - 1];
+			mx[i][j] = max(mx[i][j - 1], mx[dp[i][j - 1]][j - 1]);
+		}
+	
+	for (ppp p : edge) {
+		int v = p.first.first, u = p.first.second, w = p.second.first, indx = p.second.second;
+		if (v == par[u] || u == par[v]) {
+			ans[indx] = mst;
+			continue;
+		}
+		
+		int lca = LCA(v, u), x = max(get_mx(v, depth[v] - depth[lca]), get_mx(u, depth[u] - depth[lca]));
+		ans[indx] = mst - x + w;
+	}
+	
+	for (int i = 0; i < m; i++)
+		cout << ans[i] << '\n';
+}

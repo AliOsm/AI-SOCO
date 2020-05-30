@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ff first
+#define ss second
+using ll = long long; using ld = long double; const char nl = '\n';
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+
+#include <bits/extc++.h>
+namespace pbds =  __gnu_pbds;
+template <typename key, typename val=pbds::null_type, typename comp=less<key>>
+using ostree=pbds::tree<key,val,comp,pbds::rb_tree_tag,pbds::tree_order_statistics_node_update>;
+using vi = vector< int >; using vll = vector< ll >;
+#define all(x) std::begin(x), std::end(x)
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+template <typename...Args, template<typename...> typename T> string to_string(T<Args...> const&);
+string to_string(string const&s){return '"'+s+'"';}
+string to_string(char const &c) {return to_string(string(1,c));}
+string to_string(char const *c) {return to_string(string(c));}
+string to_string(bool const &b) {return (b ? "T" : "F");}
+template<typename... Args> string to_string(pair<Args...> const&p)
+{return "("+to_string(p.first)+", "+to_string(p.second)+")";}
+template <typename...Args, template<typename...> typename T> string to_string(T<Args...> const&S)
+{string s = "{"; for(auto const& e: S)s+=" "+to_string(e);s+=" }"; return s;}
+template<typename Tail> void debug_out(Tail t) {cerr<<" "<<to_string(t)<<" ]"<<endl;}
+template<typename Head, typename... Tail> void debug_out(Head h, Tail... t)
+{cerr << " " << to_string(h) << ","; debug_out(t...);}
+#define pr(...) cerr<<"["<<(#__VA_ARGS__)<<"] : [", debug_out(__VA_ARGS__)
+template <typename T> void dbr(T lb, T ub)
+{cerr<<'{';for(auto it=lb; it!=ub; it++)cerr<<' '<<to_string(*it); cerr<<" }"<<endl;}
+template<typename T, typename Comp=less<T>> bool smin(T &mem, T const&v, Comp const&cmp=Comp())
+{return cmp(v, mem) ? mem = v, true : false;}
+template<typename T, typename Comp=less<T>> bool smax(T &mem, T const&v, Comp const&cmp=Comp())
+{return cmp(mem, v) ? mem = v, true : false;}
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+
+int n;
+string solve(string s) {
+  int bf = 0;
+  string t = s;
+  for(int i=n-1; i>=0; i--) {
+    if( t[i] == '1' ) {
+      if( bf > 0 ) bf--;
+      else t[i] = '0';
+    } else {
+      bf++;
+    }
+  }
+  return t;
+}
+
+int main() {
+  ios::sync_with_stdio(0); cin.tie(0);
+
+  string s; cin >> s;
+  n = s.length();
+  string t = solve(s);
+  cout << t << endl;
+
+#ifdef LIGMA2
+
+  n = 100000;
+  s = "";
+  for(int i=0; i<n; i++)
+    s += '0' + ( rng() & 1 ) ;
+
+  n = s.length();
+
+  t = solve(s);
+
+  int foo = 1000;
+  while( foo--) {
+    int l = rng() % n, r = l;
+    while( r == l ) r = rng() % n;
+    if( r < l ) swap(l, r);
+    int lnds = 0, u = 0, z = 0;
+
+    for(int i=l; i<=r; i++) {
+      int temp = lnds;
+      if( s[i] == '1' ) u++;
+      else z++;
+      smax(lnds, u);
+      smax(lnds, z);
+      smax(lnds, temp + (s[i]=='1'));
+    }
+
+    int x = lnds;
+    lnds = 0, u = 0, z = 0;
+
+    for(int i=l; i<=r; i++) {
+      int temp = lnds;
+      if( t[i] == '1' ) u++;
+      else z++;
+      smax(lnds, u);
+      smax(lnds, z);
+      smax(lnds, temp + (t[i]=='1'));
+    }
+
+    int y = lnds;
+
+    if(x!=y) {
+      pr(l, r, x, y);
+      pr(s.substr(l, r-l+1));
+      pr(t.substr(l, r-l+1));
+    }
+
+  }  
+
+  pr(s == t);
+
+#endif
+
+}

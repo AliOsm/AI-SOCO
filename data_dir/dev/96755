@@ -1,0 +1,115 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+#define FASTIO ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL)
+#define LL long long 
+#define ar32(x) array<int, x> 
+#define ar64(x) array<LL, x>
+// Infinity xP
+const int oo = 1e9 + 5;
+// const int MOD = 998244353;
+const int MOD = 1e9 + 7;
+const LL ooll = 1e18;
+const int N = 2e5 + 5;
+
+int Tree[4 * N];
+vector<ar32(4)> vec;
+void build(int node, int st, int en) {
+    if (st == en) {
+        Tree[node] = vec[st][1] + vec[st][0];
+        return;
+    }
+    int m = (st + en) >> 1;
+    build(2 * node + 1, st, m);
+    build(2 * node + 2, m+1, en);
+    Tree[node] = max(Tree[2*node+1], Tree[2*node+2]);
+}
+
+void upd(int pos, int val, int node, int st, int en) {
+    if (st == en) {
+        Tree[node] += val;
+        return;
+    }
+    int m = (st + en) >> 1;
+    if (pos <= m) upd(pos, val, 2*node+1, st, m);
+    else upd(pos, val, 2*node+2, m+1, en);
+    Tree[node] = max(Tree[2*node+1], Tree[2*node+2]);
+}
+
+int LookDown(int y, int node, int st, int en) {
+    if (st == en) {
+        return st;
+    }
+    int m = (st + en) >> 1;
+    if (Tree[2*node+1] >= y) return LookDown(y, 2*node+1, st, m);
+    return LookDown(y, 2*node+2, m+1, en);
+}
+
+int qry(int xl, int xr, int y, int node, int st, int en) {
+    if (st > xr || en < xl) return -1;
+    if (st >= xl && en <= xr) {
+        if (Tree[node] < y) return -1;
+        return LookDown(y, node, st, en);
+    }
+    int m = (st + en) >> 1;
+    int ans = qry(xl, xr, y, 2*node+1, st, m);
+    if (ans == -1) ans = qry(xl, xr, y, 2*node+2, m+1, en);
+    return ans;
+}
+
+void solve() {
+    int n, m, i;
+    cin >> n >> m;
+    vec.resize(n);
+    vector<int> dist;
+    for (i=0;i<n;i++) {
+        cin >> vec[i][0] >> vec[i][1];
+        dist.push_back(vec[i][0]);
+        vec[i][2] = i;
+        vec[i][3] = 0;
+    }
+    sort(dist.begin(), dist.end());
+    sort(vec.begin(), vec.end());
+    build(0, 0, n-1);
+    multiset<pair<int, int>> alive;
+    while(m--) {
+        int p, b; cin >> p >> b;
+        int xl = upper_bound(dist.begin(), dist.end(), p) - dist.begin();
+        if (xl <= 0) continue;
+        int go = qry(0, xl-1, p, 0, 0, n-1);
+        if (go >= 0) {
+            upd(go, b, 0, 0, n-1);
+            vec[go][3]++;
+            vec[go][1] += b;
+            while(!alive.empty()) {
+                auto it = alive.lower_bound({dist[go], -oo});
+                if (it == alive.end() || it->first > vec[go][1] + vec[go][0]) {
+                    break;
+                }
+                upd(go, it->second, 0, 0, n-1);
+                vec[go][1] +=it->second;
+                vec[go][3]++;
+                alive.erase(it);
+            }
+        } else {
+            alive.insert({p, b});
+        }
+    }
+    sort(vec.begin(), vec.end(), [](ar32(4) a, ar32(4) b) {
+        return a[2] < b[2];
+    });
+    for (i=0;i<n;i++) {
+        cout << vec[i][3] << " " << vec[i][1] << '\n';
+    }
+}   
+
+int main() {
+    FASTIO;
+    int t = 1;
+    // cin >> t;
+    for (int tc=1;tc<=t;tc++) {
+        solve();
+    }
+    return 0;
+}

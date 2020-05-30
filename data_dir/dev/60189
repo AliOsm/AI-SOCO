@@ -1,0 +1,149 @@
+#include <bits/stdc++.h>
+
+using LL = long long;
+
+struct Node *nill;
+
+struct Node {
+    Node *fa,*ch[2];
+    LL sum, tag, val;
+    int sz;
+
+    //      : 所有修改操作只关于access后的根进行.
+
+    Node(int _val = 0) {
+        fa = ch[0] = ch[1] = nill;
+        val = sum = _val;
+        tag = 0;
+        sz = 1;
+    }
+
+    void up() {
+        if (this == nill) return ;
+        sz = 1 + ch[0]->sz + ch[1]->sz;
+        sum = val + ch[0]->sum + ch[1]->sum;
+    }
+
+    void down() {
+        if (this == nill || !tag) return ;
+        ch[0]->add(tag);
+        ch[1]->add(tag);
+        tag = 0;
+    }
+
+    void add(LL dt)
+    {
+        if (this == nill) return ;
+        tag += dt;
+        sum += sz * dt;
+        val += dt;
+    }
+
+    bool d() {
+        return fa->ch[1] == this;
+    }
+
+    bool isroot() {
+        return fa == nill || fa->ch[0] != this && fa->ch[1] != this;
+    }
+
+    void setc(Node *p,int c) {
+        ch[c] = p;
+        p->fa = this;
+        up();
+    }
+
+    void rot() {
+        Node *f = fa,*ff = fa->fa;
+        int c = d(),cc = fa->d();
+        f->setc(ch[c ^ 1],c);
+        this->setc(f,c ^ 1);
+        if (ff->ch[cc] == f) ff->setc(this,cc);
+        else this->fa = ff;
+    }
+
+    void D() {
+        if (!isroot()) fa->D();
+        down();
+    }
+
+    Node *splay() {
+        D();
+        while (!isroot()) {
+            if (!fa->isroot()) {
+                d() == fa->d() ? fa->rot() : rot();
+            }
+            rot();
+        }
+        return this;
+    }
+
+    Node *access() {
+        for (Node *p = this,*q = nill; p != nill; ) {
+            p->splay();
+            p->setc(q,1);
+            q = p;
+            p = p->fa;
+        }
+        return splay();
+    }
+
+};
+
+const int kN = 500000 + 5;
+Node pool[kN],*node[kN],*alloc;
+int n;
+int depth[kN], parent[kN];
+std::vector<int> level[kN], edges[kN];
+LL result[kN];
+
+void dfs(int u)
+{
+    depth[u] = depth[parent[u]] + 1;
+    level[depth[u]].emplace_back(u);
+    for (int v : edges[u])
+        dfs(v);
+}
+
+void lct_init() {
+    alloc = pool;
+    nill = new(alloc ++) Node();
+    nill->fa = nill->ch[0] = nill->ch[1] = nill;
+    nill->sz = 0;
+
+    for (int i = 1; i <= n; ++ i) {
+        node[i] = new(alloc ++) Node();
+    }
+}
+
+int main()
+{
+    scanf("%d", &n);
+    int root = -1;
+    for (int i = 1; i <= n; ++ i) {
+        int p;
+        scanf("%d", &p);
+        parent[i] = p;
+        if (p) 
+            edges[p].emplace_back(i);
+        else
+            root = i;
+    }
+    dfs(root);
+    lct_init();
+    for (int d = 1; d <= n; ++ d) {
+        if (level[d].empty()) break;
+        for (int u : level[d]) {
+            if (parent[u])
+                node[u]->fa = node[parent[u]];
+            node[u]->access();
+            node[u]->add(1);
+        }
+        for (int u : level[d]) {
+            node[u]->access();
+            result[u] = node[u]->sum - depth[u];
+        }
+    }
+    for (int i = 1; i <= n; ++ i)
+        printf("%lld%c", result[i], " \n"[i == n]);
+}

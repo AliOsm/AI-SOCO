@@ -1,0 +1,146 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <cstdio>
+#include <iomanip>
+#include <fstream>
+#include <cassert>
+#include <cstring>
+#include <unordered_set>
+#include <unordered_map>
+#include <random>
+#include <numeric>
+#include <ctime>
+#include <bitset>
+#include <complex>
+
+using namespace std;
+
+typedef long long ll;
+
+vector<int> zf(string s) {
+	vector<int> z(s.size());
+	int l = 0;
+	int r = 0;
+	for (int i = 1; i < (int)s.size(); i++) {
+		z[i] = max(0, min(r - i, z[i - l]));
+		while (i + z[i] < (int)s.size() && s[z[i]] == s[i + z[i]]) {
+			z[i]++;
+		}
+		if (i + z[i] > r) {
+			r = i + z[i];
+			l = i;
+		}
+	}
+	return z;
+}
+
+const int ALP = 26;
+
+namespace Trie {
+	int root;
+
+	vector<vector<int>> go;
+	vector<int> cnt;
+
+	int new_node() {
+		go.push_back(vector<int> (ALP, -1));
+		cnt.push_back(0);
+		return (int)cnt.size() - 1;
+	}
+
+	void add(string s) {
+		int cur = root;
+		for (auto t : s) {
+			int c = t - 'a';
+			if (go[cur][c] == -1) {
+				go[cur][c] = new_node();
+			}
+			cur = go[cur][c];
+		}
+		cnt[cur]++;
+	}
+
+	void init() {
+		root = new_node();
+	}
+}
+
+const int LIM = 1000;
+
+signed main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+
+	string t;
+	cin >> t;
+	int tl = (int)t.size();
+	int n;
+	cin >> n;
+	vector<string> small;
+	vector<string> big;
+	ll ans = 0;
+	for (int l = 0; l < n; l++) {
+		string s;
+		cin >> s;
+		if ((int)s.size() < LIM) {
+			small.push_back(s);
+		} else {
+			big.push_back(s);
+		}
+	}
+	vector<int> lp(tl);
+	vector<int> rp(tl);
+	for (auto s : big) {
+		string tmp = s + "$" + t;
+		vector<int> z = zf(tmp);
+		int skip = (int)s.size() + 1;
+		for (int i = skip; i < (int)tmp.size(); i++) {
+			if (z[i] == (int)s.size()) {
+				rp[i - skip]++;
+				lp[i - skip + (int)s.size() - 1]++;
+			}
+		} 
+	}
+	{
+		Trie::init();
+		for (auto t : small) {
+			Trie::add(t);
+		}
+		for (int i = 0; i < tl; i++) {
+			int cur = Trie::root;
+			for (int j = 0; j < LIM && i + j < tl; j++) {
+				int c = t[i + j] - 'a';
+				if (Trie::go[cur][c] == -1) {
+					break;
+					Trie::go[cur][c] = Trie::new_node();
+				}
+				cur = Trie::go[cur][c];
+				rp[i] += Trie::cnt[cur];
+				lp[i + j] += Trie::cnt[cur];
+			}
+		}
+	}
+	for (int i = 1; i < tl; i++) {
+		ans += (ll)lp[i - 1] * rp[i]; 
+	}
+	cout << ans << endl;
+}
+/*
+aaabacaa
+4
+a
+a
+a
+b
+
+aaabacaa
+2
+a
+aa
+*/

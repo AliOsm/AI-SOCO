@@ -1,0 +1,179 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 1e5 + 1;
+int n, m;
+
+int ans[N];
+
+struct Graph {
+    int lef[N];
+    int rig[N];
+    int par[N];
+    vec <int> adj[N];
+    vec <int> upd[N];
+} graph;
+
+struct Node {
+    int l, r;
+    int lzy;
+    pii mnm;
+} node[N << 2];
+
+void input() {
+    cin >> n >> m;
+    for(int i = 1; i < n; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        graph.adj[u].pb(v);
+        graph.adj[v].pb(u);
+    }
+    for(int i = 1; i <= m; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        graph.upd[u].pb(u);
+        graph.upd[u].pb(v);
+        graph.upd[v].pb(u);
+        graph.upd[v].pb(v);
+    }
+}
+
+void lazy(int id) {
+    int lzy = node[id].lzy;
+    if(!lzy) {
+        return;
+    }
+    if(node[id].l != node[id].r) {
+        node[l(id)].lzy += lzy;
+        node[r(id)].lzy += lzy;
+    }
+    node[id].mnm.xx += lzy;
+    node[id].lzy = 0;
+}
+
+void merge(int id, int l, int r) {
+    lazy(l), lazy(r);
+    if(node[l].mnm.xx != node[r].mnm.xx) {
+        node[id].mnm = min(node[l].mnm, node[r].mnm);
+    } else {
+        node[id].mnm = mp(node[l].mnm.xx, node[l].mnm.yy + node[r].mnm.yy);
+    }
+}
+
+void build(int id, int l, int r) {
+    node[id].l = l;
+    node[id].r = r;
+    if(l == r) {
+        node[id].mnm = {0, 1};
+        return;
+    }
+    int q = l + r >> 1;
+    build(l(id), l, q);
+    build(r(id), q + 1, r);
+    merge(id, l(id), r(id));
+}
+
+void update(int id, int l, int r, int x) {
+    if(node[id].l == l && node[id].r == r) {
+        node[id].lzy += x;
+        return;
+    }
+    lazy(id);
+    int q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        update(l(id), l, min(q, r), x);
+    }
+    if(r > q) {
+        update(r(id), max(q + 1, l), r, x);
+    }
+    merge(id, l(id), r(id));
+}
+
+void pre(int u) {
+    static int t = 0;
+    graph.lef[u] = ++t;
+    for(int v: graph.adj[u]) {
+        if(v == graph.par[u]) {
+            continue;
+        }
+        graph.par[v] = u;
+        pre(v);
+    }
+    graph.rig[u] = t;
+}
+
+void dfs(int u) {
+    for(int e: graph.upd[u]) {
+        update(0, graph.lef[e], graph.rig[e], 1);
+    }
+    for(int v: graph.adj[u]) {
+        if(v == graph.par[u]) {
+            continue;
+        }
+        graph.par[v] = u;
+        dfs(v);
+    }
+    lazy(0);
+    pii p = node[0].mnm;
+    if(p.xx) {
+        ans[u] = n - 1;
+    } else {
+        ans[u] = max(n - p.yy - 1, 0);
+    }
+    for(int e: graph.upd[u]) {
+        update(0, graph.lef[e], graph.rig[e], -1);
+    }
+}
+
+void solve() {
+    build(0, 1, n);
+    pre(1);
+    dfs(1);
+    for(int i = 1; i <= n; ++i) {
+        cout << ans[i] << " ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

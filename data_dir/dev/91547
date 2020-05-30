@@ -1,0 +1,176 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+#include <stdlib.h>
+#include <sstream>
+#include <assert.h>
+#include <memory.h>
+#include <string.h>
+#include <time.h>
+#pragma comment(linker, "/STACK:100000000")
+
+#define mp make_pair
+#define pb push_back
+#define ll long long
+#define sz(x) (int)(x).size()
+using namespace std;
+
+const int SIZE = 1 << 17;
+const int SIZE2 = 1 << 18;
+
+int tree[SIZE2];
+int prot[SIZE2];
+
+int get(int pos, int L, int R, int idx) {
+	if(L == pos && R == pos) return tree[idx];
+	int av = (L + R) / 2;
+	int L1 = L, R1 = (L + R) / 2, idx1 = idx * 2;
+	int L2 = R1 + 1, R2 = R, idx2 = idx * 2 + 1;
+	if(prot[idx] != 2e9) {
+		tree[idx1] = min(tree[idx1], prot[idx]);
+		tree[idx2] = min(tree[idx2], prot[idx]);
+		prot[idx1] = min(prot[idx1], prot[idx]);
+		prot[idx2] = min(prot[idx2], prot[idx]);
+		prot[idx] = 2e9;
+	}
+	int res = 1e9;
+	if(pos <= av) {
+		res = get(pos, L, av, idx * 2);
+	}
+	else {
+		res = get(pos, av + 1, R, idx * 2 + 1);
+	}
+	tree[idx] = min(tree[idx1], tree[idx2]);
+	return res;
+}
+
+
+int mas[100100];
+
+
+int maxt[100100][20];
+int mint[100100][20];
+
+void buildmin(int n) {
+	for(int i = 0; i < n; i++) {
+		mint[i][0] = mas[i];
+	}
+	int idx = 1;
+	for(int r = 1, maxr = 1 << 17; r <= maxr; r *= 2) {
+		for(int i = 0; i < n; i++) {
+			int val1 = mint[i][idx-1];
+			int val2 = 2e9;
+			if(i+r < n) val2 = mint[i+r][idx-1];
+			mint[i][idx] = min(val1, val2);
+		}
+		idx++;
+	}
+}
+
+void buildmax(int n) {
+	for(int i = 0; i < n; i++) {
+		maxt[i][0] = mas[i];
+	}
+	int idx = 1;
+	for(int r = 1, maxr = 1 << 17; r <= maxr; r *= 2) {
+		for(int i = 0; i < n; i++) {
+			int val1 = maxt[i][idx-1];
+			int val2 = -2e9;
+			if(i+r < n) val2 = maxt[i+r][idx-1];
+			maxt[i][idx] = max(val1, val2);
+		}
+		idx++;
+	}
+}
+
+void setval(int l, int r, int L, int R, int idx, int val) {
+	if(l == L && r == R) {
+		tree[idx] = min(tree[idx], val);
+		prot[idx] = min(prot[idx], val);
+		return;
+	}
+	int L1 = L, R1 = (L + R) / 2, idx1 = idx * 2;
+	int L2 = R1 + 1, R2 = R, idx2 = idx * 2 + 1;
+
+	if(prot[idx] != 2e9) {
+		tree[idx1] = min(tree[idx1], prot[idx]);
+		tree[idx2] = min(tree[idx2], prot[idx]);
+		prot[idx1] = min(prot[idx1], prot[idx]);
+		prot[idx2] = min(prot[idx2], prot[idx]);
+		prot[idx] = 2e9;
+	}
+
+	if(l <= R1) {
+		setval(l, min(r, R1), L1, R1, idx1, val);
+	}
+	if(r >= L2) {
+		setval(max(l, L2), r, L2, R2, idx2, val);
+	}
+	tree[idx] = min(tree[idx1], tree[idx2]);
+}
+
+int main()
+{
+	//freopen("javacert.in","rt",stdin);
+	//freopen("javacert.out","wt",stdout);
+	
+	for(int i = 0; i < SIZE2; i++) tree[i] = 1e9;
+	for(int i = 0; i < SIZE2; i++) prot[i] = 2e9; // значит проталкивать не надо
+	setval(0, 0, 0, SIZE - 1, 1, 0);
+
+	int n, s, l;
+	scanf("%d %d %d", &n, &s, &l);
+	for(int i = 0; i < n; i++) scanf("%d", &mas[i]);
+
+	buildmin(n);
+	buildmax(n);
+
+
+	for(int i = 0; i < n; i++) {
+		int val = get(i, 0, SIZE - 1, 1);
+		int deg2 = 1 << 17; // максимальная длина отрезка
+		int idx = 17;
+
+		int minval = mas[i];
+		int maxval = mas[i];
+		int cur = 0;
+		while(deg2) {
+			if(i + cur + deg2 > n) {
+				deg2 >>= 1;
+				idx--;
+				continue;
+			}
+			int valmin = min(minval, mint[i+cur][idx]);
+			int valmax = max(maxval, maxt[i+cur][idx]);
+			if(valmax - valmin > s) { // не могу брать
+				deg2 >>= 1;
+				idx--;
+			}
+			else {
+				minval = valmin;
+				maxval = valmax;
+				cur += deg2;
+				deg2 >>= 1;
+				idx--;
+			}
+		}
+		int le = i + l; // левый участок (с этого следующий)
+		int re = i + cur; // правый участок (с этого следующий)
+		if(re >= le) {
+			setval(le, re, 0, SIZE-1, 1, val + 1);
+		}
+	}
+
+	int res = get(n, 0, SIZE - 1, 1);
+	if(res == 1e9) res = -1;
+	printf("%d\n", res);
+
+	return 0;
+}

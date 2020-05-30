@@ -1,0 +1,198 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 10;
+
+int n, m;
+int u[N * 2], v[N * 2];
+int t, s, ds, dt;
+int fa[N];
+int vis[N];
+vector<int> e[N];
+set<int> g[N];
+set<int> st;
+vector<pair<int, int> > ans;
+map<int, int> id[N];
+
+void init() {
+  for (int i = 1; i <= n; ++i)
+    fa[i] = i;
+}
+
+int find(int x) {
+  return fa[x] == x ? x : fa[x] = find(fa[x]);
+}
+
+void mrg(int x, int y) {
+  x = find(x), y = find(y);
+  if (x != y) {
+    fa[x] = y;
+  }
+}
+
+bool check(int x) {
+  return x != s && x != t;
+}
+
+void dfs(int x) {
+  vis[x] = 1;
+  //printf("dfs %d\n", x);
+  for (auto y : e[x]) {
+    if (check(y) && !vis[y]) {
+      ans.push_back(make_pair(x, y));
+      dfs(y);
+    }
+  }
+}
+
+bool solve() {
+  set<int> st2 = st, sts;
+  vector<int> a;
+  for (int i : g[s]) {
+    if (g[t].find(i) != g[t].end()) {
+      a.push_back(i);
+    }
+  }
+  for (int i : g[s]) {
+    if (i != t) {
+      st2.erase(i);
+      sts.insert(i);
+    }
+  }
+  sts.insert(t);
+  int d = sts.size() - ds;
+  if ((int)a.size() < d) return 0;
+  for (int i = 0; i < d && i < a.size(); ++i) {
+    st2.insert(a[i]);
+    sts.erase(a[i]);
+  }
+  st2.insert(s);
+  for (int i : st2) {
+    if (g[t].find(i) == g[t].end())
+      return 0;
+  }
+  if ((int)st2.size() > dt) {
+    return 0;
+  }
+  for (int i : sts) {
+    int xx = id[s][i];
+    ans.push_back(make_pair(u[xx], v[xx]));
+  }
+  for (int i : st2) {
+    if (i != s) {
+      int xx = id[t][i];
+      ans.push_back(make_pair(u[xx], v[xx]));
+    }
+  }
+  return 1;
+}
+
+bool solve2() {
+  set<int> st2 = st, sts;
+  vector<int> a;
+  for (int i : g[s]) {
+    if (g[t].find(i) != g[t].end()) {
+      a.push_back(i);
+    }
+  }
+  g[s].erase(t);
+  g[t].erase(s);
+  for (int i : g[s]) {
+    if (i != t) {
+      st2.erase(i);
+      sts.insert(i);
+    }
+  }
+  int d = sts.size() - ds;
+  if ((int)a.size() < d) return 0;
+  for (int i = 0; i < d && i < a.size(); ++i) {
+    st2.insert(a[i]);
+    sts.erase(a[i]);
+  }
+  //for (auto i : sts) printf("%d ", i); puts("");
+  //for (auto i : st2) printf("%d ", i); puts("");
+  //for (auto i : g[t]) printf("%d ", i); puts("");
+  bool fd = 0;
+  for (int i : sts) {
+    if (g[t].find(i) != g[t].end()) {
+      fd = 1;
+      st2.insert(i);
+      break;
+    }
+  }
+  //for (auto i : st2) printf("%d ", i); puts("");
+  if (!fd) return 0;
+  for (int i : st2) {
+    if (g[t].find(i) == g[t].end())
+      return 0;
+  }
+  if ((int)st2.size() > dt) {
+    return 0;
+  }
+  for (int i : sts) {
+    int xx = id[s][i];
+    ans.push_back(make_pair(u[xx], v[xx]));
+  }
+  for (int i : st2) {
+    if (i != s) {
+      int xx = id[t][i];
+      ans.push_back(make_pair(u[xx], v[xx]));
+    }
+  }
+  return 1;
+}
+
+int main() {
+  scanf("%d%d", &n, &m);
+  for (int i = 0; i < m; ++i) {
+    scanf("%d%d", u + i, v + i);
+    e[u[i]].push_back(v[i]);
+    e[v[i]].push_back(u[i]);
+  }
+  scanf("%d%d%d%d", &s, &t, &ds, &dt);
+  init();
+  for (int i = 1; i <= n; ++i) {
+    if (!vis[i] && check(i)) {
+      dfs(i);
+    }
+  }
+  //for (auto p : ans) printf("%d,%d ", p.first, p.second); puts("");
+  for (int i = 0; i < m; ++i) {
+    if (check(u[i]) && check(v[i])) {
+      mrg(u[i], v[i]);
+    }
+  }
+  for (int i = 1; i <= n; ++i) {
+    st.insert(find(i));
+  }
+  st.erase(s);
+  st.erase(t);
+  int c = st.size();
+  for (int i = 0; i < m; ++i) {
+    if (find(u[i]) != find(v[i])) {
+      g[find(u[i])].insert(find(v[i]));
+      g[find(v[i])].insert(find(u[i]));
+      id[find(u[i])][find(v[i])] = i;
+      id[find(v[i])][find(u[i])] = i;
+    }
+  }
+  if (g[s].find(t) != g[s].end()) {
+    if (solve()) {
+      puts("Yes");
+      for (auto p : ans) {
+        printf("%d %d\n", p.first, p.second);
+      }
+      return 0;
+    }
+  }
+  if (solve2()) {
+    puts("Yes");
+    for (auto p : ans) {
+      printf("%d %d\n", p.first, p.second);
+    }
+    return 0;
+  }
+  puts("No");
+  return 0;
+}

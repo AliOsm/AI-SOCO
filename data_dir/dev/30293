@@ -1,0 +1,117 @@
+//ITNOG
+#include <bits/stdc++.h>
+
+
+using namespace std; 
+
+
+#define SZ(x) (((int) x.size()))
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+
+ 
+typedef long double ld;
+
+
+const int maxN = 100000 + 5;
+const long long mod = 1000*1000*1000 + 7;
+
+vector<int> r[maxN], c[maxN];
+int ans[2 * maxN];
+
+struct query{
+    int x1, y1, x2, y2, ind;
+};
+
+bool cmp1(query p1, query p2)
+{
+    return (p1.x2 < p2.x2);
+}
+
+bool cmp2(query p1, query p2)
+{
+    return (p1.y2 < p2.y2);
+}
+
+
+int seg[4 * maxN];
+
+void add(int p, int val, int s, int e, int ind)
+{
+    if(e - s == 1) { seg[ind] = val; return; }
+    
+    int mid = (s + e) >> 1;
+    if(p < mid) add(p, val, s, mid, 2 * ind);
+    else add(p, val, mid, e, 2 * ind + 1);
+    
+    seg[ind] = min(seg[2 * ind], seg[2 * ind + 1]); 
+}
+
+int get(int l, int r, int s, int e, int ind)
+{
+    if(l >= e || r <= s) return mod;
+    if(l <= s && e <= r) return seg[ind];
+
+    int mid = (s + e) >> 1;
+    
+    int x = get(l, r, s, mid, 2 * ind + 0);
+    int y = get(l, r, mid, e, 2 * ind + 1);
+
+    return min(x, y);
+}
+main() 
+{
+    ios::sync_with_stdio(0); cin.tie(0);
+    int n, m, k, q; cin >> n >> m >> k >> q;
+
+    rep(i, 0, k)
+    {
+	  int x, y; cin >> x >> y; x --; y --;
+	  r[x].push_back(y);
+	  c[y].push_back(x);
+    }
+
+    rep(i, 0, n) sort(r[i].begin(), r[i].end());
+    rep(i, 0, m) sort(c[i].begin(), c[i].end());
+
+    vector<query> que;
+    rep(i, 0, q)
+    {
+	  int x1, y1, x2, y2; cin >> x1 >> y1 >> x2 >> y2; x1--;y1--; x2--;y2--;
+	  que.push_back({x1, y1, x2, y2, i});
+    }
+
+    memset(seg, -1, sizeof seg);
+    sort(que.begin(), que.end(), cmp1);
+    int st = 0;
+    
+    rep(i, 0, n)
+    {
+	  rep(j, 0, r[i].size()) add(r[i][j], i, 0, m, 1);
+	  
+	  while(st < que.size() && que[st].x2 == i)
+	  {
+		int tmp = get(que[st].y1, que[st].y2 + 1, 0, m, 1);
+		if(tmp >= que[st].x1) ans[que[st].ind] = 1;
+		st ++;
+	  }
+    }
+
+    sort(que.begin(), que.end(), cmp2);
+    memset(seg, -1, sizeof seg);
+    st = 0;
+    
+    rep(i, 0, m)
+    {
+	  rep(j, 0, c[i].size()) add(c[i][j], i, 0, n, 1);
+	  
+	  while(st < que.size() && que[st].y2 == i)
+	  {
+		int tmp = get(que[st].x1, que[st].x2 + 1, 0, n, 1);
+		if(tmp >= que[st].y1) ans[que[st].ind] = 1;
+		st ++;
+	  }
+    }
+
+    rep(i, 0, q) cout << (ans[i] ? "YES" : "NO") << endl;
+    return 0;
+}

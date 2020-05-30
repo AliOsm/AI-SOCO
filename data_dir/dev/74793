@@ -1,0 +1,322 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <memory.h>
+
+#if !defined(__GNUC__)
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#endif
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+typedef std::set<size_t> set_size_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#elif !defined(__GNUC__)
+#include <library/lib_stopwatch.h>
+#else 
+#include "../../library/library/lib_stopwatch.h"
+#endif
+
+// Assignment on range
+// Single value acquiring
+template<typename value_type_t>
+class PaintedTree
+{
+    struct node_info_t
+    {
+        node_info_t(): isDefined(0), val(value_type_t()) {}
+
+        void Set(const value_type_t newVal)
+        {
+            isDefined = 1;
+            val = newVal;
+        }
+
+        uint16_t isDefined;
+        value_type_t val;
+    };
+
+    typedef std::vector<node_info_t> vector_node_info_t;
+    typedef std::vector<vector_node_info_t> vector_2d_node_info_t;
+
+public:
+    PaintedTree(const size_t n)
+    {
+        InitData(n);
+    }
+
+    void SetSegment(const size_t l, const size_t r, const value_type_t v)
+    {
+        if (l == r)
+            return;
+        const size_t segmentSize = m_data[0].size();
+        const size_t level = m_data.size() - 1;
+        SetSegmentRecPart(0, segmentSize, level, l, r, v);
+    }
+
+    value_type_t GetValue(const size_t index) const
+    {
+        const size_t n = m_data[0].size();
+        size_t level = m_data.size();
+        size_t segmentCount = 1;
+        size_t segmentSize = n;
+        while (level > 0)
+        {
+            --level;
+            const vector_node_info_t& currentLevel = m_data[level];
+            const size_t segmentIndex = index / segmentSize;
+            if (currentLevel[segmentIndex].isDefined)
+            {
+                return currentLevel[segmentIndex].val;
+            }
+            segmentCount *= 2;
+            segmentSize /= 2;
+        }
+
+        LOCAL_ASSERT(!!m_data[0][index].isDefined);
+        return m_data[0][index].val;
+    }
+
+private:
+    void PushInfo(const size_t level, const size_t segmentStart, const size_t segmentSize)
+    {
+        const size_t segmentId = segmentStart / segmentSize;
+        if (!m_data[level][segmentId].isDefined)
+            return;
+
+        const value_type_t val = m_data[level][segmentId].val;
+        m_data[level][segmentId].isDefined = 0;
+        m_data[level - 1][2 * segmentId].Set(val);
+        m_data[level - 1][2 * segmentId + 1].Set(val);
+    }
+
+    void SetSegmentRecPart(const size_t segmentStart, const size_t segmentSize, const size_t level, const size_t idxBegin, const size_t idxEnd, const value_type_t newVal)
+    {
+        const size_t l = segmentStart;
+        const size_t r = segmentStart + segmentSize;
+
+        LOCAL_ASSERT(idxBegin <= idxEnd);
+        if (l == idxBegin && r == idxEnd)
+        {
+            m_data[level][segmentStart / segmentSize].Set(newVal);
+            return;
+        }
+
+        PushInfo(level, segmentStart, segmentSize);
+
+        const size_t segmentMiddle = segmentStart + segmentSize / 2;
+        if (segmentMiddle <= idxBegin)
+        {
+            SetSegmentRecPart(segmentMiddle, segmentSize / 2, level - 1, idxBegin, idxEnd, newVal);
+        }
+        else if (segmentMiddle >= idxEnd)
+        {
+            SetSegmentRecPart(segmentStart, segmentSize / 2, level - 1, idxBegin, idxEnd, newVal);
+        }
+        else
+        {
+            SetSegmentRecPart(segmentStart, segmentSize / 2, level - 1, idxBegin, segmentMiddle, newVal);
+            SetSegmentRecPart(segmentMiddle, segmentSize / 2, level - 1, segmentMiddle, idxEnd, newVal);
+        }
+    }
+
+    static size_t UpperPow2(const size_t x)
+    {
+        size_t p = 1;
+        while (p < x)
+            p <<= 1;
+        return p;
+    }
+
+    void InitData(const size_t n)
+    {
+        m_data.clear();
+        size_t p2 = UpperPow2(n);
+        while (p2 > 0)
+        {
+            m_data.push_back(vector_node_info_t(p2));
+            p2 >>= 1;
+        }
+        m_data[m_data.size() - 1][0].isDefined = 1;
+    }
+
+    vector_2d_node_info_t m_data;
+};
+
+struct round_t
+{
+    round_t() { l = r = x = 0; }
+
+    size_t l;
+    size_t r;
+    size_t x;
+};
+
+typedef std::vector<round_t> vector_round_t;
+
+vector_size_t GetAns1(const size_t n, const vector_round_t& rounds)
+{
+    PaintedTree<size_t> indexes(n);
+    for (size_t i = 0; i < rounds.size(); i++)
+    {
+        const round_t& round = rounds[rounds.size() - i - 1];
+        const size_t l = round.l;
+        const size_t r = round.r;
+        const size_t x = round.x;
+        indexes.SetSegment(l, x, x + 1);
+        indexes.SetSegment(x + 1, r, x + 1);
+    }
+
+    vector_size_t ans(n);
+    for (size_t i = 0; i < n; i++)
+    {
+        ans[i] = indexes.GetValue(i);
+    }
+
+    return ans;
+}
+
+vector_size_t GetAns2(const size_t n, const vector_round_t& rounds)
+{
+    vector_size_t ans(n);
+
+    set_size_t indexes;
+    for (size_t i = 0; i < n; i++)
+    {
+        indexes.insert(i);
+    }
+
+    for (size_t i = 0; i < rounds.size(); i++)
+    {
+        const round_t& round = rounds[i];
+
+        const size_t l = round.l;
+        const size_t r = round.r;
+        const size_t x = round.x;
+
+        set_size_t::iterator pl = indexes.lower_bound(l);
+        set_size_t::iterator pr = indexes.lower_bound(r);
+
+        for (set_size_t::iterator pi = pl; pi != pr; ++pi)
+        {
+            const size_t idx = *pi;
+            if (idx != x)
+                ans[idx] = x + 1;
+        }
+
+        indexes.erase(pl, pr);
+        indexes.insert(x);
+    }
+
+    return ans;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; sw;
+
+    // 
+    size_t n, m;
+    ist >> n >> m;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    // 
+    vector_round_t rounds(m);
+    for (size_t i = 0; i < m; i++)
+    {
+        ist >> rounds[i].l >> rounds[i].r >> rounds[i].x;
+        --rounds[i].l;
+        --rounds[i].x;
+    }
+
+//  const vector_size_t ans1 = GetAns1(n, rounds);
+    const vector_size_t ans2 = GetAns2(n, rounds);
+//  LOCAL_ASSERT(ans1 == ans2);
+
+    const vector_size_t& ans = ans2;
+    for (size_t i = 0; i < n; i++)
+    {
+        if (i != 0)
+            ost << ' ';
+        ost << (ans[i]);
+    }
+    ost << std::endl;
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

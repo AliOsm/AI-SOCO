@@ -1,0 +1,133 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+//#pragma GCC optimize ("O3")
+//#pragma GCC target ("sse4")
+
+using namespace std;
+template<class T, class T2> inline int chkmax(T &x, const T2 &y) { return x < y ? x = y, 1 : 0; }
+template<class T, class T2> inline int chkmin(T &x, const T2 &y) { return x > y ? x = y, 1 : 0; }
+const int MAXN = (1 << 22) + 42;
+
+int n, m, l;
+bool important[MAXN];
+
+void read()
+{
+	cin >> n >> m;
+	l = n;
+	n = (1 << n);
+
+	for(int i = 0; i < m; i++)
+	{
+		int x;
+		cin >> x;
+		important[x] = 1;
+	}	
+}
+
+stack<int> st;
+vector<vector<int> > scc; 
+int low[MAXN], disc[MAXN], comp[MAXN];
+int dfs_time;
+bool in_stack[MAXN];
+
+void dfs(int u)
+{
+	low[u] = dfs_time;
+	disc[u] = dfs_time;
+	dfs_time++;
+
+	in_stack[u] = true;
+	st.push(u);
+
+	int v;
+	for(int j = 0; j < l; j++)
+		if((u >> j) & 1)
+		{
+			v = u ^ (1 << j);
+			if(disc[v] == -1)
+			{
+				dfs(v);
+				low[u] = min(low[u], low[v]);
+			}
+			else if(in_stack[v] == true)
+				low[u] = min(low[u], disc[v]);
+
+		}
+
+	for(int i = 0; i < 1; i++)
+	{
+		if(important[u]) v = (n - 1) ^ u;
+		else continue;
+
+		if(disc[v] == -1)
+		{
+			dfs(v);
+			low[u] = min(low[u], low[v]);
+		}
+		else if(in_stack[v] == true)
+			low[u] = min(low[u], disc[v]);
+	}
+
+	if(low[u] == disc[u])
+	{
+		scc.push_back(vector<int>());
+		while(st.top() != u)
+		{
+			scc[scc.size() - 1].push_back(st.top());
+			in_stack[st.top()] = false;
+			st.pop();
+		}
+
+		scc[scc.size() - 1].push_back(u);
+		in_stack[u] = false;
+		st.pop();
+	}
+}
+
+void tarjan()
+{
+	memset(comp, -1, sizeof(comp));
+	memset(disc, -1, sizeof(disc));
+	memset(low, -1, sizeof(low));
+	memset(in_stack, 0, sizeof(in_stack));
+	dfs_time = 0;
+
+	while(!st.empty())
+		st.pop();
+
+	for(int i = 0; i < n; i++)
+		if(disc[i] == -1)
+			dfs(i);
+}
+
+void solve()
+{
+	tarjan();
+
+	int answer = 0;
+
+	int sz = scc.size();
+	for(int i = 0; i < sz; i++)
+	{
+		bool curr = 0;
+		for(int j = 0; j < (int)scc[i].size(); j++)
+			curr |= important[scc[i][j]];
+
+		answer += curr;
+	}
+
+	cout << answer << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

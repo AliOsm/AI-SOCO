@@ -1,0 +1,102 @@
+//#define _USE_MATH_DEFINES
+//#pragma comment(linker, "/stack:200000000")
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+//#pragma GCC optimize("unroll-loops")
+#include <bits/stdc++.h>
+using namespace std;
+#pragma GCC diagnostic ignored "-Wmissing-declarations"
+#define FINAL_OUT(x) {cout << (x) << '\n'; exit(0); }
+inline int safe_mul(const int x, const int y) __attribute__ ((warn_unused_result));
+
+
+int const maxn = 200005;
+
+pair<int64_t,int> tree[maxn * 4];
+int64_t add[4 * maxn];
+
+inline void push(int v) {
+    add[2 * v] += add[v];
+    add[2 * v + 1] += add[v];
+    add[v] = 0;
+}
+
+inline pair<int64_t,int> getval(const int v) {
+    return {tree[v].first + add[v], tree[v].second};
+}
+
+inline void upd(int v) {
+    tree[v] = min(getval(2*v), getval(2*v + 1));
+}
+
+int sz = 1;
+
+void upd(int ql, int qr, int64_t val, int tl = 0, int tr = sz - 1, int v = 1) {
+    if (ql <= tl && tr <= qr) {
+        add[v] += val;
+    } else {
+        push(v);
+        int mid = (tl + tr) >> 1;
+        if (ql <= mid)
+            upd(ql, qr, val, tl, mid, 2 * v);
+        if (qr > mid)
+            upd(ql, qr, val, mid + 1, tr, 2 * v + 1);
+        upd(v);
+    }
+}
+
+int64_t const inf = 1000000000000000000LL;
+
+pair<int64_t,int> getmin(int ql, int qr, int tl = 0, int tr = sz - 1, int v = 1) {
+    if (ql <= tl && tr <= qr) {
+        return getval(v);
+    } else {
+        push(v);
+        int mid = (tl + tr) >> 1;
+        pair<int64_t, int> res = {inf, 0};
+        if (ql <= mid)
+            res = getmin(ql, qr, tl, mid, 2 * v);
+        if (qr > mid)
+            res = min(res, getmin(ql, qr, mid + 1, tr, 2 * v + 1));
+        upd(v);
+        return res;
+    }
+}
+
+int main()
+{
+//    freopen("in.txt","r", stdin);
+    cout << fixed << setprecision(20);
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+
+
+    int n;
+
+    cin >> n;
+    while (sz <= n)
+        sz <<= 1;
+
+    for (int i = 1; i <= n; ++i) {
+        int64_t x;
+        cin >> x;
+        tree[sz + i] = {x, -i};
+    }
+
+    for (int i = sz - 1; i > 0; --i)
+        tree[i] = min(tree[2 * i], tree[2 * i + 1]);
+
+    vector<int> ans(n);
+
+    for (int i = 1; i <= n; ++i) {
+        auto pa = getmin(1, n);
+        int idx = -pa.second;
+        ans[idx - 1] = i;
+        upd(idx + 1, n, -i);
+        upd(idx, idx, inf);
+    }
+
+    for (int i = 0; i < n; ++i)
+        cout << ans[i] << " \n"[i == n-1];
+}

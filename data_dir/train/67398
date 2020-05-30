@@ -1,0 +1,344 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+    AssertsCounter(): counter(0) {}
+    ~AssertsCounter() { std::cout << std::endl << "DIAG: " << (counter == 0 ? "OK" : "FAIL!!!") << " Asserts count: " << counter << std::endl; }
+    void Increment() { counter++; }
+    uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED (" << __LINE__ << "): '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cout << "ASSERT FAILED (" << __LINE__ << "): '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+volatile bool isLocalTestEnabled = 0;
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+bool g_isLocalPrintEnabled = (bool)(LOCAL_TEST);
+#define LOCAL_PRINT() if (!g_isLocalPrintEnabled) { } else std::cout // << .. << ..
+
+typedef std::string string8_t;
+typedef long double ld_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<uint8_t> vector_uint8_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<vector_int32_t> vector_2d_int32_t;
+typedef std::vector<vector_uint32_t> vector_2d_uint32_t;
+typedef std::vector<vector_int64_t> vector_2d_int64_t;
+typedef std::vector<vector_uint64_t> vector_2d_uint64_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+typedef std::set<string8_t> set_string8_t;
+
+typedef std::multiset<size_t> multiset_size_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> void UpdateMin(T& a, const T b) {a = std::min(a, b);}
+template<typename T> void UpdateMax(T& a, const T b) {a = std::max(a, b);}
+
+const ld_t Pi = std::atan(1.0L) * 4.0L;
+static const ld_t Eps = 1.0e-09;
+template<typename T> bool IsEqual(const T a, const T b) { return std::abs(a - b) < Eps; }
+template<typename T> bool IsGreater(const T a, const T b) { return a > b + Eps; }
+template<typename T> bool IsLess(const T a, const T b) { return a + Eps < b; }
+template<typename T> bool IsGreaterEqual(const T a, const T b) { return !IsLess(a, b); }
+template<typename T> bool IsLessEqual(const T a, const T b) { return !IsGreater(a, b); }
+
+template<typename T> string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+    LOCAL_ASSERT(!!ist);
+    for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+    return ist;
+}
+
+template<typename T> T Read(std::istream& ist)
+{
+    LOCAL_ASSERT(!!ist);
+    T val; ist >> val; return val;
+}
+
+template<typename T> std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+    return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+struct value_t
+{
+    value_t(): v(0), i(0) {}
+    value_t(uint64_t _v, size_t _i): v(_v), i(_i) {}
+    uint64_t v;
+    size_t i;
+
+    bool operator<(const value_t& rv) const
+    {
+        return v < rv.v;
+    }
+};
+
+typedef std::vector<value_t> vector_value_t;
+
+uint64_t GetPower(const uint64_t cf, const uint64_t cm, const uint64_t amax, const vector_value_t& skills, size_t& maxCount, uint64_t& minValue)
+{
+    LOCAL_ASSERT(!skills.empty());
+    minValue = skills[0].v;
+    const uint64_t s1 = cm * minValue;
+    maxCount = skills.end() - std::lower_bound(skills.begin(), skills.end(), value_t(amax, 0));
+    const uint64_t s2 = cf * maxCount;
+    return s1 + s2;
+}
+
+vector_uint64_t ConstructAns(const vector_value_t& skills, const uint64_t amax, const size_t maxCount, const uint64_t minValue, const uint64_t cash)
+{
+    const size_t n = skills.size();
+    LOCAL_ASSERT(maxCount <= n);
+    vector_value_t finalSkills(skills);
+
+    uint64_t used = 0;
+    for (size_t i = 0; i < maxCount; i++)
+    {
+        value_t& s = finalSkills[n - i - 1];
+        LOCAL_ASSERT(amax >= s.v);
+        used += amax - s.v;
+        s.v = amax;
+    }
+
+    for (size_t i = 0; i < n; i++)
+    {
+        value_t& s = finalSkills[i];
+        if (s.v < minValue)
+        {
+            used += minValue - s.v;
+            s.v = minValue;
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+    LOCAL_ASSERT(used <= cash);
+
+    vector_uint64_t ans(n);
+    for (size_t i = 0; i < n; i++)
+    {
+        ans[finalSkills[i].i] = finalSkills[i].v;
+    }
+
+    return ans;
+}
+
+template<typename ArgType, typename ResultType, typename Func>
+ArgType UpperBound(const ArgType& firstX, const ArgType& lastX, const ResultType& y, const Func& func)
+{
+    ArgType l = firstX;
+    ArgType r = lastX;
+
+    while (l < r)
+    {
+        const ArgType m = l + (r - l) / 2;
+        if (y < func(m))
+        {
+            r = m;
+        }
+        else
+        {
+            l = m + 1;
+        }
+    }
+
+    return l;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    // 
+    size_t n;
+    ist >> n;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    //
+    uint64_t amax, cf, cm, cash;
+    ist >> amax >> cf >> cm >> cash;
+
+    LOCAL_PRINT() << std::endl << "Next test, m = " << cash << std::endl;
+
+    vector_value_t skills(n);
+    for (size_t i = 0; i < n; i++)
+    {
+        ist >> skills[i].v;
+        skills[i].i = i;
+    }
+
+    std::sort(skills.begin(), skills.end());
+
+    size_t bestMaxCount = 0;
+    uint64_t bestMinValue = 0;
+    uint64_t bestAns = GetPower(cf, cm, amax, skills, bestMaxCount, bestMinValue);
+
+    vector_uint64_t sumOfLast(n + 1);
+    vector_uint64_t sumOfFirst(n + 1);
+    for (size_t i = 0; i < n; i++)
+    {
+        sumOfFirst[i + 1] = sumOfFirst[i] + skills[i].v;
+        sumOfLast[i + 1] = sumOfLast[i] + skills[n - i - 1].v;
+    }
+
+    for (size_t maxCount = 0; maxCount < n; maxCount++)
+    {
+        const uint64_t costForMax = amax * maxCount - sumOfLast[maxCount];
+        if (costForMax > cash)
+            break;
+
+        const std::function<uint64_t(uint64_t)> getCostForMin = [&](const uint64_t minValue) -> uint64_t
+        {
+            const size_t affectedCount = std::lower_bound(skills.begin(), skills.end() - maxCount, value_t(minValue, 0)) - skills.begin();
+            LOCAL_ASSERT(minValue * affectedCount >= sumOfFirst[affectedCount]);
+            const uint64_t costForMin = minValue * affectedCount - sumOfFirst[affectedCount];
+            return costForMin;
+        };
+
+        const uint64_t minValPlus1 = UpperBound(skills[0].v, amax, cash - costForMax, getCostForMin);
+        LOCAL_ASSERT(getCostForMin(minValPlus1 - 1) <= cash - costForMax);
+
+        const uint64_t minValue = minValPlus1 - 1;
+        if (minValue != 0)
+        {
+            const uint64_t currentAns = cf * maxCount + cm * minValue;
+            if (currentAns > bestAns)
+            {
+                bestAns = currentAns;
+                bestMaxCount = maxCount;
+                bestMinValue = minValue;
+            }
+        }
+    }
+
+    {
+        // maxCount = n;
+        const uint64_t costForMax = amax * n - sumOfLast[n];
+        if (costForMax <= cash)
+        {
+            const uint64_t currentAns = cf * n + cm * amax;
+            if (currentAns > bestAns)
+            {
+                bestAns = currentAns;
+                bestMaxCount = n;
+                bestMinValue = amax;
+            }
+        }
+    }
+
+    vector_uint64_t ans = ConstructAns(skills, amax, bestMaxCount, bestMinValue, cash);
+    ost << bestAns << std::endl;
+    ost << ans << std::endl;
+
+    return multipleTestMode;
+}
+
+
+#if LOCAL_TEST
+void Test()
+{
+    using namespace library::random;
+    const auto genVector = GenFactory::CreateGenVector(GenRange<size_t>(2, 10), GenRange<int32_t>(-100, +200));
+
+    for (size_t t = 0; t < 10; t++)
+    {
+        const vector_int32_t data = genVector();
+        // size_t ans = GetAns(data);
+    }
+}
+#endif
+
+int main(int argc, const char *argv[])
+{
+#if LOCAL_TEST
+    Test();
+#endif
+
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

@@ -1,0 +1,140 @@
+#include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <iostream>
+#include <cstring>
+
+#define pb push_back
+#define all(x) (x).begin(), (x).end()
+
+#define eprintf(...) fprintf(stderr,__VA_ARGS__)
+
+using namespace std;
+
+template<class T> inline void umax(T &a,T b){if(a < b) a = b;}
+template<class T> inline void umin(T &a,T b){if(a > b) a = b;}
+template<class T> inline T abs(T a){return a > 0 ? a : -a;}
+
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef vector<int> vi;
+typedef vector<ii> vii;
+
+const int inf = 1e9 + 143;
+const ll longinf = 1e18 + 143;
+
+inline int read(){int x;scanf(" %d",&x);return x;}
+
+const int N = 1010;
+const int MAX = N * N;
+
+#define loc ASDFloc123
+
+int n, m;
+map<int, vii> loc;
+int a[N][N];
+
+int p[MAX], sz[MAX];
+
+int getSet(int x) {
+  if (x == p[x])
+    return x;
+  return p[x] = getSet(p[x]);
+}
+
+void connect(int u, int v) {
+  u = getSet(u);
+  v = getSet(v);
+  if (u != v) {
+    p[u] = v;
+    sz[v] += sz[u];
+  }
+}
+
+bool was[N][N];
+
+void dfs(int x, int y, int &cnt, int cut) {
+  if (was[x][y] || cnt == 0)
+    return;
+  cnt -= 1;
+  //eprintf("%d %d\n", x, y);
+  was[x][y] = true;
+  for (int dx = -1; dx <= 1; dx++) {
+    for (int dy = -1; dy <= 1; dy++) {
+      if (dx * dx + dy * dy == 1) {
+        int nx = x + dx;
+        int ny = y + dy;
+        if (nx >= 0 && ny >= 0 && nx < n && ny < m && a[nx][ny] >= cut) {
+          dfs(nx, ny, cnt, cut);
+        }
+      }
+    }
+  }
+}
+
+void found(int x, int y, int cnt) {
+  memset(was, 0, sizeof was);
+  dfs(x, y, cnt, a[x][y]);
+  assert(cnt == 0);
+  puts("YES");
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < m; j++) {
+      printf("%d ", was[i][j]? a[x][y] : 0);
+    }
+    printf("\n");
+  }
+}
+
+int main(){
+  n = read();
+  m = read();
+  ll k;
+  cin >> k;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < m; j++) {
+      a[i][j] = read();
+      loc[inf - a[i][j]].pb({i, j});
+    }
+  }
+  for (int i = 0; i < MAX; i++) {
+    p[i] = i;
+    sz[i] = 1;
+  }
+  for (auto &e: loc) {
+    for (auto &pos: e.second) {
+      int x = pos.first;
+      int y = pos.second;
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          if (dx * dx + dy * dy == 1) {
+            int nearX = x + dx;
+            int nearY = y + dy;
+            if (nearX >= 0 && nearX < n && nearY >= 0 && nearY < m && a[nearX][nearY] >= a[x][y]) {
+              connect(x * m + y, nearX * m + nearY);
+            }
+          }
+        }
+      }
+    }
+    for (auto &pos: e.second) {
+      int x = pos.first;
+      int y = pos.second;
+      int value = a[x][y];
+      if (k % value == 0) {
+        ll cntNeed = k / value;
+        //eprintf("[%d, %d] = %d\n", x, y, sz[getSet(x * m + y)]);
+        if (sz[getSet(x * m + y)] >= cntNeed) {
+          //eprintf("cntNeed = %d\n", cntNeed);
+          found(x, y, cntNeed);
+          return 0;
+        }
+      }
+    }
+  }
+  puts("NO");
+  return 0;
+}

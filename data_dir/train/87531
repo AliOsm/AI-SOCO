@@ -1,0 +1,167 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, nn;
+vector<vector<int> > g, men;
+
+int timer = 0;
+vector<int> tin, tout, h;
+vector<vector<int> > up;
+vector<vector<vector<int> > > dp;
+
+void create(vector<int> &a, vector<int> &b, vector<int> &c)
+{
+	for(int i = 0, j = 0, k = 0; (k < 10) && (i < b.size() || j < c.size());)
+	{
+		if(i < b.size() && j < c.size())
+		{
+			if(b[i] < c[j])
+			{
+				a.push_back(b[i]);
+				++i;
+				++k;
+			} else
+			{
+				a.push_back(c[j]);
+				++j;
+				++k;
+			}
+		} else if(i < b.size())
+		{
+			a.push_back(b[i]);
+			++i;
+			++k;
+		} else
+		{
+			a.push_back(c[j]);
+			++j;
+			++k;
+		}
+	}
+}
+
+void dfs(int v, int p, int cur_h)
+{
+	if(p == -1)
+	{
+		up[v].assign(nn, 0);
+		dp[v].assign(nn, men[v]);
+	} else
+	{
+		up[v].resize(nn);
+		dp[v].resize(nn);
+		up[v][0] = p;
+		dp[v][0] = men[v];
+		for(int i = 1; i < nn; ++i)
+		{
+			up[v][i] = up[up[v][i - 1]][i - 1];
+			create(dp[v][i], dp[v][i - 1], dp[up[v][i - 1]][i - 1]);
+		}
+	}
+
+	h[v] = cur_h;
+	tin[v] = timer++;
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		if(to != p)
+		{
+			dfs(to, v, cur_h + 1);
+		}
+	}
+	tout[v] = timer++;
+}
+
+bool belong(int a, int b)
+{
+	return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int lca(int a, int b)
+{
+	if(belong(a, b))
+	{
+		return a;
+	} else if(belong(b, a))
+	{
+		return b;
+	} else
+	{
+		for(int i = nn - 1; i >= 0; --i)
+		{
+			if(!belong(up[a][i], b))
+			{
+				a = up[a][i];
+			}
+		}
+		return up[a][0];
+	}
+}
+
+int main (int argc, char *argv[])
+{
+	//FILE *in = freopen("input.txt", "r", stdin);
+
+	int m, q;
+	scanf("%d%d%d", &n, &m, &q);
+	g.resize(n);
+	for(int i = 1; i < n; ++i)
+	{		
+		int from, to;
+		scanf("%d%d", &from, &to);
+		--from; --to;
+		g[from].push_back(to);
+		g[to].push_back(from);
+	}
+	men.resize(n);
+	for(int i = 1; i <= m; ++i)
+	{
+		int c;
+		scanf("%d", &c);
+		--c;
+		men[c].push_back(i);
+	}
+
+	nn = log2(n) + 2;
+	up.resize(n);
+	dp.resize(n);
+	h.resize(n);
+	tin.resize(n);
+	tout.resize(n);
+	dfs(0, -1, 0);
+	while(q--)
+	{
+		int v, u, a;
+		scanf("%d%d%d", &v, &u, &a);
+		--v; --u;
+		int y = lca(v, u);
+		vector<int> ans;
+		while(v != y)
+		{
+			int i = log2(h[v] - h[y]);
+			vector<int> new_ans;
+			create(new_ans, ans, dp[v][i]);
+			v = up[v][i];
+			ans = new_ans;
+		}
+		while(u != y)
+		{
+			int i = log2(h[u] - h[y]);
+			vector<int> new_ans;
+			create(new_ans, ans, dp[u][i]);
+			u = up[u][i];
+			ans = new_ans;
+		}
+		vector<int> new_ans;
+		create(new_ans, ans, dp[y][0]);
+		printf("%d ", min(a, int(new_ans.size())));
+		for(int i = 0; i < min(a, int(new_ans.size())); ++i)
+		{
+			printf("%d ", new_ans[i]);
+		}
+		printf("\n");
+	}
+
+	return 0;
+}
+

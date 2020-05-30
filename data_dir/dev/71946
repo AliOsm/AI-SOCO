@@ -1,0 +1,118 @@
+#include<bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define y1 buvkbfk
+using namespace std;
+
+struct item{
+    int key, prior, val, mx;
+    item *l, *r;
+    item (int x, int y){
+        key = x;
+        val = mx = y;
+        prior = rand() ^ (rand() << 15);
+        l = r = NULL;
+    }
+};
+
+typedef item * pitem;
+
+pitem root = NULL;
+
+int mx(pitem v){
+    if (v)return v->mx;else return 0;
+}
+
+void upd(pitem v){
+    if (!v)return;
+    v->mx = max(v->val, max(mx(v->l), mx(v->r)));
+}
+
+void Merge(pitem &v, pitem l, pitem r){
+    if (!l || ! r){
+        v = l ? l : r;
+        return;
+    }
+    if (l->prior > r->prior){
+        Merge(l->r, l->r, r);
+        v = l;
+    }else {
+        Merge(r->l, l, r->l);
+        v = r;
+    }
+    upd(v);
+}
+
+void Split(pitem v, int key, pitem &l, pitem &r){
+    if (!v){
+        l = r = NULL;
+        return;
+    }
+    if (key < v->key){
+        Split(v->l, key, l, v->l);
+        r = v;
+    }else {
+        Split(v->r, key, v->r, r);
+        l = v;
+    }
+    upd(v);
+}
+
+void add(int x, int y){
+    pitem l, r;
+    Split(root, x, l, r);
+    Merge(l, l, new item(x, y));
+    Merge(root, l, r);
+}
+
+int get(int x){
+    pitem l, r;
+    Split(root, x, l, r);
+    x = mx(l);
+    Merge(root, l, r);
+    return x;
+}
+
+const int N = 2e5 + 5;
+int n, a[N], pref[N], suff[N], x, l, r, mid;
+vector < int > dp;
+int main(){
+    ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);
+    cin >>n;
+    for (int i = 1; i <= n; ++i){
+        cin >>a[i];
+    }
+    dp.resize(n + 1, 2e9);
+    dp[0] *= -1;
+    for (int i = 1; i <= n; ++i){
+        x = upper_bound(dp.begin(), dp.end(), a[i] - i) - dp.begin();
+        pref[i] = x;
+        dp[x] = min(dp[x], a[i] - i);
+    }
+    dp.clear();
+    dp.resize(n + 1, -2e9);
+    dp[0] *= -1;
+    for (int i = n; i >= 1; --i){
+        l = 0;
+        r = n;
+        while (l < r){
+            mid = (l + r) / 2;
+            if (dp[mid] < a[i] - (i - 1))r = mid;else l = mid + 1;
+        }
+        x = l;
+        suff[i] = x;
+        dp[x] = max(dp[x], a[i] - (i - 1));
+    }
+    int ans = 0;
+    for (int i = 1; i <= n; ++i){
+        x = a[i + 1] - i;
+        ans = max(ans, suff[i + 1] + get(x));
+        add(a[i] - i, pref[i]);
+    }
+    ans= max(ans, mx(root));
+    cout <<max(0, n - 1 - ans);
+}

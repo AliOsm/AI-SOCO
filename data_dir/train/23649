@@ -1,0 +1,149 @@
+
+
+
+
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <stack>
+#include <string>
+#include <assert.h>
+#include <queue>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <cstdio>
+
+#define ll long long
+#define ld long double
+#define pb push_back
+#define mp make_pair
+#define int long long
+
+
+using namespace std;
+
+const int INF = 2e9;
+const int MOD = 998244353;
+
+struct node {
+	int num, value, size, y, max_value;
+	node* left;
+	node* right;
+	node(int v, int n) {
+		value = v;
+		num = n;
+		size = 1;
+		y = rand();
+		max_value = value;
+		left = nullptr;
+		right = nullptr;
+	}
+};
+
+node* main_root = nullptr;
+
+int get_size(node* root) {
+	return root ? root->size : 0;
+}
+
+int get_max(node* root) {
+	return root ? root->max_value : 0;
+}
+
+int get_value(node* root) {
+	return root ? root->value : 0;
+}
+
+void update(node* root) {
+	if (!root) return;
+	root->size = get_size(root->left) + get_size(root->right) + 1;
+	root->max_value = max(max(get_max(root->left), get_max(root->right)), get_value(root));
+}
+
+node* merge(node* root1, node* root2) {
+	if (!root1) return root2;
+	if (!root2) return root1;
+	
+	if (root1->y < root2->y) {
+		root1->right = merge(root1->right, root2);
+		update(root1);
+		return root1;
+	}
+
+	root2->left = merge(root1, root2->left);
+	update(root2);
+	return root2;
+}
+
+pair<node*, node*> split_kth(node* root, int k) {
+	if (!root) return mp(nullptr, nullptr);
+	if (get_size(root) <= k) return mp(root, nullptr);
+	if (k == 0) return mp(nullptr, root);
+	if (get_size(root->left) >= k) {
+		auto p = split_kth(root->left, k);
+		root->left = p.second;
+		update(root);
+		return mp(p.first, root);
+	}
+	auto p = split_kth(root->right, k - get_size(root->left) - 1);
+	root->right = p.first;
+	update(root);
+	return mp(root, p.second);
+}
+
+pair<node*, node*> split_max(node* root, int mx) {
+	if (get_max(root) < mx) return mp(nullptr, root);
+	if (get_max(root->right) >= mx) {
+		auto p = split_max(root->right, mx);
+		root->right = p.first;
+		update(root);
+		return mp(root, p.second);
+	}
+
+	if (get_value(root) >= mx) {
+		node* w = root->right;
+		root->right = nullptr;
+		update(root);
+		return mp(root, w);
+	}
+
+	auto p = split_max(root->left, mx);
+	root->left = p.second;
+	update(root);
+	return mp(p.first, root);
+}
+
+void add(int a, int c, int num) {
+	auto one = split_kth(main_root, c);
+	auto two = split_max(one.second, a);
+	node* new_node = new node(a, num);
+	main_root = merge(merge(one.first, two.first), merge(new_node, two.second));
+}
+
+void go(node* root) {
+	if (!root) return;
+	go(root->left);
+	cout << root->num << " ";
+	go(root->right);
+}
+
+void solve() {
+	int n;
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		int a, c;
+		cin >> a >> c;
+		add(a, max(i - c, 0LL) , i + 1);
+	}
+	go(main_root);
+}
+signed main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.tie(nullptr);
+	cout.precision(12);
+	solve();
+}

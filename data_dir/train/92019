@@ -1,0 +1,34 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <deque>
+#define N 5002
+using namespace std;
+typedef long long ll;
+int t;
+int main() {
+	cin>>t;
+	for (int cas=1;cas<=t;++cas) {
+		int n;
+		string s;
+		cin>>n>>s;
+		vector<pair<string, int>> rk;
+		rk.clear();
+		for (int i = 1; i <= n; ++i) {
+			string t = (i == 1 ? "" : s.substr(0, i-1));
+			if ((n-i) % 2 == 0) reverse(t.begin(), t.end());
+			rk.push_back(make_pair(s.substr(i-1, n-i+1)+t, i));
+			//cout<<i<<" "<<rk[i-1].first<<" "<<rk[i-1].second<<endl;
+		}
+		sort(rk.begin(), rk.end());
+		cout<<rk[0].first<<endl;
+		cout<<rk[0].second<<endl;
+	}
+	return 0;
+}

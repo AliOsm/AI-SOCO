@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int MAX = 3e5 + 5;
+const int ST_MAX = 2e7 + 6;
+int arr[MAX], st[ST_MAX], L[ST_MAX], R[ST_MAX], root[MAX];
+int next_idx = 1;
+
+void build(int p, int l, int r) {
+	if(l == r) {
+		return;
+	}
+	L[p] = next_idx++;
+	R[p] = next_idx++;
+	int mid = (l + r) / 2;
+	build(L[p], l, mid);
+	build(R[p], mid + 1, r);
+}
+
+int update(int p, int l, int r, int idx, int val) {
+	int new_p = next_idx++;
+	if(l == r && l == idx) {
+		st[new_p] = st[p] + val;
+		return new_p;
+	}
+	L[new_p] = L[p];
+	R[new_p] = R[p];
+	int mid = (l + r) / 2;
+	if(idx <= mid) {
+		L[new_p] = update(L[p], l, mid, idx, val);
+	}
+	else {
+		R[new_p] = update(R[p], mid + 1, r, idx, val);
+	}
+	st[new_p] = st[L[new_p]] + st[R[new_p]];
+	return new_p;
+}
+
+int query(int p, int l, int r, int i, int j) {
+	if(l >= i && j >= r) {
+		return st[p];
+	}
+	if(i > r || l > j) {
+		return 0;
+	}
+	int mid = (l + r) / 2;
+	return query(L[p], l, mid, i, j) + query(R[p], mid + 1, r, i, j);
+}
+
+vector<int> pos[MAX];
+int sorted[MAX], ord[MAX];
+int n, q;
+
+int get_cnt(int l, int r, int k) {
+	int a = lower_bound(pos[k].begin(), pos[k].end(), l) - pos[k].begin();
+	int b = upper_bound(pos[k].begin(), pos[k].end(), r) - pos[k].begin();
+	return b - a;
+}
+
+int get_kth(int l, int r, int k) {
+	int lr = root[l - 1], rr = root[r];
+	int left = 1, right = n;
+	int ans = -1;
+	int rolled = 0;
+	while(ans == -1) {
+		int mid = (left + right) / 2;
+		if(st[L[rr]] - st[L[lr]] >= k) {
+			right = mid;
+			rr = L[rr];
+			lr = L[lr];
+		}
+		else {
+			k -= st[L[rr]] - st[L[lr]];
+			left = mid + 1;
+			rr = R[rr];
+			lr = R[lr];
+		}
+		if(left == right) {
+			ans = arr[sorted[left]];
+		}
+		rolled++;
+	}
+	return ans;
+}
+
+int main() {
+	scanf("%d %d", &n, &q);
+	fori(i, 1, n + 1) {
+		scanf("%d", arr + i);
+		pos[arr[i]].push_back(i);
+		sorted[i] = i;
+	}
+	
+	sort(sorted + 1, sorted + n + 1, [] (int lhs, int rhs) {
+		return arr[lhs] < arr[rhs];	
+	});
+
+	fori(i, 1, n + 1) {
+		ord[sorted[i]] = i;
+	}
+
+	root[0] = next_idx++;
+	build(root[0], 1, n);
+	fori(i, 1, n + 1) {
+		root[i] = update(root[i - 1], 1, n, ord[i], 1);
+	}
+
+	while(q--) {
+		int l, r, k;
+		scanf("%d %d %d", &l, &r, &k);
+		int len = r - l + 1;
+		int need = len / k + 1;
+		int cur_pos = need;
+		int ans = 1 << 30;
+		while(l + cur_pos - 1 <= r) {
+			int v = get_kth(l, r, cur_pos);
+			if(get_cnt(l, r, v) >= need) {
+				ans = min(ans, v);
+			}
+			cur_pos += need;
+		}
+		printf("%d\n", ans == (1 << 30) ? -1 : ans);
+	}
+
+	return 0;
+}
+

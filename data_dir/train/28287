@@ -1,0 +1,107 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	200000
+#define M	200000
+
+long long aa[M];
+int n, m;
+
+struct V {
+	int i, j, h;
+} vv[N + M];
+
+int compare(const void *a, const void *b) {
+	struct V *u = (struct V *) a;
+	struct V *v = (struct V *) b;
+
+	return u->i != v->i ? u->i - v->i : u->h - v->h;
+}
+
+int tt[N];
+
+void update(int i) {
+	while (i < n) {
+		tt[i]++;
+		i |= i + 1;
+	}
+}
+
+int query(int i) {
+	int a = 0;
+
+	while (i >= 0) {
+		a += tt[i];
+		i &= i + 1;
+		i--;
+	}
+	return a;
+}
+
+void solve(int *ii, int *jj, int *pp) {
+	struct V *v;
+	int h, i;
+
+	for (i = 0; i < n; i++) {
+		v = &vv[i];
+		v->i = i, v->j = pp[i], v->h = -1;
+	}
+	for (h = 0; h < m; h++) {
+		v = &vv[n + h];
+		v->i = ii[h] - 1, v->j = jj[h] - 1, v->h = h;
+	}
+	qsort(vv, n + m, sizeof *vv, compare);
+	memset(tt, 0, n * sizeof *tt);
+	for (i = 0; i < n + m; i++) {
+		v = &vv[i];
+		if (v->h == -1)
+			update(v->j);
+		else {
+			int a = query(v->j);
+
+			aa[v->h] += (long long) a * (a - 1) / 2;
+		}
+	}
+}
+
+int main() {
+	static int pp[M], pp_[M], ll[M], rr[M], rr_[M], dd[M], uu[M], uu_[M];
+	int h, i, j, k, tmp;
+	long long a;
+
+	scanf("%d%d", &n, &m);
+	for (i = 0; i < n; i++) {
+		scanf("%d", &pp[i]), pp[i]--;
+		pp_[i] = n - 1 - pp[i];
+	}
+	for (h = 0; h < m; h++) {
+		scanf("%d%d%d%d", &ll[h], &dd[h], &rr[h], &uu[h]), ll[h]--, dd[h]--, rr[h]--, uu[h]--;
+		rr_[h] = n - 1 - rr[h];
+		uu_[h] = n - 1 - uu[h];
+	}
+	a = (long long) n * (n - 1) / 2;
+	for (h = 0; h < m; h++) {
+		aa[h] = a;
+		k = ll[h];
+		aa[h] -= (long long) k * (k - 1) / 2;
+		k = dd[h];
+		aa[h] -= (long long) k * (k - 1) / 2;
+		k = rr_[h];
+		aa[h] -= (long long) k * (k - 1) / 2;
+		k = uu_[h];
+		aa[h] -= (long long) k * (k - 1) / 2;
+	}
+	solve(ll, dd, pp);
+	solve(ll, uu_, pp_);
+	for (i = 0, j = n - 1; i < j; i++, j--) {
+		tmp = pp[i], pp[i] = pp[j], pp[j] = tmp;
+		tmp = pp_[i], pp_[i] = pp_[j], pp_[j] = tmp;
+	}
+	solve(rr_, dd, pp);
+	solve(rr_, uu_, pp_);
+	for (h = 0; h < m; h++)
+		printf("%lld\n", aa[h]);
+	return 0;
+}

@@ -1,0 +1,104 @@
+#include <iostream>
+#include <fstream>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <set>
+#include <map>
+#include <stack>
+#include <queue>
+#include <algorithm>
+using namespace std;
+
+#define REP(i,n) for(int i=0; i<n; ++i)
+#define FOR(i,a,b) for(int i=a; i<=b; ++i)
+#define FORR(i,a,b) for (int i=a; i>=b; --i)
+#define ALL(c) (c).begin(), (c).end()
+
+typedef long long ll;
+typedef vector<int> VI;
+typedef vector<ll> VL;
+typedef vector<VI> VVI;
+typedef pair<int,int> P;
+typedef pair<ll,ll> PL;
+
+const int MAX_N = 100010;
+
+int n, width;
+int dat[MAX_N*4];
+
+void init(){
+    width = 1;
+    while(width<n) width*=2;
+    REP(i,2*width-1) dat[i] = 0;
+}
+
+void update(int i, int x){
+    i += width-1;
+    dat[i] = x;
+    while (i>0){
+        i = (i-1)/2;
+        dat[i] = max(dat[i*2+1],dat[i*2+2]);
+    }
+}
+
+int query(int a, int b, int k, int l, int r){
+    if (r<=a || b<=l) return 0;
+    if (a<=l && r<=b) return dat[k];
+    int vl = query(a,b,k*2+1,l,(l+r)/2);
+    int vr = query(a,b,k*2+2,(l+r)/2,r);
+    return max(vl,vr);
+}
+
+int calc(vector<P> p, int x){
+	n = p.size();
+	if (n <= 1) return 0;
+	if (p[0].first + p[1].first > x) return 0;
+
+	init();
+	REP(i,n) update(i, p[i].second);
+
+	int ret = 0;
+	int j = n-1;
+	REP(i,n){
+		while (j >= 0 && p[i].first + p[j].first > x) j--;
+		if (j <= i) break;
+		ret = max(ret, p[i].second + query(i+1, j+1, 0, 0, width));
+	}
+	return ret;
+}
+
+int main() {
+	int m, c, d;
+	cin >> m >> c >> d;
+	vector<P> p1, p2;
+	REP(i,m){
+		int b, p;
+		char c;
+		scanf("%d %d %c", &b, &p, &c);
+		if (c == 'C') p1.push_back(P(p, b));
+		else p2.push_back(P(p, b));
+	}
+	sort(ALL(p1));
+	sort(ALL(p2));
+
+	int ans = 0;
+
+	ans = max(ans, calc(p1, c));
+	ans = max(ans, calc(p2, d));
+
+	// cout << calc(p1, c) << " " << calc(p2, d) << endl;
+
+	if (!p1.empty() && !p2.empty() && p1[0].first <= c && p2[0].first <= d){
+		int x = 0, y = 0;
+		REP(i,p1.size()) if (p1[i].first <= c) x = max(x, p1[i].second);
+		REP(i,p2.size()) if (p2[i].first <= d) y = max(y, p2[i].second);
+		ans = max(ans, x+y);
+	}
+
+	cout << ans << endl;
+
+    return 0;
+}

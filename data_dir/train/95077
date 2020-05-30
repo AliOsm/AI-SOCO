@@ -1,0 +1,110 @@
+//              +-- -- --++-- +-In the name of ALLAH-+ --++-- -- --+              \\
+
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define _sz(x) (int)x.size()
+#define pb push_back
+
+#define error(x) cout << #x << " = " << x << endl
+
+using namespace std;
+using ll = long long;
+using ld = long double;
+using pii = pair<int, int>;
+
+const int N = 1e5 + 20;
+int n, k, a[N];
+ll ans;
+vector <pii> vec[N];
+
+struct node {
+	int sum;
+	bool lazy;
+} seg[N << 2];
+
+#define mid ((s + e) >> 1)
+#define lc (v << 1)
+#define rc (lc ^ 1)
+
+inline void inv (int v, int s, int e)
+{
+	seg[v].sum = e - s - seg[v].sum;
+	seg[v].lazy ^= 1;
+}
+
+inline void shift (int v, int s, int e)
+{
+	if (!seg[v].lazy) return;
+	inv(lc, s, mid);
+	inv(rc, mid, e);
+	seg[v].lazy = 0;
+}
+
+void modify (int l, int r, int v = 1, int s = 0, int e = n)
+{
+	if (r <= s || e <= l) return;
+	if (l <= s && e <= r) 
+	{
+		inv(v, s, e);
+		return;
+	}
+
+	shift(v, s, e);
+
+	modify(l, r, lc, s, mid);
+	modify(l, r, rc, mid, e);
+
+	seg[v].sum = seg[lc].sum + seg[rc].sum;
+}
+
+int get (int l, int r, int v = 1, int s = 0, int e = n)
+{
+	if (r <= s || e <= l) return 0;
+	if (l <= s && e <= r) return seg[v].sum;
+
+	shift(v, s, e);
+
+	return get(l, r, lc, s, mid) + get(l, r, rc, mid, e);
+}
+
+int main()
+{
+	ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+
+	cin >> n >> k;
+	for (int i = 0; i < n; i++) cin >> a[i];
+	sort(a, a + n);
+
+	while (k--)
+	{
+		int l, r;
+		cin >> l >> r;
+		r++;
+
+		l = lower_bound(a, a + n, l) - a;
+		r = lower_bound(a, a + n, r) - a;
+
+		if (l < r)
+		{
+			vec[l].pb({l, r});
+			vec[r].pb({l, r});
+		}
+	}
+
+	for (int i = 0; i < n; i++)
+	{
+		for (pii p: vec[i]) 
+		{
+			modify(p.F, p.S);
+		}
+
+		int val = (i - get(0, i)) + get(i + 1, n);
+		ans += 1ll * val * (val - 1) / 2;
+	}
+
+	ans = 1ll * n * (n - 1) * (n - 2) / 6 - ans;
+
+	cout << ans << '\n';
+}

@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define mod 998244353
+#define oo 1000000010
+const int N = 300010;
+int n , a[N] , b[N] , cur1[N] , cur2[N];
+
+int Idx , val;
+
+pair<int,int> seg[4 * N];
+
+int l , r;
+
+pair<int,int> build(int s,int e,int idx){
+	if(s == e)
+		return seg[idx] = make_pair(a[s] , s);
+	return seg[idx] = max(build(s,((s+e) >> 1),(idx << 1)), build(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+}
+
+pair<int,int> update(int s,int e,int idx){
+	if(s > Idx || e < Idx)
+		return seg[idx];
+	if(s == e){
+		seg[idx].first = val;
+		return seg[idx];
+	}
+	return seg[idx] = max(update(s,((s+e) >> 1),(idx << 1)), update(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+}
+
+pair<int,int> getmax(int s,int e,int idx){
+	if(s > r || e < l)
+		return make_pair(-oo , 0);
+	if(s >= l && e <= r)
+		return seg[idx];
+	return max(getmax(s,((s+e) >> 1),(idx << 1)), getmax(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+}
+
+
+int seg2[4 * N] , lazy[4 * N];
+
+inline void fix(int s,int e,int idx){
+	seg2[idx] += lazy[idx];
+	if(s != e) lazy[(idx << 1)] += lazy[idx] , lazy[(idx << 1) + 1] += lazy[idx];
+	lazy[idx] = 0;
+}
+
+int update2(int s,int e,int idx){
+	fix(s,e,idx);
+	if(s > r || e < l)
+		return seg2[idx];
+	if(s >= l && e <= r){
+		lazy[idx] += val;
+		fix(s,e,idx);
+		return seg2[idx];
+	}
+	return seg2[idx] = max( update2(s, ((s+e) >> 1),(idx << 1)) , update2(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+}
+
+int get(int s,int e,int idx){
+	fix(s,e,idx);
+	if(s == e)
+		return s;
+	fix(s , ((s+e) >> 1),(idx << 1));
+	fix(((s+e) >> 1) + 1,e,(idx << 1) + 1);
+	if(seg2[(idx << 1)] > 0)return	get(s , ((s+e) >> 1),(idx << 1));
+	return 	get(((s+e) >> 1) + 1,e,(idx << 1) + 1);
+}
+
+
+set < int > rem;;
+
+vector< int > del[N];
+
+int main(){
+	scanf("%d",&n);
+	for(int i = 0 ;i < n;i++){
+		scanf("%d",&a[i]);
+		rem.insert(a[i]);
+	}
+	build(0 , n - 1 , 1);
+	int cur;
+	pair<int,int> tmp;
+	for(int i = 0 ;i < n;i++){
+		scanf("%d",&b[i]);
+		b[i]--;
+		l = b[i] , r = n - 1 , val = 1;
+		update2(0 , n - 1 , 1);
+		cur = get(0 , n - 1 , 1);
+		l = 0 , r = cur;
+		tmp = getmax(0 , n - 1 , 1);
+		cur2[tmp.second] = i;
+		Idx = tmp.second , val = -oo;
+		update(0 , n -1 , 1);
+		l = tmp.second , r = n - 1, val = -1;
+		update2(0 , n - 1 ,1);
+	}
+	for(int i = 0 ;i < n;i++){
+		del[cur2[i] + 1].push_back(a[i]);
+	}
+	for(int i = 0;i < n;i++){
+		for(int j = 0 ;j < (int)del[i].size();j++){
+			rem.erase(rem.find(del[i][j]));
+		}
+		if((int)rem.size() == 0) return 0 ;
+		auto k = rem.end();
+		k--;
+		if(i) putchar(' ');
+		printf("%d",*k);
+	}
+	puts("");
+	return 0;
+}

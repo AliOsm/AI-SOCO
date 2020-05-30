@@ -1,0 +1,170 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+
+
+using namespace std;
+
+#ifdef WIN32
+  #define LLD "%I64d"
+#else
+  #define LLD "%lld"
+#endif
+
+typedef pair<int, int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<bool> vb;
+typedef vector<vb> vvb;
+typedef vector<ll> vll;
+typedef vector<vll> vvll;
+
+ll rdtsc() {
+  ll tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define EPS (1e-9)
+#define INF ((long long)2e18)
+#define sqr(x) ((x) * (x))         
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+const int maxn = (int)1e5 + 10, maxk = (int)1e4 + 10;
+long long a[maxn];
+int c[maxn];
+
+set<pair<int, int> > tres;
+long long minGot[maxk];
+vector<vector<pair<long long, int> > > rs;
+
+bool update(int r, long long newval) {
+  if (minGot[r] <= newval)
+    return false;
+  minGot[r] = newval;
+  while (sz(rs[r]) && rs[r].back().first >= newval) {
+    int id = rs[r].back().second;
+    tres.insert(mp(-c[id], id));
+    rs[r].pop_back();
+  }
+  return true;
+}
+
+void addGoType(long long x, int k) {
+  set<pair<long long, int> > cur;
+  for (int i = 0; i < k; ++i) {
+    cur.insert(mp(minGot[i], i));
+  }
+  int rx = x % k;
+  while (sz(cur)) {
+    int id = cur.begin()->second;
+    cur.erase(cur.begin());
+
+    int nid = id + rx;
+    if (nid >= k)
+      nid -= k;
+    long long newGot = minGot[id] + x;
+    if (minGot[nid] > newGot) {
+      cur.erase(mp(minGot[nid], nid));
+      assert(update(nid, minGot[id] + x));
+      cur.insert(mp(minGot[nid], nid));
+    }
+  }
+}
+
+bool solve() {
+  long long h;
+  int n, m, k;
+  if (scanf(LLD "%d%d%d", &h, &n, &m, &k) < 4)
+    return 0;
+
+  for (int i = 0; i < n; ++i)
+    scanf(LLD "%d", &a[i], &c[i]), --a[i];
+
+  rs = vector<vector<pair<long long, int> > >(k);
+  for (int i = 0; i < n; ++i) {
+    rs[a[i] % k].pb(mp(a[i], i));
+  }
+  for (int i = 0; i < k; ++i)
+    sort(rs[i].begin(), rs[i].end());
+
+  for (int i = 0; i < k; ++i)
+    minGot[i] = INF;
+  tres.clear();
+  update(0, 0);
+
+  for (int i = 0; i < m; ++i) {
+    int type;
+    scanf("%d", &type);
+
+    if (i == -1 || type == 1) {
+      long long x;
+      scanf(LLD, &x);
+      addGoType(x, k);
+      continue;
+    }
+    if (type == 2) {
+      int id, newVal;
+      scanf("%d%d", &id, &newVal);
+      --id;
+      if (a[id] >= minGot[a[id] % k])
+        tres.erase(mp(-c[id], id));
+      c[id] -= newVal; 
+      if (a[id] >= minGot[a[id] % k])
+        tres.insert(mp(-c[id], id));
+      continue;
+    }
+    if (type == 3) {
+      if (sz(tres) == 0) {
+        printf("0\n");
+      } else {
+        pair<int, int> cur = *tres.begin();
+        tres.erase(tres.begin());
+        printf("%d\n", -cur.first);
+      }
+      continue;
+    }
+    assert(0);
+  }
+  
+  return 1;
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".in", "r", stdin);
+  freopen(TASKNAME".out", "w", stdout);
+#endif
+  
+  while (1) {
+    if (!solve())
+      break;
+    #ifdef DEBUG
+      eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+    #endif
+  }
+  return 0;
+}

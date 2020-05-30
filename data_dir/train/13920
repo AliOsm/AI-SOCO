@@ -1,0 +1,148 @@
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math")
+////!pragma
+//const int N = 2750131+100;
+//void _(){
+//    int n;
+//    cin >> n;
+//    vi arr(2*n);
+//    cin >> arr;
+//    sort(all(arr));
+//    multiset<int> s(all(arr));
+//    vl small_div(N);
+//    iota(all(small_div),0);
+//    vi primes;
+//    vi prime_index(N);
+//    rep(i,2,N){
+//        if(small_div[i] == i){
+//            for(int j = 2*i; j < N; j += i)
+//                if(small_div[j] == j)
+//                    small_div[j] = i;
+//            primes.pb(i);
+//        }
+//    }
+//    rep(i,sz(primes))
+//        prime_index[primes[i]] = i+1;
+//    vi ans;
+//    while(!s.empty()){
+//        int x = max(s);
+//        s.erase(--s.end());
+//        if(small_div[x] == x){
+//            int y = prime_index[x];
+//            s.erase(s.lower_bound(y));
+//            ans.pb(y);
+//        }
+//        else{
+//            int y = x/small_div[x];
+//            s.erase(s.lower_bound(y));
+//            ans.pb(x);
+//        }
+//    }
+//    print ans;
+//}
+#include <numeric>
+#include <set>
+#include <iomanip>
+#include <algorithm>
+#include <cassert>
+#include <vector>
+#include <utility>
+#include <iostream>
+#include <string>
+#define pb push_back
+#define REP_INT(i,l,r) for(int i = l; i <= r; ++i)
+#define REP_ZERO_INT(i,r) for(int i = 0; i < r; ++i)
+#define GET_REP_MACRO(_1,_2,_3,_4,NAME,...) NAME
+#define rep(...) GET_REP_MACRO(__VA_ARGS__,REP_ANY,REP_INT,REP_ZERO_INT)(__VA_ARGS__)
+#define all(v) (v).begin(), (v).end()
+#define sz(v) ll(v.size())
+#define T1 template<typename T> static
+using namespace std;
+typedef long long ll;
+typedef vector<ll> vl;
+typedef vector<int> vi;
+T1 ostream& operator<<(ostream& stream, const vector<T>& t);
+T1 istream& read(T, T, istream& = cin);
+T1 istream& operator>>(istream& stream, vector<T>& t){
+    return read(all(t), stream);
+}
+T1 istream& read(T b, T e, istream& stream){
+    for(T it = b; it != e; ++it)
+        stream >> *it;
+    return stream;
+}
+T1 T max(const multiset<T>& s){
+    assert(!s.empty());
+    return *--s.end();
+}
+struct _print {
+    string sep,end;
+    bool space;
+    ostream &stream;
+    _print(string _sep=" ",string _end="\n",
+            ostream &_stream = cout)
+        : sep(_sep),end(_end),space(false),
+            stream(_stream) {}
+    ~_print() { stream << end; }
+    template <typename T>
+        _print &operator , (const T &t) {
+            if (space) stream << sep;
+            space = true;
+            stream << t;
+            return *this;
+        }
+};
+#define print _print(),
+T1 ostream& operator<<(ostream& stream, const vector<T>& t){
+    for(int i = 0; i < sz(t); ++i){
+        stream << t[i];
+        if(i+1 < sz(t))
+            stream << ' ';
+    }
+    return stream;
+}
+//!pragma
+const int N = 2750131+100;
+void _(){
+    int n;
+    cin >> n;
+    vi arr(2*n);
+    cin >> arr;
+    sort(all(arr));
+    multiset<int> s(all(arr));
+    vl small_div(N);
+    iota(all(small_div),0);
+    vi primes;
+    vi prime_index(N);
+    rep(i,2,N){
+        if(small_div[i] == i){
+            for(int j = 2*i; j < N; j += i)
+                if(small_div[j] == j)
+                    small_div[j] = i;
+            primes.pb(i);
+        }
+    }
+    rep(i,sz(primes))
+        prime_index[primes[i]] = i+1;
+    vi ans;
+    while(!s.empty()){
+        int x = max(s);
+        s.erase(--s.end());
+        if(small_div[x] == x){
+            int y = prime_index[x];
+            s.erase(s.lower_bound(y));
+            ans.pb(y);
+        }
+        else{
+            int y = x/small_div[x];
+            s.erase(s.lower_bound(y));
+            ans.pb(x);
+        }
+    }
+    print ans;
+}
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout << fixed << setprecision(15);
+        _();
+}

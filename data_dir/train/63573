@@ -1,0 +1,164 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using ll = long long;
+
+const int sz = 1e5 + 10;
+const int szz = 3e6;
+const ll mod = 1e9 + 7;
+const double EPS = 1e-9;
+
+int n, m;
+
+ll bounty, damage, increase;
+
+struct enemy {
+        ll max_health;
+        ll start_health;
+        ll health_regen;
+} enemies[sz];
+
+struct update {
+        ll time;
+        int enemy_id;
+        ll health;
+} updates[sz];
+
+vector < pair < ll, ll > > killable_times[sz];
+set < ll > next_time[sz];
+
+vector < ll > times_all;
+
+ll flag_always;
+
+ll ans;
+
+vector < ll > tr;
+
+int total;
+
+
+void compress( vector < pair < ll, ll > > &vp ) {
+        vector < pair < ll, ll > > hand;
+
+        pair < ll, ll > pre = { -1ll, -1ll };
+
+        sort( vp.begin(), vp.end() );
+
+        for( const auto& x: vp ) {
+                if( x.first >= pre.second ) {
+                        if( pre.first != -1ll ) hand.push_back( pre );
+                        pre = x;
+                }
+                else {
+                        pre.second = x.second;
+                }
+        }
+
+        if( pre.first != -1ll ) hand.push_back( pre );
+
+        vp.clear();
+        for( const auto& x: hand ) vp.push_back( x );
+}
+
+int main() {
+        #ifdef CLown1331
+            freopen("in.txt","r",stdin);
+        #endif /// CLown1331
+        while( scanf( "%d %d", &n, &m ) == 2 ) {
+
+                scanf( "%lld %lld %lld", &bounty, &increase, &damage );
+
+                flag_always = 0;
+
+                for( int i=0; i<n; i++ ) {
+                        scanf( "%lld %lld %lld", &enemies[i].max_health, &enemies[i].start_health, &enemies[i].health_regen );
+                        if( enemies[i].max_health <= damage ) flag_always++;
+                }
+
+                for( int i=0; i<m; i++ ) {
+                        scanf( "%lld %d %lld", &updates[i].time, &updates[i].enemy_id, &updates[i].health );
+                }
+
+                ans = 0;
+
+                if( flag_always && increase ) ans = -1;
+                else {
+                        for( int i=0; i<n; i++ ) killable_times[i].clear();
+                        for( int i=0; i<n; i++ ) next_time[i].clear();
+
+                        times_all.clear();
+
+
+                        for( int j=0; j<m; j++ ) {
+                                int i = updates[j].enemy_id - 1;
+                                next_time[i].insert( updates[j].time );
+                        }
+                        for( int i=0; i<n; i++ ) if( enemies[i].start_health <= damage ) {
+                                ll start = 0;
+                                ll en = start;
+                                if( enemies[i].health_regen ) en += ( damage - enemies[i].start_health ) / enemies[i].health_regen;
+                                else en += ( 1ll << 62 );
+                                auto it = next_time[i].upper_bound( start );
+                                if( it != next_time[i].end() ) en = min( en, (*it) -1 );
+                                killable_times[i].push_back( make_pair( start, en ) );
+                                times_all.push_back( start );
+                                times_all.push_back( en );
+                        }
+
+                        for( int j=0; j<m; j++ ) {
+                                int i = updates[j].enemy_id - 1;
+                                enemies[i].start_health = updates[j].health;
+                                if( enemies[i].start_health <= damage ) {
+                                        ll start = updates[j].time;
+                                        ll en = start;
+                                        if( enemies[i].health_regen ) en += ( damage - enemies[i].start_health ) / enemies[i].health_regen;
+                                        else en += ( 1ll << 62 );
+                                        auto it = next_time[i].upper_bound( start );
+                                        if( it != next_time[i].end() ) en = min( en, (*it) -1 );
+                                        killable_times[i].push_back( make_pair( start, en ) );
+                                        times_all.push_back( start );
+                                        times_all.push_back( en );
+                                }
+                        }
+
+                        sort( times_all.begin(), times_all.end() );
+
+                        times_all.resize( unique( times_all.begin(), times_all.end() ) - times_all.begin() );
+
+                        total = times_all.size();
+
+                        tr.resize( total + 10 );
+
+                        fill( tr.begin(), tr.end(), 0 );
+
+                        for( int i=0; i<n; i++ ) {
+//                                cerr << i << "---\n";
+                                for( auto& it: killable_times[i] ) {
+//                                        cerr << it.first << " " << it.second << "\n";
+                                        it.first = lower_bound( times_all.begin(), times_all.end(), it.first ) - times_all.begin();
+                                        it.second = lower_bound( times_all.begin(), times_all.end(), it.second ) - times_all.begin();
+                                }
+//                                compress( killable_times[i] );
+                                for( auto& it: killable_times[i] ) {
+                                        tr[ it.first ]++;
+                                        tr[ it.second + 1 ]--;
+                                }
+//                                cerr << "---\n";
+                        }
+
+                        for( int i=1; i<=total; i++ ) tr[i] += tr[i - 1];
+
+                        for( int i=0; i<total; i++ ) {
+                                ll cal = ( times_all[i] * increase + bounty ) * tr[i];
+                                ans = max( ans, cal );
+                        }
+
+                        if( total && tr[total - 1] && times_all[total - 1] >= ( 1ll << 62 ) && increase ) ans = -1;
+                }
+
+                printf( "%lld\n", ans );
+
+        }
+        return 0;
+}

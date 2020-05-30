@@ -1,0 +1,130 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 10;
+const int L = 18;
+const int INF = 1e8 + 10;
+
+struct node {
+  int a[10];
+  node() {
+    fill(a, a + 10, INF);
+  }
+  void ins(int x) {
+    int i;
+    if (a[9] < x)
+      return;
+    for (i = 9; i > 0; --i) {
+      if (a[i - 1] > x) {
+        a[i] = a[i - 1];
+      }
+      else {
+        break;
+      }
+    }
+    a[i] = x;
+  }
+};
+
+node mrg(const node &a, const node &b) {
+  node res;
+  /*
+  for (int i = 0, j = 0, k = 0; k < 10; ++k) {
+    res.a[k] = (i < 10 && (j == 10 || a.a[i] < b.a[j])) ? a.a[i++] : b.a[j++];
+  }*/
+  int p = 0;
+  int p1 = 0, p2 = 0;
+  while (p1 < 10 && p2 < 10 && p < 10) {
+    if (a.a[p1] > b.a[p2]) {
+      res.a[p++] = b.a[p2];
+      p2++;
+    }
+    else {
+      res.a[p++] = a.a[p1];
+      p1++;
+    }
+  }
+  return res;
+}
+
+int n, m, q;
+vector<int> g[N];
+node st[N][L];
+int fa[N][L];
+int dep[N];
+
+void dfs(int v, int f) {
+  fa[v][0] = f;
+  for (int i = 1; i < L; ++i) {
+    fa[v][i] = fa[fa[v][i - 1]][i - 1];
+    if (fa[v][i])
+      st[v][i] = mrg(st[v][i - 1], st[fa[v][i - 1]][i - 1]);
+  }
+  for (int i = 0; i < g[v].size(); ++i) {
+    int u = g[v][i];
+    if (u == f) continue;
+    dep[u] = dep[v] + 1;
+    dfs(u, v);
+  }
+}
+
+node query(int x, int y) {
+  if (dep[x] < dep[y]) swap(x, y);
+  int d = dep[x] - dep[y];
+  node res;
+  for (int i = 0; i < L; ++i) {
+    if (d >> i & 1) {
+      res = mrg(res, st[x][i]);
+      x = fa[x][i];
+    }
+  }
+  if (x == y) {
+    res = mrg(res, st[x][0]);
+    return res;
+  }
+  for (int i = L - 1; i >= 0; --i) {
+    if (fa[x][i] != fa[y][i]) {
+      res = mrg(res, st[x][i]);
+      x = fa[x][i];
+      res = mrg(res, st[y][i]);
+      y = fa[y][i];
+    }
+  }
+  res = mrg(res, st[x][0]);
+  res = mrg(res, st[y][0]);
+  res = mrg(res, st[fa[x][0]][0]);
+  return res;
+}
+
+int main() {
+  scanf("%d%d%d", &n, &m, &q);
+  for (int i = 1, v, u; i < n; ++i) {
+    scanf("%d%d", &v, &u);
+    g[v].push_back(u);
+    g[u].push_back(v);
+  }
+  for (int i = 1, c; i <= m; ++i) {
+    scanf("%d", &c);
+    st[c][0].ins(i);
+  }
+  dfs(1, 0);
+  while (q--) {
+    int v, u, a;
+    scanf("%d%d%d", &v, &u, &a);
+    node tmp = query(v, u);
+    vector<int> va;
+    for (int i = 0; i < a; ++i) {
+      if (tmp.a[i] < INF)
+        va.push_back(tmp.a[i]);
+      else
+        break;
+    }
+    printf("%u", va.size());
+    for (int i = 0; i < va.size(); ++i) {
+      printf(" %d", va[i]);
+    }
+    puts("");
+  }
+  return 0;
+}

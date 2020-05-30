@@ -1,0 +1,182 @@
+//#pragma GCC optimize("Ofast,no-stack-protector")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx")
+//#pragma GCC target("avx,tune=native")
+// Anand Jaisingh
+
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+
+const int maxn=(int)(1e6+3);
+const ll mod=(ll)(1e9+7);
+vector<int> al[maxn];
+int tin[maxn],tout[maxn],level[maxn],parent[maxn];
+int now=-1;
+int tree[4*maxn],lazy[4*maxn];
+bool taken[maxn];
+
+void dfs(int u,int p,int curr)
+{
+    level[u]=curr;tin[u]=++now;
+
+    parent[u]=p;
+
+    for(int x:al[u])
+    {
+        if(x!=p)
+        {
+            dfs(x,u,curr+1);
+        }
+    }
+
+    tout[u]=now;
+}
+
+void range_update(int node,int s,int e,int l,int r,int val)
+{
+    if(lazy[node]!=-1)
+    {
+        tree[node]=max(tree[node],lazy[node]);
+
+        if(s!=e)
+        {
+            lazy[node<<1]=max(lazy[node],lazy[node<<1]);
+
+            lazy[node<<1|1]=max(lazy[node],lazy[node<<1|1]);
+        }
+
+        lazy[node]=-1;
+    }
+
+    if(s>e || l>e || r<s)
+    {
+        return;
+    }
+
+    if(l<=s && r>=e)
+    {
+        tree[node]=max(tree[node],val);
+
+        if(s!=e)
+        {
+            lazy[node<<1]=max(lazy[node<<1],val);lazy[node<<1|1]=max(lazy[node<<1|1],val);
+        }
+    }
+
+    else
+    {
+        int mid=(s+e)>>1;
+
+        range_update(node<<1,s,mid,l,r,val);range_update(node<<1|1,mid+1,e,l,r,val);
+
+        tree[node]=max(tree[node<<1],tree[node<<1|1]);
+    }
+}
+
+int lazy_query(int node,int s,int e,int l,int r)
+{
+    if(lazy[node]!=-1)
+    {
+        tree[node]=max(tree[node],lazy[node]);
+
+        if(s!=e)
+        {
+            lazy[node<<1]=max(lazy[node],lazy[node<<1]);
+
+            lazy[node<<1|1]=max(lazy[node],lazy[node<<1|1]);
+        }
+
+        lazy[node]=-1;
+    }
+
+    if(s>e || l>e || r<s)
+    {
+        return 0;
+    }
+
+    if(l<=s && r>=e)
+    {
+        return tree[node];
+    }
+
+    else
+    {
+        int mid=(s+e)>>1;
+
+        return max(lazy_query(node<<1,s,mid,l,r),lazy_query(node<<1|1,mid+1,e,l,r));
+    }
+}
+
+int main()
+{
+    //ios_base::sync_with_stdio(0);
+
+    int n,k;scanf("%d%d",&n,&k);
+
+    k=n-k;
+
+    for(int i=1;i<n;i++)
+    {
+        int u,v;
+
+        scanf("%d%d",&u,&v);
+
+        u--;v--;
+
+        al[u].pb(v);al[v].pb(u);
+    }
+
+    dfs(n-1,-1,1);taken[n-1]=true;k--;
+
+    fill(lazy,lazy+4*n,-1);fill(tree,tree+4*n,-1);
+
+    range_update(1,0,n-1,tin[n-1],tout[n-1],level[n-1]);
+
+   // printf("%d %d\n",tin[n-1],tout[n-1]);
+
+    for(int i=n-2;i>=0;i--)
+    {
+        if(taken[i])
+        {
+            continue;
+        }
+
+        int now=lazy_query(1,0,n-1,tin[i],tin[i]);
+
+        int dis=level[i]-now;
+
+    //    printf("%d %d %d\n",(i+1),level[i],now);
+
+        if(dis<=k)
+        {
+            int curr=i;k-=dis;
+
+            while(dis>0)
+            {
+                taken[curr]=true;
+
+                range_update(1,0,n-1,tin[curr],tout[curr],level[curr]);
+
+                curr=parent[curr];
+
+                dis--;
+            }
+        }
+    }
+
+    for(int i=0;i<n;i++)
+    {
+        if(!taken[i])
+        {
+            printf("%d ",(i+1));
+        }
+    }
+
+    printf("\n");return 0;
+}

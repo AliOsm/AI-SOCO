@@ -1,0 +1,100 @@
+#define _USE_MATH_DEFINES
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+void fastInOut();
+
+const int N = 200000;
+int n, arr[N], f[N], t[N], cnt[3 * N];
+bool state[N], sgState[3 * N];
+vector<int> tree[N];
+
+int compressTree(int u, int idx) {
+	int ret = 1;
+	arr[idx] = u;
+	for (auto v : tree[u])
+		ret += compressTree(v, idx + ret);
+	f[u] = idx, t[u] = idx + ret - 1;
+	return ret;
+}
+
+int build(int idx, int st, int ed) {
+	if (st > ed)
+		return 0;
+	if (st == ed)
+		return cnt[idx] = state[arr[st]];
+	int md = (st + ed) / 2;
+	int cntL = build(2 * idx + 1, st, md);
+	int cntR = build(2 * idx + 2, md + 1, ed);
+	return cnt[idx] = cntL + cntR;
+}
+
+void updateNxt(int idx, int st, int ed) {
+	int md = (st + ed) / 2;
+	if (sgState[idx]) {
+		sgState[idx] = 0;
+		sgState[2 * idx + 1] ^= 1, sgState[2 * idx + 2] ^= 1;
+		cnt[2 * idx + 1] = (md - st + 1) - cnt[2 * idx + 1];
+		cnt[2 * idx + 2] = (ed - md) - cnt[2 * idx + 2];
+	}
+}
+
+int update(int idx, int st, int ed, int l, int r) {
+	if (st > ed || ed < l || st > r)
+		return cnt[idx];
+	if (st >= l && ed <= r) {
+		sgState[idx] ^= 1;
+		return cnt[idx] = (ed - st + 1) - cnt[idx];
+	}
+	updateNxt(idx, st, ed);
+	int md = (st + ed) / 2;
+	int cntL = update(2 * idx + 1, st, md, l, r);
+	int cntR = update(2 * idx + 2, md + 1, ed, l, r);
+	return cnt[idx] = cntL + cntR;
+}
+
+int query(int idx, int st, int ed, int l, int r) {
+	if (st > ed || ed < l || st > r)
+		return 0;
+	if (st >= l && ed <= r)
+		return cnt[idx];
+	updateNxt(idx, st, ed);
+	int md = (st + ed) / 2;
+	int cntL = query(2 * idx + 1, st, md, l, r);
+	int cntR = query(2 * idx + 2, md + 1, ed, l, r);
+	return cntL + cntR;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+#endif
+	fastInOut();
+	int p, q, u;
+	string s;
+	cin >> n;
+	for (int i = 1; i < n; ++i)
+		cin >> p, --p, tree[p].push_back(i);
+	compressTree(0, 0);
+	for (int i = 0; i < n; ++i)
+		cin >> state[i];
+	build(0, 0, n - 1);
+	cin >> q;
+	while (q--) {
+		cin >> s >> u, --u;
+		if (s == "pow")
+			update(0, 0, n - 1, f[u], t[u]);
+		else
+			cout << query(0, 0, n - 1, f[u], t[u]) << "\n";
+	}
+	return 0;
+}
+
+void fastInOut() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(NULL), cout.tie(NULL);
+}

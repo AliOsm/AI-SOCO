@@ -1,0 +1,209 @@
+#include <bits/stdc++.h>
+using namespace std ;
+
+#define pb push_back
+const int N = 2000 + 5 ; // N = left node + right node
+
+/* Complexity O(E*sqrt(V)) , Computes the matching */
+
+struct Hopcroft_Karp {
+    const int INF = (1<<28) ;
+    int match[N] , dist[N] , L , R ; // L,R no of nodes in left and right side
+    vector <int> G[N] ;
+    void init(int l , int r) {
+        L = l , R = r ;
+        for (int i = 0 ; i <= L+R+1 ; i++) {
+            G[i].clear() ;
+            match[i] = 0 ;
+        }
+    }
+    void addEdge (int u , int v) { // u = left node numbered from 1 to L
+        G[u].push_back(v) ; //  v = right node numbered from L+1 to L+R
+    }
+    bool bfs() {
+        queue <int> Q;
+        for(int i = 1; i <= L ;i++) {
+            if(!match[i]) {
+                dist[i] = 0;
+                Q.push(i);
+            }
+            else dist[i] = INF;
+        }
+        dist[0] = INF;
+        while(!Q.empty()) {
+            int u = Q.front(); Q.pop();
+            if(u) {
+                for(int i = 0; i < G[u].size(); i++) {
+                    int v = G[u][i];
+                    if(dist[match[v]]==INF) {
+                        dist[match[v]] = dist[u] + 1;
+                        Q.push(match[v]);
+                    }
+                }
+            }
+        }
+        return (dist[0]!=INF);
+    }
+    bool dfs(int u) {
+        if(u) {
+            for(int i = 0; i < G[u].size() ; i++) {
+                int v = G[u][i] ;
+                if(dist[match[v]] == dist[u]+1) {
+                    if(dfs(match[v])) {
+                        match[v] = u;
+                        match[u] = v;
+                        return true;
+                    }
+                }
+            }
+            dist[u] = INF;
+            return false;
+        }
+        return true;
+    }
+
+    int hopcroft_karp() {
+        int matching = 0 ;
+        while(bfs()) {
+            for(int i = 1 ; i <= L ; i++) {
+                if(!match[i] && dfs(i)) {
+                    matching++ ;
+                }
+            }
+        }
+        return matching;
+    }
+
+    void MinimumVertexCover(vector<int> &color) { /// 1:belongs to min vertex cover , 0:otherwise
+        vector< vector<int> > g(R+L+1) ; /// must call hopcroft_karp() before calling it.
+        queue <int> Q ;
+        vector <int> vis(L+R+1,0) ;
+        for(int u = 1 ; u <= L ; u++) {
+            if (match[u]==0) {
+                Q.push(u);
+                vis[u] = 1;
+            }
+            for(int i = 0 ; i < G[u].size(); i++) {
+                int v = G[u][i] ;
+                if (match[u] == v) {
+                    g[v].push_back(u);
+                }
+                else {
+                    g[u].push_back(v);
+                }
+            }
+        }
+        while(Q.size()) {
+            int u = Q.front() ; Q.pop();
+            for(int i = 0 ; i < g[u].size() ; i++) {
+                int v = g[u][i] ;
+                if (vis[v] == 0) {
+                    vis[v] = 1 ;
+                    Q.push(v) ;
+                }
+            }
+        }
+        color.resize(R+L+1) ;
+        for(int i = 1 ; i <= L ; i++) {
+            color[i] = (!vis[i]);
+        }
+        for(int i = L+1 ; i <= L+R ; i++) {
+            color[i] = vis[i];
+        }
+    }
+
+}hk;
+
+struct data {
+    int x1,y1,x2,y2 ;
+    int id ;
+};
+
+int main() {
+
+    //freopen ("in.txt","r",stdin) ;
+    int n ; cin >> n ;
+    map < int,vector<int> > Mx , My ;
+    for(int i = 1 ; i <= n ; i++) {
+        int x,y ; cin >> x >> y ;
+        Mx[x].push_back(y) ;
+        My[y].push_back(x) ;
+    }
+    vector <data> Vx , Vy ;
+    int k = 0 ;
+    for(auto it = Mx.begin() ; it != Mx.end() ; it++) {
+        int x = (it->first) ;
+        vector<int> idx = (it->second) ;
+        sort(idx.begin(),idx.end()) ;
+        for(int i = 1 ; i < idx.size() ; i++) {
+            ++k ;
+            Vx.push_back({x,idx[i-1],x,idx[i],k}) ;
+        }
+    }
+    int L = k;
+    for(auto it = My.begin() ; it != My.end() ; it++) {
+        int y = (it->first) ;
+        vector<int> idx = (it->second) ;
+        sort(idx.begin(),idx.end()) ;
+        for(int i = 1 ; i < idx.size() ; i++) {
+            ++k ;
+            Vy.push_back({idx[i-1],y,idx[i],y,k}) ;
+        }
+    }
+    int R = k-L ;
+    hk.init(L,R) ;
+
+    for(int i = 0 ; i < Vx.size() ; i++) {
+        data temp = Vx[i] ;
+        int l = temp.id ;
+        for(int j = 0 ; j < Vy.size() ; j++) {
+            if (Vy[j].y1 > temp.y1 and Vy[j].y1 < temp.y2 and Vy[j].x1 < temp.x1 and Vy[j].x2 > temp.x1) {
+                hk.addEdge(temp.id,Vy[j].id) ;
+            }
+        }
+    }
+    hk.hopcroft_karp() ;
+    vector<int> color ;
+    hk.MinimumVertexCover(color) ;
+
+    k = 0 ;
+    vector <data> solx , soly ;
+    for(auto it = Mx.begin() ; it != Mx.end() ; it++) {
+        vector<int> idx = (it->second) ;
+        sort(idx.begin(),idx.end()) ;
+        int x = (it->first) ;
+        int last = idx[0] ;
+        for(int i = 1 ; i < idx.size() ; i++) {
+            ++k ;
+            if (color[k]) {
+                solx.push_back({x,last,x,idx[i-1],0}) ;
+                last = idx[i] ;
+            }
+        }
+        solx.push_back({x,last,x,idx.back(),0}) ;
+    }
+
+    for(auto it = My.begin() ; it != My.end() ; it++) {
+        vector<int> idx = (it->second) ;
+        sort(idx.begin(),idx.end()) ;
+        int y = (it->first) ;
+        int last = idx[0] ;
+        for(int i = 1 ; i < idx.size() ; i++) {
+            ++k ;
+            if (color[k]) {
+                soly.push_back({last,y,idx[i-1],y,0}) ;
+                last = idx[i];
+            }
+        }
+        soly.push_back({last,y,idx.back(),y,0}) ;
+    }
+    cout << soly.size() << endl ;
+    for(auto p:soly) {
+        printf ("%d %d %d %d\n",p.x1,p.y1,p.x2,p.y2) ;
+    }
+    cout << solx.size() << endl ;
+    for(auto p:solx) {
+        printf ("%d %d %d %d\n",p.x1,p.y1,p.x2,p.y2) ;
+    }
+    return 0 ;
+}

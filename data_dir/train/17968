@@ -1,0 +1,130 @@
+#include "bits/stdc++.h"
+using namespace std;
+
+#define debug(args...) fprintf(stderr, args);
+
+typedef long long ll;
+
+const int maxn = 1e5 + 10;;
+
+int n;
+int a[maxn];
+
+int ans[maxn];
+
+int LastPos[maxn];
+
+typedef struct node * pnode;
+
+struct node {
+    int sum;
+    pnode L, R;
+
+    node() {
+	L = R = NULL;
+	sum = 0;
+    }
+};
+
+pnode root[maxn];
+
+int Sum(pnode idx) {
+    if(!idx)
+	return 0;
+
+    return idx->sum;
+}
+
+pnode build(int i, int j) {
+    pnode idx = new node();
+
+    if(i != j) {
+	int mid = (i + j) >> 1;
+	
+	idx->L = build(i, mid);
+	idx->R = build(mid + 1, j);
+    }
+
+    return idx;
+}
+
+pnode update(pnode idx, int i, int j, int pos, int val) {
+    pnode cur = new node();
+
+    cur->sum = idx->sum;
+    cur->L = idx->L;
+    cur->R = idx->R;
+
+    if(i == j) {
+	cur->sum += val;
+	return cur;
+    }
+
+    int mid = (i + j) >> 1;
+
+    if(pos <= mid)
+	cur->L = update(cur->L, i, mid, pos, val);
+    else
+	cur->R = update(cur->R, mid + 1, j, pos, val);
+
+    cur->sum = Sum(cur->L) + Sum(cur->R);
+
+    return cur;
+}
+
+int query(pnode idx, int i, int j, int k) {
+    if(i == j)
+	return i;
+
+    int mid = (i + j) >> 1;
+
+    if(k <= Sum(idx->L))
+	return query(idx->L, i, mid, k);
+
+    return query(idx->R, mid + 1, j, k - Sum(idx->L));
+}
+
+int get(int k) {
+    int parts = 0;
+
+    for(int i = 1; i <= n; i = query(root[i], 1, n + 1, k + 1))
+	++parts;
+
+    return parts;
+}
+
+void solve() {
+    root[n + 1] = build(1, n + 1);
+
+    for(int i = n; i >= 1; --i) {
+	root[i] = update(root[i + 1], 1, n + 1, i, +1);
+
+	if(LastPos[a[i]])
+	    root[i] = update(root[i], 1, n + 1, LastPos[a[i]], -1);
+
+	LastPos[a[i]] = i;
+    }
+
+    for(int k = 1; k <= n; ++k)
+	ans[k] = get(k);
+}
+
+int main() {
+    scanf("%d", &n);
+
+    for(int i = 1; i <= n; ++i)
+	scanf("%d", &a[i]);
+
+    solve();
+
+    for(int i = 1; i <= n; ++i) {
+	printf("%d", ans[i]);
+
+	if(i != n)
+	    printf(" ");
+	else
+	    printf("\n");
+    }
+
+    return 0;
+}

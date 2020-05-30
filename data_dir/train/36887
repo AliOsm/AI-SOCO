@@ -1,0 +1,170 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef vector<ll> vll;
+typedef pair<int, int> pii;
+typedef vector<string> vs;
+typedef vector<bool> vb;
+typedef vector<int> vi;
+typedef vector<double> vd;
+typedef vector<vector<int> > vvi;
+typedef vector<pii> vii;
+typedef vector<vector<pii> > vvii;
+typedef long double ld;
+typedef map<int, int> mapii;
+typedef map<string, int> mapsi;
+
+#define erep(i, x, n) for (auto i = x; i<=(ll)(n); i++)
+#define rep(i, x, n) for(auto i = x; i<(ll)(n); i++)
+#define INF  LLONG_MAX
+#define all(v) ((v).begin()), ((v).end())
+#define sz(v) ((int)((v).size()))
+#define pi  acos(-1)
+#define mod(n,m) ((n % m + m) % m)
+#define eps (1e-8)
+#define reset(n, m) memset(n, m, sizeof n)
+#define endl '\n'
+#define output freopen("output.txt", "w", stdout)
+#define mp(x, y, z) { x, {y, z} }
+
+const int N = 1e5 + 5;
+vvi node;
+int sp[N][18], depth[N], n, sz[N], id, in[N], out[N];
+
+void dfs(int v, int p)
+{
+	in[v] = id++;
+	depth[v] = 1 + depth[p];
+	sz[v] = 1;
+	sp[v][0] = p;
+
+	for (auto i : node[v])
+		if (i != p)
+			dfs(i, v), sz[v] += sz[i];
+
+	out[v] = id++;
+}
+
+void build()
+{
+	rep(j, 1, 18)
+		erep(i, 1, n)
+			sp[i][j] = sp[sp[i][j - 1]][j - 1];
+}
+
+int LCA(int u, int v)
+{
+	if (depth[v] > depth[u])
+		swap(v, u);
+	int diff = depth[u] - depth[v];
+
+	for (int i = 17; i >= 0; i--)
+		if (diff & (1 << i))
+			u = sp[u][i];
+
+	if (u == v)
+		return u;
+
+	for (int i = 17; i >= 0; i--)
+		if (sp[u][i] != sp[v][i])
+			u = sp[u][i], v = sp[v][i];
+	return sp[u][0];
+}
+
+bool inside(int a, int b)
+{
+	return (in[b] <= in[a] && out[a] <= out[b]);
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	cin >> n;
+	node = vvi(n + 1);
+	rep(i, 0, n-1)
+	{
+		int u, v;
+		cin >> u >> v;
+		node[u].push_back(v);
+		node[v].push_back(u);
+	}
+
+	dfs(1, 0);
+	build();
+
+	int q;
+	cin >> q;
+
+	while (q--)
+	{
+		int u, v;
+		cin >> u >> v;
+
+		if (depth[v] > depth[u])
+			swap(u, v);
+		if (u == v)
+		{
+			cout << n << endl;
+			continue;
+		}
+		int lca = LCA(u, v);
+		if (lca == v)
+		{
+			if ((depth[u] - depth[v]) % 2 == 0)
+			{
+				int diff = (depth[u] - depth[v]) / 2;
+				int hoba = u;
+				for (int i = 17; i >= 0; i--)
+					if (diff & (1 << i))
+						hoba = sp[hoba][i];
+
+				diff = depth[u] - depth[hoba] - 1;
+				for (int i = 17; i >= 0; i--)
+					if (diff & (1 << i))
+						u = sp[u][i];
+
+				cout << sz[hoba] - sz[u] << endl;
+			}
+			else
+				cout << 0 << endl;
+		}
+		else
+		{
+			if (depth[lca] - depth[v] == depth[lca] - depth[u])
+			{
+				int diff = depth[u] - depth[lca] - 1;
+				for (int i = 17; i >= 0; i--)
+					if (diff & (1 << i))
+						u = sp[u][i], v = sp[v][i];
+				cout << n - sz[u] - sz[v] << endl;
+			}
+			else
+			{
+				int dist = depth[v] + depth[u] - 2 * depth[lca];
+				if (dist % 2 == 0)
+				{
+					int diff = dist / 2;
+					int hoba = u;
+					for (int i = 17; i >= 0; i--)
+						if (diff & (1 << i))
+							hoba = sp[hoba][i];
+//					cout << "-----------> " <<  hoba << endl;
+					diff = depth[u] - depth[hoba] - 1;
+					for (int i = 17; i >= 0; i--)
+						if (diff & (1 << i))
+							u = sp[u][i];
+					cout << sz[hoba] - sz[u] << endl;
+				}
+				else
+					cout << 0 << endl;
+			}
+		}
+	}
+
+	return 0;
+}

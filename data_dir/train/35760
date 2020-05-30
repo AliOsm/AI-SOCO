@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const int sz = 1e5 + 10;
+int n, m, ch;
+
+int lg[sz];
+int lvl[sz];
+int table[sz][17];
+int pr[sz];
+int dp[sz], cnt[sz], ans[sz];
+
+vector < pair < int, int > > G[sz];
+
+void dfs( int fr, int u, int dep ) {
+        lvl[u] = dep;
+        pr[u] = fr;
+        for( auto v: G[u] ) {
+                if( fr == v.first )
+                        continue;
+                dfs( u, v.first, dep+1 );
+        }
+}
+
+int init_lca( int n ) {
+        memset( table, -1, sizeof table );
+        for( int i=0; i<n; i++ ) {
+                table[i][0] = pr[i];
+        }
+        for( int j=1; ( 1 << j ) < n; j++ ) {
+                for( int i=0; i<n; i++ ) {
+                        if( table[i][j-1] == -1 )
+                                continue;
+                        table[i][j] = table[ table[i][j-1] ][j-1];
+                }
+        }
+        for( int i=0; i<17; i++ )
+                lg[1 << i] = i;
+        for( int i=1; i<sz; i++ )
+                if( !lg[i] )
+                        lg[i] = lg[i-1];
+}
+
+int query( int n, int p, int q ) {
+        int log;
+        if( lvl[p] < lvl[q] )
+                swap( p, q );
+        log = lg[ lvl[ p ] ];
+        for( int i=log; i>=0; i-- ) {
+                if( lvl[p] - ( 1 << i ) >= lvl[q] ) {
+                        p = table[ p ][ i ];
+                }
+        }
+        if( p == q )
+                return p;
+        for( int i=log; i>=0; i-- ) {
+                if( table[ p ][ i ] != -1 && table[ p ][ i ] != table[ q ][ i ] ) {
+                        p = table[ p ][ i ];
+                        q = table[ q ][ i ];
+                }
+        }
+        return pr[p];
+}
+
+int dist( int n, int p, int q ) {
+        int lca = query( n, p, q );
+        return lvl[p] + lvl[q] - 2 * lvl[lca];
+}
+
+void rec( int u, int fr ) {
+        for( auto vv: G[u] ) {
+                if( fr == vv.first )
+                        continue;
+                rec( vv.first, u );
+                dp[u] += dp[vv.first];
+                ans[vv.second] = dp[vv.first];
+        }
+        dp[u] += cnt[u];
+}
+
+int main() {
+#ifdef CLown1331
+        freopen( "in.txt","r",stdin );
+#endif /// CLown1331
+        int n, m, s;
+        while( cin >> n ) {
+                for( int i=0; i<=n; i++ ) {
+                        G[i].clear();
+                }
+                memset( ans, 0, sizeof ans );
+                memset( dp, 0, sizeof dp );
+                memset( cnt, 0, sizeof cnt );
+                for( int i=1,x,y; i<n; i++ ) {
+                        cin >> x >> y;
+                        G[x-1].push_back( { y-1, i } );
+                        G[y-1].push_back( { x-1, i } );
+                }
+                dfs( 0, 0, 0 );
+                init_lca( n );
+                cin >> m;
+                for( int i=0,x,y; i<m; i++ ) {
+                        cin >> x >> y;
+                        --x, --y;
+                        s = query( n, x, y );
+                        if( s == x || s == y ) {
+                                cnt[s]--;
+                                if( y == s ) {
+                                        cnt[x]++;
+                                } else {
+                                        cnt[y]++;
+                                }
+                        } else {
+                                cnt[s] -= 2;
+                                cnt[x]++;
+                                cnt[y]++;
+                        }
+                }
+                rec( 0, 0 );
+                for( int i=1; i<n; i++ )
+                        cout << ans[i] << " ";
+                cout << "\n";
+                cerr << "---\n";
+        }
+        return 0;
+}

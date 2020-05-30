@@ -1,0 +1,123 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 15e4 + 5;
+int n, p[N], fen[N];
+struct Segment {
+	struct Node {
+		long long sum, lz;
+		int mx1, mx2, ted, k, lz_mx;
+		Node(): sum(0), lz(0), mx1(-N), mx2(-N), ted(0), k(0), lz_mx(0) {};
+
+		void add(int x) {
+			if (!k)
+				return;
+			sum += 1LL * k * x;
+			lz += x, mx1 += x;
+			if (mx2 > -N)
+				mx2 += x;
+		}
+		void change(int x) {
+			if (!k)
+				return;
+			sum += 1LL * x * ted;
+			lz_mx += x, mx1 += x;
+		}
+	} seg[N << 2];
+
+	Node merge(Node a, Node b) {
+		if (b.k && a.mx1 < b.mx1)
+			swap(a, b);
+		if (a.mx1 == b.mx1) {
+			a.ted += b.ted;
+			a.mx2 = max(a.mx2, b.mx2);
+		}
+		else
+			a.mx2 = max(a.mx2, b.mx1);
+		a.lz = a.lz_mx = 0;
+		a.sum += b.sum;
+		a.k += b.k;
+		return a;
+	}
+	void shift(int id) {
+		for (auto p: {id << 1, id << 1 | 1}) {
+			seg[p].add(seg[id].lz);
+			if (seg[p].mx1 + seg[id].lz_mx == seg[id].mx1)
+				seg[p].change(seg[id].lz_mx);
+		}
+		seg[id].lz = seg[id].lz_mx = 0;
+	}
+	void change(int p, int x, int id = 1, int st = 0, int en = n) {
+		if (en - st == 1) {
+			seg[id].mx1 = seg[id].sum = x;
+			seg[id].ted = seg[id].k = 1;
+			return;
+		}
+		shift(id);
+		int mid = st + en >> 1;
+		if (p < mid)
+			change(p, x, id << 1, st, mid);
+		else
+			change(p, x, id << 1 | 1, mid, en);
+		seg[id] = merge(seg[id << 1], seg[id << 1 | 1]);
+	}
+	void update(int l, int r, int x, int id = 1, int st = 0, int en = n) {
+		if (r <= st || en <= l || seg[id].mx1 <= x)
+			return;
+		if (l <= st && en <= r && seg[id].mx2 < x)
+			return seg[id].change(x - seg[id].mx1);
+		shift(id);
+		int mid = st + en >> 1;
+		update(l, r, x, id << 1, st, mid);
+		update(l, r, x, id << 1 | 1, mid, en);
+		seg[id] = merge(seg[id << 1], seg[id << 1 | 1]);
+	}
+	void add(int l, int r, int x, int id = 1, int st = 0, int en = n) {
+		if (r <= st || en <= l)
+			return;
+		if (l <= st && en <= r)
+			return seg[id].add(x);
+		shift(id);
+		int mid = st + en >> 1;
+		add(l, r, x, id << 1, st, mid);
+		add(l, r, x, id << 1 | 1, mid, en);
+		seg[id] = merge(seg[id << 1], seg[id << 1 | 1]);
+	}
+} L, R;
+
+void add(int p) {
+	for (p++; p < N; p += p & -p)
+		fen[p]++;
+}
+
+int get(int p) {
+	int ans = 0;
+	for (p++; p; p -= p & -p)
+		ans += fen[p];
+	return ans;
+}
+
+void read_input() {
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		int x;
+		cin >> x;
+		p[--x] = i;
+	}
+}
+
+void solve() {
+	for (int i = 0; i < n; i++) {
+		R.add(p[i], n, 1), R.update(0, p[i], get(p[i]));
+		L.add(p[i], n, -1), L.update(p[i], n, -get(p[i]));
+		L.change(p[i], 1), R.change(p[i], i + 1), add(p[i]);
+		cout << L.seg[1].sum + R.seg[1].sum - i - 1 << endl;
+	}
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	read_input(), solve();
+	return 0;
+}

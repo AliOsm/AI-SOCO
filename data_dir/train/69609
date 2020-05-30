@@ -1,0 +1,189 @@
+/////////////////////////   _LeMur_
+#include <iostream>
+#include <algorithm>
+#include <time.h>
+#include <stack>
+#include <string>
+#include <cstring>
+#include <cassert>
+#include <complex>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <queue>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 125005;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 1000 * 1000 * 1000 + 7;
+
+struct cd{
+    double x , y;
+    cd(double xx = 0.0,double yy = 0.0){
+        x = xx;
+        y = yy;
+    }
+    cd operator+(const cd &a){
+        return cd(x + a.x , y + a.y);
+    }
+    cd operator-(const cd &a){
+        return cd(x - a.x , y - a.y);
+    }
+    cd operator*(const cd &a){
+        return cd(x * a.x - y * a.y , x * a.y + y * a.x);
+    }
+    cd operator/(const double &k){
+        return cd(x / k , y / k);
+    }
+};
+
+int n;
+vector <cd> g1 , g2;
+vector <int> g;
+
+int ind[4 * N];
+
+void fft(vector <cd> &a){
+    int n = (int)a.size();
+
+    int h = 0 , _n = n;
+
+    while(_n % 2 == 0){
+        _n /= 2;
+        h++;
+    }
+
+    for(int i=0;i<n;i++){
+        if(i < ind[i]){
+            swap(a[i] , a[ind[i]]);
+        }
+    }
+
+    for(int i=1;i<=h;i++){
+        int x = (1 << i);
+        double alfa = 2.0 * acos(-1.0) / x;
+        cd wn(cos(alfa) , sin(alfa));
+        for(int j=0;j<n;j += x){
+            cd w(1);
+            for(int h=j;h<j + x / 2;h++){
+                cd u = a[h];
+                cd v = w * a[h + x / 2];
+                a[h] = u + v;
+                a[h + x / 2] = u - v;
+                w = w * wn;
+            }
+        }
+    }
+}
+
+void inv(vector <cd> &a){
+    fft(a);
+    int n = (int)a.size();
+    for(int i=0;i<n;i++){
+        a[i] = a[i] / n;
+    }
+    reverse(a.begin() + 1 , a.end());
+}
+
+vector <int> mult(vector <cd> &a,vector <cd> &b){
+    int n = 1 , h = 0;
+    int sz = (int)a.size() + (int)b.size();
+
+    while(n < sz){
+        n *= 2;
+        ++h;
+    }
+
+    ind[0] = 0;
+    for(int i=0;i<h;i++){
+        int x = (1 << i);
+        for(int j=x;j<2*x;j++){
+            ind[j] = ind[j - x] ^ (1 << (h - i - 1));
+        }
+    }
+
+    a.resize(n);
+    b.resize(n);
+    fft(a);
+    fft(b);
+    for(int i=0;i<n;i++){
+        a[i] = a[i] * b[i];
+    }
+    inv(a);
+    vector <int> answ;
+    answ.resize(n);
+    for(int i=0;i<n;i++){
+        answ[i] = (int)(a[i].x + 0.5);
+    }
+    return answ;
+}
+
+string s1 , s2;
+bool v[7][7][N] , used[7];
+int parent[7];
+
+int findher(int v){
+    if(v == parent[v])return v;
+    return parent[v] = findher(parent[v]);
+}
+
+int main(){
+    cin>>s1>>s2;
+    for(int i=0;i<6;i++){
+        for(int j=0;j<6;j++){
+            if(i == j)continue;
+            vector <cd> g1((int)s1.size());
+            for(int h=0;h<(int)s1.size();h++){
+                if(s1[h] == char('a' + i))
+                    g1[h] = cd(1);
+                else
+                    g1[h] = cd(0);
+            }
+            vector <cd> g2((int)s2.size());
+            int m = (int)s2.size();
+            for(int h=0;h<m;h++){
+                if(s2[h] == char('a' + j))
+                    g2[m - h - 1] = cd(1);
+                else
+                    g2[m - h - 1] = cd(0);
+            }
+            vector <int> g = mult(g1 , g2);
+            for(int h=m-1;h<(int)g.size();h++){
+                if(g[h - (m - 1)]){
+                    v[i][j][h - (m - 1)] = true;
+                }
+            }
+        }
+    }
+    for(int i=(int)s2.size()-1;i<(int)s1.size();i++){
+        for(int j=0;j<6;j++){
+            parent[j] = j;
+            used[j] = false;
+        }
+        for(int j=0;j<6;j++){
+            for(int h=0;h<6;h++){
+                int p1 = findher(j);
+                int p2 = findher(h);
+                if(v[j][h][i]){
+                    if(p1 != p2){
+                        parent[p1] = p2;
+                    }
+                }
+            }
+        }
+        int answ = 6;
+        for(int j=0;j<6;j++){
+            int x = findher(j);
+            if(used[x] == false){
+                used[x] = true;
+                answ--;
+            }
+        }
+        printf("%d ",answ);
+    }
+    cout<<endl;
+    return 0;
+}

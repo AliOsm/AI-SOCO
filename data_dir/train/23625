@@ -1,0 +1,107 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+using namespace std;
+
+const int N = 101000;
+typedef long long lld;
+
+struct Node {
+        Node *ch[2];
+        lld sum[5],val;
+        int sz;
+}memo[N],*bat,*root,*nill;
+unsigned ran() { static unsigned ranx = 987654783; return ranx += ranx<<2|1; }
+bool lor(int a,int b) { return (lld)ran()*(a+b) <= (lld)(~0u)*a; }
+void up(Node *o) {
+        o->sz = o->ch[0]->sz + o->ch[1]->sz + 1;
+        for (int i = 0; i < 5; i ++) {
+                o->sum[i] = o->ch[0]->sum[i];
+        }
+        o->sum[o->ch[0]->sz%5] += o->val;
+        for (int i = 0; i < 5; i ++) {
+                o->sum[(o->ch[0]->sz+1+i)%5] += o->ch[1]->sum[i];
+        }
+}
+void newNode(Node *&o,lld val = 0) {
+        o = bat ++;
+        o->ch[0] = o->ch[1] = nill;
+        memset(o->sum,0,sizeof(o->sum));
+        o->val = o->sum[0] = val;
+        o->sz = 1;
+}
+void init() {
+        bat = memo;
+        newNode(nill); nill->sz = 0;
+        root = nill;
+}
+void cut(Node *o,Node *&a,Node *&b,lld val) { // (-INF,val)
+        if (o==nill) {
+                a = b = nill;
+        } else {
+                if (o->val >= val) {
+                        b = o;
+                        cut(o->ch[0],a,b->ch[0],val);
+                        up(b);
+                } else {
+                        a = o;
+                        cut(o->ch[1],a->ch[1],b,val);
+                        up(a);
+                }
+        }
+}
+void merge(Node *&o,Node *a,Node *b) {
+        if (a==nill) {
+                o = b;
+        } else if (b==nill) {
+                o = a;
+        } else {
+                if (lor(a->sz,b->sz)) {
+                        o = a;
+                        merge(o->ch[1],a->ch[1],b);
+                } else {
+                        o = b;
+                        merge(o->ch[0],a,b->ch[0]);
+                }
+                up(o);
+        }
+}
+void add(int x) {
+        Node *a,*b,*c;
+        cut(root,a,b,x);
+        newNode(c,x);
+        merge(a,a,c);
+        merge(root,a,b);
+}
+void del(int x) {
+        Node *a,*b,*c;
+        cut(root,a,b,x);
+        cut(b,b,c,x+1);
+        merge(root,a,c);
+}
+void show(Node *o) {
+        if (o==nill) return ;
+        show(o->ch[0]);
+        printf("%lld ",o->val);
+        show(o->ch[1]);
+}
+int main() {
+        int nq;
+        scanf("%d",&nq);
+        init();
+        while (nq--) {
+                char op[13];
+                int x;
+                scanf("%s",op);
+                if (op[0]=='a') {
+                        scanf("%d",&x);
+                        add(x);
+                } else if (op[0]=='d') {
+                        scanf("%d",&x);
+                        del(x);
+                } else {
+                        printf("%lld\n",root->sum[2]);
+                }
+        }
+        return 0;
+}

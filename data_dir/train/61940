@@ -1,0 +1,110 @@
+#include <stdio.h>
+#include <bits/stdtr1c++.h>
+
+#define clr(ar) memset(ar, 0, sizeof(ar))
+#define read() freopen("lol.txt", "r", stdin)
+#define dbg(x) cout << #x << " = " << x << endl
+#define ran(a, b) ((((rand() << 15) ^ rand()) % ((b) - (a) + 1)) + (a))
+#define FOR(i,j,k) for(int i=j;i<=k;i++)
+#define REV(i,j,k) for(int i=j;i>=k;i--)
+#define inf         freopen("in.txt", "r", stdin)
+#define outf        freopen("out.txt", "w", stdout)
+#define valid(nx,ny)  ((nx >= 0) && (nx < n) && (ny >= 0) && (ny < m))
+#define MAX 50010
+
+using namespace std;
+
+/// Min-cost Max-flow using SPFA (Shortest Path Faster Algorithm)
+/// 0 Based indexed for directed weighted graphs (for undirected graphs, just add two directed edges)
+
+namespace mcmf{
+    const int INF = 1LL << 30;
+
+    int dis[MAX], cap[MAX], cost[MAX];
+    int n, m, s, t, to[MAX], from[MAX], last[MAX], next[MAX], adj[MAX];
+
+    void init(int nodes, int source, int sink){
+        m = 0, n = nodes;
+        s = source, t = sink;
+        for (int i = 0; i <= n; i++) last[i] = -1;
+    }
+
+    void addEdge(int u, int v, int c, int w){
+       // cout << u << ' ' << v << ' ' << c << ' ' << w << endl;
+        from[m] = u, adj[m] = v, cap[m] = c, cost[m] = w, next[m] = last[u], last[u] = m++;
+        from[m] = v, adj[m] = u, cap[m] = 0, cost[m] = -w, next[m] = last[v], last[v] = m++;
+    }
+
+    bool bellman_ford(){
+        int i, u, v, e, flag = 1;
+        for (i = 0; i < n; i++) to[i] = -1;
+        for (i = 0; i < n; i++) dis[i] = INF;
+
+        dis[s] = 0;
+        for (i = 0; i < n && flag; i++){
+            for (u = 0, flag = 0; u < n; u++){
+                for (e = last[u]; e != -1; e = next[e]){
+                    v = adj[e];
+                    if (cap[e] && dis[v] > (dis[u] + cost[e])){
+                        dis[v] = dis[u] + cost[e];
+                        to[v] = e;
+                        flag = 1;
+                    }
+                }
+            }
+        }
+        ///assert(i < n); /// Negative cycle found
+        return (dis[t] < INF);
+    }
+
+    int solve(){
+        int maxflow = 0, mincost = 0;
+
+        while (bellman_ford()){
+            int aug = INF;
+            for (int e = to[t]; e != -1; e = to[from[e]]) aug = min(aug, cap[e]);
+            for (int e = to[t]; e != -1; e = to[from[e]]){
+                mincost += (aug * cost[e]);
+                cap[e] -= aug, cap[e ^ 1] += aug;
+            }
+            maxflow += aug;
+        }
+        return mincost;
+    }
+}
+
+
+string str, pat[MAX];
+int n, m, val[MAX], x;
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    //inf;
+
+    cin >> n >> str >> m;
+    FOR(i,0,m-1) cin >> pat[i] >> val[i];
+    cin >> x;
+
+    int src = n + 1, des = n + 2;
+    mcmf::init(des + 1, src, des);
+
+    mcmf::addEdge(src, 0, x, 0);
+    FOR(i,0,n-1) mcmf::addEdge(i, i + 1, x, 0);
+    mcmf::addEdge(n, des, x, 0);
+
+    FOR(i,0,m-1)
+    {
+        int found = -1;
+        while(true)
+        {
+            found = str.find(pat[i], found + 1);
+            if(found == string::npos) break;
+            else mcmf::addEdge(found, found + pat[i].size(), 1, -val[i]);
+        }
+    }
+    cout <<  -1 * mcmf::solve() << endl;
+}
+
+
+

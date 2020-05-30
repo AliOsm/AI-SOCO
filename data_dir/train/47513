@@ -1,0 +1,132 @@
+//In the name of good
+#include <bits/stdc++.h>
+using namespace std ;
+#define fast ios_base::sync_with_stdio(false),cin.tie(0),cout.tie(0)
+#define int long long 
+#define ST setprecision ( 12 ) 
+const long double pi = 3.1415926535897932384626433832795 ;
+const int maxn = 2e5 + 100 ;
+const  int maxL = 64 ;
+int n , m , ans , dp [ maxn ] [ maxL ] [ 2 ] , h [ maxn ] ;
+vector < pair < int , pair < int , int > > > vc , vc3 ;
+set < int > MST ;
+vector < pair < int , int > > vc1 [ maxn ] ;
+vector < int > com [ maxn ] ;
+
+void init ( ) 
+{ 
+  cin >> n >> m ;
+  int a , b , c ; 
+  for ( int i = 0 ; i < m ; i ++ )
+    { 
+      cin >> a >> b >> c ; 
+      a -- , b -- ; 
+      vc . push_back ( make_pair ( c , make_pair ( a , b ) ) ) ;
+    } 
+  vc3 = vc ;
+  sort ( vc . begin ( ) , vc . end ( ) ) ;
+}
+
+void make_MST ( ) 
+{ 
+  int comp [ maxn ] ; 
+  for ( int i = 0 ; i < n ; i ++ ) 
+    comp [ i ] = i , com [ i ] . push_back ( i ) ; 
+  int v , u ;
+  for ( int i = 0 ; i < m ; i ++ ) 
+    { 
+      //   if ( MST . size ( ) == n - 1 ) 
+      //	return ;
+      v = vc [ i ] . second . first ;
+      u = vc [ i ] . second . second ;
+      if ( comp [ v ] != comp [ u ] )
+	{
+	  v = comp [ v ] ;
+	  u = comp [ u ] ;
+	  MST . insert ( i ) ; 
+	  ans += vc [ i ] . first ;
+	  if ( com [ u ] . size ( ) < com [ v ] . size ( ) )
+	    swap ( v , u ) ;
+	  for ( int j = 0 ; j < com [ v ] . size ( ) ; j ++ )
+	    com [ u ] . push_back ( com [ v ] [ j ] ) , comp [ com [ v ] [ j ] ] = u ;
+	  com [ v ] . clear ( ) ;
+	}
+    } 
+} 
+
+void dfs ( int x ) 
+{  
+  for ( int i = 0 ; i < vc1 [ x ] . size () ; i ++ )
+    if ( vc1 [ x ] [ i ] . first != dp [ x ] [ 0 ] [ 0 ] ) 
+      {
+	dp [ vc1 [ x ] [ i ] . first ] [ 0 ] [ 0 ] = x ; 
+	dp [ vc1 [ x ] [ i ] . first ] [ 0 ] [ 1 ] = vc1 [ x ] [ i ] . second ; 
+	h [ vc1 [ x ] [ i ] . first ] = h [ x ] + 1 ;
+	dfs ( vc1 [ x ] [ i ] . first ) ;
+      }
+} 
+
+int get_par ( int x , int y ) 
+{ 
+  for ( int i = 0 ; i < maxL ; i ++ ) 
+    if ( ( y >> i ) & 1LL )
+      x = dp [ x ] [ i ] [ 0 ] ; 
+  return x ;
+} 
+
+int get_par_w ( int x , int y ) 
+{ 
+  int ret = 0 ;
+  for ( int i = 0 ; i < maxL ; i ++ ) 
+    if ( ( y >> i ) & 1LL )
+      ret = max ( ret , dp [ x ] [ i ] [ 1 ] ) , x = dp [ x ] [ i ] [ 0 ] ; 
+  return ret ;
+} 
+
+int LCA ( int x , int y ) 
+{  
+  if ( h [ x ] > h [ y ] ) 
+    swap ( x , y ) ;
+  int ret = get_par_w ( y , h [ y ] - h [ x ] ) ;
+  y = get_par ( y , h [ y ] - h [ x ] ) ;
+  if ( x == y ) 
+    return ret ;
+  for ( int i = maxL - 1 ; i >= 0 ; i -- ) 
+    if ( dp [ x ] [ i ] [ 0 ] != dp [ y ] [ i ] [ 0 ] ) 
+      { 
+	ret = max ( ret , dp [ x ] [ i ] [ 1 ] ) ; 
+	x = dp [ x ] [ i ] [ 0 ] ;
+	ret = max ( ret , dp [ y ] [ i ] [ 1 ] ) ;
+	y = dp [ y ] [ i ] [ 0 ] ;
+      } 
+    ret = max ( ret , dp [ x ] [ 0 ] [ 1 ] ) ;
+    ret = max ( ret , dp [ y ] [ 0 ] [ 1 ] ) ;
+  return ret ;
+} 
+
+int32_t main ( ) 
+{  
+  fast ;
+  init ( ) ; 
+  make_MST ( ) ;
+  for ( set < int > :: iterator it = MST . begin ( ) ; it != MST . end ( ) ; it ++ )
+    { 
+      int u , v , w ;
+      u = vc [ *it ] . second . first ; 
+      v = vc [ *it ] . second . second ; 
+      w = vc [ *it ] . first ; 
+      vc1 [ v ] . push_back ( make_pair ( u , w ) ) ;  
+      vc1 [ u ] . push_back ( make_pair ( v , w ) ) ;  
+    } 
+  dfs ( 0 ) ;
+  for ( int i = 1 ; i < maxL ; i ++ )
+    for ( int j = 0 ; j < n ; j ++ ) 
+      { 
+	int v = dp [ j ] [ i - 1 ] [ 0 ] ;
+	dp [ j ] [ i ] [ 0 ] = dp [ v ] [ i - 1 ] [ 0 ] ; 
+	dp [ j ] [ i ] [ 1 ] = max ( dp [ j ] [ i - 1 ] [ 1 ] , dp [ v ] [ i - 1 ] [ 1 ] ) ;
+      } 
+  vc = vc3 ;
+  for ( int i = 0 ; i < m ; i ++ )
+    cout << ans - LCA ( vc [ i ] . second . first , vc [ i ] . second . second  ) + vc [ i ] . first << endl ;
+}

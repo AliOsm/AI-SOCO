@@ -1,0 +1,79 @@
+#include <bits/stdc++.h>
+
+#define MAX_N 100010
+#define MAX_M 6666
+#define pair(x, y) std::make_pair(x, y)
+typedef std::pair<int, double> P;
+int a[MAX_N], cnt[MAX_N];
+int stack[MAX_M], top;
+std::vector<P> lines[MAX_N];
+std::vector<int> tree[MAX_M];
+double value[MAX_M], dp[MAX_M][MAX_M];
+int n, max[MAX_N][20], best[MAX_M];
+void RMQ_initial(int n) {
+	for(int i = 1; i <= n; i ++)	max[i][0] = a[i];
+	for(int j = 1; 1 << j <= n; j ++)
+		for(int i = 1; i + (1 << j) - 1 <= n; i ++)
+			max[i][j] = std::max(max[i][j - 1], max[i + (1 << j - 1)][j - 1]);
+}
+int RMQ_ask(int l, int r) {
+	int k = log(1. * (r - l + 1)) / log(2.);
+	return std::max(max[l][k], max[r - (1 << k) + 1][k]);
+}
+void tree_dp(int u) {
+	for(int m = 0; m <= n; m ++)
+		dp[u][m] = 1.;
+//	printf("%d\n", u);
+	for(int i = tree[u].size() - 1; ~i; i --) {
+		int v = tree[u][i];
+		tree_dp(v);
+		for(int m = 0; m <= n; m ++) {
+			int sonValue = best[u] - best[v] + m;
+			sonValue = std::min(sonValue, n);
+			dp[u][m] *= dp[v][sonValue];
+		}
+	}
+	for(int m = n; ~m; m --) {
+		dp[u][m] *= 1. - value[u];
+		if(m)
+			dp[u][m] += dp[u][m - 1] * value[u];
+	//	printf("%lf %d\n", dp[u][m], u);
+	}
+}
+
+
+int main() {
+	int N, l, r, M, mx = 0;
+	double p;
+	scanf("%d%d", &N, &M);
+	for(int i = 1; i <= N; i ++) 
+		scanf("%d", a + i), mx = std::max(mx, a[i]);
+	RMQ_initial(N);
+	for(int i = 1; i <= M; i ++) {
+		scanf("%d%d%lf", &l, &r, &p);
+		lines[l].push_back(pair(r, p));
+	}
+	for(int i = 1; i <= N; i ++) {
+		std::sort(lines[i].begin(), lines[i].end());
+		for(int j = lines[i].size() - 1; ~j; j --) {
+			P t = lines[i][j];
+			cnt[t.first] ++;
+			stack[++ top] = ++ n;
+			value[n] = t.second;
+			best[n] = RMQ_ask(i, t.first);
+	//		printf("%lf\n", value[n]);
+			tree[stack[top - 1]].push_back(n);
+		}
+		top -= cnt[i];
+	}
+	best[0] = mx;
+	tree_dp(0);
+	double ans = dp[0][0] * mx;
+	for(int i = 1; i <= n; i ++)
+		ans += (dp[0][i] - dp[0][i - 1]) * (mx + i);
+	printf("%.10lf\n", ans);
+	return 0;
+}
+
+
+

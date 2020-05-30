@@ -1,0 +1,106 @@
+//              +-- -- --++-- +-In the name of ALLAH-+ --++-- -- --+              \\
+
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define _sz(x) (int)x.size()
+
+using namespace std ;
+using ll = long long ;
+using ld = long double ;
+using pii = pair <int , int> ;
+
+const int N = 2e5 + 20 ;
+int n , q , m ;
+string s ;
+
+struct node {
+	int res ;
+	int mn , mx , mL , mR ;
+	int lazy ;
+} seg[N << 2] ;
+
+#define mid (s + e) >> 1
+#define lc (v << 1)
+#define rc (lc ^ 1) 
+
+inline void change (int v , int val) {
+	seg[v].mn += val ;
+	seg[v].mx += val ;
+	seg[v].mL -= val ;
+	seg[v].mR -= val ;
+	seg[v].lazy += val ;
+}
+
+inline void shift (int v) {
+	change(lc , seg[v].lazy) ;
+	change(rc , seg[v].lazy) ;
+	seg[v].lazy = 0 ;
+}
+
+inline node merge (node a , node b) {
+	node res ;
+
+	res.mn = min(a.mn , b.mn) ;
+	res.mx = max(a.mx , b.mx) ;
+
+	res.mL = max(max(a.mL , b.mL) , b.mx - 2 * a.mn) ;
+	res.mR = max(max(a.mR , b.mR) , a.mx - 2 * b.mn) ;
+
+	res.res = max(a.res , b.res) ;
+	res.res = max(res.res , a.mx + b.mL) ;
+	res.res = max(res.res , b.mx + a.mR) ;
+
+	return res ;
+}
+
+void add (int l , int r , int val , int v = 1 , int s = 0 , int e = m) {
+	if (r <= s || e <= l) return ;
+	if (l <= s && e <= r) {
+		change(v , val) ;
+		return ;
+	}
+	
+	shift(v) ;
+
+	add(l , r , val , lc , s , mid) ;
+	add(l , r , val , rc , mid , e) ;
+
+	seg[v] = merge(seg[lc] , seg[rc]) ;
+}
+
+int main(){
+	ios::sync_with_stdio(false) , cin.tie(0) , cout.tie(0) ;
+
+	cin >> n >> q ;
+	cin >> s ;
+
+	m = 2 * n - 2 ;
+	
+	for (int i = 0 , sum = 0 ; i < 2 * n - 2 ; i ++) {
+		if (s[i] == '(') sum ++ ;
+		else sum -- ;
+
+		add(i , i + 1 , sum) ;
+	}
+
+	cout << seg[1].res << '\n' ;
+
+	while (q --) {
+		int x , y ;
+		cin >> x >> y ;
+		x -- , y -- ;
+
+		add(x , m , (s[x] == '(' ? -1 : +1)) ;
+		add(y , m , (s[y] == '(' ? -1 : +1)) ;
+
+		char c1 = s[x] , c2 = s[y] ;
+		s[x] = c2 , s[y] = c1 ;
+
+		add(x , m , (s[x] == '(' ? +1 : -1)) ;
+		add(y , m , (s[y] == '(' ? +1 : -1)) ;
+
+		cout << seg[1].res << '\n' ;
+	}
+}

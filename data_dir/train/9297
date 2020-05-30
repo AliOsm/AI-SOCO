@@ -1,0 +1,139 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define sc( x ) scanf( "%d" , &x )
+#define REP( i , n ) for( int i = 0 ; i < n ; ++i )
+#define clr( t , val ) memset( t , val , sizeof( t ) )
+
+#define pb push_back
+#define all( v ) v.begin() , v.end()
+#define SZ( v ) ((int)(v).size())
+
+#define mp make_pair
+#define fi first
+#define se second
+
+#define N 2000
+#define LOGN 20
+
+#define test cout<<"test*********";
+
+typedef pair< int , int > pii;
+typedef long long ll;
+typedef vector< int > vi;
+typedef vector< vi > vvi;
+typedef vector< pii > vpii;
+
+struct Edge{
+    int u , v , w;
+    Edge(){}
+    Edge( int u , int v , int w ) : u( u ) , v( v ) , w( w ) {};
+};
+bool operator < ( const Edge &e1 , const Edge & e2 ){
+    return e1.w < e2.w;
+}
+int id[ N + 5 ];
+int Find( int x ){ return id[ x ] = ( id[ x ] == x ? x : Find( id[ x ] ) );}
+
+bool valid( vvi &G ){
+    REP( i , SZ( G ) ) REP( j , SZ( G ) ) {
+        if( i == j ){
+            if( G[ i ][ i ] ) return 0;
+        }else{
+            if( !G[ i ][ j ] ) return 0;
+            if( G[ i ][ j ] != G[ j ][ i ] ) return 0 ;
+        }
+    }
+    return 1;
+}
+vi G[ N + 5 ] , C[ N + 5 ];
+void add( int u , int v , int w ){
+    G[ u ].pb( v );
+    C[ u ].pb( w );
+}
+int n;
+int vis[ N + 5 ] , pa[ N + 5 ] , depth[ N + 5 ] ;
+ll distRoot[ N + 5 ];
+
+void dfs( int u ){
+    vis[ u ] = 1;
+    REP( i , G[ u ].size() ){
+        int v = G[ u ][ i ] , w = C[ u ][ i ];
+        if( !vis[ v ] ){
+            pa[ v ] = u;
+            depth[ v ] = depth[ u ] + 1;
+            distRoot[ v ] = distRoot[ u ] + (ll)w;
+            dfs( v );
+        }
+    }
+}
+int rmq[ LOGN + 1 ][ N + 5 ];
+void RMQ(){
+    clr( rmq , -1 );
+    REP( i , n ) rmq[ 0 ][ i ] = pa[ i ];
+    for( int k = 1 ; k <= LOGN ; ++k )
+        REP( i , n ) if( rmq[ k - 1 ][ i ] != - 1 )
+            rmq[ k ][ i ] = rmq[ k - 1 ][ rmq[ k - 1 ][ i ] ];
+}
+
+int lca( int u , int v ){
+    if( depth[ u ] > depth[ v ] ) swap( u , v );
+    int dist = depth[ v ] - depth[ u ];
+
+    for( int k = 0 ; k <= LOGN ; ++k ) if( dist & ( 1 << k ) ) v = rmq[ k ][ v ];
+    if( u == v ) return u;
+    for( int k = LOGN ; k >= 0 ; --k )
+        if( rmq[ k ][ u ] != rmq[ k ][ v ] ) u = rmq[ k ][ u ] , v = rmq[ k ][ v ];
+    return pa[ u ];
+}
+ll dist( int x , int y , int lca ){ return distRoot[x] + distRoot[y] - (distRoot[ lca ]<<1); }
+int main(){
+    ios_base :: sync_with_stdio( 0 );
+    while( cin >> n ){
+        vvi v( n , vi( n ) );
+        REP( i , n ) REP( j , n ) cin >> v[ i ][ j ];
+        if( !valid( v ) ){
+            cout << "NO\n";
+            continue;
+        }
+        
+        REP( i , N ) id[ i ] = i;
+        vector< Edge > E;
+        for( int i = 0 ; i < n ; ++i )
+            for( int j = i + 1 ; j < n ; ++j )
+                E.pb( Edge( i , j , v[ i ][ j ] ) );
+        REP( i , N ) G[ i ].clear() , C[ i ].clear();
+        int cnt = 0;
+        sort( all( E ) );
+        vvi treeEdges( n , vi( n ) );
+        REP( i , SZ( E ) ){
+            int u = E[ i ].u , v = E[ i ].v , w = E[ i ].w;
+            if( Find( u ) != Find( v ) ){
+                id[ Find( u ) ] = Find( v );
+                add( u , v , w );
+                add( v , u , w );
+                treeEdges[ u ][ v ] = treeEdges[ v ][ u ] = 1;
+                cnt ++;
+            }
+        }
+        if( cnt != n - 1 ){
+            cout << "NO\n";
+            continue;
+        }
+        
+        clr( vis , 0 );
+        clr( pa , -1 );
+        dfs( 0 );
+        RMQ();
+        bool possible = 1;
+        for( int i = 0 ; i < n ; ++i )
+            for( int j = i + 1 ; j < n ; ++j ){
+                if( treeEdges[ i ][ j ] ) continue;
+                if( dist( i , j , lca( i , j ) ) != v[ i ][ j ] ) {
+                    possible = 0;
+                    break;
+                }
+            }
+        cout << (possible ? "YES" : "NO") << '\n';
+    }
+}

@@ -1,0 +1,115 @@
+#include <bits\stdc++.h>
+
+using namespace std;
+
+#define forn(i, n) for (int i = 0; i < n; i++)
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+#define sqr(x) (x) * (x)
+#define pb push_back
+#define mp make_pair
+#define max3(a, b, c) max(a, max(b, c))
+#define min3(a, b, c) min(a, min(b, c))
+
+const int maxn = 100005;
+const int logn = 22;
+const int inf = (int) 2e9 + 5;
+const long long mod = 2828427127;
+const long long l_inf = (long long) 4e18;
+const double eps = 1e-10;
+
+int n, m, k;
+long long _hash[10][maxn], base[maxn];
+
+int add[4 * maxn];
+long long sum[4 * maxn];
+
+long long hash_sum(int l, int r, int d) {
+	return (_hash[d][r] - _hash[d][l - 1] + mod) % mod;
+}
+
+void build(int v = 0, int tl = 1, int tr = n + 1) {
+	if (tr - tl == 1) {
+		char digit;
+		cin >> digit;
+		sum[v] = 1ll * (digit - '0' + 1) * base[tl] % mod;
+		add[v] = -1;
+	} else {
+		int tm = (tl + tr) >> 1;
+		build(2 * v + 1, tl, tm);
+		build(2 * v + 2, tm, tr);
+		sum[v] = (sum[2 * v + 1] + sum[2 * v + 2]) % mod;
+		add[v] = -1;
+	}
+//	cout << v << ' ' << sum[v] << '\n';
+}
+
+void push(int v, int tl, int tr) {
+	if (add[v] != -1) {
+		int tm = (tl + tr) >> 1;
+		add[2 * v + 1] = add[2 * v + 2] = add[v];
+		sum[2 * v + 1] = hash_sum(tl, tm - 1, add[v]);
+		sum[2 * v + 2] = hash_sum(tm, tr - 1, add[v]);
+		add[v] = -1;
+	}
+}
+
+void update(int v, int tl, int tr, int l, int r, int d) { // {v = 0, tl = 1, tr = n + 1}
+	if (tr <= l || r <= tl)
+		return;
+	if (l <= tl && tr <= r) {
+		add[v] = d;
+		sum[v] = hash_sum(tl, tr - 1, d);
+		return;
+	}
+	push(v, tl, tr);
+	int tm = (tl + tr) >> 1;
+	update(2 * v + 1, tl, tm, l, r, d);
+	update(2 * v + 2, tm, tr, l, r, d);
+	sum[v] = (sum[2 * v + 1] + sum[2 * v + 2]) % mod;
+}
+
+long long get(int v, int tl, int tr, int l, int r) { // {v = 0, tl = 1, tr = n + 1}
+	if (tr <= l || r <= tl)
+		return 0;
+	if (l <= tl && tr <= r)
+		return sum[v];
+	push(v, tl, tr);
+	int tm = (tl + tr) >> 1;
+	return (get(2 * v + 1, tl, tm, l, r) + get(2 * v + 2, tm, tr, l, r)) % mod;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.precision(10);
+	cout << fixed;
+	srand(245);
+
+	cin >> n >> m >> k;
+
+	base[1] = 1;
+	for (int i = 2; i <= n; i++)
+		base[i] = (base[i - 1] * 11) % mod;
+
+	for (int digit = 0; digit < 10; digit++)
+		for (int i = 1; i <= n; i++)
+			_hash[digit][i] = (_hash[digit][i - 1] + base[i] * (digit + 1)) % mod;
+
+	build();
+
+	for (int i = 0; i < m + k; i++) {
+		int type, l, r, d;
+		cin >> type >> l >> r >> d;
+		if (type == 1) {
+			update(0, 1, n + 1, l, r + 1, d);
+		} else {
+			long long L = get(0, 1, n + 1, l, r - d + 1);
+			long long R = get(0, 1, n + 1, l + d, r + 1);
+			L = L * base[d + 1] % mod;
+			cout << (L == R ? "YES\n" : "NO\n");
+		}
+	}
+
+	return 0;
+}

@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int NMAX = 100000000;
+
+typedef class Arbint * Arbore;
+class Arbint
+{
+public:
+    Arbint(int _st, int _dr, bool _sum);
+    void update(int poz, int val); /// sum = 1 -> suma pe interval / 0->maxim pe interval
+    int query(int x, int y);
+private:
+    bool sum;
+    int ans;
+    int st, dr;
+    Arbore left, right;
+};
+
+struct elem
+{
+    int first, second;
+    int ordinit, ans;
+    bool operator< (const elem & x) const
+    {
+        return first < x.first;
+    }
+} v[100010];
+
+bool ordinitinala(const elem & a, const elem & b)
+{
+    return a.ordinit < b.ordinit;
+}
+
+int dp[100010];
+
+int main()
+{
+    Arbint numar(0, 3 * NMAX + 20, 1), dinam(0, 3 * NMAX + 20, 0);
+
+    int n;
+    ios_base :: sync_with_stdio(0);
+
+    cin >> n;
+
+    for (int i(1); i <= n; i++) {
+        cin >> v[i].first >> v[i].second;
+        v[i].first += NMAX;
+        v[i].ordinit = i;
+    }
+
+    sort(v + 1, v + n + 1);
+
+    for (int i(n); i >= 1; i--) {
+        dp[i] = max(v[i].first + v[i].second - 1, dinam.query(v[i].first + 1, v[i].first + v[i].second - 1));
+        numar.update(v[i].first, 1);
+        dinam.update(v[i].first, dp[i]);
+
+        v[i].ans = numar.query(v[i].first, dp[i]);
+    }
+
+    sort(v + 1, v + n + 1, ordinitinala);
+
+    for (int i(1); i <= n; i++)
+        cout << v[i].ans << ' ';
+
+}
+
+int Arbint::query(int x, int y)
+{
+    if (x <= st && y >= dr)
+        return ans;
+    if (x > dr || y < st)
+        return 0;
+    if (left == 0 && right == 0)
+        return 0;
+
+    if (left == 0)
+        return right->query(x, y);
+    else if (right == 0)
+        return left->query(x, y);
+
+    if (sum)
+        return left->query(x, y) + right->query(x, y);
+    else
+        return max(left->query(x, y), right->query(x, y));
+}
+
+void Arbint::update(int poz, int val)
+{
+    if (sum)
+        ans += val;
+    else
+        ans = max(ans, val);
+
+    if (st == dr)
+        return;
+
+    if (poz <= (st + dr) / 2) {
+        if (left == 0)
+            left = new Arbint(st, (st + dr) / 2, sum);
+        left->update(poz, val);
+    }
+    else {
+        if (right == 0)
+            right = new Arbint((st + dr) / 2 + 1, dr, sum);
+        right->update(poz, val);
+    }
+}
+
+Arbint::Arbint(int _st, int _dr, bool _sum)
+{
+    sum = _sum;
+    ans = 0;
+    st = _st, dr = _dr;
+    left = right = 0;
+}

@@ -1,0 +1,103 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef pair <int, int> pii;
+typedef long long ll;
+ 
+const ll N = 2e5 + 5, LOG = 20;
+
+int n, m, q, dp[N], up[N][LOG], h[N], st[N], en[N], timer, par[N];
+vector <int> adj[N];
+
+void dfs(int v, int p = 0) {
+	dp[v] = 1;
+	st[v] = timer++;
+	h[v] = h[p] + 1;
+	up[v][0] = p;
+	for (int i = 1; i < LOG; i++)
+		if(up[v][i - 1] != -1)
+			up[v][i] = up[up[v][i - 1]][i - 1];
+	for (auto u : adj[v]) {
+		if(u == p)	continue;
+		par[u] = v;
+		dfs(u, v);
+		dp[v] += dp[u];
+	}
+	en[v] = timer++;
+}
+
+bool check(int v, int u) {
+	return (st[v] <= st[u]) && (en[u] <= en[v]);
+}
+
+int lca(int v, int u) {
+	if(h[v] < h[u])	swap(v, u);
+	for (int i = LOG - 1; ~i; i--)
+		if(h[up[v][i]] >= h[u])
+			v = up[v][i];
+	if(v == u)	return v;
+	for (int i = LOG - 1; ~i; i--)
+		if(up[v][i] != up[u][i])
+			v = up[v][i], u = up[u][i];
+	return up[u][0];
+}
+
+int path(int v, int p) {
+	for (int i = LOG - 1; ~i; i--)
+		if(!check(up[v][i], p))
+			v = up[v][i];
+	return v;
+}
+
+void query(int v, int u) {
+	int p = lca(v, u);
+	if(v == u) {
+		cout << n << "\n";
+//		cout << "#0\n";
+	}
+	else if(h[v] - h[p] == h[u] - h[p]) {
+		v = path(v, p);
+		u = path(u, p);
+		cout << n - dp[v] - dp[u] << "\n";
+//		cout << "#1\n";
+	}
+	else {
+		int dist = h[v] + h[u] - 2 * h[p];
+		if(dist & 1) {
+			cout << 0 << "\n";
+//			cout << "#2\n";
+		}
+		else {
+			dist /= 2;
+			if(h[v] < h[u])
+				swap(v, u);
+			int k = v;
+			for (int i = LOG - 1; ~i; i--) {
+				if(h[k] - h[up[v][i]] < dist)
+					v = up[v][i];
+			}
+			cout << dp[up[v][0]] - dp[v] << "\n";
+//			cout << "#3\n";
+		}
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	cin >> n;
+	m = n - 1;
+	for (int i = 0; i < m; i++) {
+		int v, u;
+		cin >> v >> u;
+		v--, u--;
+		adj[v].push_back(u), adj[u].push_back(v);
+	}
+	h[0] = -1;
+	dfs(0);
+	cin >> q;
+	while(q--) {
+		int v, u;
+		cin >> v >> u;
+		v--, u--;
+		query(v, u);
+	}
+}

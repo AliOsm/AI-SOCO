@@ -1,0 +1,85 @@
+#include <stdio.h>
+
+#define N	100000
+#define A	1000000
+#define N_	(N + A)
+#define MD	998244353
+
+long long power(int a, int b) {
+	long long p;
+
+	if (b == 0)
+		return 1;
+	p = power(a, b / 2);
+	p = p * p % MD;
+	if (b % 2)
+		p = p * a % MD;
+	return p;
+}
+
+int ff[N_], gg[N_];
+
+void init() {
+	int n, f;
+
+	f = 1;
+	for (n = 0; n < N_; n++) {
+		ff[n] = f, gg[n] = power(f, MD - 2);
+		f = (long long) f * (n + 1) % MD;
+	}
+}
+
+int choose(int n, int k) {
+	return n < 0 || k < 0 || n < k ? 0 : (long long) ff[n] * gg[k] % MD * gg[n - k] % MD;
+}
+
+struct L {
+	struct L *next;
+	int i;
+} *ll[A + 1], l91[N];
+
+int main() {
+	static int kk[A + 1];
+	static char used[N];
+	struct L *l;
+	int n, k, i, a, amax, ans, cnt;
+	
+	init();
+	scanf("%d", &n);
+	amax = 0;
+	for (i = 0; i < n; i++) {
+		scanf("%d", &a);
+		l = &l91[i];
+		l->i = i;
+		l->next = ll[a], ll[a] = l;
+		kk[a]++;
+		if (amax < a)
+			amax = a;
+	}
+	a = 0;
+	ans = 0;
+	cnt = n;
+	for (k = 0; ; k++) {
+		while (a <= amax && !kk[a])
+			a++;
+		if (a < k || a > amax)
+			break;
+		l = ll[a];
+		ll[a] = ll[a]->next;
+		ans = (ans + choose(a - k + n - 1, n - 1)) % MD;
+		if (!used[l->i]) {
+			used[l->i] = 1;
+			cnt--;
+		} else
+			ans = (ans - choose(a - k - cnt + n - 1, n - 1)) % MD;
+		if (a + n <= amax) {
+			kk[a + n]++;
+			l->next = ll[a + n], ll[a + n] = l;
+		}
+		kk[a]--;
+	}
+	if (ans < 0)
+		ans += MD;
+	printf("%d\n", ans);
+	return 0;
+}

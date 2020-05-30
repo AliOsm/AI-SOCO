@@ -1,0 +1,208 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vl;
+typedef pair<int,int> pii;
+typedef pair<ll, ll> pll;
+typedef vector<pii> vii;
+typedef vector<pll> vll;
+
+#define PB push_back
+//#define PB emplace_back
+#define F first
+#define S second
+#define MP make_pair
+#define endl '\n'
+
+const double eps = 1e-9;
+const int inf = 2000000000;
+const ll infLL = 9000000000000000000;
+#define MOD 998244353
+
+#define mem(a,b) memset(a, b, sizeof(a) )
+#define gcd(a,b) __gcd(a,b)
+#define lcm(a,b) (a*(b/gcd(a,b)))
+
+#define optimize() ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define fraction() cout.unsetf(ios::floatfield); cout.precision(10); cout.setf(ios::fixed,ios::floatfield);
+
+//
+//debug
+template<typename F,typename S>ostream&operator<<(ostream&os,const pair<F,S>&p){return os<<"("<<p.first<<", "<<p.second<<")";}
+template<typename T>ostream&operator<<(ostream&os,const vector<T>&v){os<<"{";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"}";}
+template<typename T>ostream&operator<<(ostream&os,const set<T>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<",";os<<*it;}return os<<"]";}
+template<typename T>ostream&operator<<(ostream&os,const multiset<T>&v) {os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"]";}
+template<typename F,typename S>ostream&operator<<(ostream&os,const map<F,S>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<it->first<<" = "<<it->second;}return os<<"]";}
+#define dbg(args...) do {cerr << #args << " : "; faltu(args); } while(0)
+void faltu(){cerr << endl;}
+template<typename T>void faltu(T a[],int n){for(int i=0;i<n;++i)cerr<<a[i]<<' ';cerr<<endl;}
+template<typename T,typename...hello>void faltu(T arg,const hello&...rest){cerr<<arg<<' ';faltu(rest...);}
+//#else
+//#define dbg(args...)
+
+inline bool checkBit(ll n, int i) { return n&(1LL<<i); }
+inline ll setBit(ll n, int i) { return n|(1LL<<i);; }
+inline ll resetBit(ll n, int i) { return n&(~(1LL<<i)); }
+
+const double EPS = 1e-9;
+#define INF 100000000
+int Rank; //Rank means number of non-zero rows in row echelon form
+
+int gauss(vector<ll> &a, int n, int m) { // number of variables must be defined!
+  Rank = 0;
+  for(int col = m-1, row = 0; col >= 0 && row < n; --col) {
+    int sel = row;
+    for(int i = row; i < n; ++i) if(checkBit(a[i], col)) { sel = i; break; }
+    if(!checkBit(a[sel], col)) continue;
+    swap(a[sel], a[row]);
+    for(int i = 0; i < n; ++i) if (i != row && checkBit(a[i], col)) a[i] ^= a[row];
+    ++row, ++Rank;
+  }
+  return Rank;
+}
+
+ll expo( ll b, ll p, ll m ) {
+  ll res = 1LL, x = b%m;
+  while(p) {
+    if ( p&1LL ) res = ( res*x ) % m;
+    x = ( x*x ) % m;
+    p >>= 1LL;
+  }
+  return res;
+}
+
+#define OR 0
+#define AND 1
+#define XOR 2
+struct FWHT {
+  void walsh_transform(vector<ll> &p, bool inv, int flag) {
+    int n = p.size(); assert((n&(n-1))==0);
+    for (int len=1; 2*len<=n; len <<= 1) {
+      for (int i = 0; i < n; i += len+len){
+        for (int j = 0; j < len; j++) {  ///Don't forget to include p[i+j] = (p[i+j]+MOD)%MOD, p[i+len+j] = (p[i+len+j]+MOD)%MOD at the end of this for loop(inside of course) when required.
+          ll u = p[i+j], v = p[i+len+j];
+          if( (flag == XOR) ) p[i+j]=u+v, p[i+len+j]=u-v;
+          if( (flag == AND) && !inv ) p[i+j]=v, p[i+len+j]=u+v;
+          if( (flag == OR) && !inv ) p[i+j]=u+v, p[i+len+j]=u;
+          if( (flag == AND) && inv ) p[i+j]= -u+v, p[i+len+j]=u;
+          if( (flag == OR) && inv ) p[i+j]=v, p[i+len+j]=u-v;
+          p[i+j] = (p[i+j]+MOD)%MOD, p[i+len+j] = (p[i+len+j]+MOD)%MOD;
+        }
+      }
+    }
+    ll ahem = expo(n, MOD-2, MOD);
+    if(inv && (flag == XOR)) for(int i=0;i<n;i++) p[i]*=ahem, p[i]%=MOD; ///Don't forget modular inverse n when required
+  }
+  /// For i = 0 to n - 1, j = 0 to n - 1
+  /// v[i flag j] += a[i] * b[j]
+  vector<ll> convo(vector<ll> &a, vector<ll> &b, int flag = XOR) {
+    int n = 1, sz = max(a.size(), b.size());
+    while(n<sz) n*=2;
+    a.resize(n); b.resize(n); vector<ll>res(n, 0);
+    walsh_transform(a, 0, flag); walsh_transform(b, 0, flag);
+    for(int i=0;i<n;i++)  res[i] = (a[i] * b[i])%MOD; /// Don't forget modular multiplication when required.
+    walsh_transform(res, 1, flag);
+    return res;
+  }
+  ///compute A^k where A?A == A convolution A
+  vector<ll> pow(vector<ll> &A, ll k, int flag = XOR) {
+    int n = 1, sz = A.size();
+    while(n<sz) n *= 2;
+    A.resize(n);
+    walsh_transform(A, 0, flag);
+    for(int i=0; i<n; i++) A[i]=expo(A[i], k, MOD); ///MOD = infLL if there is no modulo required.(trix, modern problems require modern solutions.)
+    walsh_transform(A, 1, flag);
+    return A;
+  }
+}fwht;
+
+void func( vector<ll> &store, vector<ll> &vec )
+{
+	vec.PB(0);
+	for( auto x : store ) {
+		for( int i = (int)vec.size()-1; i >= 0; --i ) {
+			vec.PB(vec[i]^x);
+		}
+	}
+}
+
+const int mx = 2e5+5;
+int n, m;
+ll a[mx];
+int half = 18;
+
+int main()
+{
+	optimize();
+	vector<ll> store;
+	cin >> n >> m;
+	for( int i = 0; i < n; ++i ) {
+		cin >> a[i];
+		store.PB(a[i]);
+	}
+	gauss(store, n, m);
+	vector<ll> basis;
+	vector<ll> LeftBasis, RightBasis;
+	for( int i = 0; i < Rank; ++i ) basis.PB(store[i]);
+	for( int i = 0; i < Rank; ++i ) {
+		if( basis[i] < (1 << half) ) RightBasis.PB(basis[i]);
+		else LeftBasis.PB(basis[i]);
+	}
+	vector<ll> LeftMask, RightMask;
+	func(LeftBasis, LeftMask);
+	func(RightBasis, RightMask);
+	vector<ll> polyR(1 << 18);
+	for( auto x : RightMask ) {
+		++polyR[x];
+	}
+	vector< vector<ll> > polyL( 18, vector<ll>(1 << 18) );
+	for( auto x : LeftMask ) {
+		int pop = __builtin_popcountll(x >> 18);
+		++polyL[pop][ x&((1 << 18)-1) ];
+	}
+	fwht.walsh_transform(polyR, 0, XOR);
+	vector<ll> ans(36);
+	for( int i = 0; i < 18; ++i ) {
+		fwht.walsh_transform(polyL[i], 0, XOR);
+		for( int j = 0; j < (int)polyL[i].size(); ++j ) {
+			polyL[i][j] *= polyR[j];
+			polyL[i][j] %= MOD;
+		}
+		fwht.walsh_transform(polyL[i], 1, XOR);
+		for( int j = 0; j < (int)polyL[i].size(); ++j ) {
+			int pop = __builtin_popcount(j);
+			ans[i + pop] += polyL[i][j];
+			ans[i + pop] %= MOD;
+		}
+	}
+	ll hmm = expo(2, n-Rank, MOD);
+	for( int i = 0; i <= m; ++i ) {
+		ll temp = ans[i]*hmm;
+		temp %= MOD;
+		cout << temp << " ";
+	}
+	cout << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

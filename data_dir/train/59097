@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <set>
+#include <functional>
+#include <cassert>
+const bool debug = 0;
+typedef long long ll;
+typedef std::vector<int> vi;
+typedef std::vector<vi> vvi;
+typedef std::vector<bool> vb;
+typedef std::vector<vb> vvb;
+typedef std::vector<std::string> vs;
+typedef std::vector<ll> vl;
+typedef std::vector<vl> vvl;
+
+#define all(x) (x).begin(), (x).end()
+#define size(x) (int)(x).size()
+#define unique(x) (x).erase(std::unique(all(x)), (x).end())
+#define sort(x) std::sort(all(x))
+
+int main() {
+    int n, k; scanf("%d %d", &n, &k);
+    const int PMAX = 17, NMAX = 128*1024;
+    vi log2(1+NMAX);
+    for (int i = 2; i <= NMAX; ++i) {
+        log2[i] = log2[i/2]+1;
+    }
+    static int mul[1+PMAX][1+NMAX];
+    for (int i = 0; i < n; ++i) {
+        int value; scanf("%d", &value);
+        mul[0][i] = value % k;
+    }   
+    for (int p = 1; p < PMAX; ++p) {
+        for (int i = 0; i + (1<<p)-1 < n; ++i) {
+            mul[p][i] = int(ll(mul[p-1][i]) * mul[p-1][i+(1<<(p-1))] % k);
+        }
+    }
+    vi right(n);
+    if (debug) {
+        int slow = 0;
+        for (int i = 0; i < n; ++i) {
+            int prod = 1;
+            for (int j = i; j < n; ++j) {
+                bool flag = prod == 0;
+                prod = int(ll(prod) * mul[0][j] % k);
+                slow += (prod == 0);
+                if (!flag && prod == 0) {
+                    right[i] = j;
+                    printf("for i = %d pos equal j = %d\n", i, j);
+                }
+            }
+        }
+        printf("slow = %d\n", slow);
+    }
+    
+    std::function<int(int,int&)> get_left = [&](int pos, int& prod) {
+        int pow = 0; prod = 1;
+        while (pos + (1 << pow) < n && 1LL * prod * mul[pow][pos] % k != 0) {
+            prod = int(1LL * prod * mul[pow][pos] % k);
+            pos += (1 << pow);
+            ++pow;
+        }
+        while (pow >= 0) {
+            if (pos + (1 << pow) < n && 1LL * prod * mul[pow][pos] % k != 0) {
+                prod = int(1LL * prod * mul[pow][pos] % k);
+                pos += (1 << pow);
+            }
+            --pow;
+        }
+        return pos;
+    };
+    
+    ll answ = 0;
+    for (int i = 0; i < n; ++i) {
+        int left, prod;
+        left = get_left(i, prod);
+        assert(prod != 0);
+        if (1LL * prod * mul[0][left] % k == 0) {
+            answ += std::max(0, n - left);
+        }
+    }
+    std::cout << answ;
+    return 0;
+}

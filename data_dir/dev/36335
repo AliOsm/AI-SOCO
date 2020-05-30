@@ -1,0 +1,133 @@
+#include<bits/stdc++.h>
+
+#define ll long long
+#define ios ios_base::sync_with_stdio(false);cin.tie(NULL);
+#define sz size()
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+#define all(s) s.begin(), s.end()
+#define file(s) freopen(s".in","r",stdin); freopen(s".out","w",stdout);
+using namespace std;
+
+const int maxn = (int)1e6 + 100;
+const int mod = (int)1e9 + 7;
+
+inline ll getint() {
+  char _c = getchar();
+  ll _x = 0, _s = 1;
+  while (_c <= 32) _c = getchar();
+  if (_c == '-') _s = -1, _c = getchar();
+  while ('0' <= _c && _c <= '9') _x = _x * 10 + _c - '0', _c = getchar();
+  return _x * _s;
+}
+
+int n, m, p[maxn], up[maxn][20], dp[maxn][20], ssz[maxn], lvl[maxn], u[maxn], v[maxn], w[maxn];
+ll cost;
+map<pair<int, int>, int> used;
+vector<pair<int, pair<int, int> > > t;
+vector<pair<int, int> > g[maxn];
+inline void make (int v) {
+	p[v] = v;
+	ssz[v] = 0;
+}
+ 
+int find (int v) {
+	if (v == p[v])
+		return v;
+	return p[v] = find(p[v]);
+}
+ 
+inline void add (int a, int b) {
+	a = find (a);
+	b = find(b);
+	if (a != b) {
+		if (ssz[a] < ssz[b])
+			swap (a, b);
+		p[b] = a;
+		if (ssz[a] == ssz[b])
+			++ssz[a];
+	}
+}
+inline void build(){
+	sort(all(t));
+	for(int i = 1; i <= n; i++)
+		make(i);
+	for(int i = 0; i < t.sz; i++){
+		int u = t[i].S.F, v = t[i].S.S, w = t[i].F;
+		if(find(u) != find(v)){
+			cost += (w * 1ll);
+			g[u].pb(mp(v, w));
+			g[v].pb(mp(u, w));
+			add(u, v);
+		}
+	}
+}
+void dfs(int v, int p, int len) {
+  if (p == -1) {
+  	lvl[v] = 1;
+    for (int i = 0; i < 20; i++)
+      up[v][i] = v;
+  }
+  else{
+  	lvl[v] = lvl[p] + 1;
+    up[v][0] = p;                  
+		dp[v][0] = len;      
+    for (int i = 1; i < 20; i++){
+      up[v][i] = up[up[v][i - 1]][i - 1];
+      dp[v][i] = max(dp[v][i - 1], dp[up[v][i - 1]][i - 1]);
+   	}
+  }
+  for (int i = 0; i < g[v].sz; i++) {
+  	int to = g[v][i].F, l = g[v][i].S;
+  	if (to != p) {
+      dfs(to, v, l);
+    }
+  }
+}
+inline int LCA(int u, int v){
+	if (lvl[u] > lvl[v]) 
+    swap(v, u);
+  for (int i = 19; i >= 0; i--) {
+    if (lvl[up[v][i]] >= lvl[u])
+      v = up[v][i];
+  }                                         
+  if(u == v)
+  	return v;
+  for (int i = 19; i >= 0; i--) {
+    if (up[u][i] != up[v][i]){
+      u = up[u][i];
+      v = up[v][i];
+    }
+  }
+  return up[u][0];  
+}
+inline int getmax(int u, int v){
+	if(u == v)
+		return 0;
+	int mx = 0;
+	for(int i = 19; i >= 0; i--){
+		if(lvl[up[u][i]] >= lvl[v]){
+			mx = max(mx, dp[u][i]);
+			u = up[u][i];
+		}	
+	}
+	return mx;
+}
+int main () {
+	ios;
+	cin >> n >> m;
+	for(int i = 1; i <= m; i++){
+		cin >> u[i] >> v[i] >> w[i];
+		t.pb(mp(w[i], mp(u[i], v[i])));
+	}
+	build();
+	dfs(1, -1, 0);
+	for(int i = 1; i <= m; i++){
+			int lca = LCA(u[i], v[i]);
+			int mx1 = getmax(u[i], lca), mx2 = getmax(v[i], lca);
+			cout << cost - max(mx1, mx2) + w[i] << endl;
+
+	}
+}

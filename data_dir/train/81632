@@ -1,0 +1,216 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+class DisjointSet{
+public:
+	vector <int> rank;
+	vector <int> p;
+	DisjointSet(){}
+	DisjointSet(int size){
+		rank.resize(size,0);
+		p.resize(size,0);
+		for (int i = 0; i < size; i++)
+			makeSet(i);
+	}
+	void makeSet(int x){
+		p[x] = x;
+		rank[x] = 0;
+	}
+	bool same(int x, int y){
+		return findSet(x) == findSet(y);
+	}
+	void unite(int x, int y){
+		link(findSet(x),findSet(y));
+	}
+	void link(int x, int y){
+		if (rank[x] > rank[y]){
+			p[y] = x;
+		}
+		else{
+			p[x] = y;
+			if (rank[x] == rank[y])
+				rank[y]++;
+		}
+	}
+	int findSet(int x){
+		if (x != p[x]){
+			p[x] = findSet(p[x]);
+		}
+		return p[x];
+	}
+};
+
+typedef pair <long long, int> P;
+
+const int N = 1e5 + 10;
+const int DEG = 20;
+const long long INF = 1e18;
+
+struct Edge{
+	int to, next;
+}edge[N << 1];
+
+struct E{
+	int to, w;
+	E(){
+		
+	}
+	E(int _to, int _w){
+		to = _to;
+		w = _w;
+	}
+};
+
+struct EG{
+	int u, v, w;
+	EG(){
+		
+	}
+	EG(int _u, int _v, int _w){
+		u = _u;
+		v = _v;
+		w = _w; 
+	}
+};
+
+int head[N], deg[N], visited[N];
+int fa[N][DEG];
+vector <E> G[N];
+vector <E> tr[N];
+vector <EG> edges;
+long long d1[N];
+long long d[50][N];
+set <int> s;
+int n, tot;
+
+void addedge(int u, int v){
+	edge[tot].to = v;
+	edge[tot].next = head[u];
+	head[u] = tot++;
+}
+
+void init(){
+	tot = 0;
+	memset(head, -1, sizeof(head));
+}
+
+void bfs(int root){
+	queue <int> que;
+	deg[root] = 0;
+	fa[root][0] = root;
+	que.push(root);
+	while (!que.empty()){
+		int temp = que.front();
+		que.pop();
+		for (int i = 1; i < DEG; i++)
+			fa[temp][i] = fa[fa[temp][i - 1]][i - 1];
+		for (int i = head[temp]; i != -1; i = edge[i].next){
+			int v = edge[i].to;
+			if (v == fa[temp][0]) continue;
+			deg[v] = deg[temp] + 1;
+			fa[v][0] = temp;
+			que.push(v);
+		}
+	}
+}
+
+int LCA(int u, int v){
+	if (deg[u] > deg[v]) swap(u, v);
+	int hu = deg[u], hv = deg[v];
+	int tu = u, tv = v;
+	for (int det = hv - hu, i = 0; det; det >>= 1, i++){
+		if (det & 1)
+			tv = fa[tv][i];
+	}
+	if (tu == tv) return tu;
+	for (int i = DEG - 1; i >= 0; i--){
+		if (fa[tu][i] == fa[tv][i]) continue;
+		tu = fa[tu][i];
+		tv = fa[tv][i];
+	}
+	return fa[tu][0];
+}
+
+void getST(){
+	DisjointSet djs(n + 1);
+	EG e;
+	for (int i = 0; i < edges.size(); i++){
+		e = edges[i];
+		if (djs.same(e.u, e.v)){
+			s.insert(e.u);
+			s.insert(e.v);
+		}
+		else{
+			addedge(e.u, e.v);
+			addedge(e.v, e.u);
+			tr[e.u].push_back(E(e.v, e.w));
+			tr[e.v].push_back(E(e.u, e.w));
+			djs.unite(e.u, e.v);
+		}
+	}
+}
+
+void dijkstra(int s, long long dist[N]){
+	priority_queue <P, vector <P>, greater <P> > pq;
+	fill(dist + 1, dist + n + 1, INF);
+	dist[s] = 0;
+	pq.push(P(0, s));
+	while (!pq.empty()){
+		P p = pq.top(); pq.pop();
+		int v = p.second;
+		if (dist[v] < p.first) continue;
+		for (int i = 0; i < G[v].size(); i++){
+			E e = G[v][i];
+			if (dist[e.to] > dist[v] + e.w){
+				dist[e.to] = dist[v] + e.w;
+				pq.push(P(dist[e.to], e.to));
+			}
+		}
+	}
+}
+
+int main(){
+	int m, u, v, w, q, cnt;
+	long long dist, ans;
+	queue <P> que;
+	P pa;
+	scanf("%d %d",&n,&m);
+	for (int i = 1; i <= m; i++){
+		scanf("%d %d %d",&u,&v,&w);
+		G[u].push_back(E(v, w));
+		G[v].push_back(E(u, w));
+		edges.push_back(EG(u, v, w));
+	}
+	init();
+	getST();
+	memset(visited, 0, sizeof(visited));
+	que.push(make_pair(0, 1));
+	visited[1] = 1;
+	d1[1] = 0;
+	while (!que.empty()){
+		pa = que.front();
+		que.pop();
+		dist = pa.first;
+		u = pa.second;
+		for (int i = 0; i < tr[u].size(); i++){
+			v = tr[u][i].to;
+			if (!visited[v]){
+				d1[v] = dist + tr[u][i].w;
+				que.push(make_pair(d1[v], v));
+				visited[v] = 1;
+			}
+		}
+	}
+	cnt = 0;
+	for (set <int>::iterator it = s.begin(); it != s.end(); it++)
+		dijkstra(*it, d[++cnt]);
+	bfs(1);
+	scanf("%d",&q);
+	for (int i = 1; i <= q; i++){
+		scanf("%d %d",&u,&v);
+		ans = d1[u] + d1[v] - d1[LCA(u, v)] * 2;
+		for (int j = 1; j <= cnt; j++) ans = min(ans, d[j][u] + d[j][v]);
+		printf("%I64d\n",ans);
+	}
+	return 0;
+}

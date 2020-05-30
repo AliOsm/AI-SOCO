@@ -1,0 +1,180 @@
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma GCC optimize("unroll-loops")
+
+#include <stdio.h>
+#include <bits/stdc++.h>
+
+#define uint unsigned int
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define rep(i, l, r) for (int i = l; i < r; i++)
+#define repb(i, r, l) for (int i = r; i > l; i--)
+#define sz(a) (int)a.size()
+#define fi first
+#define se second
+#define mp(a, b) make_pair(a, b)
+
+using namespace std;
+
+inline void setmin(int &x, int y) { if (y < x) x = y; }
+inline void setmax(int &x, int y) { if (y > x) x = y; }
+inline void setmin(ll &x, ll y) { if (y < x) x = y; }
+inline void setmax(ll &x, ll y) { if (y > x) x = y; }
+
+const int N = 200000;
+const int inf = (int)1e9 + 1;
+const ll big = (ll)1e18 + 1;
+const int P = 239;
+const int MOD = (int)1e9 + 7;
+const int MOD1 = (int)1e9 + 9;
+const double eps = 1e-9;
+const double pi = atan2(0, -1);
+const int ABC = 26;
+
+int cnt_v;
+ll tree[N * 4], add[N * 4];
+
+void build(int n, ll *a)
+{
+    cnt_v = 1;
+    while (cnt_v < n)
+        cnt_v <<= 1;
+    fill(tree, tree + cnt_v * 2 - 1, -big);
+    rep(i, 0, n)
+        tree[cnt_v - 1 + i] = a[i];
+    repb(i, cnt_v - 2, -1)
+        tree[i] = max(tree[i * 2 + 1], tree[i * 2 + 2]);
+}
+
+void push(int x)
+{
+    tree[x * 2 + 1] += add[x];
+    add[x * 2 + 1] += add[x];
+    tree[x * 2 + 2] += add[x];
+    add[x * 2 + 2] += add[x];
+    add[x] = 0;
+}
+
+void upd(int x, int lx, int rx, int l, int r, ll v)
+{
+    if (lx >= r || l >= rx)
+        return;
+    else if (lx >= l && rx <= r)
+    {
+        tree[x] += v;
+        add[x] += v;
+    }
+    else
+    {
+        push(x);
+        upd(x * 2 + 1, lx, (lx + rx) / 2, l, r, v);
+        upd(x * 2 + 2, (lx + rx) / 2, rx, l, r, v);
+        tree[x] = max(tree[x * 2 + 1], tree[x * 2 + 2]);
+    }
+}
+
+void set_elem(int x, int lx, int rx, int p, ll v)
+{
+    if (rx - lx == 1)
+        tree[x] = v;
+    else
+    {
+        push(x);
+        if (p < (lx + rx) / 2)
+            set_elem(x * 2 + 1, lx, (lx + rx) / 2, p, v);
+        else
+            set_elem(x * 2 + 2, (lx + rx) / 2, rx, p, v);
+        tree[x] = max(tree[x * 2 + 1], tree[x * 2 + 2]);
+    }
+}
+
+vector<pair<ll, int> > tmp;
+
+void del_ok(int x, int lx, int rx)
+{
+    if (tree[x] < 0)
+        return;
+    else if (rx - lx == 1)
+    {
+        tmp.push_back({tree[x], x - (cnt_v - 1)});
+        tree[x] = -big;
+    }
+    else
+    {
+        push(x);
+        if (tree[x * 2 + 1] >= 0)
+            del_ok(x * 2 + 1, lx, (lx + rx) / 2);
+        if (tree[x * 2 + 2] >= 0)
+            del_ok(x * 2 + 2, (lx + rx) / 2, rx);
+        tree[x] = max(tree[x * 2 + 1], tree[x * 2 + 2]);
+    }
+}
+
+vector<pair<ll, int> > good;
+
+void change(int l, int r, ll v)
+{
+    upd(0, 0, cnt_v, l, r + 1, v);
+    tmp.clear();
+    del_ok(0, 0, cnt_v);
+    vector<pair<ll, int> > good1;
+    for (auto it : good)
+    {
+        if (it.se >= l && it.se <= r)
+            it.fi += v;
+        if (it.fi < 0)
+            set_elem(0, 0, cnt_v, it.se, it.fi);
+        else
+            good1.push_back(it);
+    }
+    for (auto it : tmp)
+        good1.push_back(it);
+    good = good1;
+}
+
+int a[N];
+ll pref[N];
+
+int main()
+{
+    //freopen("a.in", "r", stdin);
+    //freopen("a.out", "w", stdout);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.precision(20);
+    cout << fixed;
+    //ll TL = 0.95 * CLOCKS_PER_SEC;
+    //clock_t time = clock();
+    int n, q;
+    cin >> n >> q;
+    rep(i, 0, n)
+        cin >> a[i];
+
+    pref[0] = a[0];
+    rep(i, 1, n)
+        pref[i] = pref[i - 1] + a[i];
+    repb(i, n - 1, 0)
+        pref[i] = a[i] - pref[i - 1];
+    build(n, pref);
+
+    while (q--)
+    {
+        int p, x;
+        cin >> p >> x; p--;
+        int del = x - a[p]; a[p] = x;
+        change(p, p, del);
+        change(p + 1, n - 1, -del);
+        int ans = -1;
+        for (auto it : good)
+            if (it.fi == 0)
+            {
+                ans = it.se + 1;
+                break;
+            }
+        cout << ans << "\n";
+    }
+    return 0;
+}

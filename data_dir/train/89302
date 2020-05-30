@@ -1,0 +1,253 @@
+#pragma comment(linker, "/STACK:256000000")
+
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+#include <memory.h>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <utility>
+#include <algorithm>
+#include <random>
+#include <bitset>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+typedef pair<int64, int> pli;
+typedef pair<int, int64> pil;
+const int INF = (int)(1e9 + 1e5);
+const int64 LINF = (int64)(1e18);
+const int64 MX = 100500;
+const double EPS = 1e-9;
+#define sq(x) ((x)*(x))
+#define FAIL() (*(int*)(0))++
+#define ASSERT(exp) {if (!(exp)) exit(0);}
+#ifdef _MY_DEBUG
+#define I64d lld
+#endif
+const int MOD = 1000000007;
+const int ROOT = 700;
+const int PRM_ROOT = 5;
+const int LOG = 30;
+
+const int MAXN = 10005;
+
+int add(int a, int b)
+{
+    a += b;
+    if (a >= MOD)
+    {
+        a -= MOD;
+    }
+    return a;
+}
+
+int mul(int a, int b)
+{
+    return int64(a) * b % MOD;
+}
+
+struct matrix
+{
+    int a[3][3];
+    
+    matrix operator * (const matrix& oth) const
+    {
+        matrix res;
+        memset(res.a, 0, sizeof(res.a));
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                for (int k = 0; k < 3; ++k)
+                {
+                    res.a[i][j] = add(res.a[i][j], mul(a[i][k], oth.a[k][j]));
+                }
+            }
+        }
+        return res;
+    }
+    
+    void print()
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                cerr << a[i][j] << " ";
+            }
+            cerr << endl;
+        }
+    }
+};
+
+const matrix one = matrix {{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+
+matrix bin_pow(matrix a, int64 b)
+{
+    matrix res = one;
+    while (b)
+    {
+        if (b & 1)
+        {
+            res = res * a;
+        }
+        b >>= 1;
+        a = a * a;
+    }
+    return res;
+}
+
+struct obstacle
+{
+    int row;
+    int64 l, r;
+};
+
+struct event
+{
+    int64 col;
+    int row;
+    int block;
+    
+    event(int64 col, int row, int block) : col(col), row(row), block(block){}
+    
+    bool operator < (const event& oth) const
+    {
+        if (col != oth.col)
+        {
+            return col < oth.col;
+        }
+        else
+        {
+            return block < oth.block;
+        }
+    }
+};
+
+int n;
+int64 m;
+obstacle a[MAXN];
+vector<event> events;
+int cnt[4];
+int mask;
+int ans;
+matrix tr[8] = {
+        matrix {{{1, 1, 0}, {1, 1, 1}, {0, 1, 1}}},
+        matrix {{{0, 0, 0}, {1, 1, 1}, {0, 1, 1}}},
+        matrix {{{1, 1, 0}, {0, 0, 0}, {0, 1, 1}}},
+        matrix {{{0, 0, 0}, {0, 0, 0}, {0, 1, 1}}},
+        matrix {{{1, 1, 0}, {1, 1, 1}, {0, 0, 0}}},
+        matrix {{{0, 0, 0}, {1, 1, 1}, {0, 0, 0}}},
+        matrix {{{1, 1, 0}, {0, 0, 0}, {0, 0, 0}}},
+        matrix {{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}}}
+};
+
+void init()
+{
+    scanf ("%d%lld", &n, &m);
+    for (int i = 1; i <= n; ++i)
+    {
+        scanf ("%d%lld%lld", &a[i].row, &a[i].l, &a[i].r);
+    }
+}
+
+int recalc_mask()
+{
+    int res = 0;
+    for (int i = 1; i <= 3; ++i)
+    {
+        res |= ((cnt[i] ? 1 : 0) * (1 << i - 1));
+    }
+    return res;
+}
+
+void solve()
+{
+    events.reserve(n * 2 + 6);
+    events.push_back(event(1, 1, 1));
+    events.push_back(event(2, 1, -1));
+    events.push_back(event(1, 3, 1));
+    events.push_back(event(2, 3, -1));
+    for (int i = 1; i <= n; ++i)
+    {
+        events.push_back(event(a[i].l, a[i].row, 1));
+        events.push_back(event(a[i].r + 1, a[i].row, -1));
+    }
+    events.push_back(event(m + 1, 0, 1));
+    sort(events.begin(), events.end());
+    auto res = one;
+    int p1 = 0;
+    while (events[p1].col <= m)
+    {
+        int p2 = p1;
+        while (events[p2 + 1].col == events[p1].col)
+        {
+            ++p2;
+        }
+        for (int i = p1; i <= p2; ++i)
+        {
+            cnt[events[i].row] += (events[i].block);
+        }
+        mask = recalc_mask();
+        p1 = p2 + 1;
+        int64 len = events[p1].col - events[p2].col;
+        res = bin_pow(tr[mask], len) * res;
+        //cerr << events[p1].col - 1 << " " << mask << endl;
+        //res.print();
+    }
+    ans = res.a[1][1];
+}
+
+void print_answer()
+{
+    printf("%d\n", ans);
+}
+
+void precalc()
+{
+
+}
+
+void run()
+{
+#ifdef _MY_DEBUG
+    freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#endif // _MY_DEBUG
+    precalc();
+    int t = 1; //scanf ("%d", &t);
+    for (int i = 0; i < t; ++i)
+    {
+        init();
+        solve();
+        print_answer();
+    }
+}
+int main()
+{
+    srand(90);
+    ios_base::sync_with_stdio(false); cin.tie(0);
+    //test();
+    run();
+    return 0;
+}

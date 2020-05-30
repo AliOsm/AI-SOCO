@@ -1,0 +1,222 @@
+#pragma comment(linker, "/STACK:256000000")
+
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_DEPRECATE
+#define _USE_MATH_DEFINES
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+#include <assert.h>
+#include <memory.h>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <utility>
+#include <algorithm>
+#include <random>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+const int INF = (int)(1e9 + 1337);
+const int64 LINF = (int64)(2e18);
+const double EPS = 1e-11;
+#define sq(x) ((x)*(x))
+
+
+const int MAXN = 100100;
+
+int n, m, s;
+vector < vector <pii> > gr;
+int was[MAXN];
+int ten[MAXN];
+int rten[MAXN];
+
+int64 ans;
+int sz[MAXN];
+int siz = 0;
+
+inline int mul (int a, int b)
+{
+	return a * (int64) b % m;
+}
+
+inline int sum(int a, int b)
+{	
+	return (a + b) % m;
+}
+
+inline int obr(int base, int deg)
+{
+	int res = 1;
+	while(deg)
+	{
+		if (deg & 1)
+			res = mul(res, base);
+		base = mul(base, base);
+		deg >>= 1;
+	}
+	return res;
+}
+
+void szdfs(int u, int anc)
+{
+	int s = 1;
+	for(int i = 0; i < gr[u].size(); ++i)
+	{
+		int to = gr[u][i].first;
+		if (!was[to] && anc != to)
+		{
+			szdfs(to, u);
+			s += sz[to];
+		}
+	}
+	sz[u] = s;
+}
+
+unordered_map <int, int> vl;
+
+void dfs1(int u, int anc, int mod, int level, int val)
+{
+	vl[mod] += val;
+	for(int i = 0; i < gr[u].size(); ++i)
+	{
+		int to = gr[u][i].first;
+		if (to == anc || was[to])
+			continue;
+		dfs1(to, u, sum(mod, mul(gr[u][i].second, ten[level])), level + 1, val);
+	}
+}
+
+void dfs2(int u, int anc, int mod, int level)
+{
+	ans += vl[mul(m - mod, rten[level])];
+	for(int i = 0; i < gr[u].size(); ++i)
+	{
+		int to = gr[u][i].first;
+		if (to == anc || was[to])
+		{
+			continue;
+		}
+		dfs2(to, u, sum(mul(10, mod), gr[u][i].second), level + 1);
+	}
+}
+
+void cnt(int u)
+{
+	szdfs(u, u);
+	siz = sz[u];
+	int flag = 1;
+	vl.clear();
+	while(flag)
+	{
+		flag = 0;
+		for(int i = 0; i < gr[u].size(); ++i)
+		{
+			int to = gr[u][i].first;
+			if (was[to])
+				continue;
+			if (2 * sz[to] > siz && sz[u] > sz[to])
+			{
+				u = to;
+				flag = 1;
+				break;
+			}
+
+		}
+	}
+	//cerr << u;
+	dfs1(u, u, 0, 0, 1);
+	ans += (vl[0] - 1);
+	for(int i = 0; i < gr[u].size(); ++i)
+	{
+		int to = gr[u][i].first;
+		if (was[to])
+			continue;
+		dfs1(to, u, gr[u][i].second, 1, -1);
+		dfs2(to, u, gr[u][i].second, 1);
+		dfs1(to, u, gr[u][i].second, 1, 1);
+	}
+
+	was[u] = 1;
+	for(int i = 0; i < gr[u].size(); ++i)
+	{
+		int to = gr[u][i].first;
+		if (was[to])
+			continue;
+		cnt(to);
+	}
+}
+
+void solve()
+{
+	scanf("%d %d", &n, &m);
+	
+	gr.resize(n);	
+	for(int i = 0; i < n - 1; ++i)
+	{
+		int u, v, w;
+		scanf("%d %d %d", &u, &v, &w);
+		w %= m;
+		gr[u].push_back(pii(v, w));
+		gr[v].push_back(pii(u, w));
+	}
+	if (m == 1)
+	{
+		cout << n * (int64) (n - 1);
+		return;
+	}
+	ten[0] = 1;
+	rten[0] = 1;
+	int tm = m;
+	int fm = m;
+	for(int i = 2; i * i <= tm; ++i)
+	{
+		if (!(tm % i))
+		{
+			while(!(tm % i))
+			{
+				tm /= i;
+			}
+			fm -= fm / i;
+		}
+	}
+	if (tm > 1)
+	{
+		fm -= fm / tm;
+	}
+	for(int i = 1; i < n; ++i)
+	{
+		ten[i] = mul(ten[i - 1], 10);
+		rten[i] = obr(ten[i], fm - 1);
+	}
+	cnt(0);
+	cout << ans;
+}
+
+int main()
+{
+#ifdef _MY_DEBUG
+	freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+#endif
+	srand(1337);
+	
+	int ts = 1;
+	//cin >> ts;
+	for(int i = 0; i < ts; ++i)
+		solve();
+	
+	return 0;
+}

@@ -1,0 +1,103 @@
+#include<bits/stdc++.h>
+#define rep(i,start,lim) for(lld i=start;i<lim;i++)
+#define repd(i,start,lim) for(lld i=start;i>=lim;i--)
+#define scan(x) scanf("%lld",&x)
+#define print(x) printf("%lld ",x)
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define br printf("\n")
+#define sz(a) lld((a).size())
+#define YES printf("YES\n")
+#define NO printf("NO\n")
+#define all(c) (c).begin(),(c).end()
+using namespace std;
+#define INF         1011111111
+#define LLINF       1000111000111000111LL
+#define EPS         (double)1e-10
+#define MOD         1000000007
+#define PI          3.14159265358979323
+using namespace std;
+typedef long double ldb;
+typedef long long lld;
+lld powm(lld base,lld exp,lld mod=MOD) {lld ans=1;while(exp){if(exp&1) ans=(ans*base)%mod;exp>>=1,base=(base*base)%mod;}return ans;}
+typedef vector<lld> vlld;
+typedef pair<lld,lld> plld;
+typedef map<lld,lld> mlld;
+typedef set<lld> slld;
+#define MAXN 3005
+#define tr(it,c) for(__typeof(c.begin()) it = c.begin(); it!=c.end(); ++it)
+struct MCMF {
+  typedef lld ctype;	
+  struct Edge { lld x, y; lld cap, cost; };
+  vector<Edge> E;      vector<lld> adj[MAXN];
+  lld N, prev[MAXN];   ctype dist[MAXN], phi[MAXN];
+
+  MCMF(lld NN) : N(NN) {}
+
+  void add(lld x,lld y,ctype cap,ctype cost) {  // cost >= 0
+    cost += EPS;
+      //   printf("Adding (%d, %d) having (%d, %d)\n", x, y, cap, cost);
+    Edge e1={x,y,cap,cost}, e2={y,x,0,-cost};
+    adj[e1.x].push_back(E.size()); E.push_back(e1);
+    adj[e2.x].push_back(E.size()); E.push_back(e2);
+  }
+
+  void mcmf(lld s,lld t, ctype &flowVal, ctype &flowCost) {
+    lld x;
+    flowVal = flowCost = 0;  memset(phi, 0, sizeof(phi));
+    while (true) {
+      for (x = 0; x < N; x++) prev[x] = -1;
+      for (x = 0; x < N; x++) dist[x] = INF;
+      dist[s] = prev[s] = 0;
+
+      set< pair<ctype, lld> > Q;
+      Q.insert(make_pair(dist[s], s));
+      while (!Q.empty()) {
+        x = Q.begin()->second; Q.erase(Q.begin());
+        tr(it,adj[x]) {
+          const Edge &e = E[*it];
+          if (e.cap <= 0) continue;
+          ctype cc = e.cost + phi[x] - phi[e.y];                    // ***
+          if (dist[x] + cc + EPS < dist[e.y]) {
+            Q.erase(make_pair(dist[e.y], e.y));
+            dist[e.y] = dist[x] + cc;
+            prev[e.y] = *it;
+            Q.insert(make_pair(dist[e.y], e.y));
+          }
+        }
+      }
+      if (prev[t] == -1) break;
+
+      ctype z = INF;
+      for (x = t; x != s; x = E[prev[x]].x) z = min(z, E[prev[x]].cap);
+      for (x = t; x != s; x = E[prev[x]].x)
+        { E[prev[x]].cap -= z; E[prev[x]^1].cap += z; }
+      flowVal += z;
+      flowCost += z * (dist[t] - phi[s] + phi[t]);
+      for (x = 0; x < N; x++) if (prev[x] != -1) phi[x] += dist[x];     // ***
+    }
+  }
+};
+slld can[55];
+int main()
+{
+	lld n,q,type,l,r,v;
+	cin>>n>>q;
+	MCMF mc(n+n+2);
+	rep(i,1,n+1) rep(j,1,n+1) mc.add(0,i,1,2*j-1);
+	rep(i,1,n+1) mc.add(n+i,2*n+1,1,0);
+	rep(i,1,n+1) rep(j,1,n+1) can[i].insert(j);
+	while(q--) {
+		cin>>type>>l>>r>>v;
+		if(type==1) rep(j,l,r+1) rep(i,1,v) can[j].erase(i);
+		else rep(j,l,r+1) rep(i,v+1,n+1) can[j].erase(i);
+	}
+	rep(i,1,n+1) for(auto j:can[i]) mc.add(j,n+i,1,0);		
+	lld mflow,mcost;
+	mc.mcmf(0,2*n+1,mflow,mcost);
+	if(mflow!=n) cout<<-1;
+	else cout<<mcost;
+	return 0;
+}

@@ -1,0 +1,71 @@
+#include <cstdio>
+#include <algorithm>
+
+int const N = 400400;
+int const P = 17;
+int const MOD = 1034567921;
+
+int p[N];
+int sums[N];
+int tree[N];
+int upd[N];
+
+void push(int v, int l, int r) {
+	if (upd[v] != -1) {
+		int m = (l + r) / 2;
+		tree[2 * v + 1] = (long long) upd[v] * sums[m - l] % MOD;
+		tree[2 * v + 2] = (long long) upd[v] * sums[r - m] % MOD;
+		upd[2 * v + 1] = upd[v];
+		upd[2 * v + 2] = upd[v];
+		upd[v] = -1;
+	}
+}
+
+void modify(int v, int l, int r, int from, int to, int value) {
+	if (r <= from || to <= l) return;
+	if (from <= l && r <= to) {
+		upd[v] = value;
+		tree[v] = (long long) value * sums[r - l] % MOD;
+		return;
+	}
+	push(v, l, r);
+	int m = (l + r) / 2;
+	modify(2 * v + 1, l, m, from, to, value);
+	modify(2 * v + 2, m, r, from, to, value);
+	tree[v] = ((long long) p[r - m] * tree[2 * v + 1] + tree[2 * v + 2]) % MOD;
+}
+
+int getHash(int v, int l, int r, int from, int to) {
+	if (r <= from || to <= l) return 0;
+	if (from <= l && r <= to) return (long long) tree[v] * p[to - r] % MOD;
+	push(v, l, r);
+	int m = (l + r) / 2;
+	return (getHash(2 * v + 1, l, m, from, to) + getHash(2 * v + 2, m, r, from, to)) % MOD;
+}
+
+char s[N];
+
+int main() {
+	p[0] = 1;
+	for (int i = 1; i < N; ++i) {
+		p[i] = (long long) p[i - 1] * P % MOD;
+		sums[i] = (sums[i - 1] + p[i - 1]) % MOD;
+	}
+	std::fill(upd, upd + N, -1);
+	int n, m, k;
+	scanf("%d%d%d ", &n, &m, &k);
+	gets(s);
+	for (int i = 0; i < n; ++i) {
+		modify(0, 0, n, i, i + 1, s[i] - '0');
+	}
+	for (int it = 0; it < m + k; ++it) {
+		int type, l, r, value;
+		scanf("%d%d%d%d", &type, &l, &r, &value);
+		--l;
+		if (type == 1) {
+			modify(0, 0, n, l, r, value);
+		} else {
+			puts(getHash(0, 0, n, l, r - value) == getHash(0, 0, n, l + value, r) ? "YES" : "NO");
+		}
+	}
+}

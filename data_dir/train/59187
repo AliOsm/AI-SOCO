@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 5005 + 5;
+const int M = 1e5 + 5;
+const long long INF = 1e9 + 5;
+const int base = 1e4;
+
+typedef long long ll;
+
+const ll mod = 1e9 + 7;
+
+int tx[] = {1, 0, -1, 0}, ty[] = {0, -1, 0, 1};
+
+int n, m, k, a[N], b[N], c[N], ms[N];
+vector <int> g[N];
+int z[N * 4], t[N * 4];
+vector <pair<int, pair<int, int>>> rs;
+vector <int> vec;
+int ans;
+bool used[N];
+
+void push(int v, int L, int R) {
+    if (z[v]) {
+        t[v] += z[v];
+        if (L != R) {
+            z[v * 2] += z[v];
+            z[v * 2 + 1] += z[v];
+        }
+        z[v] = 0;
+    }
+}
+
+void build(int v, int L, int R) {
+    if (L == R) {
+        t[v] = ms[vec[L]];
+        return;
+    }
+    int md = (L + R) >> 1;
+    build(v * 2, L, md);
+    build(v * 2 + 1, md + 1, R);
+    t[v] = min(t[v * 2], t[v * 2 + 1]);
+}
+
+void upd(int v, int L, int R, int l, int r, int val) {
+    push(v, L, R);
+    if (L > r || l > R)
+        return;
+    if (l <= L && R <= r) {
+        z[v] += val;
+        push(v, L, R);
+        return;
+    }
+    int md = (L + R) >> 1;
+    upd(v * 2, L, md, l, r, val);
+    upd(v * 2 + 1, md + 1, R, l, r, val);
+    t[v] = min(t[v * 2], t[v * 2 + 1]);
+}
+
+int get(int v, int L, int R, int l, int r) {
+    push(v, L, R);
+    if (L > r || l > R)
+        return INF;
+    if (l <= L && R <= r)
+        return t[v];
+    int md = (L + R) >> 1;
+    return min(get(v * 2, L, md, l, r), get(v * 2 + 1, md + 1, R, l, r));
+}
+
+main() {
+//    ios_base::sync_with_stdio(0);
+//    cin.tie(0);
+    cin >> n >> m >> k;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i] >> b[i] >> c[i];
+    }
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        g[u].push_back(v);
+    }
+    for (int i = 1; i <= n; i++)
+        g[i].push_back(i);
+    for (int i = 1; i <= n; i++) {
+        if (k < a[i]) {
+            cout << -1;
+            return 0;
+        }
+        ms[i] = (k - a[i]);
+        k += b[i];
+    }
+    ms[n + 1] = k;
+    int cr = 1;
+    while (cr <= n) {
+        for (int i = cr; i <= n; i++) {
+            if (ms[cr] > ms[i])
+                cr = i;
+        }
+        vec.push_back(cr);
+        cr++;
+    }
+    vec.push_back(n + 1);
+    for (int i = 1; i <= n; i++) {
+        for (int j : g[i]) {
+            rs.push_back({c[j], {upper_bound(vec.begin(), vec.end(), i) - vec.begin(), j}});
+        }
+    }
+    build(1, 0, vec.size() - 1);
+    sort(rs.begin(), rs.end());
+    reverse(rs.begin(), rs.end());
+    for (int i = 0; i < rs.size(); i++) {
+        int x = rs[i].second.first, id = rs[i].second.second;
+        if (used[id])
+            continue;
+        if (get(1, 0, vec.size() - 1, x, vec.size() - 1) > 0) {
+            upd(1, 0, vec.size() - 1, x, vec.size() - 1, -1);
+            ans += c[id];
+            used[id] = 1;
+        }
+    }
+    cout << ans;
+}

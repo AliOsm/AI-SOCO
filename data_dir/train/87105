@@ -1,0 +1,202 @@
+#include <bits/stdc++.h>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/pb_ds/tree_policy.hpp>
+//#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define aint(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+// using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <int, int> pint;
+
+//template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+//template <class T1, class T2 = nuint_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+//template <class T1, class T2 = nuint_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const int infint = numeric_limits <int>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 5e5 + 1;
+const int L = 20;
+int n, k, m;
+int ans[N];
+
+ll sum;
+
+struct Graph {
+    int ind[N];
+    int par[N];
+    int hgt[N];
+    int anc[N][L];
+    int mnm[N][L];
+    vec <pii> adj[N];
+} graph;
+
+struct Edge {
+    int u, v, w;
+} edge[N];
+
+struct Dsu {
+    int par[N];
+    int cnt[N];
+} dsu;
+
+int root(int u) {
+    return dsu.par[u] == u? u: dsu.par[u] = root(dsu.par[u]);
+}
+
+void unite(int u, int v) {
+    u = root(u);
+    v = root(v);
+    if(u == v) {
+        return;
+    }
+    if(dsu.cnt[u] < dsu.cnt[v]) {
+        swap(u, v);
+    }
+    dsu.cnt[u] += dsu.cnt[v];
+    dsu.par[v] = u;
+}
+
+void dfs(int u, int h) {
+    graph.hgt[u] = h;
+    graph.anc[u][0] = 
+    graph.par[u];
+    graph.mnm[u][0] = inf;
+    for(int i = 1; i < L; ++i) {
+        graph.anc[u][i] = graph.anc[graph.anc[u][i - 1]][i - 1];
+        graph.mnm[u][i] = inf;
+    }
+    for(pii p: graph.adj[u]) {
+        int v = p.xx;
+        int i = p.yy;
+        if(graph.par[u] == v) {
+            continue;
+        }
+        graph.ind[v] = i;
+        graph.par[v] = u;
+        dfs(v, h + 1);
+    }
+}
+
+int lca(int u, int v) {
+    if(graph.hgt[u] < graph.hgt[v]) {
+        swap(u, v);
+    }
+    int k = graph.hgt[u] - graph.hgt[v];
+    for(int i = 0; i < L; ++i) {
+        if((k >> i) & 1) {
+            u = graph.anc[u][i];
+        }
+    }
+    if(u == v) {
+        return u;
+    }
+    for(int i = L - 1; i >= 0; --i) {
+        if(graph.anc[u][i] != graph.anc[v][i]) {
+            u = graph.anc[u][i];
+            v = graph.anc[v][i];
+        }
+    }
+    return graph.par[u];
+}
+
+void update(int u, int k, int x) {
+    for(int i = 0; i < L; ++i) {
+        if((k >> i) & 1) {
+            graph.mnm[u][i] = min(graph.mnm[u][i], x);
+            u = graph.anc[u][i];
+        }
+    }
+}
+
+void input() {
+    cin >> n >> k >> m;
+    for(int i = 1; i <= n; ++i) {
+        dsu.par[i] = i;
+        dsu.cnt[i] = 1;
+    }
+    for(int i = 1; i <= k; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        graph.adj[u].pb({v, i});
+        graph.adj[v].pb({u, i});
+        unite(u, v);
+    }
+    for(int i = 0; i < m; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        int w; cin >> w;
+        edge[i] = {u, v, w};
+    }
+    sort(edge, edge + m, [](Edge x, Edge y) {
+        return x.w < y.w;
+    });
+}
+
+void solve() {
+    for(int i = 0; i < m; ++i) {
+        auto it = edge[i];
+        if(root(it.u) != root(it.v)) {
+            unite(it.u, it.v);
+            graph.adj[it.u].pb({it.v, 0});
+            graph.adj[it.v].pb({it.u, 0});
+        }
+    }
+    dfs(1, 1);
+    for(int i = 0; i < m; ++i) {
+        auto it = edge[i];
+        int a = lca(it.u, it.v);
+        int ku = graph.hgt[it.u] - graph.hgt[a];
+        int kv = graph.hgt[it.v] - graph.hgt[a];
+        update(it.u, ku, it.w);
+        update(it.v, kv, it.w);
+    }
+    for(int i = L - 1; i > 0; --i) {
+        for(int u = 1; u <= n; ++u) {
+            int x = graph.mnm[u][i];
+            int v = graph.anc[u][i - 1];
+            graph.mnm[u][i - 1] = min(graph.mnm[u][i - 1], x);
+            graph.mnm[v][i - 1] = min(graph.mnm[v][i - 1], x);
+        }
+    }
+    for(int i = 1; i <= n; ++i) {
+        ans[graph.ind[i]] = graph.mnm[i][0];
+    }
+    for(int i = 1; i <= k; ++i) {
+        if(ans[i] == inf) {
+            cout << "-1\n";
+            return;
+        }
+        sum += ans[i];
+    }
+    cout << sum << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

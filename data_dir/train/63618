@@ -1,0 +1,68 @@
+/*
+ * Idea: Vertical/Horizontal sweep, segment trees
+ */
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef vector<int> vi;
+typedef long long LL;
+typedef pair<int, int> pii;
+
+#define loop(i,n) for(int i = 0; i < n; i++)
+#define pb push_back
+
+struct Domino {
+    int x, h, idx;
+    Domino(int _x, int _h, int _idx) {
+        x = _x;
+        h = _h;
+        idx = _idx;
+    }
+    Domino() {}
+};
+
+const int N = 1e5 + 5;
+int ans[N], n, tree[4 * N];
+Domino dominos[N];
+
+int query(int l, int r) {
+    int res = 0;
+    for (l += n, r += n; l < r; l /= 2, r /= 2) {
+        if (l & 1) res = max(res, tree[l++]);
+        if (r & 1) res = max(res, tree[--r]);
+    }
+    return res;
+}
+
+void modify(int pos, int val) {
+    pos += n;
+    for (tree[pos] = val; pos > 1; pos /= 2) tree[pos / 2] = max(tree[pos], tree[pos ^ 1]);
+}
+
+int main() {
+#ifdef DEBUG
+    freopen("in.txt", "r", stdin);
+#endif
+    ios_base::sync_with_stdio(false);
+    cin >> n;
+    loop(i, n) {
+        int x, h;
+        cin >> x >> h;
+        dominos[i] = (Domino(x, h, i));
+    }
+    sort(dominos, dominos + n, [](Domino d1, Domino d2) {return d1.x < d2.x; });
+    ans[dominos[n - 1].idx] = 1;
+    modify(n - 1, n - 1);
+    for (int i = n - 2; i >= 0; i--) {
+        int x = dominos[i].x, h = dominos[i].h;
+        int nxt_domino = lower_bound(dominos, dominos + n, x + h, [](Domino d1, int thresh) {return d1.x < thresh;} ) - dominos - 1;
+        if (nxt_domino > i) ans[dominos[i].idx] = query(i + 1, nxt_domino + 1) - i + 1;
+        else ans[dominos[i].idx] = 1;
+        modify(i, ans[dominos[i].idx] + i - 1);
+    }
+    loop(i, n) cout << ans[i] << " ";
+    cout << endl;
+    return 0;
+}

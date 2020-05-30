@@ -1,0 +1,155 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+const LL MOD = 998244353;
+
+LL power(LL a, LL p, LL mod) {
+    if (p==0)   return 1;
+    LL ans = power(a, p/2, mod);
+    ans = (ans * ans)%mod;
+    if (p%2)    ans = (ans * a)%mod;
+    return ans;
+}
+
+struct NTT
+{
+    int N;
+    vector<int> perm;
+
+    int mod, root, inv, pw;
+
+    NTT(int mod, int root, int inv, int pw) :
+        mod(mod), root(root), inv(inv), pw(pw) {}
+
+    void precalculate() {
+        perm.resize(N);
+        perm[0] = 0;
+
+        for (int k=1; k<N; k<<=1) {
+            for (int i=0; i<k; i++) {
+                perm[i] <<= 1;
+                perm[i+k] = 1 + perm[i];
+            }
+        }
+    }
+
+    void fft(vector<LL> &v, bool invert = false) {
+        if (v.size() != perm.size()) {
+            N = v.size();
+            assert(N && (N&(N-1)) == 0);
+            precalculate();
+        }
+
+        for (int i=0; i<N; i++)
+            if (i < perm[i])
+                swap(v[i], v[perm[i]]);
+
+        for (int len = 2; len <= N; len <<= 1) {
+            LL factor = invert ? inv : root;
+            for (int i = len; i < pw; i <<= 1)
+                factor = (factor * factor) % mod;
+
+            for (int i=0; i<N; i+=len) {
+                LL w = 1;
+                for (int j=0; j<len/2; j++) {
+                    LL x = v[i+j], y = (w * v[i+j+len/2])%mod;
+                    v[i+j] = (x+y)%mod;
+                    v[i+j+len/2] = (x-y+mod)%mod;
+                    w = (w * factor)%mod;
+                }
+            }
+        }
+        if (invert) {
+            LL n1 = power(N, mod-2, mod);
+            for (LL &x : v) x=(x*n1)%mod;
+        }
+    }
+
+    vector<LL> multiply(vector<LL> a, vector<LL> b) {
+        int n = 1;
+        while (n < a.size()+ b.size())  n<<=1;
+        a.resize(n);
+        b.resize(n);
+
+        fft(a);
+        fft(b);
+        for (int i=0; i<n; i++) a[i] = (a[i] * b[i])%mod;
+        fft(a, true);
+        return a;
+    }
+    vector<LL> exponentMultiply(vector<LL> a, int x, vector<LL> b, int y) {
+        int n = 1;
+        int mx = (a.size()-1)*x + (b.size()-1)*y;
+        while (n < mx+1)  n<<=1;
+        a.resize(n);
+        b.resize(n);
+
+        fft(a);
+        fft(b);
+        for (int i = 0; i < n; i++) a[i] = power(a[i], x, MOD);
+        for (int i = 0; i < n; i++) b[i] = power(b[i], y, MOD);
+        for (int i = 0; i < n; i++) a[i] = (a[i] * b[i])%mod;
+        fft(a, true);
+        return a;
+    }
+};
+
+NTT ntt(998244353, 15311432, 469870224, 1<<23);
+const int MAXN = 3e5+7;
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n, k;
+    cin >> n >> k;
+
+    vector< int >a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+
+    vector< int >b(k);
+    for (int i = 0; i < k; i++) cin >> b[i];
+
+    vector< vector< LL > >res(k);
+    for (int i = 0; i < k; i++) {
+        vector< int >fr(MAXN, 0);
+        for (int x : a) {
+            if (b[i] > x)
+                fr[x]++;
+        }
+        int once = 0, twice = 0;
+        for (int j = 1; j < MAXN; j++) {
+            if (fr[j]==0) continue;
+            if (fr[j]==1) {
+                once++;
+            } else {
+                twice++;
+            }
+        }
+
+
+        res[i] = ntt.exponentMultiply({1, 2}, once, {1, 2, 1}, twice);
+//        }
+    }
+
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int Q;
+        cin >> Q;
+
+        LL ans = 0;
+        for (int i = 0; i < k; i++) {
+            int m = Q-2-b[i]-b[i];
+            if (m < 0 || m/2 >= res[i].size()) continue;
+            ans += res[i][m/2];
+        }
+
+        ans %= MOD;
+        cout << ans << "\n";
+    }
+
+    return 0;
+}

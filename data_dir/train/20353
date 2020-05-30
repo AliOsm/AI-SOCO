@@ -1,0 +1,147 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+struct st
+{
+	map<int, int> mp;
+	set<pair<int, ll> > s;
+	st(int val)
+	{
+		s.insert(make_pair(-1, val));
+		mp[val] = 1;
+	}
+};
+
+typedef st * pst;
+
+int n;
+vector<ll> ans;
+vector<int> c, cnt;
+vector<vector<int> > g;
+
+void dfs0(int v, int p)
+{
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		if(to != p)
+		{
+			dfs0(to, v);
+			cnt[v] += cnt[to];
+		}
+	}
+}
+
+void split(pst &a, pst &b)
+{
+	for(map<int, int>::iterator it = b -> mp.begin(); it != b -> mp.end(); ++it)
+	{
+		int cl = it -> first,
+			am = it -> second;
+		
+		if(a -> mp[cl] != 0)
+		{
+			int c = a -> mp[cl];
+			pair<int, ll> q = *(a -> s.lower_bound(make_pair(-c, 0)));
+			a -> s.erase(a -> s.find(q));
+			q.second -= cl;
+			if(q.second > 0)
+			{
+				a -> s.insert(q);
+			}
+		}
+		a -> mp[cl] += am;
+		int c = a -> mp[cl];
+		if(a -> s.lower_bound(make_pair(-c, 0)) == a -> s.end())
+		{
+			a -> s.insert(make_pair(-c, cl));
+		} else
+		{
+			pair<int, ll> q = *(a -> s.lower_bound(make_pair(-c, 0)));
+			if(q.first == -c)
+			{
+				a -> s.erase(a -> s.find(q));
+				q.second += cl;
+				a -> s.insert(q);
+			} else
+			{
+				a -> s.insert(make_pair(-c, cl));
+			}
+		}
+	}
+}
+
+pst dfs(int v, int p)
+{
+	int cur_ans = -1,
+		ans_i = -1;
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		if(to != p)
+		{
+			if(cnt[to] > cur_ans)
+			{
+				cur_ans = cnt[to];
+				ans_i = to;
+			}
+		}
+	}
+	if(cur_ans == -1)
+	{
+		ans[v] = c[v];
+
+		return new st(c[v]);
+	} else
+	{
+		pst u = dfs(ans_i, v);
+		pst y = new st(c[v]);
+		split(u, y);
+		for(int i = 0; i < g[v].size(); ++i)
+		{
+			int to = g[v][i];
+			if(to != p && to != ans_i)
+			{
+				pst y = dfs(to, v);
+				split(u, y);
+			}
+		}
+		ans[v] = u -> s.begin() -> second;
+
+		return u;
+	}
+}
+
+int main (int argc, char *argv[])
+{
+	//FILE *in = freopen("input.txt", "r", stdin);
+
+	scanf("%d", &n);
+	ans.resize(n, 0);
+	c.resize(n);
+	g.resize(n);
+	cnt.resize(n, 1);
+	for(int i = 0; i < n; ++i)
+	{	
+		scanf("%d", &c[i]);
+	}
+	for(int i = 1; i < n; ++i)
+	{
+		int from, to;
+		scanf("%d%d", &from, &to);
+		--from; --to;
+		g[from].push_back(to);
+		g[to].push_back(from);
+	}
+	dfs0(0, -1);
+	dfs(0, -1);
+	for(int i = 0; i < n; ++i)
+	{
+		printf("%lld ", ans[i]);
+	}
+
+	return 0;
+}
+

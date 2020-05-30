@@ -1,0 +1,128 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define ALL(x) (x.begin(), x.end())
+#define mset(a,i) memset(a,i,sizeof(a))
+#define rep(i,n) for(int i = 0;i < n;i ++)
+const int N = 2e5 + 5;
+int Q[N], fa[N], num[N], dep[N];
+char str[N];
+int balance[N];
+LL answer[N];
+bool isroot[N];
+vector<int> G[N];
+int cnt[1<<20];
+
+int bfs(int src) {
+	int head = 0, tail = 0;
+	Q[tail ++] = src;
+	fa[src] = -1;
+	dep[src] = 1;
+	while(head < tail) {
+		int u = Q[head ++];
+		num[u] = 1;
+		balance[u] = 0;
+		for (int v: G[u]) {
+			if (v != fa[u] && !isroot[v]) {
+				dep[v] = dep[u] + 1;
+				fa[v] = u;
+				Q[tail ++] = v;
+			}
+		}
+	}
+	for (int i = tail - 1; i > 0; i --) {
+		int u = Q[i];
+		num[fa[u]] += num[u];
+		balance[fa[u]] = max(balance[fa[u]], num[u]);
+	}
+
+	return tail;
+}
+
+LL _path(int u, int f, int mask, bool calcNode) {
+	int cur = mask ^ (1<< (str[u] - 'a'));
+	LL res = 0;
+	res += cnt[cur];
+	rep(i, 20) {
+		res += cnt[cur^(1<<i)];
+	}
+	for (int v: G[u]) {
+		if (v != f && !isroot[v]) {
+			res += _path(v, u, cur, calcNode);
+		}
+	}
+	answer[u] += calcNode ? res: 0;
+	return res;
+}
+
+void record(int u, int f, int mask, int delta) {
+	int cur = mask^(1<<(str[u] - 'a'));
+	cnt[cur] += delta;
+	for (int v: G[u]) {
+		if (v != f && !isroot[v]) {
+			record(v, u, cur, delta);
+		}
+	}
+}
+
+void divide(int u) {
+	int n = bfs(u), s = u;
+	rep(i, n) {
+		u = Q[i];
+		balance[u] = max(balance[u], n - num[u]);
+		if (balance[u] < balance[s]) {
+			s = u;
+		}
+	}
+	answer[s] ++;
+
+	{
+		int cur = 1<<(str[s] - 'a');
+		cnt[cur] ++;
+		for (int v: G[s]) {
+			if (isroot[v]) continue;
+			answer[s] += _path(v, s, 0, false);
+			record(v, s, cur, 1);
+		}
+		for (int v: G[s]) {
+			if (isroot[v]) continue;
+			record(v, s, cur, -1);
+			_path(v, s, 0, true);
+			record(v, s, cur, +1);
+		}
+		for (int v: G[s]) {
+			if (isroot[v]) continue;
+			record(v, s, cur, -1);
+		}
+		cnt[cur] --;
+	}
+
+	isroot[s] = true;
+	for (int v: G[s]) {
+		if (!isroot[v]) {
+			divide(v);
+		}
+	}
+	isroot[s] = false;
+}
+
+int main() {
+    ios :: sync_with_stdio(false);
+    cout << fixed << setprecision(16);
+	int n, u, v;
+	scanf("%d", &n);
+	rep(i, n-1) {
+		scanf("%d%d", &u, &v);
+		u --;
+		v --;
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+	scanf("%s", str);
+	divide(0);
+	rep(i, n) {
+		printf("%lld%c", answer[i], " \n"[i == n - 1]);
+	}
+    return 0;
+}
+

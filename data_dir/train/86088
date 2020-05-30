@@ -1,0 +1,33 @@
+#include <bits/stdc++.h>
+#define lld long long
+using namespace std;
+int n, m;
+lld k;
+bool ok(lld mid)
+{
+    lld curr = 0;
+    lld cnt = 0;
+    for (int i=1;i<=n;++i)
+    {
+        curr = (mid - 1) / i;
+        cnt += min(curr, (lld)m);
+    }
+    return cnt < k;
+}
+int main()
+{
+    cin>>n>>m>>k;
+    lld st = 1, dr = 1LL * n * m, mid, ans = 0;
+    while (st <= dr)
+    {
+        mid = (st + dr) / 2;
+        if (ok(mid))
+        {
+            ans = max(ans, mid);
+            st = mid + 1;
+        }
+        else dr = mid - 1;
+    }
+    cout<<ans<<'\n';
+    return 0;
+}

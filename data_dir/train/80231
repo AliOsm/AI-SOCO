@@ -1,0 +1,167 @@
+// Written by HadronWave 
+// P.S. Contains too many bugs.
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+//-I\O-------------
+
+#include <cstring>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+//-C-libraries------
+
+
+#include <deque>
+#include <queue>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+//-Structs-----------
+
+#include <algorithm>
+#include <functional>
+//-Other-------------
+
+
+using namespace std;
+//-Using-------------
+
+
+typedef long long ll;
+typedef pair<int,int> pr;
+//-Typedefs----------
+
+
+#define double long double
+//-Define------------
+
+
+const ll mod = 1000000009;
+const ll linf = 1000000000000000000ll;
+//-Const-------------
+
+struct edge{
+    int from;
+    int to;
+    int anti;
+    ll cap;
+    ll flow;
+    ll price;
+    edge(int from,int to,int anti,ll c,ll f,ll p):anti(anti),from(from),to(to){
+        cap = c;
+        flow = f;
+        price = p;
+    }
+};
+
+vector<edge> ver[1001];
+
+vector<int> id,p,pedge;
+vector<ll> d;
+deque<int> q;
+
+int s,t,n;
+
+void add_edge(int a,int b,ll cap,ll price){
+    int sz1 = ver[a].size(); 
+    int sz2 = ver[b].size();
+    ver[a].push_back(edge(a,b,sz2,cap,0,price));
+    ver[b].push_back(edge(b,a,sz1,0,0,-price));
+}
+
+ll cost,flow;
+
+void minmaxflow(){
+    
+    //
+    while(true){
+        ll tflow=0;
+        
+        d.assign(t+1,linf); d[s] = 0;
+        id.assign(t+1,2);
+        pedge.assign(t+1,0); 
+        p.assign(t+1,0);
+        
+        q.clear();
+        id[s] = 1;
+        q.push_front(s);
+        while(!q.empty()){
+            int next = q.front(); q.pop_front();
+            id[next] = 2;
+            for(int i=0;i<ver[next].size();++i){
+                edge& take = ver[next][i];
+                //cout << "it";
+                if(take.flow<take.cap && d[take.to]>d[next] + take.price){
+                    d[take.to] = d[next]+take.price;
+                    if(id[take.to]!=1){
+                        id[take.to]=1;
+                        if(id[take.to])
+                            q.push_front(take.to);
+                        else
+                            q.push_back(take.to);
+                    }
+                    p[take.to] = next;
+                    pedge[take.to] = i;
+                }
+            }
+        }
+        
+        if(d[t]==linf)break;
+        
+        tflow = linf;
+        for(int i=t;i!=s;i=p[i]){
+            edge &prev = ver[p[i]][pedge[i]];
+            tflow = min(tflow,prev.cap-prev.flow);
+        }
+        
+        
+        for(int i=t;i!=s;i=p[i]){
+            
+            edge &prev = ver[p[i]][pedge[i]];
+        
+            prev.flow+=tflow;
+            ver[i][prev.anti].flow-=tflow;
+            cost += prev.price*tflow;
+        }
+        
+       //cost+=d[t]*tflow;
+        flow+=tflow;
+    }
+}
+
+int temp[1001][26];
+int cnt[26];        
+
+int main(){
+    string S,T;int cr;
+    cin >> S >> n;
+    s = 1;t = 1000;
+
+    for(int i=0;i<S.length();++i){
+        cnt[S[i]-'a']++;
+    }
+
+    for(int i=1;i<=n;++i){
+        cin >> T >> cr;
+        for(int j=0;j<T.length();++j)
+            temp[i][T[j]-'a']++;
+        add_edge(50+i,t,cr,0);
+    }
+    
+    for(int i=0;i<26;++i){
+        if(cnt[i]){
+            add_edge(1,i+2,cnt[i],0);
+            for(int j=1;j<=n;++j){
+                add_edge(i+2,50+j,temp[j][i],j);
+            }
+        }
+    }
+    minmaxflow();
+    if(flow<S.length()) cout << -1;
+    else cout << cost;
+    return 0;
+}

@@ -1,0 +1,159 @@
+#include <bits/stdc++.h>
+#define sz(x) (int)(x).size()
+#define all(x) (x).begin(), (x).end()
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long llu;
+typedef pair<int, int> pii;
+typedef pair<int, pii> piii;
+typedef pair<ll, ll> pll;
+typedef pair<ll, int> pli;
+typedef pair<int, ll> pil;
+typedef pair<string, int> psi;
+typedef pair<char, int> pci;
+typedef pair<int, char> pic;
+const ll MOD = (ll)1e9 + 7;
+const long double PI = 3.141592653589793238462643383279502884197;
+
+
+int mtree[1 << 20];
+ll stree[1 << 20];
+int szz = 1 << 19;
+vector<int> v[1000000];
+vector<int> x;
+
+// 여기서 내가 어떤 i를 선택하냐에 따라 답이 달라지나????
+// 이거 중요한데.. 가장 왼쪽 혹은 가장 오른쪽?
+// 이게 어떤 구간으로 나타난다.
+// 그러면 양끝을 잡고.
+// 다 해보는거지.
+
+// 1. 양끝에 있는 애를 끝으로 보낸다.
+// 2. 그러면 결국 2개중에 한개 아니냐..
+// 3. 작은 게 없다는 가정하에.
+
+// 4. 이걸 한구간만 남긴다.
+// 5. 이것에 대한 호출 횟수?
+// 6. 그래봤자 다 독립적!
+
+int vec[500000];
+map<pii, pii> ma;
+
+int mfind(int i, int l, int r, int le, int ri) {
+    if (le > r || ri < l) return 1e9 + 7;
+    if (l <= le && ri <= r) return mtree[i];
+    return min(mfind(i * 2, l, r, le, (le + ri) / 2), mfind(i * 2 + 1, l, r, (le + ri) / 2 + 1, ri));
+}
+
+ll sfind(int i, int l, int r, int le, int ri) {
+    if (le > r || ri < l) return 0;
+    if (l <= le && ri <= r) return stree[i];
+    return sfind(i * 2, l, r, le, (le + ri) / 2) + sfind(i * 2 + 1, l, r, (le + ri) / 2 + 1, ri);
+}
+
+void init(int i) {
+    if (i >= szz) return;
+    init(i * 2); init(i * 2 + 1);
+
+    mtree[i] = min(mtree[i * 2], mtree[i * 2 + 1]);
+    stree[i] = stree[i * 2] + stree[i * 2 + 1];
+}
+
+ll dnc(int l, int r) {
+    if (l >= r) return 0;
+
+    ll miv = mfind(1, l, r, 0, szz - 1);
+    ll ret = 1e18;
+
+    int t = lower_bound(all(x), miv) - x.begin();
+    int le = lower_bound(all(v[t]), l) - v[t].begin();
+    int ri = upper_bound(all(v[t]), r) - v[t].begin();
+    ri--;
+
+    ll ss, tmp;
+    int ni, nj;
+    pii ans = {-1, -1};
+
+    for (int i = le; i < ri; i++) {
+        ni = v[t][i];
+        nj = v[t][i + 1];
+
+        ss = 0;
+        ss += sfind(1, l, ni, 0, szz - 1);
+        ss += sfind(1, nj, r, 0, szz - 1);
+        ss -= miv * (ni - l + 1);
+        ss -= miv * (r - nj + 1);
+
+        tmp = ss + dnc(ni + 1, nj - 1);
+        if (ret > tmp) {
+            ret = tmp;
+            ans = {ni + 1, nj - 1};
+        }
+    }
+
+    le = v[t][le], ri = v[t][ri];
+
+    ss = 0;
+    ss += sfind(1, le, r, 0, szz - 1);
+    ss -= (r - le + 1) * miv;
+    tmp = ss + dnc(l, le - 1);
+    if (ret > tmp) {
+        ret = tmp;
+        ans = {l, le - 1};
+    }
+
+    ss = 0;
+    ss += sfind(1, l, ri, 0, szz - 1);
+    ss -= (ri - l + 1) * miv;
+
+    tmp = ss + dnc(ri + 1, r);
+    if (ret > tmp) {
+        ret = tmp;
+        ans = {ri + 1, r};
+    }
+
+    ma[{l, r}] = ans;
+    return ret;
+}
+
+int main() {
+    int n;
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        int t;
+        scanf("%d", &t);
+        vec[i] = t;
+        mtree[i + szz] = t;
+        stree[i + szz] = t;
+        x.push_back(t);
+    }
+    sort(all(x));
+    x.erase(unique(all(x)), (x).end());
+
+    for (int i = 0; i < n; i++) {
+        int t = lower_bound(all(x), vec[i]) - x.begin();
+        v[t].push_back(i);
+    }
+
+    init(1);
+    dnc(0, n - 1);
+
+    pii now = {0, n - 1}, ne;
+
+    while (now.first < now.second) {
+        ne = ma[{now.first, now.second}];
+        ll miv = mfind(1, now.first, now.second, 0, szz - 1);
+
+        // printf("%d %d -> %d %d\n", now.first, now.second, ne.first, ne.second);
+
+        for (int i = now.first; i < ne.first; i++) vec[i] = miv;
+        for (int i = ne.second + 1; i <= now.second; i++) vec[i] = miv;
+
+        now = ne;
+    }
+
+    for (int i = 0; i < n; i++)
+        printf("%d ", vec[i]);
+}

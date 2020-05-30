@@ -1,0 +1,289 @@
+/*
+   Salim Shebli
+   Russian,Syrian
+   Faculty Of Information Technology
+   University of Damascus
+   Game Developer
+ */
+#include <bits/stdc++.h>
+#define ll long long
+#define mp make_pair
+#define pb push_back
+
+using namespace std;
+ll n,m,q;
+struct node
+{
+    // stores sum of the elements in node
+    int val;
+
+    // pointer to left and right children
+    node* left, *right;
+
+    // required constructors........
+    node() {}
+    node(node* l, node* r, int v)
+    {
+        left = l;
+        right = r;
+        val = v;
+    }
+};
+
+// input array
+int arr[1000100];
+
+// root pointers for all versions
+node* version[1000100];
+node* rvV[1000100];
+
+// Constructs Version-0
+// Time Complexity : O(nlogn)
+void build(node* n,int low,int high)
+{
+    if (low==high)
+    {
+        n->val = 0;
+        return;
+    }
+    int mid = (low+high) / 2;
+    n->left = new node(NULL, NULL, 0);
+    n->right = new node(NULL, NULL, 0);
+    build(n->left, low, mid);
+    build(n->right, mid+1, high);
+    n->val = n->left->val + n->right->val;
+}
+
+/**
+ * Upgrades to new Version
+ * @param prev : points to node of previous version
+ * @param cur  : points to node of current version
+ * Time Complexity : O(logn)
+ * Space Complexity : O(logn)  */
+void upgrade(node* prev, node* cur, int low, int high,
+                                   int idx, int value)
+{
+    if (idx > high or idx < low or low > high)
+        return;
+
+    if (low == high)
+    {
+        // modification in new version
+        cur->val = value;
+        return;
+    }
+    int mid = (low+high) / 2;
+    if (idx <= mid)
+    {
+        // link to right child of previous version
+        cur->right = prev->right;
+
+        // create new node in current version
+        cur->left = new node(NULL, NULL, 0);
+
+        upgrade(prev->left,cur->left, low, mid, idx, value);
+    }
+    else
+    {
+        // link to left child of previous version
+        cur->left = prev->left;
+
+        // create new node for current version
+        cur->right = new node(NULL, NULL, 0);
+
+        upgrade(prev->right, cur->right, mid+1, high, idx, value);
+    }
+
+    // calculating data for current version
+    // by combining previous version and current
+    // modification
+    cur->val = cur->left->val + cur->right->val;
+}
+
+int query(node* n, int low, int high, int l, int r)
+{
+    if (l > high or r < low or low > high)
+       return 0;
+    if (l <= low and high <= r)
+       return n->val;
+    int mid = (low+high) / 2;
+    int p1 = query(n->left,low,mid,l,r);
+    int p2 = query(n->right,mid+1,high,l,r);
+    return p1+p2;
+}
+ll sol[1000100];
+ll tot;
+ll getActualPos(int x,int y)
+{
+    ll ac=x*m+y;
+    return ac;
+}
+ll getSol(node *root,node *state,int nx)
+{
+    ll st=nx*m;
+    ll en=st+m-1;
+    ll dd=query(root,0,tot-1,st,en);
+    ll t=query(state,0,n-1,nx,nx);
+    if(t>0)
+    {
+        return (m-dd);
+    }
+    return dd;
+}
+int main()
+{
+ ios::sync_with_stdio(false);
+    cin>>n>>m>>q;
+    tot=n*m;
+    node * root=new node(NULL,NULL,0);
+    build(root,0,tot-1);
+    node * rv=new node(NULL,NULL,0);
+    build(rv,0,n-1);
+    version[0]=root;
+    rvV[0]=rv;
+    ll cur=0;
+    ll kd=0;
+   // cout<<"ASD"<<endl;
+    for(int i=0;i<q;i++)
+    {
+        ll x;
+        cin>>x;
+        ll a,b;
+        if(x==1||x==2)
+        {
+            cin>>a>>b;
+        }
+        else{
+            cin>>a;
+        }
+        ll lastSol=0;
+        ll Sol=0;
+        ll rd=sol[cur];
+        if(x==1)
+        {
+            a--;
+            b--;
+            lastSol=getSol(version[cur],rvV[cur],a);
+            ll pos=getActualPos(a,b);
+            int cs=query(version[cur],0,tot-1,pos,pos);
+            ll st=query(rvV[cur],0,n-1,a,a);
+            if(st>0)
+            {
+                 node *nroot=new node(NULL,NULL,0);
+                if(cs>0)
+                {
+
+                    upgrade(version[cur],nroot,0,tot-1,pos,0);
+
+                }
+                else
+                {
+                    nroot=version[cur];
+                }
+                version[kd+1]=nroot;
+                rvV[kd+1]=rvV[cur];
+                kd++;
+                cur=kd;
+            }
+            else
+            {
+                 node *nroot=new node(NULL,NULL,0);
+                if(cs>0)
+                {
+                        nroot=version[cur];
+
+                }
+                else
+                {
+
+                    upgrade(version[cur],nroot,0,tot-1,pos,1);
+                }
+                version[kd+1]=nroot;
+                rvV[kd+1]=rvV[cur];
+                kd++;
+                cur=kd;
+            }
+             Sol=getSol(version[cur],rvV[cur],a);
+        }
+        else if(x==2)
+        {
+            a--;
+            b--;
+            lastSol=getSol(version[cur],rvV[cur],a);
+            ll pos=getActualPos(a,b);
+            int cs=query(version[cur],0,tot-1,pos,pos);
+            ll st=query(rvV[cur],0,n-1,a,a);
+            if(st>0)
+            {
+                 node *nroot=new node(NULL,NULL,0);
+                if(cs>0)
+                {
+                     nroot=version[cur];
+
+
+                }
+                else
+                {
+                    upgrade(version[cur],nroot,0,tot-1,pos,1);
+                }
+                version[kd+1]=nroot;
+                rvV[kd+1]=rvV[cur];
+                kd++;
+                cur=kd;
+            }
+            else
+            {
+                 node *nroot=new node(NULL,NULL,0);
+                if(cs>0)
+                {
+
+                     upgrade(version[cur],nroot,0,tot-1,pos,0);
+                }
+                else
+                {
+                    nroot=version[cur];
+
+                }
+                version[kd+1]=nroot;
+                 rvV[kd+1]=rvV[cur];
+                kd++;
+                cur=kd;
+            }
+             Sol=getSol(version[cur],rvV[cur],a);
+        }
+        else if(x==3)
+        {
+            a--;
+              ll st=query(rvV[cur],0,n-1,a,a);
+               node *nroot=new node(NULL,NULL,0);
+                lastSol=getSol(version[cur],rvV[cur],a);
+              if(st>0)
+              {
+                  upgrade(rvV[cur],nroot,0,n-1,a,0);
+              }
+              else
+              {
+                 upgrade(rvV[cur],nroot,0,n-1,a,1);
+              }
+              rvV[kd+1]=nroot;
+              version[kd+1]=version[cur];
+              kd++;
+              cur=kd;
+               Sol=getSol(version[cur],rvV[cur],a);
+        }
+        else
+        {
+            version[kd+1]=version[a];
+            rvV[kd+1]=rvV[a];
+            sol[kd+1]=sol[a];
+            kd++;
+            cur=kd;
+        }
+        if(x==1||x==2||x==3)
+        {
+            sol[cur]=rd-lastSol+Sol;
+        }
+        cout<<sol[cur]<<endl;
+    }
+    return 0;
+}

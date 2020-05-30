@@ -1,0 +1,32 @@
+//https://codeforces.com/problemset/problem/319/B
+#include<bits/stdc++.h>
+#define ll long long int
+using namespace std;
+const int N = 1e5+10;
+int n,a,arr[N],ans;
+stack<pair<int,int>> s;
+int main(){
+    scanf("%d",&n);
+    for(int i = 0; i < n; ++i)scanf("%d",arr+i);
+    s.push(make_pair(arr[0],n));
+    for(int i = 1; i < n; ++i){
+        a = 0;
+        while(s.size()){
+            if(s.top().first < arr[i]){
+                a = s.top().second+1;
+                s.pop();
+                continue;
+            }
+            ans = max(ans,a+1);
+            while(s.size()){
+                if(s.top().second != a)break;
+                s.pop();
+            }
+            s.push(make_pair(arr[i],a));
+            break;
+        }
+        if(s.empty())s.push({arr[i],n});
+    }
+    cout << ans;
+    return 0;
+}

@@ -1,0 +1,99 @@
+#pragma comment(linker, "/STACK:134217728")
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <queue>
+#include <functional>
+#include <map>
+#include <set>
+#include <memory.h>
+#include <cmath>
+#include <cstdio>
+#include <string>
+
+using namespace std;
+
+typedef long long LL;
+
+int n;
+
+vector<int> vote[1 << 17];
+
+priority_queue<pair<int, int> > Q;
+
+int now = 0;
+
+multiset<int> took;
+multiset<int> S;
+
+int main()
+{
+	scanf("%d", &n);
+	int have = 0;
+	for(int i = 0; i < n; ++i)
+	{
+		int a, b;
+		scanf("%d%d", &a, &b);
+		if (a == 0)
+		{
+			have++;
+			continue;
+		}
+		vote[a].push_back(b);
+		took.insert(b);
+		now += b;
+	}
+	for(int i = 0; i < 1 << 17; ++i)
+		sort(vote[i].begin(), vote[i].end(), greater<int>());
+	for(int i = 0; i < 1 << 17; ++i)
+	{
+		if (vote[i].empty())
+			continue;
+		Q.push(make_pair(vote[i].size(), i));
+	}
+	int res = (int)1e9 + 1;
+	int current = 0;
+	int votes = have;
+	for(int i = n; i >= 1; --i)
+	{
+		while (!Q.empty() && Q.top().first >= i)
+		{
+			votes++;
+			int id = Q.top().second;
+			int h = Q.top().first;
+			int cost = vote[id][h - 1];
+			Q.pop();
+			current += cost;
+			h--;
+			Q.push(make_pair(h, id));
+
+			multiset<int> :: iterator s = S.find(cost);
+
+			if (s != S.end())
+				S.erase(s);
+			else
+			{
+				now -= cost;
+				multiset<int> :: iterator t = took.find(cost);
+				took.erase(t);
+			}
+		}
+		int need = max(0, i - votes);
+		while (took.size() < need)
+		{
+			now += *S.begin();
+			took.insert(*S.begin());
+			S.erase(S.begin());
+		}
+		while (took.size() > need)
+		{
+			now -= *took.rbegin();
+			S.insert(*took.rbegin());
+			took.erase(took.find(*took.rbegin()));
+		}
+		res = min(res, current + now);
+	}
+	printf("%d\n", res);
+	return 0;
+}

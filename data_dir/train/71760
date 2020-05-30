@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+#define pb           push_back
+#define ll              long long int
+#define scd(a)          scanf("%d",&a)
+#define mp(a,b)         make_pair(a,b)
+#define scl(w)          scanf("%I64d",&w)
+#define scdd(a,b)       scanf("%d %d",&a,&b)
+#define srt(a)          sort(a.begin(),a.end())
+#define rsrt(a)         sort(a.rbegin(),a.rend())
+#define scll(a,b)       scanf("%I64d %I64d",&a,&b)
+///4direction ->        int del_x[]={-1,0,1,0},del_y[]={0,1,0,-1};
+#define input(v,n)      for (int i=0;i<n;i++){int a;cin >> a;v.push_back(a);}
+#define inputll(v,n)    for (ll i=0;i<n;i++){ll a;cin >> a;v.push_back(a);}
+#define vii             vector < int >
+#define vll             vector < ll >
+#define pii             pair < int , int >
+#define pll             pair < ll , ll >
+#define mk              make_pair
+#define inf8            100000008
+#define maxn            200005
+
+using namespace std;
+
+vll G[maxn];
+vector < pair < ll , pll > > v1,v2;
+map < pll , ll > inMST, weight;
+ll n, m, sum = 0, LOG = 24;
+ll mark[maxn] , ST[maxn][25] , MX[maxn][25], P[maxn] , L[maxn];
+ll Parent[maxn];
+
+ll LCA(ll p, ll q)
+{
+    if (L[p]<L[q])swap(p,q);
+
+    ll mxP = 0, mxQ = 0;
+
+    for (int i = LOG; i>=0 ; i--){ /// same level
+        if (L[p]-L[q] >= (1 << i)){
+            mxP = max(mxP,MX[p][i]);
+            p = ST[p][i];
+        }
+    }
+//    cout << "      mx 20  " << MX[2][0] << endl;
+    if (p==q)return mxP;
+
+    for (int i=LOG ; i>=0 ; i--){
+        if (ST[p][i] != ST[q][i] && ST[p][i]!=0){
+            //cout << "   p q i    " << p << " " << q << " " << i <<endl;
+            mxP = max(mxP,MX[p][i]);
+            mxQ = max(mxQ,MX[q][i]);
+            p = ST[p][i] , q = ST[q][i];
+        }
+    }
+   // cout << "    mxp , mxq   " << mxP << " " << mxQ << endl;
+    return max(max(mxP,MX[p][0]),max(mxQ,MX[q][0]));
+}
+
+void dfs(ll u, ll level, ll p)
+{
+    P[u] = p;
+    L[u] = level;
+
+    for (int i=0;i<G[u].size();i++){
+        ll v = G[u][i];
+        if (v == p)continue;
+        dfs(v,level+1,u);
+    }
+}
+
+void MAKE()
+{
+    memset(ST,0,sizeof(ST));
+    memset(MX,0,sizeof(MX));
+    dfs(1, 0, 0);
+
+    for (int i=1;i<=n;i++){
+        ST[i][0] = P[i];
+        MX[i][0] = weight[{i,P[i]}]; ///can causes occurence for root
+        //if (i==2 && P[i]==3)cout << "      " <<  weight[{2,3}] << endl;
+    }
+
+    for (int j=1;j<=LOG ;j++){
+        for (int i=1;i<=n;i++){
+            if (ST[i][j-1]!=0){
+                ll x = ST[i][j-1], val = MX[i][j-1];
+                ST[i][j] = ST[x][j-1];
+                MX[i][j] = max(MX[i][j-1],MX[x][j-1]);
+            }
+        }
+    }
+}
+
+ll findParent(ll a)
+{
+    if (Parent[a] == a)return a;
+    return Parent[a] = findParent(Parent[a]);
+}
+
+
+int main()
+{
+    scll(n,m);
+    for (int i=0;i<m;i++){
+        ll a,b,c;
+        scll(a,b);
+        scl(c);
+        v1.pb({c,{a,b}});
+        weight[{a,b}] = c;
+        //if (a==2 && b==3)  cout << c <<"    wt 23    " << weight[{2,3}] << endl;
+        weight[{b,a}] = c;
+    }
+    v2 = v1;
+    srt(v1);
+
+    for (int i=0;i<=n+2;i++)Parent[i] = i;
+
+    memset(mark,0,sizeof(mark));
+    for (int i=0;i<m;i++){
+        ll a = v1[i].second.first , b = v1[i].second.second , w = v1[i].first;
+        ll p1 = findParent(a) , p2 = findParent(b);
+        if (p1 != p2){
+
+            Parent[p1] = p2;
+
+            G[a].pb(b);
+            G[b].pb(a);
+            //cout << "     mst eg   " << a << " " << b << endl;
+            inMST[{a,b}] = 1;
+            sum+=w;
+        }
+    }
+
+    MAKE();
+
+    for (int i=0;i<m;i++){
+        ll a = v2[i].second.first , b = v2[i].second.second , w = v2[i].first;
+
+        if (inMST[{a,b}])cout << sum << endl;
+        else{
+            cout << sum - LCA(a,b) + w << endl;
+        }
+    }
+
+
+    return 0;
+}

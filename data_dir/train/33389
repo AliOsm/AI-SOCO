@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 10, L = 10, M = 100;
+
+vector<int> g[N];
+long long ans[M];
+char str[N];
+bool lk[L][L];
+int f[L][N], fs[L][L], co[L][1 << 9], msk[N], n, s[N];
+
+void bfs(int col) {
+  int *d = f[col];
+  deque<int> q;
+  for (int i = 0; i < n + 8; ++i) d[i] = 100;
+  d[n + col] = 0;
+  q.push_back(n + col);
+  while (!q.empty()) {
+    int u = q.front();
+    q.pop_front();
+    for (int i = 0; i < g[u].size(); ++i) {
+      int v = g[u][i], l = (u < n);
+      if (d[u] + l < d[v]) {
+        d[v] = d[u] + l;
+        if (l) q.push_back(v);
+        else q.push_front(v);
+      }
+    }
+  }
+}
+
+int main() {
+  scanf("%d%s", &n, str);
+  for (int i = 0; i < n; ++i) s[i] = str[i] - 'a';
+  for (int i = 0; i < n; ++i) {
+    if (i) g[i].push_back(i - 1);
+    if (i + 1 < n) g[i].push_back(i + 1);
+    g[i].push_back(n + s[i]);
+    g[n + s[i]].push_back(i);
+  }
+  for (int i = 0; i < 8; ++i) {
+    bfs(i);
+    for (int j = 0; j < 8; ++j) fs[i][j] = 100;
+    for (int j = 0; j < n; ++j) fs[i][s[j]] = min(fs[i][s[j]], f[i][j]);
+    for (int j = 0; j < n; ++j) msk[j] |= (1 << i) * (f[i][j] - fs[i][s[j]]);
+  }
+  for (int j = 0; j < n; ++j) co[s[j]][msk[j]]++;
+  for (int i = 0; i < n; ++i) {
+    for (int j = -15; j < 16; ++j) {
+      int u = i + j;
+      if (u < 0 || u >= n) continue;
+      int len = abs(j);
+      for (int c = 0; c < 8; ++c) len = min(len, f[c][i] + 1 + f[c][u]);
+      co[s[u]][msk[u]]--;
+      ans[len]++;
+    }
+    for (int c = 0; c < 8; ++c) {
+      for (int s = 0; s < (1 << 8); ++s) {
+        if (co[c][s]) {
+          int len = 100;
+          for (int c1 = 0; c1 < 8; ++c1) {
+            int curlen = fs[c][c1] + bool(s & (1 << c1));
+            len = min(len, f[c1][i] + 1 + curlen);
+          }
+          ans[len] += co[c][s];
+        }
+      }
+    }
+    for (int j = -15; j < 16; ++j) {
+      int u = i + j;
+      if (u < 0 || u >= n) continue;
+      co[s[u]][msk[u]]++;
+    }
+  }
+  int mx = 0;
+  for (int i = 1; i < 30; ++i)
+    if (ans[i]) mx = i;
+  printf("%d %lld\n", mx, ans[mx] / 2);
+  return 0;
+}

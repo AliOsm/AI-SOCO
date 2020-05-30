@@ -1,0 +1,145 @@
+#include<bits/stdc++.h>
+#define mp make_pair
+#define pb push_back
+#define F first
+#define S second
+using namespace std;
+
+const int N = 1000*100 + 10 , INF = 1000*1000*1000;
+
+typedef pair<int , int> pii;
+
+int st[N] , en[N] , ans[N] , sum[N*4] , minn[N*4] , lazy[N*4] , start , n;
+bool mark[N];
+
+vector <int> adj[N] , qr[N];
+
+
+void DFS1(int v){
+	
+	mark[v] = 1;
+	st[v] = start++;
+
+	for(int u : adj[v])
+	   	if(!mark[u])
+		   	DFS1(u);
+	
+	en[v] = start;
+	return;
+
+}
+
+void shift(int ind){
+
+	int a = lazy[ind];
+	lazy[ind] = 0;
+
+	minn[ind*2] += a;
+	minn[ind*2 + 1] += a;
+	lazy[ind*2] += a;
+	lazy[ind*2 + 1] += a;
+	
+	return;
+}
+
+void add(int l , int r , int val , int b = 0 , int e = n , int ind = 1){
+
+	if(l <= b && e <= r){
+	   	minn[ind] += val;
+		lazy[ind] += val;
+		return;
+	}
+
+	int mid = (b + e)/2;
+	shift(ind);
+	
+	if(l < mid)
+	   	add(l , r , val , b , mid, ind*2);
+	if(r > mid)
+	   	add(l , r , val , mid , e , ind*2 + 1);
+	
+	minn[ind] = min(minn[ind*2] , minn[ind*2 + 1]);
+
+	if(minn[ind*2] < minn[ind*2 + 1])
+	   	sum[ind] = sum[ind*2];
+	else if(minn[ind*2 + 1] < minn[ind*2])	
+	   	sum[ind] = sum[ind*2 + 1];
+	else
+	   	sum[ind] = sum[ind*2 + 1] + sum[ind*2];
+	
+	return;
+}
+
+void DFS2(int v){
+
+	mark[v] = 1;
+	
+	for(int u : qr[v]){
+	   	add(st[u] , en[u] , 1);
+		add(st[v] , en[v] , 1);
+	}
+
+//	cout <<v << " " <<  minn[1] << "  " << sum[1] << endl;
+	ans[v] = (minn[1] ? n : n - sum[1]) - 1;
+
+	for(int u : adj[v]){	
+	   	if(!mark[u])
+		   	DFS2(u);
+	}
+
+	for(int u : qr[v]){
+	   	add(st[u] , en[u] , -1);
+		add(st[v] , en[v] , -1);
+	}
+	   	
+	return;
+
+}
+void Make(int b = 0 , int e = n , int ind = 1){
+	
+	if(b + 1 == e){
+	   	sum[ind] = 1;
+		return ;
+	}
+	
+	int mid = (b + e)/2;
+	
+	Make(b , mid , ind*2);
+	Make(mid , e , ind*2 + 1);
+
+	sum[ind] = e - b;
+
+}
+
+
+int main(){
+
+	ios_base::sync_with_stdio(0) , cin.tie(0) , cout.tie(0);
+	int q , u , v;
+
+	cin >> n >> q;
+
+	for(int i = 1 ; i < n ; i++){
+	   	cin >> u >> v;
+		u-- , v--;
+		adj[u].pb(v);
+		adj[v].pb(u);
+	}
+	
+	DFS1(0);
+
+	for(int i = 0 ; i < q ; i++){
+	   	cin >> u >> v;
+		u-- , v--;
+		qr[u].pb(v);
+		qr[v].pb(u);
+	}
+	fill(mark , mark + n , 0);	
+	Make();
+	DFS2(0);
+	
+	for(int i = 0 ; i < n ; i++)
+	   	cout << (ans[i] < 0 ? 0 : ans[i]) << endl;
+	
+	return 0;
+}

@@ -1,0 +1,87 @@
+#include <iostream>
+#include <algorithm>
+#include <vector>
+
+using namespace std;
+
+long long n, t;
+long long answer = 0;
+vector < vector < long long > > tree;
+vector < long long > base;
+vector < long long > prefix;
+
+void read()
+{
+    cin >> n >> t;
+    base.resize(n + 1, 0);
+    tree.resize(n * 4 + 4);
+    prefix.resize(n + 1, 0);
+    for (int i = 1; i <= n; i++)
+        cin >> base[i];
+}
+
+void buildTree(int v, int tl, int tr)
+{
+    if (tl == tr)
+        tree[v] = vector < long long > (1, prefix[tl]);
+    else
+    {
+        int tm = (tl + tr) / 2;
+        buildTree(v * 2, tl, tm);
+        buildTree(v * 2 + 1, tm + 1, tr);
+        merge(tree[v * 2].begin(), tree[v * 2].end(),
+            tree[v * 2 + 1].begin(), tree[v * 2 + 1].end(),
+            back_inserter(tree[v]));
+    }
+}
+
+int binarySearch(int v, long long x)
+{
+    int tl = 0, tr = tree[v].size() - 1;
+
+    while (tl < tr - 1)
+    {
+        int tm = (tl + tr) / 2;
+        if (tree[v][tm] < x)
+            tl = tm;
+        else
+            tr = tm - 1;
+    }
+
+    if (tree[v][tr] < x)
+        return (tr + 1);
+    if (tr - 1 >= 0 && tree[v][tr - 1] < x)
+        return tr;
+    if (tr - 2 >= 0 && tree[v][tr - 2] < x)
+        return (tr - 1);
+
+    return 0;
+}
+
+int queryTree(int v, int tl, int tr, int l, int r, long long border)
+{
+    if (l > r)
+        return 0;
+
+    if (tl == l && tr == r)
+        return binarySearch(v, border);
+
+    int tm = (tl + tr) / 2;
+    return (queryTree(v * 2, tl, tm, l, min(r, tm), border) + queryTree(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, border));
+}
+
+int main()
+{
+    read();
+    for (int i = 1; i <= n; i++)
+        prefix[i] = prefix[i - 1] + base[i];
+
+    buildTree(1, 1, n);
+
+    for (int i = 1; i <= n; i++)
+    {
+        t += base[i - 1];
+        answer += queryTree(1, 1, n, i, n, t);
+    }
+    cout << answer << endl;
+}

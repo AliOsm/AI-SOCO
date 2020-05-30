@@ -1,0 +1,163 @@
+#include <vector>
+#include <queue>
+#include <iostream>
+#include <string>
+#define vi vector <int>
+#define vvi vector <vector <int>>
+#define vs vector <string>
+using namespace std;
+
+typedef long long i64;
+
+class Acho
+{
+public:
+	vi fail, ans;
+	vvi next;
+	vs strings;
+	vi litera;
+
+	void mk_acho()
+	{
+		next.clear(), fail.clear(), ans.clear(), litera.clear();
+
+		if (strings.size() == 0)
+			return;
+
+		fail.push_back(0);
+		next.push_back(vi(26));
+		ans.push_back(0);
+		litera.push_back(0);
+
+		for (auto & s : strings) {
+			int act(0);
+
+			for (auto i : s) {
+				if (next[act][i - 'a'])
+					act = next[act][i - 'a'];
+				else {
+					next[act][i - 'a'] = ans.size();
+					ans.push_back(0);
+					fail.push_back(0);
+					next.push_back(vi(26));
+					litera.push_back(i - 'a');
+					act = ans.size() - 1;
+				}
+			}
+
+			ans[act]++;
+		}
+
+		queue <int> q;
+		q.push(0);
+
+		while (!q.empty()) {
+			int x = q.front();
+			q.pop();
+
+
+			while (fail[x] && !next[fail[x]][litera[x]])
+				fail[x] = fail[fail[x]];
+			if (next[fail[x]][litera[x]] != x && x != 0)
+				fail[x] = next[fail[x]][litera[x]];
+
+			for (int i(0); i < 26; i++) {
+				if (next[x][i]) {
+					q.push(next[x][i]);
+					fail[next[x][i]] = fail[x];
+				}
+			}
+
+			for (int i(0); i < 26; i++)
+				if (!next[x][i])
+					next[x][i] = next[fail[x]][i];
+			ans[x] += ans[fail[x]];
+
+
+			
+		//	cout << x << ' ' << fail[x] << ' ' << ans[x] << '\n';
+		}
+	}
+
+	void merge(Acho & x)
+	{
+		for (auto i : x.strings)
+			strings.push_back(i);
+		mk_acho();
+	}
+
+	Acho(vs sir = { }) : strings(sir)
+	{
+		mk_acho();
+	}
+	Acho(string sir) : strings({ sir })
+	{
+		mk_acho();
+	}
+
+};
+
+class Multime
+{
+public:
+	vector <Acho> v;
+
+	void insert(string s)
+	{
+		Acho a(s);
+		for (int i(0); ; i++) {
+			if (!v[i].ans.size()) {
+				v[i] = a;
+				break;
+			}
+			a.merge(v[i]);
+			v[i] = Acho();
+		}
+	}
+
+	i64 query(string s)
+	{
+		i64 ans(0);
+		for (auto & a : v) {
+			if (!a.ans.size())
+				continue;
+			int p(0);
+			for (auto i : s) {
+				p = a.next[p][i - 'a'];
+			//	cout << p << " -> " << a.ans[p] << '\n';
+
+				ans += a.ans[p];
+			}
+		}
+		return ans;
+	}
+
+	Multime() : v(vector <Acho>(20)) { }
+};
+
+int main()
+{
+	Multime add, remove;
+
+	int n, t;
+	string s;
+
+	//ios_base :: sync_with_stdio(0);
+	//cin.tie(0);
+
+	cin >> n;
+
+	while (n--) {
+		cin >> t >> s;
+		if (t == 1)
+			add.insert(s);
+		else if (t == 2)
+			remove.insert(s);
+		else {
+			cout << add.query(s) - remove.query(s) << '\n';
+			cout.flush();
+		}
+	}
+
+	return 0;
+}

@@ -1,0 +1,112 @@
+//IOI 2021
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define ff first
+#define ss second
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int MAXN = 3 * 100 * 1000 + 17;
+
+int n, q, S = 2200, a[MAXN], ans[MAXN], cnt, m, b[MAXN], c[MAXN], st = 1, en, tnow;
+vector<int> num[MAXN];
+pii upd[MAXN];
+pair<pii, pii> qr[MAXN];
+
+bool cmp_mo(pair<pii, pii> A, pair<pii, pii> B) {
+	if (A.ff.ff / S != B.ff.ff / S)
+		return A.ff.ff < B.ff.ff;
+	if (A.ff.ss / S != B.ff.ss / S)
+		return A.ff.ss < B.ff.ss;
+	return A.ss.ff < B.ss.ff;
+}
+void compress() {
+	vector<int> all;
+	for (int i = 1; i <= n; i++)
+		all.pb(a[i]);
+	for (int i = 1; i <= cnt; i++)
+		all.pb(upd[i].ss);
+	sort(all.begin(), all.end());
+	all.resize(unique(all.begin(), all.end()) - all.begin());
+	for (int i = 1; i <= n; i++)
+		a[i] = lower_bound(all.begin(), all.end(), a[i]) - all.begin() + 1;
+	for (int i = 1; i <= cnt; i++)
+		upd[i].ss = lower_bound(all.begin(), all.end(), upd[i].ss) - all.begin() + 1;
+}
+
+void change(int x, int val) {
+	if (x == 0)
+		return;
+	b[c[x]]--;
+	c[x] += val;
+	b[c[x]]++;
+}
+
+void undo(int updNUM) {
+	int x = upd[updNUM].ff;
+	if (st <= x && x <= en)
+		change(num[x].back(), -1);
+	num[x].pop_back();
+	if (st <= x && x <= en)
+		change(num[x].back(), 1);
+}
+void do_upd(int updNUM) {
+	int x = upd[updNUM].ff, val = upd[updNUM].ss;
+	if (st <= x && x <= en)
+		change(num[x].back(), -1);
+	num[x].push_back(val);
+	if (st <= x && x <= en)
+		change(num[x].back(), 1);
+}
+
+void add(int x, int val) {
+	 change(num[x].back(), val);
+}
+
+int get() {
+	for (int i = 1;; i++)
+		if (!b[i])
+			return i;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+	cin >> n >> q;
+	for (int i = 1; i <= n; i++)
+		cin >> a[i];
+	for (int i = 1; i <= q; i++) {
+		int t, x, y;
+		cin >> t >> x >> y;
+		if (t == 2)
+			upd[++cnt] = {x, y};
+		else {
+			++m;
+			qr[m] = {{x, y}, {cnt, m}};
+		}
+	}
+	compress();
+	for (int i = 1; i <= n; i++)
+		num[i].pb(a[i]);
+	sort(qr + 1, qr + m + 1, cmp_mo);
+	for (int i = 1; i <= m; i++) {
+		while (tnow < qr[i].ss.ff)
+			do_upd(++tnow);
+		while (tnow > qr[i].ss.ff)
+			undo(tnow--);
+		while (en < qr[i].ff.ss)
+			add(++en, 1);
+		while (en > qr[i].ff.ss)
+			add(en--, -1);
+		while (st < qr[i].ff.ff)
+			add(st++, -1);
+		while (st > qr[i].ff.ff)
+			add(--st, 1);
+		ans[qr[i].ss.ss] = get();
+	}
+	for (int i = 1; i <= m; i++)
+		cout << ans[i] << '\n';
+	return 0;
+}

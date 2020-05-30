@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+#define FAST ios_base::sync_with_stdio(0); cin.tie(0)
+using namespace std;
+typedef long long ll;
+
+const ll N=100011;
+
+vector<ll> adj[N];
+bool vis[N];
+ll dis[N];
+ll dist[2][N];
+vector<ll> arbol;
+vector< pair<ll,ll> > calculado;
+ll mxx=0;
+
+void dfs(ll u){
+	arbol.push_back(u);
+	vis[u]=true;
+	ll sz=adj[u].size();
+	for(ll i=0; i<sz; i++){
+		ll v=adj[u][i];
+		if(!vis[v]){
+			dfs(v);
+		}
+	}
+	return;
+}
+
+void profundo(ll u, ll d){
+	dis[u]=d;
+	vis[u]=true;
+	ll sz=adj[u].size();
+	for(ll i=0; i<sz; i++){
+		ll v=adj[u][i];
+		if(!vis[v]){
+			profundo(v,d+1);
+		}
+	}
+	return;
+}
+
+void buscacentro(ll u, ll d, ll t){
+	dist[t][u]=d;
+	vis[u]=true;
+	ll sz=adj[u].size();
+	for(ll i=0; i<sz; i++){
+		ll v=adj[u][i];
+		if(!vis[v]){
+			buscacentro(v,d+1,t);
+		}
+	}
+	return;
+}
+
+void limpia(){
+	for(ll i=0; i<arbol.size(); i++){
+		vis[arbol[i]]=false;
+	}
+	return;
+}
+
+pair<ll,ll> calcula(ll x){
+	arbol.clear();
+	dfs(x);
+	limpia(); profundo(arbol[0],0);
+	ll mx=-1;
+	ll nod=0;
+	for(ll i=0; i<arbol.size(); i++){
+		ll aux=arbol[i];
+		if(mx<dis[aux]){
+			mx=dis[aux];
+			nod=aux;
+		}
+	}
+	limpia(); buscacentro(nod,0,0);
+	mx=-1;
+	nod=0;
+	for(ll i=0; i<arbol.size(); i++){
+		ll aux=arbol[i];
+		if(mx<dist[0][aux]){
+			mx=dist[0][aux];
+			nod=aux;
+		}
+	}
+	limpia(); buscacentro(nod,0,1);
+	for(ll i=0; i<arbol.size(); i++){
+		ll aux=arbol[i];
+		if(mx/2==dist[0][aux] && mx/2+mx%2==dist[1][aux]){
+			nod=aux;
+		}
+	}
+	mxx=max(mx,mxx);
+	return make_pair(mx/2+mx%2,nod);
+}
+
+ll diametro(ll n){
+	for(ll i=1; i<=n; i++){
+		vis[i]=false;
+	}
+	dfs(1);
+	limpia(); profundo(arbol[0],0);
+	ll mx=-1;
+	ll nod=0;
+	for(ll i=0; i<arbol.size(); i++){
+		ll aux=arbol[i];
+		if(mx<dis[aux]){
+			mx=dis[aux];
+			nod=aux;
+		}
+	}
+	limpia(); buscacentro(nod,0,0);
+	mx=-1;
+	for(ll i=0; i<arbol.size(); i++){
+		mx=max(mx,dist[0][arbol[i]]);
+	}
+	return mx;
+}
+
+int main(){ FAST;
+	ll n,m;
+	cin>>n>>m;
+	ll x,y;
+	for(ll i=0; i<m; i++){
+		cin>>x>>y;
+		adj[x].push_back(y);
+		adj[y].push_back(x);
+	}
+	
+	if(m==n-1){
+		cout<<diametro(n)<<endl;
+		return 0;
+	}
+
+	for(ll i=1; i<=n; i++){
+		if(!vis[i]){
+			calculado.push_back(calcula(i));
+		}
+	}
+	sort(calculado.rbegin(),calculado.rend());
+	
+	for(ll i=1; i<calculado.size(); i++){
+		adj[calculado[0].second].push_back(calculado[i].second);
+		adj[calculado[i].second].push_back(calculado[0].second);
+	}
+	
+	cout<<diametro(n)<<endl;
+	for(ll i=1; i<calculado.size(); i++){
+		cout<<calculado[0].second<<" "<<calculado[i].second<<endl;
+	}
+	return 0;
+}

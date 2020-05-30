@@ -1,0 +1,213 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define pi pair<ll,ll>
+#define f first
+#define s second
+#define ll long long
+#define INF 1e15
+#define rep(i,n) for(int i=0;i<n;i++)
+using namespace std;
+set<int>tree[400011];
+struct node{
+	int l,r,id;
+	node() {}
+	node(int _l,int _r,int _id) {
+		l = _l;
+		r = _r;
+		id = _id;
+	}
+	node left() {
+		return node(l,(l+r)/2,2*id);
+	}
+	node right() {
+		return node((l+r)/2+1,r,2*id+1);
+	}
+	void update(int s,int e,int x) {
+		if(s<=l and r<=e) {
+			tree[id].insert(x);
+			return;
+		}
+		if(r<s or e<l) return;
+		left().update(s,e,x);
+		right().update(s,e,x);
+	}
+	void clr(int s,int e,int x) {
+		if(s<=l and r<=e) {
+			tree[id].erase(x);
+			return;
+		}
+		if(r<s or e<l) return;
+		left().clr(s,e,x);
+		right().clr(s,e,x);
+	}
+	void get(int x,vector<int>&ret) {
+		if(l==r) {
+			for(auto y:tree[id]) ret.pb(y);
+			return;
+		}
+		int mid = (l+r)/2;
+		if(x<=mid) left().get(x,ret);
+		else right().get(x,ret);
+		for(auto y:tree[id]) {
+			ret.pb(y);
+		}
+	}
+};
+
+pi treex[400011];
+ll lazy[400011];
+struct nodex{
+	int l,r,id;
+	nodex() {}
+	nodex(int _l,int _r,int _id) {
+		l = _l;
+		r = _r;
+		id = _id;
+		lazy_update();
+	}
+	nodex left() {
+		return nodex(l,(l+r)/2,2*id);
+	}
+	nodex right() {
+		return nodex((l+r)/2+1,r,2*id+1);
+	}
+	void lazy_update() {
+	    if(lazy[id] == INF) return;
+        treex[id].f = min(treex[id].f,lazy[id]);
+        if(l!=r){
+            lazy[2*id] = min(lazy[2*id],lazy[id]);
+            lazy[2*id+1] = min(lazy[2*id+1],lazy[id]);
+            lazy[id] = INF;
+        }
+	}
+	void update(int s,int e,ll val) {
+		if(s<=l and r<=e) {
+			lazy[id] = min(lazy[id],val);
+			lazy_update();
+			return;
+		}
+		if(r<s or e<l) return;
+		left().update(s,e,val);
+		right().update(s,e,val);
+        if(treex[2*id].f==-1) treex[id] = treex[2*id+1];
+        else if(treex[2*id+1].f==-1) treex[id] = treex[2*id];
+        else{
+            if(treex[2*id].f < treex[2*id+1].f) {
+                treex[id] = treex[2*id];
+            }
+            else{
+                treex[id] = treex[2*id+1];
+            }
+        }
+	}
+	void query(int x) {
+        if(l==r) {
+            cout << treex[id].f << " ";
+            return;
+        }
+        int mid = (l+r)/2;
+        if(x<=mid) left().query(x);
+        else right().query(x);
+	}
+    void rem(int x) {
+        if(!(l<=x and x<=r)) return;
+        if(l==r) {
+            treex[id] = make_pair(-1,l);
+            return;
+        }
+        int mid = (l+r)/2;
+        left().rem(x);
+        right().rem(x);
+
+        if(treex[2*id].f==-1) treex[id] = treex[2*id+1];
+        else if(treex[2*id+1].f==-1) treex[id] = treex[2*id];
+        else{
+            if(treex[2*id].f < treex[2*id+1].f) {
+                treex[id] = treex[2*id];
+            }
+            else{
+                treex[id] = treex[2*id+1];
+            }
+        }
+    }
+    void build() {
+        treex[id] = {INF,l};
+        lazy[id] = INF;
+        if(l==r) {
+            return;
+        }
+        left().build();
+        right().build();
+        treex[id] = {INF,l};
+        lazy[id] = INF;
+    }
+};
+
+
+vector<pi>g[100011];
+vector<int>gt[100011];
+int u[100011];
+int v[100011];
+ll w[100011];
+int l[100011];
+int r[100011];
+int t[100011];
+ll ans[100011];
+bool rem[100011];
+int main() {
+
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+	ll n,q,s;
+	cin >> n >> q >> s;
+	node stree(1,n,1);
+
+	nodex streex(1,n,1);
+	streex.build();
+
+	rep(i,q) {
+		cin >> t[i];
+		if(t[i]==1) {
+			cin >> u[i] >> v[i] >> w[i];
+			g[u[i]].pb({v[i],w[i]});
+		}
+		else if(t[i]==2) {
+			cin >> v[i] >> l[i] >> r[i] >> w[i];
+			gt[v[i]].pb(i);
+		}
+		else{
+			cin >> v[i] >> l[i] >> r[i] >> w[i];
+			stree.update(l[i],r[i],i);
+		}
+	}
+	rep(i,n+1) ans[i]=-1;
+    streex.update(s,s,0);
+    while(treex[1].f!=-1) {
+        if(treex[1].f==INF) break;
+        int u = treex[1].s;
+        ans[u] = treex[1].f;
+        streex.rem(u);
+//        cout <<u<<" " <<ans[u] << "\n";
+        rem[u] = 1;
+
+        vector<int>R;
+        stree.get(u,R);
+        for(auto i:R) {
+            stree.clr(l[i],r[i],i);
+            if(!rem[v[i]])
+                streex.update(v[i],v[i],ans[u]+w[i]);
+        }
+        for(auto x:g[u]) {
+            if(!rem[x.f]) {
+                streex.update(x.f,x.f,x.s+ans[u]);
+            }
+        }
+        for(auto i:gt[u]) {
+            streex.update(l[i],r[i],w[i]+ans[u]);
+        }
+    }
+    for(int i=1;i<=n;i++) {
+        cout << ans[i] << " ";
+    }
+	return 0;
+}

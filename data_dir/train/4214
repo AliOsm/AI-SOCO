@@ -1,0 +1,80 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int MAX = 5e3 + 5;
+const ll INF = 0x3F3F3F3F3F3F3F3F;
+ll dp[2][2 * MAX];
+ll back[2 * MAX];
+int n, x;
+int l[MAX], r[MAX];
+
+inline ll get_price(int L, int R, int pos) {
+	return L <= pos && pos <= R ? 0 : min(abs(pos - L), abs(pos - R));
+}
+
+int main() {
+	scanf("%d %d", &n, &x);
+	set<int> all {x};
+	fori(i, 1, n + 1) {
+		scanf("%d %d", l + i, r + i);
+		all.insert(l[i]);
+		all.insert(r[i]);
+	}
+
+	int cnt = 1;
+	map<int, int> mask;
+	for(auto &each : all) {
+		mask[each] = cnt;
+		back[cnt++] = each;
+	}
+	cnt--;
+
+	fori(i, 1, n + 1) {
+		l[i] = mask[l[i]];
+		r[i] = mask[r[i]];
+	}
+	
+	memset(dp, 0x3F, sizeof dp);
+	fori(i, 1, cnt + 1) {
+		dp[1][i] = abs(x - back[i]) + (back[l[1]] <= back[i] && back[i] <= back[r[1]] ? 0 : min(abs(back[l[1]] - back[i]), abs(back[r[1]] - back[i])));
+	}
+
+	fori(i, 2, n + 1) {
+		ll best = 1, best_val = dp[(i - 1) & 1][1] - back[1];
+		int cur_l = back[l[i]], cur_r = back[r[i]];
+		dp[i & 1][1] = dp[(i - 1) & 1][1] + get_price(cur_l, cur_r, back[1]);
+		fori(j, 2, cnt + 1) {
+			dp[i & 1][j] = min(dp[(i - 1) & 1][j], (ll) abs(back[best] - back[j]) + dp[(i - 1) & 1][best]) + get_price(cur_l, cur_r, back[j]);
+			if(best_val > dp[(i - 1) & 1][j] - back[j]) {
+				best_val = dp[(i - 1) & 1][j] - back[j];
+				best = j;
+			}
+		}
+		best = cnt, best_val = dp[(i - 1) & 1][cnt] + back[cnt];
+		ford(j, cnt - 1, 1) {
+			dp[i & 1][j] = min(dp[i & 1][j], (ll) abs(back[best] - back[j]) + dp[(i - 1) & 1][best] + get_price(cur_l, cur_r, back[j]));
+			if(best_val > dp[(i - 1) & 1][j] + back[j]) {
+				best_val = dp[(i - 1) & 1][j] + back[j];
+				best = j;
+			}
+		}
+	}
+
+	ll ans = INF;
+	fori(i, 1, cnt + 1) {
+		ans = min(ans, dp[n & 1][i]);
+	}
+
+	printf("%lld\n", ans);
+
+	return 0;
+}
+

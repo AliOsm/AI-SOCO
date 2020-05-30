@@ -1,0 +1,89 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int inf = 1000 * 1000 * 1000 + 7;
+
+#define mp make
+#define REP(i, n) for (int i = 0; i < (n); ++i)
+int k, d;
+
+// Jagiellonian Team Reference Document
+int dbf[21][1<<20];
+pair<pair<int,int>,int> h[1<<20];
+int rev[1<<20];
+void kmr(string w) {
+  int n = (int) w.size();
+  REP(i,n) dbf[0][i] = w[i];
+  for(d=k=1; d<=n; d*=2, k++) {
+    REP(i,n) h[i]={{dbf[k-1][i], (i+d<n) ? dbf[k-1][i+d] : 0}, i};
+    sort(h, h + n);
+    int count = 1;
+    REP(i,n) {
+      if (i>0 && h[i].first!=h[i-1].first) count++;
+      dbf[k][h[i].second] = count;
+    }
+  }
+  REP(i,n) rev[h[i].second] = i;
+}
+
+int lcp(int x, int y) {
+  int r = 0;
+  for (int i = k - 1; i >= 0; --i) {
+    if (dbf[i][x] == dbf[i][y]) {
+      //cout << "LCP " <<  r << ' ' << x << ' ' << y << endl;
+      r += 1 << i;
+      x += 1 << i;
+      y += 1 << i;
+    }
+  }
+  return r;
+}
+
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+  
+  string s, t;
+  cin >> s >> t;
+  kmr(t);
+  int cnt[] = {0, 0};
+  for (char c: s) {
+    ++cnt[c != s[0]];
+  }
+  long long r = 0;
+  int n = (int) t.size();
+  for (int len1 = 1; len1 * cnt[0] < n; ++len1) {
+    int len2 = n - len1 * cnt[0];
+    if (len2 % cnt[1] != 0) {
+      continue;
+    }
+    len2 /= cnt[1];
+    int len[] = {len1, len2};
+    int pos = 0;
+    int mn[2] = {inf, inf};
+    int mx[2] = {-inf, -inf};
+    //cout << len1 << ' ' << len2 << endl;
+    for (char c: s) {
+      int id = c != s[0];
+      mn[id] = min(mn[id], rev[pos]);
+      mx[id] = max(mx[id], rev[pos]);
+      pos += len[id];
+    }
+    bool failed = false;
+    for (int i = 0; i < 2; ++i) {
+      if (lcp(h[mn[i]].second, h[mx[i]].second) < len[i]) {
+        failed = true;
+        break;
+      }
+    }
+    //if (len[0] == len[1]) cout << lcp(mn[0], mn[1]) << ' ' << mn[0] << ' ' << mn[1] << endl;
+    if (len[0] == len[1] && lcp(h[mn[0]].second, h[mn[1]].second) >= len[0]) {
+      failed = true;
+    }
+    if (!failed) {
+      ++r;
+    }
+  }
+  cout << r << '\n';
+}

@@ -1,0 +1,132 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 100005;
+struct node {
+	long long sum;
+	long long mx, mn;
+	int mxc;
+	vector<long long> lazy;
+} seg[N * 4];
+
+long long arr[N];
+
+void push_down(int id, int s, int e) {
+	if (seg[id].mxc != e - s + 1)
+		return;
+	int v = seg[id].mx;
+	for (auto x : seg[id].lazy) {
+		v %= x;
+		if (s != e) {
+			seg[id * 2].lazy.push_back(x);
+			seg[id * 2 + 1].lazy.push_back(x);
+		}
+	}
+	seg[id].lazy.clear();
+	seg[id].mx = seg[id].mn = v;
+	seg[id].mxc = e - s + 1ll;
+	seg[id].sum = (e - s + 1ll) * v;
+
+}
+
+void update(node &cur, node &l, node &r) {
+	cur.sum = l.sum + r.sum;
+	cur.mn = min(l.mn, r.mn);
+	cur.mx = max(l.mx, r.mx);
+	cur.mxc = 0;
+	if (l.mx == cur.mx) {
+		cur.mxc += l.mxc;
+	}
+	if (r.mx == cur.mx) {
+		cur.mxc += r.mxc;
+	}
+}
+
+void build(int id, int s, int e) {
+	if (s == e) {
+		seg[id].sum = seg[id].mx = seg[id].mn = arr[s];
+		seg[id].mxc = 1;
+		return;
+	}
+	int mid = s + (e - s) / 2;
+	build(id * 2, s, mid);
+	build(id * 2 + 1, mid + 1, e);
+	update(seg[id], seg[id * 2], seg[id * 2 + 1]);
+}
+
+void updateidx(int id, int s, int e, int idx, long long v) {
+	push_down(id, s, e);
+	if (idx > e || idx < s)
+		return;
+
+	if (s == e) {
+		arr[s] = v;
+		seg[id].sum = seg[id].mx = seg[id].mn = arr[s];
+		seg[id].mxc = 1;
+		return;
+	}
+	int mid = s + (e - s) / 2;
+	updateidx(id * 2, s, mid, idx, v);
+	updateidx(id * 2 + 1, mid + 1, e, idx, v);
+	update(seg[id], seg[id * 2], seg[id * 2 + 1]);
+}
+
+void updaterange(int id, int s, int e, int f, int t, long long mod) {
+	push_down(id, s, e);
+	if (e < f || s > t || mod > seg[id].mx) {
+		return;
+	}
+
+	if (s >= f && e <= t && (e - s + 1) == seg[id].mxc) {
+		seg[id].lazy.push_back(mod);
+		push_down(id, s, e);
+		return;
+	}
+
+	int mid = s + (e - s) / 2;
+	updaterange(id * 2, s, mid, f, t, mod);
+	updaterange(id * 2 + 1, mid + 1, e, f, t, mod);
+	update(seg[id], seg[id * 2], seg[id * 2 + 1]);
+}
+
+long long query(int id, int s, int e, int f, int t) {
+	push_down(id, s, e);
+	if (e < f || s > t)
+		return 0ll;
+
+	if (s >= f && e <= t) {
+		return seg[id].sum;
+	}
+	int mid = s + (e - s) / 2;
+
+	return query(id * 2, s, mid, f, t) + query(id * 2 + 1, mid + 1, e, f, t);
+}
+
+int main() {
+	//freopen("in.txt", "rt", stdin);
+	int n, q;
+	scanf("%d %d", &n, &q);
+	for (int i = 1; i <= n; ++i)
+		scanf("%lld", arr + i);
+	int t, x, y;
+	long long v;
+	build(1, 1, n);
+	while (q--) {
+		scanf("%d", &t);
+		if (t == 1) {
+			scanf("%d %d", &x, &y);
+			printf("%lld\n", query(1, 1, n, x, y));
+		} else if (t == 2) {
+			scanf("%d %d %lld", &x, &y, &v);
+			updaterange(1, 1, n, x, y, v);
+		} else {
+			scanf("%d %lld", &x, &v);
+			updateidx(1, 1, n, x, v);
+		}
+
+//		for (int i = 1; i <= n; ++i) {
+//			printf("%lld ", query(1, 1, n, i, i));
+//		}
+//		puts("------------------------");
+	}
+
+}

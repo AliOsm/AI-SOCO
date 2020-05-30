@@ -1,0 +1,244 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+#define rep(i, a, b) for(int i=(a); i<(b); i++)
+#define repi(i, a, b) for(int i=(a); i>(b); i--)
+#define db(x) (cerr << #x << ": " << (x) << '\n')
+#define sync ios_base::sync_with_stdio(false), cin.tie(NULL)
+#define tests(t) int t; cin >> t; while(t--)
+#define iceil(n, x) (((n) + (x) - 1) / (x))
+#define ll long long
+#define gcd __gcd
+#define pb push_back
+#define pf push_front
+#define pob pop_back
+#define pof pop_front
+#define sz size()
+#define all(v) (v).begin(), (v).end()
+#define uni(v) sort(all(v)); (v).erase(unique(all(v)), (v).end());
+#define pii pair<int, int>
+#define vi vector<int>
+#define vpii vector<pii>
+#define vvi vector<vi>
+#define fi first
+#define se second
+#define umap unordered_map
+#define uset unordered_set
+#define pqueue priority_queue
+#define si(a) scanf("%d", &a)
+#define sll(a) scanf("%lld", &a)
+#define bitcount(x) __builtin_popcount(x)
+#define cps CLOCKS_PER_SEC
+#define PI acos(-1.0)
+#define EPS 1e-9
+#define mod 1000000007
+#define MOD 1000000007
+#define N 500005
+using namespace std;
+
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+    cerr << name << " : " << arg1 << '\n';
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+    const char* comma = strchr(names + 1, ',');cerr.write(names, comma - names) << " : " << arg1<<" | ";__f(comma+1, args...);
+}
+
+template<typename T>
+using minpq = priority_queue<T, vector<T>, greater<T>>;
+
+template<typename T>
+using maxpq = priority_queue<T>;
+
+//All indexing is 0-based
+using namespace __gnu_pbds;
+typedef tree<int, null_type, less<int>, rb_tree_tag,
+             tree_order_statistics_node_update> ordered_set;
+//methods: find_by_order(k); & order_of_key(k);
+//To make it an ordered_multiset, use pairs of (value, time_of_insertion)
+//to distinguish values which are similar.
+
+template<class key, class value, class cmp = std::less<key>>
+using ordered_map = tree<key, value, cmp, rb_tree_tag, tree_order_statistics_node_update>;
+//ordered_map<int, int> my_map;
+
+//Returns no. of values x for which ceil(n / x) == y (y must be > 1).
+inline ll CC(ll n, ll y) { return iceil(n, y-1) - iceil(n, y); }
+
+//Returns no. of values x for which floor(n / x) == y
+inline ll FF(ll n, ll y) { return n / y - n / (y+1); }
+
+//a and b are assumed to be taken modulo p
+inline int add(int a, int b, int p = mod){ int c = a + b; if(c >= p) c -= p; return c;}
+inline int sub(int a, int b, int p = mod){ int c = a - b; if(c < 0) c += p; return c;}
+inline int mul(int a, int b, int p = mod){ return (a * 1ll * b) % p;}
+
+//Extension to DSU: Allows undoing last merge opearation.
+//Can't use path compression => Complexity per operation = O(lg N).
+//Difference from union by Rank: Only need to store the vertex pair corresponding to the 2 roots.
+
+int n;
+int P[N];  //P[i]: parent of the ith vertex;
+int SZ[N]; //SZ[i]: size of the subtree rooted at the ith vertex
+int num_sets; //Number of components
+int scc[N]; //scc[i]: index of the scc of the ith vertex
+vector<pair<int, int>> st; //stack to be used for undoing operations
+
+void make_set(int i) {
+    num_sets++;
+    P[i] = i;
+    SZ[i] = 1;
+}
+
+void init() {
+    num_sets = 0;
+    for(int i = 0; i < n; i++) make_set(i);
+}
+
+//O(lg N)
+int find_set(int i) {
+    return i == P[i] ? i : find_set(P[i]);
+}
+
+//O(lg N)
+void merge_sets(int i, int j) {
+    i = find_set(i), j = find_set(j);
+    if(i == j) return;
+    num_sets--;
+    if(SZ[i] > SZ[j]) swap(i, j);
+    P[i] = j; SZ[j] += SZ[i];
+    st.push_back({i, j});
+}
+
+//Undoes the last merge operation.
+//O(1)
+void undo() {
+    int i, j;
+    tie(i, j) = st.back();
+    st.pop_back();
+    num_sets++;
+    P[i] = i; SZ[j] -= SZ[i];
+}
+
+//O(N lg N)
+vector<vector<int>> compute_sccs() {
+    vector<vector<int>> ans(num_sets);
+    int cnt = 0;
+    for(int i = 0; i < n; i++) if(i == P[i]) scc[i] = cnt++;
+    for(int i = 0; i < n; i++) {
+        if(i != P[i]) scc[i] = scc[find_set(i)];
+        ans[scc[i]].push_back(i);
+    }
+    return ans;
+}
+
+int m, q;
+bool isValid[N]; //isValid[i]: is the ith query valid ?
+
+#define pip pair<int, pii>
+vector<pip> Edges;
+vector<pip> sorted_Edges;
+
+//Custom comparator to compare edges indexed at i and j
+//by their weights
+bool comp(int i, int j) {
+    return Edges[i].fi < Edges[j].fi;
+}
+
+struct Group {
+    int wt, qidx;
+    vi GEdges;
+    bool operator<(const Group& G) const {
+        return wt < G.wt;
+    }
+};
+
+vector<Group> vg;
+
+#define trace(...) 42
+main()
+{   
+    #ifndef ONLINE_JUDGE
+        freopen("/home/tarun/Desktop/input.txt", "r", stdin);
+    //  freopen("/home/tarun/Desktop/output.txt", "w", stdout);
+    #endif
+    sync;
+    clock_t clk = clock();
+    cerr << "I will return...\n";
+    
+    cin >> n >> m; init();
+    rep(i, 0, m) {
+        int u, v, w; cin >> u >> v >> w;
+        --u, --v;
+        Edges.pb({w, {u, v}});
+    }
+
+    sorted_Edges = Edges;
+    sort(all(sorted_Edges));
+    cin >> q;
+
+    rep(qi, 0, q) {
+        isValid[qi] = 1;
+        int k; cin >> k;
+        vector<int> temp(k); rep(i, 0, k) cin >> temp[i], --temp[i];
+        sort(all(temp), comp);
+        for(int i = 0; i < k; ) {
+            Group G;
+            G.qidx = qi; G.wt = Edges[temp[i]].fi;
+            int j = i;
+            while(j < k && Edges[temp[j]].fi == Edges[temp[i]].fi) {
+                G.GEdges.pb(temp[j]);
+                j++;
+            }
+            i = j;
+            vg.pb(G);
+        }
+    }
+
+    sort(all(vg));
+
+    int last = vg[0].wt, i = 0;
+    trace(vg.sz);
+    for(auto& G : vg) {
+        //trace(G.qidx, G.wt);
+        if(G.wt > last) {
+            while(i < m && sorted_Edges[i].fi < G.wt) {
+                merge_sets(sorted_Edges[i].se.fi, sorted_Edges[i].se.se);
+                i++;
+            }
+            last = G.wt;
+        }
+        trace(num_sets);
+        int j = 0;
+        auto &vv = G.GEdges;
+        for(; j < vv.sz; j++) {
+            int u, v;
+            trace(G.qidx, G.wt, vv[j]);
+            u = Edges[vv[j]].se.fi, v = Edges[vv[j]].se.se;
+            if(find_set(u) == find_set(v)) { trace("gotcha"); isValid[G.qidx] = 0; break; }
+            merge_sets(u, v);
+        }
+        while(j--) {
+            undo();
+        }
+        trace(num_sets);
+    }
+
+    for(int i = 0; i < q; i++) {
+        cout << (isValid[i] ? "YES\n" : "NO\n");
+    }
+
+    cerr << "...don't you ever hang your head.\n";
+    cerr << "Time (in ms): " << double(clock() - clk) * 1000.0 / cps << '\n';
+}
+
+//Compile using:
+//g++ -o filename.exe --std=c++11 filename.cpp
+//Use -D CP for defining a macro CP in the local environment
+
+
+
+
+

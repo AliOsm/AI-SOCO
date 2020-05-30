@@ -1,0 +1,183 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int MOD = (int)1e9 + 7;
+const ll infint = (ll)1e16;
+const ll inf = (ll)1e18;
+const int MAXN = (int)5e3 + 7;
+const int base = (int)37;
+int pwr[MAXN], hsh[MAXN], HSH[MAXN], rev[MAXN], cnt[MAXN], fir[MAXN], up[MAXN][MAXN], down[MAXN][MAXN], n;
+unordered_map<int, int> M;
+vector<int> v[MAXN];
+int add(int a, int b)
+{
+	int c = a + b;
+	if(c <= 0)
+		c += MOD;
+	if(c >= MOD)
+		c -= MOD;
+	return c;
+}
+int mul(int a, int b)
+{
+	int c = 1LL * a * b % MOD;
+	return c;
+}
+string s;
+int k;
+void build()
+{
+	pwr[0] = 1;
+	for (int i = 1; i < MAXN; i++)
+		pwr[i] = mul(pwr[i - 1], base);
+	hsh[0] = s[0] - 'a' + 1;
+	for (int i = 1; i < n; i++)
+		hsh[i] = add(mul(hsh[i - 1], base), s[i] - 'a' + 1);
+	
+	
+	HSH[0] = s[0] - 'a' + 1;
+	if(n > 1)
+		HSH[1] = s[1] - 'a' + 1;
+	for (int i = 2; i < n; i++)
+		if(i % 2 == 0)
+			HSH[i] = add(mul(HSH[i - 2], base), s[i] - 'a' + 1);
+		else
+			HSH[i] = add(mul(HSH[i - 2], base), s[i] - 'a' + 1);
+		
+		
+	
+	rev[n - 1] = s[n - 1] - 'a' + 1;
+	if(n > 1)
+		rev[n - 2] = s[n - 2] - 'a' + 1;
+	for (int i = (int)n - 3; i >= 0; i--)
+		if(i % 2 == 0)
+			rev[i] = add(mul(rev[i + 2], base), s[i] - 'a' + 1);
+		else
+			rev[i] = add(mul(rev[i + 2], base), s[i] - 'a' + 1);
+		
+}
+int get(int l, int r)
+{
+	if(l > r)
+		return 0;
+	int ans = hsh[r];
+	if(l)
+		ans = add(ans, -mul(hsh[l - 1], pwr[r - l + 1]));
+	return ans;
+}
+int GET(int l, int r)
+{
+	if(l > r)
+		return 0;
+	int ans = HSH[r];
+	if(l)
+		ans = add(ans, -mul(HSH[l - 2], pwr[(r - l) / 2 + 1]));
+	return ans;
+}
+int GETREV(int l, int r)
+{
+	if(l > r)
+		return 0;
+	int ans = rev[l];
+	if(r != n - 1)
+		ans = add(ans, -mul(rev[r + 2], pwr[(r - l) / 2 + 1]));
+	return ans;
+}
+bool half_pal(int l, int r)
+{
+	if((r - l) % 2 == 0)
+		return GET(l, r) == GETREV(l, r);
+	else
+	{
+		int mid = (l + r) >> 1;
+		if((mid - l) % 2 == 0)
+			return GET(l, mid) == GETREV(mid + 1, r);
+		else
+			return GET(l, mid - 1) == GETREV(mid + 2, r);
+	}
+}
+void updown()
+{
+	for (int i = 0; i < n; i++)
+	{
+		int ptr = 0; 
+		for (int j = 0; j < n; j++)
+		{
+			if(ptr != v[i].size() && j > v[i][ptr])
+				ptr++;
+			down[i][j] = ptr;
+		}
+	}
+	for (int i = 0; i < n; i++)
+	{
+		int ptr = 0; 
+		for (int j = 0; j < n; j++)
+		{
+			if(ptr != v[i].size() && j >= v[i][ptr])
+				ptr++;
+			up[i][j] = ptr;
+		}
+	}	
+}
+int Low(int j, int x)
+{
+	if(x >= n)
+		return v[j].size();
+	else
+		return down[j][x];
+}
+int Up(int j, int x)
+{
+	if(x >= n)
+		return v[j].size() - 1;
+	else
+		return up[j][x] - 1;
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	cin >> s >> k;
+	n = s.size();
+	build();
+	for (int i = 0; i < n; i++)
+		for (int j = i; j < n; j++)
+			if(half_pal(i, j))
+				v[i].push_back(j), M[get(i, j)]++;
+	updown();
+	string ans;
+	for (int i = 0; i < n; i++)
+		fir[i] = n;
+	
+	for (int i = 0; i < n; i++)
+	{
+		if(i)
+			cnt[i] = add(mul(cnt[i - 1], base), 1);
+		else
+			cnt[i] = 1;
+		int t = 0;
+		for (int j = 0; j < n; j++)
+		{
+			int R = fir[j];
+			if(R == n && s[i + j] != 'a')
+				R = i + j;
+			int from = Low(j, i + j), to = Up(j, R - 1);
+			if(to >= from)
+				t += to - from + 1;
+		}
+		if(k > t)
+		{
+			k -= t;
+			cnt[i] = add(cnt[i], 1);
+			k -= M[cnt[i]];
+			ans += 'b';
+		}
+		else
+			k -= M[cnt[i]], ans += 'a';
+		for (int j = 0; j + i < n; j++)
+			if(fir[j] == n && s[j + i] != ans[i])
+				fir[j] = j + i;
+		if(k <= 0)
+			return cout << ans, 0;
+	}
+}

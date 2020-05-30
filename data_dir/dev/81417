@@ -1,0 +1,102 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long int uli;
+const uli mod=1e9+7;
+const uli hmod=982451653;
+const uli hb=23;
+const int mx=5e3+10;
+const int inf=1e8;
+int f[mx][mx],lst[mx];
+int g[mx][mx];
+uli inv[mx],h[mx];
+char s[mx];
+uli fh[mx][mx];
+uli fxp(uli b,uli x){
+   uli a=1;
+   for(;x!=0;b=b*b%hmod,x>>=1)
+      if(x&1ll)a=a*b%hmod;   
+   return a;
+}
+uli hash(int i,int j){
+   uli ans=h[j];
+   if(i-1>=0)ans=ans-h[i-1]+hmod;
+   ans=ans*inv[i]%hmod;   
+   return ans;
+}
+bool leq(int i,int j,int k,int l){
+   int li=1,ls=j-i+1,x,idx=0;
+   while(li<=ls){
+      x=(li+ls)>>1;
+      uli h1=fh[i][i+x-1];
+      uli h2=fh[k][k+x-1];
+      if(h1==h2) li=x+1,idx=x; 
+      else ls=x-1;
+   }
+   if(idx==j-i+1)return true;         
+   return s[i+idx]<=s[k+idx];
+}
+int main(){
+   //      freopen("data.in","r",stdin);
+   scanf("%s",s);
+   int n=strlen(s);
+   uli b=hb;
+   h[0]=s[0]-'0'+1;
+   inv[0]=1;
+   for(int i=1;i<n;i++){
+      inv[i]=fxp(b,hmod-2);
+      uli dig=uli(s[i]-'0'+1)*b%hmod;
+      h[i]=(h[i-1]+dig)%hmod;
+      b=b*hb%hmod;
+   }
+   for(int l=0;l<n;l++)
+      for(int r=l;r<n;r++)
+         fh[l][r]=hash(l,r); 
+   //fa[r][l]=min{ fa[r][l+1],f[r][l] }
+   //ga[r][l]=ga[r][l+1]+g[r][l]
+   for(int i=0;i<=n;i++)
+      for(int j=0;j<=n;j++)
+         f[i][j]=inf;
+   for(int r=0;r<n;r++){
+      for(int l=r;l>=1;l--){
+         // 2*l-r-1...l-1 l...r
+         if(s[l]=='1'){
+            int idx=0;
+            if(l+l-r-1>=0){
+               idx=l+l-r-1;
+               if(!leq(idx,l-1, l,r))idx++;
+            }
+            f[r][l]=1+f[l-1][idx];
+            g[r][l]=g[l-1][idx];
+         }
+         lst[l]=f[r][l];
+         f[r][l]=min(f[r][l+1],f[r][l]);
+         g[r][l]+=g[r][l+1];
+         if(g[r][l]>=mod)g[r][l]-=mod;
+      }
+      f[r][0]=lst[0]=1;
+      g[r][0]=(g[r][1]+1)%mod;
+   }
+   uli ansn=-1;
+   int ansi=-1;
+   uli cur=0;
+   b=1;
+   for(int l=n-1;l>=0;l--){
+      cur=(uli(s[l]-'0')*b%mod+cur)%mod;
+      b=(b+b)%mod;
+      if(lst[l]>=inf)continue;
+
+      if(ansi==-1 || lst[ansi]>=inf){
+         ansi=l;
+         ansn=cur;
+         continue;
+      }
+      if(n-l>=32)continue;
+      if(ansn+uli(lst[ansi])>cur+uli(lst[l])){
+         ansn=cur;
+         ansi=l;
+      }
+   }
+   uli ans=(ansn+uli(lst[ansi]))%mod;
+   cout<<g[n-1][0]<<'\n'<<ans<<'\n';
+   return 0;
+}

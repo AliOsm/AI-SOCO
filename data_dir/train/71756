@@ -1,0 +1,122 @@
+// In the name of God
+
+#include <bits/stdc++.h>
+
+using namespace std;
+#define Size(x) ((int)(x).size())
+#define pb push_back
+#define int long long
+typedef long double ld;
+typedef pair<int,int>pii;
+const int INF = 1e9 + 10;
+const int MN = 2e5 + 100;
+
+int mv[MN<<2],sad[MN<<2];
+int a[MN],ml[MN],mr[MN];
+int sum[MN<<2];
+vector<int> pos[MN],dv[MN];
+
+inline int Sum(int u,int l,int r){
+	if(sad[u]>=0) return 1ll*(r-l)*sad[u];
+	return sum[u];
+}
+
+inline void merge(int u,int l,int r){
+	sum[u] = Sum(u<<1,l,(l+r)/2)+Sum(u<<1|1,(l+r)>>1,r);
+	mv[u] = max(max(mv[u<<1],sad[u<<1]),max(mv[u<<1|1],sad[u<<1|1]));
+}
+
+inline void shift(int u,int l,int r){
+	if(sad[u]>=0){
+		mv[u]=max(mv[u],sad[u]);
+		sum[u]=1LL*(r-l)*sad[u];
+		sad[u<<1]=sad[u<<1|1]=sad[u];
+		sad[u]=-1;
+	}
+}
+inline void build(int u,int l,int r){
+	if(l+1==r){
+		sad[u]=mv[u]=sum[u]=ml[l];
+		return;
+	}
+	build(u<<1,l,(l+r)/2);
+	build(u<<1|1,(l+r)/2,r);
+	sad[u]=-1;
+	sum[u]=sum[u<<1]+sum[u<<1|1];
+	mv[u]=max(mv[u<<1],mv[u<<1|1]);
+}
+
+inline void upd(int u,int l,int r,int ql,int c){
+	if(l==ql && c>max(mv[u],sad[u])){
+		sad[u]=c;
+		return;
+	}
+	if(l==ql&&r==ql+1) return;
+	int mid =l+r>>1;
+	shift(u,l,r);
+	if(c>mv[u<<1]) upd(u<<1|1,mid,r,max(ql,mid),c);
+	if(ql<mid) upd(u<<1,l,mid,ql,c);
+	merge(u,l,r);
+}
+
+inline int query(int u,int l,int r,int qr){
+	if(r==qr) return Sum(u,l,r);
+	shift(u,l,r);
+	int mid =l+r>>1;
+	if(qr<=mid) return query(u<<1,l,mid,qr);
+	else return Sum(u<<1,l,mid)+query(u<<1|1,mid,r,qr);
+}
+
+int n,l,r;
+int ans = 0;
+
+inline void input()
+{
+	scanf("%lld" , &n);
+	for(int i=0;i<n;++i){
+		scanf("%lld" , &a[i]);
+		for(int j=1;j*j<=a[i];++j){
+			if(a[i]%j==0){
+				pos[j].push_back(i);
+				dv[i].push_back(j);
+				if(a[i]/j!=j){
+					pos[a[i]/j].push_back(i);
+					dv[i].push_back(a[i]/j);
+				}
+			}
+		}
+		sort(dv[i].begin(),dv[i].end());
+	}
+}
+
+inline void solve()
+{
+	for(int i=1;i<MN;++i){
+		if(pos[i].size()>=2){
+			int sz=pos[i].size();
+			ml[pos[i][1]]=max(ml[pos[i][1]],i);
+			mr[pos[i][sz-2]]=max(mr[pos[i][sz-2]],i);
+		}
+	}
+	for(int i=1;i<n;++i)
+		ml[i]=max(ml[i-1],ml[i]);
+	for(int i=n-2;i>=0;--i)
+		mr[i]=max(mr[i],mr[i+1]);
+	build(1,0,n);
+	ans+=query(1,0,n,n-1);
+	for(int i=n-1;i>0;--i){
+		upd(1,0,n,0,mr[i]);
+		for(int j=0;j<dv[i].size();++j)
+			upd(1,0,n,pos[dv[i][j]][0],dv[i][j]);
+		ans+=mr[i]+query(1,0,n,i-1);
+	}
+	printf("%lld\n" , ans);
+}
+
+int32_t main()
+{
+	ios_base :: sync_with_stdio(false) , cin.tie(0) , cout.tie(0);
+	input();
+	solve();
+	return 0;
+}

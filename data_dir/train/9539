@@ -1,0 +1,126 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <memory.h>
+#include <sstream>
+#include <assert.h>
+#include <fstream>
+#include <iomanip>
+#include <bitset>
+#include <string>
+#include <cstdio>
+#include <complex>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <map>
+#include <map>
+
+using namespace std;
+
+const int N = 200001;
+
+
+int n, k, b, c;
+long long t[N];
+vector < int > x;
+vector < int > a[5];
+int psL[5], psR[5];
+long long res = 1e18;
+
+long long get(long long x, int r)
+{
+	int l = x % 5;
+	return x + (5 + r - l) % 5;
+}
+
+long long f(long long x, long long y)
+{
+	return (1ll * (x - y) / 5) * b + (1ll * (x - y) % 5) * c;
+}
+
+void update(long long ans)
+{
+	res = min(res, ans);
+}
+
+int main()
+{
+#ifdef _DEBUG
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+	scanf("%d%d%d%d", &n, &k, &b, &c);
+	for (int i = 0; i < n; ++i)
+	{
+		scanf("%I64d", &t[i]);
+		t[i] += (int)1e9 + 1;
+	}
+	sort(t, t + n);
+	if (b >= 5 * c)
+	{
+		long long s = 0;
+		for (int i = 0; i < k; ++i)
+			s += t[i];
+		for (int i = 0; i <= n - k; ++i)
+		{
+			update(1ll * k * t[i + k - 1] - s);
+			s -= t[i];
+			s += t[i + k];
+		}
+		cout << res << endl;
+		return 0;
+	}
+	for (int i = 0; i < n; ++i)
+		a[t[i] % 5].push_back(t[i]);
+	for (int r = 0; r < 5; ++r)
+	{
+		int sz = 0;
+		long long ans = 0;
+		for (int i = 0; i < n; ++i)
+			x.push_back(get(t[i], r));
+		//sort(x.begin(), x.end());
+		for (int i = 0; i < 5; ++i)
+			psL[i] = psR[i] = 0;
+		for (int i = 0; i < x.size(); ++i)
+		{
+			if (x[i] % 5 != r)
+				assert(false);
+			int cur = x[i], add;
+			if (i == 0)
+				add = 0;
+			else
+				add = (cur - x[i - 1]) / 5;
+			for (int j = 0; j < 5; ++j)
+				ans += 1ll * (psR[j] - psL[j]) * add * b;
+			for (int j = 0; j < 5; ++j)
+			{
+				while (psR[j] < a[j].size() && a[j][psR[j]] <= cur)
+				{
+					ans += f(cur, a[j][psR[j]]);
+					psR[j]++, sz++;
+				}
+			}
+			while (sz > k)
+			{
+				int num = -1;
+				for (int j = 0; j < 5; ++j)
+				{
+					if (psL[j] < psR[j] && (num == -1 || f(cur, a[num][psL[num]]) < f(cur, a[j][psL[j]])))
+						num = j;
+				}
+				ans -= f(cur, a[num][psL[num]]);
+				psL[num]++;
+				sz--;
+			}
+			if (sz == k)
+				update(ans);
+		}
+		x.clear();
+	}
+	cout << res << endl;
+    return 0;
+}

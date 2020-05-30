@@ -1,0 +1,200 @@
+#include<bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define all(a) a.begin(),a.end()
+#define endl '\n'
+#define y1 y123123123
+#define int ll
+
+using namespace std;
+
+const int N=1e6+3;
+const int inf=1e9+3;
+const int md=1e9+7;
+
+int n,q,sz;
+int ps[N];
+int a[N],d[N*4];
+int l[N];
+int r[N];
+int pref[N];
+stack<int> st;
+int l1[N],r1[N],mx1[N];
+pair<int,int> b1[N];
+pair<int,int> b2[N];
+int anss[N];
+vector<int> g;
+vector<int> sm;
+
+int get_max(int v,int l,int r,int l_v,int r_v)
+{
+    if(l>r_v||r<l_v)return 0;
+    if(l>=l_v&&r<=r_v)return d[v];
+    int mid = (l+r)/2;
+    return max(get_max(v+v,l,mid,l_v,r_v),get_max(v+v+1,mid+1,r,l_v,r_v));
+}
+
+main()
+{
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+
+    cin>>n>>q;
+    sz = 1;while(sz<n)sz+=sz;
+    for(int i=1;i<=n;++i)
+    {
+        cin>>a[i];
+        ps[a[i]] = i;
+        d[i+sz-1] = a[i];
+    }
+    for(int i=sz-1;i>=1;i--)
+    {
+        d[i] = max(d[i+i],d[i+i+1]);
+    }
+    for(int i=1;i<=q;++i)
+    {
+        cin>>l1[i];
+    }
+    for(int i=1;i<=q;++i)
+    {
+        cin>>r1[i];
+        mx1[i] = ps[get_max(1,1,sz,l1[i],r1[i])];
+        b1[i] = mp(l1[i],i);
+        b2[i] = mp(r1[i],i);
+    }
+
+    sort(b1+1,b1+q+1);
+    sort(b2+1,b2+q+1);
+
+    for(int i=1;i<=n;++i)
+    {
+        while(st.size() > 0 && st.top() < a[i])st.pop();
+        if(st.size() > 0)l[i] = ps[st.top()] + 1;
+        else l[i] = 1;
+        st.push(a[i]);
+    }
+    while(st.size()>0)st.pop();
+    for(int i=n;i>=1;i--)
+    {
+        while(st.size() > 0 && st.top() < a[i])st.pop();
+        if(st.size() > 0)r[i] = ps[st.top()] - 1;
+        else r[i] = n;
+        st.push(a[i]);
+    }
+    while(st.size()>0)st.pop();
+
+    for(int i=1;i<=n;++i)
+    {
+        pref[i] = pref[i-1] + (r[i]-l[i]+1);
+    }
+
+    for(int i=1;i<=q;++i)
+    {
+        anss[i] += pref[r1[i]] - pref[l1[i]-1];
+        anss[i] += r1[i]-l1[i]+1;
+        anss[i] -= r[mx1[i]] - l[mx1[i]] + 1;
+    }
+
+    int j = q;
+    for(int i=n;i>=1;--i)
+    {
+        while(st.size() > 0 && st.top() < a[i])st.pop(),g.pop_back(),sm.pop_back();
+
+        if(st.size() == 0)
+        {
+            st.push(a[i]);
+            g.push_back(i);
+            sm.push_back(-(r[i]-l[i]+1));
+        }else
+        {
+            st.push(a[i]);
+            int s = sm[sm.size()-1];
+            s += -(r[i]-l[i]+1);
+            s += g[g.size()-1] - 1;
+            g.push_back(i);
+            sm.push_back(s);
+        }
+        while(j >= 1 && b1[j].ff == i)
+        {
+            int p = b1[j].ss;
+
+            int l = 0;
+            int r = g.size()-1;
+            while(l<r)
+            {
+                int mid = (l+r)/2;
+                if(g[mid] > mx1[p])l = mid + 1;
+                else r = mid;
+            }
+            int cnt = (g.size()-1)-l;
+            int sum = sm[sm.size()-1] - sm[l];
+
+            anss[p] += sum - cnt*(l1[p]-1);
+
+            j--;
+        }
+    }
+    while(st.size() > 0)
+    {
+        st.pop();
+        g.pop_back();
+        sm.pop_back();
+    }
+
+
+    j = 1;
+    for(int i=1;i<=n;++i)
+    {
+        while(st.size() > 0 && st.top() < a[i])st.pop(),g.pop_back(),sm.pop_back();
+
+        if(st.size() == 0)
+        {
+            st.push(a[i]);
+            g.push_back(i);
+            sm.push_back(-(r[i]-l[i]+1));
+        }else
+        {
+            st.push(a[i]);
+            int s = sm[sm.size()-1];
+            s += -(r[i]-l[i]+1);
+            s -= g[g.size()-1] + 1;
+            g.push_back(i);
+            sm.push_back(s);
+        }
+
+        while(j<=q && b2[j].ff == i)
+        {
+            int p = b2[j].ss;
+
+            int l = 0;
+            int r = g.size()-1;
+            while(l<r)
+            {
+                int mid = (l+r+1)/2;
+                if(g[mid] > mx1[p])r = mid - 1;
+                else l = mid;
+            }
+
+            int cnt = (g.size()-1)-l;
+            int sum = sm[sm.size()-1] - sm[l];
+            anss[p] += sum + cnt*(r1[p]+1);
+
+            j++;
+        }
+
+    }
+
+    for(int i=1;i<=q;++i)
+    {
+        cout<<anss[i]<<" ";
+    }
+
+}
+/*
+4 1
+3 1 4 2
+1
+4
+*/

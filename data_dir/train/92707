@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const ll MOD=1e9+7;
+
+const ll N=1005;
+struct edge{
+	ll from, to, cap, flow, index;
+	edge(ll from, ll to, ll cap, ll flow, ll index):from(from), to(to), cap(cap), flow(flow), index(index) {}
+};
+struct PushRelabel{
+	ll n;
+	vector< vector<edge> > g;
+	vector<ll> excess,height, active, cnt;
+	queue<ll> Q;
+	PushRelabel(ll n):n(n), g(n), excess(n), height(n), active(n), cnt(2*n) {}
+	void addEdge(ll from, ll to, ll cap){
+		g[from].push_back(edge(from, to, cap, 0, g[to].size()));
+		if(from==to)g[from].back().index++;
+		g[to].push_back(edge(to, from, 0, 0, g[from].size()-1));
+	}
+	void enqueue(ll v){
+		if(!active[v] && excess[v] > 0)active[v]=true,Q.push(v);
+	}
+	void push(edge &e){
+		ll amt=min(excess[e.from],e.cap - e.flow);
+		if(height[e.from]<=height[e.to] || amt==0)return;
+		e.flow += amt;
+		g[e.to][e.index].flow -= amt;
+		excess[e.to] += amt;
+		excess[e.from] -= amt;
+		enqueue(e.to);
+	}
+	void relabel(ll v){
+		cnt[height[v]]--;
+		ll d=2*n;
+		for(auto &it:g[v])if(it.cap-it.flow>0)d=min(d, height[it.to]+1);
+		height[v]=d;
+		cnt[height[v]]++;
+		enqueue(v);
+	}
+	void gap(ll k){
+		for(ll v=0;v<n;v++){
+			if(height[v]<k)continue;
+			cnt[height[v]]--;
+			height[v]=max(height[v], n+1);
+			cnt[height[v]]++;
+			enqueue(v);
+		}
+	}
+	void discharge(ll v){
+		for(ll i=0; excess[v]>0 && i<g[v].size(); i++)push(g[v][i]);
+		if(excess[v]>0){
+			if(cnt[height[v]]==1)gap(height[v]);
+			else relabel(v);
+		}
+	}
+	ll max_flow(ll source, ll dest){
+		cnt[0] = n-1;
+		cnt[n] = 1;
+		height[source] = n;
+		active[source] = active[dest] = 1;
+		for(auto &it:g[source]){
+			excess[source]+=it.cap;
+			push(it);
+		}
+		while(!Q.empty()){
+			ll v=Q.front();
+			Q.pop();
+			active[v]=false;
+			discharge(v);
+		}
+		ll max_flow=0;
+		for(auto &e:g[source])max_flow+=e.flow;
+		return max_flow;
+	}
+};
+
+
+int main(){
+    ios_base:: sync_with_stdio(false);
+    cin.tie(NULL); cout.tie(NULL);
+    ll n,x,m,ans=0;
+    cin>>n>>m;
+    PushRelabel flow(n+m+2);
+    for(ll i=1;i<=n;i++){
+        cin>>x;
+        flow.addEdge(0,i,x);
+    }
+    ll u,v,w;
+    for(ll i=1;i<=m;i++){
+        cin>>u>>v>>w;
+        ans+=w;
+        flow.addEdge(u,i+n,1e15);
+        flow.addEdge(v,i+n,1e15);
+        flow.addEdge(i+n,n+m+1,w);
+    }
+    cout<<ans-flow.max_flow(0,n+m+1);
+}
+
+

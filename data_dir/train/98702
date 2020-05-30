@@ -1,0 +1,80 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+#define N 1000100
+
+ll n, T;
+vector<pair<ll, ll> > G[N];
+ll cookies[N];
+ll tim[N];
+ll mx1[N];
+ll mx2[N];
+ll ans[N];
+pair<ll, ll> seg[N * 5];
+
+void update(int i, ll val, int p = 1, int l = 1, int r = N){
+	if (i < l || i > r) return;
+	if (l == r){
+		seg[p].first += val;
+		seg[p].second += i * val;
+		return;
+	}
+
+	int mid = (l + r) / 2;
+	update(i, val, p * 2, l, mid);
+	update(i, val, p * 2 + 1, mid + 1, r);
+	seg[p].first = seg[p * 2].first + seg[p * 2 + 1].first;
+	seg[p].second = seg[p * 2].second + seg[p * 2 + 1].second;
+}
+
+ll query(ll have, int p = 1, int l = 1, int r = N){
+	if (l == r){
+		ll res = min(have / l, seg[p].first);
+		return res;
+	}
+
+	int mid = (l + r) / 2;
+	if (seg[p * 2].second > have) return query(have, p * 2, l, mid);
+	ll ans = seg[p * 2].first;
+	have -= seg[p * 2].second;
+	ans += query(have, p * 2 + 1, mid + 1, r);
+	return ans;
+}
+
+void dfs(int u, int p = 0, ll have = T){
+	update(tim[u], +cookies[u]);
+	ans[u] = query(have);
+	mx1[u] = mx2[u] = 0;
+	for (int i = 0; i < G[u].size(); i++){
+		int nxt = G[u][i].first;
+		ll w = G[u][i].second;
+		if (nxt == p) continue;
+		dfs(nxt, u, have - w);
+		ll bestChild = max(ans[nxt], mx2[nxt]);
+		mx2[u] = max(mx2[u], bestChild);
+		if (mx2[u] > mx1[u]) swap(mx2[u], mx1[u]);
+	}
+	update(tim[u], -cookies[u]);
+}
+
+int main(){
+//	freopen("in.in", "r", stdin);
+//	freopen("out.out", "w", stdout);
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	cout.tie(0);
+	srand(time(NULL));
+
+	cin >> n >> T;
+	for (int i = 1; i <= n; i++) cin >> cookies[i];
+	for (int i = 1; i <= n; i++) cin >> tim[i];
+	for (int i = 2; i <= n; i++){
+		ll p, t; cin >> p >> t;
+		G[p].push_back(make_pair(i, 2 * t));
+	}
+	dfs(1);
+	cout << max(mx1[1], ans[1]) << endl;
+
+	return 0;
+}

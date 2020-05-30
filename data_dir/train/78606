@@ -1,0 +1,182 @@
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
+#include <ctime>
+#include <sstream>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <string>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <map>
+#include <set>
+
+using namespace std;
+
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define pii pair < int, int >
+#define pll pair < long long, long long>
+#define ull unsigned long long
+#define y1 stupid_cmath
+#define left stupid_left
+#define right stupid_right
+#define vi vector <int>
+#define sz(a) (int)a.size()
+#define forit(it, s) for(__typeof(s.begin()) it = s.begin(); it != s.end(); it++)
+#define all(a) a.begin(), a.end()
+#define sqr(x) ((x) * (x))
+
+const int inf = (int)1e9;
+const int mod = inf + 7;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+
+ll read_long() {
+    ll ans = 0;
+    char c;
+    bool started = false;
+    bool is_negative = false;
+    while (true) {
+        c = getchar();
+        if ((c < '0' || c > '9') && c != '-' && !started) continue;
+        if ((c < '0' || c > '9') && c != '-' && started) break;
+        if (started) {
+            ans = ans * 10;
+        }
+        started = true;
+        if (c == '-') is_negative = true;
+        else ans += c - '0';
+    }
+    if (is_negative) ans *= -1;
+    return ans;
+}
+
+int n, q;
+int a[200200];
+int b[200200];
+int w[200200];
+ll tw[200200 * 4];
+int t[200200 * 4];
+
+void build_tw(int v, int tl, int tr) {
+    if (tl == tr) {
+        tw[v] = w[tl];
+        t[v] = w[tl] * 1ll * b[tl] % mod;
+    }
+    else {
+        int mid = (tl + tr) >> 1;
+        build_tw(2 * v, tl, mid);
+        build_tw(2 * v + 1, mid + 1, tr);
+        tw[v] = tw[v * 2] + tw[v * 2 + 1];
+        t[v] = t[2 * v] + t[2 * v + 1];
+        t[v] %= mod;
+    }
+}
+
+ll get_tw(int v, int tl, int tr, int l, int r) {
+    if (l > tr || r < tl) return 0;
+    if (l <= tl && tr <= r) return tw[v];
+    int mid = (tl + tr) >> 1;
+    ll ans1 = get_tw(2 * v, tl, mid, l, r);
+    ll ans2 = get_tw(2 * v + 1, mid + 1, tr, l, r);
+    return ans1 + ans2;
+}
+
+int get(int v, int tl, int tr, int l, int r) {
+    if (l > tr || r < tl) return 0;
+    if (l <= tl && tr <= r) return t[v];
+    int mid = (tl + tr) >> 1;
+    int ans1 = get(2 * v, tl, mid, l, r);
+    int ans2 = get(2 * v + 1, mid + 1, tr, l, r);
+    return (ans1 + ans2) % mod;
+}
+
+void update_tw(int v, int tl, int tr, int pos, int val) {
+    if (tl == tr) {
+        tw[v] = val;
+        t[v] = val * 1ll * b[tl] % mod;
+    }
+    else {
+        int mid = (tl + tr) >> 1;
+        if (pos <= mid) update_tw(2 * v, tl, mid, pos, val);
+        else update_tw(2 * v + 1, mid + 1, tr, pos, val);
+        tw[v] = tw[v * 2] + tw[v * 2 + 1];
+        t[v] = t[2 * v] + t[2 * v + 1];
+        t[v] %= mod;
+    }
+}
+
+void precalc() {
+    build_tw(1, 0, n - 1);
+}
+
+void update(int pos, int val) {
+    update_tw(1, 0, n - 1, pos, val);
+}
+
+int get_mid(int l, int r) {
+    ll S = get_tw(1, 0, n - 1, l, r);
+    int L = l, R = r, ans = r;
+    while (L <= R) {
+        int mid = (L + R) >> 1;
+        ll cur = get_tw(1, 0, n - 1, l, mid);
+        if (cur * 2 >= S) {
+            ans = mid;
+            R = mid - 1;
+        } else L = mid + 1;
+    }
+    return ans;
+}
+
+int get(int l, int r) {
+    if (l >= r) return 0;
+    int mid = get_mid(l, r);
+    int L = get_tw(1, 0, n - 1, l, mid - 1) % mod;
+    int R = get_tw(1, 0, n - 1, mid + 1, r) % mod;
+    int Lw = get(1, 0, n - 1, l, mid - 1);
+    int Rw = get(1, 0, n - 1, mid + 1, r);
+    int ans = b[mid] * 1ll * L % mod;
+    ans -= Lw;
+    ans %= mod;
+    ans += Rw;
+    ans %= mod;
+    ans -= b[mid] * 1ll * R % mod;
+    ans %= mod;
+    if (ans < 0) ans += mod;
+    return ans;
+}
+
+int main(){
+
+    scanf("%d%d", &n, &q);
+    for (int i = 0; i < n; i++) {
+        scanf("%d", a + i);
+        b[i] = a[i] - i;
+    }
+    for (int i = 0; i < n; i++) {
+        scanf("%d", w + i);
+    }
+
+    precalc();
+
+    while (q--) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        if (x < 0) {
+            update(-x - 1, y);
+        } else {
+            printf("%d\n", get(x - 1, y - 1));
+        }
+    }
+
+    return 0;
+}

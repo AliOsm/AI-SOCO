@@ -1,0 +1,189 @@
+#pragma GCC optimize("O3")
+#include <bits/stdc++.h>
+#define enl printf("\n")
+#define case(t) printf("Case #%d: ", (t))
+#define ni(n) scanf("%d", &(n))
+#define nl(n) scanf("%I64d", &(n))
+#define nai(a, n) for (int i = 0; i < (n); i++) ni(a[i])
+#define nal(a, n) for (int i = 0; i < (n); i++) nl(a[i])
+#define pri(n) printf("%d\n", (n))
+#define prl(n) printf("%I64d\n", (n))
+#define pii pair<int, int>
+#define pll pair<long long, long long>
+#define vii vector<pii>
+#define vi vector<int>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+typedef long long ll;
+const double pi = acos(-1);
+const int MOD = 1e9 + 7;
+const int INF = 1e9 + 7;
+const int MAXN = 1e3 + 5;
+const double eps = 1e-9;
+using namespace std;
+int n, m;
+int rS[MAXN][MAXN], cS[MAXN][MAXN], a[MAXN][MAXN];
+bool mrk[MAXN * MAXN];
+vi adj[MAXN * MAXN];
+
+int rrsum(int i, int l, int r)
+{
+    if (l > r)
+        swap(l, r);
+    int ret = rS[i][r];
+    if (l > 0)
+        ret -= rS[i][l - 1];
+    return ret;
+}
+
+int ccsum(int i, int l, int r)
+{
+    if (l > r)
+        swap(l, r);
+    int ret = cS[i][r];
+    if (l > 0)
+        ret -= cS[i][l - 1];
+    return ret;
+}
+
+int rsum(int i, int l, int r)
+{
+    if (l > r)
+        swap(l, r);
+    return rrsum(i, l, r) == r - l + 1;
+}
+
+int csum(int i, int l, int r)
+{
+    if (l > r)
+        swap(l, r);
+    return ccsum(i, l, r) == r - l + 1;
+}
+
+bool ok(int x, int y)
+{
+    if (x < 0 || x >= n || y < 0 || y >= m)
+        return false;
+    return true;
+}
+
+pii st;
+vi ans;
+int tot = 0;
+int dx[4] = {1, 0, -1, 0};
+int dy[4] = {0, 1, 0, -1};
+map<pii,int> ind;
+pii rev[MAXN * MAXN];
+
+void dfs(int u)
+{
+    mrk[u] = 1;
+    for (int v: adj[u])
+        if (!mrk[v])
+            dfs(v);
+}
+
+void res(int cnt)
+{
+    for (int i = 0; i < cnt; i++)
+        adj[i].clear(), mrk[i] = 0;
+    ind.clear();
+}
+
+void solve(int x, int y, int k)
+{
+    if (k == 1)
+        return;
+    int cnt = 0, cnt2 = 0;
+    x %= k, y %= k;
+    for (int i = 0; ok(x + k * i, 0); i++)
+        for (int j = 0; ok(0, y + k * j); j++)
+        {
+            if (a[x + k * i][y + k * j] != 1)
+                continue;
+            if (ind.find({x+k*i,y+k*j}) == ind.end())
+            {
+                rev[cnt] = {x+k*i,y+k*j};
+                ind[{x+k*i,y+k*j}] = cnt++;
+            }
+            vii tmp;
+            for (int l = 0; l < 4; l++)
+            {
+                int nx = x + k * i + k * dx[l];
+                int ny = y + k * j + k * dy[l];
+                if (!ok(nx, ny) || a[nx][ny] != 1)
+                    continue;
+                tmp.pb({nx, ny});
+            }
+            if (tmp.size() == 0)
+            {
+                res(cnt);
+                return;
+            }
+            int u = ind[{x+k*i,y+k*j}];
+            for (pii nx: tmp)
+            {
+                if (ind.find(nx) == ind.end())
+                {
+                    rev[cnt] = nx;
+                    ind[nx] = cnt++;
+                }
+                int v = ind[nx];
+                if (csum(y+k*j,x+k*i,nx.fi) && rsum(x+k*i,y+k*j,nx.se))
+                {
+                    cnt2 += max(ccsum(y+k*j,x+k*i,nx.fi) - 2, 0) + max(rrsum(x+k*i,y+k*j,nx.se) - 2, 0);
+                    adj[u].pb(v);
+                }
+            }
+        }
+    if (cnt2 / 2 + cnt != tot)
+    {
+        res(cnt);
+        return;
+    }
+    dfs(0);
+    int pa[2] = {0, 0};
+    for (int i = 0; i < cnt; i++)
+        if (mrk[i] == 0)
+        {
+            res(cnt);
+            return;
+        }
+        else
+            pa[adj[i].size() & 1]++;
+    if (pa[1] == 2 || pa[1] == 0)
+        ans.pb(k);
+    res(cnt);
+}
+
+int main()
+{
+    ni(n), ni(m);
+    int cnt = 0;
+    pii st = {-1, -1};
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+        {
+            ni(a[i][j]);
+            if (a[i][j] == 1 && st.fi == -1)
+                st = {i, j};
+            if (j > 0)
+                rS[i][j] = rS[i][j - 1];
+            if (i > 0)
+                cS[j][i] = cS[j][i - 1];
+            rS[i][j] += a[i][j];
+            cS[j][i] += a[i][j];
+            cnt += a[i][j];
+        }
+    tot = cnt;
+    for (int k = 1; k <= min(max(n,m),cnt); k++)
+        solve(st.fi,st.se,k);
+    if (ans.empty())
+        return !pri(-1);
+    for (int nx: ans)
+        printf("%d ", nx);
+    enl;
+    return 0;
+}

@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+vector <int> adia[100010];
+struct Node
+{
+    int val, ord;
+    Node(int _val, int _ord) : val(_val), ord(_ord) { }
+    bool operator< (const Node & x) const {
+        return ord < x.ord;
+    }
+};
+
+int stramos[20][100010];
+int h[100010], cnt;
+int nrdfs[100010];
+
+int dist(int a, int b) /// if false -> only from a to lca
+{
+    int _a = a, _b = b;
+    if (h[a] < h[b])
+        swap(a, b);
+    for (int i(19); i >= 0; i--)
+        if (h[a] - (1 << i) >= h[b])
+            a = stramos[i][a];
+    for (int i(19); i >= 0; i--)
+        if (stramos[i][a] != stramos[i][b])
+            a = stramos[i][a], b = stramos[i][b];
+    if (a != b)
+        a = stramos[0][a];
+
+    return h[_a] + h[_b] - 2 * h[a];
+}
+void dfs(int nod)
+{
+    h[nod] = 1 + h[stramos[0][nod]];
+    nrdfs[nod] = ++cnt;
+    for (int i(1); i < 20; i++)
+        stramos[i][nod] = stramos[i - 1][stramos[i - 1][nod]];
+    for (auto i : adia[nod]) {
+        if (i == stramos[0][nod])
+            continue;
+        stramos[0][i] = nod;
+        dfs(i);
+    }
+}
+
+int main()
+{
+    set <Node> s;
+    s.insert({ 1, 0 });
+    s.insert({ 1, 1000000000 });
+    int n, a, b, k, best(0), start;
+    cin >> n >> k;
+    k--;
+    k *= 2;
+
+    for (int i(1); i < n; i++) {
+        cin >> a >> b;
+        adia[a].push_back(b);
+        adia[b].push_back(a);
+    }
+
+    dfs(1);
+    int q;
+
+    for (int i(1), j(1); i <= n; i++) {
+
+        k -= dist(s.begin()->val, next(s.begin())->val);
+        k -= dist(prev(s.end())->val, prev(prev(s.end()))->val);
+        k += dist(next(s.begin())->val, prev(prev(s.end()))->val);
+        auto x = s.lower_bound({ i, nrdfs[i] });
+        k -= dist(x->val, i);
+        k -= dist(prev(x)->val, i);
+        k += dist(prev(x)->val, x->val);
+        s.insert({ i, nrdfs[i] });
+
+        k += dist(s.begin()->val, next(s.begin())->val);
+        k += dist(prev(s.end())->val, prev(prev(s.end()))->val);
+        k -= dist(next(s.begin())->val, prev(prev(s.end()))->val);
+
+        while (k < 0) {
+
+            k -= dist(s.begin()->val, next(s.begin())->val);
+            k -= dist(prev(s.end())->val, prev(prev(s.end()))->val);
+            k += dist(next(s.begin())->val, prev(prev(s.end()))->val);
+
+            auto x = s.find({ j, nrdfs[j] });
+            k += dist(x->val, next(x)->val);
+            k += dist(prev(x)->val, x->val);
+            k -= dist(prev(x)->val, next(x)->val);
+            s.erase(x);
+            j++;
+
+            k += dist(s.begin()->val, next(s.begin())->val);
+            k += dist(prev(s.end())->val, prev(prev(s.end()))->val);
+            k -= dist(next(s.begin())->val, prev(prev(s.end()))->val);
+
+        }
+        best = max(best, i - j + 1);
+        if (i - j + 1 == best)
+            start = j;
+    }
+
+    cout << best << '\n';
+    /// << start << '\n';
+    return 0;
+}

@@ -1,0 +1,89 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#include <bits/stdc++.h>
+
+using namespace std;
+#define OO ll(1e18)
+typedef unsigned long long ull;
+typedef long long ll;
+vector<vector<int>>adj, lvl, lvl2;
+vector<int>in, out, parent, depth;
+int ST[100010][30];
+int Time = 0, n;
+void dfs(int node, int L, int p) {
+	parent[node] = p;
+	depth[node] = L;
+	Time++;
+	lvl[L].push_back(Time);
+	in[node] = Time;
+	for (int i = 0; i < adj[node].size(); i++) {
+		dfs(adj[node][i], L + 1, node);
+	}
+	Time++;
+	lvl2[L].push_back(Time);
+	out[node] = Time;
+}
+void Stable() {
+	parent.resize(n + 1, -1);
+	depth.resize(n + 1, 0);
+	for (int i = 1; i <= n; i++) {
+		if (parent[i] == -1)dfs(i, 0, -1);
+	}
+
+	memset(ST, -1, sizeof ST);
+	for (int i = 1; i <= n; i++)ST[i][0] = parent[i];
+
+	for (int j = 0; (1 << j) <= n; j++) {
+		for (int i = 1; i <= n; i++) {
+			if (ST[i][j - 1] != -1 && depth[i] - (1 << j) >= 0) {
+				ST[i][j] = ST[ST[i][j - 1]][j - 1];
+			}
+		}
+	}
+}
+
+int Query(int node, int pth) {
+	for (int i = 30; i >= 0; i--)
+		if (node > 0 && pth - (1 << i) >= 0) {
+			node = ST[node][i];
+			pth -= (1 << i);
+		}
+	return node;
+}
+
+int main() {
+	cin >> n;
+	adj.resize(n + 1);
+	lvl.resize(n + 1);
+	lvl2.resize(n + 1);
+	in.resize(n + 1);
+	out.resize(n + 1);
+	for (int i = 0; i < n; i++) {
+		int a;
+		cin >> a;
+		if (a) {
+			adj[a].push_back(i + 1);
+		}
+	}
+	Stable();
+	int m;
+	cin >> m;
+	vector<int>ans;
+	while (m--) {
+		int a, p;
+		cin >> a >> p;
+		int node = Query(a, p);
+		if (node == -1) {
+			ans.push_back(0); continue;
+		}
+		int Tin = in[node];
+		int Tout = out[node];
+		int L = depth[a];
+		int idx = lower_bound(lvl[L].begin(), lvl[L].end(), Tin) - lvl[L].begin();
+		int idx2 = lower_bound(lvl2[L].begin(), lvl2[L].end(), Tout) - lvl2[L].begin();
+		ans.push_back((idx2 - idx) - 1);
+	}
+	for (int i = 0; i < ans.size(); i++)cout << ans[i] << " ";
+}

@@ -1,0 +1,134 @@
+#include "bits/stdc++.h"
+#define MAXN 200009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+char s[MAXN];
+const int N=(1<<20)+5;
+int arr[MAXN],vis[MAXN],sub[MAXN];
+int cnt[N],bit[N];
+ll ans[MAXN];
+vector<int>adj[MAXN];
+void pre(int nd,int pr){
+	sub[nd]=1;
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(vis[to] or to==pr)
+			continue;
+		pre(to,nd);	
+		sub[nd]+=sub[to];
+	}
+}
+int dfs1(int nd,int pr,int sz){
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(to==pr or vis[to])
+			continue;
+		if(sub[to]>sz)
+			return dfs1(to,nd,sz);
+	}
+	return nd;
+}
+void add(int nd,int pr,int val,int mask){
+	mask^=arr[nd];
+	cnt[mask]+=val;
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(to==pr or vis[to])
+			continue;
+		add(to,nd,val,mask);	
+	}
+}
+ll get(int nd,int pr,int mask,int par){
+	mask^=arr[nd];
+	ll res=cnt[par^mask];;
+	for(int i=0;i<20;i++)
+		res+=cnt[par^mask^(1<<i)];
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(to==pr or vis[to])
+			continue;
+		res+=get(to,nd,mask,par);	
+	}
+	ans[nd]+=res;
+	return res;
+}
+int tap(int nd,int pr,int mask){
+	mask^=arr[nd];
+	int res=(bit[mask]<=1);
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(to==pr or vis[to])
+			continue;
+		res+=tap(to,nd,mask);	
+	}
+	ans[nd]+=res;
+	return res;
+}
+void solve(int nd){
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(vis[to])
+			continue;
+		add(to,nd,+1,arr[nd]);	
+	}
+	ll love=0;
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(vis[to])
+			continue;
+		add(to,nd,-1,arr[nd]);
+		love+=get(to,nd,arr[nd],arr[nd]);
+		add(to,nd,+1,arr[nd]);	
+	}ans[nd]+=love/2;
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(vis[to])
+			continue;
+		add(to,nd,-1,arr[nd]);	
+		ans[nd]+=tap(to,nd,arr[nd]);	
+	}
+}
+void dfs(int nd){
+	pre(nd,-1);
+	nd=dfs1(nd,-1,sub[nd]>>1);
+	solve(nd);vis[nd]=1;
+	tr(it,adj[nd])
+		if(!vis[*it])
+			dfs(*it);
+}
+int main(){
+    //~ freopen("file.in", "r", stdin);
+    for(int i=0;i<N;i++)
+		bit[i]=__builtin_popcount(i);
+    int n;
+    scanf("%d",&n);
+    for(int i=1;i<n;i++){
+		int u,v;
+		scanf("%d%d",&u,&v);
+		adj[u].pb(v);
+		adj[v].pb(u);
+	}
+	scanf("%s",s+1);
+	for(int i=1;i<=n;i++)
+		arr[i]=1<<(s[i]-'a');
+	dfs(1);
+	for(int i=1;i<=n;i++)
+		printf("%lld ",ans[i]+1);
+	puts("");
+	return 0;
+}

@@ -1,0 +1,148 @@
+
+#include<bits/stdc++.h>
+#include<ctime>
+#include<random>
+using namespace std;
+
+#define MAX 500002
+
+
+vector<int> v[MAX];
+int n;
+
+vector<int> dep[MAX];
+int star[MAX];
+int en[MAX];
+int sz;
+#define MAX_LOG 22
+int lcc[MAX_LOG][MAX];
+int depth[MAX];
+inline void dfs(int b, int d = 0, int pr = -1){
+	lcc[0][b] = pr;
+	star[b] = sz;
+	sz++;
+	dep[d].push_back(b);
+	depth[b] = d;
+	for (int i = 0; i < v[b].size(); i++){
+		if (v[b][i] == pr)continue;
+		dfs(v[b][i], d + 1, b);
+	}
+	en[b] = sz;
+}
+void init(){
+	for (int i = 0; i + 1 < MAX_LOG; i++){
+		for (int j = 0; j < n; j++){
+			if (lcc[i][j] == -1){
+				lcc[i + 1][j] = -1;
+			}
+			else{
+				lcc[i + 1][j] = lcc[i][lcc[i][j]];
+			}
+		}
+	}
+}
+int lca(int a, int b){
+	if (depth[a] < depth[b])swap(a, b);
+	for (int i = 0; i < MAX_LOG; i++){
+		if (((depth[a] - depth[b]) >> i) & 1){
+			a = lcc[i][a];
+		}
+	}
+	if (a == b)return a;
+	for (int i = MAX_LOG - 1; i >= 0; i--){
+		if (lcc[i][a] != lcc[i][b]){
+			a = lcc[i][a];
+			b = lcc[i][b];
+		}
+	}
+	return lcc[0][a];
+}
+
+bool cmp(int a, int b){
+	return star[a] < star[b];
+}
+
+vector<int> lis;
+
+long long int add;
+long long int ans[MAX];
+
+inline int dfs(int id, vector<int> &vv, int pr_dep){
+	long long int sum = depth[vv[id]] - pr_dep;
+	int lef = lower_bound(lis.begin(), lis.end(), star[vv[id]]) - lis.begin();
+	int rig = lower_bound(lis.begin(), lis.end(), en[vv[id]]) - lis.begin();
+	sum *= (rig - lef);
+	add += sum;
+	int node = vv[id];
+	id++;
+	bool child = true;
+	while (id < vv.size()){
+		int go = vv[id];
+		if (star[node] <= star[go] && en[go] <= en[node]){
+			id = dfs(id, vv, depth[node]);
+			child = false;
+		}
+		else{
+			break;
+		}
+	}
+	if (child){
+		ans[node] = add - 1;
+	}
+	add -= sum;
+	return id;
+}
+inline void dfs3(int b, int pr = -1){
+	if (pr != -1){
+		ans[b] += ans[pr];
+	}
+	for (int go : v[b]){
+		if (go == pr)continue;
+		dfs3(go, b);
+	}
+}
+int main(){
+	cin >> n;
+	int root;
+	for (int i = 0; i < n; i++){
+		int p;
+		scanf("%d", &p);
+		p--;
+		if (p == -1){
+			root = i;
+			continue;
+		}
+		v[p].push_back(i);
+	}
+	dfs(root);
+	init();
+	for (int i = 0; i < n; i++){
+		if (dep[i].size() == 0)continue;
+
+		
+		lis = dep[i];
+		sort(lis.begin(), lis.end());
+		lis.erase(unique(lis.begin(), lis.end()), lis.end());
+		sort(lis.begin(), lis.end(), cmp);
+		for (int j = 0; j < lis.size(); j++){
+			lis[j] = star[lis[j]];
+		}
+		dep[i].insert(dep[i].begin(), root);
+		int sz = dep[i].size();
+		for (int j = 1; j < sz; j++){
+			dep[i].push_back(lca(dep[i][j - 1], dep[i][j]));
+		}
+		sort(dep[i].begin(), dep[i].end());
+		dep[i].erase(unique(dep[i].begin(), dep[i].end()), dep[i].end());
+		sort(dep[i].begin(), dep[i].end(), cmp);
+		if (dep[i].size() == 0)continue;
+		dfs(0, dep[i], -1);
+	}
+	dfs3(root);
+	for (int i = 0; i < n; i++){
+		if (i)printf(" ");
+		printf("%lld", ans[i]);
+	}
+	puts("");
+	return 0;
+}

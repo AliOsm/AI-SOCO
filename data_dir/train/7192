@@ -1,0 +1,81 @@
+#pragma GCC optimize ("O3")
+#include <bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define IO ios_base::sync_with_stdio(0),cin.tie(0),cout.tie(0);
+using namespace std;
+const int N = 2e5 + 5, M = 32 * N + 5;
+
+
+struct node{
+	int *islft,sz,mn,mx;
+	node *lft,*rgt;
+	void build(int *arr,int siz)
+	{
+		sz=siz;
+		mn=*min_element(arr,arr+siz);
+		mx=*max_element(arr,arr+siz);
+		if(mn==mx) return;
+		islft=(new int[siz+1])+1;
+		islft[-1]=0;
+		int mid=mn+(mx-mn)/2;
+	    for(int i=0;i<sz;i++)
+		    islft[i]=islft[i-1]+(arr[i]<=mid);
+		int lftsz=stable_partition(arr,arr+sz,[mid](int x){
+			return x<=mid;
+		})-arr;
+		lft=new node(); rgt=new node();
+		lft->build(arr,lftsz);
+		rgt->build(arr+lftsz,sz-lftsz);
+	}
+	int kth_minimum(int qs,int qe,int k)
+	{
+		if(mn==mx) return mn;
+		int lftsz=islft[qe]-islft[qs-1];
+		if(k<=lftsz)
+			return lft->kth_minimum(islft[qs-1],islft[qe]-1,k);
+		return rgt->kth_minimum(qs-islft[qs-1],qe-islft[qe],k-lftsz);
+	}
+	int less_than_or_equal_k(int qs,int qe,int k)
+	{
+		if(qs>qe||k<mn)return 0;
+		if(k>=mx)return qe-qs+1;
+		return lft->less_than_or_equal_k(islft[qs-1],islft[qe]-1,k)+rgt->less_than_or_equal_k(qs-islft[qs-1],qe-islft[qe],k);
+	}
+	int count_k_in_range(int qs,int qe,int k)
+	{
+	    if(qe>qe||k<mn||k>mx)return 0;
+	    if(mn==mx)return qe-qs+1;
+	    int mid=mn+(mx-mn)/2;
+	    if(k<=mid)return lft->count_k_in_range(islft[qs-1],islft[qe]-1,k);
+	    return rgt->count_k_in_range(qs-islft[qs-1],qe-islft[qe],k);
+	}
+};
+node root;
+int n, a[N], b[N], me[N];
+int main(){
+    scanf("%d", &n);
+    vector<pair<int, int> > v;
+    for(int i = 0 ; i < n ; ++i){
+        int x;
+        scanf("%d", &x);
+        me[i] = x;
+        v.emplace_back(x, -i);
+    }
+    sort(v.begin(), v.end());
+    for(int i = 0 ; i < n ; ++i)
+        a[i] = b[i] = -v[i].second;
+    root.build(a, n);
+    int q;
+    scanf("%d", &q);
+    while(q--){
+        int x, idx;
+        scanf("%d%d", &x, &idx);
+        int l = n - x;
+        int r = n - 1;
+        // idx = (r - l + 1) - idx + 1;
+        int mkan = root.kth_minimum(l, r, idx);
+        // cout << "mkan = " << mkan << endl;
+        printf("%d\n", me[mkan]);
+    }
+}

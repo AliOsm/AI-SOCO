@@ -1,0 +1,147 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int INF = (int)1e9 + 1;
+const ld EPS = 1e-9;
+
+struct SegmTree {
+  const static int maxn = (1 << 18);
+  int a[2 * maxn][2];
+  int n;
+
+  void build(int _n) {
+    for (n = 1; n < _n; n <<= 1) ;
+    for (int i = 0; i < n; ++i) {
+      a[i + n][0] = (i < _n ? i - _n : 0);
+      a[i + n][1] = 0;
+    }
+    for (int i = n - 1; i > 0; --i) {
+      a[i][0] = min(a[2 * i][0], a[2 * i + 1][0]);
+      a[i][1] = 0;
+    }
+  }
+
+  int get() const {
+    return a[1][0];
+  }
+
+  void push(int v) {
+    if (a[v][1] == 0) {
+      return;
+    }
+    a[2 * v][0] += a[v][1], a[2 * v][1] += a[v][1];
+    a[2 * v + 1][0] += a[v][1], a[2 * v + 1][1] += a[v][1];
+    a[v][1] = 0;
+  }
+
+  void add(int v, int l, int r, int l0, int r0, int toadd) {
+    if (l >= r0 || l0 >= r) {
+      return;
+    }
+    if (l0 <= l && r <= r0) {
+      a[v][1] += toadd;
+      a[v][0] += toadd;
+      return;
+    }
+
+    push(v);
+    int m = (l + r) / 2;
+    add(2 * v, l, m, l0, r0, toadd);
+    add(2 * v + 1, m, r, l0, r0, toadd);
+    a[v][0] = min(a[2 * v][0], a[2 * v + 1][0]);
+  }
+
+  void add(int l, int r, int toadd) {
+    add(1, 0, n, l, r, toadd);
+  }
+} tree;
+
+const int maxn = (int) 15e4 + 10;
+int a[maxn], b[maxn];
+
+bool solve() {
+  int n, len, h;
+  if (scanf("%d%d%d", &n, &len, &h) < 3) {
+    return 0;
+  }
+  for (int i = 0; i < len; ++i) {
+    scanf("%d", &b[i]);
+    b[i] = h - b[i];
+  }
+  for (int i = 0; i < n; ++i) {
+    scanf("%d", &a[i]);
+  }
+  sort(b, b + len);
+  tree.build(len);
+  int res = 0;
+  for (int i = 0; i < n; ++i) {
+    int pos = upper_bound(b, b + len, a[i]) - b;
+    a[i] = pos;
+    tree.add(0, a[i], 1);
+
+    if (i >= len - 1) {
+      res += (tree.get() >= 0);
+      tree.add(0, a[i - len + 1], -1);
+    }
+  }
+  printf("%d\n", res);
+  return 1;
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!solve()) {
+      break;
+    }
+#ifdef DEBUG
+    eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

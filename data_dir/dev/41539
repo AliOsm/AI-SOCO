@@ -1,0 +1,254 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <stdio.h>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <math.h>
+#include <cmath>
+#include <queue>
+#include <iomanip>
+#include <bitset>
+#include <memory.h>
+#include <cstring>
+#include <stack>
+#include <unordered_set>
+#include <unordered_map>
+#include <iterator>
+#pragma comment(linker, "/STACK:667177216")
+#define ll long long
+#define ull unsigned long long
+#define INF 1000000007;
+#define pb push_back
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+#define mp make_pair
+#define vI vector<int>
+#define vvI vector<vector<int>>
+#define vLL vector<LL>
+#define vS vector<string>
+#define fori(i, n) for (int(i) = 0; (i) < n; (i)++)
+#define forn(it, from, to) for (int(it) = from; (it) < to; (it)++)
+#define forI(tmp) for (auto(it) = (tmp).begin(); (it) != (tmp).end(); (it)++)
+#define PI 3.14159265356
+#define LD long double
+#define sc(a) scanf("%d", &(a))
+#define scLL(a) scanf("%I64d", &(a))
+#define mems(a, val) memset(a, val, sizeof(a))
+typedef long long LL;
+using namespace std;
+const LL MOD = 1000000000 + 7;
+const LL MAXN = 100000 + 100;
+
+
+int n, l;
+vector < vector<int> > g;
+vector<int> tin, tout;
+int timer;
+vector < vector<int> > up;
+
+void dfs (int v, int p = 0) {
+	tin[v] = ++timer;
+	up[v][0] = p;
+	for (int i=1; i<=l; ++i)
+		up[v][i] = up[up[v][i-1]][i-1];
+	for (size_t i=0; i<g[v].size(); ++i) {
+		int to = g[v][i];
+		if (to != p)
+			dfs (to, v);
+	}
+	tout[v] = ++timer;
+}
+
+bool upper (int a, int b) {
+	return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int lca (int a, int b) {
+	if (upper (a, b))  return a;
+	if (upper (b, a))  return b;
+	for (int i=l; i>=0; --i)
+		if (! upper (up[a][i], b))
+			a = up[a][i];
+	return up[a][0];
+}
+
+
+vector<int> map_order(100000 + 100);
+vector<int> rev_map_order(100000 + 100);
+vector<int> lvl(100000 + 100);
+ int order = 0;
+void build_order(int v, vector<vector<int> > &g, int p = -1) {
+
+	if (p == -1) {
+		lvl[v] = 0;
+	}else{
+		lvl[v] = lvl[p] + 1;
+	}
+	
+	
+	rev_map_order[order] = v;
+	map_order[v] = order++;
+	
+	for(int i = 0; i < g[v].size(); ++i) {
+		int to = g[v][i];
+		if (to == p) continue;
+		build_order(to, g, v);
+	}
+}
+
+pair<int,int> T_MIN[100100 * 4],T_MAX[100100 * 4];
+
+inline pair<int,int> get_min(pair<int,int> a, pair<int,int> b) {
+
+	if (a.first < b.first) {
+	    if (a.first == a.second) return mp(a.first, b.first);
+		return mp(a.first, min(a.second, b.first));
+	}
+	
+	if (b.first < a.first) {
+	    if (b.first == b.second) return mp(b.first, a.first);
+		return mp(b.first, min(b.second, a.first));
+	}
+}
+
+inline pair<int,int> get_max(pair<int,int> a, pair<int,int> b) {
+	
+	if (a.first > b.first) {
+	    if (a.first == a.second) return mp(a.first, b.first);
+		return mp(a.first, max(a.second, b.first));
+	}
+	
+	if (b.first > a.first) {
+	     if (b.first == b.second) return mp(b.first, a.first);
+		return mp(b.first, max(b.second, a.first));
+	}
+}
+
+void build_t(int v, int tl, int tr) {
+	if (tl == tr) {
+		T_MIN[v] = mp(map_order[tl], map_order[tl]);
+		T_MAX[v] = mp(map_order[tl], map_order[tl]);
+		return;
+	}
+	
+	int tm = (tl + tr) >> 1;
+	build_t(2 * v, tl, tm);
+	build_t(2 * v + 1, tm + 1, tr);
+	T_MIN[v] = get_min(T_MIN[2 * v], T_MIN[2 * v + 1]);
+	T_MAX[v] = get_max(T_MAX[2 * v], T_MAX[2 * v + 1]);
+}
+
+pair<int,int> get_min_range(int v, int tl, int tr, int l, int r) {
+	if (l > r) return mp(1000000000, 500000000);
+	if (tl == l && tr == r) {
+		return T_MIN[v];
+	}
+	
+	int tm = (tl + tr) >> 1;
+	auto min_l = get_min_range(2 * v, tl, tm, l, min(tm ,r));
+	auto min_r = get_min_range(2 * v + 1, tm + 1, tr, max(tm + 1, l), r);
+	return get_min(min_l, min_r);
+}
+
+pair<int,int> get_max_range(int v, int tl, int tr, int l, int r) {
+	if (l > r) return mp(-1000000000, -500000000);
+	if (tl == l && tr == r) {
+		return T_MAX[v];
+	}
+	
+	int tm = (tl + tr) >> 1;
+	auto max_l = get_max_range(2 * v, tl, tm, l, min(tm ,r));
+	auto max_r = get_max_range(2 * v + 1, tm + 1, tr, max(tm + 1, l), r);
+	return get_max(max_l, max_r);
+}
+
+
+int main()
+{
+#ifdef ONLINE_JUDGE
+    //freopen("input.txt", "r", stdin); freopen("output.txt", "w", stdout);
+#else
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+#endif
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+  int q;
+  
+  cin>>n>>q;
+  vector<int> p(n);
+  
+  p[0] = -1;
+  forn(i,1,n) {
+  	int p1;
+  	cin>>p1;
+  	p1--;
+  	p[i] = p1;
+  }
+  
+  g.resize(n);
+  forn(i,1, n) {
+  	g[p[i]].push_back(i);
+  	g[i].push_back(p[i]);
+  }
+	  
+tin.resize (n),  tout.resize (n),  up.resize (n);
+	l = 1;
+	while ((1<<l) <= n)  ++l;
+	for (int i=0; i<n; ++i)  up[i].resize (l+1);
+	dfs (0);
+  
+  build_order(0, g);
+   
+  build_t(1, 0, n - 1);
+
+  forn(i,0,q) {
+  	int l, r;
+  	cin>>l>>r;
+  	l--;
+  	r--;
+  	if (l == r) {
+  		cout<<l + 1<<" "<<lvl[l]<<endl;
+  		exit(-1);
+  		continue;
+  	}
+  	if (l + 1 == r) {
+  		if (lvl[l] > lvl[r]) {
+  		    cout<<r + 1<<" "<<lvl[l]<<endl;
+  		}else{
+  		    cout<<l + 1<<" "<<lvl[r]<<endl;
+  		}
+  		continue;
+  	}
+  	
+  	auto mini = get_min_range(1, 0, n - 1, l, r);
+  	auto maxi = get_max_range(1, 0, n - 1, l, r);
+  	//cout<<mini.first<<" "<<mini.second<<endl;
+  	
+  	int ans_v, ans_man;
+  	int left = rev_map_order[mini.second];
+  	int right = rev_map_order[maxi.first];
+  	//cout<<"! "<<left<<" "<<right<<endl;
+  	ans_v = rev_map_order[mini.first];
+  	ans_man = lca(left, right);
+  	
+  	left = rev_map_order[mini.first];
+  	right = rev_map_order[maxi.second];
+  	//cout<<"! "<<left<<" "<<right<<endl;
+  	if (lvl[lca(left, right)] > lvl[ans_man]) {
+  	    ans_man = lca(left, right);
+  	    ans_v = rev_map_order[maxi.first];
+  	}
+  	
+  	cout<<ans_v + 1<<" "<<lvl[ans_man]<<endl;
+  }
+  
+  //cout<<lvl[2];
+  
+
+    return 0;
+}

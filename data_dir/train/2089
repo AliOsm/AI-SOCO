@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+#define MOD 1000000007
+#define Nmax 100005
+#define pb push_back
+#define INF (1LL<<60)
+#define eps 0.000000000001
+
+using namespace std;
+
+int n,k;
+long long sumpoz[3*Nmax],sumneg[3*Nmax],sol=-INF,Sum;
+int v[Nmax],poz[3*Nmax],neg[3*Nmax],a[Nmax];
+unordered_map <int,int> Val,Norm;
+
+inline void Upd(int a1[], long long a2[], int nod, int st, int dr, int poz, int v1, int v2)
+{
+    if(st==dr)
+    {
+        a1[nod]+=v1; a2[nod]+=v2;
+        return;
+    }
+    int mij=((st+dr)>>1);
+    if(poz<=mij) Upd(a1,a2,2*nod,st,mij,poz,v1,v2);
+    else Upd(a1,a2,2*nod+1,mij+1,dr,poz,v1,v2);
+    a1[nod]=a1[2*nod]+a1[2*nod+1];
+    a2[nod]=a2[2*nod]+a2[2*nod+1];
+}
+
+inline long long L(int nod, int st, int dr, int k)
+{
+    if(st==dr) return 1LL*min(k,neg[nod])*Val[st];
+    int mij=((st+dr)>>1);
+    if(neg[2*nod]>=k) return L(2*nod,st,mij,k);
+    return sumneg[2*nod] + L(2*nod+1,mij+1,dr,k-neg[2*nod]);
+}
+
+inline long long R(int nod, int st, int dr, int k)
+{
+    if(st==dr) return 1LL*min(k,poz[nod])*Val[st];
+    int mij=((st+dr)>>1);
+    if(poz[2*nod+1]>=k) return R(2*nod+1,mij+1,dr,k);
+    return sumpoz[2*nod+1] + R(2*nod,st,mij,k-poz[2*nod+1]);
+}
+
+inline void Solution()
+{
+    long long aux1,aux2;
+    aux1=L(1,1,n,min(neg[1],k));
+    aux2=R(1,1,n,min(poz[1],k));
+    //cout<<aux1<<" "<<aux2<<"\n";
+    sol=max(sol,max(abs(Sum-2*aux1),abs(Sum-2*aux2)));
+}
+
+int main()
+{
+    int i,j,l=0,len;
+    #ifndef ONLINE_JUDGE
+        freopen ("date.in","r",stdin);
+        freopen ("date.out","w",stdout);
+    #endif
+    cin.sync_with_stdio(0);
+    cin>>n>>len;
+    for(i=1;i<=n;++i)
+    {
+        cin>>a[i];
+        v[++l]=a[i];
+    }
+    cin>>k;
+
+    v[++l]=0;
+    sort(v+1,v+l+1);
+    Norm[v[1]]=1; Val[1]=v[1];
+    for(i=2;i<=l;++i)
+    {
+        Norm[v[i]]=Norm[v[i-1]];
+        if(v[i]>v[i-1]) ++Norm[v[i]];
+        Val[Norm[v[i]]]=v[i];
+    }
+
+    ++n;
+    for(i=1;i<=len;++i)
+    {
+        if(a[i]>0) Upd(poz,sumpoz,1,1,n,Norm[a[i]],1,a[i]);
+        if(a[i]<0) Upd(neg,sumneg,1,1,n,Norm[a[i]],1,a[i]);
+        Sum+=a[i];
+    }
+    Solution();
+
+    for(i=len+1;i<n;++i)
+    {
+        if(a[i]>0) Upd(poz,sumpoz,1,1,n,Norm[a[i]],1,a[i]);
+        if(a[i]<0) Upd(neg,sumneg,1,1,n,Norm[a[i]],1,a[i]);
+
+        if(a[i-len]>0) Upd(poz,sumpoz,1,1,n,Norm[a[i-len]],-1,-a[i-len]);
+        if(a[i-len]<0) Upd(neg,sumneg,1,1,n,Norm[a[i-len]],-1,-a[i-len]);
+        Sum+=a[i]-a[i-len];
+        Solution();
+    }
+    cout<<sol;
+    return 0;
+}

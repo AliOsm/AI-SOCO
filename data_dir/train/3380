@@ -1,0 +1,107 @@
+#define _USE_MATH_DEFINES
+
+#include <bits/stdc++.h>
+#include <ext/numeric>
+
+using namespace std;
+using namespace __gnu_cxx;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+void fastInOut();
+
+const int N = 1000001;
+const int di[] = {-1, 1, 0, 0};
+const int dj[] = {0, 0, -1, 1};
+int n, m, nxt[N], vis[N], ID, recStackVis[N], recID;
+vector<int> par[N];
+bool col[N];
+map<char, int> dirToIdx;
+stack<int> recStack;
+
+void genInit() {
+  dirToIdx['U'] = 0, dirToIdx['D'] = 1;
+  dirToIdx['L'] = 2, dirToIdx['R'] = 3;
+}
+
+void init() {
+  ++ID, ++recID;
+}
+
+pair<int, int> dfs(int u) {
+  if (recStackVis[u] == recID) {
+    int ret = 1;
+    while (recStack.top() != u)
+      ++ret, recStack.pop();
+    recStack.pop();
+    while (!recStack.empty()) {
+      recStack.pop();
+    }
+    return {ret, u};
+  }
+  recStackVis[u] = recID;
+  recStack.push(u);
+  return dfs(nxt[u]);
+}
+
+void dfsRev(int u, int dist, vector<int> &blkDist) {
+  if (!col[u])
+    blkDist.push_back(dist);
+  vis[u] = ID;
+  for (int v : par[u])
+    if (vis[v] != ID)
+      dfsRev(v, dist + 1, blkDist);
+}
+
+int getPossBlk(int u, int cycSz) {
+  vector<int> blkDist;
+  dfsRev(u, 0, blkDist);
+  set<int> all;
+  for (int cur : blkDist)
+    all.insert(cur % cycSz);
+  return min((int) all.size(), cycSz);
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+  freopen("input.txt", "r", stdin);
+#endif
+  fastInOut();
+  int t;
+  string cols, dirs;
+  cin >> t, genInit();
+  while (t--) {
+    init();
+    cin >> n >> m;
+    for (int i = 0; i < n; ++i) {
+      cin >> cols;
+      for (int j = 0; j < m; ++j)
+        col[i * m + j] = (cols[j] == '1'), par[i * m + j].clear();
+    }
+    for (int i = 0; i < n; ++i) {
+      cin >> dirs;
+      for (int j = 0; j < m; ++j) {
+        char dir = dirs[j];
+        int ii = i + di[dirToIdx[dir]], jj = j + dj[dirToIdx[dir]];
+        nxt[i * m + j] = ii * m + jj;
+        par[ii * m + jj].push_back(i * m + j);
+      }
+    }
+    pair<int, int> ret = {0, 0};
+    for (int u = 0; u < n * m; ++u) {
+      if (vis[u] != ID) {
+        pair<int, int> cycSzSt = dfs(u);
+        ret.first += cycSzSt.first;
+        ret.second += getPossBlk(cycSzSt.second, cycSzSt.first);
+      }
+    }
+    cout << ret.first << " " << ret.second << "\n";
+  }
+  return 0;
+}
+
+void fastInOut() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(NULL), cout.tie(NULL);
+}

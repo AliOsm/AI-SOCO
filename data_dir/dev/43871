@@ -1,0 +1,195 @@
+//It’s never too late to become what you might have been....
+ #include <iostream>
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long int
+#define inf 100000000
+#define mod 1000000007
+#define pb push_back
+#define mp make_pair
+#define all(v) v.begin(),v.end()
+#define S second
+#define F first
+#define boost1 ios::sync_with_stdio(false);
+#define boost2 cin.tie(0);
+#define mem(a,val) memset(a,val,sizeof a)
+#define endl "\n"
+#define maxn 100001
+struct Edge 
+{
+  ll from, to, cap, flow, index;
+  Edge(ll from, ll to, ll cap, ll flow, ll index) :
+  from(from), to(to), cap(cap), flow(flow), index(index) {}
+};
+
+struct PushRelabel
+{
+  ll N;
+  vector<vector<Edge> > G;
+  vector<ll> excess;
+  vector<ll> dist, active, count;
+  queue<int> Q;
+
+  PushRelabel(ll N) : N(N), G(N), excess(N), dist(N), active(N), count(2*N) {}
+
+  void AddEdge(ll from, ll to, ll cap) {
+    G[from].push_back(Edge(from, to, cap, 0, G[to].size()));
+    if (from == to) G[from].back().index++;
+    G[to].push_back(Edge(to, from, 0, 0, G[from].size() - 1));
+  }
+
+  void Enqueue(ll v) {
+    if (!active[v] && excess[v] > 0) { active[v] = true; Q.push(v); }
+  }
+
+  void Push(Edge &e) {
+    ll amt=min(excess[e.from], e.cap - e.flow);
+    if (dist[e.from] <= dist[e.to] || amt == 0) return;
+    e.flow += amt;
+    G[e.to][e.index].flow -= amt;
+    excess[e.to] += amt;
+    excess[e.from] -= amt;
+    Enqueue(e.to);
+  }
+
+  void Gap(ll k) {
+    for (ll v = 0; v < N; v++) {
+      if (dist[v] < k) continue;
+      count[dist[v]]--;
+      dist[v] = max(dist[v], N+1);
+      count[dist[v]]++;
+      Enqueue(v);
+    }
+  }
+
+  void Relabel(ll v) {
+    count[dist[v]]--;
+    dist[v] = 2*N;
+    for (ll i = 0; i < G[v].size(); i++)
+      if (G[v][i].cap - G[v][i].flow > 0)
+	dist[v] = min(dist[v], dist[G[v][i].to] + 1);
+    count[dist[v]]++;
+    Enqueue(v);
+  }
+
+  void Discharge(ll v) {
+    for (ll i = 0; excess[v] > 0 && i < G[v].size(); i++) Push(G[v][i]);
+    if (excess[v] > 0) {
+      if (count[dist[v]] == 1)
+	Gap(dist[v]);
+      else
+	Relabel(v);
+    }
+  }
+
+  ll GetMaxFlow(ll s, ll t) {
+    count[0] = N-1;
+    count[N] = 1;
+    dist[s] = N;
+    active[s] = active[t] = true;
+    for (ll i = 0; i < G[s].size(); i++) {
+      excess[s] += G[s][i].cap;
+      Push(G[s][i]);
+    }
+
+    while (!Q.empty()) {
+      int v = Q.front();
+      Q.pop();
+      active[v] = false;
+      Discharge(v);
+    }
+
+    ll totflow = 0;
+    for (ll i = 0; i < G[s].size(); i++) totflow += G[s][i].flow;
+    return totflow;
+  }
+  vector<vector<Edge> > build(){
+	return G;
+  }
+};
+ll a[maxn];
+vector<pair<ll,ll> >store[maxn];
+vector<pair<ll,ll> >spl;
+map<ll,ll>assign[maxn];
+
+int main()
+{
+	boost1;boost2;
+	ll i,j,n,m,x,y,cnt=0,ctr=0,pr,id1,id2;
+	cin>>n>>m;
+	for(i=1;i<=n;i++)
+	{
+		cin>>a[i];
+		x=a[i];
+		for(j=2;j*j<=x;j++)
+		{
+			if(x%j)
+			continue;
+			ctr=0;
+			while(x%j==0)
+			{
+				x=x/j;
+				ctr++;
+			}
+			store[i].pb(mp(j,ctr));
+		}
+		if(x!=1)
+		{
+			store[i].pb(mp(x,1));
+		}
+	}	
+	/*for(i=1;i<=n;i++)
+	{
+		for(j=0;j<store[i].size();j++)
+		cout<<store[i][j].F<<" "<<store[i][j].S<<" ";
+		cout<<endl;
+	}*/
+	for(i=1;i<=m;i++)
+	{
+		cin>>x>>y;
+		if(x%2==0)
+		swap(x,y);
+		spl.pb(mp(x,y));
+	}
+	PushRelabel Network(5101);
+	ctr=0;
+	for(i=1;i<=n;i+=2)
+	{
+		for(j=0;j<store[i].size();j++)
+		{
+			x=store[i][j].F;
+			cnt=store[i][j].S;
+			ctr++;
+			assign[i][x]=ctr;
+			Network.AddEdge(0,ctr,cnt);
+		}
+	}
+	for(i=2;i<=n;i+=2)
+	{
+		for(j=0;j<store[i].size();j++)
+		{
+			x=store[i][j].F;
+			cnt=store[i][j].S;
+			ctr++;
+			assign[i][x]=ctr;
+			Network.AddEdge(ctr,5100,cnt);
+		}
+	}
+	for(i=0;i<spl.size();i++)
+	{
+		x=spl[i].F;
+		y=spl[i].S;
+		for(j=0;j<store[x].size();j++)
+		{
+			pr=store[x][j].F;
+			cnt=store[x][j].S;
+			id1=assign[x][pr];
+			id2=assign[y][pr];
+			if(id2==0)
+			continue;
+			Network.AddEdge(id1,id2,inf);
+		}
+	}
+	cout<<Network.GetMaxFlow(0,5100)<<endl;
+	return 0;
+}

@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 1e5 + 10, M = 1e5 + 1, mod = 1e9 + 7;
+struct node {
+	int val = 0, cnt = 0;
+	void update(node a) {
+		if (val > a.val)
+			return;
+		if (a.val > val) {
+			val = a.val, cnt = a.cnt;
+			return;
+		}
+		cnt = (cnt + a.cnt) % mod;
+	}
+} seg[N << 2], updator;
+int n, a[N], iv[N], ic[N], dv[N], dc[N];
+node get(int p, int id = 1, int s = 0, int e = M) {
+	if (e - s == 1) {
+		return seg[id];
+	}
+	int mid = (s + e) >> 1, lc = id * 2, rc = lc + 1;
+	node fr;
+	if (p < mid) 
+		fr = get(p, lc, s, mid);
+	else
+		fr = get(p, rc, mid, e);
+	node rtr = seg[id];
+	rtr.update(fr);
+	return rtr;
+}
+void add(int l, int r, int id = 1, int s = 0, int e = M) {
+	if (l <= s && e <= r) {
+		seg[id].update(updator);
+		return;
+	}
+	if (e <= l || r <= s)
+		return;
+	int mid = (s + e) >> 1, lc = id * 2, rc = lc + 1;
+	add(l, r, lc, s, mid);
+	add(l, r, rc, mid, e);
+	return;
+}
+void getLIS() {
+	for (int i = 0; i < n; i++) {
+		updator = get(a[i]);
+		updator.val++;
+		if (updator.cnt == 0)
+			updator.cnt = 1;
+		iv[i] = updator.val, ic[i] = updator.cnt;
+		add(a[i] + 1, M);
+	}
+}
+void getLDS() {
+	for (int i = 0; i < (N << 2) - 2; i++)
+		seg[i].cnt = seg[i].val = 0;
+	for (int i = 0; i < n; i++) {
+		updator = get(a[i]);
+		updator.val++;
+		if (updator.cnt == 0)
+			updator.cnt = 1;
+		dv[i] = updator.val, dc[i] = updator.cnt;
+		add(0, a[i]);
+	}
+}
+int main() {
+	ios_base::sync_with_stdio (false);
+	cin.tie(0), cout.tie(0);
+	cin >> n;
+	for (int i = 0; i < n; i++)
+		cin >> a[i];
+	getLIS();
+//	for (int i = 0; i < n; i++) {
+//		cout << iv[i] << " " << ic[i] << endl;
+//	}
+//	cout << endl;
+	reverse(a, a + n);
+	getLDS();
+//	for (int i = 0; i < n; i++) {
+//		cout << dv[i] << " " << dc[i] << endl;
+//	}
+	reverse(a, a + n);
+	string t;
+	node ans;
+	for (int i = 0; i < n; i++) {
+		node s;
+		s.val = iv[i], s.cnt = ic[i];
+		ans.update(s);
+	}
+	for (int i = 0; i < n; i++) {
+		if (iv[i] + dv[(n - 1) - i] - 1 != ans.val) {
+			t += '1';
+			continue;
+		}
+		long long cnti = 1ll * ic[i] * dc[(n - 1) - i] % mod;
+		if (cnti == ans.cnt) 
+			t += '3';
+		else
+			t += '2';
+	}
+	cout << t;
+	return 0;
+}

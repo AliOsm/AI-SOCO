@@ -1,0 +1,89 @@
+
+// In the name of God
+
+#include<bits/stdc++.h>
+using namespace std;
+#define Size(x) ((int)(x).size())
+#define pb push_back
+typedef long long ll;
+typedef pair<int ,int>pii;
+typedef long double ld;
+const int MN = 1e5 + 10 , LG = 19 , INF = 1e9 + 10;
+
+pii seg[LG][MN];
+int arr[MN] , rt ,n , L[LG][MN] , R[LG][MN] , st[MN] , ft[MN] , mn[LG][MN];
+int rev[MN] , Time , h[MN];
+vector<int>adj[MN];
+
+void dfs(int s,int pr){
+	st[s] = Time++;
+	rev[st[s]] = s;
+	for(auto v:adj[s]) if(v^pr){
+		h[v] = h[s]+1;
+		dfs(v , s);
+	}
+	ft[s] = Time;
+}
+
+void build(int d,int b,int e){
+	if(e - b == 1){
+		seg[d][b] = {h[rev[b]] , arr[rev[b]]};
+		L[d][b] = R[d][b] = -1;
+		mn[d][b] = seg[d][b].second;
+		return;
+	}
+	int mid = b+e>>1;
+	build(d+1 , b , mid) , build(d+1 , mid , e);
+	merge(seg[d+1] + b , seg[d+1] + mid , seg[d+1] + mid , seg[d+1] + e , seg[d]+b);
+	int pL=b,pR=mid;
+	for(int i=b;i<e;++i){
+		if(i == b) mn[d][i] = seg[d][i].second;
+		else mn[d][i] = min(mn[d][i-1] , seg[d][i].second);
+		
+		while(pL < mid && seg[d+1][pL].first <= seg[d][i].first) ++pL;
+		while(pR < e && seg[d+1][pR].first <= seg[d][i].first) ++pR;	
+		
+		if(pL == b) L[d][i] = -1;
+		else L[d][i] = pL-1;
+
+		if(pR == mid) R[d][i] = -1;
+		else R[d][i] = pR-1;
+	}
+}
+
+int get(int d,int b,int e,int l,int r,int x){
+	if(r <= b || e <= l || x == -1) return INF;
+	if(l <= b && e <= r){
+		if(x == -1)
+			return INF;
+		return mn[d][x];
+	}
+	int mid = b+e>>1;
+	return min(get(d+1 , b , mid , l , r ,  L[d][x]) , get(d+1 , mid , e , l , r , R[d][x]));
+}
+
+int main(){
+//	ios_base :: sync_with_stdio(false) , cout.tie(0) , cin.tie(0);
+	scanf("%d%d" , &n , &rt);
+	--rt;
+	for(int i=0;i<n;++i) scanf("%d" , &arr[i]);
+	for(int i=1;i<n;++i){
+		int x,y;scanf("%d%d" , &x , &y);--x,--y;
+		adj[x].pb(y) ,adj[y].pb(x);
+	}
+	dfs(rt , -1);
+	build(0 , 0 , n);
+	int q;scanf("%d" , &q);
+	int lst = 0;
+	while(q--){
+		int A , B;
+		scanf("%d%d" , &A , &B);
+		int x = (A + lst) % n + 1;
+		int k = (B + lst) % n;
+		x--;
+		lst = get(0 , 0 , n , st[x] , ft[x] , upper_bound(seg[0] , seg[0] + n , make_pair(h[x] + k  ,INF)) - seg[0] - 1);
+		printf("%d\n" , lst);
+	}
+	return 0;
+}
+

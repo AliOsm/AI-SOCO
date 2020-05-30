@@ -1,0 +1,189 @@
+
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <algorithm>
+#include <cmath>
+#include <climits>
+#include <limits.h>
+#include <string>
+#include <stack>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <assert.h>
+#include <cstring>
+#include <bitset>
+using namespace std;
+#define rep(i, n) for (int (i) = 0, j123 = n; (i) < j123; (i) ++)
+#define rep1(i, n) for (int (i) = 1, j123 = n; (i) <= j123; (i) ++)
+#define db(x) {cout << #x << " = " << (x) << endl;}
+#define dba(a, x, y) {cout << #a << " :";for(int i123=(x);i123<=(y);i123++) cout<<setw(4)<<(a)[i123];cout<<endl;}
+#define clr(x) memset(x,0,sizeof(x));
+#define mp make_pair
+#define pb push_back
+#define sz(x) int(x.size())
+#define endl '\n'
+typedef long long ll;
+typedef long double ld;
+const int INF = INT_MAX;
+const ll INFL = LLONG_MAX;
+const ld pi = acos(-1);
+// const int MOD = ;
+
+class SWAG
+{
+  vector<int> v;
+  vector<int> lazy;
+  vector<int> islazy;
+  int N;
+  int helloworld(int value, int a, int b, int n)
+  {
+    v[n] = (b-a+1)*value;
+    lazy[n] = value;
+    islazy[n] = 1;
+  }
+
+  int clearLazy(int a, int b, int n)
+  {
+    if (!islazy[n]) return 0;
+    if (a < b)
+    {
+      int m = (a+b)/2;
+      helloworld(lazy[n],a,m,n*2);
+      helloworld(lazy[n],m+1,b,n*2+1);
+    }
+    lazy[n] = 0;
+    islazy[n] = 0;
+  }
+
+  int setRange(int l, int r, int value, int a, int b, int n)
+  {
+    clearLazy(a,b,n);
+    if (r<a||b<l) return 0;
+    if (l<=a&&b<=r)
+    {
+      helloworld(value,a,b,n);
+    }
+    else
+    {
+      int m = (a+b)/2;
+      setRange(l,r,value,a,m,n*2);
+      setRange(l,r,value,m+1,b,n*2+1);
+      v[n] = v[n*2]+v[n*2+1];
+    }
+  }
+  int q(int l, int r, int a, int b, int n)
+  {
+    clearLazy(a,b,n);
+    if (r<a||b<l) return 0;
+    if (l<=a&&b<=r) return v[n];
+    int m = (a+b)/2;
+    int q1 = q(l,r,a,m,n*2);
+    int q2 = q(l,r,m+1,b,n*2+1);
+    return q1+q2;
+  }
+ 
+
+
+  public:
+  // find the sum A[l ... r]
+  int q(int l, int r)
+  {
+    assert(l<=r);
+    return q(l,r,1,N,1);
+  }
+  // set everything in [l,r] to be value
+  int setRange(int l, int r, int value)
+  {
+    assert(l<=r);
+    return setRange(l,r,value,1,N,1);
+  }
+  int init(int n)
+  {
+    N = n+5;
+    v.clear();
+    lazy.clear();
+    islazy.clear();
+    rep(i,4*N+10)
+    {
+      v.pb(0);
+      lazy.pb(0);
+      islazy.pb(0);
+    }
+//    init(1,N,1);
+  }
+};
+int N, Q;
+string s;
+SWAG swag['z'-'a'+1];
+int cnt['z'-'a'+1];
+int main()
+{
+  ios_base::sync_with_stdio(0); cout.precision(15); cout << fixed; cout.tie(0); cin.tie(0);
+  cin >> N >> Q >> s;
+  for (char ch = 'a'; ch <= 'z'; ch++)
+    swag[ch-'a'].init(sz(s));
+  rep(i,sz(s))
+  {
+    swag[s[i]-'a'].setRange(i+1,i+1,1);
+  }
+  rep1(qIndex,Q)
+  {
+    int l, r, k;
+    cin >> l >> r >> k;
+    clr(cnt);
+    if (k == 1)
+    {
+      // increasing
+      for (char ch = 'a'; ch <= 'z'; ch++)
+        cnt[ch-'a'] += swag[ch-'a'].q(l,r);
+//      dba(cnt,'a'-'a','z'-'a');
+//      continue;
+      int curleft = l;
+      for (char ch = 'a'; ch <= 'z'; ch++)
+        swag[ch-'a'].setRange(l,r,0);
+      for (char ch = 'a'; ch <= 'z'; ch++)
+      {
+        if (cnt[ch-'a']==0) continue;
+        int curright = curleft+cnt[ch-'a']-1;
+        swag[ch-'a'].setRange(curleft,curright,1);
+        curleft = curright+1;
+      }
+    }
+    else
+    {
+      // decreasing
+      for (char ch = 'a'; ch <= 'z'; ch++)
+        cnt[ch-'a'] += swag[ch-'a'].q(l,r);
+//      dba(cnt,'a'-'a','z'-'a');
+//      continue;
+      for (char ch = 'a'; ch <= 'z'; ch++)
+        swag[ch-'a'].setRange(l,r,0);
+      int curright = r;
+      for (char ch = 'a'; ch <= 'z'; ch++)
+      {
+        if (cnt[ch-'a']==0) continue;
+        int curleft = curright-cnt[ch-'a']+1;
+        swag[ch-'a'].setRange(curleft,curright,1);
+        curright = curleft-1;
+      }
+      assert(curright+1==l);
+    }
+  }
+
+  rep1(i,sz(s))
+  {
+    char x = '?';
+    for (char ch = 'a'; ch <= 'z'; ch++)
+      if (swag[ch-'a'].q(i,i) == 1)
+        x = ch;
+//    assert(x != '?');
+    cout << x;
+  }
+  cout << endl;
+
+
+
+}

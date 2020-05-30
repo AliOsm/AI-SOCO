@@ -1,0 +1,140 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <ctime>
+#include <iomanip>
+#include <cmath>
+
+using namespace std;
+
+vector<vector<int> > a;
+
+int get_root(int v, int pr = -1) {
+    for (int to : a[v]) {
+        if (to == pr)
+            continue;
+
+        return get_root(to, v);
+    }
+
+    return v;
+}
+
+vector<int> path;
+bool is_true_path = true;
+
+void build_path(int v, int pr = -1) {
+    path.push_back(v);
+
+    int num_to = 0;
+
+    for (int to : a[v]) {
+        if (to == pr)
+            continue;
+
+        build_path(to, v);
+        ++num_to;
+    }
+
+    if (num_to > 1)
+        is_true_path = false;
+}
+
+long long dp[(int)1e5 + 2][4][4];
+pair<int, int> pr[(int)1e5 + 2][4][4];
+
+int main() {
+//    freopen("input.txt", "r", stdin);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+//    srand(time(0));
+
+    int n;
+    cin >> n;
+
+    vector<vector<int> > q(3, vector<int>(n));
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < n; ++j)
+            cin >> q[i][j];
+    }
+
+    a.resize(n);
+    for (int i = 1; i < n; ++i) {
+        int x, y;
+        cin >> x >> y;
+        --x;
+        --y;
+
+        a[x].push_back(y);
+        a[y].push_back(x);
+    }
+
+    int root = get_root(0);
+
+    build_path(root);
+
+    if (!is_true_path) {
+        cout << "-1\n";
+        return 0;
+    }
+
+    for (int i = 0; i <= n; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            for (int k = 0; k < 4; ++k) {
+                dp[i][j][k] = (long long) 1e18;
+            }
+        }
+    }
+
+    dp[0][3][3] = 0;
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            for (int k = 0; k < 4; ++k) {
+                for (int t = 0; t < 3; ++t) {
+                    if (t == j || t == k)
+                        continue;
+
+                    if (dp[i + 1][k][t] > dp[i][j][k] + q[t][path[i]]) {
+                        dp[i + 1][k][t] = dp[i][j][k] + q[t][path[i]];
+                        pr[i + 1][k][t] = {j, k};
+                    }
+                }
+            }
+        }
+    }
+
+    long long ans = (long long) 1e18;
+    for (int j = 0; j < 4; ++j) {
+        for (int k = 0; k < 4; ++k) {
+            ans = min(ans, dp[n][j][k]);
+        }
+    }
+
+    cout << ans << "\n";
+
+    for (int j = 0; j < 4; ++j) {
+        for (int k = 0; k < 4; ++k) {
+            if (ans != dp[n][j][k])
+                continue;
+
+            vector<int> ans(n);
+            for (int i = n; i >= 1; --i) {
+                auto pre = pr[i][j][k];
+                ans[path[i - 1]] = k;
+
+                j = pre.first;
+                k = pre.second;
+            }
+
+            for (int i : ans)
+                cout << i + 1 << " ";
+            cout << "\n";
+
+            return 0;
+        }
+    }
+}

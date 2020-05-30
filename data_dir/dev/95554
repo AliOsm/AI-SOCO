@@ -1,0 +1,171 @@
+#include <algorithm>
+#include <bitset>
+#include <complex>
+#include <deque>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <ios>
+#include <iosfwd>
+#include <iostream>
+#include <istream>
+#include <iterator>
+#include <limits>
+#include <list>
+#include <locale>
+#include <map>
+#include <memory>
+#include <new>
+#include <numeric>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdexcept>
+#include <streambuf>
+#include <string>
+#include <typeinfo>
+#include <utility>
+#include <valarray>
+#include <vector>
+#include <cstring>
+
+using namespace std;
+
+#define ll long long
+#define all(aaa) aaa.begin(), aaa.end()
+#pragma warning(disable : 4996)
+
+const int N = 2e5 + 5;
+
+int lc[N], rc[N], a[N], b[N], rt[N], sz[N];
+ll pr[N], sum[N];
+ll ans = 0;
+
+void upd(int x) {
+	sz[x] = sz[lc[x]] + sz[rc[x]] + 1;
+	sum[x] = sum[lc[x]] + sum[rc[x]] + x;
+}
+
+int sc(int x, int k) {
+	if (x == 0)
+		return 0;
+	if (x < k) {
+		ans += sum[lc[x]] + x;
+		return sc(rc[x], k);
+	}
+	return sc(lc[x], k) + sz[rc[x]] + 1;
+}
+
+pair<int, int> split(int x, int k) {
+	if (x == 0)
+		return { 0, 0 };
+	if (x > k) {
+		auto p = split(lc[x], k);
+		lc[x] = p.second;
+		upd(x);
+		return { p.first, x };
+	}
+	auto p = split(rc[x], k);
+	rc[x] = p.first;
+	upd(x);
+	return { x, p.second };
+}
+
+int insert(int x, int y) {
+	if (x == 0)
+		return y;
+	if (pr[x] < pr[y]) {
+		auto p = split(x, y);
+		lc[y] = p.first;
+		rc[y] = p.second;
+		upd(y);
+		return y;
+	}
+	if (y < x)
+		lc[x] = insert(lc[x], y);
+	else
+		rc[x] = insert(rc[x], y);
+	upd(x);
+	return x;
+}
+
+
+int walk(int x, int y, int rightCt) {
+	if (y == 0)
+		return x;
+	x = walk(x, lc[y], rightCt + sz[rc[y]] + 1);
+
+	int h = sc(x, y), ry = rc[y];
+	ans += (h - rightCt - sz[rc[y]]) * (ll)y;
+	lc[y] = rc[y] = 0;
+	upd(y);
+	x = insert(x, y);
+
+	x = walk(x, ry, rightCt);
+
+	return x;
+}
+
+int un(int x, int y, int sx, int sy) {
+	ans -= (sy - sx) * sum[y];
+	if (sz[x] < sz[y]) {
+		swap(x, y);
+	}
+	x = walk(x, y, 0);
+	return x;
+}
+
+signed main() {
+#ifdef HOME
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	srand(time(0));
+
+	for (int i = 1; i < N; i++) {
+		pr[i] = rand() * (ll)rand();
+		sz[i] = 1;
+		sum[i] = i;
+	}
+
+	int n;
+	cin >> n;
+
+	for (int i = 0; i < n; i++) {
+		cin >> a[i] >> b[i];
+	}
+
+	set<int> st;
+
+	for (int i = 0; i < n; i++) {
+		auto it = st.upper_bound(a[i]);
+
+		if (it == st.begin() || *prev(it) + sz[rt[*prev(it)]] < a[i]) {
+			it = st.insert(a[i]).first;
+			rt[a[i]] = b[i];
+		}
+		else {
+			it--;
+			rt[*it] = un(rt[*it], b[i], *it, a[i]);
+		}
+
+		int x = *it;
+		it++;
+		if (it != st.end() && sz[rt[x]] + x >= *it) {
+			rt[x] = un(rt[x], rt[*it], x, *it);
+			st.erase(it);
+		}
+
+		cout << ans << "\n";
+	}
+
+
+
+	return 0;
+}

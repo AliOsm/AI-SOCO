@@ -1,0 +1,131 @@
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <bitset>
+#include <algorithm>
+#include <cmath>
+#include <locale>
+#include <random>
+#include <cassert>
+#include <sstream>
+using namespace std;
+#define F first
+#define S second
+#define pb push_back
+#define PB push_back
+#define MP make_pair
+#define ALL(x) begin(x), end(x)
+#define SZ(x) (int)(x).size()
+#define IOS ios_base::sync_with_stdio(0); cin.tie(0)
+#define ln(i, n) " \n"[i == n]
+typedef long long LL;
+typedef long double LDB;
+typedef double D;
+typedef pair<int, int> PII;
+typedef pair<LL, LL> PLL;
+//////////////////////
+const long double eps = 1e-13;
+const long double PI = acos(-1);
+const int INF = (int)1e9 + 7;
+const LL  INFF = (LL)1e18;
+const int mod = (int)1e9 + 7;
+const int MXN = (int)1e5 + 7;
+int a[MXN], b[MXN];
+struct Seg {
+#define ls p<<1
+#define rs p<<1|1
+	int ll[MXN<<2], rr[MXN<<2];
+	LL v[MXN<<2], d[MXN<<2];
+	void bd(int l, int r, int p = 1) {
+		ll[p] = l, rr[p] = r;
+		if (l == r) {
+			v[p] = a[l];
+			return ;
+		}
+		int mid = (l + r) >> 1;
+		bd(l, mid, ls);
+		bd(mid+1, r, rs);
+		v[p] = v[ls] + v[rs];
+	}
+	inline void pushdown(int p) {
+		v[ls] += (rr[ls] - ll[ls] + 1)*d[p];
+		d[ls] += d[p];
+		v[rs] += (rr[rs] - ll[rs] + 1)*d[p];
+		d[rs] += d[p];
+		d[p] = 0;
+	}
+	void md(int l, int r, LL val, int p = 1) {
+		if (ll[p] > r || l > rr[p]) return ;
+		if (l <= ll[p] && rr[p] <= r) {
+			v[p] += (rr[p] - ll[p] + 1)*val;
+			d[p] += val;
+			return ;
+		}
+		pushdown(p);
+		md(l, r, val, ls);
+		md(l, r, val, rs);
+		v[p] = v[ls] + v[rs];
+	}
+	LL qy(int l, int r, int p = 1) {
+		if (ll[p] > r || l > rr[p]) return 0;
+		if (l <= ll[p] && rr[p] <= r) return v[p];
+		pushdown(p);
+		return qy(l, r, ls) + qy(l, r, rs);
+	}
+} seg;
+int main() {
+	int n; scanf("%d", &n);
+	for (int i = 1; i <= n; i++)
+		scanf("%d", a + i);
+	for (int i = 1; i < n; i++)
+		scanf("%d", b + i);
+	int q; scanf("%d", &q);
+	set<PII> st;
+	for (int i = 1; i <= n; i++) {
+		st.insert({i, i});
+	}
+	seg.bd(1, n);
+	while (q--) {
+		char com[3]; scanf("%s", com);
+		if (com[0] == '+') {
+			int x, v; scanf("%d %d", &x, &v);
+			if (!v) continue ;
+			auto it = --st.lower_bound({x, INF});
+			int sl, sr; tie(sl, sr) = *it;
+			seg.md(x, sr, v);
+			int rr = sr;
+			while (rr != n) {
+				LL val = seg.qy(rr, rr);
+				LL val2 = seg.qy(rr+1, rr+1);
+				if (val2 >= val + b[rr]) break ;
+				it++;
+				seg.md(it->F, it->S, val + b[rr] - val2);
+				rr = it->S;
+			}
+			if (x != sl) {
+				st.erase({sl, sr});
+				st.insert({sl, x-1});
+			} 
+			while (1) {
+				it = st.lower_bound({x, x});
+				if (it == st.end()) break;
+				if (it->S <= rr) st.erase(it);
+				else break;
+			}
+			st.insert({x, rr});
+		} else {
+			int l, r; scanf("%d %d", &l, &r);
+			printf("%lld\n", seg.qy(l, r));
+		}
+		puts("");
+	}
+	return 0;
+}

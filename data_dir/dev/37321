@@ -1,0 +1,215 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <memory.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <map>
+#include <assert.h>
+#include <queue>
+using namespace std;
+
+const long long INF = 1000000000000000000LL;
+#pragma comment(linker, "/STACK:166777216")
+struct newT{
+    int a, b, ind;
+    newT(){};
+    newT(int aa, int bb, int inx) {
+        a = aa;
+        b = bb;
+        ind = inx;
+    }
+};
+
+int pos;
+map<int, int> qq;
+int state[500005];
+newT ord[500005];
+vector<int> f;
+int cntree[2500005];
+long long tree[2500005];
+int n, w, cnt = 0;
+
+void add(int x) {
+    f[cnt++] = x;
+}
+
+bool cmp(newT a, newT b) {
+    return (a.a < b.a || (a.a == b.a && a.b < b.b));
+}
+
+int findElementh(int x) {
+   int l = -1;
+   for (int i = 20; i >= 0; --i) {
+        if (l + (1 << i) >= cnt) continue;
+        if (f[l + (1 << i)] < x) l += (1 << i);
+   }
+   if (l + 1 == cnt || f[l + 1] != x) return -1;
+   return l + 1;
+}
+
+void buildTree(int v, int l, int r) {
+    if (l == r) {
+        cntree[v] = 0;
+        tree[v] = 0;
+        return;
+    }
+
+    int m = (l + r) / 2;
+    buildTree(v + v, l, m);
+    buildTree(v + v + 1, m + 1, r);
+    tree[v] = 0;
+    cntree[v] = 0;
+}
+
+void addTree(int v, int l, int r, int x, int d) {
+    if (d > 0) cntree[v]++; else cntree[v]--;
+    tree[v] += d;
+    if (l == r) return;
+    int m = (l + r) / 2;
+    if (m >= x) addTree(v + v, l, m, x, d); else addTree(v + v + 1, m + 1, r, x, d);
+}
+
+long long getTree(int v, int l, int r, int w) {
+    if (l == r) {
+        if (cntree[v] >= w) return tree[v] / cntree[v] * w;
+        return tree[v];
+    }
+    int m = (l + r) / 2;
+    if (cntree[v + v] >= w) return getTree(v + v, l, m, w);
+    else return tree[v + v] + getTree(v + v + 1, m + 1, r, w - cntree[v + v]);
+}
+
+void rebuild(int v, int l, int r) {
+    if (l == r) return;
+    int m = (l + r) / 2;
+    rebuild(v + v, l, m);
+    rebuild(v + v + 1, m + 1, r);
+    cntree[v] = cntree[v + v] + cntree[v + v + 1];
+}
+
+void go(int v, int l, int r, int w) {
+    if (l == r) {
+        if (cntree[v] > w) cntree[v] = w;
+        return;
+    }
+    int m = (l + r) / 2;
+    if (cntree[v + v] >= w) {
+        go(v + v, l, m, w);
+        go(v + v + 1, m + 1, r, 0);
+    }
+    else {
+        go(v + v + 1, m + 1, r, w - cntree[v + v]);
+    }
+}
+
+bool get(int v, int l, int r, int x) {
+    if (l == r) {
+        if (cntree[v] > 0) {
+            while (v > 0) {
+                cntree[v]--;
+                v /= 2;
+            }
+            return true;
+        }
+        return false;
+    }
+    int m = (l + r) / 2;
+    if (m >= x) return get(v + v, l, m, x);
+           else return get(v + v + 1, m + 1, r, x);
+}
+
+int main(){
+    scanf("%d%d",&n,&w);
+   // cout << n << " " << w << endl;
+    cnt = 0;
+    for (int i = 0; i < n; ++i) {
+        int aa, bb;
+        scanf("%d%d",&aa,&bb);
+        f.push_back(aa);
+        f.push_back(bb - aa);
+        assert(1 <= aa && aa <= 1000000000);
+        assert(1 <= bb && bb <= 1000000000);
+        assert(aa < bb);
+        ord[i].a = bb;
+        ord[i].b = aa;
+        ord[i].ind = i;
+    }
+    sort(f.begin(),f.end());
+    cnt = f.size();
+    for (int i = 0; i < n; ++i) {
+        int u = findElementh(ord[i].b);
+        if (u == -1) {
+            cout << "FUCK THE POLICE" << endl;
+            return 0;
+        }
+        addTree(1, 0, cnt - 1, u, ord[i].b);
+    }
+    sort(ord, ord + n, cmp);
+
+    long long res = 0, ans = INF;
+    if (n >= w) {
+        ans = getTree(1, 0, cnt - 1, w);
+        pos = -1;\
+    }
+    for (int j = 0; j < n; ++j) {
+        int i = ord[j].ind;
+        int u = findElementh(ord[j].b), v = findElementh(ord[j].a - ord[j].b);
+        if (u == -1 || v == -1) {
+            printf("VERY BAD!!!\n");
+            return 0;
+        }
+        if (w - j - 1 <= 0) break;
+        res = res + (long long)ord[j].b;
+        addTree(1, 0, cnt - 1, u, -ord[j].b);
+        addTree(1, 0, cnt - 1, v, ord[j].a - ord[j].b);
+        if (n + j + 1 >= w) {
+            long long ret = res + getTree(1, 0, cnt - 1, w - j - 1);
+            if (ans > ret) {
+                ans = ret;
+                pos = j;
+            }
+        }
+    }
+    printf("%I64d\n", ans);
+    buildTree(1, 0, cnt - 1);
+    for (int i = 0; i < n; ++i) {
+        int u = findElementh(ord[i].b);
+        if (u == -1) {
+            printf("VERY BAD\n");
+            return 0;
+        }
+        addTree(1, 0, cnt - 1, u, ord[i].b);
+    }
+    for (int j = 0; j < pos + 1; ++j) {
+        int i = ord[j].ind;
+        int u = findElementh(ord[j].b), v = findElementh(ord[j].a - ord[j].b);
+        if (u == -1 || v == -1) {
+            printf("VERY BAD\n");
+            return 0;
+        }
+        addTree(1, 0, cnt - 1, u, -ord[j].b);
+        addTree(1, 0, cnt - 1, v, ord[j].a - ord[j].b);
+    }
+    go(1, 0, cnt - 1, w - pos - 1);
+    rebuild(1, 0, cnt - 1);
+    for (int j = 0; j < pos + 1; ++j) {
+        int i = ord[j].ind;
+        state[i] = 1;
+        int u = findElementh(ord[j].a - ord[j].b);
+        if (get(1, 0, cnt - 1, u)) {
+            state[i] = 2;
+        }
+    }
+    for (int j = pos + 1; j < n; ++j) {
+        int i = ord[j].ind;
+        int u = findElementh(ord[j].b);
+        if (get(1, 0, cnt - 1, u)) {
+            state[i] = 1;
+        }
+    }
+    for (int i = 0; i < n; ++i) printf("%d", state[i]);
+    printf("\n");
+    return 0;
+}

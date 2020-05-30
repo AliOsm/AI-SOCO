@@ -1,0 +1,176 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+#define ll long long
+//increase stack size
+#pragma comment(linker, "/STACK:16777216")
+
+ll mxm() {return LLONG_MIN;}
+template<typename... Args>
+ll mxm(ll a, Args... args) { return max(a,mxm(args...)); }
+
+ll mnm() {return LLONG_MAX;}
+template<typename... Args>
+ll mnm(ll a, Args... args) { return min(a,mnm(args...)); }
+
+template<class T> ostream& operator<<(ostream& os,vector<T> V){
+	os<<"[ ";for(auto v:V)os<<v<<" ";return os<<"]";
+}
+template<class L,class R> ostream& operator<<(ostream& os,pair<L,R> P){
+	return os<<"("<<P.first<<","<<P.second<<")";
+}
+
+#define TRACE
+#ifdef TRACE
+#define trace(...) __f(#__VA_ARGS__,__VA_ARGS__)
+template<typename Arg1>
+void __f(const char* name,Arg1&& arg1){
+	cout<<name<<" : "<<arg1<<endl;
+}
+template <typename Arg1,typename... Args>
+void __f(const char* names,Arg1&& arg1,Args&&... args){
+	const char* comma=strchr(names+1,',');cout.write(names,comma-names)<<" : "<<arg1<<" | ";__f(comma+1,args...);
+}
+#else
+#define trace(...) 1
+#endif
+
+#define ld long double
+#define pll pair<ll,ll>
+#define ii pair<int,int>
+#define vll vector<ll>
+#define vii vector<ii>
+#define vi vector<int>
+#define vpll vector<pll>
+#define vld vector<ld>
+#define vvld vector<vld>
+#define vvi vector<vi>
+#define vvll vector<vll>
+#define vvpll vector<vpll>
+#define vvii vector<vii>
+#define I insert
+#define F first
+#define S second
+#define pb push_back
+#define endl "\n"
+#define all(x)	x.begin(),x.end()
+
+const int mod=1e9+7;
+// 128 bit: __int128
+inline int add(int a,int b){a+=b;if(a>=mod)a-=mod;return a;}
+inline int sub(int a,int b){a-=b;if(a<0)a+=mod;return a;}
+inline int mul(int a,int b){return (a*1ll*b)%mod;}
+inline int power(int a,int b){int rt=1;while(b>0){if(b&1)rt=mul(rt,a);a=mul(a,a);b>>=1;}return rt;}
+inline int inv(int a){return power(a,mod-2);}
+
+struct compare{
+	bool operator() (const int &a,const int &b) const{
+		return a>b;
+	}
+};
+
+vi manacher_odd(string &s){
+    int n = s.length(); vi d1(n);
+    for(int i = 0, l = 0, r = -1;i<n;i++){
+        d1[i] = 1;
+        if(i <= r){
+            d1[i] = min(r-i+1,d1[l+r-i]); // use prev val
+        }
+        while(i+d1[i] < n && i-d1[i] >= 0 && s[i+d1[i]] == s[i-d1[i]]) d1[i]++; // trivial matching
+        if(r < i+d1[i]-1) l=i-d1[i]+1, r=i+d1[i]-1; // update r
+    }
+    return d1;
+}
+
+vi manacher_even(string &s){
+    int n = s.length(); vi d2(n);
+    for(int i = 0, l = 0, r = -1;i<n;i++){
+        d2[i] = 0;
+        if(i <= r){
+            d2[i] = min(r-i+1,d2[l+r+1-i]);
+        }
+        while(i+d2[i] < n && i-d2[i]-1 >= 0 && s[i+d2[i]] == s[i-d2[i]-1]) d2[i]++;
+        if(d2[i] > 0 && r < i+d2[i]-1) l=i-d2[i], r=i+d2[i]-1;
+    }
+    return d2;
+}
+
+string get_ans(string &s){
+	int n = s.size();
+	vi dod = manacher_odd(s), dev = manacher_even(s);
+	int mo = 0, me = 0;
+	vvi whicho(n), whiche(n);
+	for(int i = 0; i < n; i++){
+		whicho[i + 1 - dod[i]].pb(i);
+		whiche[i - dev[i]].pb(i);
+	}
+	int ans = 0;
+	for(auto i : whicho[0])
+		mo = max(mo, 2 * i + 1);
+	for(auto i : whiche[0])
+		me = max(me, 2 * i);
+	ans = max(mo, me);
+	for(int i = 0; i < n / 2; i++){
+		if(s[i] != s[n - 1 - i])
+			break;
+		int cur = 2 * (i + 1);
+		mo -= 2, me -= 2;
+		for(auto j : whicho[i + 1])
+			if(j + dod[j] <= n - i - 2)
+				mo = max(mo, 2 * dod[j] - 1);
+		for(auto j : whiche[i + 1])
+			if(j + dev[j] - 1 <= n - i - 2)
+				me = max(me, 2 * dev[j]);
+		mo = max(mo, 0); me = max(me, 0);
+		ans = max(ans, cur + max(mo, me));
+	}
+	string sans;
+	mo = 0, me = 0;
+	int ans1 = 0;
+	for(auto i : whicho[0])
+		mo = max(mo, 2 * i + 1);
+	for(auto i : whiche[0])
+		me = max(me, 2 * i);
+	ans1 = max(mo, me);
+	if(ans1 == ans)
+		sans = s.substr(0, ans);
+	else{
+		for(int i = 0; i < n / 2; i++){
+			if(s[i] != s[n - 1 - i])
+				break;
+			int cur = 2 * (i + 1);
+			mo -= 2, me -= 2;
+			for(auto j : whicho[i + 1])
+				if(j + dod[j] <= n - i - 2)
+					mo = max(mo, 2 * dod[j] - 1);
+			for(auto j : whiche[i + 1])
+				if(j + dev[j] - 1 <= n - i - 2)
+					me = max(me, 2 * dev[j]);
+			mo = max(mo, 0); me = max(me, 0);
+			ans1 = max(ans1, cur + max(mo, me));
+			if(ans1 == ans){
+				sans = s.substr(0, i + 1) + s.substr(i + 1, max(mo, me)) + s.substr(n - 1 - i, i + 1);
+				break;
+			}
+		}
+	}
+	return sans;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);cout<<setprecision(25);
+	int t;
+	cin >> t;
+	while(t--){
+		string s;
+		cin >> s;
+		string ans1 = get_ans(s);
+		reverse(all(s));
+		string ans2 = get_ans(s);
+		if(ans2.size() > ans1.size())
+			ans1 = ans2;
+		cout << ans1 << endl;
+	}
+}

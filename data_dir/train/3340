@@ -1,0 +1,214 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <stdio.h>
+#include <cstring>
+#include <cassert>
+#include <bitset>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+typedef long long ll;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+
+const int maxN = (int)2e5 + 10;
+const int INF = (int)1e9;
+const int mod = (int)1e9 + 7;
+const ll LLINF = (ll)1e18;
+
+
+struct foo {
+    int a, b, c, d, idx;
+    foo() {}
+    foo(int a, int b, int c, int d, int idx): a(a), b(b), c(c), d(d), idx(idx) {}
+    bool operator <(const foo &x) const {
+        return a < x.a || (a == x.a && b < x.b) || (a == x.a && b == x.b && idx < x.idx);
+    }
+    bool operator == (const foo &x) const {
+        return idx == x.idx;
+    }
+};
+
+template <class T>
+struct segmentTree {
+
+    const static int N = 200500;
+
+    int n;
+    T *t;
+    int *idx;
+
+    segmentTree(int n, foo *a): n(n) {
+        t = new T[4 * n];
+        idx = new int[4 * n];
+        fill(t, t + 4 * n, INF);
+        fill(idx, idx + 4 * n, -1);
+        build(1, a, 0, n - 1);
+    }
+
+    void build(int v, foo *a, int l, int r) {
+        if (l == r) {
+            t[v] = a[l].b;
+            idx[v] = l;
+        } else {
+            build(v + v, a, l, (l + r) / 2);
+            build(v + v + 1, a, (l + r) / 2 + 1, r);
+            if (t[v + v] > t[v + v + 1]) {
+                t[v] = t[v + v + 1];
+                idx[v] = idx[v + v + 1];
+            } else {
+                t[v] = t[v + v];
+                idx[v] = idx[v + v];
+            }
+        }
+    }
+
+    pair <T, int> get(int l, int r) {
+        return get(1, l, r, 0, n - 1);
+    }
+
+    pair <T, int> get(int v, int l, int r, int tl, int tr) {
+        if (tl >= l && tr <= r) {
+            return make_pair(t[v], idx[v]);
+        }
+        int tm = (tl + tr) / 2;
+        if (l > tm) {
+            return get(v + v + 1, l, r, tm + 1, tr);
+        }
+        if (r <= tm) {
+            return get(v + v, l, r, tl, tm);
+        }
+        return min(get(v + v + 1, l, r, tm + 1, tr),
+                   get(v + v, l, r, tl, tm));
+    }
+
+    void modifyElement(int pos, T val) {
+        modifyElement(1, pos, val, 0, n - 1);
+    }
+
+    void modifyElement(int v, int pos, T val, int tl, int tr) {
+        if (tl == tr) {
+            t[v] = val;
+            return;
+        }
+        int tm = (tl + tr) / 2;
+        if (pos <= tm) {
+            modifyElement(v + v, pos, val, tl, tm);
+        } else {
+            modifyElement(v + v + 1, pos, val, tm + 1, tr);
+        }
+
+        if (t[v + v] > t[v + v + 1]) {
+            t[v] = t[v + v + 1];
+            idx[v] = idx[v + v + 1];
+        } else {
+            t[v] = t[v + v];
+            idx[v] = idx[v + v];
+        }
+    }
+
+};
+
+int dd[maxN];
+int p[maxN];
+
+foo a[maxN];
+
+int main() {
+//freopen(".in", "r", stdin);
+ //   freopen(".out", "w", stdout);
+
+    vector <pair <int, int> > x;
+
+    int n = nextInt<int>();
+    for (int i = 1; i <= n; ++i) {
+        a[i].a = nextInt<int>();
+        a[i].b = nextInt<int>();
+        a[i].c = nextInt<int>();
+        a[i].d = nextInt<int>();
+        a[i].idx = i;
+    }
+
+    sort(a, a + n + 1);
+    segmentTree <int> t(n + 1, a);
+    t.modifyElement(0, INF+ 1);
+/*
+    for (int i = 0; i <= n; ++i) {
+        cout<< a[i].a << ' ' << a[i].b << ' ' <<  a[i].c << ' ' << a[i].d << '\n';
+    }*/
+
+    memset(dd, -1, sizeof dd);
+    dd[0] = 0;
+    queue <int> q;
+    q.push(0);
+    while(!q.empty()) {
+        int v = q.front();
+        q.pop();
+
+        while(true) {
+            foo w = foo(a[v].c + 1, -1, -1, -1, -1);
+            int R = (upper_bound(a, a + n + 1, w)) - a;
+            --R;
+            pair <int,int> qq = t.get(0, R);
+            int B = qq.first;
+            int idx = qq.second;
+            if (B > a[v].d) break;
+           // cout << R << ' ';
+           // cout << idx << ' ';
+            assert(dd[idx] == -1);
+            dd[idx] = dd[v] + 1;
+           // cout << dd[idx] << '\n';
+            p[idx] = v;
+            q.push(idx);
+
+            t.modifyElement(idx, INF + 1);
+        }
+    }
+
+    int idx = -1;
+    for (int i = 0; i <= n; ++i) {
+        if (a[i].idx == n) {
+            idx = i;
+        }
+    }
+    if (dd[idx] == -1) {
+        printf("%d\n", -1);
+        return 0;
+    }
+    printf("%d\n", dd[idx]);
+    vector <int> answer;
+    while(idx != 0) {
+        answer.push_back(a[idx].idx);
+        idx = p[idx];
+    }
+    reverse(answer.begin(), answer.end());
+    for (int x: answer) {
+        printf("%d ", x);
+    }
+    return 0;
+}

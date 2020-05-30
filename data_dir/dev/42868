@@ -1,0 +1,127 @@
+//IN THE NAME OF GOD\\
+
+#include <bits/stdc++.h>
+
+#define left(x) ((2)*(x))
+#define right(x) (((2)*(x))+1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair <int , int> pii;
+
+const int maxn = 1e5+10 , MOD = 1e9+7;
+
+typedef int Mat[2][2];
+
+Mat seg[4*maxn] , flag[4*maxn] , sum;
+
+inline void prep(){
+    for(int i=0 ; i<4*maxn ; i++){
+        flag[i][0][0] = flag[i][1][1] = 1;
+        seg[i][0][0] = seg[i][1][1] = 1;
+    }
+}
+
+inline void update(int ind){
+    for(int i=0 ; i<2 ; i++)
+        for(int j=0 ; j<2 ; j++)
+            (seg[ind][i][j] = seg[left(ind)][i][j] + seg[right(ind)][i][j])%=MOD;
+}
+
+inline void mul(Mat a , Mat b , Mat c){
+    for(int i=0 ; i<2 ; i++)
+        for(int j=0 ; j<2 ; j++)
+            c[i][j]=0;
+    for(int i=0 ; i<2 ; i++)
+        for(int j=0 ; j<2 ; j++)
+            for(int k=0 ; k<2 ; k++)
+                (c[i][j] += (1ll*a[i][k]*b[k][j])%MOD)%=MOD;
+}
+
+inline void relax(int ind){
+    mul(flag[left(ind)] , flag[ind] , sum);
+    swap(flag[left(ind)] , sum);
+    mul(seg[left(ind)] , flag[ind] , sum);
+    swap(seg[left(ind)] , sum);
+
+    mul(flag[right(ind)] , flag[ind] , sum);
+    swap(flag[right(ind)] , sum);
+    mul(seg[right(ind)] , flag[ind] , sum);
+    swap(seg[right(ind)] , sum);
+
+    flag[ind][0][0] = flag[ind][1][1] = 1;
+    flag[ind][0][1] = flag[ind][1][0] = 0;
+}
+
+void add(int s , int e , int ind , int l , int r , Mat x){
+    if(s>=r || e<=l)
+        return;
+    if(s>=l && e<=r){
+        mul(seg[ind] , x , sum);
+        swap(sum , seg[ind]);
+        mul(flag[ind] , x , sum);
+        swap(sum , flag[ind]);
+        return;
+    }
+    int mid = (s+e)/2;
+    relax(ind);
+    add(s , mid , left(ind) , l , r , x);
+    add(mid , e , right(ind) , l , r , x);
+    update(ind);
+}
+
+int query(int s , int e , int ind , int l , int r){
+    if(s>=r || e<=l)
+        return 0;
+    if(s>=l && e<=r)
+        return seg[ind][0][0];
+    relax(ind);
+    int mid = (s+e)/2;
+    return (query(s , mid , left(ind) , l , r) + query(mid , e , right(ind) , l , r))%MOD;
+}
+
+Mat a , b , ret;
+
+inline void fib(int x){
+    a[0][0] = a[0][1] = a[1][0] = 1;
+    a[1][1] = 0;
+    ret[0][0] = ret[1][1] = 1;
+    ret[0][1] = ret[1][0] = 0;
+    for( ; x ; x/=2){
+        if(x % 2){
+            mul(ret , a , b);
+            swap(ret , b);
+        }
+        mul(a , a , b);
+        swap(a , b);
+    }
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+    int n,q,x,t,l,r;
+    prep();
+    cin>>n>>q;
+    for(int i=0 ; i<n ; i++){
+        cin>>x;
+        fib(x - 1);
+        add(0 , n , 1 , i , i+1 , ret);
+    }
+    for(int i=0 ; i<q ; i++){
+        cin>>t;
+        if(t == 1){
+            cin>>l>>r>>x;
+            l--;
+            fib(x);
+            add(0 , n , 1 , l , r , ret);
+        }
+        else{
+            cin>>l>>r;
+            l--;
+            cout<<query(0 , n , 1 , l , r)<<endl;
+        }
+    }
+	return 0;
+}

@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 2048;
+
+char A[N], B[N], C[N];
+bool can[2][N];
+int f[N];
+
+void getfail(char *s) {
+	f[0] = f[1] = 0;
+	for(int i = 1; s[i]; i ++) {
+		int j = f[i];
+		while(j && s[j] != s[i])	j = f[j];
+		f[i+1] = s[j] == s[i] ? j+1: 0;
+	}
+}
+
+void KMP(char *s, int which) {
+	getfail(s);
+	int l = strlen(s);
+	for(int i = 0, j = 0; A[i]; i ++) {
+		while(j && A[i] != s[j])
+			j = f[j];
+		if(A[i] == s[j])	j ++;
+		if(j == l)
+			can[which][i] = true;
+	}
+}
+
+int sum[N][N];
+
+int sa[N], t[N], t2[N], c[N], wt[N];
+
+bool cmp(int *r, int a, int b, int l) {
+	return r[a] == r[b] && r[a+l] == r[b+l];
+}
+
+void build_sa(char *s, int n, int m) {
+	int p = 1, *x = t, *y = t2;
+	rep(i, m)	c[i] = 0;
+	rep(i, n)	c[x[i]=s[i]] ++;
+	for(int i = 1; i < m; i ++)	c[i] += c[i-1];
+	for(int i = n -1; ~i; i --)
+		sa[-- c[x[i]]] = i;
+	for(int j = 1; p < n; j <<= 1, m = p) {
+		p = 0;
+		for(int i = n - j; i < n; i ++)	y[p ++] = i;
+		rep(i, n)	if(sa[i] >= j)
+			y[p ++] = sa[i] - j;
+		rep(i, m)	c[i] = 0;
+		rep(i, n)	wt[i] = x[y[i]];
+		rep(i, n)	c[wt[i]] ++;
+		for(int i = 1; i < m; i ++)	c[i] += c[i-1];
+		for(int i = n - 1; ~i; i --)	sa[-- c[wt[i]]] = y[i];
+		std::swap(x, y);
+		p = 1, x[sa[0]] = 0;
+		for(int i = 1; i < n; i ++)
+			x[sa[i]] = cmp(y, sa[i-1], sa[i], j) ? p-1: p++;
+	}
+}
+
+int rnk[N], H[N];
+
+void getheight(char *s, int n) {
+	int i , j,  k = 0;
+	for(i = 1; i <= n; i ++)	rnk[sa[i]] = i;
+	for(i = 0; i <n; H[rnk[i++]]=k) 
+		for(k?k--:0, j=sa[rnk[i]-1]; s[i+k]==s[j+k];k++);
+}
+
+
+
+int main() {
+	scanf("%s%s%s", A, B, C);
+	int n = strlen(A);
+	int lb = strlen(B);
+	int lc = strlen(C);
+	KMP(B, 0);
+	KMP(C, 1);
+	rep(i, n) {
+		int j = i + lb - 1;
+		if(j < n && can[0][j]) {
+			for(int k = i; k < n; k ++) {
+				if(can[1][k] && k >= j && k-lc+1 >= i) {
+					sum[i][k] = 1;
+				}
+				if(k)
+					sum[i][k] += sum[i][k-1];
+			}
+		}
+	}
+	build_sa(A, n+1, 128);
+	getheight(A, n);
+	int answer = 0;
+	for(int i = 1; i <= n; i ++) {
+		answer += sum[sa[i]][n-1];
+		if(sa[i]+H[i])
+			answer -= sum[sa[i]][sa[i]+H[i]-1];
+	}
+	printf("%d\n", answer);
+	return 0;
+}
+

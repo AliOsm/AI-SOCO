@@ -1,0 +1,112 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+#define INF (1<<29)
+
+int N;
+int a[100010];
+int dp[100010];
+
+#define T (1<<17)
+int tree[2*T];
+
+int lg[T];
+int pre1[20][T];
+int pre0[20][T];
+
+int get_max(int L, int R){
+    int w = lg[R-L];
+    return max(pre1[w][L], pre1[w][R-(1<<w)]);
+}
+
+int get_min(int L, int R){
+    int w = lg[R-L];
+    return min(pre0[w][L], pre0[w][R-(1<<w)]);
+}
+
+int min_dp(int L, int R, int id = 1, int low = 0, int high = T){
+    if(L <= low && R >= high) return tree[id];
+    if(L >= high || R <= low) return INF;
+    int mid = (low + high) / 2;
+    return min(min_dp(L, R, 2*id, low, mid), min_dp(L, R, 2*id+1, mid, high));
+}
+
+int main(void){
+    int i,j,D,L;
+    
+    cin >> N >> D >> L;
+    REP(i,N) scanf("%d", &a[i]);
+    
+    REP(i,17) for(j=(1<<i);j<(2<<i);j++) lg[j] = i;
+    
+    REP(i,N) pre0[0][i] = a[i];
+    for(i=1;i<17;i++) REP(j,N){
+        pre0[i][j] = pre0[i-1][j];
+        int j2 = j + (1<<(i-1));
+        if(j2 < N) pre0[i][j] = min(pre0[i][j], pre0[i-1][j2]);
+    }
+    
+    REP(i,N) pre1[0][i] = a[i];
+    for(i=1;i<17;i++) REP(j,N){
+        pre1[i][j] = pre1[i-1][j];
+        int j2 = j + (1<<(i-1));
+        if(j2 < N) pre1[i][j] = max(pre1[i][j], pre1[i-1][j2]);
+    }
+    
+    REP(i,N+1) dp[i] = INF;
+    dp[0] = 0;
+    
+    REP(i,T) tree[T+i] = ((i < N) ? dp[i] : INF);
+    for(i=T-1;i>=1;i--) tree[i] = min(tree[2*i], tree[2*i+1]);
+    
+//  cout << get_max(4, 7) << ' ' << get_min(4, 7) << endl;
+    
+    for(i=L;i<=N;i++){
+        int high = i - 1, low = -1;
+        while(high - low > 1){
+            int mid = (high + low) / 2;
+            if(get_max(mid, i) - get_min(mid, i) <= D) high = mid; else low = mid;
+        }
+        low = high;
+        high = i - L + 1;
+        if(low < high){
+            int tmp = min_dp(low, high);
+            if(tmp != INF) dp[i] = tmp + 1;
+        }
+        int x = T + i;
+        while(1){
+            tree[x] = min(tree[x], dp[i]);
+            x /= 2;
+            if(x == 0) break;
+        }
+        
+    //  cout << i << ' ' << low << ' ' << high << ' ' << dp[i] << endl;
+    }
+    
+    int ans = dp[N];
+    if(ans == INF) ans = -1;
+    cout << ans << endl;
+    
+    return 0;
+}

@@ -1,0 +1,205 @@
+#define _USE_MATH_DEFINES
+#include <array>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
+#include <complex>
+#include <cmath>
+#include <numeric>
+#include <bitset>
+#include <functional>
+#include <random>
+#include <ctime>
+
+using namespace std;
+
+ostream& operator <<(ostream& out, const pair<int, int>& a) {
+  out << "(" << a.first << "," << a.second << ")";
+  return out;
+}
+template <typename T>
+ostream& operator <<(ostream& out, const vector<T>& a) {
+  out << "["; bool first = true;
+  for (auto& v : a) { out << (first ? "" : ", "); out << v; first = 0;} out << "]";
+  return out;
+}
+template <typename T>
+ostream& operator <<(ostream& out, const set<T>& a) {
+  out << "{"; bool first = true;
+  for (auto& v : a) { out << (first ? "" : ", "); out << v; first = 0;} out << "}";
+  return out;
+}
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+  cerr << name << ": " << arg1 << endl;
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+  const char* comma = strchr(names + 1, ',');
+  cerr.write(names, comma - names) << ": " << arg1 << " |";
+  __f(comma + 1, args...);
+}
+
+typedef long long int64;
+typedef pair<int, int> ii;
+const int INF = 1 << 29;
+const int MOD = 1e9 + 7;
+mt19937 mrand(random_device{}());
+int rnd(int x) { return mrand() % x; }
+
+struct maxflow {
+  struct edge;
+  using iter = vector<edge>::iterator;
+
+  struct edge {
+    int v, c;
+    iter nxt;
+  };
+
+  vector<edge> pool;
+  iter last, null;
+  vector<iter> a, idx;
+  vector<int> d;
+
+  iter new_edge(int v, int c, iter nxt) {
+    iter p = last++;
+    *p = edge{v, c, nxt};
+    return p;
+  }
+
+  void add_edge(int u, int v, int c) {
+    a[u] = new_edge(v, c, a[u]);
+    a[v] = new_edge(u, 0, a[v]);
+  }
+
+  void add_bidirection_edge(int u, int v, int c) {
+    a[u] = new_edge(v, c, a[u]);
+    a[v] = new_edge(u, c, a[v]);
+  }
+
+  iter dual(iter p) {
+    return pool.begin() + ((p - pool.begin()) ^ 1);
+  }
+
+  int augment(int u, int t, int bound) {
+    if (u == t) return bound;
+    int ret = 0;
+    // current arc optimization
+    for (iter& it = idx[u]; it != null && ret < bound; it = it->nxt) {
+      if (it->c && d[it->v] == d[u] + 1) {
+        int aug = augment(it->v, t, min(it->c, bound - ret));
+        ret += aug;
+        it->c -= aug;
+        dual(it)->c += aug;
+      }
+    }
+    if (ret == 0) d[u] = -1;
+    return ret;
+  }
+
+  bool path(int s, int t) {
+    fill(d.begin(), d.end(), -1);
+    d[s] = 0;
+    queue<int> Q;
+    Q.push(s);
+    while (!Q.empty()) {
+      int u = Q.front();
+      Q.pop();
+      for (iter it = a[u]; it != null; it = it->nxt) {
+        if (it->c && d[it->v] == -1) {
+          Q.push(it->v);
+          d[it->v] = d[u] + 1;
+          if (it->v == t) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void init(int n, int m) {
+    pool.resize(m << 1);
+    last = pool.begin();
+    null = pool.end();
+    a.assign(n, null);
+    idx.assign(n, null);
+    d.resize(n);
+  }
+
+  int dinic(int s, int t) {
+    int ret = 0;
+    while (path(s, t)) {
+      copy(a.begin(), a.end(), idx.begin()); // current arc optimization
+      while (int aug = augment(s, t, INF)) {
+        ret += aug;
+      }
+    }
+    return ret;
+  }
+
+};
+
+int main() {
+  int n, m;
+  scanf("%d%d", &n, &m);
+  vector<int> X = {0, n};
+  vector<int> Y = {0, n};
+  vector<int> x1(m), y1(m), x2(m), y2(m);
+  for (int i = 0; i < m; ++i) {
+    scanf("%d%d%d%d", &x1[i], &y1[i], &x2[i], &y2[i]);
+    x2[i] += 1;
+    y2[i] += 1;
+    X.push_back(x1[i]);
+    X.push_back(x2[i]);
+    Y.push_back(y1[i]);
+    Y.push_back(y2[i]);
+  }
+  sort(X.begin(), X.end());
+  sort(Y.begin(), Y.end());
+  X.erase(unique(X.begin(), X.end()), X.end());
+  Y.erase(unique(Y.begin(), Y.end()), Y.end());
+  int lenX = X.size() - 1, lenY = Y.size() - 1;
+  vector<vector<bool>> flag(lenX, vector<bool>(lenY));
+  for (int i = 0; i < m; ++i) {
+    x1[i] = lower_bound(X.begin(), X.end(), x1[i]) - X.begin();
+    x2[i] = lower_bound(X.begin(), X.end(), x2[i]) - X.begin();
+    y1[i] = lower_bound(Y.begin(), Y.end(), y1[i]) - Y.begin();
+    y2[i] = lower_bound(Y.begin(), Y.end(), y2[i]) - Y.begin();
+    for (int u = x1[i]; u < x2[i]; ++u) {
+      for (int v = y1[i]; v < y2[i]; ++v) {
+        flag[u][v] = true;
+      }
+    }
+  }
+  maxflow flow;
+  int s = lenX + lenY, t = s + 1;
+  flow.init(t + 1, lenX + lenY + lenX * lenY);
+  for (int i = 0; i < lenX; ++i) {
+    flow.add_edge(s, i, X[i + 1] - X[i]);
+  }
+  for (int i = 0; i < lenY; ++i) {
+    flow.add_edge(lenX + i, t, Y[i + 1] - Y[i]);
+  }
+  for (int i = 0; i < lenX; ++i) {
+    for (int j = 0; j < lenY; ++j) {
+      if (flag[i][j]) {
+        flow.add_edge(i, j + lenX, INF);
+      }
+    }
+  }
+  int ret = flow.dinic(s, t);
+  printf("%d\n", ret);
+  return 0;
+}

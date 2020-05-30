@@ -1,0 +1,97 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define M 500005
+#define MOD 1000000007
+typedef long long ll;
+typedef pair<int, int> pii;
+
+struct segTree
+{
+    int n;
+    vector<ll> tree, lazy;
+
+    segTree(int n): n(n), tree(4*n, 0), lazy(4*n, 0) {}
+
+    void propagate(int node, int l, int r)
+    {
+        tree[node] += lazy[node]*(r-l+1);
+        if(l != r) lazy[2*node] += lazy[node], lazy[2*node+1] += lazy[node];
+        lazy[node] = 0;
+    }
+
+    void treeUpdate(int node, int l, int r, int u, int v, ll val)
+    {
+        int mid = (l+r)>>1;
+
+        propagate(node, l, r);
+
+        if(l > v || r < u) return;
+        if(l >= u && r <= v)
+        {
+            lazy[node] += val;
+            propagate(node, l, r);
+
+            return;
+        }
+
+        treeUpdate(2*node, l, mid, u, v, val);
+        treeUpdate(2*node+1, mid+1, r, u, v, val);
+
+        tree[node] = tree[2*node]+tree[2*node+1];
+    }
+
+    void update(int l, int r, ll val) { treeUpdate(1, 1, n, l, r, val); }
+
+    ll treeQuery(int node, int l, int r, int u, int v)
+    {
+        int mid = (l+r)>>1;
+
+        propagate(node, l, r);
+
+        if(l > v || r < u) return 0;
+        if(l >= u && r <= v) return tree[node];
+
+        return treeQuery(2*node, l, mid, u, v)+treeQuery(2*node+1, mid+1, r, u, v);
+    }
+
+    ll query(int l, int r) { return treeQuery(1, 1, n, l, r); }
+};
+
+pii ara[M];
+
+int main()
+{
+    int n;
+    scanf("%d", &n);
+
+    for(int i = 1; i <= n; i++) scanf("%d", &ara[i].first);
+    for(int i = 1; i <= n; i++) ara[i].second = i;
+
+    sort(ara+1, ara+n+1);
+
+    ll ans = 0;
+    segTree tree1(n), tree2(n);
+
+    for(int i = 1; i <= n; i++)
+    {
+        int j = ara[i].second;
+
+        tree1.update(j, n, 1);
+        ll tmp1 = tree1.query(j, n);
+        tmp1 -= tree1.query(j-1, j-1)*(n-j+1);
+        tmp1 = (tmp1*j)%MOD;
+
+        ll tmp2 = tree2.query(1, j);
+        tmp2 -= tree2.query(j, j)*j;
+        tmp2 = (tmp2*(n-j+1))%MOD;
+        tree2.update(1, j, 1);
+
+        ans += (tmp1+tmp2)*ara[i].first;
+        ans %= MOD;
+    }
+
+    printf("%lld\n", ans);
+
+    return 0;
+}
+

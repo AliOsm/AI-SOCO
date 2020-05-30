@@ -1,0 +1,143 @@
+#include"bits/stdc++.h"
+#include<valarray>
+#include<ext/pb_ds/tree_policy.hpp>
+#include<ext/pb_ds/assoc_container.hpp>
+using namespace std;
+using namespace __gnu_pbds;
+ 
+#define MOD 998244353
+ 
+int n;
+int m;
+ 
+vector<int> v;
+ 
+#define MAX 1002
+ 
+long long int dp[MAX][MAX];
+bool use[MAX][MAX];
+
+int r_skip[MAX];
+int l_skip[MAX];
+
+
+inline long long int dfs(int a,int b){
+	if(a>b){
+		return 1;
+	}
+	if(use[a][b])return dp[a][b];
+	int num=(*min_element(v.begin()+a,v.begin()+b+1));
+	int lef_id=INT_MAX;
+	int rig_id=-1;
+	for(int i=a;i<=b;i++){
+		if(v[i]==num){
+			lef_id=min(lef_id,i);
+			rig_id=max(rig_id,i);
+		}
+	}
+	use[a][b]=true;
+	dp[a][b]=0;
+	long long int LEF=0;
+	for(int lef=lef_id;lef>=a;lef--){
+		lef=min(lef,l_skip[lef]);
+		long long int ret=dfs(a,lef-1)*dfs(lef,lef_id-1);
+		if(ret>=MOD)ret%=MOD;
+		LEF+=ret;
+		if(LEF>=MOD){
+			LEF%=MOD;
+		}
+	}
+	long long int RIG=0;
+	for(int rig=rig_id;rig<=b;rig++){
+			rig=r_skip[rig];
+			long long int ret=dfs(rig_id+1,rig)*dfs(rig+1,b);
+			if(ret>=MOD)ret%=MOD;
+			RIG+=ret;
+			if(RIG>=MOD){
+				RIG%=MOD;
+			}
+	}
+	
+	dp[a][b]=LEF*RIG;
+	if(dp[a][b]>=MOD)dp[a][b]%=MOD;
+	int bf=lef_id+1;
+	for(int i=lef_id+1;i<=rig_id;i++){
+		if(v[i]==v[lef_id]){
+			dp[a][b]*=dfs(bf,i-1);
+			bf=i+1;
+			if(dp[a][b]>=MOD){
+				dp[a][b]%=MOD;
+			}
+		}
+	}
+	return dp[a][b];
+}
+
+
+vector<int> ret;
+map<int,vector<int> > mp;
+vector<int> ins[MAX];
+vector<int> en[MAX];
+
+
+void regulate(){
+	ret=v;
+	v.clear();
+	for(int el:ret){
+		if(v.size()&&v.back()==el){
+			continue;
+		}
+		v.push_back(el);
+		if(mp[el].size()>1){
+			mp[el].pop_back();
+		}
+		mp[el].push_back(v.size()-1);
+	}
+	if(v.size()>1000){
+		puts("0");
+		exit(0);
+	}
+	for(auto &it:mp){
+		ins[it.second[0]].push_back(it.first);
+		en[it.second.back()].push_back(it.first);
+	}
+	vector<int> stk;
+	set<int> sss;
+	for(int i=0;i<v.size();i++){
+		//invalid
+		int cur=v[i];
+		r_skip[i]=(*mp[cur].rbegin());
+		l_skip[i]=(*mp[cur].begin());
+		if(sss.size()&&(*sss.rbegin())>cur){
+			puts("0");
+			exit(0);
+		}
+		//stack
+		for(int el:ins[i]){
+			stk.push_back(el);
+			sss.insert(el);
+		}
+		for(int el:en[i]){
+			if(stk.back()==el){
+				stk.pop_back();
+				sss.erase(el);
+				continue;
+			}
+			puts("0");
+			exit(0);
+		}
+	}
+}
+ 
+int main(){
+	cin>>n>>m;
+	for(int i=0;i<m;i++){
+		int a;
+		scanf("%d",&a);
+		v.push_back(a);
+	}
+	regulate();
+	long long int ans=dfs(0,v.size()-1);
+	printf("%lld\n",ans);
+	return 0;
+}

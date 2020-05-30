@@ -1,0 +1,133 @@
+/* no greedy easy life */
+
+#include <cstring>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cassert>
+#include <cstdlib>
+#include <queue>
+#include <ctime>
+
+#define pii pair<int, int>
+  
+#define pb push_back
+#define mp make_pair
+  
+#define f first
+#define s second
+  
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+typedef double ld;
+
+const double EPS = 1e-9;
+const double PI = acos(-1);
+  
+const int INF = (int) 1e9 + 7;
+const int MAXN = (int) 3e6 + 7;
+
+int n, m, k;
+int pw[50];
+bool is[50][50];
+
+ll dp[MAXN];
+
+int get(int mask, int bit) {
+  return mask / pw[bit] % 3;
+}
+
+int upd(int mask, int bit, int val) {
+  mask -= pw[bit] * get(mask, bit);
+  mask += pw[bit] * val;
+  return mask;
+}
+
+bool cmp(int a, int b) {
+  int cnt_a = 0, cnt_b = 0;
+  for (int i = 0; i < n; i++) {
+    if (get(a, i)) ++cnt_a;
+    if (get(b, i)) ++cnt_b;
+  }
+  return cnt_a < cnt_b;
+}
+
+int main() {
+  #ifdef LOCAL
+  freopen("in", "r", stdin);
+  #endif
+
+  pw[0] = 1;
+  for (int i = 1; i < 20; i++)
+    pw[i] = pw[i - 1] * 3;
+
+  cin >> n >> m >> k;
+  for (int i = 1; i <= m; i++) {
+    int u, v;
+    cin >> u >> v;
+    u--;
+    v--;
+    int mask = 0;
+    mask = upd(mask, u, 2);
+    mask = upd(mask, v, 2);
+    dp[mask] += 2;
+    is[u][v] = is[v][u] = 1;
+  }
+  ll ans = 0;
+  vector<int> order;
+  for (int mask = 1; mask < pw[n]; mask++)
+    order.pb(mask);
+  sort(order.begin(), order.end(), &cmp);
+  for (auto mask : order) {
+    if (!dp[mask]) {
+      continue;
+    }
+    int vertices = 0;
+    int leaves = 0;
+    for (int i = 0; i < n; i++) {
+      if (get(mask, i)) {
+        vertices++;
+        if (get(mask, i) == 2) {
+          leaves++;
+        }
+      }
+    }
+    if (leaves == k && vertices == n) {
+      ans += dp[mask] / k;
+    }
+    dp[mask] /= leaves;
+    for (int add = 0; add < n; add++) {
+      if (get(mask, add)) {
+        continue;
+      }
+      int with = upd(mask, add, 2);
+      for (int c = 0; c < n; c++) {
+        if (!is[c][add]) continue;
+        if (get(mask, c) == 1) {
+          dp[with] += dp[mask];
+        }
+        if (get(mask, c) == 2) {
+          dp[upd(with, c, 1)] += dp[mask];
+        }
+      }
+    }
+  }
+  cout << ans;
+  return 0;
+}

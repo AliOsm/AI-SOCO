@@ -1,0 +1,237 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vl;
+typedef pair<int,int> pii;
+typedef pair<ll, ll> pll;
+typedef vector<pii> vii;
+typedef vector<pll> vll;
+
+#define PB push_back
+//#define PB emplace_back
+#define F first
+#define S second
+#define MP make_pair
+#define endl '\n'
+
+const double eps = 1e-9;
+const int inf = 2000000000;
+const ll infLL = 9000000000000000000;
+#define MOD 1000000007
+
+#define mem(a,b) memset(a, b, sizeof(a) )
+#define gcd(a,b) __gcd(a,b)
+#define lcm(a,b) (a*(b/gcd(a,b)))
+
+#define optimize() ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define fraction() cout.unsetf(ios::floatfield); cout.precision(10); cout.setf(ios::fixed,ios::floatfield);
+
+//
+//debug
+template<typename F,typename S>ostream&operator<<(ostream&os,const pair<F,S>&p){return os<<"("<<p.first<<", "<<p.second<<")";}
+template<typename T>ostream&operator<<(ostream&os,const vector<T>&v){os<<"{";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"}";}
+template<typename T>ostream&operator<<(ostream&os,const set<T>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<",";os<<*it;}return os<<"]";}
+template<typename T>ostream&operator<<(ostream&os,const multiset<T>&v) {os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"]";}
+template<typename F,typename S>ostream&operator<<(ostream&os,const map<F,S>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<it->first<<" = "<<it->second;}return os<<"]";}
+#define dbg(args...) do {cerr << #args << " : "; faltu(args); } while(0)
+void faltu(){cerr << endl;}
+template<typename T>void faltu(T a[],int n){for(int i=0;i<n;++i)cerr<<a[i]<<' ';cerr<<endl;}
+template<typename T,typename...hello>void faltu(T arg,const hello&...rest){cerr<<arg<<' ';faltu(rest...);}
+//#else
+//#define dbg(args...)
+
+const int mx = 2e5+5;
+
+struct FFT {
+  struct node {
+    double x,y;
+    node() {}
+    node(double a, double b): x(a), y(b) {}
+    node operator + (const node &a) const {return node(this->x+a.x,this->y+a.y);}
+    node operator - (const node a) const {return node(this->x-a.x,this->y-a.y);}
+    node operator * (const node a) const {return node(this->x*a.x-this->y*a.y,this->x*a.y+a.x*this->y);}
+  };
+
+  int M;
+  vector<node> A, B, w[2];
+  vector<int>rev;
+  long double pi;
+  FFT() {
+    pi = 3.1415926535897932384;
+  }
+  void init(int n) {
+    M = 1;
+    while(M < n) M <<= 1;
+    M <<= 1;
+    A.resize(M);
+    B.resize(M);
+    w[0].resize(M);
+    w[1].resize(M);
+    rev.resize(M);
+    for (int i=0; i<M; i++) {
+      int j=i,y=0;
+      for (int x=1; x<M; x<<=1,j>>=1) (y<<=1)+=j&1;
+      rev[i]=y;
+    }
+    for (int i=0; i<M; i++) {
+      w[0][i] = node( cos(2*pi*i/M),sin(2*pi*i/M) );
+      w[1][i] = node( cos(2*pi*i/M),-sin(2*pi*i/M) );
+    }
+  }
+  void ftransform( vector<node> &A, int p ) {
+    for (int i=0; i<M; i++)
+      if (i<rev[i])
+        swap(A[i],A[rev[i]]);
+    for (int i=1; i<M; i<<=1)
+      for (int j=0,t=M/(i<<1); j<M; j+=i<<1)
+        for (int k=0,l=0; k<i; k++,l+=t) {
+          node x=w[p][l]*A[i+j+k];
+          node y=A[j+k];
+          A[j+k]=y+x;
+          A[j+k+i]=y-x;
+        }
+    if (p)
+      for (int i=0; i<M; i++)
+        A[i].x/=M;
+  }
+  /// multiply P*Q and keeps the result in res
+  ///degree of P is n and degree of Q is m
+  ///P, Q is given in standard power form, in increasing
+  void multiply( vector<long long> &P, vector<long long> &Q, vector<long long> &res) {
+    //init( max(P.size(),Q.size()) );
+    for( int i = 0; i < M; i++ )
+      A[i].x = A[i].y = B[i].x = B[i].y = 0;
+    for( int i = 0; i < P.size(); i++ )
+      A[i].x = P[i];
+    for( int i = 0; i < Q.size(); i++ )
+      B[i].x = Q[i];
+    ftransform(A,0);
+    ftransform(B,0);
+    for (int k=0; k<M; k++)
+      A[k] = A[k]*B[k];
+    ftransform(A,1);
+    res.resize(M);
+    for( int i = 0; i < M; i++ )
+      res[i] = round(A[i].x);
+  }
+}fft;
+
+int S_sz, T_sz;
+string S, T;
+int k;
+int preA[mx], preG[mx], preT[mx], preC[mx];
+
+int main()
+{
+	optimize();
+	cin >> S_sz >> T_sz >> k;
+	cin >> S >> T;
+	for( int i = 0; i < S_sz; ++i ) {
+		if( S[i] == 'A' ) {
+			++preA[i];
+		}
+		else if( S[i] == 'G' ) {
+			++preG[i];
+		}
+		else if( S[i] == 'T' ) {
+			++preT[i];
+		}
+		else if( S[i] == 'C' ) {
+			++preC[i];
+		}
+		if(i) preA[i] += preA[i-1];
+		if(i) preG[i] += preG[i-1];
+		if(i) preT[i] += preT[i-1];
+		if(i) preC[i] += preC[i-1];
+	}
+	fft.init( S_sz );
+	vector<ll> ans(S_sz + T_sz - 1);
+	vector<ll> a(S_sz), b(T_sz), store;
+	for( int i = 0; i < S_sz; ++i ) {
+		int ri = min(S_sz-1, i+k);
+		int le = max(0, i-k);
+		bool ok1 = 0, ok2 = 0, ok = 0;
+		if(i) ok1 = (preA[ri]-preA[i-1] > 0)?1:0;
+		else ok1 = (preA[ri] > 0)?1:0;
+		if(le) ok2 = (preA[i]-preA[le-1] > 0)?1:0;
+		else ok2 = (preA[i] > 0)?1:0;
+		ok = ok1|ok2;
+		if(ok) a[i] = 1;
+		else a[i] = 0;
+	}
+	for( int i = 0; i < T_sz; ++i ) {
+		if( T[i] == 'A' ) b[i] = 1;
+		else b[i] = 0;
+	}
+	reverse( b.begin(), b.end() );
+	fft.multiply(a, b, store);
+	for( int i = 0; i < ans.size(); ++i ) ans[i] += store[i];
+
+	for( int i = 0; i < S_sz; ++i ) {
+		int ri = min(S_sz-1, i+k);
+		int le = max(0, i-k);
+		bool ok1 = 0, ok2 = 0, ok = 0;
+		if(i) ok1 = (preG[ri]-preG[i-1] > 0)?1:0;
+		else ok1 = (preG[ri] > 0)?1:0;
+		if(le) ok2 = (preG[i]-preG[le-1] > 0)?1:0;
+		else ok2 = (preG[i] > 0)?1:0;
+		ok = ok1|ok2;
+		if(ok) a[i] = 1;
+		else a[i] = 0;
+	}
+	for( int i = 0; i < T_sz; ++i ) {
+		if( T[i] == 'G' ) b[i] = 1;
+		else b[i] = 0;
+	}
+	reverse( b.begin(), b.end() );
+	fft.multiply(a, b, store);
+	for( int i = 0; i < ans.size(); ++i ) ans[i] += store[i];
+
+	for( int i = 0; i < S_sz; ++i ) {
+		int ri = min(S_sz-1, i+k);
+		int le = max(0, i-k);
+		bool ok1 = 0, ok2 = 0, ok = 0;
+		if(i) ok1 = (preT[ri]-preT[i-1] > 0)?1:0;
+		else ok1 = (preT[ri] > 0)?1:0;
+		if(le) ok2 = (preT[i]-preT[le-1] > 0)?1:0;
+		else ok2 = (preT[i] > 0)?1:0;
+		ok = ok1|ok2;
+		if(ok) a[i] = 1;
+		else a[i] = 0;
+	}
+	for( int i = 0; i < T_sz; ++i ) {
+		if( T[i] == 'T' ) b[i] = 1;
+		else b[i] = 0;
+	}
+	reverse( b.begin(), b.end() );
+	fft.multiply(a, b, store);
+	for( int i = 0; i < ans.size(); ++i ) ans[i] += store[i];
+
+	for( int i = 0; i < S_sz; ++i ) {
+		int ri = min(S_sz-1, i+k);
+		int le = max(0, i-k);
+		bool ok1 = 0, ok2 = 0, ok = 0;
+		if(i) ok1 = (preC[ri]-preC[i-1] > 0)?1:0;
+		else ok1 = (preC[ri] > 0)?1:0;
+		if(le) ok2 = (preC[i]-preC[le-1] > 0)?1:0;
+		else ok2 = (preC[i] > 0)?1:0;
+		ok = ok1|ok2;
+		if(ok) a[i] = 1;
+		else a[i] = 0;
+	}
+	for( int i = 0; i < T_sz; ++i ) {
+		if( T[i] == 'C' ) b[i] = 1;
+		else b[i] = 0;
+	}
+	reverse( b.begin(), b.end() );
+	fft.multiply(a, b, store);
+	for( int i = 0; i < ans.size(); ++i ) ans[i] += store[i];
+
+	int cnt = 0;
+	for( int i = T_sz-1; i <= S_sz-1; ++i ) {
+		if( ans[i] == T_sz ) ++cnt;
+	}
+	cout << cnt << endl;
+}

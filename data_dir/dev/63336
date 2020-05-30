@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MAX 200005
+vector<int> V;
+map<int, int> mp, rev;
+set<int> S[MAX];
+int tree[4*MAX];
+
+void compress()
+{
+    sort(V.begin(), V.end());
+    int sz = 1;
+    for(int i=0; i<V.size(); i++){
+        if(mp[V[i]] == 0){
+            mp[V[i]] = sz;
+            rev[sz] = V[i];
+            sz++;
+        }
+    }
+}
+
+void update(int node, int b, int e, int x)
+{
+    if(b > x || e < x) return;
+    if(b == e){
+        tree[node] = *(--S[b].end());
+        return;
+    }
+    int left = 2*node;
+    int right = 2*node+1;
+    int mid = (b+e)/2;
+    update(left, b, mid, x);
+    update(right, mid+1, e, x);
+    tree[node] = max(tree[left], tree[right]);
+}
+
+int query(int node, int b, int e, int l, int r, int y)
+{
+    if(l > e || r < b) return -1;
+    if(tree[node] < y) return -1;
+    if(b == e) return b;
+    int left = 2*node;
+    int right = 2*node+1;
+    int mid = (b+e)/2;
+    int ans = query(left, b, mid, l, r, y);
+    if(ans != -1) return ans;
+    ans = query(right, mid+1, e, l, r, y);
+    return ans;
+}
+
+int main()
+{
+    int n;
+    scanf("%d", &n);
+    pair<int, pair<int, int> > p[n];
+    for(int i=0; i<n; i++){
+        string str;
+        cin >> str;
+        int x, y;
+        scanf("%d %d", &x, &y);
+        if(str[0] == 'a'){
+            p[i].first = 0;
+        }
+        else if(str[0] == 'r'){
+            p[i].first = 1;
+        }
+        else {
+            p[i].first = 2;
+        }
+        V.push_back(x);
+        p[i].second = make_pair(x, y);
+    }
+    compress();
+    for(int i=0; i<MAX; i++) S[i].insert(-1);
+    for(int i=0; i<n; i++){
+        int x = p[i].second.first, y = p[i].second.second;
+        int xx = mp[x];
+        if(p[i].first == 0){
+            S[xx].insert(y);
+            update(1, 1, 200000, xx);
+        }
+        else if(p[i].first == 1){
+            S[xx].erase(y);
+            update(1, 1, 200000, xx);
+        }
+        else {
+            int t = query(1, 1, 200000, xx+1, 200000, y+1);
+            if(t == -1){
+                printf("-1\n");
+                continue;
+            }
+            int ans_x = rev[t];
+            int ans_y = *S[t].upper_bound(y);
+            printf("%d %d\n", ans_x, ans_y);
+        }
+    }
+}

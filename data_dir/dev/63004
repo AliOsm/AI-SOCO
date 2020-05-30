@@ -1,0 +1,208 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector < int > vi;
+const int N = 1e5 + 5 , L = 20;
+
+int n , q;
+vi adj[N];
+ll a[N];
+ll segArray[N];
+int timer = 0;
+int to[N][L];
+int dep[N];
+int root = 1;
+int in[N] , out[N];
+
+void dfs(int u , int pr){
+    in[u] = ++ timer;
+    segArray[timer] = a[u];
+    to[u][0] = pr;
+
+    for(auto v : adj[u]){
+        if(v != pr){
+            dep[v] = 1 + dep[u];
+            dfs(v , u);
+        }
+    }
+    out[u] = timer;
+}
+
+ll st[N << 2] , lazy[N << 2];
+
+ll mrg(ll a , ll b){
+    return a + b;
+}
+
+void build(int p , int l , int r){
+    if(l == r){
+        st[p] = segArray[l];
+        return;
+    }
+
+    int mid = (l + r) >> 1;
+    build(p*2 , l , mid);
+    build(p*2+1 , mid + 1 , r);
+
+    st[p] = mrg(st[p*2] , st[p*2+1]);
+}
+
+void push(int p , int l , int r){
+    if(lazy[p] == 0)return;
+
+    st[p] += lazy[p] * (1ll*(r-l+1));
+
+    if(l != r){
+        lazy[p*2]   += lazy[p];
+        lazy[p*2+1] += lazy[p];
+    }
+    lazy[p] = 0ll;
+}
+
+void update(int p , int l , int r , int S , int E , ll X){
+    push(p , l , r);
+
+    if(l >= S && r <= E){
+        lazy[p] += X;
+        push(p , l , r);
+        return;
+    }
+    if(E < l || S > r)return;
+
+    int mid = (l + r) >> 1;
+    update(p*2 , l , mid , S , E , X);
+    update(p*2+1 , mid + 1 , r , S , E , X);
+
+    st[p] = mrg(st[p*2] , st[p*2+1]);
+}
+
+
+ll rsq(int p , int l , int r , int S , int E){
+    push(p , l , r);
+
+    if(l >= S && r <= E)return st[p];
+    if(E < l || S > r)return 0ll;
+
+    int mid = (l + r) >> 1;
+
+    ll x = rsq(p*2 , l , mid , S , E);
+    ll y = rsq(p*2+1 , mid + 1 , r , S , E);
+    return mrg(x , y);
+}
+
+int jump(int u , int k){
+    for(int i = 0 ; i < L ; i ++){
+        if(k & (1 << i))u = to[u][i];
+    }
+    return u;
+}
+
+int LCA(int u , int v){
+    if(u == v)return u;
+    if(dep[u] < dep[v])swap(u , v);
+
+    u = jump(u , dep[u] - dep[v]);
+    if(u == v)return u;
+
+    for(int i = L-1 ; i >= 0 ; i --){
+        if(to[u][i] != to[v][i]){
+            u = to[u][i];
+            v = to[v][i];
+        }
+    }
+
+    return to[u][0];
+}
+
+bool have(int u , int v){
+    return ( (in[v] >= in[u]) && (out[v] <= out[u]) );
+}
+
+main(){
+    scanf("%d %d" , &n , &q);
+
+    for(int i = 1 ; i <= n ; i ++){
+        scanf("%lld" , &a[i]);
+    }
+
+    int u , v;
+    for(int i = 1 ; i < n ; i ++){
+        scanf("%d %d" , &u , &v);
+
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    dfs( 1 , 0 );
+    build(1 , 1 , n);
+
+    for(int j = 1 ; j < L ; j ++){
+        for(int i = 1 ; i <= n ; i ++){
+            to[i][j] = to[ to[i][j-1] ][j-1];
+        }
+    }
+
+    int type = 0;
+    ll x;
+
+    while( q -- ){
+        scanf("%d" , &type);
+
+        if(type == 1){
+            scanf("%lld" , &x);
+            root = x;
+        }
+        else if(type == 2){
+
+            scanf("%d %d %lld" , &u , &v , &x);
+
+            int node = LCA(u    , v);
+            int L1   = LCA(root , u);
+            int L2   = LCA(root , v);
+
+            if(in[root] < in[node] || in[root] > out[node]){
+                update(1 , 1 , n , in[node] , out[node] , x);
+                continue;
+            }
+
+            if(L1 == root || L2 == root || node == root){
+                update(1 , 1 , n , 1 , n , x);
+                continue;
+            }
+            int ok = L1;
+            if(L1 == node)ok = L2;
+            int J = jump(root , dep[root] - dep[ok] - 1);
+            update(1 , 1 , n , 1 , n , x);
+            update(1 , 1 , n , in[J] , out[J] , -x);
+
+        }
+        else {
+            scanf("%d" , &v);
+            if(v == root){
+                printf("%lld\n" , rsq(1 , 1 , n , 1 , n));
+                continue;
+            }
+            if(have(v , root)){
+                int J = jump(root , dep[root] - dep[v] - 1);
+                printf("%lld\n" , rsq(1 , 1 , n , 1 , n) -
+                                  rsq(1 , 1 , n , in[J] , out[J]));
+            }
+            else printf("%lld\n" , rsq(1 , 1 , n , in[v] , out[v]));
+        }
+    }
+}
+
+/**
+8 10
+1 2 3 4 5 6 7 8
+1 2
+1 3
+1 4
+2 7
+2 8
+3 5
+3 6
+
+
+*/

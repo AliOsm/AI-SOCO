@@ -1,0 +1,186 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+
+const int N = 5e5+2;
+
+int Next[N],Prev[N];
+int in[N];
+
+int queryRet[N];
+int L[N],R[N];
+
+pair<int,int> seg[N*4];
+
+void update(int pos,int l,int r,int ind,int val){
+   if(l==r){
+      seg[pos] = make_pair(val,ind);
+      return;
+   }
+   int mid = (l+r)/2;
+   if(ind<=mid){
+      update(pos*2,l,mid,ind,val);
+   } else {
+      update(pos*2+1,mid+1,r,ind,val);
+   }
+   seg[pos] = min(seg[pos*2],seg[pos*2+1]);
+}
+pair<int,int> query(int pos,int l,int r,int ql,int qr) {
+   if(qr<l || r<ql){
+      return make_pair(1e9,0);
+   }
+   if(ql<=l && r<=qr){
+      return seg[pos];
+   }
+   int mid = (l+r)/2;
+   return min(query(pos*2,l,mid,ql,qr),query(pos*2+1,mid+1,r,ql,qr));
+}
+
+bool isTrue(int id,int l,int r){
+   if(Prev[id]<l  && r<Next[id]){
+      return true;
+   } else {
+      return false;
+   }
+}
+void dnc(vector<pair<int,int> >&qin,int l,int r,int ql,int qr) {
+   while(ql<=qr){
+      if(qin[ql].first<l){
+         ++ql;
+      } else {
+         break;
+      }
+   }
+   if(l>r || ql>qr){
+      return;
+   }
+   int ret = -1;
+   int tl,tr,ind;
+   for(int i=0;;++i){
+      tl = l+i,tr = r-i;
+      if(tl>tr){
+         break;
+      }
+      if(isTrue(tl,l,r)){
+         ret = in[tl];
+         ind = tl;
+         break;
+      }
+      if(isTrue(tr,l,r)){
+         ret= in[tr];
+         ind = tr;
+         break;
+      }
+   }
+   if(ret==-1){
+      int m = (l+r)/2;
+
+      int ul = ql-1,ur = qr,mid;
+         while(ul<ur) {
+            mid = (ul+ur+1)/2;
+            if(qin[mid].first<=m){
+              ul = mid;
+            } else {
+               ur = mid-1;
+            }
+         }
+      dnc(qin,l,m,ql,ul);
+      dnc(qin,m+1,r,ul+1,qr);
+      return;
+   }
+   int ul = ql-1,ur = qr,mid;
+   while(ul<ur) {
+      mid = (ul+ur+1)/2;
+      if(qin[mid].first<=ind){
+         ul = mid;
+      } else {
+         ur = mid-1;
+      }
+   }
+
+   if(ql<=ul){
+      while(true) {
+         pair<int,int> g= query(1,1,qin.size(),ql+1,ul+1);
+         if(g.first<=r){
+            break;
+         } else {
+            update(1,1,qin.size(),g.second,0);
+         }
+      }
+      while(true){
+         pair<int,int> g= query(1,1,qin.size(),ql+1,ul+1);
+         if(ind>g.first){
+            break;
+         } else {
+            int id = qin[g.second-1].second;
+            queryRet[id] = ret;
+            update(1,1,qin.size(),g.second,0);
+         }
+      }
+   }
+   dnc(qin,l,ind-1,ql,ul);
+   dnc(qin,ind+1,r,ul+1,qr);
+}
+void solve(){
+   int n;
+   scanf("%d",&n);
+   for(int i=1;i<=n;++i){
+      scanf("%d",&in[i]);
+   }
+   map<int,int> hash;
+
+   priority_queue<pair<int,int> >pq;
+   for(int i=n;i>=1;--i){
+      Next[i] = n+1;
+      if(hash.count(in[i])){
+         Next[i] = hash[in[i]];
+      }
+      pq.push(make_pair(Next[i],i));
+      hash[in[i]] = i;
+   }
+   hash.clear();
+   for(int i=1;i<=n;++i){
+      Prev[i] = 0;
+      if(hash.count(in[i])){
+         Prev[i] = hash[in[i]];
+      }
+      hash[in[i]] = i;
+   }
+   hash.clear();
+   int q;
+   scanf("%d",&q);
+   vector<pair<int,int> > qin;
+   for(int i=1;i<=q;++i){
+      scanf("%d%d",&L[i],&R[i]);
+      qin.push_back(make_pair(R[i],i));
+   }
+   for(int i=1;i<=n;++i){
+      update(1,1,n,i,1e9);
+   }
+   sort(qin.begin(),qin.end());
+   reverse(qin.begin(),qin.end());
+
+   for(int i=0;i<(int)qin.size();++i){
+      int id = qin[i].second;
+      while(!pq.empty()){
+         if(R[id]<pq.top().first){
+            int ind = pq.top().second;
+            pq.pop();
+            update(1,1,n,ind,Prev[ind]);
+         } else {
+            break;
+         }
+      }
+      pair<int,int> tmp = query(1,1,n,L[id],R[id]);
+      if(tmp.first<L[id]){
+         queryRet[id] = in[tmp.second];
+      }
+   }
+   for(int i=1;i<=q;++i){
+      printf("%d\n", queryRet[i]);
+   }
+}
+int main(){
+   //freopen("input.txt","r",stdin);
+   solve();
+}

@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 5;
+const int MLOG = 20;
+const int mod = 1e9+7;
+
+typedef pair< int, int > ii;
+
+vector< ii > adj[N];
+int p[N][MLOG], up[N], down[N], level[N];
+
+int powmod(int base, int p) {
+  int ret = 1;
+  while(p) {
+    if(p & 1) ret = (1LL*ret*base) % mod;
+    base = (1LL*base*base) % mod;
+    p >>= 1;
+  }
+  return ret;
+}
+
+void dfs(int v, int par = -1) {
+  p[v][0] = par;
+  for(int i = 0; p[v][i] != -1; i++)
+    p[v][i+1] = p[p[v][i]][i];
+  for(ii nxt : adj[v]) {
+    int u = nxt.first;
+    if(u == par) continue;
+    level[u] = level[v]+1;
+    dfs(u, v);
+  }
+}
+
+int lca(int u, int v) {
+  if(level[u] < level[v])
+    swap(u, v);
+  int dif = level[u]-level[v];
+  for(int i = 0; dif; i++) if(dif & (1<<i)){
+    u = p[u][i];
+    dif ^= 1<<i;
+  }
+  if(u == v)
+    return u;
+  for(int i = MLOG-1; i>= 0; i--)
+    if(p[v][i] != p[u][i])
+      v = p[v][i], u = p[u][i];
+  return p[v][0];
+}
+
+int dfs2(int v) {
+  int ret = 0;
+  for(ii nxt : adj[v]) {
+    int u = nxt.first;
+    if(u == p[v][0])
+      continue;
+    ret = (ret + dfs2(u)) % mod;
+    up[v] += up[u];
+    down[v] += down[u];
+  }
+  for(ii nxt : adj[v]) {
+    if(nxt.first == p[v][0])
+      continue;
+    if(nxt.second == 1)
+      ret = (ret + powmod(2, up[nxt.first])-1) % mod;
+    else if(nxt.second == -1)
+      ret = (ret + powmod(2, down[nxt.first])-1) % mod;
+  }
+  return ret;
+}
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  for(int i = 1; i<n; i++) {
+    int a, b, c;
+    scanf("%d%d%d", &a, &b, &c);
+    a--; b--;
+    adj[a].push_back(ii(b, c));
+    adj[b].push_back(ii(a, -c));
+  }
+  memset(p, -1, sizeof p);
+  dfs(0);
+  int last = 0, k;
+  scanf("%d\n", &k);
+  for(int i = 0; i<k; i++) {
+    int s;
+    scanf("%d", &s);
+    s--;
+    int pp = lca(last, s);
+    up[last]++;
+    up[pp]--;
+    down[s]++;
+    down[pp]--;
+    last = s;
+  }
+  int ans = dfs2(0);
+  if(ans < 0) ans += mod;
+  printf("%d\n", ans);
+  return 0;
+}

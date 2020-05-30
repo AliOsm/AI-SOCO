@@ -1,0 +1,165 @@
+#include <string>
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <cstring>
+#include <cassert>
+#include <set>
+#include <map>
+#include <queue>
+using namespace std;
+
+typedef long long ll;
+typedef struct Node* pNode;
+
+const int MAXN=200000;
+
+int p[MAXN];
+
+struct Node
+{
+	int sum;
+	pNode l,r;
+	Node(int sum=0):
+		sum(sum), l(NULL), r(NULL)
+	{}
+};
+
+const int SZ=4*MAXN+18*MAXN;
+
+Node nodes[SZ];
+int nodetop=0;
+
+int getds(int n)
+{
+	n--;
+	n|=n>>1;
+	n|=n>>2;
+	n|=n>>4;
+	n|=n>>8;
+	n|=n>>16;
+	return n+1;
+}
+
+pNode getNode()
+{
+	assert(nodetop<SZ);
+	return &nodes[nodetop++];
+}
+
+pNode tree[MAXN+1];
+int ds;
+
+int getsum(pNode cur, int cl, int cr, int l, int r)
+{
+	if(l<=cl && cr<=r)
+		return cur->sum;
+	else if(cr<l || r<cl)
+		return 0;
+	else
+	{
+		int mid=(cl+cr)/2;
+		return getsum(cur->l, cl, mid, l, r)+ getsum(cur->r, mid+1, cr, l, r);
+	}
+}
+
+pNode inc(pNode cur, int cl, int cr, int x, int v)
+{
+	if(cl==x && cr==x)
+	{
+		pNode res=getNode();
+		res->sum=cur->sum+v;
+		return res;
+	}
+	else if(cr<x || x<cl)
+		return cur;
+	else
+	{
+		pNode res=getNode();
+		int mid=(cl+cr)/2;
+		res->l=inc(cur->l, cl, mid, x, v);
+		res->r=inc(cur->r, mid+1, cr, x, v);
+		res->sum=res->l->sum + res->r->sum;
+		return res;
+	}
+}
+
+pNode build(int n)
+{
+	if(n==1)
+	{
+		pNode res=getNode();
+		res->sum=0;
+		return res;
+	}
+	else
+	{
+		pNode res=getNode();
+		res->l=build(n/2);
+		res->r=build(n/2);
+		res->sum=0;
+		return res;
+	}
+}
+
+enum
+{
+	UL,
+	L,
+	DL,
+	D,
+	DR,
+	R,
+	UR,
+	U
+};
+
+int getsum(int l, int r, int u, int d)
+{
+	if(l>r || u>d) return 0;
+	return getsum(tree[r+1], 0,ds-1,u,d)-getsum(tree[l], 0,ds-1,u,d);
+}
+
+int main()
+{
+	int n,q;
+	scanf("%d%d",&n,&q);
+	for(int i=0;i<n;i++)
+	{
+		scanf("%d",&p[i]);
+		p[i]--;
+	}
+	ds=getds(n);
+	tree[0]=build(ds);
+	for(int i=0;i<n;i++)
+		tree[i+1]=inc(tree[i], 0,ds-1, p[i], 1);
+	while(q--)
+	{
+		int l, u , r, d;
+		scanf("%d%d%d%d",&l,&d,&r,&u);
+		l--;
+		r--;
+		d--;
+		u--;
+		int cnt[8]={};
+		cnt[L]=getsum(0,l-1, 0,n-1);
+		cnt[D]=getsum(0,n-1, u+1, n-1);
+		cnt[R]=getsum(r+1, n-1, 0,n-1);
+		cnt[U]=getsum(0,n-1, 0,d-1);
+
+		cnt[UL]=getsum(0,l-1, 0,d-1);
+		cnt[UR]=getsum(r+1,n-1, 0,d-1);
+		cnt[DL]=getsum(0,l-1,u+1,n-1);
+		cnt[DR]=getsum(r+1,n-1,u+1, n-1);
+		ll res=ll(n)*(n-1)/2;
+		for(int i=0;i<8;i++)
+		{
+			ll mul=i%2==0?1:-1;
+			res+=mul*ll(cnt[i])*(cnt[i]-1)/2;
+		}
+		printf("%lld\n",res);
+	}
+	return 0;
+}
+

@@ -1,0 +1,491 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+	AssertsCounter(): counter(0) {}
+	~AssertsCounter() { std::cerr << std::endl << "DIAG: " << (counter == 0 ? "OK" : "FAIL!!!") << " Asserts count: " << counter << std::endl; }
+	void Increment() { counter++; }
+	uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cerr << "ASSERT FAILED (" << __LINE__ << "): '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cerr << "ASSERT FAILED (" << __LINE__ << "): '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+volatile bool isLocalTestEnabled = 0;
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+bool g_isLocalPrintEnabled = (bool)(LOCAL_TEST);
+#define LOCAL_PRINT() if (!g_isLocalPrintEnabled) { } else std::cerr // << .. << ..
+
+typedef std::string string8_t;
+typedef long double ld_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<uint8_t> vector_uint8_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<vector_int32_t> vector_2d_int32_t;
+typedef std::vector<vector_uint32_t> vector_2d_uint32_t;
+typedef std::vector<vector_int64_t> vector_2d_int64_t;
+typedef std::vector<vector_uint64_t> vector_2d_uint64_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+typedef std::set<string8_t> set_string8_t;
+
+typedef std::multiset<size_t> multiset_size_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> void UpdateMin(T& a, const T b) {a = std::min(a, b);}
+template<typename T> void UpdateMax(T& a, const T b) {a = std::max(a, b);}
+
+const ld_t Pi = std::atan(1.0L) * 4.0L;
+static const ld_t Eps = 1.0e-09;
+template<typename T> bool IsEqual(const T a, const T b) { return std::abs(a - b) < Eps; }
+template<typename T> bool IsGreater(const T a, const T b) { return a > b + Eps; }
+template<typename T> bool IsLess(const T a, const T b) { return a + Eps < b; }
+template<typename T> bool IsGreaterEqual(const T a, const T b) { return !IsLess(a, b); }
+template<typename T> bool IsLessEqual(const T a, const T b) { return !IsGreater(a, b); }
+
+template<typename T> string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+	LOCAL_ASSERT(!!ist);
+	for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+	return ist;
+}
+
+template<typename T> T Read(std::istream& ist)
+{
+	LOCAL_ASSERT(!!ist);
+	T val; ist >> val; return val;
+}
+
+template<typename T> std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+	for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+	return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+const size_t Inf = 99999;
+
+vector_size_t ToVector(const size_t v1, const size_t v2, const size_t v3, const size_t v4)
+{
+	vector_size_t v;
+	v.push_back(v1);
+	v.push_back(v2);
+	v.push_back(v3);
+	v.push_back(v4);
+	return v;
+}
+
+#if LOCAL_TEST
+vector_2d_size_t ToIsLinked(const vector_2d_size_t& links)
+{
+	const size_t n = links.size();
+	vector_2d_size_t isLinked(n, vector_size_t(n, 0));
+
+	for (size_t i = 0; i < links.size(); i++)
+	{
+		for (size_t j = 0; j < links[i].size(); j++)
+		{
+			const size_t next = links[i][j];
+			isLinked[i][next] = 1;
+		}
+	}
+	return isLinked;
+}
+
+vector_2d_size_t Floyd(const vector_2d_size_t& isLinked)
+{
+	const size_t n = isLinked.size();
+
+	vector_2d_size_t m(n, vector_size_t(n, Inf));
+
+	for (size_t i = 0; i < n; i++)
+	{
+		m[i][i] = 0;
+		for (size_t j = 0; j < n; j++)
+		{
+			if (isLinked[i][j])
+				m[i][j] = 1;
+		}
+	}
+
+	for (size_t k = 0; k < n; k++)
+	{
+		for (size_t i = 0; i < n; i++)
+		{
+			for (size_t j = 0; j < n; j++)
+			{
+				m[i][j] = std::min(m[i][j], m[i][k] + m[k][j]);
+			}
+		}
+	}
+
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+		{
+			LOCAL_ASSERT(m[i][j] <= Inf);
+		}
+	}
+
+	return m;
+}
+
+void GetAnsRef(const vector_2d_size_t& isLinked, vector_size_t& maxPathDescr, size_t& maxPath)
+{
+	const size_t n = isLinked.size();
+	const vector_2d_size_t m = Floyd(isLinked);
+
+	bool isFound = false;
+	maxPath = 0;
+	maxPathDescr.clear();
+	for (size_t v1 = 0; v1 < n; v1++)
+	{
+		for (size_t v2 = 0; v2 < n; v2++)
+		{
+			for (size_t v3 = 0; v3 < n; v3++)
+			{
+				for (size_t v4 = 0; v4 < n; v4++)
+				{
+					set_size_t v;
+					v.insert(v1);
+					v.insert(v2);
+					v.insert(v3);
+					v.insert(v4);
+					if (v.size() < 4)
+						continue;
+
+					const size_t path = m[v1][v2] + m[v2][v3] + m[v3][v4];
+					if (path >= Inf)
+						continue;
+
+					if (!isFound || (path > maxPath))
+					{
+						isFound = true;
+						maxPath = path;
+						maxPathDescr = ToVector(v1, v2, v3, v4);
+					}
+				}
+			}
+		}
+	}
+}
+#endif
+
+struct stat_t
+{
+	size_t dist;
+	size_t index;
+
+	stat_t(size_t dist, size_t index): dist(dist), index(index) {}
+
+	bool operator<(const stat_t& rval) const
+	{
+		if (dist != rval.dist)
+			return dist < rval.dist;
+		return index < rval.index;
+	}
+};
+
+typedef std::set<stat_t> stats_t;
+
+void Dikstra(const vector_2d_size_t& links, const size_t start, vector_size_t& ds)
+{
+	ds[start] = 0;
+
+	stats_t stats;
+	stats.insert(stat_t(0, start));
+
+	while (!stats.empty())
+	{
+		const stat_t next = *stats.begin();
+		stats.erase(stats.begin());
+
+		const size_t d = next.dist;
+		const size_t v = next.index;
+
+		const size_t nn = links[v].size();
+		for (size_t i = 0; i < nn; i++)
+		{
+			const size_t vnext = links[v][i];
+			const size_t w = 1;
+			if (d + w < ds[vnext])
+			{
+				stats.erase(stat_t(ds[vnext], vnext));
+				stats.insert(stat_t(d + w, vnext));
+				ds[vnext] = d + w;
+			}
+		}
+	}
+}
+
+vector_2d_size_t Dikstra(const vector_2d_size_t& links)
+{
+	const size_t n = links.size();
+
+	vector_2d_size_t m(n, vector_size_t(n, Inf));
+
+	for (size_t i = 0; i < n; i++)
+	{
+		Dikstra(links, i, m[i]);
+	}
+
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+		{
+			LOCAL_ASSERT(m[i][j] <= Inf);
+		}
+	}
+
+#if LOCAL_TEST
+	const vector_2d_size_t ref = Floyd(ToIsLinked(links));
+	LOCAL_ASSERT(ref == m);
+#endif
+
+	return m;
+}
+
+void GetAns(const vector_2d_size_t& links, vector_size_t& maxPathDescr, size_t& maxPath)
+{
+	const size_t n = links.size();
+	const vector_2d_size_t m = Dikstra(links);
+
+	maxPath = 0;
+	maxPathDescr.clear();
+
+	vector_2d_size_t maxTo(n);
+	vector_2d_size_t maxFrom(n);
+	for (size_t i = 0; i < n; i++)
+	{
+		vector_size_t& mt = maxTo[i];
+		vector_size_t& mf = maxFrom[i];
+
+		for (size_t j = 0; j < n; j++)
+		{
+			if (i == j)
+				continue;
+			if (m[i][j] < Inf)
+				mf.push_back(j);
+			if (m[j][i] < Inf)
+				mt.push_back(j);
+		}
+
+		std::sort(mt.begin(), mt.end(), [&](const size_t a, const size_t b) -> bool
+		{
+			return m[a][i] > m[b][i];
+		});
+
+		std::sort(mf.begin(), mf.end(), [&](const size_t a, const size_t b) -> bool
+		{
+			return m[i][a] > m[i][b];
+		});
+	}
+
+	for (size_t v2 = 0; v2 < n; v2++)
+	{
+		for (size_t v3 = 0; v3 < n; v3++)
+		{
+			if (v3 == v2)
+				continue;
+			if (m[v2][v3] >= Inf)
+				continue;
+
+			const vector_size_t& mt = maxTo[v2];
+			const vector_size_t& mf = maxFrom[v3];
+			for (size_t tc = 0; tc < 2 && tc < mt.size(); tc++)
+			{
+				const size_t v1 = mt[tc];
+				if (v1 == v2 || v1 == v3)
+					continue;
+
+				for (size_t fc = 0; fc < 2 && fc < mf.size(); fc++)
+				{					
+					const size_t v4 = mf[fc];
+					if (v1 == v4)
+						continue;
+					if (v4 == v2 || v4 == v3)
+						continue;
+
+					const size_t path = m[v1][v2] + m[v2][v3] + m[v3][v4];
+					LOCAL_ASSERT(path < Inf);
+					if (path > maxPath)
+					{
+						maxPath = path;
+						maxPathDescr = ToVector(v1, v2, v3, v4);
+					}
+				}
+			}
+		}
+	}
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+	StopWatch<1> sw; (void)sw;
+
+	// 
+	size_t n, edges;
+	ist >> n >> edges;
+
+	if (multipleTestMode && !ist)
+		return false;
+
+	//
+	LOCAL_PRINT() << std::endl << "Next test: n = " << n << std::endl;
+
+	vector_2d_size_t isLinked(n, vector_size_t(n));
+	for (size_t i = 0; i < edges; i++)
+	{
+		size_t u, v;
+		ist >> u >> v;
+		--u; --v;
+
+		if (u != v)
+			isLinked[u][v] = 1;
+	}
+
+	vector_2d_size_t links(n);
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+		{
+			if (i == j)
+				continue;
+			if (!isLinked[i][j])
+				continue;
+			links[i].push_back(j);
+		}
+	}
+
+	vector_size_t maxPathDescr;
+	size_t maxPath = 0;
+	GetAns(links, maxPathDescr, maxPath);
+	
+
+#if LOCAL_TEST
+	{
+		vector_size_t maxPathDescrRef;
+		size_t maxPathRef;
+		GetAnsRef(isLinked, maxPathDescrRef, maxPathRef);
+		if (!maxPathDescrRef.empty())
+		{
+			LOCAL_PRINT() << "Found: " << "len = " << maxPathRef << " {" << maxPathDescrRef << "}" << std::endl;
+			LOCAL_ASSERT(maxPathRef == maxPath);
+		}
+		else
+		{
+			LOCAL_PRINT() << "Not found: " << std::endl;
+		}
+	}
+#endif
+
+	LOCAL_ASSERT(maxPathDescr.size() == 4);
+	ost << (maxPathDescr[0] + 1) << " " << (maxPathDescr[1] + 1) << " " << (maxPathDescr[2] + 1) << " " << (maxPathDescr[3] + 1) << std::endl;
+
+	return multipleTestMode;
+}
+
+
+#if LOCAL_TEST
+void Test()
+{
+	using namespace library::random;
+	const auto genVector = GenFactory::CreateGenVector(GenRange<size_t>(2, 10), GenRange<int32_t>(-100, +200));
+
+	for (size_t t = 0; t < 10; t++)
+	{
+		const vector_int32_t data = genVector();
+		// size_t ans = GetAns(data);
+	}
+}
+#endif
+
+int main(int argc, const char *argv[])
+{
+#if LOCAL_TEST
+	Test();
+#endif
+
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

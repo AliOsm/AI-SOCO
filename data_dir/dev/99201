@@ -1,0 +1,136 @@
+#pragma comment(linker, "/STACK:33554432")
+
+#include <cstdio>
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <string>
+#include <stack>
+#include <numeric>
+#include <memory.h>
+
+using namespace std;
+
+typedef long long LL;
+
+int n, m, t;
+int p, u, d;
+
+int a[333][333];
+int L[333][333];
+int R[333][333];
+
+int val(int x, int y)
+{
+	if (x == y)
+		return p;
+	return x < y ? u : d;
+}
+
+int res = -(int)1e9;
+int r1, c1, r2, c2;
+
+void relax(int x1, int y1, int x2, int y2, int val)
+{
+	if (abs(t - res) > abs(t - val))
+	{
+		r1 = x1;
+		r2 = x2;
+		c1 = y1;
+		c2 = y2;
+		res = val;
+	}
+}
+
+struct P
+{
+	int val, r;
+	P() {}
+	P(int val, int r)
+	{
+		this->val = val;
+		this->r = r;
+	}
+};
+
+bool operator<(const P & a, const P & b)
+{
+	return a.val < b.val;
+}
+
+set<P> S;
+
+P get(int val)
+{
+	val = val - t;
+	set<P> :: iterator it = S.lower_bound(P(val, -1));
+	if (it != S.end())
+	{
+		if (it->val == val)
+			return *it;
+		if (it == S.begin())
+			return *it;
+		set<P> :: iterator it2 = it;
+		it2--;
+		if (abs(it->val - val) > abs(it2->val - val))
+			return *it2;
+		return *it;
+	}
+	else
+	{
+		it--;
+		return *it;
+	}
+	return P(0, 0);
+}
+
+int main()
+{
+	scanf("%d%d%d", &n, &m, &t);
+	scanf("%d%d%d", &p, &u, &d);
+	for(int i = 0; i < n; ++i)
+		for(int j = 0; j < m; ++j)
+			scanf("%d", &a[i][j]);
+	for(int i = 1; i < m; ++i)
+		for(int j = 0; j < n; ++j)
+			R[j][i] = R[j][i - 1] + val(a[j][i - 1], a[j][i]);
+	for(int i = m - 2; i >= 0; --i)
+		for(int j = 0; j < n; ++j)
+			L[j][i] = L[j][i + 1] + val(a[j][i + 1], a[j][i]);
+	
+	for(int i = 0; i < m; ++i)
+	{
+		for(int j = i + 2; j < m; ++j)
+		{
+			S.clear();
+			int u = 0, d = 0;
+			int p1 = -1;
+			int p2 = -1;
+			for(int k = 0; k < n; ++k)
+			{
+				if (p1 != -1)
+					S.insert(P(p1, k - 2));
+				if (k > 0)
+				{
+					d += val(a[k - 1][j], a[k][j]);
+					u += val(a[k][i], a[k - 1][i]);
+				}
+				int z = L[k][i] - L[k][j];
+				if (k >= 2)
+				{
+					P v = get(u + d + z);
+					relax(v.r, i, k, j, u + d + z - v.val);
+				}
+				int inv = R[k][j] - R[k][i];
+				p1 = p2;
+				p2 = u + d - inv;
+			}
+		}
+	}
+
+	printf("%d %d %d %d\n", r1 + 1, c1 + 1, r2 + 1, c2 + 1);
+	return 0;
+}

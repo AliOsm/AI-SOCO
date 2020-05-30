@@ -1,0 +1,140 @@
+#include <iostream>
+#include <cstdio>
+#include <fstream>
+#include <vector>
+using namespace std;
+struct rebro
+{
+    int l,r;
+    int x,y;
+    int prop;
+};
+rebro a[3003];
+rebro b[3003];
+int n,m;
+void mergesort(rebro *a,rebro *b,int n)
+{
+    int i,i0,i1,iRight,iEnd,width,j;
+    for(width=1;width<n;width*=2)
+        for(i=0;i<n;i+=width*2)
+        {
+            i0=i;
+            i1=iRight=min(i+width,n);
+            iEnd=min(i+width*2,n);
+            for(j=i;j<iEnd;j++)
+                if(i0<iRight && (i1==iEnd || a[i0].prop>a[i1].prop))
+                    b[j]=a[i0++];
+                else
+                    b[j]=a[i1++];
+            for(j=i;j<iEnd;j++)
+                a[j]=b[j];
+        }
+}
+int pred[1003];
+int size[1003];
+void build()
+{
+    int i;
+    for(i=0;i<n;i++)
+    {
+        pred[i]=i;
+        size[i]=1;
+    }
+}
+int findset(int v)
+{
+    if(pred[v]==v)
+        return v;
+    return pred[v]=findset(pred[v]);
+}
+struct rebro2
+{
+    int prop;
+    int v;
+};
+vector <rebro2> g[1003];
+void uniset(rebro i)
+{
+    int x=findset(i.x);
+    int y=findset(i.y);
+    rebro2 k;
+    if(x!=y)
+    {
+        k.v=i.y;
+        k.prop=i.prop;
+        g[i.x].push_back(k);
+        k.v=i.x;
+        g[i.y].push_back(k);
+        if(size[x]>size[y])
+        {
+            size[x]+=size[y];
+            pred[y]=x;
+        }
+        else
+        {
+            size[y]+=size[x];
+            pred[x]=y;
+        }
+    }
+}
+int rec;
+bool flag[1003];
+void dfs(int x,int res)
+{
+    flag[x]=true;
+    if(x==n-1)
+    {
+        rec=res;
+        return;
+    }
+    for(size_t i=0;i<g[x].size();i++)
+    {
+        if(!flag[g[x][i].v])
+            dfs(g[x][i].v,min(res,g[x][i].prop));
+    }
+}
+int main()
+{
+    scanf("%d %d",&n,&m);
+    int i,j;
+    for(i=0;i<m;i++)
+    {
+        scanf("%d %d %d %d",&a[i].x,&a[i].y,&a[i].l,&a[i].r);
+        a[i].x--;
+        a[i].y--;
+    }
+    int maxi=0;
+    int ok;
+    int c[3003];
+    for(i=0;i<m;i++)
+        c[i]=a[i].l;
+    for(i=0;i<m;i++)
+    {
+        ok=c[i];
+        for(j=0;j<m;j++)
+        {
+            if(a[j].r>=ok && a[j].l<=ok)
+                a[j].prop=a[j].r-ok+1;
+            else
+                a[j].prop=0;
+        }
+        for(j=0;j<n;j++)
+        {
+            g[j].resize(0);
+            flag[j]=false;
+        }
+        mergesort(a,b,m);
+        build();
+        for(j=0;j<m;j++)
+            if(a[j].prop>0)
+                uniset(a[j]);
+        rec=0;
+        dfs(0,1000000);
+        maxi=max(maxi,rec);
+    }
+    if(maxi==0)
+        printf("Nice work, Dima!\n");
+    else
+        printf("%d\n",maxi);
+    return 0;
+}

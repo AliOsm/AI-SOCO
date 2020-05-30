@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+typedef long long ll;
+using namespace std;
+using namespace __gnu_pbds;
+
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+
+#define all(x) x.begin(), x.end()
+#define f(i,a,b) for(int i = (a); i <= (b); i++)
+#define fd(i,a,b) for(int i = (a); i >= (b); i--)
+#define mp make_pair
+#define faster_io() ios_base::sync_with_stdio(false)
+#define pb push_back
+#define pii pair<int,int>
+#define SZ(x) ((int)x.size())
+#define vii vector<pair<int,int>>
+
+const ll INF = 1000000005;
+const ll INFLL = 2000000000000000000ll;
+const ll MOD = 1000000007;
+
+// ----------------------------------------------------------------------------------------------------------
+
+int N, K, Q;
+ll A[1000005], Am[1000005], DP[1000005], F[1000005], Sub[1000005], Take[2000005];
+vector<int> Divs[1000005];
+
+ll exp(ll n, int e)
+{
+    if(e == 0) return 1;
+    if(e%2) return (exp(n,e-1) * n) % MOD;
+    ll k = exp(n,e/2);
+    return (k*k) % MOD;
+}
+
+ll take(int n, int m)
+{
+    if(m > n) return 0;
+    if(m == 0) return 1;
+    ll num = F[n];
+    ll den = (F[m]*F[n-m]) % MOD;
+    return (num * exp(den,MOD-2)) % MOD;
+}
+
+int main()
+{
+    fd(i,1000000,1) for(int j = i; j <= 1000000; j += i) Divs[j].pb(i);
+    cin >> N >> K >> Q;
+    F[0] = F[1] = 1;
+    f(i,2,1000000) F[i] = (F[i-1] * i) % MOD;
+    f(i,0,2000000) Take[i] = take(i,K);
+    f(i,1,N)
+    {
+        int x;
+        scanf("%d", &x);
+        A[x]++;
+    }
+    fd(i,1000000,1)
+    {
+        int am = 0;
+        DP[i] = 0;
+        for(int j = i; j <= 1000000; j += i) am += A[j], DP[i] -= DP[j];
+        Am[i] = am;
+        DP[i] += Take[am];
+        DP[i] %= MOD;
+    }
+    ll curr = 0;
+    f(i,1,1000000)
+    {
+        curr = (curr + DP[i]*i) % MOD;
+        for(int d : Divs[i]) if(d < i) Sub[d] += DP[i];
+    }
+    while(Q--)
+    {
+        int x;
+        scanf("%d", &x);
+        A[x]++;
+        ll add = 0, ans = 0;
+        for(int i : Divs[x]) Am[i]++;
+        for(int i : Divs[x])
+        {
+            Sub[i] %= MOD;
+            ll prev = DP[i];
+            DP[i] = (Take[Am[i]] - Sub[i]) % MOD;
+            for(int j : Divs[i]) if(j < i) Sub[j] += DP[i] - prev;
+            curr += DP[i]*i - prev*i;
+            curr %= MOD;
+        }
+        printf("%I64d\n", (curr+MOD)%MOD);
+    }
+}

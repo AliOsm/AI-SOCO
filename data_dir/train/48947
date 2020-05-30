@@ -1,0 +1,750 @@
+#include <cstdlib>
+#include <cstdarg>
+#include <cassert>
+#include <cctype> // tolower
+#include <ctime>
+
+#include <iostream>
+#include <sstream>
+
+#include <map>
+#include <set>
+#include <list>
+#include <queue>
+#include <vector>
+#include <string>
+
+#include <limits>
+#include <utility>
+
+#include <numeric>
+#include <iterator>
+#include <algorithm>
+#include <functional>
+
+/*
+ * g++ -g -std=c++11 -DBUG -D_GLIBCXX_DEBUG -Wall -o cforce{,.cpp}
+ * g++ -g -DBUG -D_GLIBCXX_DEBUG -Wall -o cforce{,.cpp}
+ *
+ * TODO:
+ *      overload >> for map and set, using (insert) iterator
+ *      << override for containers should be a wrapper around same implementation,
+ *          with specialization for string types
+ *      chmod:: consider an algorithm stable to int64 overflow
+ *      shortest path algorithm
+ *      shortest path in a tree
+ *      prime factorization
+ *      isprime( )
+ *      pow( k, n ) mod m
+ *      maximum network flow
+ *      odd / even
+ *      transform ( x.begin(), x.end(), x.begin(), bind2nd( modulus<int>(), 2 ));
+ *      count_if ( x.begin(), x.end(), bind2nd( modulus < int > (), 2));
+ */
+
+/*
+ * --------------------------------------------------------
+ *  typedef / define
+ * --------------------------------------------------------
+ */
+
+typedef          long long int int64;
+typedef unsigned long long int uint64;
+
+#define DOUBLE_INF std::numeric_limits< double >::infinity()
+#define DOUBLE_NAN std::numeric_limits< double >::quiet_NaN()
+
+#ifdef BUG
+    #define DEBUG(var) { std::cout << #var << ": " << (var) << std::endl; }
+#else
+    #define DEBUG(var)
+#endif
+
+#define EXPECT(expr) if ( ! (expr) ) std::cerr << "Assertion " \
+    << #expr " failed at " << __FILE__ << ":" << __LINE__ << std::endl;
+
+#define DBG(v) std::copy( v.begin(), v.end(), std::ostream_iterator < typeof( *v.begin() )> ( std::cout, " " ) )
+
+/*
+ * http://rootdirectory.de/wiki/SSTR()
+ * usage:
+ *      SSTR( "x^2: " << x*x )
+ */
+#define SSTR( val ) dynamic_cast< std::ostringstream & >( std::ostringstream() << std::dec << val ).str()
+
+
+/* https://www.quora.com/C++-programming-language/What-are-some-cool-C++-tricks */
+// template <typename T, size_t N>
+// char (&ArraySizeHelper(T (&array)[N]))[N];
+// #define arraysize(array) (sizeof(ArraySizeHelper(array)))
+
+/*
+ * --------------------------------------------------------
+ *  functional utils
+ * --------------------------------------------------------
+ */
+
+template < typename T >
+struct abs_diff : std::binary_function < T, T, T >
+{
+    typedef T value_type;
+
+    inline value_type operator( ) ( const value_type & x, const value_type & y ) const
+    {
+        return std::abs( x - y );
+    }
+};
+
+template < typename value_type, typename cont_type >
+class isin : public std::unary_function < value_type, bool >
+{
+    public:
+        isin( const cont_type & vals ): m_vals ( vals ) { };
+
+        bool operator ( ) ( const value_type & x ) const
+        {
+            return std::find ( m_vals.begin( ), m_vals.end( ), x ) != m_vals.end( );
+        }
+
+    private:
+        const cont_type m_vals;
+};
+
+/*
+ * --------------------------------------------------------
+ *  string utils
+ * --------------------------------------------------------
+ */
+
+inline void erase ( std::string & str, const char & ch )
+{
+    std::string::iterator iter = std::remove_if ( str.begin(), str.end(), std::bind2nd( std::equal_to < char > ( ), ch ) );
+    str.erase ( iter, str.end() );
+}
+
+template < typename value_type>
+inline std::string val2str ( const value_type & x )
+{
+    std::ostringstream sout ( std::ios_base::out );
+    sout << x;
+    return sout.str();
+}
+
+template < typename value_type>
+inline value_type str2val ( const std::string & str )
+{
+    std::istringstream iss ( str, std::ios_base::in );
+    value_type val;
+
+    iss >> val;
+    return val;
+}
+
+std::vector< std::string > tokenize ( const std::string & str, const char & sep )
+{
+    /*
+     * outputs empty tokens and assumes str does not start with sep
+     * corner cases: empty string, one char string,
+     *       string starting/ending with sep, all sep, end with two sep
+     */
+
+    std::vector < std::string > res;
+    std::string::const_iterator follow = str.begin( ),
+                                lead   = str.begin( );
+
+    while ( true )
+    {
+        while ( lead != str.end() && * lead != sep )
+            ++ lead;
+
+        res.push_back ( std::string( follow, lead ) );
+
+        if ( lead != str.end ( ) )
+            follow = 1 + lead ++ ;
+        else
+            break;
+    }
+
+    return res;
+}
+
+/*
+ * getline ( cin, str )
+ * requires ctrl-D
+ * cin >> str; does not pass after space char
+ */
+
+
+/*
+ * --------------------------------------------------------
+ *  number utils
+ * --------------------------------------------------------
+ */
+
+template < typename value_type >  // greatest common divisor
+inline value_type gcd ( const value_type & m, const value_type & n )
+{
+    value_type a = std::max ( std::abs( m ), std::abs( n ) );
+    value_type b = std::min ( std::abs( m ), std::abs( n ) );
+
+    /* corner case: one of the values is zero */
+    if ( ! b )   return a;
+
+    for ( value_type res = a % b; res ; res = a % b )
+    {
+        a = b;
+        b = res;
+    }
+
+    return b;
+}
+
+inline bool isnan ( const double & a )
+{
+    return ! ( a == a );
+}
+
+template < typename value_type >
+inline value_type mini ( int n, ... )
+{
+    va_list vl;
+    va_start (vl, n);
+    value_type res = va_arg ( vl, value_type );
+
+    for ( int i = 1; i < n; ++i ) {
+        const value_type val = va_arg ( vl, value_type );
+        res = min ( res, val );
+    }
+
+    va_end( vl );
+    return res;
+}
+
+template < typename value_type >
+inline value_type maxi ( int n, ... )
+{
+    va_list vl;
+    va_start (vl, n);
+    value_type res = va_arg ( vl, value_type );
+
+    for ( int i = 1; i < n; ++i ) {
+        const value_type val = va_arg ( vl, value_type );
+        res = max ( res, val );
+    }
+
+    va_end( vl );
+    return res;
+}
+
+// XXX look this up how is this implemented
+template < class T >
+inline int sign ( const T & x )
+{
+    if ( x == T() )
+        return 0;
+    else if ( x < T() )
+        return -1;
+    else
+        return 1;
+}
+
+/*
+ * change moduluos from n to m
+ */
+std::string chmod ( std::string num, const unsigned n, const unsigned m )
+{
+    const char * digit = "0123456789abcdefghijklmnopqrstuvwxyz";
+    std::transform ( num.begin(), num.end(), num.begin(), tolower );
+
+    isin < char, std::string > is_alpha_num ( digit );
+    assert ( find_if ( num.begin( ), num.end( ), std::not1 ( is_alpha_num ) ) == num.end( ));
+
+    unsigned long long int val ( 0 );
+
+    if ( n == 10U )
+    {
+        std::istringstream iss ( num, std::ios_base::in );
+        iss >> val;
+    }
+    else
+        for ( std::string::const_iterator iter = num.begin( ); iter != num.end( ); ++ iter )
+            val = val * n + ( 'a' <= *iter ? *iter - 'a' + 10U : *iter - '0');
+
+    if ( m == 10U )
+    {
+        std::ostringstream sout ( std::ios_base::out );
+        sout << val;
+        return sout.str ( );
+    }
+    else
+    {
+        std::string res;
+        for ( ; val ; val /= m )
+            res.push_back( digit [ val % m ] );
+
+        return res.length( ) ? std::string( res.rbegin( ), res.rend( )) : "0";
+    }
+}
+
+/*
+ * returns a list of all primes from 2 to n ( inclusive )
+ * maximum adj diff of all primes less than 1e5 is 72 ( 114 for 1e6 )
+ */
+template < typename value_type >
+std::vector < value_type > get_primes ( const value_type n )
+{
+    typedef typename std::vector < value_type >::iterator iterator;
+
+    std::vector < value_type > primes;
+    primes.reserve (( n + 2 ) / 3 + 3 );
+
+    primes.push_back ( 2 );
+    primes.push_back ( 3 );
+
+    /* add all potential primes to the list */
+    for ( value_type j = 6; j <= n + 1 ; j += 6 )
+    {
+        // if ( std::find_if ( primes.begin() + 2, primes.end(),
+        //             std::not1 ( std::bind1st ( std::modulus < value_type > ( ), j - 1 ))) == primes.end( ) )
+        //     primes.push_back ( j - 1 );
+        // if ( std::find_if ( primes.begin() + 2, primes.end(),
+        //             std::not1 ( std::bind1st ( std::modulus < value_type >  ( ), j + 1 ))) == primes.end( ) )
+        //     primes.push_back ( j + 1 );
+
+        primes.push_back ( j - 1 );
+        primes.push_back ( j + 1 );
+    }
+
+    iterator iend = primes.end( );
+
+    /* remove every multiple of existing items */
+    for ( iterator iter = primes.begin( ) + 2; iter != iend; ++ iter )
+        iend = std::remove_if ( iter + 1, iend, std::not1 ( std::bind2nd ( std::modulus < value_type > (), *iter )));
+
+    iend = std::remove_if ( primes.begin(), iend, std::bind2nd ( std::greater < int > ( ), n ));
+    primes.erase ( iend, primes.end( ));
+
+    return primes;
+}
+
+
+/*
+ * --------------------------------------------------------
+ *  operator<< overrides
+ * --------------------------------------------------------
+ */
+
+template < typename key_type, typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::pair < key_type, value_type > & p)
+{
+    out << "( " << p.first << ", " << p.second << " )";
+    return out;
+}
+
+template < typename key_type, typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::map < key_type, value_type > & m )
+{
+    typedef typename std::map < key_type, value_type >::const_iterator  const_iterator;
+    out << "{ ";
+
+    // for (auto item:M) out << item.first << "->" << item.second << ", ";
+        // out << iter->first << " -> " << iter->second << ", ";
+
+    for ( const_iterator iter = m.begin(); iter != m.end(); ++ iter )
+        out << ( iter != m.begin( ) ? ", " : "" ) << *iter ;
+
+    return out << " }";
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::set < value_type > & s )
+{
+    out << "{ ";
+
+    for ( typename std::set < value_type>::const_iterator iter = s.begin(); iter != s.end(); ++ iter )
+        out << ( iter != s.begin( ) ? ", " : "" ) << *iter ;
+
+    return out << " }";
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::vector < value_type > & a )
+{
+    typedef typename std::vector < value_type>::const_iterator const_iterator;
+
+    out << "{ ";
+    for ( const_iterator iter = a.begin(); iter != a.end(); ++ iter )
+        out << ( iter != a.begin( ) ? ", " : "" ) << *iter ;
+
+    return out << " }";
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::list < value_type > & a )
+{
+    typedef typename std::list < value_type>::const_iterator const_iterator;
+
+    out << "{ ";
+    for ( const_iterator iter = a.begin(); iter != a.end(); ++ iter )
+        out << ( iter != a.begin( ) ? ", " : "" ) << *iter ;
+
+    return out << " }";
+}
+
+/*
+ * --------------------------------------------------------
+ *  operator>> overrides
+ * --------------------------------------------------------
+ */
+
+template < typename key_type, typename value_type >
+std::istream & operator>> ( std::istream & in, std::pair < key_type, value_type > & p)
+{
+    in >> p.first >> p.second;
+    return in;
+}
+
+template < typename value_type >
+std::istream & operator>> ( std::istream & in, std::vector < value_type > & a )
+{
+    typedef typename std::vector < value_type>::iterator iterator;
+
+    for ( iterator iter = a.begin(); iter != a.end(); ++ iter )
+        in >> * iter;
+
+    return in;
+}
+
+// given overload for 'pair' we should not need this,
+// consider removing
+//
+// template < typename value_type, typename key_type >
+// std::istream & operator>> ( std::istream & in, std::vector < std::pair < value_type, key_type > > & a )
+// {
+//     typedef typename std::vector < std::pair < value_type, key_type> >::iterator iterator;
+//
+//     for ( iterator iter = a.begin(); iter != a.end(); ++ iter )
+//         in >> iter->first >> iter->second;
+//
+//     return in;
+// }
+
+/*
+ * --------------------------------------------------------
+ *  readin quick utilities
+ * --------------------------------------------------------
+ */
+
+template < typename value_type >
+std::vector < value_type > readin ( size_t n = 0 )
+{
+    // typedef typename vector < value_type >::iterator iterator;
+
+    if ( ! n ) std::cin >> n;
+    std::vector < value_type > a ( n );
+
+    std::cin >> a;
+
+    // for ( iterator iter = a.begin(); iter != a.end(); ++iter )
+    //     cin >> *iter;
+
+    return a;
+}
+
+template < typename key_type, typename value_type >
+std::vector < std::pair < key_type , value_type > > readin ( size_t n = 0 )
+{
+    // typedef typename std::vector < std::pair < key_type, value_type > >::iterator iterator;
+
+    if ( !n ) std::cin >> n;
+    std::vector < std::pair < key_type, value_type > > a ( n );
+
+    std::cin >> a;
+
+    // for ( iterator iter = a.begin(); iter != a.end(); ++ iter )
+    //     cin >> iter->first >> iter->second;
+
+    return a;
+}
+
+/*
+ * --------------------------------------------------------
+ *  pair utility
+ * --------------------------------------------------------
+ */
+
+template < typename T >
+inline T pair_sum ( const T & a, const T & b )
+{
+    // XXX typename cannot appear outside of a template
+    typedef typename T::first_type   first_type;
+    typedef typename T::second_type  second_type;
+
+    return std::make_pair < first_type, second_type > ( a.first + b.first, a.second + b.second );
+}
+
+/*
+ * --------------------------------------------------------
+ *  maximum cardinality matching in a bipartite graph
+ *        G = G1 ∪ G2 ∪ {NIL}
+ *  where G1 and G2 are partition of graph and NIL is a special null vertex
+ *  https://en.wikipedia.org/wiki/Hopcroft-Karp_algorithm
+ * --------------------------------------------------------
+ */
+
+class HopcroftKarp
+{
+    public:
+        HopcroftKarp ( const std::vector < std::list < size_t > > & adj,
+                       const std::vector < bool > & tag );
+
+        size_t get_npair ( ) { return npair; };
+        std::map < size_t, size_t > get_map ( );
+
+    private:
+        bool mf_breadth_first_search ( );  // breadth first search from unpaired nodes in G1
+        bool mf_depth_first_search ( const size_t v ); // dfs w/ toggeling augmenting paths
+
+        const std::vector < std::list < size_t > > & m_adj;  // adjancy list for each node
+        const std::vector < bool > & m_tag;  // binary tag distinguishing partitions
+
+        size_t npair;
+        const size_t NIL;  // special null vertex
+        const size_t INF;  // practically infinity distance
+
+        std::vector < size_t > m_g1;    // set of nodes with tag = true
+        std::vector < size_t > m_dist;  // dist from unpaired vertices in G1
+        std::vector < size_t > m_pair;
+};
+
+
+std::map < size_t, size_t > HopcroftKarp::get_map ( )
+{
+    std::map < size_t, size_t > m;
+
+    for ( size_t j = 0; j < m_pair.size( ); ++ j )
+        if ( m_pair[ j ] != NIL  && m_tag[ j ])
+            m[ j ] = m_pair[ j ];
+
+    return m;
+}
+
+
+HopcroftKarp::HopcroftKarp ( const std::vector < std::list < size_t > > & adj,
+                             const std::vector < bool > & tag ):
+    m_adj ( adj ),
+    m_tag ( tag ),
+    npair ( 0 ),
+    NIL ( adj.size( )),
+    INF ( adj.size( ) + 1 ),
+    m_dist ( std::vector < size_t > ( adj.size( ) + 1, INF)),
+    m_pair ( std::vector < size_t > ( adj.size( ), NIL ))  // initially everything is paired with nil
+{
+    assert ( m_adj.size() == m_tag.size() );
+
+    for ( size_t j = 0; j < tag.size( ); ++ j )
+        if ( tag[ j ] )
+            m_g1.push_back ( j );
+
+    while ( mf_breadth_first_search ( ) )
+        for ( std::vector < size_t >::const_iterator v = m_g1.begin( ); v != m_g1.end( ); ++ v )
+            if ( m_pair[ *v ] == NIL && mf_depth_first_search ( *v ) )
+                ++ npair;
+}
+
+bool HopcroftKarp::mf_breadth_first_search( )
+{
+    /* only nodes from g1 are queued */
+    std::queue < size_t > bfs_queue;
+
+    /* initialize queue with all unpaired nodes from g1 */
+    for ( std::vector < size_t >::const_iterator v = m_g1.begin( ); v != m_g1.end( ); ++v )
+        if ( m_pair[ *v ] == NIL )
+        {
+            m_dist[ *v ] = 0;
+            bfs_queue.push ( *v );
+        }
+        else
+            m_dist[ *v ] = INF;
+
+    m_dist[ NIL ] = INF;
+
+    /* find all the shortest augmenting paths to node nil */
+    while ( ! bfs_queue.empty() )
+    {
+        const size_t v = bfs_queue.front( );
+        bfs_queue.pop ( );
+
+        if ( m_dist[ v ] < m_dist[ NIL ] )
+            for ( std::list < size_t >::const_iterator u = m_adj[ v ].begin( ); u != m_adj[ v ].end( ); ++ u )
+                if ( m_dist[ m_pair[ * u ] ] == INF )
+                {
+                    m_dist[ m_pair[ * u ] ] = m_dist[ v ] + 1;
+                    bfs_queue.push ( m_pair[ * u ] );
+                }
+    }
+
+    return m_dist[ NIL ] != INF;
+}
+
+
+bool HopcroftKarp::mf_depth_first_search( const size_t v )
+{
+    if ( v == NIL )
+        return true;
+    else
+    {
+        for ( std::list < size_t >::const_iterator u = m_adj[ v ].begin( ); u != m_adj[ v ].end( ); ++ u )
+            if ( m_dist[ m_pair[ *u ] ] == m_dist[ v ] + 1  && mf_depth_first_search( m_pair[ *u ] ))
+            {
+                /*
+                 * there is an augmenting path to nil from m_pair[ *u ] and hence there is an augmenting
+                 * path from v to u and u to to nil; therefore v and u can be paired together
+                 */
+                m_pair [ *u ] = v;
+                m_pair [  v ] = *u;
+                return true;
+            }
+        m_dist[ v ] = INF;
+        return false;
+    }
+}
+
+
+/*
+ * --------------------------------------------------------
+ *  timing utility
+ * --------------------------------------------------------
+ */
+
+// TODO add a preprocessor which automatically includes the funciton name, or __line__
+// and disables if not in debug mode
+/* prints the life length of the object when it goes out of scope */
+class ScopeTimer
+{
+    public:
+        ScopeTimer ( const std::string & msg = "" ): tic ( clock ( )), m_msg( msg ) { };
+
+        ~ ScopeTimer ( )
+        {
+            const clock_t toc = clock();
+            const uint64 dt   = 1000L * ( toc - tic ) / CLOCKS_PER_SEC;
+
+            const uint64 mil = dt % 1000L;
+            const uint64 sec = ( dt / 1000L ) % 60L;
+            const uint64 min = ( dt / 60000L ) % 60L;
+            const uint64 hrs = ( dt / 3600000L );
+
+            std::cout << '\n' << m_msg << "\n\telapsed time: ";
+
+            if ( hrs )  std::cout << hrs << " hrs, ";
+            if ( min )  std::cout << min << " min, ";
+            if ( sec )  std::cout << sec << " sec, ";
+            std::cout << mil << " mil-sec\n";
+        }
+
+    private:
+        typedef unsigned long long int  uint64;
+        const clock_t tic;
+        const std::string m_msg;
+};
+
+/*
+ * --------------------------------------------------------
+ * --------------------------------------------------------
+ */
+
+
+/*
+ * -- @@@ -------------------------------------------------
+ */
+
+using namespace std;
+
+void fill_map ( const vector < pair < unsigned, unsigned > > & a,
+                map < unsigned , map < unsigned, unsigned > > & m )
+{
+    typedef vector < pair < unsigned, unsigned > >::const_iterator const_iterator;
+
+    for ( const_iterator iter = a.begin( ); iter != a.end( ); ++ iter )
+        ++ m [ iter->second ] [ iter->first ];
+}
+
+
+size_t sum2nd ( const map < unsigned, unsigned > & m )
+{
+    size_t s = 0;
+
+    for ( map< unsigned, unsigned>::const_iterator iter = m.begin( ); iter != m.end( ); ++ iter )
+        s += iter->second;
+
+    return s;
+}
+
+void b159 ( )
+{
+    int n, m;
+    cin >> n >> m;
+
+    const vector < pair < unsigned, unsigned > > mrk ( readin < unsigned, unsigned > ( n ) );
+    const vector < pair < unsigned, unsigned > > cps ( readin < unsigned, unsigned > ( m ) );
+
+    map < unsigned , map < unsigned, unsigned > > mrk_map, cps_map;
+
+    fill_map ( mrk, mrk_map );
+    fill_map ( cps, cps_map );
+
+    DEBUG ( cps_map );
+    DEBUG ( mrk_map );
+
+    size_t u = 0, v = 0;
+
+    for ( map < unsigned, map < unsigned, unsigned > >::const_iterator i = mrk_map.begin( ), j = cps_map.begin( );
+            i != mrk_map.end( ) && j != cps_map.end( ); ++ i )
+    {
+        DEBUG ( *i );
+        while ( j != cps_map.end( ) && j->first < i ->first )
+            ++ j;
+
+        if ( j != cps_map.end( ) && j->first == i->first ) // same size
+        {
+            DEBUG ( *j );
+
+            DEBUG ( sum2nd ( i->second ) );
+            DEBUG ( sum2nd ( j->second ) );
+
+            u += min ( sum2nd ( i->second ), sum2nd ( j->second ) );
+
+            for ( map< unsigned, unsigned >::const_iterator k = i->second.begin(), s = j->second.begin();
+                    k != i->second.end( ) && s != j->second.end( ); ++ k )
+            {
+                while ( s != j->second.end( ) && s->first < k->first )
+                    ++ s;
+
+                if ( s!= j->second.end( ) && s->first == k->first ) // same color
+                    v += min ( s->second, k->second );
+            }
+        }
+    }
+
+    cout << u << ' ' << v << '\n';
+}
+
+int main ( const int argc, char * argv [ ])
+{
+    b159 ( );
+
+    // ScopeTimer sc ( __FILE__ " :: " );
+
+    // vector < unsigned long long > primes ( get_primes < unsigned long long > ( 1e6 + 10 ) );
+
+    // DEBUG ( primes.size( ) );
+    // DEBUG ( primes.back( ) );
+
+    // vector < unsigned long long > adj_diff ( primes.size( ));
+    // adjacent_difference ( primes.begin(), primes.end(), adj_diff.begin( ), abs_diff < long long > ( ) );
+
+    // DEBUG (  * max_element ( adj_diff.begin(), adj_diff.end() ) );
+
+    return EXIT_SUCCESS;
+}

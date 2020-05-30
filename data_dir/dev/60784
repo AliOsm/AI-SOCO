@@ -1,0 +1,187 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <stack>
+#include <queue>
+#include <map>
+#include <ctime>
+#include <cmath>
+#include <set>
+#include <limits.h>
+ 
+using namespace std;
+ 
+#define SZ(x) (int) (x).size()
+
+typedef long long ll;
+
+const int N = 1010;
+const ll INF = (ll) 1e17;
+
+ll h[N], dist[N];
+int size, n, st, fin, m;
+int posVertex[N];
+int pos[N];
+vector < pair < int, ll > > G[N];
+ll c[N], t[N];
+bool used[N], OK[N][N];
+
+void lift(int c)
+{
+	while (c > 1)
+	{
+		int p = c / 2;
+		if (h[p] <= h[c])
+			break;
+		swap(h[p], h[c]);
+		swap(posVertex[pos[p]], posVertex[pos[c]]);
+		swap(pos[c], pos[p]);
+		c = p;
+	}
+}
+
+void sift(int c)
+{
+	while (c * 2 <= size)
+	{
+		int p = c * 2;
+		if (p < size && h[p] > h[p + 1])
+			p++;
+		if (h[c] <= h[p])
+			break;
+		swap(h[p], h[c]);
+		swap(posVertex[pos[p]], posVertex[pos[c]]);
+		swap(pos[c], pos[p]);
+		c = p;
+	}
+}
+
+void add(ll value, int num)
+{
+	h[++size] = value;
+	posVertex[num] = size;
+	pos[size] = num;
+	lift(size);
+}
+
+int get()
+{
+	int ans = pos[1];
+	h[1] = h[size];
+	posVertex[pos[size]] = 1;
+	pos[1] = pos[size];
+	size--;
+	sift(1);
+	return ans;
+}
+
+void change(ll value, int num)
+{
+	int cur = posVertex[num];
+	h[cur] = value;
+	lift(cur);
+	sift(cur);
+}
+
+void djikstra(int st)
+{
+	size = 0;
+	for (int i = 1; i <= n; ++i)
+	{
+		used[i] = true;
+		dist[i] = INF;
+		if (i == st)
+			add(0, st);
+		else
+			add(INF, i);
+	}
+	dist[st] = 0;
+	while (size > 0)
+	{
+		int u = get();
+		if (dist[u] == INF)
+			break;
+		used[u] = false;
+		for (int i = 0; i < SZ(G[u]); ++i)
+		{
+			int to = G[u][i].first;
+			if (used[to] && dist[to] > dist[u] + G[u][i].second)
+			{
+				//cout << st << " " << u << " " << to <<  endl;
+				dist[to] = dist[u] + G[u][i].second;
+				change(dist[to], to);
+			}
+		}
+	}
+}
+
+ll solve(int st, int fin)
+{
+	size = 0;
+	for (int i = 1; i <= n; ++i)
+	{
+		used[i] = true;
+		dist[i] = INF;
+		if (i == st)
+			add(0, st);
+		else
+			add(INF, i);
+	}
+	dist[st] = 0;
+	while (size > 0)
+	{
+		int u = get();
+		if (dist[u] == INF)
+			break;
+		used[u] = false;
+		for (int j = 1; j <= n; ++j)
+			if (OK[u][j] && used[j] && dist[j] > dist[u] + c[u])
+			{
+				dist[j] = dist[u] + c[u];
+				change(dist[j], j);
+			}
+	}
+	if (dist[fin] == INF)
+		return -1;
+	else
+		return dist[fin];
+}
+
+
+
+
+
+int main()
+{
+	scanf("%d%d%d%d", &n, &m, &st, &fin);
+	memset(OK, false, sizeof(OK));
+	
+	for (int i = 0; i < m; ++i)
+	{
+		int u, v;
+		ll w;
+		scanf("%d%d%I64d", &u, &v, &w);
+		G[u].push_back(make_pair(v, w));
+		G[v].push_back(make_pair(u, w));
+	}
+	for (int i = 1; i <= n; ++i)
+		scanf("%I64d%I64d", &t[i], &c[i]);
+	for (int i = 1; i <= n; ++i)
+	{
+		djikstra(i);
+		for (int j = 1; j <= n; ++j)
+		{
+			if (dist[j] <= t[i])
+			{
+				//cout << i << " " << j << " " << endl;
+				OK[i][j] = true;
+			}
+		}
+	}
+	printf("%I64d", solve(st, fin));
+
+
+	return 0;
+}

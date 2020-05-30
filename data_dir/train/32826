@@ -1,0 +1,41 @@
+// In the name of Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll x;
+ll counter = 0;
+
+void f(ll value , ll first , ll last)
+{
+    if(value>x)return ;
+
+    counter++;
+
+    f(value*10+first , first , last);
+
+    if(last!=-1)f(value*10+last , first , last);
+    else{
+
+        for(int i=0;i<=9;i++){
+            if(i==first)continue;
+            f(value*10+i , first , i);
+        }
+    }
+}
+
+int main(void)
+{
+    cin >> x;
+
+    for(int i=1;i<=9;i++){
+
+        f(i , i , -1);
+    }
+
+    cout << counter << endl;
+
+    return 0;
+}

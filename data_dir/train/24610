@@ -1,0 +1,254 @@
+#include"bits/stdc++.h"
+
+using namespace std;
+
+#define MAX 500012
+
+int n;
+int m;
+int q;
+
+vector<int> v[MAX];
+vector<int> C;
+
+int lw[MAX];
+int star[MAX];
+int ord;
+bool use[MAX];
+
+
+vector<pair<int, int> > Q;
+
+vector<vector<int> > v2;
+
+vector<int> g[MAX];
+
+inline void dfs(int b) {
+	star[b] = ord;
+	lw[b] = ord;
+	use[b] = true;
+	ord++;
+	for (int go : v[b]) {
+		if (use[go]) {
+			lw[b] = min(lw[b], star[go]);
+		}
+		else {
+			dfs(go);
+			lw[b] = min(lw[b], lw[go]);
+			if (Q.back().first == star[b]) {
+				v2.push_back(vector<int>());
+				g[b].push_back(v2.size() - 1 + n);
+				g[v2.size() - 1 + n].push_back(b);
+				while (Q.size() && Q.back().first >= star[b]) {
+					v2.back().push_back(Q.back().second);
+					g[Q.back().second].push_back(v2.size() - 1 + n);
+					g[v2.size() - 1 + n].push_back(Q.back().second);
+					Q.pop_back();
+				}
+				v2.back().push_back(b);
+			}
+			if (lw[go] > star[b]) {
+				g[b].push_back(go);
+				g[go].push_back(b);
+			}
+		}
+	}
+	if (lw[b] != star[b]) {
+		Q.push_back(make_pair(lw[b], b));
+	}
+}
+int dep[MAX];
+#define MAX_LOG 20
+int lcc[MAX_LOG][MAX];
+int child[MAX];
+
+inline void dfs2(int b, int pr = -1, int d = 0) {
+	dep[b] = d;
+	lcc[0][b] = pr;
+	child[b] = 1;
+	for (int go : g[b]) {
+		if (go == pr)continue;
+		dfs2(go, b, d + 1);
+		child[b] += child[go];
+	}
+}
+void init() {
+	for (int i = 0; i + 1 < MAX_LOG; i++) {
+		for (int j = 0; j < MAX; j++) {
+			if (lcc[i][j] == -1) {
+				lcc[i + 1][j] = -1;
+			}
+			else {
+				lcc[i + 1][j] = lcc[i][lcc[i][j]];
+			}
+		}
+	}
+}
+int lca(int a, int b) {
+	if (dep[a] < dep[b]) {
+		swap(a, b);
+	}
+	for (int i = 0; i < MAX_LOG; i++) {
+		if (((dep[a] - dep[b]) >> i) & 1){
+			a = lcc[i][a];
+		}
+	}
+	if (a == b) {
+		return a;
+	}
+	for (int i = MAX_LOG - 1; i >= 0; i--) {
+		if (lcc[i][a] != lcc[i][b]) {
+			a = lcc[i][a];
+			b = lcc[i][b];
+		}
+	}
+	return lcc[0][a];
+}
+
+struct HLD {
+	vector<int> seg;
+	int N;
+	void resize(int sz) {
+		seg.assign(sz * 4, INT_MAX);
+		N = sz;
+	}
+	inline void add(int b, int l, int r, int ll, int x) {
+		assert(b < seg.size());
+		if (l <= ll&&ll < r) {
+			if (l + 1 == r) {
+				seg[b] = x;
+			}
+			else {
+				add(b * 2 + 1, l, (l + r) >> 1, ll, x);
+				add(b * 2 + 2, (l + r) >> 1, r, ll, x);
+				seg[b] = min(seg[b * 2 + 1], seg[b * 2 + 2]);
+			}
+		}
+	}
+	inline void chang(int node, int val) {
+		add(0, 0, N, node, val);
+	}
+	inline int query(int b, int l, int r, int ll, int rr) {
+		assert(b < seg.size());
+		if (r <= ll || rr <= l) {
+			return INT_MAX;
+		}
+		if (ll <= l&&r <= rr) {
+			return seg[b];
+		}
+		return min(query(b * 2 + 1, l, (l + r) >> 1, ll, rr), query(b * 2 + 2, (l + r) >> 1, r, ll, rr));
+	}
+	int get_min(int l, int r) {
+		return query(0, 0, N, l, r + 1);
+	}
+};
+int belong[MAX];
+int att[MAX];
+vector<HLD> hld;
+vector<int> hld_pr;
+
+inline void dfs3(int b,int be,int at,int pr=-1) {
+	belong[b] = be;
+	att[b] = at;
+	if ((g[b].size() - (pr != -1)) == 0) {
+		hld[be].resize(at + 1);
+		return;
+	}
+	int mx = 0;
+	int id = -1;
+	for (int go : g[b]) {
+		if (go == pr)continue;
+		if (mx < child[go]) {
+			mx = child[go];
+			id = go;
+		}
+	}
+	for (int go : g[b]) {
+		if (go == pr)continue;
+		if (id == go) {
+			dfs3(go, be, at + 1, b);
+		}
+		else {
+			hld.push_back(HLD());
+			hld_pr.push_back(b);
+			dfs3(go, hld.size() - 1, 0, b);
+		}
+	}
+}
+priority_queue<pair<int, int>,vector<pair<int,int> > ,greater<pair<int,int> >  > qq[MAX];
+char buf[3];
+
+int path(int from, int go) {
+	if (go >= n) {
+		go = lcc[0][go];
+	}
+	int ans = INT_MAX;
+	while (belong[from] != belong[go]) {
+		ans = min(ans, hld[belong[from]].get_min(0, att[from]));
+		from = hld_pr[belong[from]];
+	}
+	ans = min(ans, hld[belong[from]].get_min(att[go], att[from]));
+	return ans;
+}
+
+int main() {
+	cin >> n >> m >> q;
+	for (int i = 0; i < n; i++) {
+		int w;
+		scanf("%d", &w);
+		C.push_back(w);
+	}
+	for (int i = 0; i < m; i++) {
+		int a, b;
+		scanf("%d%d", &a, &b);
+		a--;
+		b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+	dfs(0);
+	memset(lcc, -1, sizeof(lcc));
+	dfs2(0);
+	init();
+	hld_pr.push_back(-1);
+	hld.push_back(HLD());
+	dfs3(0, 0, 0, -1);
+	for (int i = 0; i < n; i++) {
+		hld[belong[i]].chang(att[i], C[i]);
+	}
+	for (int i = 0; i < v2.size(); i++) {
+		for (int el : v2[i]) {
+			if (lcc[0][i+n] == el)continue;
+			qq[i].push(make_pair(C[el],el) );
+		}
+		hld[belong[i + n]].chang(att[i+n], qq[i].top().first);
+	}
+	while (q--) {
+		scanf("%s", buf);
+		if (buf[0] == 'C') {
+			int a, w;
+			scanf("%d%d", &a, &w);
+			a--;
+			hld[belong[a]].chang(att[a], w);
+			C[a] = w;
+			if (lcc[0][a] != -1 && lcc[0][a] >= n) {
+				int node = lcc[0][a];
+				node -= n;
+				qq[node].push(make_pair(w,a));
+				while (C[qq[node].top().second] != qq[node].top().first) {
+					qq[node].pop();
+				}
+				hld[belong[node + n]].chang(att[node + n], qq[node].top().first);
+			}
+		}
+		else {
+			int a, b;
+			scanf("%d%d", &a, &b);
+			a--;
+			b--;
+			int lc = lca(a, b);
+			printf("%d\n", min(path(a, lc), path(b, lc)) );
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 405;
+
+struct Edge{
+  int from, to ,nxt, cap, flw;
+  double cost;
+}e[N*N*4];
+
+int x[N], y[N], n, edgeCnt, head[N<<1], flw[N<<1], vis[N<<1], p[N<<1], src, snk;
+double dist[N<<2], d[N][N];
+
+void addEdge(int u, int v, int cap, double cost){
+  e[edgeCnt].from = u;
+  e[edgeCnt].to = v;
+  e[edgeCnt].cap = cap;
+  e[edgeCnt].flw = 0;
+  e[edgeCnt].cost = cost;
+  e[edgeCnt].nxt = head[u];
+  head[u] = edgeCnt++;
+}
+int spfa(){
+  ///The Strongest Algorithm in the World
+  memset(vis, 0, sizeof vis);
+  memset(flw, 0, sizeof flw);
+  for(int i = 0; i <= snk; i++)dist[i] = 1e8;
+  queue<int>q;
+  q.push(src); vis[src] = 1; flw[src] = 1e8; dist[src] = 0;
+
+  while(!q.empty()){
+
+    auto  cur = q.front();  q.pop();  vis[cur] = 0;
+    for(int i = head[cur]; ~i; i = e[i].nxt){
+        int v = e[i].to;
+        if(e[i].cap == e[i].flw)continue;
+//        cerr << e[i].cap << ' ' << e[i].flw << '\n';
+        if(dist[v] > dist[cur] + e[i].cost + 1e-7){
+            dist[v] = dist[cur] + e[i].cost;
+            p[v] = i;
+            flw[v] = min(flw[cur], e[i].cap - e[i].flw);
+            if(!vis[v]){
+              vis[v] = 1;
+              q.push(v);
+            }
+        }
+
+    }
+
+  }
+  return flw[snk] > 0;
+}
+void addBiEdge(int u, int v, int cap, double cost){
+  addEdge(u,v,cap,cost);
+  addEdge(v,u,0,-cost);
+}
+int main() {
+
+    scanf("%d", &n);
+
+    int mxY = INT_MIN;
+
+    for(int i = 1; i <= n; i++){
+        scanf("%d%d", x + i, y + i);
+        mxY = max(mxY, y[i]);
+
+    }
+
+    int cnt = 0;
+    for(int i = 1; i <= n; i++){
+      if(y[i] == mxY)cnt++;
+    }
+    if(cnt > 1)
+      return puts("-1");
+
+    src = 0, snk = n << 1 | 1;
+
+    for(int i = 1; i <= n; i++)
+        for(int j = 1; j <= n; j++)
+          d[i][j] = sqrt((x[i]-x[j]) * (x[i]-x[j]) + (y[i]-y[j]) * (y[i]-y[j]));
+
+    memset(head,-1,sizeof head);
+
+    for(int i = 1; i <= n; i++){
+
+      if(y[i] != mxY){
+          addBiEdge(src,i,1,0);
+      }
+
+      for(int j = 1; j <= n; j++)
+        if(y[j] > y[i])
+          addBiEdge(i,n+j,1,d[i][j]);
+      addBiEdge(n+i,snk,2,0);
+    }
+
+    int flw = 0;
+    double out = 0.0;
+    while(spfa()){
+      flw++;
+      out += dist[snk];
+//      cout << dist[snk] << '\n';
+      for(int i = snk; i!= src; i = e[p[i]].from){
+        e[p[i]].flw++;
+        e[p[i]^1].flw--;
+      }
+    }
+
+    if(flw < n-1)puts("-1");
+    else printf("%0.8f\n",out);
+
+
+    return 0;
+}

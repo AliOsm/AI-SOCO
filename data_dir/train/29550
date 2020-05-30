@@ -1,0 +1,134 @@
+#include <bits/stdc++.h>
+
+#define f first
+#define s second
+
+#define pb push_back
+#define mp make_pair
+
+#define pii pair<ll, ll>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+const int INF = (int) 1e9 + 7;
+const int MAXN = (int) 8e6 + 10;
+
+typedef long double ld;
+
+struct node {
+  int ways[2][2];
+  node () {
+    memset(ways, 0, sizeof ways);
+  }
+};
+
+node t[MAXN];
+int flag[MAXN];
+
+int n, m;
+int a[MAXN];
+
+char s[MAXN];
+char type[10];
+
+node combine(node l, node r) {
+  node res;
+  res.ways[0][0] = l.ways[0][0] + r.ways[0][0];
+
+  res.ways[0][1] = max(res.ways[0][1], l.ways[0][0] + r.ways[0][1]);
+  res.ways[0][1] = max(res.ways[0][1], l.ways[0][0] + r.ways[1][1]);
+  res.ways[0][1] = max(res.ways[0][1], l.ways[0][1] + r.ways[1][1]);
+
+  res.ways[1][0] = max(res.ways[1][0], l.ways[1][0] + r.ways[0][0]);
+  res.ways[1][0] = max(res.ways[1][0], l.ways[1][1] + r.ways[1][0]);
+  res.ways[1][0] = max(res.ways[1][0], l.ways[1][1] + r.ways[0][0]);
+
+  res.ways[1][1] = max(res.ways[1][1], l.ways[1][1] + r.ways[1][1]);
+  return res;
+}
+
+void push(int v) {
+  if (flag[v]) {
+    flag[v + v] ^= flag[v];
+    flag[v + v + 1] ^= flag[v];
+    node old = t[v];
+    t[v].ways[0][0] = old.ways[1][1];
+    t[v].ways[0][1] = old.ways[1][0];
+    t[v].ways[1][0] = old.ways[0][1];
+    t[v].ways[1][1] = old.ways[0][0];
+  }
+  flag[v] = 0;
+}
+
+void build(int v = 1, int tl = 1, int tr = n) {
+  if (tl == tr) {
+    t[v].ways[a[tl]][a[tl]] = 1;
+  } else {
+    int mid = (tl + tr) / 2;
+    build(v + v, tl, mid);
+    build(v + v + 1, mid + 1, tr);
+    t[v] = combine(t[v + v], t[v + v + 1]);
+  }
+}
+
+void upd(int l, int r, int v = 1, int tl = 1, int tr = n) {
+  push(v);
+  if (tl > r || tr < l) return;
+  if (l <= tl && tr <= r) {
+    flag[v] ^= 1;
+    push(v);
+    return;
+  }
+  int mid = (tl + tr) / 2;
+  upd(l, r, v + v, tl, mid);
+  upd(l, r, v + v + 1, mid + 1, tr);
+  t[v] = combine(t[v + v], t[v + v + 1]);
+}
+
+node empt;
+node get(int l, int r, int v = 1, int tl = 1, int tr = n) {
+  push(v);
+  if (tl > r || tr < l) return empt;
+  if (l <= tl && tr <= r) {
+    return t[v];
+  }
+  int mid = (tl + tr) / 2;
+  return combine(get(l, r, v + v, tl, mid), get(l, r, v + v + 1, mid + 1, tr));
+}
+
+int main() {
+  #ifdef LOCAL
+    freopen("in", "r", stdin);
+  #else
+    //freopen(".in", "r", stdin);
+    //freopen(".out", "w", stdout);
+  #endif // LOCAL
+
+  scanf("%d%d", &n, &m);
+  scanf("\n%s", s + 1);
+  for (int i = 1; i <= n; i++) {
+    a[i] = (s[i] == '7');
+  }
+  build();
+  while (m--) {
+    scanf("\n%s", &type);
+    if (type[0] == 'c') {
+      node res = get(1, n);
+      int ans = 0;
+      for (int i = 0; i < 2; i++) {
+        for (int j = i; j < 2; j++) {
+          ans = max(ans, res.ways[i][j]);
+        }
+      }
+      printf("%d\n", ans);
+    } else {
+      int l, r;
+      scanf("%d%d", &l, &r);
+      upd(l, r);
+    }
+  }
+  return 0;
+}

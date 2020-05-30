@@ -1,0 +1,164 @@
+//raja1999
+#include <bits/stdc++.h>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstdio>
+#include <cstdlib>
+#include <climits>
+#include <utility>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <iomanip> 
+//setbase - cout << setbase (16)a; cout << 100 << endl; Prints 64
+//setfill -   cout << setfill ('x') << setw (5); cout << 77 <<endl;prints xxx77
+//setprecision - cout << setprecision (14) << f << endl; Prints x.xxxx
+//cout.precision(x)  cout<<fixed<<val;  // prints x digits after decimal in val
+
+using namespace std;
+#define f(i,a,b) for(i=a;i<b;i++)
+#define rep(i,n) f(i,0,n)
+#define fd(i,a,b) for(i=a;i>=b;i--)
+#define pb push_back
+#define mp make_pair
+#define vi vector< int >
+#define vl vector< ll >
+#define ss second
+#define ff first
+#define ll long long
+#define pii pair< int,int >
+#define pll pair< ll,ll >
+#define sz(a) a.size()
+#define inf (1000*1000*1000+5)
+#define all(a) a.begin(),a.end()
+#define tri pair<int,pii>
+#define vii vector<pii>
+#define vll vector<pll>
+#define viii vector<tri>
+#define mod (1000*1000*1000+7)
+#define pqueue priority_queue< int >
+#define pdqueue priority_queue< int,vi ,greater< int > >
+const int LOGN=20;
+//std::ios::sync_with_stdio(false);
+std::vector<set<int> > adj(100005);
+int pari[100005],DP[25][100005],lev[100005],sz[100005],dis[100005],n;
+//Precomputation
+int dfs(int cur,int prev,int level){
+	lev[cur]=level;
+	set<int>::iterator it;
+	for(it=adj[cur].begin();it!=adj[cur].end();it++){
+		if(*it!=prev){
+			DP[0][*it]=cur;
+			dfs(*it,cur,level+1);
+		}
+	}
+}	
+void preprocess()
+{
+	lev[0]=0;
+	DP[0][0]=0;
+	for(int i=1;i<LOGN;i++)
+		for(int j=0;j<n;j++)
+			DP[i][j] = DP[i-1][DP[i-1][j]];
+}
+int lca(int a,int b)
+{
+	if(lev[a]>lev[b])swap(a,b);
+	int d = lev[b]-lev[a];
+	for(int i=0;i<LOGN;i++)
+		if(d&(1<<i))
+			b=DP[i][b];
+	if(a==b)return a;
+	for(int i=LOGN-1;i>=0;i--)
+		if(DP[i][a]!=DP[i][b])
+			a=DP[i][a],b=DP[i][b];
+	return DP[0][a];
+}
+int dist(int u,int v){
+	return lev[u]+lev[v]-2*lev[lca(u,v)];
+}
+//Decomposition
+int size;
+int dfs1(int cur,int prev){
+	size++;
+	sz[cur]=0;
+	set<int>::iterator it;
+	for(it=adj[cur].begin();it!=adj[cur].end();it++){
+		if(*it!=prev){
+			dfs1(*it,cur);
+			sz[cur]+=sz[*it];
+		}
+	}
+	sz[cur]++;
+}
+int dfs2(int cur,int prev){
+	set<int>::iterator it;
+	for(it=adj[cur].begin();it!=adj[cur].end();it++){
+		if(*it!=prev){
+			if(sz[*it]>size/2){
+				 return dfs2(*it,cur);
+			}
+		}
+	}
+	return cur;
+}
+int decompose(int cur,int prev){
+	size=0;
+	dfs1(cur,-1);
+	set<int>::iterator it;
+	int centroid=dfs2(cur,prev);
+	pari[centroid]=prev;
+	for(it=adj[centroid].begin();it!=adj[centroid].end();it++){
+		adj[*it].erase(centroid);
+		decompose(*it,centroid);
+	}
+	adj[centroid].clear();
+}
+//solve
+int update(int cur){
+	int x=cur;
+	while(x!=-1){
+		dis[x]=min(dis[x],dist(x,cur));
+		x=pari[x];
+	}
+}
+int query(int cur){
+	int minn=inf,x=cur;
+	while(x!=-1){
+		minn=min(minn,dist(x,cur)+dis[x]);
+		x=pari[x];
+	}
+	return minn;
+}
+int main(){
+	int m,i,u,v,x,t;
+	scanf("%d%d",&n,&m);
+	rep(i,n-1){
+		scanf("%d%d",&u,&v);
+		u--;
+		v--;
+		adj[u].insert(v);
+		adj[v].insert(u);
+	}
+	rep(i,n){
+		dis[i]=inf;
+		pari[i]=-1;
+	}
+	dfs(0,-1,0);
+	preprocess();
+	decompose(0,-1);
+	update(0);
+	rep(i,m){
+		scanf("%d%d",&t,&x);
+		x--;
+		if(t==1){
+			update(x);
+		}
+		else{
+			printf("%d\n",query(x));
+		}
+	}
+} 

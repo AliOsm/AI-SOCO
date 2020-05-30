@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MOD 998244353
+
+int n, kk, q, cnt[300005], x[6], y[300005];
+
+using cn = long long;
+
+int si, ln, to[524289];
+cn xx[524289], yy[524289], wn[524289], invsi, ans[300005];
+
+void mod(long long& a) {
+	if (a >= MOD)
+		a -= MOD;
+}
+
+long long po(long long b, int p) {
+	long long re = 1;
+	while (p) {
+		if (p & 1)
+			re = re * b % MOD;
+		b = b * b % MOD;
+		p >>= 1;
+	}
+	return re;
+}
+
+void precompute(int a) {  // a = ans size, can change to reuse wn for diff si
+	for (si = 1, ln = 0; si < a; si <<= 1, ln++) ;
+	wn[0] = 1;
+	wn[1] = po(3, (MOD - 1) >> ln);
+	for (int i = 2; i <= si; i++)
+		wn[i] = wn[i - 1] * wn[1] % MOD;
+	to[0] = 0;
+	for (int i = 1; i < si; i++)
+		to[i] = (i & 1) ? to[i / 2] / 2 | si / 2 : to[i / 2] / 2;
+	invsi = po(si, MOD - 2);
+}
+
+void ntt(cn *a, bool b) {
+	for (int i = 0; i < si; i++)
+		if (i < to[i])
+			swap(a[i], a[to[i]]);
+	for (int i = 0; i < ln; i++)
+		for (int j = 0; j < si; j += 1 << i + 1)
+			for (int k = 0; k < 1 << i; k++) {
+				cn tx = a[j | k];
+				cn ty = wn[b ? si - (k << ln - 1 - i) : k << ln - 1 - i] *
+						a[(1 << i) | j | k] % MOD;
+				mod(a[j | k] = tx + ty);
+				mod(a[1 << i | j | k] = tx + MOD - ty);
+			}
+}
+
+void add(cn& a, cn b) {
+	a += b;
+	if (a >= MOD)
+		a -= MOD;
+}
+
+int main() {
+	scanf("%d%d", &n, &kk);
+	while (n--) {
+		int tmp;
+		scanf("%d", &tmp);
+		cnt[tmp]++;
+	}
+	for (int i = 0; i < kk; i++)
+		scanf("%d", x + i);
+	precompute(300005);
+	scanf("%d", &q);
+	for (int i = 0; i < q; i++) {
+		scanf("%d", y + i);
+		y[i] /= 2;
+	}
+	for (int i = 0; i < kk; i++) {
+		int ca = 0, cb = 0;
+		for (int j = 1; j < x[i]; j++)
+			if (cnt[j] == 1)
+				ca++;
+			else if (cnt[j])
+				cb++;
+		memset(xx, 0, sizeof(xx[0]) * si);
+		memset(yy, 0, sizeof(yy[0]) * si);
+		xx[0] = yy[0] = 1;
+		xx[1] = yy[1] = 2;
+		yy[2] = 1;
+		ntt(xx, 0);
+		ntt(yy, 0);
+		// printf("xi %d ca cb %d %d\n", x[i], ca, cb);
+		for (int j = 0; j < si; j++)
+			xx[j] = po(xx[j], ca) * po(yy[j], cb) % MOD;
+		ntt(xx, 1);
+		// for (int j = 0; j < 10; j++) printf("%d %lld\n", j, xx[j] * invsi % MOD);
+		for (int j = 0; j < q; j++) {
+			int tmp = y[j] - x[i] - 1;
+			if (tmp >= 0 && tmp < si)
+				ans[j] = (ans[j] + xx[tmp] * invsi) % MOD;
+				// add(ans[j], xx[tmp]);
+		}
+	}
+	for (int i = 0; i < q; i++)
+		printf("%lld\n", ans[i]);
+}

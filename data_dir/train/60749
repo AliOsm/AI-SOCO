@@ -1,0 +1,134 @@
+#include<bits/stdc++.h>
+#define LL long long
+#define fi first
+#define se second
+#define mk make_pair
+#define PLL pair<LL, LL>
+#define PLI pair<LL, int>
+#define PII pair<int, int>
+#define SZ(x) ((int)x.size())
+#define ull unsigned long long
+
+using namespace std;
+
+const int N = 200 + 7;
+const int inf = 0x3f3f3f3f;
+const LL INF = 0x3f3f3f3f3f3f3f3f;
+const int mod = 1e9 + 7;
+const double eps = 1e-8;
+const double PI = acos(-1);
+
+int n, m, len, k, tmp, v[210];
+vector<int> L, R;
+vector<int> s;
+
+inline void add(int &a, int b) {
+    a += b; if(a >= mod) a -= mod;
+}
+
+struct Ac {
+    int ch[210][20], val[210], f[210], tot, sz;
+    int dp[2][210][510][2], cur, pre;
+    void init(int _sz) {tot = 0; sz = _sz;}
+    inline int newNode() {
+        tot++; f[tot] = 0; val[tot] = 0;
+        memset(ch[tot], 0, sizeof(ch[tot]));
+        return tot;
+    }
+    inline int idx(int c) {return c;}
+    void addStr(vector<int> &s, int cost) {
+        int u = 0;
+        for(int i = 0; i < s.size(); i++) {
+            int c = idx(s[i]);
+            if(!ch[u][c]) ch[u][c] = newNode();
+            u = ch[u][c];
+        }
+        val[u] += cost;
+    }
+    void build() {
+        queue<int> que;
+        for(int c = 0; c < sz; c++) {
+            int v = ch[0][c];
+            if(!v) ch[0][c] = 0;
+            else f[v] = 0, que.push(v);
+        }
+        while(!que.empty()) {
+            int u = que.front(); que.pop();
+            val[u] += val[f[u]];
+            for(int c = 0; c < sz; c++) {
+                int v = ch[u][c];
+                if(!v) ch[u][c] = ch[f[u]][c];
+                else f[v] = ch[f[u]][c], que.push(v);
+            }
+        }
+    }
+    int solve(vector<int> &str) {
+        int n = str.size(), ans = 0;
+        cur = 0, pre = 1;
+        memset(dp[cur], 0, sizeof(dp[cur]));
+        for(int z = 1; z <= str[0]; z++) {
+            int v = ch[0][z];
+            if(val[v] <= k) add(dp[cur][v][val[v]][z == str[0]], 1);
+        }
+        for(int i = 1; i < n; i++) {
+            swap(cur, pre);
+            memset(dp[cur], 0, sizeof(dp[cur]));
+            for(int z = 1; z < m; z++) {
+                int v = ch[0][z];
+                if(val[v] <= k) add(dp[cur][v][val[v]][0], 1);
+            }
+            for(int u = 0; u <= tot; u++) {
+                for(int s = 0; s <= k; s++) {
+                    if(dp[pre][u][s][0]) {
+                        for(int z = 0; z < m; z++) {
+                            int v = ch[u][z];
+                            if(s+val[v] <= k) add(dp[cur][v][val[v]+s][0], dp[pre][u][s][0]);
+                        }
+                    }
+
+                    if(dp[pre][u][s][1]) {
+                        for(int z = 0; z <= str[i]; z++) {
+                            int v = ch[u][z];
+                            if(s+val[v] <= k) add(dp[cur][v][val[v]+s][z==str[i]], dp[pre][u][s][1]);
+                        }
+                    }
+                }
+            }
+        }
+        for(int u = 0; u <= tot; u++)
+            for(int j = 0; j <= k; j++)
+        add(ans, dp[cur][u][j][0]), add(ans, dp[cur][u][j][1]);
+        return ans;
+    }
+} ac;
+
+int main() {
+    scanf("%d%d%d", &n, &m, &k);
+    ac.init(m);
+    scanf("%d", &len); L.resize(len);
+    for(int i = 0; i < len; i++) scanf("%d", &L[i]);
+    scanf("%d", &len); R.resize(len);
+    for(int i = 0; i < len; i++) scanf("%d", &R[i]);
+    for(int i = 0; i < n; i++) {
+        scanf("%d", &len); s.resize(len);
+        for(int j = 0; j < len; j++) scanf("%d", &s[j]);
+        int cost; scanf("%d", &cost);
+        ac.addStr(s, cost);
+        for(int p = 0; p+s.size() <= L.size(); p++) {
+            bool flag = true;
+            for(int q = 0; q < s.size(); q++) {
+                if(s[q] != L[q+p]) {
+                    flag = false;
+                    break;
+                }
+            }
+            if(flag) tmp += cost;
+        }
+    }
+    ac.build();
+    int ans = (ac.solve(R) - ac.solve(L) + (tmp <= k) + mod) % mod;
+    printf("%d\n", ans);
+    return 0;
+}
+/*
+*/

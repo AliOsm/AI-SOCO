@@ -1,0 +1,112 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int MAXN = 1000007;
+const int LOGN = 20;
+vector<int>edg[MAXN];
+
+int lvl[MAXN];
+int pr[MAXN][LOGN+1];
+int minleaf[MAXN];
+int minnode[MAXN];
+
+vector<int>leafs;
+void dfs(int u, int p = 0)
+{
+//    cout << u << " from " << p << endl;
+    lvl[u] = 1+lvl[p];
+    pr[u][0] = p;
+    for (int k = 1; k <= LOGN; k++) {
+        pr[u][k] = pr[ pr[u][k-1] ][k-1];
+    }
+
+    minleaf[u] = MAXN;
+    for (int v : edg[u]) {
+        dfs(v, u);
+        if (minleaf[v] < minleaf[u]) {
+            minleaf[u] = minleaf[v];
+            minnode[u] = minnode[v];
+        }
+    }
+    if(edg[u].size()==0) {
+        minnode[u] = u;
+        minleaf[u] = lvl[u];
+    }
+//    cout << "min[" << u << "] = " << minnode[u] << endl;
+}
+
+int kthParent(int u, int k)
+{
+//    cout << u << " -> ";
+    for (int i = LOGN; i >= 0; i--) {
+        if (k >= (1<<i)) {
+            k -= 1<<i;
+            u = pr[u][i];
+        }
+    }
+    assert(k==0);
+    if (u==0) u = 1;
+//    cout << u << endl;
+    return u;
+}
+
+int baba[MAXN];
+int fr[MAXN];
+void dfs2(int u)
+{
+    int mx = 0;
+    for (int v : edg[u]) {
+        dfs2(v);
+        mx = max(mx, fr[v]);
+    }
+    fr[u] += mx;
+//    cout << fr[u] << " for " << u << endl;
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, k;
+    cin >> n >> k;
+
+    for (int i = 2; i <= n; i++) {
+        int p;
+        cin >> p;
+        edg[p].push_back(i);
+    }
+
+    dfs(1);
+
+    queue<int>q;
+    q.push(1);
+
+    int ans = 0;
+    while(!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int v : edg[u]) {
+            q.push(v);
+        }
+        if (edg[u].empty()) {
+            int v = kthParent(u, k);
+            int x = minnode[v];
+            if (lvl[x] < lvl[u]) {
+                v = baba[x];
+            }
+            fr[v]++;
+            baba[u] = v;
+//            cout << "baba[" << u << "] = " << v << endl;
+        }
+    }
+
+//    cout << ans << endl;
+
+    dfs2(1);
+
+    ans += fr[1];
+
+    cout << ans << '\n';
+
+
+    return 0;
+}

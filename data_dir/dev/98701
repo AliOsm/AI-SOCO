@@ -1,0 +1,195 @@
+#include<bits/stdc++.h>
+#define LL long long
+#define fi first
+#define se second
+#define mk make_pair
+#define PLL pair<LL, LL>
+#define PLI pair<LL, int>
+#define PII pair<int, int>
+#define SZ(x) ((int)x.size())
+#define ull unsigned long long
+
+using namespace std;
+
+const int N = 1e5 + 7;
+const int inf = 0x3f3f3f3f;
+const LL INF = 0x3f3f3f3f3f3f3f3f;
+const int mod = 998244353;
+const double eps = 1e-6;
+const double PI = acos(-1);
+
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+int n, m, tot, ans[N * 3], hs[N], cnt;
+int p[N], s[N], b[N], inc[N], pref[N];
+
+struct event {
+    int p, b, id, op, rp;
+    bool operator < (const event& rhs) const {
+        if(p == rhs.p) return op < rhs.op;
+        else return p < rhs.p;
+    }
+} e[N * 3];
+
+struct node {
+    node* ch[2];
+    int key, fix, sz, cnt;
+    void update() {
+        sz = ch[0]->sz + ch[1]->sz + cnt;
+    }
+} base[N * 20];
+
+typedef node* P_node;
+P_node len = base;
+
+struct Treap {
+    node nil;
+    P_node root, null;
+    Treap() {
+        root = null = &nil;
+        null->key = null->fix = inf;
+        null->sz = null->cnt = 0;
+        null->ch[0] = null->ch[1] = null;
+    }
+    P_node newnode(int tkey) {
+        len->key = tkey;
+        len->fix = rng();
+        len->ch[0] = len->ch[1] = null;
+        len->sz = len->cnt = 1;
+        return len++;
+    }
+    void rot(P_node &p, int d) {
+        P_node k = p->ch[d ^ 1];
+        p->ch[d ^ 1] = k->ch[d];
+        k->ch[d] = p;
+        p->update();
+        k->update();
+        p = k;
+    }
+    void _Insert(P_node &p, int tkey) {
+        if(p == null) {
+            p = newnode(tkey);
+        } else if(p->key == tkey) {
+            p->cnt++;
+        } else {
+            int d = tkey > p->key;
+            _Insert(p->ch[d], tkey);
+            if(p->ch[d]->fix > p->fix) {
+                rot(p, d ^ 1);
+            }
+        }
+        p->update();
+    }
+
+    void _Delete(P_node &p, int tkey) {
+        if(p == null) return;
+        if(p->key == tkey) {
+            if(p->cnt > 1) p->cnt--;
+            else if(p->ch[0] == null) p = p->ch[1];
+            else if(p->ch[1] == null) p = p->ch[0];
+            else {
+                int d = p->ch[0]->fix > p->ch[1]->fix;
+                rot(p, d);
+                _Delete(p->ch[d], tkey);
+            }
+        } else {
+            _Delete(p->ch[tkey > p->key], tkey);
+        }
+        p->update();
+    }
+    int _Kth(P_node p, int k) {
+        if(p == null || k < 1 || k > p->sz) return 0;
+        if(k < p->ch[0]->sz + 1) return _Kth(p->ch[0], k);
+        if(k > p->ch[0]->sz + p->cnt) return _Kth(p->ch[1], k - p->ch[0]->sz - p->cnt);
+        return p->key;
+    }
+    int _Rank(P_node p, int tkey, int res) {
+        if(p == null) return -1;
+        if(p->key == tkey) return p->ch[0]->sz + res + 1;
+        if(tkey < p->key) return _Rank(p->ch[0], tkey, res);
+        return _Rank(p->ch[1], tkey, res + p->ch[0]->sz + p->cnt);
+    }
+    int _Pred(P_node p, int tkey){
+        if(p == null) return -inf;
+        if(tkey <= p->key) return _Pred(p->ch[0], tkey);
+        return max(p->key, _Pred(p->ch[1], tkey));
+    }
+    int _Succ(P_node p, int tkey){
+        if(p == null) return inf;
+        if(tkey >= p->key) return _Succ(p->ch[1], tkey);
+        return min(p->key, _Succ(p->ch[0], tkey));
+    }
+    int _Query(P_node p, int tkey) {
+        if(p == null) return 0;
+        if(p->key > tkey) return _Query(p->ch[0], tkey);
+        else if(p->key < tkey) return p->cnt + p->ch[0]->sz + _Query(p->ch[1], tkey);
+        else return p->cnt + p->ch[0]->sz;
+    }
+    void Insert(int tkey){ _Insert(root,tkey); }
+    void Delete(int tkey){ _Delete(root,tkey); }
+    int Kth(int k){ return _Kth(root,k); }
+    int Rank(int tkey){ return _Rank(root,tkey,0); }
+    int Pred(int tkey){ return _Pred(root,tkey); }
+    int Succ(int tkey){ return _Succ(root,tkey); }
+    int Query(int tkey){ return _Query(root, tkey); }
+}tp;
+
+
+struct Bit {
+    Treap T[N];
+    void add(int x, int v) {
+        for(int i = x; i <= cnt; i += i & -i)
+            T[i].Insert(v);
+    }
+    void del(int x, int v) {
+        for(int i = x; i <= cnt; i += i & -i)
+            T[i].Delete(v);
+    }
+    int sum(int x, int R) {
+        int ans = 0;
+        for(int i = x; i; i -= i & -i)
+            ans += T[i].Query(R);
+        return ans;
+    }
+} bit;
+
+int getPos(int x) {
+    return upper_bound(hs + 1, hs + 1 + cnt, x) - hs - 1;
+}
+
+int main() {
+    srand(time(NULL));
+    scanf("%d%d", &n, &m);
+    for(int i = 1; i <= n; i++) scanf("%d", &p[i]);
+    for(int i = 1; i <= n; i++) scanf("%d", &s[i]);
+    for(int i = 1; i <= n; i++) scanf("%d", &b[i]);
+    for(int i = 1; i <= n; i++) {
+        e[++tot] = event{p[i], b[i], i, 0, p[i]};
+        e[++tot] = event{s[i], b[i], i, 2, p[i]};
+        hs[++cnt] = p[i] - b[i];
+    }
+    for(int i = 1; i <= m; i++) scanf("%d", &inc[i]);
+    for(int i = 1; i <= m; i++) scanf("%d", &pref[i]);
+    for(int i = 1; i <= m; i++) e[++tot] = event{inc[i], pref[i], n + i, 1, 0};
+
+    sort(hs + 1, hs + 1 + cnt);
+    cnt = unique(hs + 1, hs + 1 + cnt) - hs - 1;
+
+    sort(e + 1, e + 1 + tot);
+    for(int i = 1; i <= tot; i++) {
+        int p = e[i].p, b = e[i].b, rp = e[i].rp;
+        if(e[i].op == 0) {
+            bit.add(getPos(rp - b), rp + b);
+        } else if(e[i].op == 1) {
+            ans[e[i].id] = bit.sum(getPos(p - b), p + b);
+        } else {
+            bit.del(getPos(rp - b), rp + b);
+        }
+    }
+    for(int i = n + 1; i <= n + m; i++) printf("%d ", ans[i]);
+    puts("");
+    return 0;
+ }
+
+/*
+*/

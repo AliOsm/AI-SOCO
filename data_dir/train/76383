@@ -1,0 +1,134 @@
+	#include <bits/stdc++.h>
+	using namespace std;
+	#define ll long long
+	#define pb push_back
+	#define mp make_pair
+	typedef pair<int,int> pii;
+	#define f(i, x, n) for(int i = x; i < (int)(n); ++i)
+	const int N = 200001;
+
+	int n,pr[N],go[N],mxNode,mxDist;
+	bool leaf[N],vis[N];
+	vector<int> g[N];
+	pii h[N];
+
+	struct state{
+		int depth , len1 , len2 , node1 , node2;
+		state(int _depth , int _len1 , int _len2 , int _node1,int _node2){
+			depth = _depth,len1 = _len1,len2 = _len2,node1 = _node1,node2 = _node2;
+		}
+		state(){
+			depth=len1=len2=node1=node2=-1;
+		}
+		void print(){
+			cout << depth << " " << len1 << " " << len2 << " " << node1 << " " << node2 << endl;
+		}
+		bool operator<(const state &rhs)const{
+			if(depth != rhs.depth){
+				return depth < rhs.depth;
+			}
+			return len1+len2 < rhs.len1+rhs.len2;
+		}
+	};
+	state km[N];
+
+	void dfs(int u , int p){
+		leaf[u] = 1;
+		pr[u] = p;
+		go[u] = 0;
+		for(auto v : g[u]){
+			if(v==p)continue;
+			dfs(v,u);
+			go[u]++;
+			leaf[u] = false;
+		}
+	}
+	int getFarthest(int u , int p , int d){
+		pr[u] = p;
+		if(d > mxDist){
+			mxDist = d;
+			mxNode = u;
+		}
+		for(auto v : g[u]){
+			if(v==p || vis[v])continue;
+			getFarthest(v,u,d+1);
+		}
+	}
+	void fn(int u , int p , int d){
+		h[u] = mp(0,u);
+		set<pii> st;
+		km[u] = state(-1,-1,-1,-1,-1);
+		for(auto v : g[u]){
+			if(v==p)continue;
+			fn(v,u,d+1);
+			st.insert(h[v]);
+			while(st.size()>2)st.erase(st.begin());
+			km[u] = max(km[u],km[v]);
+			h[u] = max(h[u],mp(1+h[v].first,h[v].second));
+		}
+		if(st.size()==2){
+			auto x = (*st.begin());
+			auto y= (*--st.end());
+			km[u] = max(km[u],state(d,1+x.first,1+y.first,x.second,y.second));
+		}
+	}
+	int main(){
+		cin >> n;
+		for(int u,v,i = 0 ; i < n-1 ; ++i){
+			scanf("%d%d",&u,&v);
+			g[u].pb(v);
+			g[v].pb(u);
+		}
+		int root = -1;
+		for(int i = 1; i <= n ; ++i)if(g[i].size() >= 3)root = i;		
+		dfs(root,-1);
+		for(int i = 1; i <= n ; ++i){
+			if(!leaf[i])continue;
+			int cur = i;
+			while(cur != -1 && go[cur] <= 1){
+				vis[cur] = true;
+				cur = pr[cur];
+			}
+		}
+		for(int i = 1; i <= n ; ++i)if(!vis[i])root = i;
+		mxNode = mxDist = -1;
+		getFarthest(root,-1,0);
+		mxDist = -1;
+		int cur = mxNode;
+		getFarthest(cur,-1,0);
+		vector<int> path;
+		int hi = mxNode;
+		while(1){
+			path.push_back(hi);
+			if(hi == cur)break;
+			hi = pr[hi];
+		}
+		root = path[path.size()/2];
+		if(path.size()==2){
+			fn(path[1],path[0],0);
+			fn(path[0],path[1],0);
+			auto x = km[path[1]];
+			auto y = km[path[0]];
+			printf("%d %d\n", x.node1,y.node1);
+			printf("%d %d\n", x.node2,y.node2);
+				
+			return 0;
+		}
+		fn(root,-1,0);
+		//cout <<"R " << root << endl;
+		multiset<state> st;
+		for(auto vv : g[root]){
+			if(vis[vv])continue;
+			st.insert(km[vv]);
+			while(st.size()>2)st.erase(st.begin());
+		}
+		assert(st.size() == 2);
+		auto x = (*--st.end());
+		auto y = (*st.begin());
+	//	x.print();
+	//	y.print();
+		printf("%d %d\n", x.node1,y.node1);
+		printf("%d %d\n", x.node2,y.node2);
+		
+		return 0;
+	}

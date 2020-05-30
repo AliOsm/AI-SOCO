@@ -1,0 +1,149 @@
+#include <cstdio>
+#include <vector>
+#include <cstring>
+#include <queue>
+#include <iostream>
+#include <map>
+#include <algorithm>
+#include <set>
+using namespace std;
+typedef long long LL;
+const int N = 1000005;
+struct Node1 {
+    int left , right , len;
+    Node1 () {}
+    Node1 (int _l , int _r) {
+        left = _l;right = _r;
+        len = right - left + 1;
+    }
+    bool operator < (const Node1 &n) const {
+        return len != n.len ? len > n.len : right > n.right;
+    }
+};
+struct Node2 {
+    int left , right;
+    Node2 () {}
+    Node2 (int _l , int _r) {
+        left = _l;right = _r;
+    }
+    bool operator < (const Node2 &n) const {
+        return right < n.right;
+    }
+};
+int n , q;
+int a[N][3] , b[N];
+vector <int> num;
+map <int , int> mymap;
+set <Node1> setlen;
+set <Node2> setright;
+int s[N];
+inline int lowbit (int x) {
+    return x & (-x);
+}
+inline void add (int x , int n , int v) {
+    for (int i = x ; i <= n ; i += lowbit (i))
+        s[i] += v;
+}
+inline int sum (int x , int n) {
+    int ret = 0;
+    for (int i = x ; i > 0 ; i -= lowbit (i))
+        ret += s[i];
+    return ret;
+}
+inline int gao (int n) {
+    int p = upper_bound (num.begin () , num.end () , n) - num.begin () - 1 + 1;
+    return sum (p , num.size ());
+}
+int main(){
+#ifndef ONLINE_JUDGE 
+    freopen ("input.txt" , "r" , stdin);
+    // freopen ("output.txt" , "w" , stdout);
+#endif  
+    scanf ("%d %d" , &n , &q);
+    setlen.insert (Node1 (1 , n));
+    setright.insert (Node2 (1 , n));
+    for (int i = 0 ; i < q ; i ++) {
+        scanf ("%d" , &a[i][0]);
+        if (a[i][0] == 0) {
+            scanf ("%d %d" , &a[i][1] , &a[i][2]);
+        }
+        else {
+            if (mymap[a[i][0]] != 0) {
+                int pos = mymap[a[i][0]];
+                b[i] = pos;
+                mymap[a[i][0]] = 0;
+                int l = pos , r = pos;
+                // puts ("################");
+                // for (set <Node2> :: iterator ii = setright.begin () ; ii != setright.end () ; ii ++) {
+                //     cout << ii -> left << "  " << ii -> right << endl;
+                // }
+                set <Node2> :: iterator it = setright.lower_bound (Node2 (pos , pos));
+                vector <pair <int , int> > del;
+                if (it != setright.end ()) {
+                    Node2 pre = *it;
+                    // cout << pre.left << " " << pre.right << endl;
+                    if (pre.left == r + 1) {
+                        del.push_back (make_pair (pre.left , pre.right));
+                        r = pre.right;
+                    }
+                }
+                if (it != setright.begin ()) {
+                    it --;
+                    Node2 pre = *it;
+                    // cout << pre.left << " " << pre.right << endl;
+                    if (pre.right == l - 1) {
+                        del.push_back (make_pair (pre.left , pre.right));
+                        l = pre.left;
+                    }
+                }
+                for (int j = 0 ; j < del.size() ; j ++) {
+                    setlen.erase (Node1 (del[j].first , del[j].second));
+                    setright.erase (Node2 (del[j].first , del[j].second));
+                }
+                // cout << pos << " " << l << " " << r << endl;
+                setlen.insert (Node1 (l , r));
+                setright.insert (Node2 (l , r));
+            }
+            else {
+                Node1 now = *setlen.begin ();
+                int pos = (now.left + now.right + 1) >> 1;
+                setlen.erase (setlen.begin ());
+                setright.erase (Node2 (now.left , now.right));
+                if (pos - 1 >= now.left) {
+                    setlen.insert (Node1 (now.left , pos - 1));
+                    setright.insert (Node2 (now.left , pos - 1));
+                }
+                if (pos + 1 <= now.right) { 
+                    setlen.insert (Node1 (pos + 1 , now.right));
+                    setright.insert (Node2 (pos + 1 , now.right));
+                }
+                b[i] = pos;
+                mymap[a[i][0]] = pos;
+                num.push_back (pos);
+            }
+        }
+    }
+    mymap.clear ();
+    sort (num.begin () , num.end ());
+    num.resize (unique (num.begin () , num.end ()) - num.begin ());
+    for (int i = 0 ; i < q ; i ++) {
+        if (a[i][0] == 0) {
+            int l = a[i][1] , r = a[i][2];
+            printf ("%d\n" , gao (r) - gao (l - 1));
+        }
+        else {
+            if (mymap[a[i][0]] == 0) {
+                int pos = b[i];
+                add (lower_bound (num.begin () , num.end () , pos) - num.begin () + 1 , num.size() , 1);
+                mymap[a[i][0]] = pos;
+            }
+            else {
+
+                int pos = b[i];
+                add (lower_bound (num.begin () , num.end () , pos) - num.begin () + 1 , num.size() , -1);
+                mymap[a[i][0]] = 0;
+            }
+        }
+    }
+    return 0;
+}

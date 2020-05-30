@@ -1,0 +1,168 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 1e5 + 1;
+const ll L = 20;
+ll n, q, root;
+
+vec <pii> leaf;
+
+struct Graph {
+    ll key[N];
+    ll mnm[N];
+    ll mxm[N];
+    ll cnt[N];
+    ll sum[N];
+    ll par[N];
+    ll hgt[N];
+    ll anc[N][L];
+    vec <ll> adj[N];
+} graph;
+
+void input() {
+    cin >> n;
+    for(ll i = 1; i <= n; ++i) {
+        ll p; cin >> p;
+        ll k; cin >> k;
+        if(p != -1) {
+            graph.adj[p].pb(i);
+            graph.par[i] = p;
+        }
+        graph.key[i] = k;
+    }
+}
+
+void dfs(ll u, ll h) {
+    graph.hgt[u] = h;
+    graph.mxm[u] = graph.key[u];
+    graph.mnm[u] = graph.key[u];
+    graph.anc[u][0] = graph.par[u];
+    for(ll i = 1; i < L; ++i) {
+        graph.anc[u][i] = graph.anc[graph.anc[u][i - 1]][i - 1];
+    }
+    for(ll v: graph.adj[u]) {
+        if(graph.par[u] == v) {
+            continue;
+        }
+        dfs(v, h + 1);
+        graph.mxm[u] = max(graph.mxm[u], graph.mxm[v]);
+        graph.mnm[u] = min(graph.mnm[u], graph.mnm[v]);
+    }
+    if(graph.adj[u].empty()) {
+        leaf.pb({graph.key[u], u});
+    }
+}
+
+void dfs_prop(ll u) {
+    if(graph.adj[u].empty()) {
+        return;
+    }
+    ll sum = graph.sum[u];
+    ll cnt = graph.cnt[u];
+    ll mxm = graph.mxm[graph.adj[u][0]];
+    ll mnm = graph.mnm[graph.adj[u][1]];
+    graph.sum[graph.adj[u][0]] += mnm + sum;
+    graph.cnt[graph.adj[u][0]] += cnt + 1;
+    graph.sum[graph.adj[u][1]] += mxm + sum;
+    graph.cnt[graph.adj[u][1]] += cnt + 1;
+    dfs_prop(graph.adj[u][0]);
+    dfs_prop(graph.adj[u][1]);
+}
+
+ll lca(ll u, ll v) {
+    if(graph.hgt[u] < graph.hgt[v]) {
+        swap(u, v);
+    }
+    ll k = graph.hgt[u] - graph.hgt[v];
+    for(ll i = L - 1; i >= 0; --i) {
+        if((k >> i) & 1) {
+            u = graph.anc[u][i];
+        }
+    }
+    for(ll i = L - 1; i >= 0; --i) {
+        if(graph.anc[u][i] != graph.anc[v][i]) {
+            u = graph.anc[u][i];
+            v = graph.anc[v][i];
+        }
+    }
+    return graph.par[u];
+}
+
+ll find_leaf(ll x) {
+    auto itr = lb(all(leaf), mp(x, 0ll));
+    if(itr == leaf.begin()) {
+        return itr->yy;
+    }
+    if(itr == leaf.end()) {
+        return prev(itr)->yy;
+    }
+    auto itl = prev(itr);
+    ll u = itl->yy;
+    ll v = itr->yy;
+    ll a = lca(u, v);
+    return x <= graph.key[a]? u: v;
+}
+
+void solve() {
+    for(ll i = 1; i <= n; ++i) {
+        sort(all(graph.adj[i]), [](ll x, ll y) {
+            return graph.key[x] < graph.key[y];
+        });
+    }
+    for(ll i = 1; i <= n; ++i) {
+        if(!graph.par[i]) {
+            root = i;
+        }
+    }
+    dfs(root, 0);
+    dfs_prop(root);
+    cin >> q;
+    for(ll i = 0; i < q; ++i) {
+        ll x; cin >> x;
+        ll y = find_leaf(x);
+        cout << fixed << setprecision(9) << (double) graph.sum[y] / graph.cnt[y] << "\n";
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

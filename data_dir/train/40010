@@ -1,0 +1,156 @@
+/* no greedy easy life */
+
+#include <cstring>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cassert>
+#include <cstdlib>
+#include <queue>
+#include <ctime>
+
+#define pii pair<int, int>
+  
+#define pb push_back
+#define mp make_pair
+  
+#define f first
+#define s second
+  
+using namespace std;
+
+typedef long long ll;
+typedef double ld;
+
+typedef vector<int> vi;
+
+const double EPS = 1e-9;
+const double PI = acos(-1);
+  
+const int INF = (int) 1e9 + 7;
+const int MAXN = (int) 1e6 + 7;
+
+struct line {
+  int slope;
+  ll delta;
+};
+
+bool operator < (line a, line b) {
+  if (a.slope != b.slope)
+    return a.slope > b.slope;
+  return a.delta < b.delta;
+}
+
+int n, m;
+int a[MAXN];
+
+ll pf[MAXN];
+
+vector<line> t[MAXN];
+vector<line> s[MAXN];
+
+ld intersection(line l, line r) {
+  return (ld) (l.delta - r.delta) / (ld) (r.slope - l.slope);
+}
+
+bool check(line a, line b, line c) {
+  if (c.slope == b.slope)
+    assert(false);
+  if (intersection(a, c) > intersection(b, c))
+    return true;
+  return false;
+}
+
+void add_line(vector<line> &cur, line it) {
+  while (cur.size() > 1 && check(cur[cur.size() - 2], cur[cur.size() - 1], it))
+    cur.pop_back();
+  cur.push_back(it);
+}
+
+ll get_optimal(vector<line> &cur, int x) {
+  if (cur.empty())
+    return (ll) 1e18;
+  int l = 0, r = (int) cur.size() - 1;
+  while (r - l > 1) {
+    int mid = (l + r) / 2;
+    if (intersection(cur[mid], cur[mid + 1]) < x) 
+      l = mid;
+    else
+      r = mid;
+  }
+  ll ans = (ll) 1e18;
+  for (int i = l; i <= r; i++)
+    ans = min(ans, cur[i].slope * 1ll * x + cur[i].delta);
+  return ans;
+}
+
+void build(int v = 1, int tl = 1, int tr = n) {
+  if (tl == tr) {
+    t[v].pb({-a[tl], 1ll * a[tl] * tl - pf[tl]});
+  } else {
+    int mid = (tl + tr) / 2;
+    build(v + v, tl, mid);
+    build(v + v + 1, mid + 1, tr);
+    t[v].resize(t[v + v].size() + t[v + v + 1].size());
+    merge(t[v + v].begin(), t[v + v].end(), t[v + v + 1].begin(), t[v + v + 1].end(), t[v].begin());
+    //reverse(t[v].begin(), t[v].end());
+  }
+  sort(t[v].begin(), t[v].end());
+  vector<line> tt;
+  for (auto it : t[v]) {
+    if (tt.empty() || it.slope != tt[tt.size() - 1].slope)
+      tt.pb(it);
+  }
+  for (auto it : tt) {
+    add_line(s[v], it);
+  }
+}
+
+ll get(int l, int r, int x, int v = 1, int tl = 1, int tr = n) {
+  if (tl > r || tr < l) return (ll) 1e18;
+  if (l <= tl && tr <= r) return get_optimal(s[v], x);
+  int mid = (tl + tr) / 2;
+  return min(get(l, r, x, v + v, tl, mid), get(l, r, x, v + v + 1, mid + 1, tr));
+}
+
+int main() {
+  #ifdef LOCAL
+    freopen("in", "r", stdin);
+    //freopen("out", "w", stdout);
+  #endif
+
+  scanf("%d", &n);
+  for (int i = 1; i <= n; i++) {
+    scanf("%d", &a[i]);
+    pf[i] = pf[i - 1] + a[i];
+  }
+  build();
+  scanf("%d", &m);
+  for (int i = 1; i <= m; i++) {
+    int cnt, r;
+    scanf("%d%d", &cnt, &r);
+    ll ans = (ll) 1e18;
+    int l = r - cnt + 1;
+    /*for (int f = l; f <= r; f++) {
+      ans = min(ans, a[f] * (cnt - r) + a[f] * f - pf[f]);
+    }*/
+    ans = get(l, r, r - cnt);
+    ans += pf[r];
+    printf("%lld\n", ans);
+  }
+
+  return 0;
+}

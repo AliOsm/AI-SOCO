@@ -1,0 +1,183 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+typedef long long int ll;
+
+const int tope=1<<20;
+const int primero=1<<19;
+
+ll suma[tope],anyade[tope],cuantos[tope];
+
+ll calcula(int pos)
+{
+  return suma[pos]+anyade[pos]*cuantos[pos];
+}
+
+void recalcula(int pos)
+{
+  suma[pos]=calcula(2*pos)+calcula(2*pos+1);
+}
+
+void anyadeentre(int pos0,int pos1)
+{
+  //cout<<"anyadeentre pos0 "<<pos0<<" pos1 "<<pos1<<endl;
+  pos0+=primero;
+  pos1+=primero;
+  if (pos0==pos1) {
+    anyade[pos0]++;
+  } else {
+    anyade[pos0]++;
+    anyade[pos1]++;
+    while (pos0/2!=pos1/2) {
+      if (pos0%2==0) anyade[pos0+1]++;
+      pos0/=2;
+      recalcula(pos0);
+      if (pos1%2==1) anyade[pos1-1]++;
+      pos1/=2;
+      recalcula(pos1);
+    }
+  }
+  int pos=pos0;
+  while (pos>1) {
+    pos/=2;
+    recalcula(pos);
+  }
+}
+
+ll sumaentre(int pos0,int pos1)
+{
+  //cout<<"sumaentre pos0 "<<pos0<<" pos1 "<<pos1<<endl;
+  pos0+=primero;
+  pos1+=primero;
+  ll s,c;
+  if (pos0==pos1) {
+    s=calcula(pos0);
+    c=cuantos[pos0];
+  } else {
+    s=calcula(pos0)+calcula(pos1);
+    ll c0=cuantos[pos0];
+    ll c1=cuantos[pos1];
+    while (pos0/2!=pos1/2) {
+      if (pos0%2==0) {
+	s+=calcula(pos0+1);
+	c0+=cuantos[pos0+1];
+      }
+      pos0/=2;
+      s+=anyade[pos0]*c0;
+      if (pos1%2==1) {
+	s+=calcula(pos1-1);
+	c1+=cuantos[pos1-1];
+      }
+      pos1/=2;
+      s+=anyade[pos1]*c1;
+    }
+    c=c0+c1;
+  }
+  int pos=pos0;
+  while (pos>1) {
+    pos/=2;
+    s+=anyade[pos]*c;
+  }
+  //cout<<s<<endl;
+  return s;
+}
+
+const int limite=1000000;
+
+void maximiza(int &a,int b)
+{
+  a=max(a,b);
+}
+
+int n,m;
+vector<int> g[limite];
+int visto[limite];
+vector<pair<int,int> > prohibido;
+int nlista=1;
+int lista[limite];
+int posicion[limite];
+
+void genera(int u,int p)
+{
+  if (visto[u]) return;
+  if (posicion[u]) {
+    int mini=limite;
+    int maxi=0;
+    for (int i=posicion[u];i<nlista;i++) {
+      mini=min(mini,lista[i]);
+      maxi=max(maxi,lista[i]);
+    }
+    prohibido.push_back(pair<int,int> (mini,maxi));
+    return;
+  }
+  posicion[u]=nlista;
+  lista[nlista++]=u;
+  vector<int> &ar=g[u];
+  for (int i=0;i<int(ar.size());i++) {
+    int v=ar[i];
+    if (v!=p) genera(v,u);
+  }
+  visto[u]=1;
+  nlista--;
+}
+
+vector<pair<int,int> > abren[limite];
+ll sol[limite];
+int anterior[limite];
+
+int main()
+{
+  ios::sync_with_stdio(false);
+  for (int i=tope-1;i>=1;i--)
+    if (i>=primero) cuantos[i]=1;
+    else cuantos[i]=cuantos[2*i]+cuantos[2*i+1];
+  cin>>n>>m;
+  for (int i=0;i<m;i++) {
+    int u,v;
+    cin>>u>>v;
+    g[u].push_back(v);
+    g[v].push_back(u);
+  }
+  for (int u=1;u<=n;u++)
+    if (not visto[u])
+      genera(u,0);
+  anterior[1]=1;
+  //cout<<"prohibido:"<<endl;
+  for (int i=0;i<int(prohibido.size());i++) {
+    pair<int,int> p=prohibido[i];
+    int l=p.first;
+    int r=p.second;
+    //cout<<"l "<<l<<" r "<<r<<endl;
+    maximiza(anterior[r],l+1);
+  }
+  for (int i=2;i<=n;i++)
+    maximiza(anterior[i],anterior[i-1]);
+  /*
+  cout<<"anterior:"<<endl;
+  for (int i=1;i<=n;i++)
+    cout<<anterior[i]<<",";
+  cout<<endl;
+  */
+  int casos;
+  cin>>casos;
+  for (int cas=0;cas<casos;cas++) {
+    int l,r;
+    cin>>l>>r;
+    abren[r].push_back(pair<int,int> (l,cas));
+  }
+  for (int r=1;r<=n;r++) {
+    anyadeentre(anterior[r],r);
+    vector<pair<int,int> > &ab=abren[r];
+    for (int iab=0;iab<int(ab.size());iab++) {
+      int l=ab[iab].first;
+      ll &so=sol[ab[iab].second];
+      so=sumaentre(l,r);
+    }
+  }
+  for (int i=0;i<casos;i++)
+    cout<<sol[i]<<endl;
+}
+

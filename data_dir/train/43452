@@ -1,0 +1,59 @@
+// We only fail when we stop trying
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+#define endl '\n'
+#define D(x) cerr << #x << " = " << (x) << '\n'
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 100010;
+
+int n, T;
+vector<int> g[N];
+int deg[N];
+vector<pair<int, int>> sol;
+
+void dfs(int cur, int par, int t) {
+  sol.push_back({cur, t});
+  int cur_time = t;
+  int p_seen = 1;
+  for(int i = 0 ; i < sz(g[cur]) ; i++) {
+    int nxt = g[cur][i];
+    if(nxt != par) {
+      if(cur_time == T) {
+        // Fix
+        int r = sz(g[cur]) - p_seen - i;
+        cur_time = t - 1 - r;
+        sol.push_back({cur, cur_time});
+      }
+      dfs(nxt, cur, ++cur_time);
+      sol.pb({cur, cur_time});
+    } else {
+      p_seen = 0;
+    }
+  }
+  if(cur && cur_time != t - 1)
+    sol.push_back({cur, t - 1});
+}
+
+int main()
+{
+  scanf("%d", &n);
+  for(int i = 1 ; i < n ; i++) {
+    int a, b;
+    scanf("%d%d", &a, &b);
+    T = max(T, ++deg[--a]);
+    T = max(T, ++deg[--b]);
+    g[a].pb(b);
+    g[b].pb(a);
+  }
+  dfs(0, -1, 0);
+  printf("%d\n", sz(sol));
+  for(auto p : sol) {
+    assert(p.second <= T);
+    printf("%d %d\n", p.first + 1, p.second);
+  }
+  return 0;
+}

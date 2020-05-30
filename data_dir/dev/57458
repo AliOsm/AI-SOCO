@@ -1,0 +1,158 @@
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <vector>
+using namespace std;
+const int K = 2000, N = 2000;
+int size1, size2;
+int minE[K], maxE[K], minR[K], maxR[K];
+int type[N][N], no[N][N];
+
+vector<long long> girVal[K];
+char typeOfQ[10];
+int stateG[K];
+
+int d[N * 4], pos[N * 4], f[N * 4], t;
+
+void add(int e1, int r1, int e2, int r2) {
+	if ((min(e1, e2) < 0) || (max(e1, e2) >= size1)) {
+		return;
+	}
+	if ((min(r1, r2) < 0) || (max(r1, r2) >= size2)) {
+		return;
+	}
+	//cout << "?\n";
+	//cout << e1 << " " << r1 << "  " << e2 << " " << r2 << "\n";
+	//cout << type[e1][r1] << " " << type[e2][r2] << " " << stateG[type[e1][r1]] << "  !!!\n";
+	if ((type[e1][r1] == type[e2][r2]) && (stateG[type[e1][r1]] == 1)) {
+		//cout << no[e1][r1] << " " << no[e2][r2] << " %%%\n";
+		if (abs(no[e1][r1] - no[e2][r2]) != 1) {
+			return;
+		}
+		//cout << "+\n";
+		d[t] = type[e1][r1];
+		pos[t] = max(no[e1][r1], no[e2][r2]);
+		f[t] = !(no[e1][r1] < no[e2][r2]);
+		t++;
+	}
+}
+void qs(int q, int w) {
+	int e = q, r = w, y = q + rand() % (w - q + 1);
+	int t1 = d[y], t2 = pos[y];
+	do {
+		while ((d[e] < t1) || ((d[e] == t1) && (pos[e] < t2))) e++;
+		while ((d[r] > t1) || ((d[r] == t1) && (pos[r] > t2))) r--;
+		if (e <= r) {
+			swap(d[e], d[r]);
+			swap(pos[e], pos[r]);
+			swap(f[e], f[r]);
+			e++; r--;
+		}
+	} while (e <= r);
+	if (q < r) qs(q, r);
+	if (e < w) qs(e, w);
+}
+int main() {
+    #ifdef Vlad_kv
+      freopen("input.txt", "r", stdin);
+      freopen("output.txt", "w", stdout);
+    #endif // Vlad_kv
+    int q, w, e, r, c, numGir;
+    scanf("%d %d %d", &size1, &size2, &numGir);
+    for (e = 0; e < size1; e++) {
+		for (r = 0; r < size2; r++) {
+			type[e][r] = -1;
+		}
+    }
+    for (w = 0; w < numGir; w++) {
+		girVal[w].push_back(0);
+		stateG[w] = 1;
+		
+		int sizeG, val;
+		scanf("%d", &sizeG);
+		for (c = 0; c < sizeG; c++) {
+			scanf("%d %d %d", &e, &r, &val);
+			e--; r--;
+			if (c == 0) {
+				minE[w] = maxE[w] = e;
+				minR[w] = maxR[w] = r;
+			} else {
+				minE[w] = min(minE[w], e);
+				maxE[w] = max(maxE[w], e);
+				
+				minR[w] = min(minR[w], r);
+				maxR[w] = max(maxR[w], r);
+			}
+			type[e][r] = w;
+			no[e][r] = c;
+			girVal[w].push_back(val);
+			girVal[w][c + 1] += girVal[w][c];
+		}
+    }
+    int numQ;
+    scanf("%d", &numQ);
+    for (w = 0; w < numQ; w++) {
+		//cout << w << " :\n";
+		scanf("%s", typeOfQ);
+		if (typeOfQ[0] == 'S') {
+			scanf("%d", &e);
+			stateG[e - 1] ^= 1;
+		} else {
+			int e1, e2, r1, r2;
+			scanf("%d %d %d %d", &e1, &r1, &e2, &r2);
+			e1--; r1--;
+			e2--; r2--;
+			long long res = 0;
+			for (c = 0; c < numGir; c++) {
+				if (stateG[c] == 1) {
+					if ((e1 <= minE[c]) && (maxE[c] <= e2) &&
+						(r1 <= minR[c]) && (maxR[c] <= r2)) {
+							res += girVal[c][girVal[c].size() - 1];
+						}
+				}
+			}
+			t = 0;
+			
+			for (e = e1; e <= e2; e++) {
+				add(e, r1 - 1, e, r1);
+				add(e, r2 + 1, e, r2);
+			}
+			for (r = r1; r <= r2; r++) {
+				add(e1 - 1, r, e1, r);
+				add(e2 + 1, r, e2, r);
+			}
+			
+			if (t > 0) {
+				qs(0, t - 1);
+			}
+			/*
+			cout << t << "\n";
+			for (e = 0; e < t; e++) {
+				cout << d[e] << " " << pos[e] << " " << f[e] << "\n";
+			}
+			*/
+			
+			for (e = 0; e < t; e = r) {
+				for (r = e + 1; (r < t) && (d[e] == d[r]); r++) {
+				}
+				for (c = e; c < r;) {
+					if (f[c] == 1) {
+						res += girVal[d[e]][pos[c]];
+						c++;
+						continue;
+					}
+					if (c + 1 >= r) {
+						res += girVal[d[e]][girVal[d[e]].size() - 1] - girVal[d[e]][pos[c]];
+						c++;
+						continue;
+					}
+					//cout << girVal[d[e]][pos[c + 1]] << " " << girVal[d[e]][pos[c]] << "\n";
+					res += girVal[d[e]][pos[c + 1]] - girVal[d[e]][pos[c]];
+					c += 2;
+				}
+			}
+			printf("%I64d\n", res);
+		}
+    }
+    return 0;
+}

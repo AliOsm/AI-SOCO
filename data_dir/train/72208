@@ -1,0 +1,104 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+using namespace std;
+
+typedef pair<int,int> PII;
+typedef pair<PII,int> PPI;
+
+class SegTree{
+public:
+    static const int SIZE = 262144, INF = 1000000007;
+    PII tag[SIZE];
+    int cnt[SIZE];
+    void clear(int n){
+        memset(cnt,0,sizeof(cnt));
+        for(int i=0;i<n;i++){
+            int x=0,y=n,t=1;
+            while(x+1<y){
+                int m=(x+y)/2;
+                if(i<m) y=m,t*=2; else x=m,t=t*2+1;
+            }
+            do{
+                tag[t]={0,i};
+                cnt[t]++;
+            }while(t/=2);
+        }
+    }
+    void modify(int L, int R, int V, int x, int y, int t){
+        if(L<=x && y<=R){
+            tag[t].first+=V;
+            return;
+        }
+        int m=(x+y)/2,p=t*2,q=p+1;
+        if(L<m) modify(L,R,V,x,m,p);
+        if(R>m) modify(L,R,V,m,y,q);
+        int low=min(tag[p].first,tag[q].first);
+        if(tag[p].first==low){
+            cnt[t]=cnt[p];
+            tag[t].second=tag[p].second;
+            if(tag[q].first==low) cnt[t]+=cnt[q];
+        }else{
+            cnt[t]=cnt[q];
+            tag[t].second=tag[q].second;
+        }
+        tag[t].first+=low;
+        tag[p].first-=low;
+        tag[q].first-=low;
+    }
+    PPI getmin(int L, int R, int x, int y, int t){
+        if(L<=x && y<=R) return {tag[t],cnt[t]};
+        int m=(x+y)/2,p=t*2,q=p+1;
+        PPI lhs={{INF,-1},0},rhs={{INF,-1},0},ret;
+        if(L<m) lhs=getmin(L,R,x,m,p);
+        if(R>m) rhs=getmin(L,R,m,y,q);
+        int c=lhs.first.first-rhs.first.first;
+        if(c<0) ret=lhs; else ret=rhs;
+        ret.first.first+=tag[t].first;
+        if(!c) ret.second+=lhs.second;
+        return ret;
+    }
+}st;
+
+bool islucky(int x){
+    do if(x%10!=4 && x%10!=7) return false; while(x/=10);
+    return true;
+}
+
+vector<int> u;
+int a[100005];
+
+void relax(int L, int R, int n){
+    while(1){
+        PII x=st.getmin(L,R,0,n,1).first;
+        if(x.first>=0) break;
+        int i=x.second;
+        st.modify(i,i+1,u[a[i]+1]-u[a[i]],0,n,1);
+        a[i]++;
+    }
+}
+
+int main(){
+    int n,m,tmp;
+    scanf("%d%d",&n,&m);
+    st.clear(n);
+    for(int i=0;i<=44444;i++) if(islucky(i)) u.push_back(i);
+    for(int i=0;i<n;i++){
+        scanf("%d",&tmp);
+        st.modify(i,i+1,u[0]-tmp,0,n,1);
+    }
+    relax(0,n,n);
+    while(m--){
+        int L,R,V;
+        char s[9];
+        scanf("%s%d%d",s,&L,&R);
+        if(*s=='c'){
+            PPI x=st.getmin(L-1,R,0,n,1);
+            printf("%d\n",!x.first.first?x.second:0);
+        }else{
+            scanf("%d",&V);
+            st.modify(L-1,R,-V,0,n,1);
+            relax(L-1,R,n);
+        }
+    }
+}

@@ -1,0 +1,124 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+namespace G {
+    vector <int> adia[2010];
+    int mass[2010];
+    int g[2010];
+    int ans;
+
+    int calc_g(int nod, int tata) {
+        g[nod] = mass[nod];
+        for (auto i : adia[nod])
+            if (i != tata)
+                g[nod] += calc_g(i, nod);
+        return g[nod];
+    }
+    int calc_centr(int nod, int tata, int g_tata) { /// obs -> nu am nevoie decat de un centroid chiar daca exista 2
+        for (auto i : adia[nod])
+            if (i != tata && 2 * g[i] > g_tata)
+                return calc_centr(i, nod, g_tata);
+        return nod;
+    }
+    int g_fiu_centr(int nod, int tata, int h) {
+        ans += h * mass[nod] + mass[nod] * mass[nod];
+        h += mass[nod];
+        int ans = mass[nod];
+        for (auto i : adia[nod])
+            if (i != tata)
+                ans += g_fiu_centr(i, nod, h);
+        return ans;
+    }
+
+    vector <int> solve(int & n) {
+        calc_g(1, 0);
+        int centr = calc_centr(1, 0, g[1]);
+        n = g[1] - mass[centr];
+        ans += mass[centr] * mass[centr];
+
+        vector <int> a;
+        for (auto i : adia[centr])
+            a.push_back(g_fiu_centr(i, centr, mass[centr]));
+
+        return a;
+    }
+
+}
+
+namespace init {
+    vector <int> adia[2010];
+    int h[2010];
+    int up[2010];
+    int cnt;
+    int comp[2010];
+    int n;
+
+    void dfs1(int nod, int tata) {
+        h[nod] = 1 + h[tata];
+        up[nod] = h[nod];
+        for (auto i : adia[nod]) {
+            if (i == tata)
+                continue;
+            if (!up[i])
+                dfs1(i, nod);
+            up[nod] = min(up[nod], up[i]);
+        }
+    }
+    void dfs2(int nod, int c) {
+        comp[nod] = c;
+        for (auto i : adia[nod]) {
+            if (!comp[i] && up[i] <= h[nod])
+                dfs2(i, c);
+            else if (!comp[i])
+                dfs2(i, ++cnt);
+        }
+    }
+
+    void recalc_adia() {
+        for (int i = 1; i <= n; i++) {
+            for (auto j : adia[i])
+                if (comp[i] != comp[j])
+                    G::adia[comp[i]].push_back(comp[j]);
+            G::mass[comp[i]]++;
+        }
+    }
+
+    void solve() {
+        int m, a, b;
+        cin >> n >> m;
+        while (m--) {
+            cin >> a >> b;
+            adia[a].push_back(b);
+            adia[b].push_back(a);
+        }
+
+        dfs1(1, 0);
+        cnt = 1;
+        dfs2(1, 1);
+
+        recalc_adia();
+    }
+}
+
+bool sum[2010];
+
+int main()
+{
+    sum[0] = 1;
+    init::solve();
+    int n;
+    auto v = G::solve(n);
+
+    for (auto x : v)
+        for (int i = n; i >= x; i--)
+            sum[i] |= sum[i - x];
+
+    int best = 0;
+    for (int i = 0; i <= n; i++)
+        best = max(best, sum[i] * i * (n - i));
+
+    cout << best + G::ans << '\n';
+
+    return 0;
+}
+

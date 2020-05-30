@@ -1,0 +1,49 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define pp pair<int, int>
+#define ppp pair<pp, int>
+#define fi first
+#define se second
+#define esp 1e-9
+#define inf 1000000001
+#define mod 1000000007
+#define N 123
+#define base 311097
+#define MAXN 505
+#define MAXE 1000001
+#define sqr(x) (x)*(x)
+#define RL double
+#define EPS 1e-9
+#define ll long long
+using namespace std;
+int n, m;
+map <string, int> M;
+string s;
+
+int main() {
+    //freopen("in.in", "r", stdin);
+   // freopen("ou.ou", "w", stdout);
+    ios::sync_with_stdio(false);
+    cin >> n >> m;
+    for (int i = 1; i <= n; i++) {
+        cin >> s;
+        M[s] = i;
+    }
+
+    int dem = 0;
+    for (int i = 1; i <= m; i++) {
+        cin >> s;
+        if (M.count(s)) dem++;
+    }
+
+    n -= dem;
+    m -= dem;
+
+    n += (dem % 2 != 0);
+    if (n > m) puts("YES");
+    else
+        puts("NO");
+
+    return 0;
+}

@@ -1,0 +1,119 @@
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stack>
+#include <queue>
+#include <ctime>
+#include <cassert>
+#include <complex>
+#include <string>
+#include <cstring>
+#include <chrono>
+#include <random>
+#include <bitset>
+using namespace std;
+#define int long long
+#define endl '\n'
+typedef long long ll;
+
+const int N = 2e4 + 5;
+int n,m,k;
+int arr[55][N];
+int dp[55][N];
+int prefixMx[55][N];
+int suffixMx[55][N];
+int sum[55][N];
+
+int getSum(int i1,int j1, int i2, int j2) {
+	if(i1 > n) return 0;
+	assert(i1 <= i2);
+	assert(j1 <= j2);
+	return sum[i2][j2] - sum[i2][j1-1] - sum[i1-1][j2] + sum[i1-1][j1-1];
+}
+
+signed main() {
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+	cin >> n >> m >> k;
+	for(int i = 1; i <= n; ++i) {
+		for(int j = 1; j <= m; ++j) {
+			cin >> arr[i][j];
+			sum[i][j] = arr[i][j] + sum[i-1][j] + sum[i][j-1] - sum[i-1][j-1];
+		}
+	}
+
+	if(n == 1) {
+		int res = 0;
+		for(int start = 1; start+k-1 <= m; ++start) {
+			res = max(res, sum[1][start+k-1] - sum[1][start-1]);
+		}
+		cout << res;
+		return 0;
+	}
+
+	for(int j = 1; j+k-1 <= m; ++j) {
+		dp[1][j] = getSum(1, j, 2, j+k-1);
+		for(int j = 1; j+k-1 <= m; ++j) {
+			prefixMx[1][j] = max(dp[1][j], prefixMx[1][j-1]);
+		}
+		for(int j = m-k+1; j >= 1; --j) {
+			suffixMx[1][j] = max(dp[1][j], suffixMx[1][j+1]);
+		}
+	}
+	for(int i = 2; i <= n; ++i) {
+		for(int j = 1; j+k-1 <= m; ++j) {
+			int &curr = dp[i][j];
+			for(int prevJ = j-22; prevJ <= j+22; ++prevJ) {
+				if(prevJ < 1) continue;
+				if(prevJ+k-1 > m) continue;
+				int cost = getSum(i+1,j,i+1,j+k-1);
+				int pos = max(prevJ + k, j);
+				if(pos <= j+k-1) {
+					cost += getSum(i,pos,i,j+k-1);
+				}
+				pos = min(j+k-1, prevJ-1);
+				if(pos >= j) {
+					cost += getSum(i,j,i,pos);
+				}
+				curr = max(curr, cost + dp[i-1][prevJ]);
+			}
+
+			int prevJ = (j-1) - k + 1;//j-k
+			if(prevJ >= 1) {
+				int extra = getSum(i,j,i+1,j+k-1);
+				if(i == n) extra = getSum(i,j,i,j+k-1);
+				curr = max(curr, extra + prefixMx[i-1][prevJ]);
+			}
+
+			prevJ = j+k;
+			if(prevJ+k-1 <= m) {
+				int extra = getSum(i,j,i+1,j+k-1);
+				if(i == n) extra = getSum(i,j,i,j+k-1);
+				curr = max(curr, extra + suffixMx[i-1][prevJ]);
+			}
+		}
+		for(int j = 1; j+k-1 <= m; ++j) {
+			prefixMx[i][j] = max(dp[i][j], prefixMx[i][j-1]);
+		}
+		for(int j = m-k+1; j >= 1; --j) {
+			suffixMx[i][j] = max(dp[i][j], suffixMx[i][j+1]);
+		}
+	}
+	/*
+	cout << "dp:\n";
+	for(int i = 1; i <= n; ++i) {
+		for(int j = 1; j+k-1 <= m; ++j) {
+			cout << dp[i][j] << " ";
+		}
+		cout << endl;
+	}
+	*/
+	cout << suffixMx[n][1];
+}

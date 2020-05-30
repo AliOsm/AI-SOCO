@@ -1,0 +1,140 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <string>
+#include <stdio.h>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <math.h>
+#include <cmath>
+#include <queue>
+#include <iomanip>
+#include <bitset>
+#include <unordered_map>
+#include <stack>
+
+#define ll long long
+#define ld long double
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define rall(x) (x).rbegin(),(x).rend()
+#define pii pair<int,int> 
+#define vi vector<int>
+#define vvi vector<vector<int>>
+#define forn(it,from,to) for(int (it)=from; (it)<to; (it)++)
+const ll  Inf = 2 * 1e9;
+const ll  mod = 1e9 + 7;
+using namespace std;
+#define M_PI       3.14159265358979323846   // pi
+vvi gr;
+vi high, order, first,used,t;
+int n, q,sz;
+
+void dfs(int v, int h) {
+	used[v] = 1;
+	high[v] = h;
+	order.push_back(v);
+	for (auto to : gr[v]) {
+		if (!used[to]) {
+			dfs(to, h + 1);
+			order.push_back(v);
+		}
+	}
+}
+
+void prep() {
+	forn(i, 0, order.size()) {
+		if (first[order[i]] == -1) {
+			first[order[i]] = i;
+		}
+	}
+}
+
+void build(int v, int tl, int tr) {
+	if (tl == tr) {
+		t[v] = order[tl];
+		return;
+	}
+	int m = (tl + tr) >> 1;
+	build(2 * v + 1, tl, m);
+	build(2 * v + 2, m+1, tr);
+	if (high[t[2 * v + 1]] < high[t[2 * v + 2]]) {
+		t[v] = t[2 * v + 1];
+	}
+	else {
+		t[v] = t[2 * v + 2];
+	}
+}
+
+int getmin(int v, int tl, int tr, int l, int r) {
+	if (l > r) return Inf;
+	if (tl == l && tr == r) return t[v];
+	int m = (tl + tr) >> 1;
+	int val1 = getmin(2 * v + 1, tl, m, l, min(m, r));
+	int val2 = getmin(2 * v + 2, m + 1, tr, max(l, m + 1), r);
+	if (val2 == Inf) {
+		return val1;
+	}
+	else if (val1 == Inf) return val2;
+	else if (high[val1] < high[val2]) return val1;
+	else return val2;
+}
+
+int lca(int x, int y) {
+	return getmin(0,0,sz-1,min(first[x],first[y]), max(first[x], first[y]));
+}
+
+int dist(int x, int y) {
+	int z = lca(x, y);
+	int ans = high[x] + high[y] - 2 * high[z];
+	return ans;
+}
+
+int calc(int a, int b, int c) {
+	int d1 = dist(a, c);
+	int d2 = dist(b, c);
+	int d3 = dist(a, b);
+	return (d1 + d2 - d3 + 1) / 2;
+}
+
+int main()
+{
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#else
+	//freopen("hard.in", "r", stdin);
+	//freopen("hard.out", "w", stdout);
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+#endif
+	ios::sync_with_stdio(false);
+	cin >> n >> q;
+	gr.resize(n+1);
+	first.resize(n+1,-1);
+	high.resize(n+1);
+	used.resize(n+1,0);
+	
+	forn(i, 0, n-1) {
+		int v;
+		cin >> v;
+		v--;
+		gr[v].push_back(i+1);
+		gr[i+1].push_back(v);
+	}
+	dfs(0, 0);
+	prep();
+	sz = order.size();
+	t.resize(4 * sz);
+	build(0,0,sz-1);
+	forn(i, 0, q) {
+		int a, b, c;
+		cin >> a >> b >> c;
+		a--;
+		b--;
+		c--;
+		cout << max({calc(a,b,c), calc(a,c,b), calc(b,c,a)})+1 << endl;
+	}
+	return 0;
+}

@@ -1,0 +1,171 @@
+#include <iostream>
+#include <map>
+#include <cstdlib>
+#include <cstdio>
+#include <string>
+#include <algorithm>
+#include <iomanip>
+#include <cmath>
+#include <vector>
+#include <cstring>
+#include <cstdlib>
+#include <queue>
+
+#define mp make_pair
+#define pb push_back
+#define ppb pop_back
+#define X first
+#define Y second
+#define free free_
+
+using namespace std;
+
+pair<int, pair<int, int> > a[200000];
+int l[200000];
+int r[200000];
+int v[200000];
+int d[200000];
+int n;
+int L[200000];
+int R[200000];
+pair<int, int> segm[200000];
+
+int tree[500000];
+int Max[500000];
+int sMax[500000];
+
+vector<int> anss;
+
+void add(int v, int l, int r, int ll, int rr, int t){
+     if (r < ll) return ;
+     if (rr < l) return ;
+     
+     if ((ll <= l) && (r <= rr)){
+        if (l == r) sMax[v] = l;
+        tree[v] += t;
+        return ;
+     }
+     
+     tree[v * 2] += tree[v];
+     tree[v * 2 + 1] += tree[v];
+     
+     tree[v] = 0;
+     
+     add(v * 2, l, (l + r) / 2, ll, rr, t);
+     add(v * 2 + 1, (l + r) / 2 + 1, r, ll, rr, t);
+     
+     Max[v] = max(Max[v * 2] + tree[v * 2], Max[v * 2 + 1] + tree[v * 2 + 1]);
+     
+     if (Max[v * 2] + tree[v * 2] == Max[v]) sMax[v] = sMax[v * 2];
+     else sMax[v] = sMax[v * 2 + 1];
+}
+
+int MM, NN;
+
+int get(int v, int l, int r, int ll, int rr, int sum){
+     if (r < ll) return -1000000000;
+     if (rr < l) return -1000000000;
+     
+     if ((ll <= l) && (r <= rr)){
+        if (tree[v] + Max[v] + sum > MM){
+                    MM = tree[v] + Max[v] + sum;
+                    NN = sMax[v];
+        }
+        return tree[v] + Max[v] + sum;
+     }
+    
+     return max(get(v * 2, l, (l + r) / 2, ll, rr, sum + tree[v]), get(v * 2 + 1, (l + r) / 2 + 1, r, ll, rr, sum + tree[v]));
+}
+
+int main(){
+    cin >> n;
+    for (int i = 0; i < n; i++){
+        scanf("%d%d%d", &l[i], &v[i], &r[i]);
+        a[i] = mp(v[i], mp(-r[i], i));
+    }
+    
+    sort(a, a + n);
+    
+    for (int i = 0; i < n; i++){
+        d[a[i].Y.Y] = i;
+        int lo = -1;
+        int hi = i;
+        while (lo + 1 < hi){
+              int mid = (lo + hi) / 2;
+              if (a[mid].X < l[a[i].Y.Y]) lo = mid; else hi = mid;
+        }
+        
+        L[a[i].Y.Y] = hi;
+        
+        lo = i;
+        hi = n;
+        while (lo + 1 < hi){
+              int mid = (lo + hi) / 2;
+              if (a[mid].X > r[a[i].Y.Y]) hi = mid; else lo = mid;
+        }
+        
+        R[a[i].Y.Y] = lo;
+    }
+    
+    for (int i = 0; i < n; i++){
+        L[i]++;
+        R[i]++;
+        d[i]++;
+       //cout << L[i] << " " << R[i] << " " << d[i] << endl;
+        segm[i] = mp(L[i], i);
+    }
+    
+    sort(segm, segm + n);
+    
+    int j = 0;
+    
+    int sz = 1 << 17;
+    
+    add(1, 1, sz, 1, sz, -1000000000);
+    
+    int ans = 0, a1, a2;
+    
+    for (int i = 0; i < n; i++){
+        int I = a[i].Y.Y;
+        while (j < n){
+              //cout << " " << i << " " << segm[j].X << endl;
+              if (segm[j].X > d[I]) break;
+              
+              add(1, 1, sz, d[segm[j].Y], d[segm[j].Y], 1000000000);
+              add(1, 1, sz, d[segm[j].Y], R[segm[j].Y], 1);
+              // should add
+              
+              j++;
+        }
+        
+        if (ans < get(1, 1, sz, d[I], R[I], 0)){
+           ans = get(1, 1, sz, d[I], R[I], 0);
+        
+           a1 = d[I];
+           a2 = NN;         
+        }
+        // calc
+        
+        add(1, 1, sz, d[I], d[I], -1000000000);
+        add(1, 1, sz, d[I], R[I], -1);
+        // remove point #i
+    }
+    
+   // cout << ans << endl;
+    
+    for (int i = 0; i < n; i++)
+        if (L[i] <= a1)
+           if (R[i] >= a2)
+              if (a1 <=d[i])
+                 if (d[i] <= a2){
+                       anss.pb(i + 1);
+                    }
+                    
+    cout << anss.size() << endl;
+    for (int i = 0; i < anss.size(); i++){
+        cout << anss[i];
+        if (i + 1 < anss.size()) cout << " "; else cout << endl;
+    }
+ //system("pause");
+    return 0;
+}

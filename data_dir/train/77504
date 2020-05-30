@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+
+typedef long long ll;
+
+using namespace std;
+
+const int mod = 1000000007, maxl = 21, maxn = 2*1000+10, maxm = 200*1000+10;
+int n, m, k, s, arr[maxl];
+pair<int, int> p[maxn];
+ll ans, f[maxm], rf[maxm], ted[maxl], dp[maxn], pd[maxn], tma[maxn][maxl], rc, tmp;
+
+bool cmp(pair<int, int> a, pair<int, int> b)
+{
+	return a.first + a.second < b.first + b.second;
+}
+
+ll power(int a, int b, int m)
+{
+	if (b == 0)
+		return 1 % m;
+	ll c = power(a, b / 2, m);
+	if (b & 1)
+		return (((c * c) % m) * a) % m;
+	return (c * c) % m;
+}
+
+ll C(int a, int b)
+{
+	return (((f[a] * rf[b]) % mod) * rf[a - b]) % mod;
+}
+
+ll RC(int a, int b)
+{
+	return (((f[b] * f[a - b]) % mod) * rf[a]) % mod;
+}
+
+int main()
+{
+	f[0] = 1;
+	rf[0] = 1;
+	for (int i = 1; i < maxm; i++)
+	{
+		f[i] = (f[i - 1] * i) % mod;
+		rf[i] = power(f[i], mod - 2, mod);
+	}
+	cin >> n >> m >> k >> s;
+	n--;
+	m--;
+	rc = RC(n + m, m);
+	arr[0] = s;
+	for (int i = 1; i < maxl; i++)
+		arr[i] = (arr[i - 1] + 1) / 2;
+	for (int i = 0; i < k; i++)
+	{
+		cin >> p[i].first >> p[i].second;
+		p[i].first--;
+		p[i].second--;
+	}
+	sort(p, p + k, cmp);
+	for (int i = 0; i < k; i++)
+	{
+		dp[i] = C(p[i].first + p[i].second, p[i].second);
+		for (int j = 0; j < i; j++)
+		{
+			if (p[j].first <= p[i].first && p[j].second <= p[i].second)
+			{
+				dp[i] += mod - (dp[j] * C(p[i].first - p[j].first + p[i].second - p[j].second, p[i].second - p[j].second)) % mod;
+				dp[i] %= mod;
+			}
+		}
+	}
+	for (int i = k - 1; i >= 0; i--)
+	{
+		pd[i] = C(n - p[i].first + m - p[i].second, m - p[i].second);
+		for (int j = k - 1; j > i; j--)
+		{
+			if (p[j].first >= p[i].first && p[j].second >= p[i].second)
+			{
+				pd[i] += mod - (pd[j] * C(p[j].first - p[i].first + p[j].second - p[i].second, p[j].second - p[i].second)) % mod;
+				pd[i] %= mod;
+			}
+		}
+	}
+	if (p[k - 1] != make_pair(n - 1, m - 1))
+	{
+		ted[0] = C(n + m, n);
+		for (int i = 0; i < k; i++)
+		{
+			ted[0] += mod - (dp[i] * C(n - p[i].first + m - p[i].second, n - p[i].first)) % mod;
+			ted[0] %= mod;
+		}
+	}
+	for (int i = 0; i < k; i++)
+	{
+		tma[i][1] = dp[i];
+		tmp = tma[i][1];
+		for (int j = 2; j < maxl; j++)
+			tma[i][j] = C(p[i].first + p[i].second, p[i].second);
+		for (int j = 0; j < i; j++)
+		{
+			if (p[j].first <= p[i].first && p[j].second <= p[i].second)
+			{
+				for (int q = 2; q < maxl; q++)
+				{
+					tma[i][q] += mod - (tma[j][q] * C(p[i].first - p[j].first + p[i].second - p[j].second, p[i].first - p[j].first)) % mod;
+					tma[i][q] %= mod;
+				}
+			}
+		}
+		for (int j = 2; j < maxl; j++)
+		{
+			tma[i][j] += mod - tmp;
+			tma[i][j] %= mod;
+			tmp += tma[i][j];
+			tmp %= mod;
+		}
+		for (int j = 1; j < maxl; j++)
+		{
+			ted[j] += pd[i] * tma[i][j];
+			ted[j] %= mod;
+		}
+	}
+	tmp = 0;
+	for (int i = 0; i < maxl; i++)
+	{
+		ans += ((ted[i] * arr[i]) % mod) * rc;
+		ans %= mod;
+		tmp += ted[i];
+		tmp %= mod;
+	}
+	ans += (C(n + m, n) + mod - tmp) * rc;
+	ans %= mod;
+	cout << ans;
+	return 0;
+}

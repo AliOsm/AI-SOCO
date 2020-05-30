@@ -1,0 +1,87 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 6e5 + 5;
+struct SuffixArray {
+	int sz, rnk[N], rev[N], lcp[N];
+	pair<pair<int, int>, int> x[N];
+	char s[N];
+
+	SuffixArray(string t) {
+		for (int i = s[sz = t.size()] = 0; i < sz; i++)
+			s[i] = t[i];
+		build_suffix_array(), build_lcp_array();
+	}
+	void set_rank() {
+		sort(x, x + sz);
+		for (int i = 1, cur = 0; i < sz; i++)
+			rnk[x[i].second] = cur += x[i].first != x[i - 1].first;
+	}
+	void build_suffix_array() {
+		for (int i = 0; i < sz; i++)
+			x[i] = {{s[i], rnk[i] = 0}, i};
+		set_rank();
+		for (int b = 0; sz >> b; b++) {
+			for (int i = 0, j = 1 << b; i < sz; i++, j++)
+				x[i] = {{rnk[i], j < sz? rnk[j]: -1}, i};
+			set_rank();
+		}
+	}
+	void build_lcp_array() {
+		rev[sz] = sz;
+		for (int i = 0; i < sz; i++)
+			rev[rnk[i]] = i;
+		for (int i = 0, cur = 0; i < sz; i++) {
+			cur = max(cur, 0);
+			while (s[i + cur] == s[rev[rnk[i] + 1] + cur])
+				cur++;
+			lcp[rnk[i]] = cur--;
+		}
+	}
+};
+int n, m, c[N], len[N];
+long long sum[N], mx;
+int L[N], R[N];
+string s;
+
+void read_input() {
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		string t;
+		cin >> t;
+		s += t + "*";
+		for (int k = t.size() + 1; k; )
+			len[m++] = --k;
+	}
+	for (int i = 0, j = -1; i < n; i++) {
+		int cost;
+		cin >> cost;
+		while (len[++j])
+			c[j] = cost;
+	}
+}
+
+void solve() {
+	SuffixArray S(s);
+	for (int i = 0; i < m; i++) {
+		sum[i + 1] = sum[i] + c[S.rev[i]];
+		for (L[i] = i - 1; ~L[i] && min(S.lcp[i], len[S.rev[i]]) <= S.lcp[L[i]]; )
+			L[i] = L[L[i]];
+		if (len[S.rev[i]] > max(S.lcp[i], i? S.lcp[i - 1]: 0))
+			mx = max(mx, 1LL * len[S.rev[i]] * c[S.rev[i]]);
+	}
+	for (int i = m - 1; ~i; i--) {
+		int k = min(S.lcp[i], len[S.rev[i]]);
+		for (R[i] = i + 1; R[i] < m && k <= S.lcp[R[i]]; )
+			R[i] = R[R[i]];
+		mx = max(mx, 1LL * k * (sum[R[i] + 1] - sum[L[i] + 1]));
+	}
+	cout << mx;
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	read_input(), solve();
+	return 0;
+}

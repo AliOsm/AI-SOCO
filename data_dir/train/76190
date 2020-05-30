@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+//.define
+// #define FILE_IN_OUT
+#define RET(_x)                       return cout << (_x) << '\n', 0;
+#define all(_obj)                     std::begin(_obj), std::end(_obj)
+#define loop(_n)                      for (int i = 0; i < (_n); ++i)
+#define ceilDiv(_dividend, _divider)  (((_dividend) - 1LL + (_divider)) / (_divider))
+#define has(_obj, _val)               ((_obj).find(_val) != (_obj).end())
+#define sz(_obj)                      static_cast<int>((_obj).size())
+#ifdef SHJ_LOCAL
+    #define debug(_x)                 std::cerr << (#_x) << " = " << (_x) << '\n' << std::flush;
+#else
+    #define debug(_x)                 ;
+#endif
+#define endl                          "\n"
+template<typename Tp>
+inline void outarr(Tp _begin, Tp _end, const char* _delim = " ") {
+    for (Tp current = _begin; current != _end; ++current) {
+        std::cout << *current << _delim;
+    }
+    std::cout << '\n';
+}
+
+//.constant
+using ll  = int64_t;
+using pii = std::pair<int, int>;
+constexpr int INF = 0x3f3f3f3f;
+constexpr int MOD = static_cast<const int>(1e9 + 7);
+
+//.data
+const int MAXV = 300000;
+
+vector<pii> graph[MAXV];
+vector<pii> gr[MAXV];
+int vbt[MAXV];
+int tIn[MAXV];
+int fUp[MAXV];
+bool used[MAXV];
+bool bridge[MAXV];
+bool art[MAXV];
+int T = 0;
+int VID = 0;
+
+inline int NextID() {
+    return ++VID;
+}
+
+void FindBridges(int from = 0, int p = -1) {
+    used[from] = true;
+    tIn[from] = fUp[from] = T++;
+    for (auto&& [to, c] : graph[from]) {
+        if (to == p) {
+            continue;
+        }
+        if (!used[to]) {
+            FindBridges(to, from);
+            fUp[from] = min(fUp[from], fUp[to]);
+            if (fUp[to] > tIn[from]) {
+                bridge[to] = true;
+            }
+        } else {
+            fUp[from] = min(fUp[from], tIn[to]);
+        }
+    }
+}
+
+void CreateGr(int from = 0, int p = -1, int vid = 0) {
+    used[from] = true;
+    vbt[from] = vid;
+    for (auto&& [to, c] : graph[from]) {
+        if (!used[to]) {
+            if (bridge[to]) {
+                CreateGr(to, from, NextID());
+            } else {
+                art[vbt[from]] |= c;
+                CreateGr(to, from, vid);
+            }
+            if (bridge[to]) {
+                gr[vbt[from]].emplace_back(vbt[to], c);
+                gr[vbt[to]].emplace_back(vbt[from], c);
+            }
+        } else {
+            if (to != p) {
+                art[vbt[from]] |= c;
+            }
+        }
+    }
+}
+
+void BuildBT() {
+    FindBridges();
+    memset(used, 0, sizeof(used));
+    CreateGr();
+}
+
+void Dfs(int from, int p = -1, bool d = false) {
+    art[from] |= d;
+    for (auto&& [to, c] : gr[from]) {
+        if (to != p) {
+            Dfs(to, from, d | c | art[from]);
+        }
+    }
+}
+
+//.code
+int main() {
+#ifdef FILE_IN_OUT
+    std::ifstream cin ("input.txt",  std::ios::in);
+    std::ofstream cout("output.txt", std::ios::out);
+#else
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+#endif
+
+    int n, m;
+    cin >> n >> m;
+    loop(m) {
+        int a, b, c;
+        cin >> a >> b >> c;
+        --a; --b;
+        graph[a].emplace_back(b, c);
+        graph[b].emplace_back(a, c);
+    }
+    int from, to;
+    cin >> from >> to;
+    --from; --to;
+    BuildBT();
+    Dfs(vbt[from]);
+    if (art[vbt[to]]) {
+        cout << "YES" endl;
+    } else {
+        cout << "NO" endl;
+    }
+
+#ifdef FILE_IN_OUT
+    cin.close();
+    cout.close();
+#endif
+    return 0;
+}

@@ -1,0 +1,111 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#define ff first
+#define ss second
+using namespace std;
+
+using cat = long long;
+
+cat pw(cat a, cat e, cat mod) {
+	if(e <= 0) return 1;
+	cat x = pw(a, e/2, mod);
+	x = x * x % mod;
+	if(e&1) x = x * a % mod;
+	return x;
+}
+
+void DFS(int R, auto & G, auto & par, auto & DFS_order, auto & I) {
+	DFS_order.push_back(R);
+	I[R].ss = I[R].ff+1;
+	for(auto s : G[R]) if(par[s] == -1) {
+		par[s] = R;
+		I[s].ff = I[R].ss;
+		DFS(s, G, par, DFS_order, I);
+		I[R].ss = I[s].ss;
+	}
+}
+
+int main() {
+	cin.sync_with_stdio(0);
+	cin.tie(0);
+	int N, Q;
+	cin >> N >> Q;
+	cat mod = 998244353;
+	cat inv = pw(N, mod-2, mod);
+	vector< vector<int> > G(N);
+	for(int i = 0; i < N-1; i++) {
+		int u, v;
+		cin >> u >> v;
+		G[--u].push_back(--v);
+		G[v].push_back(u);
+	}
+	vector<int> par(N, -1), DFS_order;
+	vector< pair<int, int> > I(N, {0, 0});
+	par[0] = 0;
+	DFS(0, G, par, DFS_order, I);
+	vector< vector< pair<int, int> > > I_st(N);
+	for(int i = 0; i < N; i++) {
+		for(auto s : G[i]) if(par[s] == i) I_st[i].push_back({I[s].ff, s});
+		sort(begin(I_st[i]), end(I_st[i]));
+	}
+	vector< pair<int, cat> > upd;
+	vector<cat> val(N, 0);
+	int K = 400;
+	for(int q = 0; q < Q; q++) {
+		int tp, v;
+		cin >> tp >> v;
+		v--;
+		if(tp == 2) {
+			cat ans = val[v], ans_inv = 0;
+			for(auto up : upd) {
+				int u = up.ff;
+				if(I[v].ff < I[u].ff || I[v].ff >= I[u].ss) {
+					ans_inv += up.ss * (I[u].ss-I[u].ff);
+				}
+				else {
+					ans += up.ss;
+					if(v != u) {
+						pair<int, int> p = {I[v].ff, N+1};
+						int * ptr_l = &(I_st[u][0].ff);
+						int * ptr_r = &(I_st[u].back().ff);
+						while(ptr_l != ptr_r) {
+							int * ptr_c = ptr_l + (ptr_r - ptr_l + 2) / 4 * 2;
+							if(*ptr_c <= I[v].ff) ptr_l = ptr_c;
+							else ptr_r = ptr_c - 2;
+						}
+						ptr_l++;
+						ans_inv -= up.ss * (I[*ptr_l].ss-I[*ptr_l].ff);
+					}
+				}
+			}
+			ans = (ans + ans_inv % mod * inv) % mod;
+			if(ans < 0) ans += mod;
+			cout << ans << "\n";
+			continue;
+		}
+		cat d;
+		cin >> d;
+		upd.push_back({v, d});
+		if((int)upd.size() >= K) {
+			static vector<cat> add0(N), add(N);
+			for(int i = 0; i < N; i++) add0[i] = add[i] = 0;
+			for(auto up : upd) add0[up.ff] += up.ss;
+			upd.clear();
+			cat add_tot = 0;
+			for(int i = 0; i < N; i++) if(add0[i] != 0) {
+				add0[i] %= mod;
+				add_tot = (add_tot + add0[i] * inv % mod * (I[i].ss-I[i].ff)) % mod;
+				add[i] = (add[i] + add0[i] - add0[i] * inv % mod * (I[i].ss-I[i].ff)) % mod;
+				for(auto p : I_st[i]) {
+					add[p.ss] = (add[p.ss] - add0[i] * inv % mod * (I[p.ss].ss-I[p.ss].ff)) % mod;
+				}
+			}
+			for(int i = 0; i < (int)DFS_order.size(); i++) {
+				int u = DFS_order[i];
+				val[u] = (val[u] + add_tot + add[u]) % mod;
+				for(auto s : G[u]) if(par[s] == u) add[s] = (add[s] + add[u]) % mod;
+			}
+		}
+	}
+}

@@ -1,0 +1,158 @@
+#include<bits/stdc++.h>
+#include <regex>
+#include<ext/numeric>
+#include<ext/hash_map>
+using namespace std;
+using namespace __gnu_cxx;
+
+#define all(v) v.begin(),v.end()
+#define rall(v) v.rbegin(),v.rend()
+#define sz(v)  (int)v.size()
+#define WHITE -1
+#define GREY   0
+#define BLACK  1
+#define CLR(a,v) memset(a,v,sizeof a)
+#define PC(x) __builtin_popcount(x)
+#define PCLL(x) __builtin_popcountll(x)
+#define MP make_pair
+
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<ll, ll> pll;
+typedef vector<int> vi;
+typedef vector<ii> vii;
+typedef vector<ll> vll;
+//typedef unsigned int ui;
+
+typedef complex<double> point;
+//#define X real()
+//#define Y imag()
+#define vec(a,b) ((b)-(a))
+#define dot(a,b) ((conj(a)*(b)).real())
+#define cross(a,b) ((conj(a)*(b)).imag())
+#define colliner pointOnLine
+#define same(a,b) (lengthSqr(vec(a,b))<EPS)
+#define lengthSqr(v) (dot(v,v))
+
+const double PI = acos(-1.0);
+
+int dx[] = { 0, -1, 0, 1, -1, -1, 1, 1 };
+int dy[] = { 1, 0, -1, 0, 1, -1, 1, -1 };
+
+int DX[] = { 1, 1, -1, -1, 2, 2, -2, -2 };
+int DY[] = { 2, -2, 2, -2, 1, -1, 1, -1 };
+
+const int MAX = 15, MOD = 1e9 + 7, MAXLOG = 20;
+const ll OO = 1ll << 60;
+const double EPS = 1e-9;
+
+const int maxN = 4e5 + 100, maxE = maxN * 2;
+const ll oo = 1e18;
+ll src = 1, snk, cap[maxE];
+int head[maxN], headcpy[maxN], nxt[maxE], to[maxE], edgeCnt, cntT[10], n;
+string tshirt[] = { "S", "M", "L", "XL", "XXL", "XXXL" };
+
+void init() {
+	memset(head, -1, sizeof head);
+	edgeCnt = 0;
+}
+void addedge(int u, int v, ll c) {
+	nxt[edgeCnt] = head[u];
+	head[u] = edgeCnt;
+	cap[edgeCnt] = c;
+	to[edgeCnt++] = v;
+}
+void addbiedge(int u, int v, ll c) {
+	addedge(u, v, c);
+	addedge(v, u, 0);
+}
+int Rank[maxN];
+
+ll ddfs(int cur = src, ll flow = oo) {
+	if (cur == snk)
+		return flow;
+	for (int &i = headcpy[cur]; i != -1; i = nxt[i]) {
+		int t = to[i];
+		if (!cap[i] || Rank[t] != Rank[cur] + 1)
+			continue;
+		ll f = ddfs(t, min(flow, cap[i]));
+		cap[i] -= f;
+		cap[i ^ 1] += f;
+		if (f)
+			return f;
+	}
+	return 0;
+}
+int Q[maxN];
+bool dbfs() {
+	memset(Rank, -1, sizeof Rank);
+	int Qi = 0;
+	Q[Qi++] = src;
+	Rank[src] = 0;
+	for (int i = 0; i < Qi; ++i) {
+		int cur = Q[i];
+		int r = Rank[cur];
+		for (int j = head[cur]; j != -1; j = nxt[j]) {
+			int t = to[j];
+			if (!cap[j] || Rank[t] != -1)
+				continue;
+			Rank[t] = r + 1;
+			Q[Qi++] = t;
+			if (t == snk)
+				return 1;
+		}
+	}
+	return 0;
+}
+
+ll dinic() {
+	ll ret = 0, f;
+	while (dbfs()) {
+		memcpy(headcpy, head, sizeof head);
+		while (f = ddfs()) {
+			ret += f;
+		}
+	}
+	return ret;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("in.txt", "r", stdin);
+//	freopen("IN.in", "r", stdin);
+//	freopen("out.txt", "w", stdout);
+#endif
+	init();
+	for (int i = 0; i < 6; ++i)
+		scanf("%d", &cntT[i]);
+	scanf("%d", &n);
+	for (int i = 0; i < n; ++i)
+		addbiedge(src, i + 2, 1);
+	snk = n + 8;
+	for (int i = 0; i < 6; ++i)
+		addbiedge(n + i + 2, snk, cntT[i]);
+	for (int i = 0; i < n; ++i) {
+		string S;
+		cin >> S;
+		int idx = S.find(',');
+		if (idx != -1) {
+			int x = find(tshirt, tshirt + 6, S.substr(0, idx)) - tshirt;
+			addbiedge(i + 2, n + x + 2, 1);
+			addbiedge(i + 2, n + x + 3, 1);
+		} else {
+			int x = find(tshirt, tshirt + 6, S) - tshirt;
+			addbiedge(i + 2, n + x + 2, 1);
+		}
+	}
+	if (dinic() == n) {
+		puts("YES");
+		for (int i = 0; i < n; ++i)
+			for (int j = head[i + 2]; j != -1; j = nxt[j])
+				if (!cap[j]) {
+					printf("%s\n", tshirt[to[j] - n - 2].c_str());
+					break;
+				}
+	} else
+		puts("NO");
+}
+

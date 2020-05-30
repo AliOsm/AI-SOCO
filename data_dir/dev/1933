@@ -1,0 +1,190 @@
+#include <cstdio>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <cctype>
+#include <cassert>
+#include <ciso646>
+#include <climits>
+#include <cmath>
+
+
+#include <algorithm>
+#include <utility>
+#include <functional>
+#include <numeric>
+#include <string>
+#include <vector>
+#include <map>
+#include <queue>
+#include <stack>
+#include <set>
+#include <deque>
+#include <bitset>
+
+using namespace std;
+typedef long long ll;
+typedef std::pair< int, int > pii;
+typedef std::vector< int > vi;
+typedef std::vector< pii > vii ;
+ 
+#define fi first
+#define se second
+#define all(x)  (x).begin(), (x).end()
+#define fore(i,a,b)  for(int i = (a), vzq_b = (b); i < vzq_b; ++i)
+#define forn(i, n)  fore(i,0,n)
+
+double const EPS = 1.0E-9 ;
+int const MOD    = (int)1e9 + 7 ;
+inline int read( char*   s ){  return scanf("%s", s) ; } 
+inline int read(int&x){  return scanf("%d", & ( x ) ); }
+inline int read(ll&x){ return scanf("%lld",&x); }
+inline int read(double &x){ return scanf("%lf", &x); }
+inline int writeln(int x){ return printf("%d\n", x);}
+inline int writeln(ll x ) { return printf("%lld\n", x ) ; } 
+inline int writeln(double x){ return printf("%.12f\n", x ) ; } 
+template< typename ...T> int read(T&...args){  
+    using swallow = int[];
+    swallow w = { 0, ( read(args) ) ... } ;
+    return sizeof( w ) / sizeof( w [ 0 ] ) - 1;
+}
+
+inline ll gcd(ll x,ll y) { return y == 0 ? x : gcd(y, x%y); }
+inline ll lcm(ll x, ll y){ return x == 0 && y == 0  ? 0 : x/gcd(x,y) * y; }
+inline ll powmod(ll x, ll n, ll m = MOD ) {
+    ll r = 1;
+    while(n){
+        if (n&1) r = (r*x)%m;
+        x = (x*x)%m;
+        n/=2;
+    }
+    return r;
+}
+
+static int leap(int y){  return y % 4 == 0 && y% 100 != 0  || y % 400 == 0 ; }
+
+static int const month[ 2 ][ 12 ] = 
+{ 
+    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+};
+  
+
+/********************************************************/
+static const int maxn = 1 << 19 ;
+static const int maxm = 1 << 20 ;
+
+enum Cap{ Cap_none= 0, Cap_need = 1, Cap_not_need = 2 } ;
+
+int n, m ;
+int  cap[ maxn ];
+int s  [ maxm ];
+int  pos[ maxn ], len[ maxn ], visit[maxn];
+vi g[maxn];
+void dfs(int x)
+{
+    if (cap[x] == Cap_not_need ){
+        puts("No");
+        exit(0);
+    }
+    
+    cap[x] = Cap_need;
+    visit[x] = 1;
+    for(int y : g[x] ) 
+    {
+        if (!visit[y] ) dfs(y);
+    }
+}
+
+static int solve()
+{
+    read(n,m);
+    
+    pos [ 0 ] = 0;
+    len [ 0 ] = 1;
+    
+    for(int i = 1; i <= n;++i)
+    {
+        pos[i] = pos[ i - 1 ] + len[ i - 1 ]   ;
+        
+        read(len[i]);
+        for(int j = 0; j < len[i]; ++j) read(s[pos[i] + j] ) ;
+    }
+    
+    for(int i= 1; i <= m; ++i)cap[ i ] = Cap_none;
+    
+    for(int i= 1; i< n; ++i)
+    {
+        int k = 0;
+         
+        
+        while(k < len[i] &&  k < len[i+1] && s[pos[i] + k] == s[pos[i+1] + k ])
+            ++k;
+        
+        if (k == len[i] || k == len[i+1] ) continue;
+         
+        int si = s[ pos[i] + k], sj = s[ pos[i + 1] + k ] ;
+        
+        if ( si > sj  )
+        {
+            if (cap[ si ] == Cap_not_need || cap[ sj ] == Cap_need ) {
+                return puts("No"), 0;
+            }
+            
+            cap[ si ] = Cap_need;
+            cap[ sj ] = Cap_not_need;
+            continue;
+        } 
+        
+        
+        // s[ i ] [k ] < s[i+1][ k ] 
+        
+        g[ sj ].push_back( si ) ;    
+    }
+    
+    for(int i = 1; i<=m; ++i)
+    {
+        if (cap[i] == Cap_need && ! visit[i] ) {
+            dfs(i);
+        }
+    }
+    
+    for(int i = 1; i <= m; ++i){
+        if (cap[i] == Cap_none) cap[i] = Cap_not_need;
+    }
+    
+    for(int i=  1; i< n; ++i)
+    {
+        int k = 0;
+        while ( k < len[i] && k < len [i + 1] && pii(cap[s[k + pos[i]]], s[k + pos[i]]) == pii(cap[s[k + pos[i+1]]], s[k + pos[i+1]] ) ) 
+            ++k;
+        
+        if (len [i] == len[i+1] && k == len[i] ) 
+            continue;
+        
+        if (k == len[i] ) continue;
+        if (k == len[i+1] ) return puts("No"), 0 ;
+        if ( pii(cap[s[k + pos[i]]], s[k + pos[i]]) > pii(cap[s[k + pos[i+1]]], s[k + pos[i+1]] ) ) return puts("No"), 0;
+        
+    }
+    puts("Yes");
+    vi ans;
+    for(int i= 1; i<=m; ++i)if (cap[i] == Cap_need)ans.push_back(i);
+    writeln((int)ans.size());
+    for(int e: ans) printf("%d ", e ) ;
+    return 0 ;
+}
+
+
+int main(int argc, char * argv[] ) 
+{
+    
+#ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin); 
+    freopen("output.txt", "w", stdout);
+#endif //end online-judge    
+  
+    solve();
+    return 0;
+}

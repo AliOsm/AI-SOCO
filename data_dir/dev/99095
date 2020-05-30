@@ -1,0 +1,85 @@
+#include <algorithm>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+const int BLOCK_SIZE = 1000;
+
+class data{
+  public:
+  const int MX = 1048576;
+  long long answer;
+  vector<int> xor_frequencies;
+
+  data(){
+    xor_frequencies.resize(MX);
+    answer = 0;
+    xor_frequencies[0] = 1;
+  }
+
+  void add(int x, int k) {
+    answer += xor_frequencies[x ^ k];
+    xor_frequencies[x]++;
+  }
+
+  void remove(int x, int k) {
+    xor_frequencies[x]--;
+    answer -= xor_frequencies[x ^ k];
+  }
+};
+
+class query{
+  public:
+  int l, r, i;
+  query(){}
+  query(int _l, int _r, int _i) : l(_l), r(_r), i(_i) {}
+  bool operator < ( const query& t ) const {
+    return (l / BLOCK_SIZE == t.l / BLOCK_SIZE) ? r < t.r : l / BLOCK_SIZE < t.l / BLOCK_SIZE;
+  }
+};
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(NULL);
+  int n, m, k, x, l, r;
+  while ( cin >> n >> m >> k ) {
+    data ds;
+    vector<int> prefix_xor(n + 1);
+    vector<query> queries(m);
+    vector<long long> answer(m);
+    
+    for ( int i = 1; i <= n; ++i ) {
+      cin >> x;
+      prefix_xor[i] = prefix_xor[i - 1] ^ x;
+      // cout << prefix_xor[i] << " ";
+    }
+
+    for ( int i = 0; i < m; ++i ) {
+      cin >> l >> r;
+      queries[i] = query(l, r, i);
+    }
+    sort (queries.begin(), queries.end());
+    int cur_l = 0, cur_r = -1;
+    for ( auto i : queries ) {
+      while ( cur_l  > i.l ) {
+        cur_l--;
+        ds.add(prefix_xor[max(cur_l - 1, 0)], k);
+      }
+      while ( cur_r < i.r ) {
+        cur_r++;
+        ds.add(prefix_xor[cur_r], k);
+      }
+      while ( cur_l < i.l ) {
+        ds.remove(prefix_xor[max(cur_l - 1, 0)], k);
+        cur_l++;
+      }
+      while ( cur_r > i.r) {
+        ds.remove(prefix_xor[cur_r], k);
+        cur_r--;
+      }
+      answer[i.i] = ds.answer;
+    }
+    for ( auto i : answer ) cout << i << '\n';
+
+  } 
+  return 0;
+}

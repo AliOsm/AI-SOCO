@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MAX 200005
+string str[MAX];
+vector<int> adj[MAX];
+int depth[MAX], sz[MAX], big[MAX];
+unordered_map<string, int> mp[MAX];
+vector<pair<int, int> > q[MAX];
+int ans[MAX];
+
+void prnt(unordered_map<string, int> temp, int u, int d)
+{
+    cout << "NOW " << u << " " << d << endl;
+    for(auto it : temp){
+        cout << it.first << " " << it.second << endl;
+    }
+    cout << endl;
+}
+
+void init(int u, int d)
+{
+    depth[u] = d;
+    sz[u] = 1;
+    for(int i=0; i<adj[u].size(); i++){
+        int v = adj[u][i];
+        init(v, d+1);
+        sz[u] += sz[v];
+    }
+}
+
+void dlt(int u)
+{
+    auto it = mp[depth[u]].find(str[u]);
+    it->second--;
+    if(!it->second) mp[depth[u]].erase(str[u]);
+    for(int i=0; i<adj[u].size(); i++){
+        int v = adj[u][i];
+        if(big[v] == 0) dlt(v);
+    }
+}
+
+void add(int u)
+{
+    mp[depth[u]][str[u]]++;
+    for(int i=0; i<adj[u].size(); i++){
+        int v = adj[u][i];
+        if(big[v] == 0) add(v);
+    }
+}
+
+void dfs(int u, bool keep)
+{
+    int mx = 0, bigChild = -1;
+    for(int i=0; i<adj[u].size(); i++){
+        int v = adj[u][i];
+        if(sz[v] > mx){
+            mx = sz[v];
+            bigChild = v;
+        }
+    }
+    for(int i=0; i<adj[u].size(); i++){
+        int v = adj[u][i];
+        if(v != bigChild) dfs(v, false);
+    }
+    if(bigChild != -1){
+        dfs(bigChild, true);
+        big[bigChild] = 1;
+    }
+    add(u);
+    for(int i=0; i<q[u].size(); i++){
+        int id = q[u][i].first;
+        int d = q[u][i].second;
+        ans[id] = mp[depth[u]+d].size();
+    }
+    if(bigChild != -1) big[bigChild] = 0;
+    if(keep == false){
+        dlt(u);
+    }
+}
+
+int main()
+{
+    int n;
+    scanf("%d", &n);
+    for(int i=1; i<=n; i++){
+        cin >> str[i];
+        int par;
+        scanf("%d", &par);
+        adj[par].push_back(i);
+    }
+    int m;
+    scanf("%d", &m);
+    for(int i=0; i<m; i++){
+        int u, d;
+        scanf("%d %d", &u, &d);
+        q[u].push_back(make_pair(i, d));
+    }
+    init(0, 1);
+    dfs(0, false);
+    for(int i=0; i<m; i++){
+        printf("%d\n", ans[i]);
+    }
+}

@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+#define Left Node << 1
+#define Right Node << 1 | 1
+
+using namespace std;
+
+const int N = 1e6 + 100;
+
+struct Sequence
+{
+    int LIS, LDS;
+    int Num1, Num2;
+
+    Sequence(int LIS = 0, int LDS = 0, int Num1 = 0, int Num2 = 0)
+        :LIS(LIS), LDS(LDS), Num1(Num1), Num2(Num2){}
+
+    Sequence operator+ (const Sequence s) {
+        return Sequence(max({LIS, s.LIS, Num1 + s.LIS, LIS + s.Num2}),
+                        max({LDS, s.LDS, Num2 + s.LDS, LDS + s.Num1}),
+                            Num1 + s.Num1, Num2 + s.Num2);
+    }
+
+    inline void Flip() {
+        swap(LIS, LDS);
+        swap(Num1, Num2);
+    }
+};
+
+int n, m;
+
+string s;
+
+bool Lazy[10 * N];
+Sequence Seg[5 * N];
+
+void Build(int Node = 1, int L = 1, int R = n)
+{
+    if (L == R) {
+        Seg[Node] = Sequence(1, 1, s[L] == '4', s[L] == '7');
+        return;
+    }
+
+    int Mid = L + R >> 1;
+    Build(Left, L, Mid);
+    Build(Right, Mid + 1, R);
+
+    Seg[Node] = Seg[Left] + Seg[Right];
+}
+
+void PushLazy(int Node) {
+    if (!Lazy[Node]) return;
+
+    Lazy[Left] = !Lazy[Left];
+    Lazy[Right] = !Lazy[Right];
+    Lazy[Node] = 0;
+
+    Seg[Node].Flip();
+}
+
+void UpdateRange (int i, int j, int Node = 1, int L = 1, int R = n)
+{
+    PushLazy(Node);
+
+    if (j < L || i > R) return;
+    if (L >= i && R <= j) {
+        Lazy[Node] = 1;
+        PushLazy(Node);
+        return;
+    }
+
+    int Mid = L + R >> 1;
+    UpdateRange(i, j, Left, L, Mid);
+    UpdateRange(i, j, Right, Mid + 1, R);
+
+    Seg[Node] = Seg[Left] + Seg[Right];
+}
+
+Sequence Query(int i, int j, int Node = 1, int L = 1, int R = n)
+{
+    PushLazy(Node);
+
+    if (j < L || i > R) return Sequence();
+    if (L >= i && R <= j)
+        return Seg[Node];
+
+    int Mid = L + R >> 1;
+    Sequence Q1 = Query(i, j, Left, L, Mid);
+    Sequence Q2 = Query(i, j, Right, Mid + 1, R);
+
+    return Q1 + Q2;
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0); cout.tie(0);
+    
+    cin >> n >> m;
+    cin >> s;   s = "#" + s;
+ 
+    Build();
+
+    while (m--)
+    {
+        string t;   cin >> t;
+
+        if (t == "count") {
+            Sequence Ans = Query(1, n);
+            cout << Ans.LIS << '\n';
+        } else {
+            int L, R;   cin >> L >> R;
+            UpdateRange(L, R);
+        }
+    }
+
+    return 0;
+}

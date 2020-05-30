@@ -1,0 +1,96 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n;
+vector<vector<int> >g;
+int par[19][100001];
+int lev[100001], sz[100001];
+
+void go(int u, int p) {
+	par[0][u] = p;
+	sz[u] = 1;
+	for(int i = 0; i < g[u].size(); i++){
+		int v = g[u][i];
+		if(v == p)
+			continue;
+		lev[v] = lev[u] + 1;
+		go(v, u);
+		sz[u] += sz[v];
+	}
+}
+
+int getPth(int u, int p){
+	for(int i = 18; i >= 0; i--){
+		if((1<<i) <= p){
+			p-=(1<<i);
+			u = par[i][u];
+		}
+	}
+
+	return u;
+}
+
+int LCA(int u, int v) {
+	if(lev[u] < lev[v])
+		swap(u, v);
+
+	u = getPth(u, lev[u] - lev[v]);
+	int low = 0, high = lev[u], ret;
+	while(low <= high){
+		int mid = (high + low) / 2;
+		if(getPth(u, mid) == getPth(v, mid))
+			ret = mid, high = mid - 1;
+		else low = mid + 1;
+	}
+	return getPth(u, ret);
+}
+
+int solve(int u, int v){
+	if(u == v)
+		return n;
+
+	int l = LCA(u, v);
+	int dist = lev[u] + lev[v] - 2 * lev[l];
+	if(dist % 2)
+		return 0;
+
+	if(lev[u] < lev[v])
+		swap(u, v);
+
+	int utoC = getPth(u, dist / 2 - 1);
+	int center = par[0][utoC];
+
+	int ret = sz[center] - sz[utoC];
+
+	if(center == l){
+		int vtoC = getPth(v, lev[v] - lev[l] - 1);
+		ret -= sz[vtoC];
+		ret += n - sz[center];
+	}
+	return ret;
+}
+
+int main() {
+	scanf("%d", &n);
+	g.resize(n+1);
+	for(int i=0; i<n-1; i++){
+		int u, v; scanf("%d%d", &u, &v);
+		g[u].push_back(v);
+		g[v].push_back(u);
+	}
+
+	go(1, 0);
+	for(int j = 1; j < 19; j++){
+		for(int i = 1; i <= n; i++){
+			if(par[j-1][i] != -1)
+				par[j][i] = par[j - 1][par[j-1][i]];
+		}
+	}
+
+	int q; scanf("%d", &q);
+	while(q--){
+		int u, v; scanf("%d%d", &u, &v);
+		printf("%d\n", solve(u, v));
+	}
+	return 0;
+}

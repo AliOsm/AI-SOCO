@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define f1(i, a, b) for (int i = a; i <= b; i ++)
+#define f0(i, a, b) for (int i = a; i < b; i ++)
+#define f3(i, a, b) for (int i = a; i >= b; i --)
+template <class T> void chkmax(T &a, T b) {if (a < b) a = b;}
+
+const double eps = 1e-7;
+
+#define N 400005
+
+int n, m, up;
+int a[N], l[N], r[N], b[N], g[N], ans[N];
+bool f[N];
+
+struct data {
+    int a, p, id;
+    data(int a = 0, int p = 0, int id = 0) : a(a), p(p), id(id) {}
+} A[N<<2];
+
+bool cmp1(data &x, data &y) {
+    if (x.a != y.a) return x.a < y.a;
+    if (x.p != y.p) return x.p > y.p;
+    return x.id < y.id;
+}
+
+bool cmp2(data &x, data &y) {
+	if (x.a != y.a) return x.a > y.a;
+    if (x.p != y.p) return x.p < y.p;
+    return x.id < y.id;
+}
+
+int mx[N<<2];
+
+void update(int p, int v, int L, int R, int seg) {
+    if (L == R) {
+        chkmax(mx[seg], v);
+        return;
+    }
+    int mid = L + R >> 1;
+    if (p <= mid) update(p, v, L, mid, seg << 1);
+    else update(p, v, mid + 1, R, seg << 1 | 1);
+    mx[seg] = max(mx[seg<<1], mx[seg<<1|1]);
+    return;
+}
+
+int query(int l, int r, int L, int R, int seg) {
+    if (l <= L && R <= r) return mx[seg];
+    int res = 0;
+    int mid = L + R >> 1;
+    if (l <= mid) chkmax(res, query(l, r, L, mid, seg << 1));
+    if (mid < r) chkmax(res, query(l, r, mid + 1, R, seg << 1 | 1));
+    return res;
+}
+
+int main() {
+    scanf("%d %d", &n, &m);
+	f1(i, 1, n) scanf("%d", &a[i]);
+    int bs = 0, k;
+    f1(i, 1, n) {
+		k = lower_bound(b, b + bs, a[i]) - b;
+        if (k == bs) b[bs ++] = a[i];
+        else b[k] = a[i];
+        l[i] = k + 1;
+    }
+    up = bs;
+    bs = 0;
+    f3(i, n, 1) {
+        k = lower_bound(b, b + bs, a[i], greater <int> ()) - b;
+        if (k == bs) b[bs ++] = a[i];
+        else b[k] = a[i];
+        r[i] = k + 1;
+        if (l[i] + r[i] - 1 == up) f[i] = 1;
+    }
+    f1(i, 1, n) if (f[i]) g[l[i]] ++;
+    int x, y, sz = 0;
+    f1(i, 1, n) A[sz ++] = data(a[i], i, 0);
+	f1(i, 1, m) {
+        scanf("%d %d", &x, &y);
+        A[sz ++] = data(y, x, i);
+	}
+    sort(A, A + sz, cmp1);
+    memset(mx, 0, sizeof mx);
+    f0(i, 0, sz) {
+    	x = 0;
+        if (A[i].p > 1) x = query(1, A[i].p-1, 1, n, 1);
+        if (A[i].id) ans[A[i].id] += x;
+        else update(A[i].p, x+1, 1, n, 1);
+    }
+    sort(A, A + sz, cmp2);
+    memset(mx, 0, sizeof mx);
+    f0(i, 0, sz) {
+		x = 0;
+		if (A[i].p < n) x = query(A[i].p+1, n, 1, n, 1);
+        if (A[i].id) {
+			ans[A[i].id] += x + 1;
+            if (f[A[i].p] && g[l[A[i].p]] == 1) chkmax(ans[A[i].id], up-1);
+            else chkmax(ans[A[i].id], up);
+        }
+        else update(A[i].p, x+1, 1, n, 1);
+    }
+    f1(i, 1, m) printf("%d\n", ans[i]);
+	return 0;
+}

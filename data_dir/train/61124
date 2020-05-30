@@ -1,0 +1,226 @@
+#include <algorithm>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <list>
+#include <bitset>
+#include <deque>
+#include <numeric>
+#include <iterator>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
+#include <cmath>
+#include <climits>
+#include <sys/time.h>
+
+using namespace std;
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+
+typedef long long Long;
+struct Printer
+{
+    template<class T>
+    static void print(pair<T,T> P)
+    {
+        printf("(%d,%d)",P.first,P.second);
+    }
+    static void print(int n)
+    {
+        printf("%d",n);
+    }
+    static void print(double n)
+    {
+        printf("%.10lf",n);
+    }
+    template<class T>
+    static void print(vector<T> V)
+    {
+        printf("{");
+        for(int i = 0; i < V.size(); ++i){
+            if(i > 0)printf(", ");
+            print(V[i]);
+        }
+        printf("}\n");
+
+    }
+    template<class T>
+    static void print(vector<vector<T> > V)
+    {
+        printf("{\n");
+        for(int i = 0; i < V.size(); ++i){
+            printf("  [%d]\t",i);
+            print(V[i]);
+        }
+        printf("}\n");
+    }
+    template<class ITERATOR>
+    static void print(ITERATOR begin, ITERATOR end)
+    {
+        printf("{");
+        int f = 0;
+        while(begin != end)
+        {
+            if(f)printf(", ");f = 1;
+            print(*begin);
+            begin++;
+        }
+        printf("}\n");
+    }
+};
+
+struct Trie
+{
+    struct Node
+    {
+        int childs[26] , cnt;
+        Node(){
+            cnt = 0;
+            memset(childs , -1, sizeof(childs));
+        }
+    };
+    vector<Node> V;
+    Trie(int reserved = 0)
+    {
+        V = vector<Node>();
+        V.reserve(reserved);
+        V.push_back(Node());
+    }
+    void insert(const string &S)
+    {
+        int v = 0;
+        V[v].cnt++;
+        for(int i = 0; i < S.size(); ++i)
+        {
+            int p = S[i] - 'a';
+            if(V[v].childs[p] == -1){
+                V[v].childs[p] = V.size();
+                V.push_back(Node());
+            }
+            v = V[v].childs[p];
+            V[v].cnt++;
+        }
+    }
+};
+
+struct SuffixAutomaton {
+    struct Node {
+        int link;
+        map<char, int> next;
+        int len;
+        int dp_num_of_substr, dp_len_of_substr;
+        int cnt;
+        Node() {
+            dp_num_of_substr = dp_len_of_substr = -1;
+            link = -1;
+            next = map<char, int>();
+            len = cnt = 0;
+        }
+    };
+    vector<Node> V;
+    SuffixAutomaton(const string &S) {
+        // cout <<"----> "<< S << endl;
+        V.clear();
+        V.push_back(Node());
+        Node tmp;
+        int last = 0;
+        for (int i = 0; i < S.size(); ++i) {
+            char c = S[i];
+            int curr = V.size();
+            V.push_back(Node());
+            V.back().cnt = 1;
+            V[curr].len = V[last].len + 1;
+            int p;
+            for (p = last; p != -1 && !V[p].next.count(c); p = V[p].link)
+                V[p].next[c] = curr;
+            if (p == -1) {
+                V[curr].link = 0;
+            } else {
+                int q = V[p].next[c];
+                if (V[p].len + 1 == V[q].len) {
+                    V[curr].link = q;
+                } else {
+                    int clone = V.size();
+                    V.push_back(Node());
+                    V[clone].len = V[p].len + 1;
+                    V[clone].next = V[q].next;
+                    V[clone].link = V[q].link;
+                    for (; p != -1 && V[p].next[c] == q; p = V[p].link)
+                        V[p].next[c] = clone;
+                    V[q].link = V[curr].link = clone;
+                }
+            }
+            last = curr;
+        }
+    }
+    void computeOcurrences() {
+        int ma = 0;
+        for (int i = 0; i < V.size(); ++i)
+            ma = max(ma, V[i].len);
+        vector<vector<int> > TEMP(ma + 1, vector<int>());
+        for (int i = 0; i < V.size(); ++i)
+            TEMP[V[i].len].push_back(i);
+        for (int i = ma; i >= 1; --i)
+            for (int j = 0; j < TEMP[i].size(); ++j)
+                V[V[TEMP[i][j]].link].cnt += V[TEMP[i][j]].cnt;
+    }
+};
+
+
+int getMin(int lvl , int nA , int nB , SuffixAutomaton &A , SuffixAutomaton &B)
+{
+    if(lvl != 0 && A.V[nA].cnt == 1 && B.V[nB].cnt == 1)return lvl;
+    int w = 1000000;
+    for(int i = 'a'; i <= 'z'; ++i)
+    {
+        if(A.V[nA].next.count(i) && B.V[nB].next.count(i) )
+        {
+            w = min(w , getMin(lvl+1 ,A.V[nA].next[i], B.V[nB].next[i] , A , B));
+        }
+        
+    }
+    return w;
+}
+
+
+
+
+int main() 
+{
+    
+    string A,B;
+    cin >> A >> B;
+    SuffixAutomaton T1(A) , T2(B);
+    T1.computeOcurrences();
+    T2.computeOcurrences();
+    int t = getMin(0,0,0,T1,T2);
+    cout << (t == 1000000 ? -1 : t) << endl;
+    
+}
+
+
+
+/*
+ * 
+8
+0 0
+
+2 2
+0 1
+1 0
+0 2
+2 0
+1 2
+2 1
+ * 
+ */
+

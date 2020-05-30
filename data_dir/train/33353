@@ -1,0 +1,109 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+const int N = 1e5 + 7;
+
+int dis[N], d2[N];
+vector<int> adj[N], tmp;
+int col[N], best[N];
+vector<int> all[N], psum[N];
+map<pair<int, int>, ld> mp;
+
+void dfs(int v, int p, int *dis, int c)
+{
+	col[v] = c;
+	tmp.push_back(v);
+	for (auto u : adj[v])
+		if (u != p)
+		{
+			dis[u] = dis[v] + 1;
+			dfs(u, v, dis, c);
+		}
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+
+	int n, m, q;
+	cin >> n >> m >> q;
+	for (int i=0; i<m; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		u--, v--;
+		adj[v].push_back(u);
+		adj[u].push_back(v);
+	}
+	memset(col, -1, sizeof col);
+	int cnt = 0;
+	for (int v=0; v<n; v++)
+		if (col[v] == -1)
+		{
+			dfs(v, -1, dis, cnt);
+			int mx = v;
+			for (auto u : tmp)
+				if (dis[u] > dis[mx])
+					mx = u;
+			tmp.clear();
+			dis[mx] = 0;
+			dfs(mx, -1, dis, cnt);
+			int mx2 = mx;
+			for (auto u : tmp)
+				if (dis[u] > dis[mx2])
+					mx2 = u;
+			best[cnt] = dis[mx2];
+			tmp.clear();
+			dfs(mx2, -1, d2, cnt);
+			for (auto u : tmp)
+				dis[u] = max(dis[u], d2[u]);
+			for (auto u : tmp)
+				all[cnt].push_back(dis[u]);
+			sort(all[cnt].begin(), all[cnt].end());
+			psum[cnt].resize(all[cnt].size()+1, 0);
+			for (int i=0; i<(int)all[cnt].size(); i++)
+				psum[cnt][i+1] = psum[cnt][i] + all[cnt][i];
+			cnt++;
+			tmp.clear();
+		}
+	/*for (int i=0; i<n; i++)
+		cout << dis[i] << " ";
+	cout << "\n";*/
+	cout << setprecision(12) << fixed;
+	while (q--)
+	{
+		int u, v;
+		cin >> u >> v;
+		u--, v--;
+		u = col[u];
+		v = col[v];
+		if (v == u)
+		{
+			cout << "-1\n";
+			continue;
+		}
+		if (v > u)
+			swap(u, v);
+		if (mp.count({v, u}))
+		{
+			cout << mp[{v, u}] << "\n";
+			continue;
+		}
+		auto pir = make_pair(v, u);
+		if (all[v].size() > all[u].size())
+			swap(u, v);
+		ll res = 0;
+		ll least = max(best[v], best[u]);
+		for (auto d : all[v])
+		{
+			int p = upper_bound(all[u].begin(), all[u].end(), least - d - 1) - all[u].begin();
+			res += p * least;
+			res += psum[u][all[u].size()] - psum[u][p];
+			res += 1LL * ((int)(all[u].size()) - p) * (d + 1);
+		}
+		cout << (mp[pir] = (ld)res / (ld)(all[u].size()) / (ld)(all[v].size())) << "\n";
+	}
+
+	return 0;
+}

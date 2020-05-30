@@ -1,0 +1,121 @@
+#include <iostream>
+#include <stdio.h>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <cstdlib>
+#include <utility>
+#include <memory.h>
+#include <cassert>
+#include <iterator>
+#include <bitset>
+#include <iomanip>
+#include <complex>
+#include <queue>
+#include <ctime>
+#include <deque>
+#include <stack>
+#include <set>
+#include <map>
+
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+
+const int LG = 18;
+const int N = 100500;
+
+int n, q;
+int q_val;
+int a[N];
+int lg[N];
+int table[LG][N];
+map<int, long long> have;
+map<int, long long> :: iterator it;
+
+int gcd(int a, int b) {
+	while (a > 0 && b > 0) {
+		if (a > b) {
+			a %= b;
+		} else {
+			b %= a;
+		}
+	}
+	return a + b;
+}
+
+int getGcd(int l, int r) {
+	int lvl = lg[r - l];
+	return gcd(table[lvl][l], table[lvl][r - (1 << lvl) + 1]);
+}
+
+int getLen(int start, int now, int need) {
+	int le = now;
+	int ri = n + 1;
+	while (ri - le > 1) {
+		int mid = (le + ri) >> 1;
+		if (getGcd(start, mid) == need) {
+			le = mid;
+		} else {
+			ri = mid;
+		}
+	}
+	return le - now + 1;
+}
+
+void buildSparse() {
+	lg[1] = 0;
+	for (int i = 2; i <= n; i++) {
+		lg[i] = lg[i >> 1] + 1;
+	}
+	for (int i = 1; i <= n; i++) {
+		table[0][i] = a[i];
+	}
+	for (int lvl = 1; lvl < LG; lvl++) {
+		for (int i = 1; i <= n; i++) {
+			table[lvl][i] = table[lvl - 1][i];
+			int nxt_pos = i + (1 << (lvl - 1));
+			nxt_pos = min(nxt_pos, n);
+			table[lvl][i] = gcd(table[lvl][i], table[lvl - 1][nxt_pos]);
+		}
+	}
+}
+
+int main() {
+	scanf("%d", &n);
+	for (int i = 1; i <= n; i++) {
+		scanf("%d", &a[i]);
+	}
+	buildSparse();
+	for (int i = 1; i <= n; i++) {
+		int currentGcd = a[i];
+		int currentPos = i;
+		while (true) {
+			if (currentPos > n) {
+				break;
+			}
+			int len = getLen(i, currentPos, currentGcd);
+			int nxtGcd = currentGcd;
+			if (currentPos + len <= n) {
+				nxtGcd = getGcd(i, currentPos + len);
+			}
+			have[currentGcd] += (1LL * len);
+			currentPos += len;
+			currentGcd = nxtGcd;
+		}
+	}
+	scanf("%d", &q);
+	while (q--) {
+		scanf("%d", &q_val);
+		it = have.find(q_val);
+		if (it == have.end()) {
+			puts("0");
+			continue;
+		}
+		printf("%I64d\n", it -> S);
+	}
+	return 0;
+}

@@ -1,0 +1,130 @@
+#include <bits/stdc++.h>
+#define sz(x) (int)(x).size()
+#define all(x) (x).begin(), (x).end()
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long llu;
+typedef pair<int, int> pii;
+typedef pair<int, pii> piii;
+typedef pair<ll, ll> pll;
+typedef pair<ll, int> pli;
+typedef pair<int, ll> pil;
+typedef pair<string, int> psi;
+typedef pair<char, int> pci;
+typedef pair<int, char> pic;
+const ll MOD = (ll)1e9 + 7;
+const long double PI = 3.141592653589793238462643383279502884197;
+
+ll fac[1] = {1}, inv[1] = {1};
+ll gcd(ll a,ll b){return b?gcd(b,a%b):a;}
+ll mp(ll a,ll b){ll ret=1;while(b){if(b&1)ret=ret*a%MOD;a=a*a%MOD;b>>=1;}return ret;}
+ll cmb(ll r, ll c) {return fac[r] * inv[c] % MOD * inv[r - c] % MOD;}
+
+priority_queue<int, vector<int>, greater<int>> pq;
+vector<int> v;
+
+char s[1000001];
+char ans[1000001];
+
+// 이제 커서 옮기는 거 그냥 하면 되고
+// L 무시 조심하고
+// 쓰는 건 덮어 씌우는 연산이다.
+// 크게 생각할 필요 없이...
+// 괄호쌍만 생각하자.
+// 결국 내가 알야아 하는 건...
+// 올바른 괄호인가? 맥시멈은 몇인가?
+// 보통 한번 훑는 건 O(N)에 되는데.. 아마 세그 느낌.
+// 어떤 괄호 위치 존재.
+
+// 1. 어떤 괄호 삭제.
+// 2. 어떤 괄호 삽입
+// 3. 두 개의 연산만 생각.
+
+// 4. 괄호의 변화량을 준다는 건... 뒤쪽의 무언가에 연산을 한다 +1-1
+// 레이지 세그.
+// 이 중 max를 찾아라.
+// prefix의 min도 찾아야 함.
+
+// 1. 맨 마지막이 0인지.   구간합 확인
+// 2. -1인 순간이 존재하는지 인데, 그냥 최솟값 찾으면 됨.
+// 3.
+// min, max 세그, 레이지, last 포인트.
+
+int szz = 1 << 20;
+int miv[1 << 21];
+int mav[1 << 21];
+int lazy[1 << 21];
+
+// ty = 1인 경우 최솟값
+// 0인 경우 최댓값
+
+int find(int i, int l, int r, int le, int ri,int val, int ty) {
+    val += lazy[i];
+    if (l > ri || r < le) return ty ? 1e9 : 0;
+    if (l <= le && ri <= r) return val + (ty ? miv[i] : mav[i]);
+
+    if (ty) return min(
+                find(i * 2, l, r, le, (le + ri)/2, val, ty),
+                find(i * 2 + 1, l, r, (le + ri)/2 + 1, ri, val, ty));
+
+    else return max(
+                find(i * 2, l, r, le, (le + ri)/2, val, ty),
+                find(i * 2 + 1, l, r, (le + ri)/2 + 1, ri, val, ty));
+}
+
+void update(int i, int l, int r, int le, int ri, int val) {
+    if (l > ri || r < le) return;
+    if (l <= le && ri <= r) {
+        lazy[i] += val;
+        return;
+    }
+    update(i * 2, l, r, le, (le + ri)/2, val);
+    update(i * 2 + 1, l, r, (le + ri)/2 + 1, ri, val);
+
+    miv[i] = min(miv[i * 2] + lazy[i * 2], miv[i * 2 + 1] + lazy[i * 2 + 1]);
+    mav[i] = max(mav[i * 2] + lazy[i * 2], mav[i * 2 + 1] + lazy[i * 2 + 1]);
+}
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    scanf("%s", s);
+
+    int now = 0;
+    for (int i = 0; i < n; i++) {
+        if (s[i] == 'L') now = max(0, now - 1);
+        else if (s[i] == 'R') now++;
+        else if (s[i] == '(') {
+            if (ans[now] == ')') update(1, now, szz - 1, 0, szz - 1, 1);
+            else if (ans[now] == '(');
+            if (ans[now] != '(') {
+                ans[now] = '(';
+                update(1, now, szz - 1, 0, szz - 1, 1);
+            }
+        }
+        else if (s[i] == ')') {
+            if (ans[now] == ')');
+            else if (ans[now] == '(') update(1, now, szz - 1, 0, szz - 1, -1);
+            if (ans[now] != ')') {
+                update(1, now, szz - 1, 0, szz - 1, -1);
+                ans[now] = ')';
+            }
+        }
+        else {
+            if (ans[now] == '(') update(1, now, szz - 1, 0, szz - 1, -1);
+            else if (ans[now] == ')') update(1, now, szz - 1, 0, szz - 1, 1);
+            ans[now] = ' ';
+        }
+
+        int mm = find(1, 0, szz - 1, 0, szz - 1, 0, 1);
+        int me = find(1, szz - 1, szz - 1, 0, szz - 1, 0, 0);
+        // printf("\n%d : %d %d\n", i, mm, me);
+
+        if (mm < 0 || me != 0) printf("-1 ");
+        else {
+            me = find(1, 0, szz - 1, 0, szz - 1, 0, 0);
+            printf("%d ", me);
+        }
+    }
+}

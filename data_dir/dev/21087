@@ -1,0 +1,169 @@
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <queue>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <memory.h>
+
+using namespace std;
+
+#define ABS(a) ((a>0)?a:-(a))
+#define MIN(a,b) ((a<b)?(a):(b))
+#define MAX(a,b) ((a<b)?(b):(a))
+#define FOR(i,a,n) for (int i=(a);i<(n);++i)
+#define FI(i,n) for (int i=0; i<(n); ++i)
+#define pnt pair <int, int>
+#define mp make_pair
+#define PI 3.14159265358979
+#define MEMS(a,b) memset(a,b,sizeof(a))
+#define LL long long
+#define U unsigned
+
+struct item
+{
+	LL sum[5];
+	int sz;
+	item *l; item *r;
+	int x,y;
+	item (int x)
+	{
+		l=r=0;
+		this->x=x;
+		this->y=rand();
+		sz=1;
+		MEMS(sum,0);
+		sum[0]=x;
+	}
+};
+
+typedef item* pitem;
+inline void recalc(pitem &t)
+{
+	int cursz=0;
+	MEMS(t->sum,0);
+	if (t->l)
+	{
+		FOR(i,0,5)
+			t->sum[i]+=t->l->sum[i];
+		cursz+=t->l->sz;
+	}
+	cursz++;
+	t->sum[(cursz-1)%5]+=t->x;
+	if (t->r)
+	{
+		FOR(i,0,5)
+			t->sum[(cursz+i)%5]+=t->r->sum[i];
+		cursz+=t->r->sz;
+	}
+	t->sz=cursz;
+}
+pitem merge(pitem a, pitem b)
+{
+	if (!a)
+		return b;
+	if (!b)
+		return a;
+	pitem res;
+	if (a->y>b->y)
+	{
+		a->r=merge(a->r,b);
+		recalc(a);
+		return a;
+	}
+	else
+	{
+		b->l=merge(a,b->l);
+		recalc(b);
+		return b;
+	}
+}
+void split (pitem t, pitem &l, pitem &r, int v)
+{
+	if (!t)
+	{
+		l=r=0;
+		return;
+	}
+	if (t->x>=v)
+	{
+		r=t;
+		split(t->l,l,t->l,v);
+		recalc(r);
+	}
+	else
+	{
+		l=t;
+		split(t->r,t->r,r,v);
+		recalc(l);
+	}
+}
+
+inline void add(int x, pitem &t)
+{
+	pitem now= new item(x);
+	pitem l=0,r=0;
+	split(t,l,r,x);
+	t=merge(l,now);
+	t=merge(t,r);
+}
+inline void del(int x, pitem &t)
+{
+	pitem l=0,r=0,tmp=0;
+	split(t,l,r,x);
+	split(r,tmp,r,x+1);
+	t=merge(l,r);
+}
+char s[10];
+int main()
+{
+#ifdef Fcdkbear
+    freopen("in.txt","r",stdin);
+    //freopen("out.txt","w",stdout);
+    double beg=clock();
+#endif
+
+	pitem t=0;
+	int sz=0;
+	int n;
+	scanf("%d",&n);
+	FOR(i,0,n)
+	{
+		scanf("%s",&s);
+		if (s[0]=='a')
+		{
+			int v;
+			scanf("%d",&v);
+			add(v,t);
+			sz++;
+		}
+		if (s[0]=='d')
+		{
+			int v;
+			scanf("%d",&v);
+			del(v,t);
+			sz--;
+		}
+		if (s[0]=='s')
+		{
+			if (sz==0)
+				printf("0\n");
+			else
+				printf("%I64d\n",t->sum[2]);
+		}
+	}
+
+#ifdef Fcdkbear
+    double end=clock();
+    fprintf(stderr,"*** Total time = %.3lf ***\n",(end-beg)/CLOCKS_PER_SEC);
+#endif
+	return 0;
+}

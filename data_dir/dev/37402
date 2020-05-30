@@ -1,0 +1,87 @@
+#include<bits/stdc++.h>
+
+#define pi 3.1415926535898
+
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN=1e6+10;
+
+struct Complex{
+    double x,y;
+    Complex(){ x=y=0; }
+    Complex(double _x,double _y){ x=_x,y=_y; }
+    Complex operator +(Complex const &t)const{
+        return Complex(x+t.x,y+t.y);
+    }
+    Complex operator -(Complex const &t)const{
+        return Complex(x-t.x,y-t.y);
+    }
+    Complex operator *(Complex const &t)const{
+        return Complex(x*t.x-y*t.y,x*t.y+y*t.x);
+    }
+    Complex operator /(Complex const &t)const{
+        double s=t.x*t.x+t.y*t.y;
+        return Complex((x*t.x+y*t.y)/s,(y*t.x-x*t.y)/s);
+    }
+};
+
+int rev[MAXN];
+
+void fft(Complex *a,int n,int f){
+    for(int i=0;i<n;i++)	if(i<rev[i])    swap(a[i],a[rev[i]]);
+    for(int i=1;i<n;i<<=1){
+        Complex x(cos(pi/i),f*sin(pi/i));
+        for(int j=0;j<n;j+=i<<1){
+            Complex o(1,0);
+            for(int k=0;k<i;k++,o=o*x){
+                Complex x=a[j+k],y=o*a[i+j+k];
+                a[j+k]=x+y,a[i+j+k]=x-y;
+            }
+        }
+    }
+    if(f==-1)   for(int i=0;i<n;i++)    a[i].x/=n;
+}
+
+char s[MAXN];
+int p[MAXN],a[MAXN],b[MAXN];
+Complex ta[MAXN],tb[MAXN],ans[MAXN];
+
+int main(void)
+{
+    for(int i=0;i<26;i++)	scanf("%d",&p[i]),p[i]--;
+    scanf("%s",s);	int m=strlen(s);
+	for(int i=0;i<m;i++)	a[m-1-i]=s[i]-'a';
+	scanf("%s",s);	int n=strlen(s);
+	for(int i=0;i<n;i++)	b[i]=s[i]-'a';
+	int bit=1,tim=0;
+	while(bit<n+m)	bit<<=1,tim++;
+	for(int i=0;i<bit;i++)	rev[i]=(rev[i>>1]>>1)|((i&1)<<(tim-1));
+	for(int i=0;i<m;i++)	ta[i]=Complex(a[i]*a[i]*p[a[i]]*p[a[i]],0);
+	for(int i=0;i<n;i++)	tb[i]=Complex(1,0);
+	fft(ta,bit,1);	fft(tb,bit,1);
+	for(int i=0;i<bit;i++)	ans[i]=ans[i]+ta[i]*tb[i],ta[i]=tb[i]=Complex();
+	for(int i=0;i<m;i++)	ta[i]=Complex(-2*a[i]*a[i]*p[a[i]]-2*a[i]*p[a[i]]*p[a[i]],0);
+	for(int i=0;i<n;i++)	tb[i]=Complex(b[i],0);
+	fft(ta,bit,1);	fft(tb,bit,1);
+	for(int i=0;i<bit;i++)	ans[i]=ans[i]+ta[i]*tb[i],ta[i]=tb[i]=Complex();
+	for(int i=0;i<m;i++)	ta[i]=Complex(a[i]*a[i]+p[a[i]]*p[a[i]]+4*a[i]*p[a[i]],0);
+	for(int i=0;i<n;i++)	tb[i]=Complex(b[i]*b[i],0);
+	fft(ta,bit,1);	fft(tb,bit,1);
+	for(int i=0;i<bit;i++)	ans[i]=ans[i]+ta[i]*tb[i],ta[i]=tb[i]=Complex();
+	for(int i=0;i<m;i++)	ta[i]=Complex(-2*p[a[i]]-2*a[i],0);
+	for(int i=0;i<n;i++)	tb[i]=Complex(b[i]*b[i]*b[i],0);
+	fft(ta,bit,1);	fft(tb,bit,1);
+	for(int i=0;i<bit;i++)	ans[i]=ans[i]+ta[i]*tb[i],ta[i]=tb[i]=Complex();
+	for(int i=0;i<m;i++)	ta[i]=Complex(1,0);	
+	for(int i=0;i<n;i++)	tb[i]=Complex(b[i]*b[i]*b[i]*b[i],0);
+	fft(ta,bit,1);	fft(tb,bit,1);
+	for(int i=0;i<bit;i++)	ans[i]=ans[i]+ta[i]*tb[i];
+	fft(ans,bit,-1);
+	for(int i=m-1;i<n;i++){
+		int res=int(ans[i].x+0.5);
+		printf("%d",!res);
+	}
+    return 0;
+}

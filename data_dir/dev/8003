@@ -1,0 +1,219 @@
+// Aggressive Play
+
+#include<bits/stdc++.h>
+#define ll long long
+#define F first
+#define S second
+using namespace std;
+
+void __print(int x) {cerr << x;}
+void __print(long x) {cerr << x;}
+void __print(long long x) {cerr << x;}
+void __print(unsigned x) {cerr << x;}
+void __print(unsigned long x) {cerr << x;}
+void __print(unsigned long long x) {cerr << x;}
+void __print(float x) {cerr << x;}
+void __print(double x) {cerr << x;}
+void __print(long double x) {cerr << x;}
+void __print(char x) {cerr << '\'' << x << '\'';}
+void __print(const char *x) {cerr << '\"' << x << '\"';}
+void __print(const string &x) {cerr << '\"' << x << '\"';}
+void __print(bool x) {cerr << (x ? "true" : "false");}
+
+template<typename T, typename V>
+void __print(const pair<T, V> &x) {cerr << '{'; __print(x.first); cerr << ','; __print(x.second); cerr << '}';}
+template<typename T>
+void __print(const T &x) {int f = 0; cerr << '{'; for (auto &i: x) cerr << (f++ ? "," : ""), __print(i); cerr << "}";}
+void _print() {cerr << "]\n";}
+template <typename T, typename... V>
+void _print(T t, V... v) {__print(t); if (sizeof...(v)) cerr << ", "; _print(v...);}
+#ifndef ONLINE_JUDGE
+#define debug(x...) cerr << "[" << #x << "] = ["; _print(x)
+#else
+#define debug(x...)
+#endif
+
+
+const int MAXN = 2e2 + 5;  // change for changing size of graph
+const ll INF = 1e9;    // see this for ll and int shit
+
+struct maxFlow{
+    vector<pair<int, int> > e[MAXN];
+    vector<ll> cap[MAXN];
+    int level[MAXN];
+    int nxt[MAXN];
+    int s, t;   // source, destination
+    int N;  // number of nodes
+
+    queue<int> q;
+
+    void init(int n){   // look out for 0 based and 1 based indexing [for 1 based do <= N everywhere, or simply do N++]
+        N = n;
+        for(int i = 0; i < N; i++)
+            e[i].clear(), cap[i].clear();
+    }
+
+    void addEdge(int x, int y, ll cxy, ll cyx){   // note that e[x][y] will not be edge corresponding to edge between node x and node y, same goes for cap[x][y]
+        e[x].push_back({y, cap[y].size()}); // the second value basically tells ki x, y mein kahaan pada hai
+        e[y].push_back({x, cap[x].size()}); // the second value basically tells ki y, x mein kahaan pada hai
+        cap[x].push_back(cxy);
+        cap[y].push_back(cyx);
+    }
+
+    bool bfs(){ // return 1 if there's a path from s to t, also, set the level graph
+        while(!q.empty())
+            q.pop();
+
+        for(int i = 0; i < N; i++) level[i] = -1;
+
+        level[s] = 0;
+        q.push(s);
+
+        while(!q.empty()){
+            int p = q.front();
+            q.pop();
+            if(p == t)
+                return true;
+
+            for(int i = 0; i < (int)e[p].size(); i++){
+                int x = e[p][i].F;
+                if(level[x] == -1 && cap[p][i] != 0){   // cap[p][i] is capacity of edge p - x, it's just that it's stored at index i in vector cap[p]
+                    level[x] = level[p] + 1;
+                    q.push(x);
+                }
+            }
+        }
+        return false;
+    }
+
+    ll augment(int x, ll c){
+        if(x == t)
+            return c;
+        for(int &i = nxt[x]; i < (int)e[x].size(); i++){    // notice the use of &i [used for pruning]
+            int y = e[x][i].F;
+            if(cap[x][i] > 0 && level[y] == level[x] + 1){
+                ll tempFlow = augment(y, min(c, cap[x][i]));
+                if(tempFlow > 0){
+                    cap[x][i] -= tempFlow;
+                    cap[y][e[x][i].S] += tempFlow;  // e[x][i].S is the position where edge y - x is stored in vector of y
+                    return tempFlow;
+                }
+            }
+        }
+        return 0;
+    }
+
+    ll solve(int source, int sink){
+        s = source, t = sink;
+        ll ans = 0;
+        while(bfs()){   // setting level graph
+            ll flow = 0;
+            for(int i = 0; i < N; i++) // important for pruning
+                nxt[i] = 0;
+            while(flow = augment(s, INF))   // keep sending flow till wer're finding an augmented path
+                ans += flow;
+        }
+        return ans;
+    }
+};
+
+const int N = 1e5 + 10;
+int p[N];
+
+void seive(){
+    p[0] = p[1] = 1;
+    for(int i = 2; i < N; i++){
+        if(p[i] == 0)
+            for(int j = i + i; j < N; j += i)
+                p[j] = 1;
+    }
+    for(int i = 0; i < N; i++)
+        p[i] ^= 1;
+}
+int a[N];
+
+vector<int> v[MAXN];
+bool vis[MAXN];
+
+vector<int> cycle;
+void dfs(int s){
+    vis[s] = 1;
+    cycle.push_back(s);
+    for(auto i : v[s]){
+        if(!vis[i]){
+            dfs(i);
+        }
+    }
+}
+int main()
+{
+    ios_base ::sync_with_stdio(false); cin.tie(NULL); cout.tie(NULL);
+    int n;
+    cin >> n;
+    seive();
+    vector<pair<int, int> > odd, even;
+    for(int i = 0; i < n; i++){
+        cin >> a[i];
+        if(a[i] & 1){
+            odd.push_back({a[i], i});
+        }
+        else{
+            even.push_back({a[i], i});
+        }
+    }
+    if((int)odd.size() != even.size())
+        return cout << "Impossible", 0;
+
+    maxFlow flowGraph;
+    flowGraph.init(n + 2);
+    int source = n, sink = n + 1;
+    for(auto i : odd){
+        flowGraph.addEdge(source, i.S, 2, 0);
+        for(auto j : even){
+            if(p[i.F + j.F]){
+                flowGraph.addEdge(i.S, j.S, 1, 0);
+            }
+        }
+    }
+    for(auto i : even){
+        flowGraph.addEdge(i.S, sink, 2, 0);
+    }
+    int yo = flowGraph.solve(source, sink);
+    if(yo != n){
+        return cout << "Impossible", 0;
+    }
+
+    // odd people in 1st set and even in the other
+    for(int i = 0; i < n; i++){
+        if(a[i] % 2 == 0) continue;
+        int x = i;
+        for(int j = 0; j < (int)flowGraph.e[i].size(); j++){
+            auto p = flowGraph.e[i][j];
+            int y = p.F;
+            if(y == sink) continue;
+            int flow = flowGraph.cap[i][j];
+            //debug(x, y, flow);
+            if(flow == 0){
+                v[x].push_back(y);
+                v[y].push_back(x);
+                //debug(x, y);
+            }
+        }
+    }
+    vector<vector<int> > cycles;
+    for(int i = 0; i < n; i++){
+        if(!vis[i]){
+            cycle.clear();
+            dfs(i);
+            cycles.push_back(cycle);
+        }
+    }
+    cout << (int)cycles.size() << "\n";
+    for(auto i : cycles){
+        cout << (int)i.size() << " ";
+        for(auto j : i)
+            cout << j + 1 << " ";
+        cout << "\n";
+    }
+return 0;
+}

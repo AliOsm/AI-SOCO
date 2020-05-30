@@ -1,0 +1,90 @@
+#include<iostream>
+#include<algorithm>
+#include<vector>
+#include<set>
+
+#define F first
+#define S second
+#define PB push_back
+#define MP make_pair
+#define int long long
+
+using namespace std;
+
+const int MAXN = 100005;
+int x[MAXN], y[MAXN], w[MAXN], d[2][MAXN], h[MAXN], high[MAXN];
+bool mark[MAXN], cut[MAXN];
+vector<pair<int, int> > v[2][MAXN], g[MAXN];
+int n, m;
+set<pair<int, int> > s;
+
+void dijkstra(int st, int t)
+{
+	for(int i = 0; i < n; i++)
+	{
+		d[t][i] = 1e12;
+		d[t][st] = 0;
+		s.insert({d[t][i], i});
+	}
+	while(s.size())
+	{
+		int x = s.begin()->S;
+		s.erase(s.begin());
+		for(auto y : v[t][x])
+			if(d[t][x] + y.S < d[t][y.F])
+			{
+				s.erase(MP(d[t][y.F], y.F));
+				d[t][y.F] = d[t][x] + y.S;
+				s.insert(MP(d[t][y.F], y.F));
+			}
+	}
+}
+
+void DFS(int n, int in = -1)
+{
+	mark[n] = true;
+	high[n] = h[n];
+	for(auto x : g[n])
+		if(!mark[x.F])
+		{
+			h[x.F] = h[n] + 1;
+			DFS(x.F, x.S);
+			if(high[x.F] == h[x.F])
+				cut[x.S] = true;
+			high[n] = min(high[n], high[x.F]);
+		}
+		else if(x.S != in)
+			high[n] = min(high[n], h[x.F]);
+}
+
+main()
+{
+	ios::sync_with_stdio(false);
+	int s, t;
+	cin >> n >> m >> s >> t;
+	s--, t--;
+	for(int i = 0; i < m; i++)
+	{
+		int x, y, w;
+		cin >> x >> y >> w;
+		x--, y--;
+		v[0][x].PB({y, w}), v[1][y].PB({x, w});
+		::x[i] = x, ::y[i] = y, ::w[i] = w;
+	}
+	dijkstra(s, 0);
+	dijkstra(t, 1);
+	for(int i = 0; i < m; i++)
+		if(d[0][x[i]] + d[1][y[i]] + w[i] == d[0][t])
+			g[x[i]].PB({y[i], i}), g[y[i]].PB({x[i], i});
+	DFS(s);
+	for(int i = 0; i < m; i++)
+	{
+		if(cut[i])
+			cout << "YES" << endl;
+		else if(d[0][x[i]] + d[1][y[i]] + 1 >= d[0][t])
+			cout << "NO" << endl;
+		else
+			cout << "CAN " << w[i] - (d[0][t] - (d[0][x[i]] + d[1][y[i]])) + 1 << endl;
+	}
+	return 0;
+}

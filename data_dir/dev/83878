@@ -1,0 +1,251 @@
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize(3)
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma GCC target("sse3","sse2","sse")
+#pragma GCC target("avx","sse4","sse4.1","sse4.2","ssse3")
+#pragma GCC target("f16c")
+#pragma GCC optimize("inline","fast-math","unroll-loops","no-stack-protector")
+#pragma GCC diagnostic error "-fwhole-program"
+#pragma GCC diagnostic error "-fcse-skip-blocks"
+#pragma GCC diagnostic error "-funsafe-loop-optimizations"
+#pragma GCC diagnostic error "-std=c++14"
+#include "bits/stdc++.h"
+//#include "ext/pb_ds/tree_policy.hpp"
+//#include "ext/pb_ds/assoc_container.hpp"
+#define PB push_back
+#define PF push_front
+#define LB lower_bound
+#define UB upper_bound
+#define fr(x) freopen(x,"r",stdin)
+#define fw(x) freopen(x,"w",stdout)
+#define iout(x) printf("%d\n",x)
+#define lout(x) printf("%lld\n",x)
+#define REP(x,l,u) for(ll x = l;x<u;x++)
+#define RREP(x,l,u) for(ll x = l;x>=u;x--)
+#define complete_unique(a) a.erase(unique(a.begin(),a.end()),a.end())
+#define mst(x,a) memset(x,a,sizeof(x))
+#define all(a) a.begin(),a.end()
+#define PII pair<int,int>
+#define PLL pair<ll,ll>
+#define MP make_pair
+#define sqr(x) ((x)*(x))
+#define lowbit(x) (x&(-x))
+#define lson (ind<<1)
+#define rson (ind<<1|1)
+#define se second
+#define fi first
+#define dbg(x) cerr<<#x<<" = "<<(x)<<endl;
+#define sz(x) ((int)x.size())
+#define EX0 exit(0);
+
+typedef  long long ll;
+typedef unsigned long long ull;
+typedef double db;
+typedef long double ld;
+using namespace std;
+typedef vector<ll> VLL;
+typedef vector<int> VI;
+const int block_size = 320;
+typedef complex<ll> point;
+const ll mod = 1e9+7;
+const ll inf = 1e9+7;
+const ld eps = 1e-9;
+const db PI = atan(1)*4;
+template<typename T>
+inline int sign(const T&a) {
+    if(a<0)return -1;
+    if(a>0)return 1;
+    return 0;
+}
+
+template<typename T,typename S>inline bool upmin(T&a,const S&b){return a>b?a=b,1:0;}
+template<typename T,typename S>inline bool upmax(T&a,const S&b){return a<b?a=b,1:0;}
+
+template<typename T> inline void in(T &x) {
+    x = 0;
+    T f = 1;
+    char ch = getchar();
+    while (!isdigit(ch)) {
+        if (ch == '-') f = -1;
+        ch = getchar();
+    }
+    while (isdigit(ch))  {
+        x = x * 10 + ch - '0';
+        ch = getchar();
+    }
+    x *= f;
+}
+
+ll twop(int x) {
+    return 1LL<<x;
+}
+
+template<typename A,typename B > inline void in(A&x,B&y) {
+    in(x);
+    in(y);
+}
+template<typename A,typename B,typename C>inline void in(A&x,B&y,C&z) {
+    in(x);
+    in(y);
+    in(z);
+}
+template<typename A,typename B,typename C,typename D> inline void in(A&x,B&y,C&z,D&d) {
+    in(x);
+    in(y);
+    in(z);
+    in(d);
+}
+namespace HLD {
+    //0不能被使用
+    struct edge {
+        int to;
+        edge(int x):to(x){}
+    };
+    
+    const int root = 1;
+    const int maxn = 300010;
+    vector<edge>adj[maxn];
+    int dfnToID[maxn],dfn[maxn],head[maxn],fa[maxn],dep[maxn],size[maxn],heavy[maxn],r[maxn],cnt = 1;
+    void firstDfs(int cur,int _fa) {
+        dep[cur] = dep[_fa]+1;
+        size[cur]=1;
+        fa[cur] = _fa;
+        for(auto e:adj[cur]) {
+            if(e.to!=_fa) {
+                firstDfs(e.to,cur);
+                size[cur]+=size[e.to];
+            }
+        }
+        int heavyChild = 0;
+        for(auto e:adj[cur]) {
+            if(e.to!=_fa) {
+                if(size[e.to]>size[heavyChild]) {
+                    heavyChild = e.to;
+                }
+            }
+        }
+        heavy[cur] = heavyChild;
+    }
+    
+    
+    void secondDfs(int cur,int _fa) {
+        if(cur!=heavy[_fa]) {
+            head[cur] = cur;
+        } else {
+            head[cur] = head[_fa];
+        }
+        dfn[cur] = cnt++;
+        r[cur] = dfn[cur];
+        dfnToID[dfn[cur]] = cur;
+        if(!heavy[cur])return;
+        secondDfs(heavy[cur],cur);
+        r[cur] = r[heavy[cur]];
+        for(auto e:adj[cur]) {
+            if(e.to==_fa||e.to==heavy[cur])continue;
+            secondDfs(e.to,cur);
+            r[cur] = r[e.to];
+        }
+    }
+    void init() {
+        firstDfs(root,0);
+        secondDfs(root,0);
+    }
+    
+    int kthFather(int k,int cur) {
+        while(k) {
+            if(head[cur] == cur) {
+                k--;
+                cur = fa[head[cur]];
+            } else {
+                if(dep[cur]-dep[head[cur]]<=k) {
+                    k-=dep[cur]-dep[head[cur]];
+                    cur = head[cur];
+                } else {
+                    return dfnToID[dfn[cur]-k];
+                }
+            }
+        }
+        return cur;
+    }
+    int LCA(int u,int v) {
+        while(head[u]!=head[v]) {
+            if(dep[head[u]]>dep[head[v]])swap(u,v);
+            v = fa[head[v]];
+        }
+        if(dep[u]<dep[v])return u;
+        return v;
+    }
+    
+    int dis(int u,int v){
+        return dep[u]+dep[v]-2*dep[LCA(u, v)];
+    }
+}
+
+namespace SOLVE {
+    using HLD::dis;
+    void main(){
+        ll n,a,b;
+        cin>>n>>a>>b;
+        REP(i,1,n){
+            int u,v;in(u,v);
+            HLD::adj[u].PB(v);
+            HLD::adj[v].PB(u);
+        }
+        HLD::init();
+        ll cnt[2] = {0,0};
+        REP(i,1,n+1){
+            if(dis(i,a)+dis(a,b)==dis(i,b))cnt[0]++;
+        }
+        REP(i,1,n+1){
+            if(dis(i,b)+dis(b,a)==dis(i,a))cnt[1]++;
+        }
+        ll ans = n*(n-1);
+        ans-=cnt[0]*cnt[1];
+        cout<<ans;
+    }
+}
+
+
+int main() {
+#ifndef ONLINE_JUDGE
+    fr("/Users/zhangqingchuan/Desktop/cp/cp/input.txt");
+    fw("/Users/zhangqingchuan/Desktop/cp/cp/output.txt");
+#endif
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    SOLVE::main();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return 0;
+}

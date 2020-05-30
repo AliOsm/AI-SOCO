@@ -1,0 +1,235 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+
+using namespace std;
+
+const long long P = 1000000000LL;
+const int maxn = 211111;
+
+struct mat2x2 {
+    long long mat[2][2];
+    void clear() {
+        memset(mat, 0, sizeof(mat));
+    }
+    void setE() {
+        clear();
+        mat[0][0] = mat[1][1] = 1;
+    }
+    mat2x2() {
+        clear();
+    }
+};
+
+struct vec2 {
+    long long vec[2];
+    void clear() {
+        memset(vec, 0, sizeof(vec));
+    }
+    vec2() {
+        clear();
+    }
+};
+
+int n, m;
+long long f[maxn], s[maxn], a[maxn];
+mat2x2 mats[maxn];
+
+mat2x2 mul(mat2x2 a, mat2x2 b) {
+    mat2x2 c;
+    c.clear();
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++) {
+            for (int r = 0; r < 2; r++)
+                c.mat[i][j] += a.mat[i][r] * b.mat[r][j];
+            c.mat[i][j] %= P;
+        }
+    return c;
+}
+
+vec2 mul(mat2x2 a, vec2 b) {
+    vec2 v;
+    v.clear();
+    for (int i = 0; i < 2; i++) {
+        for (int r = 0; r < 2; r++)
+            v.vec[i] += a.mat[i][r] * b.vec[r];
+        v.vec[i] %= P;
+    }
+    return v;
+}
+
+void calcMats() {
+    mats[0].setE();
+    mat2x2 magicMat;
+    magicMat.clear();
+    magicMat.mat[0][0] = 0;
+    magicMat.mat[0][1] = 1;
+    magicMat.mat[1][0] = 1;
+    magicMat.mat[1][1] = 1;
+    for (int i = 1; i <= n + 1; i++) {
+        mats[i] = mul(mats[i-1], magicMat);
+    }
+}
+
+long long getSum(int l, int r) {
+    return s[l] - s[r + 1];
+}
+
+struct node {
+    long long f0, f1, add;
+    node() {}
+    node(long long f0, long long f1) : f0(f0), f1(f1), add(0) {}
+};
+
+node t[maxn * 4];
+
+node combine(node l, node r, int leftLen) {
+    vec2 z;
+    z.vec[0] = r.f0;
+    z.vec[1] = r.f1;
+    z = mul(mats[leftLen], z);
+    return node((l.f0 + z.vec[0]) % P, (l.f1 + z.vec[1]) % P);
+}
+
+void push(int v, int tl, int tr) {
+    if (t[v].add != 0) {
+        t[v].f0 = (t[v].f0 + t[v].add * getSum(0, tr - tl)) % P;
+        t[v].f1 = (t[v].f1 + t[v].add * getSum(1, tr - tl + 1)) % P;
+        if (tl != tr) {
+            t[(v<<1) + 1].add = (t[(v<<1) + 1].add + t[v].add) % P;
+            t[(v<<1) + 2].add = (t[(v<<1) + 2].add + t[v].add) % P;
+        }
+        t[v].add = 0;
+    }
+}
+
+void build(int v, int tl, int tr) {
+    if (tl == tr) {
+        t[v] = node(a[tl], a[tl]);
+        return;
+    }
+    int tm = (tl + tr) >> 1;
+    build((v << 1) + 1, tl, tm);
+    build((v << 1) + 2, tm + 1, tr);
+    t[v] = combine(t[(v<<1) + 1], t[(v<<1) + 2], tm - tl + 1);
+}
+
+void addTr(int v, int tl, int tr, int l, int r, long long val) {
+    if (tl == l && tr == r) {
+        t[v].add += val;
+        return;
+    }
+    int tm = (tl + tr) >> 1;
+    push(v, tl, tr);
+    if (r <= tm)
+        addTr((v << 1) + 1, tl, tm, l, r, val);
+    else
+        if (l > tm)
+            addTr((v << 1) + 2, tm + 1, tr, l, r, val);
+        else
+            addTr((v << 1) + 1, tl, tm, l, tm, val), addTr((v << 1) + 2, tm + 1, tr, tm + 1, r, val);
+    if (t[(v<<1)+1].add)
+        push((v << 1) + 1, tl, tm);
+    if (t[(v<<1)+2].add)
+        push((v << 1) + 2, tm + 1, tr);
+    t[v] = combine(t[(v<<1)+1], t[(v<<1)+2], tm - tl + 1);
+}
+
+long long pro(node x, int y) {
+    vec2 v;
+    v.vec[0] = x.f0;
+    v.vec[1] = x.f1;
+    v = mul(mats[y], v);
+    return v.vec[0];
+}
+
+long long sumTr(int v, int tl, int tr, int l, int r, int QL) {
+    push(v, tl, tr);
+    if (tl == l && tr == r) {
+        return pro(t[v], l - QL);
+    }
+    int tm = (tl + tr) >> 1;
+    if (r <= tm)
+        return sumTr((v << 1) + 1, tl, tm, l, r, QL);
+    else
+        if (l > tm)
+            return sumTr((v << 1) + 2, tm + 1, tr, l, r, QL);
+        else
+            return sumTr((v << 1) + 1, tl, tm, l, tm, QL) + sumTr((v << 1) + 2, tm + 1, tr, tm + 1, r, QL);
+}
+
+long long ft[maxn];
+
+void add(int r, long long val) {
+    while (r <= n) {
+        ft[r] += val;
+        r |= r + 1;
+    }
+}
+
+void add(int l, int r, long long val) {
+    add(l, val);
+    add(r + 1, -val);
+}
+
+long long getVal(int r) {
+    long long res = 0;
+    while (r >= 0) {
+        res += ft[r];
+        r = (r & (r + 1)) - 1;
+    }
+    return res % P;
+}
+
+long long qSum(int l, int r) {
+    return ((sumTr(0, 1, n, l, r, l) % P) + P) % P;
+}
+
+void qAdd(int l, int r, long long val) {
+    add(l, r, val);
+    addTr(0, 1, n, l, r, val);
+}
+
+void qAssign(int pos, long long val) {
+    long long el = getVal(pos);
+    qAdd(pos, pos, val - el);
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin >> n >> m;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        add(i, i, a[i]);
+    }
+    f[0] = f[1] = 1LL;
+    for (int i = 2; i <= n + 1; i++)
+        f[i] = (f[i-1] + f[i-2]) % P;
+    s[n + 2] = 0;
+    for (int i = n + 1; i >= 0; i--)
+        s[i] = (s[i + 1] + f[i]) % P;
+    calcMats();
+    build(0, 1, n);
+    while (m--) {
+        int t;
+        cin >> t;
+        if (t == 1) {
+            int x, v;
+            cin >> x >> v;
+            qAssign(x, v);
+        }
+        else
+            if (t == 2) {
+                int l, r;
+                cin >> l >> r;
+                cout << qSum(l, r) << '\n';
+            }
+            else {
+                int l, r, d;
+                cin >> l >> r >> d;
+                qAdd(l, r, d);
+            }
+    }
+    return 0;
+}

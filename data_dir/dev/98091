@@ -1,0 +1,174 @@
+#include<bits/stdc++.h>
+#define god dimasi5eks
+#pragma GCC optimize("O3")
+#define fi first
+#define se second
+#define pb push_back
+#define pf push_front
+ 
+// #define fisier 1
+ 
+using namespace std;
+ 
+typedef long long ll;
+ 
+const int mod = 1000000007;
+const double dancila = 3.14159265359; // PI 
+const double eps = 1e-9;
+ 
+int n, m, q, tt[100002], rg[100002];
+vector<pair<int, int> > v[100002];
+int z;
+struct mch
+{
+	int x, y, cost;
+	int pozx, pozy;
+};
+mch e[100002], xtr[50];
+bool cmp(mch a, mch b)
+{
+	return a.cost < b.cost;
+}
+int Find(int nod)
+{
+	if(tt[nod] == nod)
+		return nod;
+	return tt[nod] = Find(tt[nod]);
+}
+void Union(int a, int b)
+{
+	if(rg[a] < rg[b])
+		swap(a, b);
+	tt[b] = a;
+	rg[a] += rg[b];
+}
+void kruskal()
+{
+	for(int i = 1; i <= n; ++i)
+		tt[i] = i, rg[i] = 1;
+	for(int i = 1; i <= m; ++i)
+		if(Find(e[i].x) != Find(e[i].y))
+		{
+			Union(Find(e[i].x), Find(e[i].y));
+			v[e[i].x].pb({e[i].y, e[i].cost});
+			v[e[i].y].pb({e[i].x, e[i].cost});
+		}
+		else
+			xtr[++z] = {e[i].x, e[i].y, e[i].cost};
+}
+ll dist[100002];
+int dad[20][100002], lvl[100002];
+void dfs(int tata, int nod)
+{
+	dad[0][nod] = tata;
+	for(int i = 1; i <= 18; ++i)
+		dad[i][nod] = dad[i-1][dad[i-1][nod]];
+	for(int i = 0; i < (int) v[nod].size(); ++i)
+	{
+		int vecin = v[nod][i].fi;
+		int cost = v[nod][i].se;
+		if(vecin == tata)
+			continue;
+		lvl[vecin] = lvl[nod] + 1;
+		dist[vecin] = dist[nod] + cost;
+		dfs(nod, vecin);
+	}
+}
+int LCA(int a, int b)
+{
+	if(lvl[a] > lvl[b])
+		swap(a, b);
+	for(int i = 18; i >= 0; --i)
+		if(lvl[b] - (1<<i) >= lvl[a])
+			b = dad[i][b];
+	if(a == b)
+		return a;
+	for(int i = 18; i >= 0; --i)
+		if(dad[i][a] != dad[i][b])
+			a = dad[i][a], b = dad[i][b];
+	return dad[0][a];
+}
+int nds[50], szs;
+ll mincost[50][50];
+void rf()
+{
+	for(int i = 1; i <= szs; ++i)
+		for(int j = 1; j <= szs; ++j)
+			if(i != j)
+				mincost[i][j] = dist[nds[i]] + dist[nds[j]] - 2 * dist[LCA(nds[i], nds[j])];
+	for(int i = 1; i <= z; ++i)
+	{
+		int na = xtr[i].pozx;
+		int nb = xtr[i].pozy;
+		mincost[na][nb] = min(mincost[na][nb], 1LL * xtr[i].cost);
+		mincost[nb][na] = min(mincost[nb][na], 1LL * xtr[i].cost);
+	}
+	for(int k = 1; k <= szs; ++k)
+		for(int i = 1; i <= szs; ++i)
+			for(int j = 1; j <= szs; ++j)
+				if(i != j)
+					mincost[i][j] = min(mincost[i][j], mincost[i][k] + mincost[k][j]);
+}
+ll dia[50], dib[50];
+void solve(int a, int b)
+{
+	if(a == b)
+	{
+		cout << 0 << '\n';
+		return;
+	}
+	ll ans = dist[a] + dist[b] - 2 * dist[LCA(a, b)];
+	for(int i = 1; i <= szs; ++i)
+		dia[i] = dist[a] + dist[nds[i]] - 2 * dist[LCA(a, nds[i])];
+	for(int j = 1; j <= szs; ++j)
+		dib[j] = dist[b] + dist[nds[j]] - 2 * dist[LCA(b, nds[j])];
+	for(int i = 1; i <= szs; ++i)
+		for(int j = 1; j <= szs; ++j)
+		{
+			//cout << nds[i] << " " << nds[j] << " " << dia[i] << " " << mincost[i][j] << " " << dib[j] << '\n';
+			ans = min(ans, dia[i] + mincost[i][j] + dib[j]);
+		}
+	cout << ans << '\n';
+}
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	
+	cin >> n >> m;
+	for(int i = 1; i <= m; ++i)
+		cin >> e[i].x >> e[i].y >> e[i].cost;
+	sort(e + 1, e + m + 1, cmp);
+	kruskal();
+	dfs(0, 1);
+	
+	for(int i = 1; i <= z; ++i)
+	{
+		for(int j = 1; j <= szs; ++j)
+		{
+			if(nds[j] == xtr[i].x)
+				xtr[i].pozx = j;
+			if(nds[j] == xtr[i].y)
+				xtr[i].pozy = j;
+		}
+		if(!xtr[i].pozx)
+		{
+			nds[++szs] = xtr[i].x;
+			xtr[i].pozx = szs;
+		}
+		if(!xtr[i].pozy)
+		{
+			nds[++szs] = xtr[i].y;
+			xtr[i].pozy = szs;
+		}
+	}	
+	rf();
+	cin >> q;
+	for(; q; --q)
+	{
+		int a, b;
+		cin >> a >> b;
+		solve(a, b);
+	}
+	return 0;
+}

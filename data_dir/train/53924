@@ -1,0 +1,137 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+
+struct node{
+    int idx;
+    int pre,pos;
+    int l,r,t;
+    node(const int i,const int l,const int r){idx=i;pre=l;pos=r;}
+    node(const int i,int ll,const int rr,const int tt){idx=i;l=ll;r=rr;t=tt;}
+};
+
+
+const int block=2000;
+bool cmp(const node x,const node y){
+    if((x.t/block)<(y.t/block))return true;
+    if((x.t/block)==(y.t/block)){
+        if((x.l/block)<(y.l/block))return true;
+        if((x.l/block)==(y.l/block)){
+            if(x.r<y.r)return true;
+        }
+    }
+    return false;
+}
+
+int arr[(int)1e5+5],cnt[2*(int)1e5+5],have[(int)1e5+5],ans[(int)1e5+5];
+vector<node>rQuery,uQuery;
+
+void adjustUpdate(int &curTime,const int &t,const int &curL,const int &curR){
+    while(t<curTime){
+        if(curL<=uQuery[curTime-1].idx && uQuery[curTime-1].idx<=curR){
+            --have[cnt[arr[uQuery[curTime-1].idx]]];
+            --cnt[arr[uQuery[curTime-1].idx]];
+            ++have[cnt[arr[uQuery[curTime-1].idx]]];
+        }
+
+        arr[uQuery[curTime-1].idx]=uQuery[curTime-1].pre;
+
+        if(curL<=uQuery[curTime-1].idx && uQuery[curTime-1].idx<=curR){
+            --have[cnt[arr[uQuery[curTime-1].idx]]];
+            ++cnt[arr[uQuery[curTime-1].idx]];
+            ++have[cnt[arr[uQuery[curTime-1].idx]]];
+        }
+        --curTime;
+    }
+    while(curTime<t){
+        ++curTime;
+        if(curL<=uQuery[curTime-1].idx && uQuery[curTime-1].idx<=curR){
+            --have[cnt[arr[uQuery[curTime-1].idx]]];
+            --cnt[arr[uQuery[curTime-1].idx]];
+            ++have[cnt[arr[uQuery[curTime-1].idx]]];
+        }
+
+        arr[uQuery[curTime-1].idx]=uQuery[curTime-1].pos;
+
+        if(curL<=uQuery[curTime-1].idx && uQuery[curTime-1].idx<=curR){
+            --have[cnt[arr[uQuery[curTime-1].idx]]];
+            ++cnt[arr[uQuery[curTime-1].idx]];
+            ++have[cnt[arr[uQuery[curTime-1].idx]]];
+        }
+    }
+}
+
+int query(int l,int r,int &nowL,int &nowR){
+    while(l<nowL){
+        --nowL;
+        --have[cnt[arr[nowL]]];
+        ++cnt[arr[nowL]];
+        ++have[cnt[arr[nowL]]];
+    }
+    while(nowL<l){
+        --have[cnt[arr[nowL]]];
+        --cnt[arr[nowL]];
+        ++have[cnt[arr[nowL]]];
+        nowL++;
+    }
+    while(nowR<r){
+        nowR++;
+        --have[cnt[arr[nowR]]];
+        ++cnt[arr[nowR]];
+        ++have[cnt[arr[nowR]]];
+    }
+    while(r<nowR){
+        --have[cnt[arr[nowR]]];
+        --cnt[arr[nowR]];
+        ++have[cnt[arr[nowR]]];
+        nowR--;
+    }
+    for(int i=1;;i++)if(!have[i])return i;
+}
+
+
+int main(){
+    int n,q;
+    scanf("%d %d",&n,&q);
+
+
+    map<int,int>M;
+    int cntNum=0;
+
+    for(int i=1;i<=n;i++){
+        scanf("%d",&arr[i]);
+        if(M[arr[i]]==0)M[arr[i]]=++cntNum;
+        arr[i]=M[arr[i]];
+    }
+
+    int curTime=0;
+    while(q--){
+        int t,l,r;
+        scanf("%d %d %d",&t,&l,&r);
+        if(t==1)rQuery.push_back(node(rQuery.size(),l,r,uQuery.size()));
+        else {
+            if(M[r]==0)M[r]=++cntNum;
+            r=M[r];
+
+            uQuery.push_back(node(l,arr[l],r));
+            arr[l]=r;
+
+            ++curTime;
+        }
+    }
+
+    sort(rQuery.begin(),rQuery.end(),cmp);
+
+    int curL=1,curR=0;
+    for(int i=0;i<rQuery.size();i++){
+        int l=rQuery[i].l;
+        int r=rQuery[i].r;
+        int t=rQuery[i].t;
+        adjustUpdate(curTime,t,curL,curR);
+        ans[rQuery[i].idx]=query(rQuery[i].l,rQuery[i].r,curL,curR);
+    }
+    for(int i=0;i<rQuery.size();i++)printf("%d\n",ans[i]);
+
+    return 0;
+}

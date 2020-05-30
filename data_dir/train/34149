@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#define N	200000
+#define M	200000
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_() {
+	return (rand() * 76543LL + rand()) % 0x7fffffff;
+}
+
+long long xx[N + M], yy[N + M], ww[N + M];
+int zz[1 + N + M], kk[1 + N + M], ll[1 + N + M], rr[1 + N + M], u_, l_, r_;
+
+int node(int k) {
+	static int _ = 1;
+
+	zz[_] = rand_(), kk[_] = k;
+	return _++;
+}
+
+void split1(int u, int k) {
+	int c;
+
+	if (u == 0) {
+		u_ = l_ = r_ = 0;
+		return;
+	}
+	c = yy[kk[u]] == yy[k] ? (xx[kk[u]] == xx[k] ? 0 : (xx[kk[u]] > xx[k] ? -1 : 1)) : (yy[kk[u]] < yy[k] ? -1 : 1);
+	if (c < 0) {
+		split1(rr[u], k);
+		rr[u] = l_, l_ = u;
+	} else if (c > 0) {
+		split1(ll[u], k);
+		ll[u] = r_, r_ = u;
+	} else {
+		u_ = u, l_ = ll[u], r_ = rr[u];
+		ll[u] = rr[u] = 0;
+	}
+}
+
+
+void split2(int u, int k) {
+	int c;
+
+	if (u == 0) {
+		u_ = l_ = r_ = 0;
+		return;
+	}
+	c = kk[u] == k ? 0 : yy[kk[u]] < yy[k] || yy[kk[u]] == yy[k] && kk[u] > k ? -1 : 1;
+	if (c < 0) {
+		split2(rr[u], k);
+		rr[u] = l_, l_ = u;
+	} else if (c > 0) {
+		split2(ll[u], k);
+		ll[u] = r_, r_ = u;
+	} else {
+		u_ = u, l_ = ll[u], r_ = rr[u];
+		ll[u] = rr[u] = 0;
+	}
+}
+
+int merge(int u, int v) {
+	if (u == 0)
+		return v;
+	if (v == 0)
+		return u;
+	if (zz[u] < zz[v]) {
+		rr[u] = merge(rr[u], v);
+		return u;
+	} else {
+		ll[v] = merge(u, ll[v]);
+		return v;
+	}
+}
+
+int first(int u) {
+	while (ll[u])
+		u = ll[u];
+	return u == 0 ? -1 : kk[u];
+}
+
+int last(int u) {
+	while (rr[u])
+		u = rr[u];
+	return u == 0 ? -1 : kk[u];
+}
+
+int tr_remove1(int u, int k) {
+	split1(u, k);
+	return merge(l_, r_);
+}
+
+int tr_remove2(int u, int k) {
+	split2(u, k);
+	return merge(l_, r_);
+}
+
+int tr_add1(int u, int k) {
+	int k_, l, r;
+
+	split1(u, k);
+	l = l_, r = r_;
+	if (r && xx[first(r)] <= xx[k])
+		return merge(l, r);
+	while (l && xx[k_ = last(l)] >= xx[k])
+		l = tr_remove1(l, k_);
+	return merge(l, merge(node(k), r));
+}
+
+int tr_add2(int u, int k) {
+	split2(u, k);
+	return merge(l_, merge(node(k), r_));
+}
+
+int k_;
+
+int tr_ceil1(int u, int k) {
+	split1(u, k);
+	k_ = first(r_);
+	return merge(l_, r_);
+}
+
+int tr_floor2(int u, int k) {
+	split2(u, k);
+	k_ = last(l_);
+	return merge(l_, r_);
+}
+
+int main() {
+	static int cc[N];
+	int n, m, h, i, u, v;
+
+	srand_();
+	scanf("%d%d", &n, &m);
+	u = 0;
+	for (i = 0; i < n; i++) {
+		int x, l;
+
+		scanf("%d%d", &x, &l);
+		xx[i] = x, yy[i] = x + l;
+		u = tr_add1(u, i);
+	}
+	v = 0;
+	for (h = n; h < n + m; h++) {
+		scanf("%lld%lld", &yy[h], &ww[h]), xx[h] = yy[h] + 1;
+		u = tr_ceil1(u, h), i = k_;
+		if (i != -1 && xx[i] <= yy[h]) {
+			int h_;
+
+			u = tr_remove1(u, i);
+			yy[i] += ww[h], cc[i]++;
+			while (1) {
+				v = tr_floor2(v, i), h_ = k_;
+				if (h_ == -1 || yy[h_] < xx[i])
+					break;
+				yy[i] += ww[h_], cc[i]++;
+				v = tr_remove2(v, h_);
+			}
+			u = tr_add1(u, i);
+		} else
+			v = tr_add2(v, h);
+	}
+	for (i = 0; i < n; i++)
+		printf("%d %lld\n", cc[i], yy[i] - xx[i]);
+	return 0;
+}

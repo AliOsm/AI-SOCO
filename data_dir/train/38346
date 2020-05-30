@@ -1,0 +1,316 @@
+#pragma comment (linker, "/STACK:256000000")
+ 
+#define _USE_MATH_DEFINES
+#define _CRT_NO_DEPRECEATE
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <cstring>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <memory.h>
+#include <sstream>
+#include <cassert>
+#include <ctime>
+#include <complex>
+//#include <random>
+ 
+using namespace std;
+ 
+typedef unsigned int uint32;
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+typedef pair<int64, int> pli;
+typedef pair<pii, pii> piiii;
+typedef pair<int64, int> pli;
+typedef pair<int, char> pic; 
+
+#define pb push_back
+#define sq(x) ((x)*(x))
+#define cube(x) (((x)*(x))*(x))
+#define tmin(x,y,z) (min(min((x),(y)),(z)))
+#define rand32() (((unsigned int)(rand()) << 16) | (unsigned int)(rand()))
+#define rand64() (((unsigned int64)(rand32()) << 16) | (unsigned int64)(rand32()))
+#define bit(mask, b) ((mask >> b) & 1)
+#define biton(mask, bit) (mask | (((uint64)(1)) << bit))
+#define bitoff(mask, bit) (mask & (~(((uint64)(1)) << bit)))
+#define bitputon(mask, bit) (mask |= (((uint64)(1)) << bit))
+#define bitputoff(mask, bit) (mask &= (~(((uint64)(1)) << bit)))
+#define FAIL() (*((int*)(0)))++
+#define INF ((int)(1e9) + 1337)
+#define EPS (1e-9)
+#define y1 yy1
+#define y0 yy0
+#define j0 jj0
+
+const long double PI = acosl((long double)-1.0);
+const int64 LINF = ((1ull << 63) - 1ull);
+const int MOD = 1000000007;
+
+
+int64 mul(int64 a, int64 b, int64 MOD)
+{
+	return a * b % MOD;
+}
+
+int64 add(int64 a, int64 b, int64 MOD)
+{
+	int res = a + b;
+	if (res >= MOD)
+	{
+		res -= MOD;
+	}
+	return res;
+}
+
+int64 sub(int64 a, int64 b, int64 MOD)
+{
+	int res = a - b;
+	if (res < 0)
+	{
+		res += MOD;
+	}
+	return res;
+}
+
+struct query
+{
+	int type, num;
+	int64 a, b, q;
+};
+
+struct line
+{
+	pll p;
+	int64 begin;
+
+	line (pll p, int64 begin) : p(p), begin(begin){}
+};
+
+const int ROOT = 3000;
+const int MAXN = 300500;
+
+int n;
+query qu[MAXN];
+int del_time[MAXN];
+vector <pll> del;
+vector <pll> b;
+vector <line> st;
+int cnt, start;
+vector <int> ind;
+
+void init()
+{
+	scanf ("%d", &n);
+	for (int i = 1; i <= n; i++)
+	{
+		scanf ("%d", &qu[i].type);
+		if (qu[i].type == 1)
+		{
+			scanf ("%I64d%I64d", &qu[i].a, &qu[i].b);
+		}
+		else if (qu[i].type == 2)
+		{
+			scanf ("%d", &qu[i].num);
+		}
+		else if (qu[i].type == 3)
+		{
+			scanf ("%I64d", &qu[i].q);
+		}
+	}
+}
+
+inline int64 get_cross(pll a, pll b)
+{
+	int64 res = ((a.second - b.second) / (b.first - a.first));
+	if (b.second - a.second < 0 && (a.second - b.second) % (b.first - a.first))
+	{
+		res++;
+	}
+	return res;
+}
+
+void build()
+{
+	sort (b.begin(), b.end());
+	st.clear();
+	for (int i = 0; i < b.size(); i++)
+	{
+		while (!st.empty())
+		{
+			if (st.back().p.first < b[i].first)
+			{
+				int64 cross = get_cross(st.back().p, b[i]);
+				if (cross <= st.back().begin)
+				{
+					st.pop_back();
+				}
+				else
+				{
+					break;
+				}
+			}
+			else
+			{
+				st.pop_back();
+			}
+		}
+		int64 cross = -LINF;
+		if (!st.empty())
+		{
+			cross = get_cross(st.back().p, b[i]);
+		}
+		st.push_back(line(b[i], cross));
+	}
+}
+
+void rebuild(int l, int r)
+{
+	del.clear();
+	b.clear();
+	ind.clear();
+	for (int i = 1; i < l; i++)
+	{
+		if (qu[i].type == 1)
+		{
+			if (!del_time[i] || del_time[i] > r)
+			{
+				b.push_back(pll(qu[i].a, qu[i].b));
+			}
+		}
+	}
+	for (int i = l; i <= r; i++)
+	{
+		if (qu[i].type == 1)
+		{
+			ind.push_back(i);
+		}
+		else if (qu[i].type == 2)
+		{
+			if (qu[i].num < l)
+			{
+				del.push_back(pll(qu[qu[i].num].a, qu[qu[i].num].b));
+			}
+		}
+	}
+	reverse(del.begin(), del.end());
+	build();
+}
+
+inline int64 get_answer(int num, int l, int r)
+{
+	int64 q = qu[num].q;
+	//fprintf(stderr, "q %I64d\n", q);
+	int64 ans = -LINF;
+	if (!st.empty())
+	{
+		int l = 0, r = st.size() - 1, a = -1;
+		while (l <= r)
+		{
+			int mid = (l + r) >> 1;
+			if (st[mid].begin - EPS <= q)
+			{
+				a = mid;
+				l = mid + 1;
+			}
+			else
+			{
+				r = mid - 1;
+			}
+		}
+		ans = st[a].p.first * q + st[a].p.second;
+	}
+	for (int i = 0; i < ind.size() && ind[i] < num; i++)
+	{
+		if (!del_time[ind[i]] || del_time[ind[i]] > num)
+		{
+			ans = max(ans, qu[ind[i]].a * q + qu[ind[i]].b);
+		}
+	}
+	for (int i = 0; i < del.size(); i++)
+	{
+		ans = max(ans, del[i].first * q + del[i].second);
+	}
+	return ans;
+}
+
+void solve()
+{
+	init();
+	for (int i = 1; i <= n; i++)
+	{
+		if (qu[i].type == 2)
+		{
+			del_time[qu[i].num] = i;
+		}
+	}
+	cnt = ROOT;
+	for (int i = 1; i <= n; i++)
+	{
+		if (cnt == ROOT)
+		{
+			rebuild(i, min(i + ROOT - 1, n));
+			start = i;
+			cnt = 0;
+		}
+		++cnt;
+		if (qu[i].type == 2)
+		{
+			if (qu[i].num < start)
+			{
+				del.pop_back();
+			}
+		}
+		else if (qu[i].type == 3)
+		{
+			int64 ans = get_answer(i, start, min(start + ROOT - 1, n));
+			if (ans > -LINF)
+			{
+				printf("%I64d\n", ans);
+			}
+			else
+			{
+				printf("EMPTY SET\n");
+			}
+		}
+	}
+}
+
+void precalc()
+{
+	
+}
+
+int main()
+{
+    //ios_base::sync_with_stdio(false); cin.tie(0);
+#ifdef _MY_DEBUG
+    freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+    //freopen(TASK ".in", "rt", stdin); freopen(TASK ".out", "wt", stdout);
+#endif
+    srand(25);
+
+	precalc();
+	int tests = 1;
+	
+	//scanf ("%d", &tests);
+	for (int i = 1; i <= tests; i++)
+	{
+		solve();
+	}
+	
+    return 0;
+}

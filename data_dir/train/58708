@@ -1,0 +1,102 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define lc (p<<1)
+#define rc ((p<<1)|1)
+typedef long long ll;
+class opt
+{
+	public:
+		int x,y,fx,fy;
+		pair<int,int> sx,sy;
+};
+vector<opt> O;
+int q,n,fa[600010];
+ll cur,ans[300010];
+pair<int,int> siz[600010];
+inline int getf(int x)
+{
+	return x==fa[x]?x:getf(fa[x]);
+}
+inline ll vl(pair<int,int> &t)
+{
+	return 1ll*t.first*t.second;
+}
+inline int merge(int x,int y)
+{
+	x=getf(x);y=getf(y);
+	if(x==y)return 0;
+	O.push_back((opt){x,y,fa[x],fa[y],siz[x],siz[y]});
+	if(siz[x].first+siz[x].second>siz[y].first+siz[y].second)swap(x,y);
+	cur-=vl(siz[x])+vl(siz[y]);
+	fa[x]=y;
+	siz[y].first+=siz[x].first;
+	siz[y].second+=siz[x].second;
+	cur+=vl(siz[y]);
+	return 1;
+}
+inline void rollback()
+{
+	opt p=O.back();O.pop_back();
+	int x=p.x,y=p.y;
+	pair<int,int> tmp=make_pair(p.sx.first+p.sy.first,p.sx.second+p.sy.second);
+	cur-=vl(tmp);
+	cur+=vl(p.sx)+vl(p.sy);
+	fa[x]=p.fx;fa[y]=p.fy;
+	siz[x]=p.sx;siz[y]=p.sy;
+}
+map<pair<int,int>,int> mp;
+vector<pair<int,int> > v[1200010];
+class seg
+{
+	public:
+		int x,y,l,r;
+}sg[300010];
+void modify(int p,int l,int r,int ml,int mr,int x,int y)
+{
+	if(ml<=l&&r<=mr)
+	{
+		v[p].push_back(make_pair(x,y));
+		return;
+	}
+	int mid=(l+r)>>1;
+	if(ml<=mid)modify(lc,l,mid,ml,mr,x,y);
+	if(mr>mid)modify(rc,mid+1,r,ml,mr,x,y);
+}
+void solve(int p,int l,int r)
+{
+	int cnt=0;
+	for(auto &x:v[p])
+		cnt+=merge(x.first,x.second);
+	if(l==r)ans[l]=cur;
+	else
+	{
+		int mid=(l+r)>>1;
+		solve(lc,l,mid);
+		solve(rc,mid+1,r);
+	}
+	for(int i=0;i<cnt;i++)rollback();
+}
+int main()
+{
+	for(int i=1;i<=300000;i++)fa[i]=i,siz[i]=make_pair(1,0);
+	for(int i=300001;i<=600000;i++)fa[i]=i,siz[i]=make_pair(0,1);
+	scanf("%d",&q);
+	for(int i=1,ti,tj;i<=q;i++)
+	{
+		scanf("%d%d",&ti,&tj);
+		if(mp.find(make_pair(ti,tj))!=mp.end())
+		{
+			sg[++n]=(seg){ti,tj,mp[make_pair(ti,tj)],i-1};
+			mp.erase(make_pair(ti,tj));
+		}
+		else
+		{
+			mp[make_pair(ti,tj)]=i;
+		}
+	}
+	for(auto &x:mp)sg[++n]=(seg){x.first.first,x.first.second,x.second,q};
+	for(int i=1;i<=n;i++)modify(1,1,q,sg[i].l,sg[i].r,sg[i].x,sg[i].y+300000);
+	solve(1,1,q);
+	for(int i=1;i<=q;i++)printf("%lld ",ans[i]);
+	return 0;
+}

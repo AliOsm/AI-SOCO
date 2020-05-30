@@ -1,0 +1,149 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define debug(X) cout << #X << " = " << X << endl
+#define SZ(X) ((int)X.size())
+
+using namespace std;
+
+typedef pair<int, int> ii;
+
+const int MN = 15;
+const long long oo = 1e9;
+
+struct Edge {
+	int u, v;
+	long long cap, flow;
+	Edge() {}
+	Edge(int u, int v, long long cap): u(u), v(v), cap(cap), flow(0) {}
+};
+
+struct Dinic {
+	int n;
+	vector<Edge> edges;
+	vector<vector<int>> g;
+	vector<int> d, pt;
+	Dinic(int _n): n(_n), edges(0), g(_n), d(_n), pt(_n) {}
+
+	void add_edge(int u, int v, long long cap) {
+		// cout << u << " " << v << " " << cap << endl;
+		edges.push_back(Edge(u, v, cap));
+		g[u].push_back(edges.size() - 1);
+		edges.push_back(Edge(v, u, 0));
+		g[v].push_back(edges.size() - 1);
+	}
+
+	bool bfs(int S, int T) {
+		queue<int> q({S});
+		fill(d.begin(), d.end(), -1);
+		d[S] = 0;
+		while(!q.empty()) {
+			int u = q.front(); q.pop();
+			if (u == T) break;
+			for (int k: g[u]) {
+				Edge e = edges[k];
+				if (e.flow < e.cap && d[e.v] == -1) {
+					d[e.v] = d[e.u] + 1;
+					q.push(e.v);
+				}
+			}
+		}
+		return (d[T] != -1);
+	}
+
+	long long dfs(int u, int T, long long flow = -1) {
+		if (u == T || flow == 0) return flow;
+		for (int i = pt[u]; i < SZ(g[u]); ++i) {
+			Edge &e = edges[g[u][i]];
+			Edge &oe = edges[g[u][i]^1];
+			if (d[e.v] == d[e.u] + 1) {
+				long long amt = e.cap - e.flow;
+				if (flow != -1 && amt > flow) amt = flow;
+				if (long long pushed = dfs(e.v, T, amt)) {
+					e.flow += pushed;
+					oe.flow -= pushed;
+					return pushed;
+				}
+			}
+		}
+		return 0;
+	}
+
+	long long max_flow(int S, int T) {
+		long long total = 0;
+		while (bfs(S, T)) {
+			fill(pt.begin(), pt.end(), 0);
+			while (long long flow = dfs(S, T))
+				total += flow;
+		}
+		return total;
+	}
+};
+
+int n, t;
+char A[MN][MN], B[MN][MN];
+
+int dx[] = {-1, 0, 1, 0};
+int dy[] = {0, -1, 0, 1};
+
+vector<int> bfs(int s, int z) {
+	vector<int> near;
+	vector<int> dist(n * n, oo);
+	dist[z] = 0; dist[s] = 0;
+	queue<ii> q;
+	q.push(ii(z, 0)); q.push(ii(s, 1));
+	while (!q.empty()) {
+		ii curr = q.front(); q.pop();
+		int u = curr.first, c = curr.second;
+		if (c == 1) near.push_back(u);
+		int x = u / n, y = u % n;
+		for (int k = 0; k < 4; k++) {
+			int nx = x + dx[k], ny = y + dy[k];
+			if (nx < 0 || nx >= n || ny < 0 || ny >= n) continue;
+			if (A[nx][ny] == 'Y' || A[nx][ny] == 'Z') continue;
+			int v = nx * n + ny;
+            if (dist[v] > dist[u] + 1 && dist[u] + 1 <= t) {
+				dist[v] = dist[u] + 1;
+				q.push(ii(v, c));
+            } else if (dist[v] == dist[u] + 1 && c == 1) {
+            	near.push_back(v);
+            }
+		}
+	}
+	// for (int c : near) cout << c << " "; cout << endl;
+	return near;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false); cin.tie(0);
+	#ifdef UTP
+	freopen("input.txt", "r", stdin);
+	#endif
+	cin >> n >> t;
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+			cin >> A[i][j];
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+			cin >> B[i][j];
+	int z = -1;
+	for (int i = 0; i < n * n; i++)
+		if (A[i / n][i % n] == 'Z')
+			z = i;
+	Dinic network(2 * n * n + 2);
+	for (int i = 0; i < n * n; i++) {
+		char c_b = B[i / n][i % n];
+		if ('1' <= c_b && c_b <= '9')
+			network.add_edge(n * n + i, 2 * n * n + 1, c_b - '0');
+		char c_a = A[i / n][i % n];
+		if (isalpha(c_a) || c_a == '0') continue;
+		network.add_edge(2 * n * n, i, c_a - '0');
+		vector<int> near = bfs(i, z);
+		for (int j : near) {
+			char c = B[j / n][j % n];
+			if (isalpha(c) || c == '0') continue;
+			network.add_edge(i, n * n + j, oo);
+		}
+	}
+	cout << network.max_flow(2 * n * n, 2 * n * n + 1) << endl;
+	return 0;
+}

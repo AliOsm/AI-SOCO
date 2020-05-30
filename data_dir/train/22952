@@ -1,0 +1,164 @@
+#include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+
+#define F first
+#define S second
+#define eeeee long long
+#define ll  unsigned long long
+#define pb push_back
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef  tree< int , null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+const int N = 110000;
+ll w[6][20 * N], t[6][20 * N];
+ll p[N][6], s[6][N], C[10][10];
+const int mod = 1e9 + 7;
+int a[N];
+struct thing{
+    ll a, b, c, d, e, f;
+};
+int f(int k, int x, int a, int b, int v){
+    ll y = 1;
+    ll res = 0;
+    for (int i = 0; i <= k; i++){
+        res = (res + t[k - i][v] * C[i][k] % mod * y) % mod;
+        y = (y * a) % mod;
+    }
+    return res;
+}
+void push(int k, int v, int tl, int tr){
+    if (w[k][v] == -1) return;
+    int mid = (tl + tr) >> 1;
+    w[k][v + v] = w[k][v + v + 1] = w[k][v];
+    t[k][v + v] = s[k][mid - tl + 1] * w[k][v + v] % mod;
+    t[k][v + v + 1] = s[k][tr - mid] * w[k][v + v + 1] % mod;
+    w[k][v] = -1;
+}
+void build(int k, int v, int tl, int tr){
+    if (tl == tr){
+        t[k][v] = a[tl];
+        return;
+    }
+    int mid = (tl + tr) >> 1;
+    build(k, v + v, tl, mid);
+    build(k, v + v + 1, mid + 1, tr);
+    t[k][v] = (f(k, t[k][v + v + 1], mid - tl + 1, tr - mid, v + v + 1) + t[k][v + v]) % mod;
+}
+void update(int v, int tl, int tr, int l, int r, int x){
+    if (l > r) return;
+    if (l == tl && r == tr){
+        for (int i = 0; i <= 5; i++){
+            w[i][v] = x;
+            t[i][v] = s[i][tr - tl + 1] * x % mod;
+        }
+        return;
+    }
+    for (int i = 0; i <= 5; i++)
+        push(i, v, tl, tr);
+    int mid = (tl + tr) >> 1;
+    update(v + v, tl, mid, l, min(mid, r), x);
+    update(v + v + 1, mid + 1, tr, max(mid + 1, l), r, x);
+    for (int i = 0; i <= 5; i++){
+        ll rs = 0;
+        ll y = 1;
+        ll a = mid - tl + 1;
+        for (int j = 0; j <= i; j++){
+            rs = (rs + t[i - j][v + v + 1] * C[j][i] % mod * y) % mod;
+            y = (y * a) % mod;
+        }
+        t[i][v] = (t[i][v + v] + rs) % mod;
+    }
+}
+thing query(int v, int tl, int tr, int l, int r){
+    thing res;
+    res.a = 0;
+    res.b = 0;
+    res.c = 0;
+    res.d = 0;
+    res.e = 0;
+    res.f = 0;
+    if (l > r){
+        return res;
+    }
+    if (l == tl && r == tr){
+        res.a = t[0][v];
+        res.b = t[1][v];
+        res.c = t[2][v];
+        res.d = t[3][v];
+        res.e = t[4][v];
+        res.f = t[5][v];
+        return res;
+    }
+    for (int i = 0; i <= 5; i++)
+        push(i, v, tl, tr);
+    int mid = (tl + tr) >> 1;
+    auto t1 = query(v + v, tl, mid, l, min(mid, r));
+    auto t2 = query(v + v + 1, mid + 1, tr, max(mid + 1, l), r);
+    if (r <= mid) return t1; else
+    if (l >= mid + 1) return t2;
+    ll len = mid - l + 1;
+    ll len2 = len * len % mod;
+    ll len3 = len2 * len % mod;
+    ll len4 = len3 * len % mod;
+    ll len5 = len4 * len % mod;
+    res.a = (t1.a + t2.a) % mod;
+    res.b = (t1.b + t2.b + len * t2.a) % mod;
+    res.c = (t1.c + t2.c + 2 * len * t2.b + len2 * t2.a) % mod;
+    res.d = (t1.d + t2.d + 3 * len * t2.c + 3 * len2 * t2.b + len3 * t2.a) % mod;
+    res.e = ((t1.e + t2.e + 4 * len * t2.d + 6 * len2 * t2.c) % mod + 4 * len3 * t2.b + len4 * t2.a) % mod;
+    res.f = ((t1.f + t2.f + 5 * len * t2.e + 10 * len2 * t2.d) % mod + 10 * len3 * t2.c + 5 * len4 * t2.b + len5 * t2.a) % mod;
+    return res;
+}
+main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+    int n, m;
+    cin >> n >> m;
+    for (int i = 1; i <= n; i++) cin >> a[i];
+    for (int i = 1; i <= n; i++){
+        for (int j = 0; j <= 5; j++){
+            p[i][j] = 1;
+            for (int l = 1; l <= j; l++){
+                p[i][j] = (p[i][j] * i) % mod;
+            }
+        }
+    }
+    for (int i = 0; i <= 5; i++) C[0][i] = 1;
+    for (int i = 1; i <= 5; i++){
+        for (int j = 1; j <= 5; j++){
+            C[i][j] = C[i - 1][j - 1] + C[i][j - 1];
+        }
+    }
+    for (int i = 0; i <= 5; i++){
+        for (int j = 1; j <= 1000000; j++) w[i][j] = -1;
+    }
+    for (int i = 0; i <= 5; i++){
+        for (int j = 1; j <= n; j++){
+            s[i][j] = (s[i][j - 1] + p[j][i]) % mod;
+        }
+    }
+    for (int i = 0; i <= 5; i++) build(i, 1, 1, n);
+    while(m--){
+        string s;
+        cin >> s;
+        if (s == "="){
+            int l, r, x;
+            cin >> l >> r >> x;
+            update(1, 1, n, l, r, x);
+        } else{
+            int l, r, k;
+            cin >> l >> r >> k;
+            thing ans = query(1, 1, n, l, r);
+            if (k == 0) cout << ans.a << endl;
+            if (k == 1) cout << ans.b << endl;
+            if (k == 2) cout << ans.c << endl;
+            if (k == 3) cout << ans.d << endl;
+            if (k == 4) cout << ans.e << endl;
+            if (k == 5) cout << ans.f << endl;
+        }
+    }
+}

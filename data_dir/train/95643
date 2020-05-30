@@ -1,0 +1,90 @@
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <vector>
+using namespace std;
+
+struct edge {
+    int node, weight;
+};
+
+struct path {
+    int x, y;
+    long long dist;
+
+    pair<int, int> get_pair() const {
+        return {min(x, y), max(x, y)};
+    }
+
+    bool operator<(const path &other) const {
+        return dist > other.dist;
+    }
+};
+
+const int PQ_LIMIT = 1e6;
+
+int N, M, K;
+vector<vector<edge>> adj;
+map<pair<int, int>, long long> dist;
+priority_queue<path> pq;
+priority_queue<long long> distances;
+
+void attempt_push(path candidate) {
+    if ((int) distances.size() < PQ_LIMIT || candidate.dist < distances.top()) {
+        if (dist.find(candidate.get_pair()) == dist.end() || candidate.dist < dist[candidate.get_pair()]) {
+            dist[candidate.get_pair()] = candidate.dist;
+            pq.push(candidate);
+            distances.push(candidate.dist);
+
+            if ((int) distances.size() > PQ_LIMIT)
+                distances.pop();
+        }
+    }
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    cin >> N >> M >> K;
+    adj.assign(N, {});
+
+    for (int i = 0; i < N; i++)
+        dist[{i, i}] = 0;
+
+    for (int i = 0; i < M; i++) {
+        int x, y, weight;
+        cin >> x >> y >> weight;
+        x--; y--;
+
+        if (x > y)
+            swap(x, y);
+
+        adj[x].push_back({y, weight});
+        adj[y].push_back({x, weight});
+        attempt_push({x, y, weight});
+    }
+
+    long long answer = 0;
+    int paths = 0;
+
+    while (paths < K) {
+        path top = pq.top(); pq.pop();
+
+        if (top.dist > dist[top.get_pair()])
+            continue;
+
+        paths++;
+        answer = top.dist;
+
+        for (edge &e : adj[top.x])
+            attempt_push({e.node, top.y, top.dist + e.weight});
+
+        for (edge &e : adj[top.y])
+            attempt_push({top.x, e.node, top.dist + e.weight});
+    }
+
+    cout << answer << '\n';
+}

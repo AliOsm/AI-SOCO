@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+using ll = long long;
+using namespace std;
+
+int main() {
+  cin.tie(0);
+  cin.sync_with_stdio(0);
+
+  int n;
+  cin >> n;
+
+  vector<int> b(n);
+
+  ll sum = 0;
+  for (auto& x : b) cin >> x, sum += x;
+
+  if (sum == 1) {
+    cout << -1;
+    return 0;
+  }
+
+  // prime factors
+  vector<ll> factors;
+  ll S = sum;
+  for (ll i = 2; i * i <= S; ++i) {
+    int cnt = 0;
+    while (S % i == 0) {
+      ++cnt;
+      S /= i;
+    }
+    if (cnt) factors.emplace_back(i);
+  }
+  if (S > 1) factors.emplace_back(S);
+
+  // find smallest multiple
+  ll ans = 8e18;
+  vector<int> a;
+  for (auto mn : factors) {
+    auto cc = b;
+    // quick locating
+    a.resize(0);
+    for (int i = 0; i < n; ++i) {
+      cc[i] %= mn;
+      if (cc[i]) a.emplace_back(i);
+    }
+
+    ll wow = 0;
+    vector<pair<int, int>> locations;
+    vector<pair<ll, ll>> dp;
+    while (a.size()) {
+      locations.resize(0);
+      ll val = 0;
+      ll rem = 0;
+      ll cur = 0;
+      int last = 0;
+      while (val < mn && a.size()) {
+        last = a.back();
+        cur = -val;
+        val += cc[last];
+        cur += val;
+        if (val == mn) {
+          a.pop_back();
+          locations.emplace_back(last, cur);
+          break;
+        } else if (val > mn) {
+          cur -= val - mn;
+          rem = val - mn;
+          val = mn;
+          locations.emplace_back(last, cur);
+          cc[last] = rem;
+          break;
+        } else {
+          a.pop_back();
+          locations.emplace_back(last, cur);
+        }
+      }
+
+      // for(auto [l, r] : locations)
+      //   cout << l << ' ' << r << endl;
+
+      int m = locations.size();
+      reverse(locations.begin(), locations.end());
+      dp.resize(m);
+      // calc
+      ll p = 0;
+      ll total = 0;
+      for (int i = 0; i < m; ++i) {
+        dp[i].first = total * locations[i].first - p;
+        total += locations[i].second;
+        p += 1ll * locations[i].second * locations[i].first;
+      }
+      total = 0;
+      p = 0;
+      for (int i = m - 1; i >= 0; --i) {
+        dp[i].second = p - total * locations[i].first;
+        total += locations[i].second;
+        p += 1ll * locations[i].second * locations[i].first;
+      }
+      // finalize
+      ll best = 8e18;
+      for (int i = 0; i < m; ++i) {
+        // cout << locations[i].first << ' ' << locations[i].second << endl;
+        best = min(best, dp[i].first + dp[i].second);
+      }
+      wow += best;
+    }
+    ans = min(ans, wow);
+  }
+
+  cout << ans;
+}

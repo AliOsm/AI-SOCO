@@ -1,0 +1,152 @@
+#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <stack>
+#include <cassert>
+#include <queue>
+#include <deque>
+#include <climits>
+#include <cstring>
+#include <random>
+#include <bitset>
+
+using namespace std;
+
+const int maxn = 2e5 + 7;
+const int mod = 1e9 + 7;
+
+struct segment_tree {
+    int size;
+    vector<int> t;
+    
+    void pull(int v) {
+        t[v] = t[2 * v + 1] + t[2 * v + 2];
+    }
+
+    void build(int v, int l, int r, const vector<int> &a, int s) {
+        if (l + 1 == r) {
+            t[v] = (a[l] == s ? 1 : 0);
+        } else {
+            int m = (r + l) >> 1;
+            build(2 * v + 1, l, m, a, s);
+            build(2 * v + 2, m, r, a, s);
+            pull(v);
+        }
+    }
+    
+    segment_tree(const vector<int> &a, int s) {
+        size = (int)a.size();
+        t.resize(4 * size);
+        build(0, 0, size, a, s);
+    }
+    
+    int query(int v, int l, int r, int ql, int qr) {
+        if (ql >= r || qr <= l) {
+            return 0;
+        }
+        if (ql <= l && r <= qr) {
+            return t[v];
+        } else {
+            int m = (r + l) >> 1;
+            auto f = query(2 * v + 1, l, m, ql, qr);
+            auto s = query(2 * v + 2, m, r, ql, qr);
+            return f + s;
+        }
+    }
+    
+    int query(int l, int r) {
+        if (l >= r) {
+            return 0;
+        } else {
+            return query(0, 0, size, l, r);
+        }
+    }
+};
+
+vector<int> fact;
+
+int mul(int a, int b) {
+    return (long long)a * b % mod;
+}
+
+int add(int a, int b) {
+    long long tmp = a + b;
+    return tmp % mod;
+}
+
+int binpow(int a, int b) {
+    if (b == 0) {
+        return 1;
+    } else if (b % 2 == 1) {
+        auto f = binpow(a, b - 1);
+        return mul(a, f);
+    } else {
+        auto f = binpow(a, b / 2);
+        return mul(f, f);
+    }
+}
+
+int divv(int a, int b) {
+    auto tmp = binpow(b, mod - 2);
+    return mul(a, tmp);
+}
+
+void precalc() {
+    fact.resize(maxn);
+    fact[0] = 1;
+    for (int i = 1; i < maxn; i++) {
+        fact[i] = mul(fact[i - 1], i);
+    }
+}
+
+int get_c(int n, int k) {
+    auto m = mul(fact[k], fact[n - k]);
+    return divv(fact[n], m);
+}
+
+int get(int a, int b) {
+    if (a == 0 || b == 0) {
+        return 0;
+    }
+    return get_c(a + b - 1, a);
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    #ifdef LOCAL
+    assert(freopen("input.txt", "r", stdin));
+    assert(freopen("output.txt", "w", stdout));
+    #endif
+    
+    precalc();
+    
+    string s;
+    cin >> s;
+    int n = (int)s.size();
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) {
+        a[i] = (s[i] == ')' ? -1 : 1);
+    }
+    segment_tree op(a, 1);
+    segment_tree cl(a, -1);
+    int ans = 0;
+    for (int i = 0; i < n; i++) {
+        if (a[i] == 1) {
+            auto f = op.query(0, i) + 1;
+            auto s = cl.query(i, n);
+            auto tmp = get(f, s);
+            ans = add(ans, tmp);
+        }
+    }
+    cout << ans << '\n';
+}

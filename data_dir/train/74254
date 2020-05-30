@@ -1,0 +1,162 @@
+#define _USE_MATH_DEFINES
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
+#include <complex>
+#include <cmath>
+#include <numeric>
+#include <bitset>
+
+using namespace std;
+
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+  cerr << name << ": " << arg1 << endl;
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+  const char* comma = strchr(names + 1, ',');
+  cerr.write(names, comma - names) << ": " << arg1 << " |";
+  __f(comma + 1, args...);
+}
+
+typedef long long int64;
+typedef pair<int, int> ii;
+const int INF = 1 << 29;
+const int MOD = 1e9 + 7;
+
+const int N = 1e5 + 10;
+vector<int> a[N];
+int L[N], R[N], dep[N];
+int stamp = 0;
+
+void DFS(int u, int parent, int depth) {
+  L[u] = stamp++;
+  dep[u] = depth;
+  for (auto& v : a[u]) {
+    if (v == parent) continue;
+    DFS(v, u, depth + 1);
+  }
+  R[u] = stamp;
+}
+
+struct Node {
+  Node* child[2];
+  int val, minv;
+  int x[2];
+  int minx[2], maxx[2];
+  void pushup() {
+    for (int i = 0; i < 2; ++i) {
+      if (!child[i]) continue;
+      auto son = child[i];
+      for (int j = 0; j < 2; ++j) {
+        minx[j] = min(minx[j], son->minx[j]);
+        maxx[j] = max(maxx[j], son->maxx[j]);
+      }
+      minv = min(minv, son->minv);
+    }
+  }
+};
+
+struct Point {
+  int x[2];
+  int val;
+};
+
+Node pool[N], *last;
+Point p[N];
+
+Node* new_node(const Point& t) {
+  Node* cur = last++;
+  cur->minv = cur->val = t.val;
+  for (int i = 0; i < 2; ++i) {
+    cur->minx[i] = cur->maxx[i] = cur->x[i] = t.x[i];
+  }
+  fill(cur->child, cur->child + 2, nullptr);
+  return cur;
+}
+
+Node* build(int L, int R, int k) {
+  int mid = (L + R) / 2;
+  nth_element(p + L, p + mid, p + R, [k](const Point& a, const Point& b) {
+      return a.x[k] < b.x[k];
+    });
+  Node* cur = new_node(p[mid]);
+  if (L < mid) cur->child[0] = build(L, mid, 1 - k);
+  if (mid + 1 < R) cur->child[1] = build(mid + 1, R, 1 - k);
+  cur->pushup();
+  return cur;
+}
+
+int g_minx[2], g_maxx[2];
+
+int query(Node* cur, int k) {
+  int ret = 2e9;
+  if (cur->x[0] >= g_minx[0] && cur->x[0] <= g_maxx[0] &&
+      cur->x[1] >= g_minx[1] && cur->x[1] <= g_maxx[1]) {
+    ret = min(ret, cur->val);
+  }
+  for (int i = 0; i < 2; ++i) {
+    if (!cur->child[i]) continue;
+    auto son = cur->child[i];
+    if (son->minx[0] > g_maxx[0] || son->maxx[0] < g_minx[0] ||
+        son->minx[1] > g_maxx[1] || son->maxx[1] < g_minx[1]) continue;
+    if (son->minx[0] >= g_minx[0] && son->maxx[0] <= g_maxx[0] &&
+        son->minx[1] >= g_minx[1] && son->maxx[1] <= g_maxx[1]) {
+      ret = min(ret, son->minv);
+    } else {
+      ret = min(ret, query(son, 1 - k));
+    }
+  }
+  return ret;
+}
+
+int main() {
+  int n, r;
+  scanf("%d%d", &n, &r);
+  --r;
+  for (int i = 0; i < n; ++i) {
+    scanf("%d", &p[i].val);
+  }
+  for (int i = 1; i < n; ++i) {
+    int x, y;
+    scanf("%d%d", &x, &y);
+    --x; --y;
+    a[x].push_back(y);
+    a[y].push_back(x);
+  }
+  DFS(r, -1, 0);
+  for (int i = 0; i < n; ++i) {
+    p[i].x[0] = L[i];
+    p[i].x[1] = dep[i];
+  }
+  last = pool;
+  Node* root = build(0, n, 0);
+  int m, last = 0;
+  scanf("%d", &m);
+  while (m--) {
+    int x, y;
+    scanf("%d%d", &x, &y);
+    x = (x + last) % n;
+    y = (y + last) % n;
+    g_minx[0] = L[x], g_maxx[0] = R[x] - 1;
+    g_minx[1] = dep[x], g_maxx[1] = dep[x] + y;
+    // trace(x, y, L[x], R[x] - 1, dep[x], dep[x] + y);
+    last = query(root, 0);
+    printf("%d\n", last);
+  }
+  return 0;
+}

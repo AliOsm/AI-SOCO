@@ -1,0 +1,61 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 2e5+5;
+int n, T;
+vector<pair<int,int>> v;
+
+vector<int> ans;
+
+bool poss(int k) {
+    vector<pair<int,int>> good, bad;
+    for (int i = 0; i < n; i++) {
+        if (k <= v[i].first) good.push_back({v[i].second,i+1});
+        else bad.push_back({v[i].second,i+1});
+    }
+    sort(good.begin(),good.end());
+    sort(bad.begin(),bad.end());
+    if (good.size() < k) return false;
+    ll tot = 0;
+    for (int i = 0; i < k; i++) {
+        tot += good[i].first;
+    }
+    if (tot > T) return false;
+    ans.clear();
+    for (int i = 0; i < k; i++) {
+        ans.push_back(good[i].second);
+    }
+    return true;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> n >> T;
+    for (int i = 0; i < n; i++) {
+        int a, t; cin >> a >> t;
+        v.push_back({a,t});
+    }
+    /*
+    for (int i = 1; i <= n; i++) {
+        cout << i << ": " << poss(i) << '\n';
+        cout << "score = " << score << '\n';
+    }
+    */
+    int lo = 0, hi = n+1;
+    while (lo + 1 < hi) {
+        int mid = (lo+hi)/2;
+        if (poss(mid)) {
+            lo = mid;
+        }
+        else hi = mid;
+        //cout << mid << ": " << "score = " << score << endl;
+    }
+    cout << lo << '\n';
+    cout << ans.size() << '\n';
+    for (auto i: ans) {
+        cout << i << ' ';
+    }
+    cout << '\n';
+}
+

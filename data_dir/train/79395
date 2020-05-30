@@ -1,0 +1,113 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define LL long long
+#define ff first
+#define ss second
+#define pb push_back
+#define mk make_pair
+#define ULL unsigned long long
+#define inf 0x3f3f3f3f
+#define INF 2e18
+#define eps 1e-9
+#define pii pair <int, int>
+#define pLL pair <LL, LL>
+#define all(a) a.begin(), a.end()
+#define SQR(a) ((a) * (a))
+#define Unique(a) sort(all(a)), a.erase(unique(all(a)), a.end())
+#define Iterator(a) __typeof__(a.begin())
+#define FOR(it, a) FOR(Iterator(a) it = a.begin(); it != a.end(); it++)
+#define vi vector <int>
+#define vL vector <LL>
+#define y0 y00
+
+const int N = 300005;
+
+int n;
+int rage[N];
+int Ml[20][N], Mr[20][N];
+int Tr[2][20][N << 2], f, iu, iq;
+
+inline int chose(int l, int r) {
+    if(f) return max(l, r);
+    return min(l, r);
+}
+
+void built(int node, int b, int e, int v) {
+    if(b == e) {
+        Tr[f][iu][node] = f ? Mr[v][b] : Ml[v][b];
+        return ;
+    }
+    int mid = b + e >> 1;
+    int lf = node << 1;
+    int rt = lf | 1;
+    built(lf, b, mid, v);
+    built(rt, mid + 1, e, v);
+    Tr[f][iu][node] = chose(Tr[f][iu][lf], Tr[f][iu][rt]);
+}
+
+int query(int node, int b, int e, int i, int j) {
+    if(b >= i && e <= j) {
+        return Tr[f][iq][node];
+    }
+    int mid = b + e >> 1;
+    int lf = node << 1;
+    int rt = lf | 1;
+    if(j <= mid) return query(lf, b, mid, i, j);
+    else if(i > mid) return query(rt, mid + 1, e, i, j);
+    int l = query(lf, b, mid, i, j);
+    int r = query(rt, mid + 1, e, i, j);
+    return chose(l, r);
+}
+
+void built() {
+    iu = 0; iq = -1;
+    for(int i = 0; i < n * 3; i++) {
+        Ml[0][i] = max(0, i - rage[i]);
+        Mr[0][i] = min(n * 3 - 1, i + rage[i]);
+    }
+    f = 0; built(1, 0, n * 3 - 1, 0);
+    f = 1; built(1, 0, n * 3 - 1, 0);
+
+
+    for(int j = 1; (1 << j) <= n * 3; j++) {
+        iu++; iq++;
+        for(int i = 0; i + (1 << j) <= n * 3; i++) {
+            f = 0; Ml[j][i] = query(1, 0, n * 3 - 1, Ml[j - 1][i], Mr[j - 1][i]);
+            f = 1; Mr[j][i] = query(1, 0, n * 3 - 1, Ml[j - 1][i], Mr[j - 1][i]);
+        }
+        f = 0; built(1, 0, n * 3 - 1, j);
+        f = 1; built(1, 0, n * 3 - 1, j);
+    }
+}
+
+int main()
+{
+    scanf("%d", &n);
+    for(int i = 0; i < n; i++) scanf("%d", &rage[i]);
+
+    if(n == 1) {
+        puts("0");
+        return 0;
+    }
+
+    for(int i = 0; i < n; i++) rage[n + i] = rage[n * 2 + i] = rage[i];
+    built();
+    int log = log2(n);
+    for(int i = n; i < n * 2; i++) {
+        int tm = 0;
+        int L = i, R = i;
+        for(int j = log; j >= 0; j--) {
+            iq = j;
+            f = 0; int l = query(1, 0, n * 3 - 1, L, R);
+            f = 1; int r = query(1, 0, n * 3 - 1, L, R);
+            if(r - l >= n - 1) continue;
+            L = l; R = r;
+            tm += (1 << j);
+        }
+        printf("%d ", tm + 1);
+    }
+
+
+    return 0;
+}

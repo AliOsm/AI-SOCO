@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const int maxn = 100009;
+const ll inf = 100000000000000000LL;
+
+int dsu_par[maxn];
+int dsu_get(int v) {
+    if (v == dsu_par[v]) return v;
+    return dsu_par[v] = dsu_get(dsu_par[v]);
+}
+int dsu_merge(int u, int v) { //u < v
+    dsu_par[dsu_get(u)] = dsu_get(v);
+}
+
+struct {
+    int l, r;
+    int pl, pr;
+    vector<pair<int, ll>> S;
+} T[maxn * 2];
+
+int buildTree(int l, int r) {
+    static int sz = 1;
+    int cur = sz++;
+    T[cur].l = l;
+    T[cur].r = r;
+    if (l < r) {
+        T[cur].pl = buildTree(l, (l+r)/2);
+        T[cur].pr = buildTree((l+r)/2+1, r);
+    }
+    return cur;
+}
+void add(int cur, int l, int r, int v, ll w) {
+    if (l <= T[cur].l && r >= T[cur].r) {
+        T[cur].S.emplace_back(v, w);
+        return;
+    }
+
+    if (l <= T[ T[cur].pl ].r && T[ T[cur].pl ].l <= r)
+        add(T[cur].pl, l, r, v, w);
+    if (l <= T[ T[cur].pr ].r && T[ T[cur].pr ].l <= r)
+        add(T[cur].pr, l, r, v, w);
+}
+
+ll dist[maxn * 2];
+vector<pair<int, ll>> neigh[maxn];
+pair<int, int> interv[2 * maxn];
+bool visited[2 * maxn];
+priority_queue<pair<ll, int>> Q;
+void relax(int v, ll d) {
+    if (dist[v] > d) {
+        dist[v] = d;
+        Q.push(make_pair(-d, v));
+    }
+}
+
+void get(int cur, int v) {
+    for (auto e : T[cur].S) {
+        relax(e.first, e.second + dist[v]);
+    }
+    T[cur].S.clear();
+    if (T[cur].l == T[cur].r) return;
+    if (v <= T[ T[cur].pl ].r)
+        get(T[cur].pl, v);
+    else
+        get(T[cur].pr, v);
+}
+
+int main()
+{
+    int n, q, s;
+    cin >> n >> q >> s;
+    buildTree(1, n);
+
+    for (int i = 1; i <= n + 1; i++) {
+        dsu_par[i] = i;
+        dist[i] = inf;
+    }
+    dist[s] = 0;
+
+    for (int i = 0; i < q; i++) {
+        int t;
+        cin >> t;
+        if (t == 1) {
+            int u, v;
+            ll w;
+            cin >> u >> v >> w;
+            neigh[u].emplace_back(v, w);
+        }
+        else {
+            int v, l, r;
+            ll w;
+            cin >> v >> l >> r >> w;
+            if (t == 2) {
+                dist[n + 1 + i] = inf;
+                neigh[v].emplace_back(n + 1 + i, w);
+                interv[n + 1 + i] = make_pair(l, r);
+            }
+            else {
+                add(1, l, r, v, w);
+            }
+        }
+    }
+
+    Q.push(make_pair(0, s));
+
+    while (!Q.empty()) {
+        auto cur = Q.top();
+        Q.pop();
+        if (visited[cur.second]) continue;
+        visited[cur.second] = true;
+        cur.first *= -1;
+
+        if (cur.second <= n) {
+            for (auto e : neigh[cur.second]) {
+                relax(e.first, e.second + dist[cur.second]);
+            }
+            get(1, cur.second);
+        }
+        else {
+            int v = dsu_get(interv[cur.second].first);
+            while (v <= interv[cur.second].second) {
+                relax(v, dist[cur.second]);
+                dsu_merge(v, v + 1);
+                v = dsu_get(v + 1);
+            }
+        }
+    }
+
+    for (int v = 1; v <= n; v++) {
+        if (dist[v] == inf) cout << "-1 ";
+        else cout << dist[v] << " ";
+    }
+}

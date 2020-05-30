@@ -1,0 +1,117 @@
+// in the name of Allah
+
+#include <bits/stdc++.h>
+
+#define endl '\n'
+#define sz(x) ((int)(x.size()))
+
+using namespace std;
+
+struct Point {
+	long long x, y;
+	Point() {}
+	Point(long long x, long long y) : x(x), y(y) {}
+	Point(const Point &p) : x(p.x), y(p.y) {}
+	Point operator + (const Point &p) const {
+		return Point(x + p.x, y + p.y);
+	}
+	Point operator - (const Point &p) const {
+		return Point(x - p.x, y - p.y);
+	}
+	Point operator * (double c) const {
+		return Point(x*c, y*c);
+	}
+	Point operator / (double c) const {
+		return Point(x/c, y/c);
+	}
+	bool operator < (const Point &p) const {
+		return x < p.x || (x == p.x && y < p.y);
+	}
+};
+
+long long dot(Point A, Point B) {
+	return A.x*B.x + A.y*B.y;
+}
+
+long long dist2(Point A, Point B) {
+	return dot(A - B, A - B);
+}
+
+long long cross(const Point &O, const Point &A, const Point &B) {
+	return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+}
+
+vector <Point> convex_hull(vector<Point> P) {
+	int n = P.size(), k = 0;
+	vector<Point> H(2*n);
+	sort(P.begin(), P.end());
+	for(int i = 0; i < n; i++) {
+		while (k >= 2 && cross(H[k-2], H[k-1], P[i]) <= 0) k--;
+		H[k++] = P[i];
+	}
+	for(int i = n-2, t = k+1; i >= 0; i--) {
+		while (k >= t && cross(H[k-2], H[k-1], P[i]) <= 0) k--;
+		H[k++] = P[i];
+	}
+	H.resize(k-1);
+	return H;
+}
+vector <long long> get(vector <Point> v) {
+	vector <long long> t, tt;
+	for(int i=0; i<sz(v)-1; i++) t.push_back(dist2(v[i], v[i+1]));
+	t.push_back(dist2(v[0], v.back()));
+	for(int i=0; i<sz(v)-2; i++) tt.push_back(dot(v[i] - v[i+1], v[i+2] - v[i+1]));
+	tt.push_back(dot(v[sz(v)-2] - v[sz(v)-1], v[0] - v[sz(v)-1]));
+	tt.push_back(dot(v[sz(v)-1] - v[0], v[1] - v[0]));
+	vector <long long> foo;
+	for(int i=0; i<sz(t); i++) {
+		foo.push_back(t[i]);
+		foo.push_back(tt[i]);
+	}
+	return foo;
+}
+
+int z[1234567];
+
+int main() {
+	ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+	int n, m;
+	cin >> n >> m;
+	vector <Point> A(n);
+	vector <Point> B(m);
+	for(int i=0; i<n; i++) cin >> A[i].x >> A[i].y;
+	for(int i=0; i<m; i++) cin >> B[i].x >> B[i].y;
+	A = convex_hull(A);
+	B = convex_hull(B);
+	vector <long long> s = get(A);
+	vector <long long> ss = get(B);
+	int start = sz(s);
+	s.push_back(LLONG_MIN);
+	for(int i=0; i<sz(ss); i++) s.push_back(ss[i]);
+	for(int i=0; i<sz(ss); i++) s.push_back(ss[i]);
+	int L = 0, R = 0, N = sz(s);
+	for(int i = 1; i < N; i++) {
+		if(i > R) {
+			L = R = i;
+			while(R < N && s[R-L] == s[R]) R++;
+			z[i] = R-L; R--;
+		}
+		else {
+			int k = i-L;
+			if(z[k] < R-i+1) z[i] = z[k];
+			else {
+				L = i;
+				while(R < N && s[R-L] == s[R]) R++;
+				z[i] = R-L; R--;
+			}
+		}
+	}
+	for(int i=start+1; i<sz(s); i+=2) {
+		if(z[i] >= start) {
+			cout << "YES" << endl;
+			return 0;
+		}
+	}
+	cout << "NO" << endl;
+	return 0;
+}

@@ -1,0 +1,131 @@
+#include <iostream>
+#include <queue>
+using namespace std;
+
+struct S {
+	S *gg[26] = {}, *f;
+	int output = 0;
+
+	~S() {
+		for (int a = 0; a < 26; a++) {
+			S *s = gg[a];
+			if (s != nullptr && s != this)
+				delete s;
+		}
+	}
+};
+
+struct T {
+	string *keywords;
+	int k = 0;
+	S *s0;
+
+	T(int k) {
+		keywords = new string[k];
+	}
+
+	void enter(string &aa) {
+		S *s = s0;
+		int j;
+		for (j = 0; j < (int) aa.length(); j++) {
+			int a = aa[j] - 'a';
+			if (s->gg[a] == nullptr)
+				break;
+			s = s->gg[a];
+		}
+		for ( ; j < (int) aa.length(); j++) {
+			int a = aa[j] - 'a';
+			s = s->gg[a] = new S;
+		}
+		s->output = 1;
+		keywords[k++] = aa;
+	}
+
+	void bfs() {
+		queue<S*> queue;
+		for (int a = 0; a < 26; a++)
+			if (s0->gg[a] == nullptr)
+				s0->gg[a] = s0;
+			else {
+				s0->gg[a]->f = s0;
+				queue.push(s0->gg[a]);
+			}
+		while (!queue.empty()) {
+			S *r = queue.front();
+			queue.pop();
+			for (int a = 0; a < 26; a++) {
+				S *s_ = r->gg[a];
+				if (s_ != nullptr) {
+					queue.push(s_);
+					S *s = r->f;
+					while (s->gg[a] == nullptr)
+						s = s->f;
+					s_->f = s->gg[a];
+					s_->output += s_->f->output;
+				}
+			}
+		}
+	}
+
+	int match(string &aa) {
+		S *s = s0;
+		int output = 0;
+		for (int i = 0; i < (int) aa.length(); i++) {
+			int a = aa[i] - 'a';
+			while (s->gg[a] == nullptr)
+				s = s->f;
+			s = s->gg[a];
+			output += s->output;
+		}
+		return output;
+	}
+};
+
+void add(T *tt[], string &aa) {
+	int b = 0;
+	while (tt[b] != nullptr && tt[b]->k != 0)
+		b++;
+	if (tt[b] == nullptr)
+		tt[b] = new T(1 << b);
+	T *t = tt[b];
+	t->s0 = new S;
+	t->enter(aa);
+	while (b > 0) {
+		T *t_ = tt[--b];
+		while (t_->k > 0)
+			t->enter(t_->keywords[--t_->k]);
+		delete t_->s0;
+	}
+	t->bfs();
+}
+
+int count(T *tt[], string &aa, int k) {
+	if (k == 0)
+		return 0;
+	int sum = 0;
+	for (int b = 0; 1 << b <= k && tt[b] != nullptr; b++)
+		if (tt[b]->k > 0)
+			sum += tt[b]->match(aa);
+	return sum;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	T *t1[19] = {}, *t2[19] = {};
+	int k1 = 0, k2 = 0, m;
+	cin >> m;
+	while (m-- > 0) {
+		int t;
+		string aa;
+		cin >> t >> aa;
+		if (t == 1) {
+			add(t1, aa);
+			k1++;
+		} else if (t == 2) {
+			add(t2, aa);
+			k2++;
+		} else
+			cout << count(t1, aa, k1) - count(t2, aa, k2) << '\n';
+	}
+	return 0;
+}

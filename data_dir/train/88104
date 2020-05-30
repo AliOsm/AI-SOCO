@@ -1,0 +1,139 @@
+#include <bits/stdc++.h>
+
+using namespace std ;
+
+#define fast ios_base::sync_with_stdio(false) , cin.tie(NULL) , cout.tie(NULL) 
+
+template<typename T , typename S> 
+ostream& operator << (ostream& os , const pair<T,S> &v) {
+	os << "(" << v.first << "," << v.second << ")" ;
+	return os ;
+}
+
+template<typename T>
+ostream& operator << (ostream& os , const vector<T> &v) {
+	os << "[" ;
+	int sz = v.size() ; 
+	for(int i = 0 ; i < sz ; ++i) {
+		os << v[i] ; 
+		if(i != sz - 1) os << "," ;
+	}
+	os << "]\n" ;
+	return os ;
+} 
+
+//debug
+#define TRACE
+
+#ifdef TRACE
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+		cerr << name << " : " << arg1 << std::endl;
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+		const char* comma = strchr(names + 1, ',');cerr.write(names, comma - names) << " : " << arg1<<" | ";__f(comma+1, args...);
+}
+#else
+#define trace(...)
+#endif
+
+const int N = 1e6 + 6 ; 
+
+enum type {
+	IN , AND , OR , NOT , XOR
+} ;
+
+type types[N] ;
+int values[N] ; 
+vector<int> g[N] ;
+int parent[N] ;
+int new_values[N] ;
+
+void dfs(int node, int par) {
+	parent[node] = par ;
+	if(types[node] == IN) return ; 
+	if(types[node] == NOT) {
+		dfs(g[node][0] , node) ; 
+		values[node] = !values[g[node][0]] ;
+		return ; 
+	}
+	for(int i = 0 ; i < 2 ; ++i) dfs(g[node][i] , node) ;
+	if(types[node] == AND) {
+		values[node] = values[g[node][0]] & values[g[node][1]] ;
+		return ; 
+	}
+	if(types[node] == XOR) {
+		values[node] = values[g[node][0]] ^ values[g[node][1]] ;
+		return ; 
+	}
+	if(types[node] == OR) {
+		values[node] = values[g[node][0]] | values[g[node][1]] ;
+		return ; 
+	}
+}
+
+void walk(int node) {
+	int par = parent[node] ;
+	if(node == 1) {
+		new_values[node] = !values[node] ;
+	}
+	else {
+		int changed_value = !values[node] ;
+		if(types[par] == NOT) {
+			new_values[node] = new_values[par] ;
+		}
+		else {
+			int other_val = (g[par][0] == node) ? g[par][1] : g[par][0];
+			other_val = values[other_val] ;
+			int pval = values[par] ;
+			if(types[par] == AND) {
+				pval = changed_value & other_val ;
+			}
+			if(types[par] == XOR) {
+				pval = changed_value ^ other_val ;
+			}
+			if(types[par] == OR) {
+				pval = changed_value | other_val ;
+			}
+			if(pval != values[par]) new_values[node] = new_values[par] ;
+			else new_values[node] = values[1] ;
+		}
+	}
+	for(int child : g[node]) walk(child) ;
+	return ; 
+}
+int main() {
+	
+	fast ;
+	int n ; cin >> n ; 
+	for(int i = 1 ; i <= n ; ++i) {
+		string str ; cin >> str ;
+		if(str == "IN") {
+			types[i] = IN ;
+			cin >> values[i] ; 
+		}
+		else if(str == "NOT") {
+			types[i] = NOT ;
+			g[i].resize(1) ;
+			cin >> g[i][0] ;
+		}
+		else {
+			g[i].resize(2) ;
+			cin >> g[i][0] >> g[i][1] ;
+			if(str == "AND") types[i] = AND ;
+			else if(str == "XOR") types[i] = XOR ; 
+			else if(str == "OR") types[i] = OR ; 
+			else assert(false) ;
+		}
+	}
+	dfs(1,0) ;
+	walk(1) ;
+	for(int i = 1 ; i <= n ; ++i) {
+		if(types[i] == IN) {
+			cout << new_values[i] ;
+		}
+	}
+	return 0 ; 
+}

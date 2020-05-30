@@ -1,0 +1,110 @@
+#include<bits/stdc++.h>
+using namespace std;
+class edge
+{
+	public:
+		int s,e,w;
+		bool operator <(const edge &t)const
+		{
+			return w<t.w;
+		}
+}g[200010];
+int n,m,fa[100010],st[100010][17],mn[100010][17],Q,dep[100010];
+vector<pair<int,int> > v[100010];
+inline int getf(int x)
+{
+	return x==fa[x]?x:fa[x]=getf(fa[x]);
+}
+inline int merge(int x,int y)
+{
+	x=getf(x);y=getf(y);
+	if(x==y)return 0;
+	fa[x]=y;
+	return 1;
+}
+inline void dfs(int np,int fath)
+{
+	dep[np]=dep[fath]+1;
+	st[np][0]=fath;
+	for(auto &x:v[np])
+	{
+		if(x.first==fath)continue;
+		mn[x.first][0]=x.second;
+		dfs(x.first,np);
+	}
+}
+int main()
+{
+	scanf("%d%d",&n,&m);
+	for(int i=1;i<=m;i++)
+		scanf("%d%d%d",&g[i].s,&g[i].e,&g[i].w);
+	sort(g+1,g+m+1);
+	for(int i=1;i<=n;i++)fa[i]=i;
+	int cnt=0;
+	long long cost=0;
+	for(int i=1;i<=m;i++)
+	{
+		if(merge(g[i].s,g[i].e))
+		{
+			cnt++;
+			v[g[i].s].push_back(make_pair(g[i].e,g[i].w));
+			v[g[i].e].push_back(make_pair(g[i].s,g[i].w));
+			cost+=g[i].w;
+		}
+	}
+	scanf("%d",&Q);
+	if(n-cnt>2)
+	{
+		while(Q--)puts("-1");
+		return 0;
+	}
+	else if(n-cnt==2)
+	{
+		while(Q--)
+		{
+			int x,y;
+			scanf("%d%d",&x,&y);
+			if(getf(x)==getf(y))puts("-1");
+			else printf("%lld\n",cost);
+		}
+		return 0;
+	}
+	dfs(1,0);
+	for(int j=1;j<17;j++)
+	{
+		for(int i=1;i<=n;i++)
+		{
+			st[i][j]=st[st[i][j-1]][j-1];
+			mn[i][j]=max(mn[i][j-1],mn[st[i][j-1]][j-1]);
+		}
+	}
+	while(Q--)
+	{
+		int x,y;
+		scanf("%d%d",&x,&y);
+		if(dep[x]<dep[y])swap(x,y);
+		int ret=0;
+		for(int i=16;i>=0;i--)
+		{
+			if(dep[st[x][i]]>=dep[y])
+			{
+				ret=max(ret,mn[x][i]);
+				x=st[x][i];
+			}
+		}
+		if(x!=y)
+		{
+			for(int i=16;i>=0;i--)
+			{
+				if(st[x][i]!=st[y][i])
+				{
+					ret=max(ret,max(mn[x][i],mn[y][i]));
+					x=st[x][i];y=st[y][i];
+				}
+			}
+			ret=max(ret,max(mn[x][0],mn[y][0]));
+		}
+		printf("%lld\n",cost-ret);
+	}
+	return 0;
+}

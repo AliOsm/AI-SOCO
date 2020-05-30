@@ -1,0 +1,149 @@
+#include<bits/stdc++.h>
+#define mp make_pair
+#define PII pair<int,int>
+#define fi first
+#define se second
+using namespace std;
+
+const int NMAX=200005;
+const int XMAX=800005;
+
+int n,m,len,niv[NMAX],fat[NMAX],tata[NMAX],a[NMAX],b[NMAX];
+int start[NMAX],rmq[20][XMAX],lg[XMAX];
+int ans[NMAX];
+int mu[NMAX];
+long long c[NMAX],which[NMAX];
+vector<int>v[NMAX];
+
+void Dfs(int x,const int f)
+{
+    len++;
+    start[x]=len;
+    rmq[0][len]=x;
+    tata[x]=f;
+    niv[x]=niv[f]+1;
+    for (vector<int>::iterator it=v[x].begin();it!=v[x].end();it++)
+        if ((*it)!=f)
+            {
+                Dfs(*it,x);
+                len++;
+                rmq[0][len]=x;
+            }
+}
+
+void RMQ()
+{
+    int i,j;
+    lg[2]=1;
+    for (i=3;i<=len;i++) lg[i]=lg[i>>1]+1;
+    for (j=1;j<=lg[len];j++)
+        for (i=1;i<=(len-(1<<j)+1);i++)
+            {
+                rmq[j][i]=rmq[j-1][i];
+                if (niv[rmq[j-1][i+(1<<(j-1))]]<niv[rmq[j-1][i]])
+                    rmq[j][i]=rmq[j-1][i+(1<<(j-1))];
+            }
+}
+
+int LCA(int x,int y)
+{
+    int dif,kkt;
+    if (start[x]>start[y]) swap(x,y);
+    dif=lg[start[y]-start[x]+1];
+    kkt=rmq[dif][start[x]];
+    if (niv[rmq[dif][start[y]-(1<<dif)+1]]<niv[kkt])
+        kkt=rmq[dif][start[y]-(1<<dif)+1];
+    return kkt;
+}
+
+int Father(int x)
+{
+    int w,z;
+    z=x;
+    while (x!=fat[x]) x=fat[x];
+    while (z!=fat[z])
+        {
+            w=fat[z];
+            fat[z]=x;
+            z=w;
+        }
+    return x;
+}
+
+int main()
+{
+    int i,j,op,x,y,kkt,ok,lc,aux;
+    long long z;
+    cin.sync_with_stdio(false);
+    cin>>n>>m;
+    for (i=1;i<n;i++)
+    {
+        cin>>a[i]>>b[i]>>c[i];
+        v[a[i]].push_back(b[i]);
+        v[b[i]].push_back(a[i]);
+    }
+    Dfs(1,0);
+    RMQ();
+
+    for (i=1;i<n;i++)
+        if (niv[a[i]]>niv[b[i]])
+            {if (c[i]>1) mu[a[i]]=1;which[a[i]]=c[i];}
+        else {if (c[i]>1) mu[b[i]]=1;which[b[i]]=c[i];}
+    for (i=1;i<=n;i++)
+    {
+        fat[i]=i;
+        if (mu[i]==0) fat[i]=tata[i];
+    }
+
+    for (i=1;i<=m;i++)
+    {
+        cin>>op;
+        if (op==1)
+        {
+            cin>>x>>y>>z;
+            lc=LCA(x,y);ans[0]=0;
+            aux=Father(x);
+            while (niv[aux]>niv[lc] && ans[0]<=60)
+                {
+                   //sunt pe unul bun sigur
+                   ans[++ans[0]]=aux;
+                   aux=tata[aux];
+                   aux=Father(aux);
+                }
+            aux=Father(y);
+            while (niv[aux]>niv[lc] && ans[0]<=60)
+                {
+                   //sunt pe unul bun sigur
+                   ans[++ans[0]]=aux;
+                   aux=tata[aux];
+                   aux=Father(aux);
+                }
+            if (ans[0]>60)//sigur nu e bine
+                cout<<"0\n";
+            else
+            {
+                for (j=1;j<=ans[0];j++) z=z/which[ans[j]];
+                cout<<z<<"\n";
+            }
+        }
+        if (op==2)
+        {
+            cin>>x>>z;
+            ok=0;
+            if (niv[a[x]]>niv[b[x]])
+            {
+                if (c[x]>1 && z==1) {mu[a[x]]=0;ok=1;}
+                kkt=a[x];
+            }
+            else
+            {
+                kkt=b[x];
+                if (c[x]>1 && z==1) {mu[b[x]]=0;ok=1;}
+            }
+            c[x]=z;which[kkt]=z;
+            if (ok==1) fat[kkt]=Father(tata[kkt]);
+        }
+
+    }
+    return 0;
+}

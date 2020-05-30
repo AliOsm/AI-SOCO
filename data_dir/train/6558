@@ -1,0 +1,240 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+typedef vector<int> vi;
+typedef vector<ll> vl;
+typedef vector<pii> vii;
+typedef vector<pll> vll;
+typedef long double ld;
+
+#define all(x)  (x).begin(), (x).end()
+#define sz(x)   ( ( int ) ( ( x ).size() ) )
+#define uniquize(x)   (x).erase( unique( all(x) ), (x).end() ) 
+ 
+ll gcd(ll x, ll y ){ return y == 0 ? x : gcd(y,x%y);}
+ll powm(ll x, ll n, ll m){ ll r = 1; while(n){if(n&1) r = (r*x)%m; x = x*x%m; n/=2;} return r;}
+
+static const ld EPS  = 1.0E-9     ;
+static const ll MOD  = 1000000007 ;
+static const int N   = 100008    ;
+static const ll P = 998244353 ;
+  
+
+namespace LCA
+{
+    vll g[N];
+//    int head[N], w[N*2], nxt[N*2], dst[N*2];
+//    void add_edge(int x, int y, int wi){
+//        static int p = 0;
+//        ++p;
+//        nxt[p ] = head[x];
+//        head[x] = p;
+//        dst[p] = y;
+//        w[p] = wi;
+//        
+//        ++p;
+//        nxt[p] = head[y];
+//        head[y]  = p;
+//        dst[p] = x;
+//        w[p] = wi;
+//    }
+}
+
+
+int n, m;
+//int head[ N ] , w[ N * 2 ], nxt[ N * 2 ], dst[ N * 2 ] ;
+vll g[N];
+ll  dp[44][N];
+bool used[N] ;
+set<int> contr;
+vi  centers;
+ 
+
+void dfs(int x, int p = -1)
+{
+    used[x] = true;
+//    for(int h = head[x]; h != 0 ; h = nxt[h]){
+    for(int i = 0; i < sz(g[x]); ++i){
+        int y = g[x][i].first;  //dst[h];
+        ll  w = g[x][i].second;
+        if (used[y]){
+            if ( y != p ) {
+                contr.insert(y);
+                contr.insert(x);
+             }
+         } else {
+            //LCA::add_edge(x, y, w[h]);
+            LCA::g[x].push_back(pll(y, w));
+            LCA::g[y].push_back(pll(x, w));
+            
+            dfs(y, x);
+        }
+    }
+}
+
+void bfs(int id, int center)
+{
+    for(int i = 0; i < N; ++i){
+        dp[id][i] = (1ll << 60);
+    }
+    
+    dp[id][center] = 0;
+    priority_queue< pll > q;
+    q.push(pll(0, center));
+    
+    while(!q.empty())
+    {
+        ll v = q.top().second,  cur_d = -q.top().first;
+        
+        q.pop();
+        if (cur_d > dp[id][v])continue;
+        
+        //for(int h  = head[v]; h != 0; h = nxt[h] ) {
+        for(int i = 0; i < sz(g[v]); ++i){
+            int to  = g[v][i].first;//dst[h];
+            ll  len = g[v][i].second;//w[h];
+            
+            if (dp[id][v] + len < dp[id][to]){
+                dp[id][to] = dp[id][v] + len;
+                q.push(pll(-dp[id][to], to));
+            }
+        }
+    }
+}
+
+namespace LCA
+{
+    int tin[N] , tout[N], up[N][21];
+    ll d[N];
+    int timer;
+    
+    
+    void dfs(int v, ll h = 0, int p = 0 )
+    {
+        tin[v] = ++timer;
+        up[v][0] = p;
+        d[v] = h;
+        
+        for(int i= 1; i< 20; ++i){
+            up[v][i] = up[up[v][i-1]][i-1];
+        }
+        
+        //for(int i = ::LCA::head[v]; i != 0; i = ::LCA::nxt[i] ){
+        for(int i = 0; i < sz( ::LCA::g[v] ) ; ++i ){    
+            int to = ::LCA::g[v][i].first;//::LCA::dst[i];
+           // int wi = w[i];
+            ll w = ::LCA::g[v][i].second;
+            if (to != p )
+                dfs(to, h + w, v ) ;
+        }
+        tout[v] = ++timer;
+    }
+    
+    bool upper(int a, int b){
+        return tin[a] <= tin[b] && tout[a] >= tout[b];
+    }
+    int lca(int a, int b){
+        if (upper(a,b)) return a;
+        if (upper(b,a)) return b;
+        for(int i= 19; i>=0; --i){
+            if ( ! upper(up[a][i], b))
+                a = up[a][i];
+        }
+        return up[a][0];
+    }
+    
+    ll dist(int a, int b){
+        return d[a] + d[b] - 2 * d[lca(a,b)];
+    }
+    void init()
+    {
+        memset(d, 0, sizeof(d));
+        memset(tin,0,sizeof(tin));
+        memset(tout,0,sizeof(tout));
+        memset(up, 0, sizeof(up));
+        timer = 0;
+        
+        dfs(0);
+    }
+}
+
+
+int solve()
+{
+    int p = 0;
+    
+    scanf("%d%d",&n,&m);
+    for(int i= 1; i<= m; ++i){
+        int x, y , d;
+        scanf("%d%d%d",&x, &y, &d);
+        --x,--y;
+        
+        g[x].push_back(pll(y,d));
+        g[y].push_back(pll(x,d));
+//        ++p;
+//        nxt[p]  = head[x];
+//        head[x] = p;
+//        dst[p]  = y;
+//        w[p]    = d;
+//        
+//        ++p;
+//        nxt[p]  = head[y];
+//        head[y] = p ;
+//        dst[p] = x ;
+//        w[p]    = d ;
+    }
+    
+    dfs( 0 ) ;
+    
+    centers.assign(contr.begin(), contr.end());
+    
+    for(int i = 0; i < sz(centers); ++i){
+        bfs(i, centers[i]);
+    }
+    
+    LCA::init();
+    
+    int Q;
+    scanf("%d", &Q);
+    
+    while(Q--)
+    {
+        int x,y;
+        scanf("%d%d",&x,&y);
+        --x,--y;
+        
+        ll best = LCA::dist(x,y);
+        
+        for(int i = 0; i < sz(centers); ++i){
+            for(int j = 0; j < sz(centers); ++j){
+                best = min(best, dp[i][x] + dp[i][centers[j]] + dp[j][y]);
+                
+            }
+            best = min(best, dp[i][x] + dp[i][y]);
+        }
+        
+        printf("%lld\n", best ) ;
+    }
+    return 0;
+}
+
+int main(int argc, char * argv[])
+{
+#ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w",stdout);
+#endif 
+    
+    ::std::ios::sync_with_stdio(false);  ::std::cin.tie(0); ::std::cout.tie(0);
+    
+    int test=1;
+    //cin >> test;
+    
+    while(test--) {
+        solve();
+    }
+}

@@ -1,0 +1,217 @@
+#include "bits/stdc++.h"
+using namespace std;
+
+#define  F  first
+#define  S  second
+#define  pb push_back
+#define  mp make_pair
+typedef long long int ll;
+const int N = 2e5+5,inf = 1e9+7;
+vector<pair<int,int> >vec2[N];
+ll sum,res,SS;
+int W[N],C[N];
+pair<int,int>P[N];
+int dep[N],n,m;
+int par[N],vis[N],tbl[20][N],MN = inf,mnId;
+pair<int,int>mx[20][N];
+vector< pair<pair<int,int>,pair<int,int> > >vec;
+int _find( int x )
+{
+
+    if( par[x]==x )return x;
+    return par[x] = _find(par[x]);
+
+}
+
+void dfs( int u )
+{
+
+    for(auto x:vec2[u])
+    {
+        int v = x.F,id = x.S;
+        if( dep[v] )continue;
+        dep[v] = dep[u]+1;
+        tbl[0][v] = u;
+        mx[0][v] = mp( W[id],id );
+        dfs(v);
+    }
+
+}
+void _sparse()
+{
+
+    for(int i=1;i<20;i++)
+    {
+        for(int j=1;j<=n;j++)
+        {
+            mx[i][j] = max( mx[i-1][j],mx[i-1][tbl[i-1][j]] );
+            tbl[i][j] = tbl[i-1][tbl[i-1][j]];
+        }
+    }
+
+}
+
+pair<int,int> _lca( int u,int v )
+{
+
+    pair<int,int>res = mp(0,0);
+
+    for(int i=19;i>=0;i--)
+    {
+        if( dep[ tbl[i][u] ]>=dep[v] )
+        {
+            res = max( res,mx[i][u] );
+            u = tbl[i][u];
+        }
+    }
+    for(int i=19;i>=0;i--)
+    {
+        if( dep[ tbl[i][v] ]>=dep[u] )
+        {
+            res = max( res,mx[i][v] );
+            v = tbl[i][v];
+        }
+    }
+    for(int i=19;i>=0;i--)
+    {
+        if( tbl[i][u]==tbl[i][v] )continue;
+        res = max(res,mx[i][u]);
+        res = max(res,mx[i][v]);
+        u = tbl[i][u];
+        v = tbl[i][v];
+    }
+
+    while( u!=v )
+    {
+        res = max(res,mx[0][u]);
+        res = max(res,mx[0][v]);
+        u = tbl[0][u];
+        v = tbl[0][v];
+    }
+//
+//    res = max(res,mx[0][tbl[0][u]]);
+//    res = max(res,mx[0][tbl[0][v]]);
+
+    return res;
+
+}
+
+void _mst()
+{
+
+    int cnt = 0;
+    for(auto x:vec)
+    {
+
+        int w = x.F.F,id = x.F.S;
+        int u = x.S.F,v = x.S.S;
+        int p = _find(u),q = _find(v);
+        if( p!=q )
+        {
+
+            par[p] = q;
+            vis[id] = true;
+            cnt++;
+            sum += w;
+            if( MN>C[id] )
+            {
+                MN = C[id];
+                mnId = id;
+            }
+            vec2[u].pb( mp(v,id) );
+            vec2[v].pb( mp(u,id) );
+        }
+        if( cnt==n-1 )break;
+
+    }
+
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+
+    cin>>n>>m;
+    for(int i=1;i<=n;i++)
+        par[i] = i;
+    for(int i=1;i<=m;i++)
+        cin>>W[i];
+    for(int i=1;i<=m;i++)
+        cin>>C[i];
+
+    for(int i=1;i<=m;i++)
+    {
+        int u,v;cin>>u>>v;
+        P[i] = mp(u,v);
+        vec.pb( mp( mp(W[i],i),mp(u,v) ) );
+    }
+    cin>>SS;
+
+    sort( vec.begin(),vec.end() );
+    _mst();
+    dep[1] = 1;
+    dfs(1);
+    _sparse();
+
+    ll res = sum - SS/MN;
+
+//    cout<<res<< "\n";
+    bool ok = false;
+    int now = 0,x = 0;
+    for(int i=1;i<=m;i++)
+    {
+
+        if( vis[i] )continue;
+        pair<int,int>ret = _lca(P[i].F,P[i].S);
+
+//        cout<<ret.F<< " "<<ret.S<< "\n";
+        ll cur = ( sum-ret.F+W[i] ) - (SS/C[i]);
+//        cout<<cur<< "**\n";
+
+        if( cur<res )
+        {
+            ok = true;
+            res = cur;
+            x = ret.S;
+            now = i;
+        }
+
+    }
+
+    cout<<res<< "\n";
+
+    if( ok==0 )
+    {
+
+        for(int i=1;i<=m;i++)
+        {
+            if( vis[i]==0 )continue;
+            cout<<i<< " ";
+            if( i==mnId )cout<<W[i]-SS/C[i];
+            else cout<<W[i];
+            cout<< "\n";
+        }
+
+    }
+    else
+    {
+
+        for(int i=1;i<=m;i++)
+        {
+            if( vis[i]&&i!=x )cout<<i<< " "<<W[i]<< "\n";
+            else if( i==now )cout<<i<< " "<<W[i]-SS/C[i]<< "\n";
+        }
+
+    }
+
+
+
+
+
+
+
+    return 0;
+
+}

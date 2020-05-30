@@ -1,0 +1,146 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define lc (p<<1)
+#define rc ((p<<1)|1)
+typedef long long ll;
+int n,Q;
+const ll pw42[11]={1,42,1764,74088,3111696,130691232,5489031744,230539333248,9682651996416,406671383849472,17080198121677824};
+inline int getv(ll x)
+{
+	return lower_bound(pw42,pw42+11,x)-pw42;
+}
+class node
+{
+	public:
+		ll dis,tag;
+		int pos;
+		bool cov;
+}t[400010];
+ll vl[100010];
+inline void pushnow_add(int p,ll v)
+{
+	while(t[p].dis<v)
+	{
+		t[p].dis+=pw42[t[p].pos+1]-pw42[t[p].pos];
+		t[p].pos++;
+	}
+	t[p].dis-=v;
+	if(!t[p].cov)t[p].tag+=v;
+}
+inline void pushnow_cov(int p,ll cd,int cp)
+{
+	t[p].tag=0;
+	t[p].cov=1;
+	t[p].dis=cd;
+	t[p].pos=cp;
+}
+inline void pushdown(int p)
+{
+	if(t[p].tag)
+	{
+		pushnow_add(lc,t[p].tag);
+		pushnow_add(rc,t[p].tag);
+		t[p].tag=0;
+	}
+	if(t[p].cov)
+	{
+		pushnow_cov(lc,t[p].dis,t[p].pos);
+		pushnow_cov(rc,t[p].dis,t[p].pos);
+		t[p].cov=0;
+	}
+}
+inline void pushup(int p)
+{
+	if(t[lc].dis<=t[rc].dis)
+	{
+		t[p].dis=t[lc].dis;
+		t[p].pos=t[lc].pos;
+	}
+	else
+	{
+		t[p].dis=t[rc].dis;
+		t[p].pos=t[rc].pos;
+	}
+}
+void build(int p,int l,int r)
+{
+	t[p].cov=0;
+	if(l==r)
+	{
+		t[p].cov=1;
+		t[p].pos=getv(vl[l]);
+		t[p].dis=pw42[t[p].pos]-vl[l];
+		return;
+	}
+	int mid=(l+r)>>1;
+	build(lc,l,mid);
+	build(rc,mid+1,r);
+	pushup(p);
+}
+void modify(int p,int l,int r,int ml,int mr,ll v)
+{
+	if(ml<=l&&r<=mr)
+	{
+		if(v<=t[p].dis||t[p].cov)
+		{
+			pushnow_add(p,v);
+			return;
+		}
+	}
+	pushdown(p);
+	int mid=(l+r)>>1;
+	if(ml<=mid)modify(lc,l,mid,ml,mr,v);
+	if(mr>mid)modify(rc,mid+1,r,ml,mr,v);
+	pushup(p);
+}
+void cover(int p,int l,int r,int ml,int mr,ll d,int pos)
+{
+	if(ml<=l&&r<=mr)
+	{
+		pushnow_cov(p,d,pos);
+		return;
+	}
+	pushdown(p);
+	int mid=(l+r)>>1;
+	if(ml<=mid)cover(lc,l,mid,ml,mr,d,pos);
+	if(mr>mid)cover(rc,mid+1,r,ml,mr,d,pos);
+	pushup(p);
+}
+ll query(int p,int l,int r,int pos)
+{
+	if(l==r)return pw42[t[p].pos]-t[p].dis;
+	pushdown(p);
+	int mid=(l+r)>>1;
+	if(pos<=mid)return query(lc,l,mid,pos);
+	return query(rc,mid+1,r,pos);
+}
+int main()
+{
+	scanf("%d%d",&n,&Q);
+	for(int i=1;i<=n;i++)scanf("%lld",&vl[i]);
+	build(1,1,n);
+	while(Q--)
+	{
+		int opt,a,b,x;
+		scanf("%d",&opt);
+		if(opt==1)
+		{
+			scanf("%d",&x);
+			printf("%lld\n",query(1,1,n,x));
+		}
+		else if(opt==2)
+		{
+			scanf("%d%d%d",&a,&b,&x);
+			int p=getv(x);
+			ll d=pw42[p]-x;
+			cover(1,1,n,a,b,d,p);
+		}
+		else
+		{
+			scanf("%d%d%d",&a,&b,&x);
+			modify(1,1,n,a,b,x);
+			while(t[1].dis==0)modify(1,1,n,a,b,x);
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,134 @@
+/**
+Simple Library for String Hashing
+Uses Rolling Double Hash.
+Hash(abc........z) = a*p^n + b*p^(n-1) + ...... + z
+Cautions:
+1.  You may assign any integer values to characters.
+    Common is 'a' = 1, 'b' = 2 ..........
+    Here the ascii values of characters is used.
+    But never assign any character the value 0.
+    For example if 'a' = 0; 'abc' and 'bc' has the same hash.
+2.  Single Hashing with an unusual mod is often enough,
+    but will surely fail for good enough judge-data.
+    In order to convert to Single Hash -
+        o Delete operator overloads (optional)
+        o Replace all PLL with LL
+        o Change mp pairs to appropriate value
+Some Primes:
+1000000007, 1000000009, 1000000861, 1000099999      ( < 2^30 )
+1088888881, 1111211111, 1500000001, 1481481481      ( < 2^31 )
+2147483647 (2^31-1),
+**/
+
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define mp make_pair
+using namespace std;
+typedef long long LL;
+typedef pair<LL, LL> PLL;
+
+const PLL M=mp(1e9+7, 673);   ///Should be large primes
+const LL base=10;              ///Should be a prime larger than highest value
+const int N = 1e6+7;            ///Highest length of string
+
+ostream& operator<<(ostream& os, PLL hash) {
+    return os<<"("<<hash.ff<<", "<<hash.ss<<")";
+}
+
+PLL operator+ (PLL a, LL x)     {return mp(a.ff + x, a.ss + x);}
+PLL operator- (PLL a, LL x)     {return mp(a.ff - x, a.ss - x);}
+PLL operator* (PLL a, LL x)     {return mp(a.ff * x, a.ss * x);}
+PLL operator+ (PLL a, PLL x)    {return mp(a.ff + x.ff, a.ss + x.ss);}
+PLL operator- (PLL a, PLL x)    {return mp(a.ff - x.ff, a.ss - x.ss);}
+PLL operator* (PLL a, PLL x)    {return mp(a.ff * x.ff, a.ss * x.ss);}
+PLL operator% (PLL a, PLL m)    {return mp(a.ff % m.ff, a.ss % m.ss);}
+
+PLL power (PLL a, LL p) {
+    if (p==0)   return mp(1,1);
+    PLL ans = power(a, p/2);
+    ans = (ans * ans)%M;
+    if (p%2)    ans = (ans*a)%M;
+    return ans;
+}
+
+///Magic!!!!!!!
+PLL inverse(PLL a)  {
+    return power(a, (M.ff-1)*(M.ss-1)-1);
+}
+
+PLL pb[N];      ///powers of base mod M
+PLL invb;
+
+///Call pre before everything
+void hashPre() {
+    pb[0] = mp(1,1);
+    for (int i=1; i<N; i++)
+        pb[i] = (pb[i-1] * base)%M;
+    invb = inverse(pb[1]);
+}
+
+///Calculates Hash of a string
+PLL Hash (string s) {
+    PLL ans = mp(0,0);
+    for (int i=0; i<s.size(); i++)
+        ans=(ans*base + (s[i]-'0'))%M;
+    return ans;
+}
+
+///Calculates hashes of all prefixes of s including empty prefix
+vector<PLL> hashList(string s) {
+    int n = s.size();
+    vector<PLL> ans(n+1);
+    ans[0] = mp(0,0);
+
+    for (int i=1; i<=n; i++)
+        ans[i] = (ans[i-1] * base + (s[i-1]-'0'))%M;
+    return ans;
+}
+
+///Calculates hash of substring s[l..r] (1 indexed)
+PLL substringHash(const vector<PLL> &hashlist, int l, int r) {
+    int len = (r-l+1);
+    return ((hashlist[r] - hashlist[l-1]*pb[len])%M+M)%M;
+}
+
+vector<PLL> hs;
+int n;
+string s;
+bool pass(int L, int R){
+    //cout<<L<<" "<<R<<"\n";
+    if(L>=R)return false;
+    if( L+1!=R && s[L]=='0')return false;
+    if( L!=1 && s[0]=='0')return false;
+    auto sub1 = substringHash(hs,1,L);
+    auto sub2 = substringHash(hs,L+1,R);
+    auto sub3 = substringHash(hs,R+1,n);
+    if((sub1+sub2)%M==sub3){
+        //cout<<L<<" "<<R<<"\n";
+        for(int i=0;i<n;i++){
+            if(i==L)cout<<"+";
+            if(i==R)cout<<"=";
+            cout<<s[i];
+        }
+        return true;
+    }
+    return false;
+}
+char buffer[N];
+int main()
+{
+    hashPre();
+
+    cin>>s;
+    hs =  hashList(s);
+
+    n = s.length();
+    for(int i=1;i<=n;i++){
+        if(pass(i,n-i))break;
+        if(pass(i,n-(i+1)))break;
+        if(pass(i,i+(n-i)/2))break;
+        if(pass(i,i+(n-i)/2+1))break;
+    }
+}
+//100277221476489181970323375139380435110027722147648918197032337513938043511002772214764891819703233751393804351100277221476489181970323375139380435120055444295297836394064675027876087022005544429529783639406467502787608702

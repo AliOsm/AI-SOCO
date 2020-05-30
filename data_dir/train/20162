@@ -1,0 +1,98 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define all(v) ((v).begin()),((v).end())
+#define ll long long
+#define fastIO cout << fixed << setprecision(12), ios::sync_with_stdio(false), cin.tie(nullptr), cout.tie(nullptr)
+double const EPS = 1e-12, PI = acos(-1);
+const int N = 5e5 + 9, M = 5e3 + 9, OO = 1e9 + 7, MOD = 1e9 + 7;
+const ll inf = 1e18;
+
+int arr[N], tree[4*N];
+ll DpL[N], DpR[N];
+int kamL[N], kamR[N];
+
+void build(int node, int start, int end) {
+  if(start == end) {
+    tree[node] = arr[start];
+    return;
+  }
+  int mid = (start + end) / 2;
+  build(node * 2, start ,mid);
+  build(node * 2 + 1, mid + 1, end);
+  tree[node] = min(tree[node * 2], tree[node * 2 + 1]);
+}
+
+int queryR(int node, int start, int end, int l, int r, int val) {
+  if(start > r || end < l || tree[node] >= val)
+    return -1;
+  if(start == end)
+    return start;
+  int mid = (start + end) / 2;
+  int p1 = queryR(node * 2, start, mid, l, r, val);
+  if(p1 != -1)
+    return p1;
+  return queryR(node * 2 + 1, mid + 1, end, l, r, val);
+}
+
+int queryL(int node, int start, int end, int l, int r, int val) {
+  if(start > r || end < l || tree[node] >= val)
+    return -1;
+  if(start == end)
+    return start;
+  int mid = (start + end) / 2;
+  int p1 = queryL(node * 2 + 1, mid + 1, end, l, r, val);
+  if(p1 != -1)
+    return p1;
+  return queryL(node * 2, start, mid, l, r, val);
+}
+
+int main() {
+  fastIO;
+#ifdef LOCAL
+  freopen("input.in", "rt", stdin);
+#endif
+  int n;
+  cin >> n;
+  for (int i = 1; i <= n; ++i)
+    cin >> arr[i];
+  build(1, 1, n);
+  for (int i = 1; i <= n; ++i) {
+    int idx = queryL(1, 1, n, 1, i, arr[i]);
+    if(idx == -1)
+      DpL[i] = (ll)i * arr[i], kamL[i] = i;
+    else
+      DpL[i] = DpL[idx] + (ll)(i - idx) * arr[i], kamL[i] = (i - idx);
+  }
+  ll best = 0;
+  int ii = -1;
+  for (int i = n; i >= 1; --i) {
+    int idx = queryR(1, 1, n, i + 1, n, arr[i]);
+    if(idx == -1)
+      DpR[i] = (ll)(n - i + 1) * arr[i], kamR[i] = (n - i + 1);
+    else
+      DpR[i] = DpR[idx] + (ll)(idx - i) * arr[i], kamR[i] = (idx - i);
+    if(DpR[i] + DpL[i] - arr[i] > best)
+      best = DpR[i] + DpL[i] - arr[i], ii = i;
+  }
+  assert(best != -1);
+  cerr << best;
+  vector<int> vv;
+  int tempIdx = ii;
+  while(tempIdx >= 1) {
+    vv.push_back(tempIdx);
+    tempIdx -= kamL[tempIdx];
+  }
+  kamL[ii]--;
+  reverse(all(vv));
+  for(auto it: vv) {
+    while(kamL[it]--)
+      cout << arr[it] << ' ';
+  }
+  while(ii <= n) {
+    int temp = kamR[ii];
+    while(temp--)
+      cout << arr[ii] << ' ';
+    ii += kamR[ii];
+  }
+  return 0;
+}

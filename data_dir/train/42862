@@ -1,0 +1,143 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX_N = 200005;
+
+int n;
+vector<int> g[MAX_N];
+int initState[MAX_N];
+
+vector<int> eulerTour;
+int etSize;
+int firstPos[MAX_N];
+int lastPos[MAX_N];
+int prefCntFirst[2 * MAX_N];
+
+int tCnt[8 * MAX_N];
+int tToggle[8 * MAX_N];
+
+void dfs(int u)
+{
+	eulerTour.push_back(u);
+	for (int v : g[u])
+		dfs(v);
+	eulerTour.push_back(u);
+}
+
+int getPrefCntFirst(int l, int r)
+{
+	int resL = (l - 1) < 0 ? 0 : prefCntFirst[l - 1];
+	int resR = prefCntFirst[r];
+	return resR - resL;
+}
+
+void build(int i, int l, int r)
+{
+	if (l == r)
+	{
+		tCnt[i] = getPrefCntFirst(l, r) == 1 ? initState[eulerTour[l]] : 0;
+	}
+	else
+	{
+		int mid = (l + r) / 2;
+		build(2 * i + 1, l, mid);
+		build(2 * i + 2, mid + 1, r);
+		tCnt[i] = tCnt[2 * i + 1] + tCnt[2 * i + 2];
+	}
+}
+
+void push(int i, int l, int r)
+{
+	tToggle[i] = 0;
+	if (l == r)
+		return;
+	int mid = (l + r) / 2;
+	tToggle[2 * i + 1] = 1 - tToggle[2 * i + 1];
+	tCnt[2 * i + 1] = getPrefCntFirst(l, mid) - tCnt[2 * i + 1];
+	tToggle[2 * i + 2] = 1 - tToggle[2 * i + 2];
+	tCnt[2 * i + 2] = getPrefCntFirst(mid + 1, r) - tCnt[2 * i + 2];
+}
+
+void toggleOnRange(int i, int l, int r, int lx, int rx)
+{
+	if (tToggle[i] == 1)
+		push(i, l, r);
+	if (l == lx && r == rx)
+	{
+		tToggle[i] = 1;
+		tCnt[i] = getPrefCntFirst(l, r) - tCnt[i];
+	}
+	else
+	{
+		int mid = (l + r) / 2;
+		if (lx <= mid)
+			toggleOnRange(2 * i + 1, l, mid, lx, min(rx, mid));
+		if (rx > mid)
+			toggleOnRange(2 * i + 2, mid + 1, r, max(lx, mid + 1), rx);
+		tCnt[i] = tCnt[2 * i + 1] + tCnt[2 * i + 2];
+	}
+}
+
+int sumOnRange(int i, int l, int r, int lx, int rx)
+{
+	if (tToggle[i] == 1)
+		push(i, l, r);
+	if (l == lx && r == rx)
+		return tCnt[i];
+	else
+	{
+		int mid = (l + r) / 2;
+		int result = 0;
+		if (lx <= mid)
+			result += sumOnRange(2 * i + 1, l, mid, lx, min(rx, mid));
+		if (rx > mid)
+			result += sumOnRange(2 * i + 2, mid + 1, r, max(lx, mid + 1), rx);
+		return result;
+	}
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	int n; cin >> n;
+	for (int i = 0; i < n - 1; i++)
+	{
+		int p; cin >> p;
+		g[p - 1].push_back(i + 1);
+	}
+	for (int i = 0; i < n; i++)
+		cin >> initState[i];
+
+	eulerTour.reserve(2 * n);
+	dfs(0);
+	etSize = eulerTour.size();
+	for (int i = 0; i < n; i++)
+		firstPos[i] = -1;
+	for (int i = 0; i < etSize; i++)
+	{
+		if (i != 0)
+			prefCntFirst[i] = prefCntFirst[i - 1];
+		if (firstPos[eulerTour[i]] == -1)
+		{
+			firstPos[eulerTour[i]] = i;
+			prefCntFirst[i]++;
+		}
+		lastPos[eulerTour[i]] = i;
+	}
+	build(0, 0, etSize - 1);
+
+	int q; cin >> q;
+	for (int i = 0; i < q; i++)
+	{
+		string type; cin >> type;
+		int v; cin >> v; v--;
+		int firstPosV = firstPos[v], lastPosV = lastPos[v];
+		if (type == "pow")
+			toggleOnRange(0, 0, etSize - 1, firstPosV, lastPosV);
+		else
+			cout << sumOnRange(0, 0, etSize - 1, firstPosV, lastPosV) << endl;
+	}
+}

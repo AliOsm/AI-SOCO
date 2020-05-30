@@ -1,0 +1,136 @@
+//g++  5.4.0
+
+#include<bits/stdc++.h>
+using namespace std;
+
+#define ff first
+#define ss second
+#define int long long
+#define pb push_back
+#define pii pair< int,int >
+#define fast ios::sync_with_stdio(0) , cin.tie(0) , cout.tie(0) ;
+
+const int nax = 1e5+10;
+const int lg = 20;
+const int inf = 1e15;
+
+int p[lg][nax], dist[nax] , lev[nax], par[nax];
+vector<pii> g[nax] ,g1[nax];
+
+void dfs(int v,int f)
+{
+    p[0][v] = f;
+    for(auto &i : g[v] )
+    {
+        if( i.ff != f )
+        {
+            dist[i.ff] = dist[v] + i.ss;
+            lev[i.ff] = lev[v] + 1;
+            dfs( i.ff , v );
+        }
+    }
+    return ;
+}
+
+int lca(int u, int v)
+{
+    if( lev[v] > lev[u] ) swap( u , v) ;
+    int diff = lev[u] - lev[v];
+    for(int i=0 ; i<lg ; i++ )
+        if( (1<<i)&diff ) u = p[i][u];
+        
+    if( u == v ) return u;
+    for(int i=lg-1; i>= 0 ; i-- )
+        if( p[i][u] != p[i][v] ) u = p[i][u] , v = p[i][v];
+    return p[0][u];
+}
+    
+int fp(int v)
+{
+    if( v == par[v] ) return v;
+    return par[v] =  fp(par[v]) ;
+}
+
+signed main()
+{
+    fast;
+    int n,m;
+    cin >> n >> m;
+    set< int > s;
+    for(int i=1; i <=n ; i++ ) par[i] = i;
+    for(int i=1 ; i<=m ; i++ )
+    {
+        int u , v, w;
+        cin >> u >> v >> w;
+        int pu = fp(u);
+        int pv = fp(v);
+        
+        if( pu != pv )
+        {
+            g[u].pb({v,w});
+            g[v].pb({u,w});
+            par[ pv ] = pu; 
+        }
+        else
+            s.insert(u);
+        g1[ u ] .pb( {v,w});
+        g1[v].pb( {u,w} );
+    }
+    int cnt = 0;
+    int len = s.size();
+    int dp[len][n+1];
+    
+    
+    for(auto &i : s )
+    {
+        priority_queue< pii , vector<pii> , greater<pii >> Q;
+    
+        for(int i=1 ; i<= n ; i++ ) dp[cnt][i] = inf;
+        dp[cnt][i] = 0;
+    Q.push( {0,i} );
+        bool vis[n+1] ;
+        memset( vis , 0 ,sizeof(vis)) ;
+        
+    while( !Q.empty() )
+    {
+        pii p = Q.top();
+        Q.pop();
+        if( vis[p.ss] ) continue;
+        
+        vis[ p.ss ] = 1;
+        for(auto &i : g1[p.ss] )
+        {
+            if( !vis[i.ff] )
+            {
+                if( dp[cnt][i.ff] > p.ff + i.ss )
+                {
+                    dp[cnt][i.ff] = p.ff + i.ss;
+                    Q.push( { dp[cnt][i.ff] , i.ff } );
+                }
+            }
+        }
+    }
+        cnt++;
+    }
+    
+    dfs(1,0);
+    for(int i=1 ; i<lg ; i++ )
+        for(int j=1 ; j<=n ; j++ )
+            p[i][j] = p[i-1][p[i-1][j]];
+    int q;
+    cin >> q;
+    
+    while( q-- )
+    {
+        int u , v;
+        cin >> u >> v;
+        int mn = inf;
+        for(int i=0 ; i<cnt ; i++ ) mn = min( mn , dp[i][u] + dp[i][v] );
+        int LCA = lca(u,v);
+        mn = min( mn , dist[u] + dist[v] - 2* dist[LCA] );
+        cout << mn << "\n";
+    }
+}
+
+
+

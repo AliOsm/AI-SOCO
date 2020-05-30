@@ -1,0 +1,137 @@
+#include <stdio.h>
+#include <stack>
+#include <map>
+#include <string.h>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <math.h>
+#include <vector>
+#include <set>
+#include <queue>
+#include <climits>
+#include <unordered_map>
+using namespace std;
+#define ll long long
+#define mp make_pair
+#define inf32 INT_MAX
+#define inf64 LLONG_MAX
+//#define ld long double
+const int mod = (1e9) + 7;
+const double eps = 1e-9;
+const int siz = 5e5 + 5, siz2 = 1e5 + 5;
+int n,m, k, mn[siz], mx[siz], pref[siz], suff[siz];
+char s[siz], t[siz];
+set<int> avail[2];
+vector<int> lenind[2][siz];
+vector<int> zf(string &s) {
+	int n = s.size();
+	vector<int> z(n);
+	int l = 0, r = 0;
+	for (int i = 1; i < n; i++) {
+		if (i > r) {
+			if (s[i] != s[0]) {
+				z[i] = 0;
+			}
+			else {
+				l = i;
+				z[i] = 1;
+				while (l + z[i] < n && s[z[i]] == s[l + z[i]]) {
+					z[i]++;
+				}
+				r = l + z[i] - 1;
+
+			}
+		}
+		else {
+			int k = i - l;
+			if (z[k] < r - i + 1) {
+				z[i] = z[k];
+			}
+			else {
+				z[i] = r - i + 1;
+				l = i;
+				while (l+z[i] < n && s[z[i]]==s[l+z[i]]) {
+					z[i]++;
+				}
+				r = l + z[i] - 1;
+			}
+		}
+	}
+	return z;
+}
+int main()
+{
+	scanf("%d%d%d%s%s", &n, &m, &k, s, t);
+	string ss(s), ts(t);
+	string s1 = ts + "#" + ss;
+	reverse(ss.begin(), ss.end());
+	reverse(ts.begin(), ts.end());
+	string s2 = ts + "#" + ss;
+	vector<int> z1 = zf(s1), z2 = zf(s2);
+	int sz = z1.size();
+	for (int i = m + 1; i < sz; i++) {
+		pref[i - m - 1] = z1[i];
+		suff[n - (i - m - 1) - 1] = z2[i];
+		lenind[0][z1[i]].push_back(i-m-1);
+		lenind[1][z2[i]].push_back(n-(i-m-1)-1);
+	}
+	for (int i = 0; i < 2; i++) {
+		for (auto v : lenind[i][m]) {
+			avail[i].insert(v);
+		}
+	}
+	for (int i = m - 1; i > 0; i--) {
+		for (int j = 0; j < 2; j++) {
+			for (auto v : lenind[j][i]) {
+				avail[j].insert(v);
+			}
+		}
+		auto it0 = avail[0].lower_bound(k - i), it1 = avail[1].lower_bound(n-(k-i));
+		if (it0 != avail[0].end())
+			mn[i] = *it0;
+		else
+			mn[i] = -1;
+		if (it1 != avail[1].begin() && !avail[1].empty()) {
+			if (it1 == avail[1].end())
+				it1 = avail[1].find(*avail[1].rbegin());
+			else
+				it1--;
+			mx[i] = *it1;
+		}
+		else
+			mx[i] = -1;
+	}
+	for (int i = 1; i < m; i++) {
+		if (mn[i] == -1 || mx[m - i] == -1 || i > k || m-i > k || mn[i] + i - 1 >= mx[m-i] - (m - i) + 1)
+			continue;
+		printf("Yes\n%d %d\n", mn[i]+i-k+1, mx[m-i]-(m-i)+2);
+		return 0;
+	}
+	if (m <= k) {
+		for (int i = 0; i < n; i++) {
+			if (pref[i] == m) {
+				int l=i, r = min(n - 1, i + k - 1);
+				if (r - i + 1 < k) {
+					l -= k - (r - i + 1);
+				}
+				if (l > k) {
+					printf("Yes\n1 %d\n", l+1);
+					return 0;
+				}
+				r = i;
+				l = max(0, i - k + 1);
+				if (r - i + 1 < k) {
+					r += k - (r - i + 1);
+				}
+				if (l + 1 < n - k) {
+					printf("Yes\n%d %d\n", l+1, n-k+1);
+					return 0;
+				}
+			}
+		}
+	}
+	printf("No\n");
+	return 0;
+}

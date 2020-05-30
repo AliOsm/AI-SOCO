@@ -1,0 +1,193 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+typedef pair<int, int> ii;
+
+const int MAX = 2e5 + 5;
+constexpr int K = sqrt(MAX) + 5;
+int n, m;
+ull A, B, C;
+vector<int> adj[MAX];
+bool marked[MAX], processed[MAX], heavy[MAX];
+
+ull comb2(ull a) {
+	ull b = a - 1;
+	if(a % 2 == 0) {
+		a /= 2;
+	}
+	else {
+		b /= 2;
+	}
+	return a * b;
+}
+
+ull count0() {
+	ull total = 0;
+	fori(i, 0, n) {
+		ull less = i;
+		ull more = n - i - 1;
+
+		total += A * comb2(more) * i;
+		total += B * less * more * i;
+		total += C * comb2(less) * i;
+	}
+	return total;
+}
+
+ull count1() {
+	ull total = 0;
+	fori(i, 0, n) {
+		for(auto &each : adj[i]) {
+			if(i < each) {
+				ull less = i;
+				ull middle = each - i - 1;
+				ull more = n - each - 1;
+
+				total += less * (B * i + C * each);
+				total += A * comb2(less);
+
+				total += middle * (A * i + C * each);
+				total += B * (comb2(each) - comb2(i + 1));
+
+				total += more * (A * i + B * each);
+				total += C * (comb2(n) - comb2(n - more)); // [n - x, n - 1] 
+			}
+		}
+	}
+	return total;
+}
+
+ull count2() {
+	ull total = 0;
+	fori(i, 0, n) {
+		if((int) adj[i].size() < 2) {
+			continue;
+		}
+
+		vector<ull> pref(adj[i].size());
+
+		pref[0] = adj[i][0];
+		fori(j, 1, adj[i].size()) {
+			pref[j] = pref[j - 1] + adj[i][j];
+		}
+
+		fori(j, 0, adj[i].size()) {
+			int each = adj[i][j];
+			if(each < i) {
+				int pos = lower_bound(adj[i].begin(), adj[i].end(), i) - adj[i].begin();
+				
+				ull middle = pos - j - 1;
+				ull more = adj[i].size() - pos;
+
+				total += middle * (A * each + C * i);
+				total += B * (pref[pos - 1] - pref[j]);
+
+				total += more * (A * each + B * i);
+				total += C * (pref.back() - pref[pos - 1]);
+			}
+			else {
+				ull more = adj[i].size() - j - 1;
+
+				total += more * (A * i + B * each);
+				total += C * (pref.back() - pref[j]);
+			}
+		}
+	}
+	return total;
+}
+
+inline ull unordered_count(ull a, ull b, ull c) {
+	return A * min({a, b, c}) + B * (a + b + c - max({a, b, c}) - min({a, b, c}))  + C * max({a, b, c});
+}
+
+ull count3() {
+	ull total = 0;
+
+	vector<int> light;
+	fori(i, 0, n) {
+		if((int) adj[i].size() <= K) {
+			light.push_back(i);			
+		}
+		else {
+			heavy[i] = true;
+		}
+	}
+
+	for(auto &each : light) {
+		fori(j, 0, adj[each].size()) {
+			fori(k, j + 1, adj[each].size()) {
+				int a = adj[each][j];
+				int b = adj[each][k];
+
+				if(a > each || b > each || heavy[a] || heavy[b]) {
+					continue;
+				}
+
+				auto it = lower_bound(adj[a].begin(), adj[a].end(), b);
+
+				if(it != adj[a].end() && *it == b) {
+					total += unordered_count(a, b, each);
+				}
+			}
+		}
+	}
+
+	fori(i, 0, n) {
+		if(heavy[i]) {
+			memset(marked, false, sizeof marked);
+
+			for(auto &each : adj[i]) {
+				marked[each] = true;
+			}
+
+			fori(j, 0, n) {
+				if(processed[j] || !marked[j]) {
+					continue;
+				}
+
+				for(auto &each : adj[j]) {
+					if(processed[each] || !marked[each] || j > each) {
+						continue;
+					}
+
+					total += unordered_count(i, j, each);
+				}
+			}
+
+			processed[i] = true;
+		}
+	}
+
+	return total;
+}
+
+int main() {
+	scanf("%d %d", &n, &m);
+
+	scanf("%llu %llu %llu", &A, &B, &C);
+
+	fori(i, 0, m) {
+		int u, v;
+		scanf("%d %d", &u, &v);
+		adj[u].push_back(v);
+		adj[v].push_back(u);
+	}
+
+	fori(i, 0, n) {
+		sort(adj[i].begin(), adj[i].end());
+	}
+
+	ull ans = count0() - count1() + count2() - count3();
+
+	printf("%llu\n", ans);
+
+	return 0;
+}

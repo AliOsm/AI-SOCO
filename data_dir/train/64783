@@ -1,0 +1,129 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+ 
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<int, ii> iii;
+ 
+ll pwr(ll base, ll p, ll mod=MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+ 
+ 
+ll gcd(ll a, ll b){
+    if(b == 0)  return a;
+    return gcd(b, a%b);
+}
+
+
+const int N = 1000002;
+int n, par[20][N], depth[N], minval[20][N];
+vector<int> adj[N];
+
+
+void dfs(int v, int p, int d){
+    par[0][v] = p;
+    depth[v] = d;
+    for(auto vv : adj[v])
+        if(vv != p)
+            dfs(vv, v, d+1);
+}
+
+
+int LCA(int a, int b){
+
+    if(depth[a] < depth[b]) swap(a, b);
+    int diff = depth[a] - depth[b];
+    for(int i=0;i<20;i++)
+        if((diff >> i) & 1)
+            a = par[i][a];
+
+    if(a == b)  return a;
+    for(int i=19;i>=0;i--)
+        if(par[i][a] != par[i][b]){
+            a = par[i][a];
+            b = par[i][b];
+        }
+    if(a == b)  return a;
+    return par[0][a];
+}
+
+
+int query_up(int a, int b){
+    int diff = depth[a] - depth[b] + 1, ans = MOD;
+    for(int i=19;i>=0;i--)
+        if((1<<i) <= diff){
+            diff -= (1<<i);
+            ans = min(ans, minval[i][a]);
+            a = par[i][a];
+        }
+    return ans;
+}
+
+
+int query(int a, int b){
+    int lca = LCA(a, b);
+    return min(query_up(a, lca), query_up(b, lca));
+}
+
+int main(){
+ 
+    // ios_base::sync_with_stdio(0);
+    // cin.tie(0);
+
+    int q;
+    scanf("%d%d", &n, &q);
+    int e = n-1;
+    while(e--){
+        int a, b;
+        scanf("%d%d", &a, &b);
+        adj[a].pb(b);
+        adj[b].pb(a);
+    }
+
+    memset(par, -1, sizeof(par));
+    dfs(1, -1, 0);
+    for(int j=0;j<19;j++)
+        for(int i=1;i<=n;i++)
+            if(par[j][i] != -1)
+                par[j+1][i] = par[j][par[j][i]];
+
+    for(int i=1;i<=n;i++)
+        minval[0][i] = i;
+    for(int j=1;j<20;j++)
+        for(int i=1;i<=n;i++)
+            if(depth[i]+1 >= (1<<j))
+                minval[j][i] = min(minval[j-1][i], minval[j-1][par[j-1][i]]);
+
+// q=1;
+    int black_lca = -1, black_val = MOD, last = 0;
+    while(q--){
+
+        int op, v;
+        scanf("%d%d", &op, &v);
+        v = (v + last) % n + 1;
+        if(op == 1){
+            if(black_lca == -1) black_lca = black_val = v;
+            else{
+                black_val = min(black_val, query(black_lca, v));
+                black_lca = LCA(black_lca, v);
+            }
+        }
+        else{
+            last = min(black_val, query(v, black_lca));
+            printf("%d\n", last);
+        }
+    }
+
+    return 0;
+}
+
+
+

@@ -1,0 +1,130 @@
+#include<bits/stdc++.h>
+#define fast ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define pb push_back
+#define all(a) a.begin(),a.end()
+#define ld long double
+#define pii pair<int,int>
+using namespace std;
+const int N = 1e6+1;
+const int K = 21;
+int a[N];
+long long int cnt_max[N];
+long long int cnt_min[N];
+int last[N];
+int logg[N];
+int st[N][K][2];
+void build(int n){
+    logg[1] = 0;
+    for (int i = 2; i <= n; i++)
+        logg[i] = logg[i/2] + 1;
+    for (int i = 0; i <n; i++){
+        st[i][0][0] = a[i];
+        st[i][0][1] = a[i];
+    }
+    for (int j = 1; j < K; j++)
+        for (int i = 0; i + (1 << j) <=n; i++){
+            st[i][j][0] = min(st[i][j-1][0], st[i + (1 << (j - 1))][j - 1][0]);
+            st[i][j][1] = max(st[i][j-1][1], st[i + (1 << (j - 1))][j - 1][1]);
+        }
+}
+int query(int L,int R,int flag){
+    int j = logg[R - L + 1];
+    if(!flag)
+        return min(st[L][j][flag], st[R - (1 << j) + 1][j][flag]);
+    return max(st[L][j][flag], st[R - (1 << j) + 1][j][flag]);
+}
+int main(){
+    fast;
+    int n;
+    cin>>n;
+    for(int i = 0;i<n;i++)
+        cin>>a[i];
+    build(n);
+    memset(last,-1,sizeof(last));
+    for(int i = 0;i<n;i++){
+        //finding range in which it is max
+        int low = 0;
+        int high = i;
+        int l = i;
+        while(low<=high){
+            int mid = (low + high)/2;
+            int q = query(mid,i,1);
+            if(q>a[i]){
+                low = mid+1;
+            }
+            else{
+                l = mid;
+                high = mid-1;
+            }
+        }
+        low = i;
+        high = n-1;
+        int r = i;
+        while(low<=high){
+            int mid = (low + high)/2;
+            int q = query(i,mid,1);
+            if(q>a[i]){
+                high = mid-1;
+            }
+            else{
+                r = mid;
+                low = mid+1;
+            }
+        }
+        l = max(l,last[a[i]]+1);
+        long long len = r - l + (int)1;
+        long long total = (len * (len + (int)1))/(int)2;
+        long long leftsub = i-l;
+        leftsub = (leftsub*(leftsub+(int)1))/(int)2;
+        long long rightsub = r-i;
+        rightsub = (rightsub*(rightsub+(int)1))/(int)2;
+        total-=(leftsub+rightsub);
+        cnt_max[i] = total;
+        //finding range in which it is min
+        low = 0;
+        high = i;
+        l = i;
+        while(low<=high){
+            int mid = (low + high)/2;
+            int q = query(mid,i,0);
+            if(q<a[i]){
+                low = mid+1;
+            }
+            else{
+                l = mid;
+                high = mid-1;
+            }
+        }
+        low = i;
+        high = n-1;
+        r = i;
+        while(low<=high){
+            int mid = (low + high)/2;
+            int q = query(i,mid,0);
+            if(q<a[i]){
+                high = mid-1;
+            }
+            else{
+                r = mid;
+                low = mid+1;
+            }
+        }
+        //cout<<l<<" "<<r<<endl;
+        l = max(l,last[a[i]]+1);
+        len = r - l + (int)1;
+        total = (len * (len + (int)1))/(int)2;
+        leftsub = i-l;
+        leftsub = (leftsub*(leftsub+(int)1))/(int)2;
+        rightsub = r-i;
+        rightsub = (rightsub*(rightsub+(int)1))/(int)2;
+        total-=(leftsub+rightsub);
+        cnt_min[i] = total;
+        last[a[i]] = i;
+    }
+    long long ans = 0;
+    for(int i = 0;i<n;i++){
+        //cout<<cnt_max[i]<<" "<<cnt_min[i]<<endl;
+        ans+=(a[i]*(cnt_max[i]-cnt_min[i]));
+    }
+    cout<<ans;
+}

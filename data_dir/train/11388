@@ -1,0 +1,136 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+const int INF = (int)1e9 + 1;
+const ld EPS = 1e-9;
+
+const int maxn = (int)3e5 + 10;
+int a[maxn], inv[maxn];
+
+struct FenvTree {
+  int a[maxn];
+  int n;
+
+  FenvTree(int _n) : n(_n) {
+    for (int i = 0; i < n; ++i)
+      a[i] = 0;
+  }
+
+  void add(int pos, int toadd) {
+    for (int x = pos; x < n; x |= (x + 1))
+      a[x] += toadd;
+  }
+
+  int get(int pos) const {
+    int res = 0;
+    for (int x = pos; x >= 0; x = (x & (x + 1)) - 1)
+      res += a[x];
+    return res;
+  }
+};
+
+int n;
+void make(int pos, int nval, FenvTree &tree) {
+  if (pos < n - 1)
+    tree.add(pos, (int)(nval > inv[pos + 1]) - (int)(inv[pos] > inv[pos + 1]));
+  if (pos > 0)
+    tree.add(pos - 1, (int)(inv[pos - 1] > nval) - (int)(inv[pos - 1] > inv[pos]));
+  inv[pos] = nval;
+}
+
+bool solve() {
+  if (scanf("%d", &n) < 1)
+    return 0;
+  for (int i = 0; i < n; ++i) {
+    scanf("%d", &a[i]);
+    --a[i];
+    inv[a[i]] = i;
+  }
+  int q;
+  assert(scanf("%d", &q) == 1);
+
+  FenvTree tree(n - 1);
+  for (int i = 0; i < n; ++i)
+    tree.add(i, (int)(inv[i] > inv[i + 1]));
+
+  for (int iter = 0; iter < q; ++iter) {
+    //for (int i = 0; i < n; ++i)
+    //  eprintf("%d%c", inv[i], " \n"[i == n - 1]);
+    int p, x, y;
+    scanf("%d%d%d", &p, &x, &y);
+    --x, --y;
+    if (p == 1) {
+      //eprintf("? [%d..%d]\n", x, y);
+      int res = 1 + tree.get(y - 1) - tree.get(x - 1);
+      printf("%d\n", res);
+      continue;
+    }
+    if (p == 2) {
+      //eprintf("swap %d, %d\n", a[x], a[y]);
+      int p1 = a[x], p2 = a[y];
+      make(p1, y, tree);
+      make(p2, x, tree);
+      swap(a[x], a[y]);
+      continue;
+    }
+    assert(0);
+  }
+  return 1;
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".in", "r", stdin);
+  freopen(TASKNAME".out", "w", stdout);
+#endif
+
+  while (1) {
+    if (!solve())
+      break;
+#ifdef DEBUG
+    eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

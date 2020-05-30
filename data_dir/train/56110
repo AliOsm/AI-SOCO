@@ -1,0 +1,154 @@
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include <bits/stdc++.h>
+
+#define fi first
+#define se second
+#define pb push_back
+#define mp make_pair
+#define foreach(it, v) for(auto it=(v).begin(); it != (v).end(); ++it)
+
+#define _ ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL);
+#define __ freopen("input.txt","r",stdin);freopen("output.txt","w",stdout);
+
+#define tr(...) cout<<__FUNCTION__<<' '<<__LINE__<<" = ";trace(#__VA_ARGS__, __VA_ARGS__)
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int,int> pii;
+
+template<typename S, typename T> 
+ostream& operator<<(ostream& out,pair<S,T> const& p){out<<'('<<p.fi<<", "<<p.se<<')';return out;}
+
+template<typename T>
+ostream& operator<<(ostream& out,vector<T> const& v){
+int l=v.size();for(int i=0;i<l-1;i++)out<<v[i]<<' ';if(l>0)out<<v[l-1];return out;}
+
+template<typename T>
+void trace(const char* name, T&& arg1){cout<<name<<" : "<<arg1<<endl;}
+
+template<typename T, typename... Args>
+void trace(const char* names, T&& arg1, Args&&... args){
+const char* comma = strchr(names + 1, ',');cout.write(names, comma-names)<<" : "<<arg1<<" | ";trace(comma+1,args...);}
+
+const int N = 200100;
+
+int tme;
+int vtime[N];
+
+bool type[N];
+ll dp[N];
+ll g[N];
+
+int u[N], v[N];
+
+ll w[N], s[N];
+ll sum1[N], sum2[N];
+
+vector<pii> gr[N];
+
+void dfs(int x, int prev){
+  vtime[x] = ++tme;
+  
+  if(gr[x].empty()){
+    return;
+  }
+  
+  for(pii p : gr[x]){
+    int y = p.fi, id = p.se;
+    if(y == prev) continue;
+    
+    dfs(y, x);
+    
+    for(pii e : gr[y]){
+      if(e.fi == x) continue;
+      
+      int nid = e.se;
+      sum1[id] += dp[nid];
+      sum2[id] += g[nid];
+    }
+    
+    if(sum1[id] <= s[id]){
+      dp[id] = sum1[id] + w[id];
+      type[id] = true;
+    }
+    else if(sum2[id] > s[id]){
+      cout << -1 << endl;
+      exit(0);
+    }
+    else{
+      dp[id] = w[id] + s[id];
+      type[id] = false;
+    }
+    
+    g[id] = sum2[id] + (w[id] - min(w[id] - 1, s[id] - sum2[id]));
+  }
+}
+
+ll recover(int x, int prev, ll W){
+  if(gr[x].empty()) return 0;
+  
+  ll mintot = 0;
+  
+  for(pii p : gr[x]){
+    if(p.fi == prev) continue;
+    mintot += g[p.se];
+  }
+  
+  ll oldW = W;
+  
+  for(pii p : gr[x]){
+    int y = p.fi, id = p.se;
+    if(y == prev) continue;
+    
+    mintot -= g[id];
+    ll ub = W - mintot;
+    
+    // recover w - lb - something
+    ll new_weight_ub  = ub - sum2[id];
+    if(w[id] <= new_weight_ub){
+      W -= w[id];
+      W -= recover(y, x, min(ub - w[id], s[id]));
+    }
+    else{
+      ll del = w[id] - new_weight_ub;
+      w[id] -= del;
+      s[id] -= del;
+      
+      W -= w[id];
+      W -= recover(y, x, min(ub - w[id], s[id]));
+    }
+  }
+  
+  return oldW - W;
+}
+
+int main(){ _
+  int n;
+  cin >> n;
+  
+  for(int i = 1; i < n; i++){
+    cin >> u[i] >> v[i] >> w[i] >> s[i];
+    int x = u[i], y = v[i];
+    gr[x].pb(mp(y,i));
+    gr[y].pb(mp(x,i));
+  } 
+ 
+  dfs(1, -1);
+  
+  ll tot = 0;
+  for(pii p : gr[1]) tot += dp[p.se];
+  
+  assert(recover(1, -1, tot) == tot);
+  
+  cout << n << endl;
+  for(int i = 1; i < n; i++){
+    if(vtime[u[i]] > vtime[v[i]]) swap(u[i], v[i]);
+    cout << u[i] << ' ' << v[i] << ' ' << w[i] << ' ' << s[i] << '\n';
+  }
+  
+  return 0;
+}

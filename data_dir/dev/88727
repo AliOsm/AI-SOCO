@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for(int i = x; i < (int)(n); ++i)
+
+int const md = 998244353, R = 810127274, RI = 447056889, P2 = 1 << 23;
+map<int, int> pwmp;
+
+inline int pw(int a, int p){
+	int an = 1;
+	while (p){
+		if (p & 1)an = (ll)an * a % md;
+		a = (ll)a * a % md;
+		p >>= 1;
+	}
+	return an;
+}
+
+inline int inv(int x) { auto it = pwmp.find(x); if (it != pwmp.end())return it->second; return pwmp[x] = pw(x, md - 2); }
+inline void ad(int &x, int y) { if ((x += y) >= md)x -= md; }
+
+void ntt(vector<int> &v, bool inv = false){
+	int n = v.size(), j = 0;
+	f(i, 1, n){
+		int z = n >> 1;
+		while (j & z)j ^= z, z >>= 1;
+		j ^= z;
+		if (i < j)swap(v[i], v[j]);
+	}
+	for (int m = 1; m < n; m <<= 1){
+		int s = inv ? RI : R;
+		for (int i = m << 1; i < P2; i <<= 1)s = (ll)s * s % md;
+		for (int i = 0; i < n; i += m << 1){
+			int w = 1;
+			f(k, 0, m){
+				int a = v[i + k], b = (ll)w * v[i + k + m] % md;
+				v[i + k] = a + b >= md ? a + b - md : a + b;
+				v[i + k + m] = a - b < 0 ? a - b + md : a - b;
+				w = (ll)w * s % md;
+			}
+		}
+	}
+	if (inv){
+		int t = pw(n, md - 2);
+		f(i, 0, n)v[i] = (ll)v[i] * t % md;
+	}
+}
+
+vector<int> ml(vector<int> const &a, vector<int> const &b){
+	vector<int> v1(a.begin(), a.end()), v2(b.begin(), b.end());
+	int mxn = max(a.size(), b.size()), n = 1;
+	while (n < mxn)n <<= 1;
+	n <<= 1;
+	v1.resize(n), v2.resize(n);
+	ntt(v1), ntt(v2);
+	f(i, 0, n)v1[i] = (ll)v1[i] * v2[i] % md;
+	ntt(v1, true);
+	v1.resize(a.size() + b.size() - 1);
+	return v1;
+}
+
+int const N = 200000, M = 3000;
+int tp[N], w[N], dp[M + 1][M + 1], n, m, fc[M + 1], in[M + 1], fcin[M + 1], tmp[M + 1];
+
+void go(vector<pair<int, int> > const &v, int sm, int d, vector<int> const &dp){
+	vector<int> x(m + 1), y(m + 1);
+	x[0] = 1;
+	f(j, 1, m + 1)x[j] = (ll)x[j - 1] * (1 + d * (j - 1)) % md;
+	f(j, 0, m + 1)x[j] = (ll)x[j] * j % md * fcin[j] % md;
+	y[0] = 1;
+	f(j, 1, m + 1)y[j] = (ll)y[j - 1] * (sm - 1 + d * (j - 1)) % md;
+	f(j, 1, m + 1)y[j] = (ll)y[j] * fcin[j] % md;
+	vector<int> an = ml(x, y);
+	int t = 0;
+	f(j, 0, m + 1)ad(t, (ll)an[j] * fc[j] % md * dp[j] % md * tmp[j] % md * (d + md) % md);
+	f(i, 0, v.size())ad(w[v[i].second], (ll)t * v[i].first % md);
+}
+
+int main(){
+	scanf("%d%d", &n, &m);
+	fc[0] = 1;
+	f(i, 1, m + 1)fc[i] = (ll)fc[i - 1] * i % md;
+	in[1] = 1;
+	f(i, 2, m + 1)in[i] = md - md / i * (ll)in[md % i] % md;
+	fcin[0] = 1;
+	f(i, 1, m + 1)fcin[i] = (ll)fcin[i - 1] * in[i] % md;
+	f(i, 0, n)scanf("%d", tp + i);
+	f(i, 0, n)scanf("%d", w + i);
+	vector<pair<int, int> > a, b;
+	int sa = 0, sb = 0;
+	f(i, 0, n)if (tp[i])b.push_back(make_pair(w[i], i)), sb += w[i];
+	else a.push_back(make_pair(w[i], i)), sa += w[i];
+	dp[0][0] = 1;
+	f(i, 0, m + 1)f(j, 0, m + 1){
+		if (i < m)ad(dp[i + 1][j], (ll)(sa - i) * dp[i][j] % md * inv(sa - i + sb + j) % md);
+		if (j < m)ad(dp[i][j + 1], (ll)(sb + j) * dp[i][j] % md * inv(sa - i + sb + j) % md);
+	}
+	vector<int> da(m + 1), db(m + 1);
+	f(i, 0, m + 1)da[i] = dp[i][m - i];
+	f(i, 0, m + 1)db[i] = dp[m - i][i];
+	tmp[0] = 1;
+	f(j, 1, m + 1)tmp[j] = (ll)tmp[j - 1] * inv(sa - j + 1) % md;
+	go(a, sa, -1, da);
+	f(j, 1, m + 1)tmp[j] = (ll)tmp[j - 1] * inv(sb + j - 1) % md;
+	go(b, sb, 1, db);
+	f(i, 0, n)printf("%d\n", w[i]);
+}

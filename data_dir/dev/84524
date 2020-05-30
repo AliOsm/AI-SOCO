@@ -1,0 +1,199 @@
+#include <iostream>
+#include <algorithm>
+#include <time.h>
+#include <stack>
+#include <string>
+#include <cstring>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <queue>
+#include <map>
+#include <set>
+#include <cassert>
+
+using namespace std;
+
+const int N = 200005;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 998244353;
+
+int D1[N] , D2[N];
+
+struct Query{
+    int a,b,val;
+};
+
+vector < Query > G[N];
+
+int n,m;
+int p[N];
+vector <int> g[N];
+
+int tin[N] , tout[N] , timer = 0;
+int dp[N][22];
+
+int order[N];
+bool heavy[N];
+
+void dfs(int v){
+    order[v] = 1;
+    tin[v] = timer++;
+    dp[v][0] = p[v];
+    for(int i=1;i<=20;i++) dp[v][i] = dp[dp[v][i-1]][i-1];
+    for(int i=0;i<(int)g[v].size();i++){
+        int to = g[v][i];
+        dfs(to);
+        order[v] += order[to];
+    }
+    int S = order[v] / 2 + order[v] % 2;
+    for(int i=0;i<(int)g[v].size();i++){
+        int to = g[v][i];
+        if(order[to] >= S) heavy[to] = true;
+    }
+    tout[v] = timer++;
+}
+
+bool check(int a,int b){
+    return (tin[a] <= tin[b] && tout[a] >= tout[b]);
+}
+
+int lca(int a,int b){
+    if(check(a , b))return a;
+    if(check(b , a))return b;
+    for(int i=20;i>=0;i--){
+        if(check(dp[a][i] , b) == false){
+            a = dp[a][i];
+        }
+    }
+    return p[a];
+}
+
+int lca1(int a,int b){
+    for(int i=20;i>=0;i--){
+        if(check(dp[a][i] , b) == false){
+            a = dp[a][i];
+        }
+    }
+    return a;
+}
+
+int hamar[N] , ina[N] , inb[N] , xumb[N] , verj[N];
+int T[4 * N];
+
+void build(int v,int s,int e){
+    T[v] = 0;
+    if(s == e)return ;
+    int m = (s + e) / 2;
+    build(2*v , s , m);
+    build(2*v+1 , m+1 , e);
+}
+
+void update(int v,int s,int e,int pos,int delta){
+    if(s == e){
+        T[v] = delta;
+        return ;
+    }
+    int m = (s + e) / 2;
+    if(pos <= m)
+        update(2*v , s , m , pos , delta);
+    else
+        update(2*v+1 , m+1 , e , pos , delta);
+    T[v] = T[2*v] + T[2*v+1];
+}
+
+int get(int v,int s,int e,int l,int r){
+    if(l > r)return 0;
+    if(s == l && e == r)return T[v];
+    int m = (s + e) / 2;
+    return get(2*v , s , m , l , min(r , m)) + get(2*v+1 , m+1 , e , max(m+1 , l) , r);
+}
+
+int calc(int nn,int l,int r){
+    int c1 = xumb[l] , c2 = xumb[r];
+    int answ = 0;
+    while(c1 != c2){
+        answ += get(1 , 1 , nn , hamar[l] , inb[c1]);
+        l = p[verj[c1]];
+        c1 = xumb[l];
+    }
+    answ += get(1 , 1 , nn , hamar[l] , hamar[r]);
+    return answ;
+}
+
+int build_heavy_light(){
+    vector <int> vertex;
+    for(int i=1;i<=n;i++){
+        bool flag = false;
+        for(int j=0;j<(int)g[i].size();j++){
+            int v = g[i][j];
+            if(heavy[v]){
+                flag = true;
+                break;
+            }
+        }
+        if(!flag)vertex.push_back(i);
+    }
+    int timer = 1 , group = 0;
+    for(int i=0;i<(int)vertex.size();i++){
+        int gag = vertex[i];
+        xumb[gag] = ++group;
+        ina[group] = timer;
+        while(heavy[gag]){
+            xumb[gag] = group;
+            hamar[gag] = timer++;
+            gag = p[gag];
+        }
+        verj[group] = gag;
+        inb[group] = timer;
+        xumb[gag] = group;
+        hamar[gag] = timer++;
+    }
+    build(1 , 1 , timer - 1);
+    return timer - 1;
+}
+
+void solve(int v,int sz){
+    for(int i=0;i<(int)g[v].size();i++){
+        int to = g[v][i];
+        solve(to , sz);
+        D2[v] += D1[to];
+        D1[v] += D1[to];
+    }
+    for(int i=0;i<(int)G[v].size();i++){
+        int a = G[v][i].a;
+        int b = G[v][i].b;
+        int c = G[v][i].val;
+        int sum = 0;
+        if(a != v){
+            int pp = lca1(a , v);
+            sum += calc(sz , a , pp);
+        }
+        if(b != v){
+            int pp = lca1(b , v);
+            sum += calc(sz , b , pp);
+        }
+        D1[v] = max(D1[v] , D2[v] + c + sum);
+    }
+    update(1 , 1 , sz , hamar[v] , D2[v] - D1[v]);
+}
+
+int main(){
+    scanf("%d%d",&n,&m);
+    for(int i=2;i<=n;i++){
+        scanf("%d",&p[i]);
+        g[p[i]].push_back(i);
+    }
+    p[1] = 1;
+    dfs(1);
+    for(int i=1;i<=m;i++){
+        int a,b,c;
+        scanf("%d%d%d",&a,&b,&c);
+        int pp = lca(a , b);
+        G[pp].push_back({a , b , c});
+    }
+    int nsz = build_heavy_light();
+    solve(1 , nsz);
+    cout<<D1[1]<<endl;
+    return 0;
+}

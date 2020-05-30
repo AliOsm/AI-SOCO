@@ -1,0 +1,174 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 1e3 + 1;
+const ll M = 1e5 + 1;
+ll n, m, s, t, x, y;
+ll bad;
+ll ans;
+ll wgt[M];
+
+vec <ll> path;
+
+struct Edge {
+    ll v, w, i;
+};
+
+struct Graph {
+    ll par[N];
+    ll wgt[N];
+    ll hgt[N];
+    ll ind[N];
+    ll low[N];
+    bool vis[N];
+    vec <Edge> adj[N];
+} graph;
+
+void input() {
+    cin >> n >> m;
+    cin >> s >> t;
+    for(ll i = 1; i <= m; ++i) {
+        ll u; cin >> u;
+        ll v; cin >> v;
+        ll w; cin >> w;
+        graph.adj[u].pb({v, w, i});
+        graph.adj[v].pb({u, w, i});
+        wgt[i] = w;
+    }
+}
+
+ll dfs(ll u) {
+    graph.vis[u] = 1;
+    graph.low[u] = graph.hgt[u];
+    for(Edge e: graph.adj[u]) {
+        ll v = e.v;
+        ll w = e.w;
+        ll i = e.i;
+        if(bad == i) {
+            continue;
+        }
+        if(graph.vis[v]) {
+            if(graph.ind[u] != i) {
+                graph.low[u] = min(graph.low[u], graph.hgt[v]);
+            }
+            continue;
+        }
+        graph.par[v] = u;
+        graph.ind[v] = i;
+        graph.wgt[v] = w;
+        graph.hgt[v] =
+        graph.hgt[u] + 1;
+        graph.low[u] = min(graph.low[u], dfs(v));
+    }
+    return graph.low[u];
+}
+
+void get_path() {
+    dfs(s);
+    ll u = t;
+    if(!graph.vis[u]) {
+        return;
+    }
+    while(u != s) {
+        path.pb(graph.ind[u]);
+        u = graph.par[u];
+    }
+}
+
+pii calc() {
+    fill(graph.vis, graph.vis + N, 0);
+    dfs(s);
+    pii res = {inf, inf};
+    ll u = t;
+    ll h = graph.low[t];
+    if(!graph.vis[u]) {
+        return {0, 0};
+    }
+    while(u != s) {
+        for(Edge e: graph.adj[u]) {
+            ll v = e.v;
+            ll w = e.w;
+            ll i = e.i;
+            if(bad == i) {
+                continue;
+            }
+            if(i == graph.ind[u]) {
+                continue;
+            }
+            h = min(h, graph.low[v]);
+        }
+        if(h >= graph.hgt[u]) {
+            res = min(res, {graph.wgt[u], graph.ind[u]});
+        }
+        u = graph.par[u];
+    }
+    return res;
+}
+
+void solve() {
+    get_path();
+    pii res = calc();
+    x = res.yy;
+    ans = res.xx;
+    for(ll i: path) {
+        bad = i;
+        pii res = calc();
+        if(ans > res.xx + wgt[i]) {
+            ans = res.xx + wgt[i];
+            y = res.yy;
+            x = i;
+        }
+    }
+    if(ans == inf) {
+        cout << "-1\n";
+        return;
+    }
+    cout << ans << "\n";
+    cout << !!x + !!y << "\n";
+    if(x) cout << x << " ";
+    if(y) cout << y << " ";
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

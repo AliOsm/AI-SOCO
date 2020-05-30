@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int N = 2e5 + 100;
+
+pair<int,int> dolls[N];
+pair<long long,long long> dp[N];
+long long inf = 1e18;
+int tree[4*N];
+
+void upd (int cn , int b , int e , int i, int add) {
+    if (b > i or e < i) {
+        return ;
+    }
+    int lc = 2*cn , rc = lc + 1 , mid = (b+e)/2 ;
+    if (b >= i and e <= i) {
+        tree[cn] = add;
+        return ;
+    }
+    upd(lc,b,mid,i,add) ;
+    upd(rc,mid+1,e,i,add) ;
+    tree[cn] = max(tree[lc],tree[rc]) ;
+}
+
+int query (int cn , int b , int e , int i ,int j) {
+    if (b > j or e < i) return 0;
+    if (b >= i and e <= j) {
+        return tree[cn] ;
+    }
+    int lc = 2*cn , rc = lc + 1 , mid = (b+e)/2 ;
+    return max(query(lc,b,mid,i,j),query(rc,mid+1,e,i,j)) ;
+}
+
+
+pair<long long,long long> tr[4*N];
+long long mod = 1e9 + 7;
+
+void upd_dp (int cn , int b , int e , int i, pair<long long,long long> t) {
+    if (b > i or e < i) {
+        return ;
+    }
+    int lc = 2*cn , rc = lc + 1 , mid = (b+e)/2 ;
+    if (b >= i and e <= i) {
+        tr[cn] = t;
+        return ;
+    }
+    upd_dp(lc,b,mid,i,t) ;
+    upd_dp(rc,mid+1,e,i,t) ;
+    if(tr[lc].first == tr[rc].first) {
+        tr[cn] = make_pair(tr[lc].first, (tr[lc].second + tr[rc].second)%mod);
+    }
+    else {
+        tr[cn] = min(tr[lc], tr[rc]);
+    }
+}
+
+pair<long long,long long> query_dp (int cn , int b , int e , int i ,int j) {
+    if (b > j or e < i) return make_pair(inf, 0);
+    if (b >= i and e <= j) {
+        return tr[cn];
+    }
+    int lc = 2*cn , rc = lc + 1 , mid = (b+e)/2 ;
+    pair<long long,long long> t1 = query_dp(lc, b,mid,i,j), t2 = query_dp(rc,mid+1,e,i,j);
+    if(t1.first == t2.first) {
+        return make_pair(t1.first, (t1.second + t2.second)%mod);
+    }
+    else {
+        return min(t1, t2);
+    }
+}
+
+
+
+
+int main() {
+
+    // freopen("in.txt", "r", stdin);
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    int n;
+    cin >> n;
+    for(int i = 1; i <= n; i++) {
+        cin >> dolls[i].second >> dolls[i].first;
+    }
+    sort(dolls+1, dolls+n+1);
+    reverse(dolls+1, dolls+n+1);
+
+    for(int i = 0; i < N; i++) {
+        tr[i] = make_pair(inf,0);
+    }
+
+    for(int i = 1; i <= n; i++) {
+        int outi = dolls[i].second;
+        if(dolls[1].first < outi) {
+            dp[i] = make_pair(dolls[i].first, 1);
+        }
+        else {
+            int lo = 1, hi = i-1;
+            while(hi > lo) {
+                int mid = (hi+lo+1)/2;
+                if(dolls[mid].first >= outi) {
+                    lo = mid;
+                }
+                else {
+                    hi = mid-1;
+                }
+            }
+            int R = lo;
+            int L = query(1,1,n,1,R)+1;
+            upd(1,1,n,i,R);
+            if(L > R) {
+                dp[i] = make_pair(dolls[i].first, 1);
+            }
+            else {
+                dp[i] = query_dp(1,1,n,L,R);
+                dp[i].first += dolls[i].first-dolls[i].second;
+            }
+        }
+        upd_dp(1,1,n,i,dp[i]);
+//        cout << dp[i].first << " :: " << dp[i].second << endl;
+    }
+
+    int mx = query(1,1,n,1,n);
+    long long ans = 0, min_space = inf;
+    for(int i = mx+1; i <= n; i++) {
+        if(dp[i].first < min_space) {
+            ans = dp[i].second;
+            min_space = dp[i].first;
+        }
+        else if(min_space == dp[i].first) {
+            ans += dp[i].second;
+            ans %= mod;
+        }
+    }
+    ans %= mod;
+    ans += mod;
+    ans %= mod;
+    cout << ans << endl;
+    return 0;
+}

@@ -1,0 +1,106 @@
+#include <cstdio>
+#include <cstring>
+
+typedef long long lld;
+
+struct Edge {
+	int u, v, next;
+} edge[200225];
+
+int n, en, tm[2], ans, head[100005], goal[100005], init[100005], birth[100005], death[100005], which[100005];
+bool picked[100005];
+
+lld tree[2][2][200225];
+
+void updp(int tid, int p, lld x, bool id) {
+	for (int i = p; i < 200225; i += i & -i)
+		tree[tid][id][i] += x;
+}
+
+lld qryp(int tid, int p, bool id) {
+	lld res = 0ll;
+	for (int i = p; i; i -= i & -i)
+		res += tree[tid][id][i];
+	return res;
+}
+
+void upd(int tid, int s, int t, lld x) {
+	updp(tid, s, x, 0);
+	updp(tid, t + 1, -x, 0);
+	updp(tid, s, s * x, 1);
+	updp(tid, t + 1, -x * (t + 1), 1);
+}
+
+lld qry(int tid, int p) {
+	return (p + 1) * qryp(tid, p, 0) - qryp(tid, p, 1);
+}
+
+void add_edge(int u, int v) {
+	edge[en].u = u;
+	edge[en].v = v;
+	edge[en].next = head[u];
+	head[u] = en++;
+}
+
+void DFSp(int u, int p, int lv) {
+	which[u] = lv;
+	birth[u] = tm[lv]++;
+	for (int id = head[u]; id != -1; id = edge[id].next) {
+		int v = edge[id].v;
+		if (v != p)
+			DFSp(v, u, lv ^ 1);
+	}
+	death[u] = tm[lv]++;
+}
+
+void DFS(int u, int p) {
+	int b = birth[u];
+	int d = death[u];
+	int tid = which[u];
+	lld extra = qry(tid, b) - qry(tid, b - 1);
+	int bit = extra & 1 ^ init[u];
+
+	if (bit != goal[u]) {
+		picked[u] = 1;
+		ans++;
+		upd(tid, b, d, 1);
+	}
+	for (int id = head[u]; id != -1; id = edge[id].next) {
+		int v = edge[id].v;
+		if (v != p)
+			DFS(v, u);
+	}
+}
+
+int main(int argc, char* argv[]) {
+	int n, u, v;
+
+	tm[0] = tm[1] = 1;
+	en = 0;
+	ans = 0;
+	memset(head, 0xff, sizeof head);
+	memset(tree, 0, sizeof tree);
+	memset(picked, 0, sizeof picked);
+
+	scanf("%d", &n);
+	for (int i = 1; i < n; i++) {
+		scanf("%d%d", &u, &v);
+		add_edge(u, v);
+		add_edge(v, u);
+	}
+
+	for (int i = 1; i <= n; i++)
+		scanf("%d", &init[i]);
+	for (int i = 1; i <= n; i++)
+		scanf("%d", &goal[i]);
+
+	DFSp(1, -1, 0);
+	DFS(1, -1);
+
+	printf("%d\n", ans);
+	for (int i = 1; i <= n; i++)
+		if (picked[i])
+			printf("%d\n", i);
+
+	return 0;
+}

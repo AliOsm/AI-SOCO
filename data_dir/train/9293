@@ -1,0 +1,137 @@
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <map>
+#include <queue>
+#include <stack>
+#include <deque>
+
+#define F first
+#define S second
+#define eps 1e-8
+#define pb push_back
+#define ppb pop_back
+#define mp make_pair
+#define lb lower_bound
+#define ub upper_bound
+
+typedef unsigned long long ll;
+
+using namespace std;
+ll n, m, s, t, ans[111111], to, len, a[111111], b[111111], l[111111], can[111111];
+ll INF = 1233123456789ll, mod = 1000000009, Mod = 1000000007;
+pair<ll, ll> w[111111], W[111111];
+vector<ll> d (111111, INF), D(111111, INF);
+vector <pair<ll, ll> > g[111111], gr[111111];
+bool ok[111111], vis[111111], us[111111];
+pair<ll, ll> dfs(int v){
+	pair<ll, ll> res = mp(0ll, 0ll);
+	vis[v] = 1;
+	if(v == s)
+		res = mp(1ll, 1ll);
+	for(size_t i = 0; i < gr[v].size(); i++)
+	    if(D[v] + d[gr[v][i].F] + gr[v][i].S == len){
+			if(!vis[gr[v][i].F])
+				w[gr[v][i].F] = dfs(gr[v][i].F);				
+	        res.F = (res.F + w[gr[v][i].F].F) % mod;
+	        res.S = (res.S + w[gr[v][i].F].S) % Mod;
+		}
+	w[v] = res;
+	return res;				
+}
+pair<ll, ll> Dfs(int v){
+	pair<ll, ll> res = mp(0ll, 0ll);
+	us[v] = 1;
+	if(v == t)
+		res = mp(1ll, 1ll);
+	for(size_t i = 0; i < g[v].size(); i++)
+	    if(d[v] + D[g[v][i].F] + g[v][i].S == len){
+			if(!us[g[v][i].F])
+				W[g[v][i].F] = Dfs(g[v][i].F);				
+	        res.F = (res.F + W[g[v][i].F].F) % mod;
+	        res.S = (res.S + W[g[v][i].F].S) % Mod;
+		}
+	W[v] = res;
+	return res;				
+}
+int main()
+{
+	scanf("%d %d %d %d\n", &n, &m, &s, &t);
+	for(int i = 0; i < m; i++){
+		scanf("%d %d %d\n", &a[i], &b[i], &l[i]);
+		g[a[i]].pb(mp(b[i], l[i]));
+		gr[b[i]].pb(mp(a[i], l[i]));
+	}
+	d[s] = 0ll;
+	D[t] = 0ll;
+	priority_queue < pair<ll,ll> > q;
+	q.push (mp(0ll, s));
+	while (!q.empty()) {
+		ll v = q.top().S,  cur_d = -q.top().F;
+		q.pop();
+		if (cur_d > d[v])  
+			continue;
+		for(size_t j = 0; j < g[v].size(); ++j) {
+			to = g[v][j].F,
+			len = g[v][j].S;
+			if(d[v] + len < d[to]) {
+				d[to] = d[v] + len;
+				q.push (mp(-d[to], to));
+			}
+		}
+	}
+	q.push (make_pair (0ll, t));
+	while (!q.empty()) {
+		ll v = q.top().S,  cur_d = -q.top().F;
+		q.pop();
+		if (cur_d > D[v])  
+			continue;
+		for (size_t j = 0; j < gr[v].size(); ++j) {
+			to = gr[v][j].F,
+			len = gr[v][j].S;
+			if (D[v] + len < D[to]) {
+				D[to] = D[v] + len;
+				q.push (mp(-D[to], to));
+			}
+		}
+	}
+	len = d[t];
+	dfs(t);
+	Dfs(s);
+	for(int i = 0; i < m; i++)
+		if(d[a[i]] + D[b[i]] + l[i] == len &&(w[a[i]].F * W[b[i]].F) % mod == w[t].F && (w[a[i]].S * W[b[i]].S) % Mod == w[t].S)
+			ok[i] = 1;
+	for(int i = 0; i < m; i++){
+		if(d[a[i]] + D[b[i]] + l[i] == len){
+			if(ok[i])
+				ans[i] = 0;
+			else
+			if(l[i] > 1)		
+				ans[i] = 1, can[i] = 1;
+			else
+				ans[i] = 2;
+		}
+		else{
+			if(d[a[i]] + D[b[i]] + 1ll < len)
+				ans[i] = 1, can[i] = d[a[i]] + D[b[i]] + l[i] - len + 1ll;
+			else
+				ans[i] = 2;					
+		}	
+	}
+	for(int i = 0; i < m; i++)
+		if(!ans[i])
+			printf("YES\n");
+	    else
+	    if(ans[i] == 1)
+	    	printf("CAN %d\n", can[i]);
+		else
+			printf("NO\n");
+	return 0;
+}

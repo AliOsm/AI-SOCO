@@ -1,0 +1,328 @@
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <complex>
+#include <cassert>
+#include <cstdlib>
+#include <cstdio>
+#include <bitset>
+#include <vector>
+#include <string>
+#include <cmath>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+
+#define all(x) (x).begin(), (x).end()
+#define type(x) __typeof((x).begin())
+#define foreach(it, x) for(type(x) it = (x).begin(); it != (x).end(); it++)
+
+#ifdef KAZAR
+#define eprintf(...) fprintf(stderr,__VA_ARGS__)
+#else
+#define eprintf(...) 0
+#endif
+
+using namespace std;
+
+template<class T> inline void umax(T &a,T b){if(a<b) a = b ; }
+template<class T> inline void umin(T &a,T b){if(a>b) a = b ; }
+template<class T> inline T abs(T a){return a>0 ? a : -a;}
+template<class T> inline T gcd(T a,T b){return __gcd(a, b);}
+template<class T> inline T lcm(T a,T b){return a/gcd(a,b)*b;}
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int inf = 1e9 + 143;
+const ll longinf = 1e18 + 143;
+
+inline int read(){int x;scanf(" %d",&x);return x;}
+
+const int N = 1 << 17;
+
+const int CYC = 0;
+
+int n;
+bool intree[N];
+int deg[N];
+int pos[N];
+
+int oncycle[N];
+vector<int> g[N], gr[N];
+int len;
+vector<int> cycle;
+
+class segm_tree{
+public:
+    int t[N << 1][2];
+    int lazy[N << 1];
+    inline void push(int x){
+        if(lazy[x]){
+            lazy[x + x] ^= 1;
+            lazy[x + x + 1] ^= 1;
+            lazy[x] = 0;
+        }
+    }
+    inline void relax(int x){
+        for(int i = 0; i < 2; i++){
+            t[x][i] = t[x + x][i ^ lazy[x + x]] + t[x + x + 1][i ^ lazy[x + x + 1]];
+        }
+    }
+    segm_tree(){
+        for(int i = 0; i < N; i++)
+            t[i + N][1] = 1;
+        for(int i = N - 1; i > 0; i--)
+            relax(i);
+    }
+    void change(int x,int l,int r,int x1,int x2){
+        if(l > x2 || r < x1)
+            return;
+        if(l >= x1 && r <= x2){
+            lazy[x] ^= 1;
+            return;
+        }
+        push(x);
+        int m = (l + r) >> 1;
+        change(x + x, l, m, x1, x2);
+        change(x + x + 1, m + 1, r, x1, x2);
+        relax(x);
+    }
+    int getcut(){
+        return t[1][lazy[1]];
+    }
+};
+
+namespace cycle_handler{
+    segm_tree tree;
+    void update(int x,int k){
+        eprintf("update [%d, %d]\n", x, k);
+        if(x + k - 1 < len){
+            eprintf("cycle [%d, %d]\n", x, x + k - 1);
+            tree.change(1, 0, N - 1, x, x + k - 1);
+        }else{
+            eprintf("cycle [%d, %d]\n", x, len - 1);
+            eprintf("cycle [%d, %d]\n", 0, k - (len - x) - 1);
+            tree.change(1, 0, N - 1, x, len - 1);
+            tree.change(1, 0, N - 1, 0, k - (len - x) - 1);
+        }
+    }
+};
+
+void trans_cactus(){
+    vector<int> que;
+    for(int i = 1; i <= n; i++)
+        if(deg[i] == 1)
+            que.push_back(i);
+    for(int it = 0; it < que.size(); it++){
+        int u = que[it];
+        intree[u] = true;
+        foreach(it, g[u]){
+            int v = *it;
+            deg[v]--;
+            if(deg[v] == 1){
+                que.push_back(v);
+            }
+        }
+    }
+    for(int i = 1; i <= n; i++){
+        if(!intree[i]){
+            oncycle[i] = i;
+            for (int v: g[i]) {
+                if(intree[v])
+                    gr[CYC].push_back(v);
+            }
+            if(cycle.size() == 0){
+                int u = i;
+                int last = -1;
+                do{
+                    eprintf("cyc = %d\n", u);
+                    cycle.push_back(u);
+                    foreach(it, g[u]){
+                        int v = *it;
+                        if(!intree[v] && last != v){
+                            last = u;
+                            u = v;
+                            break;
+                        }
+                    }
+                }while(u != i);
+            }
+        }else{
+            foreach(it, g[i]){
+                int v = *it;
+                if(intree[v]){
+                    gr[i].push_back(v);
+                }else{
+                    oncycle[i] = v;
+                    gr[i].push_back(CYC);
+                }
+            }
+        }
+    }
+    len = (int)cycle.size();
+    for(int i = 0; i < len; i++)
+        pos[cycle[i]] = i;
+}
+
+int d[N], par[N];
+int sz[N], up[N];
+int who[N];
+int id[N], hlptr = 0;
+
+void dfs1(int u,int p){
+    sz[u] = 1;
+    par[u] = p;
+    foreach(it, gr[u]){
+        int v = *it;
+        if(v != p){
+            d[v] = d[u] + 1;
+            dfs1(v, u);
+            sz[u] += sz[v];
+        }
+    }
+}
+
+void dfs2(int u,int p){
+    id[u] = ++hlptr;
+    who[hlptr] = u;
+    int mxid = -1;
+    for(int v : gr[u]){
+        if(v != p && (mxid == -1 || sz[mxid] < sz[v])){
+            mxid = v;
+        }
+    }
+    if(mxid != -1){
+        up[mxid] = (up[u] != -1)? up[u] : u;
+        dfs2(mxid, u);
+    }
+    for(int v : gr[u]){
+        if(v != p && v != mxid){
+            up[v] = -1;
+            dfs2(v, u);
+        }
+    }
+}
+
+void build_hl(){
+    dfs1(0, -1);
+    dfs2(0, -1);
+}
+
+void change_cycle(int u,int v){
+    int fu = u, fv = v;
+    if(pos[u] > pos[v])
+        swap(u, v);
+    int way1 = pos[v] - pos[u];
+    int way2 = len - way1;
+    if(way1 < way2){
+        cycle_handler::update(pos[u], way1);
+    }else if(way1 > way2){
+        cycle_handler::update(pos[v], way2);
+    }else{
+        int nextone = cycle[(pos[fu] + 1) % len];
+        int prevone = cycle[(pos[fu] + len - 1) % len];
+        if(nextone <= prevone){
+            cycle_handler::update(pos[fu], way1);
+        }else{
+            cycle_handler::update(pos[fv], way1);
+        }
+    }
+}
+
+segm_tree hl_tree;
+
+int just_before(int u){
+    //eprintf("Just >> u = %d\n", u);
+    while (d[u] > 1) {
+        int next = (up[u] != -1)? up[u] : par[u];
+        if(next == 0)
+            next = who[2];
+        //eprintf("u = %d next = %d\n", u, next);
+        u = next;
+    }
+    return  u;
+}
+
+void change(int u,int v){
+    if(u == v)
+        return;
+    int actu = intree[u]? u : 0;
+    int actv = intree[v]? v : 0;
+    int a = actu, b = actv;
+    while(a != b){
+        int nexta = (up[a] != -1)? up[a] : (a > 0? par[a] : a);
+        int nextb = (up[b] != -1)? up[b] : (b > 0? par[b] : b);
+        //eprintf("a = %d, nexta = %d, b = %d, nextb = %d\n", a, nexta, b, nextb);
+        if(nexta != a && d[nexta] >= d[nextb]){
+            int borda = (up[a] != -1)? id[nexta] + 1 : id[a];
+            eprintf("upd [%d, %d]\n", borda, id[a]);
+            //eprintf("a = %d -> nexta = %d\n", a, nexta);
+            hl_tree.change(1, 0, N - 1, borda, id[a]);
+            a = nexta;
+        }else{
+            int bordb = (up[b] != -1)? id[nextb] + 1 : id[b];
+            eprintf("upd [%d, %d]\n", bordb, id[b]);
+            //eprintf("b = %d -> nextb = %d\n", b, nextb);
+            hl_tree.change(1, 0, N - 1, bordb, id[b]);
+            b = nextb;
+        }
+    }
+    eprintf("lca = %d\n", a);
+    int lca = a;
+    if(lca == 0){
+        int oncycle_u = oncycle[intree[u]? just_before(u) : u];
+        int oncycle_v = oncycle[intree[v]? just_before(v) : v];
+        //eprintf("(%d bef = %d, %d)oncycle => %d %d\n", u, just_before(v), v, oncycle_u, oncycle_v);
+        change_cycle(oncycle_u, oncycle_v);
+    }
+}
+
+int main(){
+
+#ifdef KAZAR
+    freopen("f.input","r",stdin);
+    freopen("f.output","w",stdout);
+    freopen("error","w",stderr);
+#endif
+
+    n = read();
+    int q = read();
+    for(int i = 1; i <= n; i++){
+        int u = read();
+        int v = read();
+        g[u].push_back(v);
+        g[v].push_back(u);
+        deg[u]++;
+        deg[v]++;
+    }
+
+    trans_cactus();
+    build_hl();
+
+    #ifdef KAZAR
+        for(int i = 1; i <= n; i++){
+            eprintf("i = %d, id = %d, up = %d, intree = %d\n", i, id[i], up[i], intree[i]);
+        }
+    #endif // KAZAR
+
+    eprintf("Tree = %d\n", hl_tree.getcut());
+    for(int i = 0; i < q; i++){
+        int u = read();
+        int v = read();
+        change(u, v);
+        int all_open = hl_tree.getcut();
+        int cycle_open = cycle_handler::tree.getcut();
+        int cycle_cut = len - cycle_open;
+        int ans = n - len - all_open + 1;
+        if(cycle_cut > 1)
+            ans += cycle_cut - 1;
+        eprintf("cyclecut = %d, treecut = %d\n", cycle_cut, n - len - all_open);
+        printf("%d\n", ans);
+    }
+
+    return 0;
+}

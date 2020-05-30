@@ -1,0 +1,109 @@
+#include <cstdio>
+#include <cmath>
+#include <utility>
+#include <vector>
+#include <algorithm>
+using namespace std;
+const double pi = atan(1.) * 4;
+typedef pair<double, double> P;
+pair<int, int> a[100010], b[100010];
+int st[100010], stn;
+long long det(pair<int, int> x, pair<int, int> y, pair<int, int> z) {
+	return (long long)(y.first - x.first) * (z.second - x.second) - (long long)(y.second - x.second) * (z.first - x.first);
+}
+inline int same(const P &x, const P &y) {
+	return fabs(x.first - y.first) < 1e-7 && fabs(x.second - y.second) < 1e-7;
+}
+vector<P> g(pair<int, int> *t, int n) {
+	vector<P> res;
+	stn = 0;
+	st[stn++] = 0;
+	st[stn++] = 1;
+	for (int i = 2; i < n; i++) {
+		while (stn >= 2 && det(t[st[stn-2]], t[st[stn-1]], t[i]) <= 0) {
+			--stn;
+		}
+		st[stn++] = i;
+	}
+	int tt = stn;
+	st[stn++] = n - 2;
+	for (int i = n - 3; i >= 0; i--) {
+		while (stn - tt >= 1 && det(t[st[stn-2]], t[st[stn-1]], t[i]) <= 0) {
+			--stn;
+		}
+		st[stn++] = i;
+	}
+	--stn;
+	double sx = 0, sy = 0;
+	for (int i = 0; i < stn; i++) {
+		sx += t[st[i]].first;
+		sy += t[st[i]].second;
+	}
+	sx /= stn;
+	sy /= stn;
+	for (int i = 0; i < stn; i++) {
+		double x = t[st[i]].first - sx, y = t[st[i]].second - sy;
+		res.push_back(make_pair(atan2(y, x), hypot(x, y)));
+	}
+	sort(res.begin(), res.end());
+	for (int i = 0; i < stn; i++) {
+		res.push_back(res[i]);
+		res[i+stn].first += 2 * pi;
+	}
+	for (int i = (int)res.size() - 1; i > 0; i--) {
+		res[i].first -= res[i-1].first;
+	}
+	return res;
+}
+int z[300010];
+void zalg(vector<P> &v) {
+	int L = 0, R = 0, n = v.size();
+	for (int i = 1; i < n; i++) {
+		if (i > R) {
+			L = R = i;
+			while (R < n && same(v[R-L], v[R])) R++;
+			z[i] = R - L; R--;
+		} else {
+			int k = i - L;
+			if (z[k] < R - i + 1) z[i] = z[k];
+			else {
+				while (R < n && same(v[R-L], v[R])) R++;
+				z[i] = R - L; R--;
+			}
+		}
+	}
+}
+int main() {
+	int n, m;
+	scanf("%d%d", &n, &m);
+	for (int i = 0; i < n; i++) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		a[i] = make_pair(x, y);
+	}
+	sort(a, a + n);
+	vector<P> p = g(a, n);
+	for (int i = 0; i < m; i++) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		b[i] = make_pair(x, y);
+	}
+	sort(b, b + m);
+	vector<P> q = g(b, m);
+	vector<P> r;
+	int l = p.size() / 2;
+	for (int i = 1; i < l; i++) {
+		r.push_back(p[i]);
+	}
+	r.push_back((P){-1000, -1});
+	for (int i = 1; i < q.size(); i++) {
+		r.push_back(q[i]);
+	}
+	zalg(r);
+	int f = 0;
+	for (int i = 0; i < r.size(); i++) {
+		if (z[i] >= l - 1) f = 1;
+	}
+	puts(f ? "YES" : "NO");
+	return 0;
+}

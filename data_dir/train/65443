@@ -1,0 +1,93 @@
+#include <iostream>
+
+using namespace std;
+
+const int N = 10, M = 100000;
+
+int aa[N][M], n, cc[M * 4], ql, qr, c_ = 0;
+
+struct V {
+	int ll[N], rr[N];
+} vv[M * 4], v_;
+
+inline int geta(int ij) {
+	return aa[ij / M][ij % M];
+}
+
+int merge(V u, V v, V &w) {
+	int c = 0;
+	for (int i = 0; i < n; i++) {
+		int p = u.rr[i], q = v.ll[i];
+		if (p != q && geta(p) == geta(q)) {
+			c++;
+			for (int i_ = 0; i_ < n; i_++) {
+				if (u.ll[i_] == q)
+					u.ll[i_] = p;
+				if (u.rr[i_] == q)
+					u.rr[i_] = p;
+				if (v.ll[i_] == q)
+					v.ll[i_] = p;
+				if (v.rr[i_] == q)
+					v.rr[i_] = p;
+			}
+		}
+	}
+	for (int i = 0; i < n; i++) {
+		w.ll[i] = u.ll[i];
+		w.rr[i] = v.rr[i];
+	}
+	return c;
+}
+
+void build(int k, int l, int r) {
+	if (r - l == 1) {
+		int *ll = vv[k].ll, *rr = vv[k].rr;
+		ll[0] = rr[0] = 0 * M + l;
+		int c = 1;
+		for (int i = 1; i < n; i++)
+			if (aa[i][l] == aa[i - 1][l])
+				ll[i] = rr[i] = ll[i - 1];
+			else {
+				ll[i] = rr[i] = i * M + l;
+				c++;
+			}
+		cc[k] = c;
+		return;
+	}
+	int m = (l + r) / 2;
+	build(k + k + 1, l, m);
+	build(k + k + 2, m, r);
+	cc[k] = cc[k + k + 1] + cc[k + k + 2] - merge(vv[k + k + 1], vv[k + k + 2], vv[k]);
+}
+
+void query(int k, int l, int r) {
+	if (qr <= l || r <= ql)
+		return;
+	if (ql <= l && r <= qr) {
+		c_ += cc[k];
+		if (ql == l)
+			v_ = vv[k];
+		else
+			c_ -= merge(v_, vv[k], v_);
+		return;
+	}
+	int m = (l + r) / 2;
+	query(k + k + 1, l, m);
+	query(k + k + 2, m, r);
+}
+
+int main() {
+	int m, q;
+	scanf("%d%d%d", &n, &m, &q);
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			scanf("%d", &aa[i][j]);
+	build(0, 0, m);
+	while (q-- > 0) {
+		scanf("%d%d", &ql, &qr); ql--;
+		c_ = 0;
+		query(0, 0, m);
+		printf("%d\n", c_);
+	}
+	return 0;
+}

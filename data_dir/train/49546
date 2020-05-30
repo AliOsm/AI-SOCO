@@ -1,0 +1,149 @@
+#include <cstdio>
+
+#include <cstring>
+
+#include <string>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+typedef long long llong;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+typedef vector<llong> VL;
+typedef vector<VL> VVL;
+
+const int MOD = 1e9 + 7;
+
+#define MAXN 100004
+int N;
+llong M;
+VI adj[MAXN];
+int K, X;
+
+enum PaintType {
+   ROOT, EQK, LTK, GTK
+};
+
+
+VL DP[4][MAXN];
+void dfs(int u, int p = -1) {
+
+   bool is_leaf = true;
+   for (int v : adj[u]) {
+      if (v == p) continue;
+      dfs(v, u);
+      is_leaf = false;
+   }
+
+   if (is_leaf) {
+      // paint as K
+      DP[EQK][u] = VL(X+1, 0);
+      DP[EQK][u][1] = 1;
+
+      // paint as < K
+      DP[LTK][u] = VL(X+1, 0);
+      DP[LTK][u][0] = K-1;
+
+      // paint as > K
+      DP[GTK][u] = VL(X+1, 0);
+      DP[GTK][u][0] = M-K;
+
+      return;
+   }
+
+   // paint as K
+   DP[EQK][u] = VL(X+1, 0);
+   DP[EQK][u][1] = 1;
+
+   for (int v : adj[u]) {
+      if (v == p) continue;
+   // VL new_row = DP[EQK][u];
+      VL new_row(X+1, 0);
+
+      //if (u == 0) fprintf(stderr, "v: %d\n", v);
+
+      FOR(a, 0, X) FOR(b, 0, X) {
+         if (a+b <= X) {
+            //if (u == 0)
+            //   fprintf(stderr, "a:%d  b:%d  %lld*%lld\n", a, b, DP[EQK][u][a], DP[LTK][v][b]);
+            new_row[a+b] = (new_row[a+b] + DP[EQK][u][a] * DP[LTK][v][b]) % MOD;
+         }
+      }
+      DP[EQK][u] = new_row;
+      //if (u == 0) fprintf(stderr, "%lld %lld\n", DP[EQK][0][0], DP[EQK][0][1]);
+
+   }
+
+   // paint as < K
+   DP[LTK][u] = VL(X+1, 0);
+   DP[LTK][u][0] = K-1;
+
+   for (int v : adj[u]) {
+      if (v == p) continue;
+   // VL new_row = DP[EQK][u];
+      VL new_row(X+1, 0);
+
+      FOR(a, 0, X) FOR(b, 0, X) {
+         if (a+b <= X) {
+            new_row[a+b] = ( new_row[a+b] +
+                            DP[LTK][u][a] *
+                            ( DP[LTK][v][b] + DP[EQK][v][b] + DP[GTK][v][b] ) ) % MOD;
+         }
+      }
+
+      DP[LTK][u] = new_row;
+   }
+
+   // paint as > K
+   DP[GTK][u] = VL(X+1, 0);
+   DP[GTK][u][0] = M-K;
+
+   for (int v : adj[u]) {
+      if (v == p) continue;
+   // VL new_row = DP[EQK][u];
+      VL new_row(X+1, 0);
+
+      FOR(a, 0, X) FOR(b, 0, X) {
+         if (a+b <= X)
+            new_row[a+b] = ( new_row[a+b] +
+                            DP[GTK][u][a] *
+                            ( DP[LTK][v][b] + DP[GTK][v][b] ) ) % MOD;
+      }
+
+      DP[GTK][u] = new_row;
+   }
+}
+
+int main(int argc, char* argv[]) {
+   scanf("%d %lld", &N, &M);
+   for (int j = 1; j < N; ++j) {
+      int u, v;
+      scanf("%d %d", &u, &v);
+      --u, --v;
+      adj[u].push_back(v);
+      adj[v].push_back(u);
+   }
+   scanf("%d %d", &K, &X);
+
+   dfs(0);
+
+   llong res = 0;
+   FOR(x, 0, X) {
+      res += DP[EQK][0][x];
+      if (res >= MOD) res -= MOD;
+      res += DP[LTK][0][x];
+      if (res >= MOD) res -= MOD;
+      res += DP[GTK][0][x];
+      if (res >= MOD) res -= MOD;
+   }
+   printf("%lld\n", res);
+
+   return 0;
+}

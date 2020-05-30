@@ -1,0 +1,178 @@
+#include<stdio.h>
+#include<string.h>
+#include<algorithm>
+#include<map>
+#include<string>
+#include<math.h>
+#include<queue>
+#include<set>
+#include<stack>
+#include<iostream>
+using namespace std;
+#define LL long long
+#define mod 1000000007
+vector<int> G[200005], T[205005];
+multiset<int> Set[205005];
+stack<int> st;
+int n, t, cnt, val[205005], Time[205005], low[205005];
+typedef struct RST
+{
+	int tre[814396];
+	int t, fa[205005], size[205005], hson[205005], top[205005], dep[205005], rak[205005], id[205005];
+	void Sech1(int u, int p)
+	{
+		int v, i;
+		fa[u] = p, dep[u] = dep[p]+1;
+		if(fa[u]>=n+1)
+			Set[fa[u]].insert(val[u]);
+		size[u] = 1;
+		for(i=0;i<T[u].size();i++)
+		{
+			v = T[u][i];
+			if(v==p)
+				continue;
+			Sech1(v, u);
+			size[u] += size[v];
+			if(size[v]>size[hson[u]])
+				hson[u] = v;
+		}
+	}
+	void Sech2(int u, int p)
+	{
+		int i, v;
+		top[u] = p;
+		rak[u] = ++t, id[t] = u;
+		if(hson[u])
+			Sech2(hson[u], p);
+		for(i=0;i<T[u].size();i++)
+		{
+			v = T[u][i];
+			if(v==fa[u] || v==hson[u])
+				continue;
+			Sech2(v, v);
+		}
+	}
+	void Update(int l, int r, int x, int a, int b)
+	{
+		int m;
+		if(l==r)
+		{
+			tre[x] = b;
+			return;
+		}
+		m = (l+r)/2;
+		if(a<=m)
+			Update(l, m, x*2, a, b);
+		else
+			Update(m+1, r, x*2+1, a, b);
+		tre[x] = min(tre[x*2], tre[x*2+1]);
+	}
+	int Query(int l, int r, int x, int a, int b)
+	{
+		int m, now;
+		now = 1044266558;
+		if(l>=a && r<=b)
+			return tre[x];
+		m = (l+r)/2;
+		if(a<=m)
+			now = min(now, Query(l, m, x*2, a, b));
+		if(b>=m+1)
+			now = min(now, Query(m+1, r, x*2+1, a, b));
+		return now;
+	}
+	int TreQuery(int x, int y)
+	{
+		int now, p1, p2;
+		p1 = top[x], p2 = top[y], now = 1044266558;
+		while(p1!=p2)
+		{
+			if(dep[p1]<dep[p2])
+				swap(p1, p2), swap(x, y);
+			now = min(now, Query(1, cnt, 1, rak[p1], rak[x]));
+			x = fa[p1], p1 = top[x];
+		}
+		if(dep[x]>dep[y])
+			swap(x, y);
+		now = min(now, Query(1, cnt, 1, rak[x], rak[y]));
+		if(x>=n+1)
+			now = min(now, val[fa[x]]);
+		return now;
+	}
+}RT;
+RT RST;
+void Trajan(int u, int p)
+{
+	int i, v, now;
+	st.push(u);
+	Time[u] = low[u] = ++t;
+	for(i=0;i<G[u].size();i++)
+	{
+		v = G[u][i];
+		if(v==p)
+			continue;
+		if(Time[v]==0)
+		{
+			Trajan(v, u);
+			low[u] = min(low[u], low[v]);
+			if(low[v]>=Time[u])
+			{
+				T[++cnt].push_back(u);
+				T[u].push_back(cnt);
+				while(st.empty()==0)
+				{
+					now = st.top(), st.pop();
+					T[cnt].push_back(now);
+					T[now].push_back(cnt);
+					if(now==v)
+						break;
+				}
+			}
+		}
+		else
+			low[u] = min(low[u], Time[v]);
+	}
+}
+void Update(int u, int c, int d)
+{
+	Set[u].erase(Set[u].find(c));
+	Set[u].insert(d);
+}
+int main(void)
+{
+	char ch;
+	int i, m, x, y, T;
+	scanf("%d%d%d", &n, &m, &T);
+	for(i=1;i<=n;i++)
+		scanf("%d", &val[i]);
+	cnt = n;
+	for(i=1;i<=m;i++)
+	{
+		scanf("%d%d", &x, &y);
+		G[x].push_back(y);
+		G[y].push_back(x);
+	}
+	Trajan(1, 0);
+	RST.Sech1(1, 0);
+	RST.Sech2(1, 1);
+	for(i=1;i<=n;i++)
+		RST.Update(1, cnt, 1, RST.rak[i], val[i]);
+	for(i=n+1;i<=cnt;i++)
+		RST.Update(1, cnt, 1, RST.rak[i], *Set[i].begin());
+	while(T--)
+	{
+		scanf(" %c%d%d", &ch, &x, &y);
+		if(ch=='C')
+		{
+			RST.Update(1, cnt, 1, RST.rak[x], y);
+			if(RST.fa[x])
+			{
+				Update(RST.fa[x], val[x], y);
+				RST.Update(1, cnt, 1, RST.rak[RST.fa[x]], *Set[RST.fa[x]].begin());
+			}
+			val[x] = y;
+		}
+		else
+			printf("%d\n", RST.TreQuery(x, y));
+	}
+	return 0;
+}

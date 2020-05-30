@@ -1,0 +1,298 @@
+#pragma comment (linker, "/STACK:256000000")
+ 
+#define _USE_MATH_DEFINES
+#define _CRT_NO_DEPRECEATE
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <cstring>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <memory.h>
+#include <sstream>
+#include <cassert>
+#include <ctime>
+#include <complex>
+//#include <random>
+ 
+using namespace std;
+ 
+typedef unsigned int uint32;
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+typedef pair<int64, int> pli;
+typedef pair<pii, pii> piiii;
+typedef pair<int64, int> pli;
+ 
+#define pb push_back
+#define sq(x) ((x)*(x))
+#define tmin(x,y,z) (min(min((x),(y)),(z)))
+#define rand32() (((unsigned int)(rand()) << 16) | (unsigned int)(rand()))
+#define rand64() (((unsigned int64)(rand32()) << 16) | (unsigned int64)(rand32()))
+#define bit(mask, b) ((mask >> b) & 1)
+#define biton(mask, bit) (mask | (((uint64)(1)) << bit))
+#define bitoff(mask, bit) (mask & (~(((uint64)(1)) << bit)))
+#define bitputon(mask, bit) (mask |= (((uint64)(1)) << bit))
+#define bitputoff(mask, bit) (mask &= (~(((uint64)(1)) << bit)))
+#define FAIL() (*((int*)(0)))++
+#define INF ((int)(1e9) + 1337)
+#define EPS (1e-11)
+#define y1 yy1
+#define y0 yy0
+#define j0 jj0
+
+const long double PI = acosl((long double)-1.0);
+
+const int64 LINF = ((1ull << 63) - 1ull);
+
+const int MAXN = 200500;
+
+struct node
+{
+	int64 color;
+	int64 sum;
+
+	node(int64 color, int64 sum):color(color), sum(sum){}
+
+	node()
+	{
+		color = sum = 0;
+	}
+};
+
+struct tree
+{
+    int n;
+    vector<node> t;
+    tree() {}
+    tree(int n) : n(n)
+    {
+        t.assign(4 * n + 10, node());
+		build(1, 1, n);
+    }
+
+    inline void push(int tv, int tl, int tr)
+    {
+		if (tl < tr && t[tv].color)
+		{
+			int tm = (tl + tr) >> 1;
+			t[tv << 1].color = t[tv].color;
+			t[(tv << 1) + 1].color = t[tv].color;
+			t[tv << 1].sum = (tm - tl + 1) * t[tv].color;
+			t[(tv << 1) + 1].sum = (tr - tm) * t[tv].color;
+			t[tv].color = 0;
+		}
+    }
+
+	inline void pull(int tv, int tl, int tr)
+    {
+        if (tl < tr)
+		{
+			t[tv].sum = t[tv << 1].sum + t[(tv << 1) + 1].sum;
+		}
+		else
+		{
+			t[tv].sum = 0LL;
+		}
+    }
+
+    int64 get(int tv, int tl, int tr, int l, int r)
+    {
+        if (l > r)
+		{
+            return 0;
+		}
+        if (tl == l && tr == r)
+		{
+			return t[tv].sum;
+		}
+        else
+        {
+			push(tv, tl, tr);
+            int tm = (tl + tr) >> 1;
+            int64 res = get(tv << 1, tl, tm, l, min(r, tm)) +
+                get((tv << 1) + 1, tm + 1, tr, max(tm + 1, l), r);
+			pull(tv, tl, tr);
+			//fprintf(stderr, "tv %d tl %d tr %d l %d r %d sum %lld\n", tv, tl, tr, l, r, t[tv].sum);
+			return res;
+        }
+    }
+
+    void add(int tv, int tl, int tr, int l, int r, int64 val)
+    {
+		if (l > r)
+		{
+			return;
+		}
+        if (tl == l && r == tr)
+		{
+			t[tv].color = val;
+			t[tv].sum = val * (tr - tl + 1);
+		}
+        else
+        {
+			push(tv, tl, tr);
+            int tm = (tl + tr) >> 1;
+            add(tv << 1, tl, tm, l, min(tm, r), val);
+            add((tv << 1) + 1, tm + 1, tr, max(tm + 1, l), r, val);
+            pull(tv, tl, tr);
+        }
+    }
+
+	void build(int tv, int tl, int tr)
+    {
+        if (tl == tr)
+		{
+			t[tv].color = t[tv].sum = tl;
+		}
+        else
+        {
+            int tm = (tl + tr) >> 1;
+            build(tv << 1, tl, tm);
+            build((tv << 1) + 1, tm + 1, tr);
+            pull(tv, tl, tr);
+        }
+    }
+
+    void add(int l, int r, int val)
+    {
+        return add(1, 1, n, l, r, val);
+    }
+
+    int64 get(int l, int r)
+    {
+        return get(1, 1, n, l, r);
+    }
+};
+
+int tre[MAXN << 2];
+
+int get(int tv, int tl, int tr, int l, int r)
+{
+    if (l > r)
+	{
+        return INF;
+	}
+    if (tl == l && tr == r)
+	{
+		return tre[tv];
+	}
+    else
+    {
+        int tm = (tl + tr) >> 1;
+        int64 res = min(get(tv << 1, tl, tm, l, min(r, tm)),
+            get((tv << 1) + 1, tm + 1, tr, max(tm + 1, l), r));
+		return res;
+    }
+}
+
+void update(int tv, int tl, int tr, int pos, int val)
+{
+    if (tl == tr)
+	{
+		tre[tv] = val;
+	}
+    else
+    {
+        int tm = (tl + tr) >> 1;
+		if (pos <= tm)
+		{
+			update(tv << 1, tl, tm, pos, val);
+		}
+		else
+		{
+			update((tv << 1) + 1, tm + 1, tr, pos, val);
+		}
+		tre[tv] = min(tre[tv << 1], tre[(tv << 1) + 1]);
+    }
+}
+
+int n, k;
+int64 a[MAXN];
+int64 ans;
+vector <int> pos[MAXN];
+tree t;
+
+void proc(int p)
+{
+	int64 q = a[p];
+	for (int i = 1; i * i <= q; i++)
+	{
+		if (q % i == 0)
+		{
+			pos[i].push_back(p);
+			if (i * i != q)
+			{
+				pos[q / i].push_back(p);
+			}
+		}
+	}
+}
+
+int64 calc(int q1, int q2, int q)
+{
+	if (q1 > q2)
+	{
+		return 0;
+	}
+	int64 res = 0LL;
+	int r = min(get(1, 1, n, q2, n) - 1, q2);
+	if (r >= q1)
+	{
+		int64 s = t.get(q1, r);
+		fprintf(stderr, "q1 %d q2 %d r %d s %lld res %lld\n", q1, q2, r, s, (int64)q * ((r - q1 + 1) * (int64)q2 - s + (r - q1 + 1)));
+		res += (int64)q * ((r - q1 + 1) * (int64)q2 - s + (r - q1 + 1));
+		t.add(q1, r, q2 + 1);
+		update(1, 1, n, q2, q1);
+	}
+	return res;
+}
+
+void solve()
+{
+	memset(tre, 63, sizeof(tre));
+	scanf ("%d", &n);
+	for (int i = 1; i <= n; i++)
+	{
+		scanf ("%I64d", &a[i]);
+		proc(i);
+	}
+	t = tree(n);
+	for (int i = 200000; i >= 1; i--)
+	{
+		if (pos[i].size() >= 2)
+		{
+			ans += calc(1, pos[i][pos[i].size() - 2] - 1, i);
+			ans += calc(pos[i][0] + 1, pos[i][pos[i].size() - 1] - 1, i);
+			ans += calc(pos[i][1] + 1, n, i);
+		}
+	}
+	cout << ans;
+}
+
+int main()
+{
+    //ios_base::sync_with_stdio(false); cin.tie(0);
+#ifdef _MY_DEBUG
+    freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+    //freopen(TASK ".in", "rt", stdin); freopen(TASK ".out", "wt", stdout);
+#endif
+    srand(1313);
+  
+	solve();
+	
+    return 0;
+}

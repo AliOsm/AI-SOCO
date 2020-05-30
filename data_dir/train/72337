@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long int ll;
+typedef pair<ll, ll> pii;
+
+const int maxn = 200000 + 5;
+
+vector<int> neig[maxn];
+vector<int> colour;
+set<int> raw_neig[maxn];
+set<int> gr_neig[maxn];
+vector<int> group;
+vector<bool> used;
+vector<int> sz;
+int ans = INT_MAX;
+
+void dfs(int v, int gr) {
+    if (used[v])
+        return;
+    used[v] = true;
+    group[v] = gr;
+    for (auto it : neig[v]) {
+        if (colour[it] == colour[v])
+            dfs(it, gr);
+        else
+            raw_neig[gr].insert(it);
+    }
+}
+
+int set_d(int v, int ls) {
+    sz[v] = 1;
+    for (auto it : gr_neig[v]) {
+        if (it == ls)
+            continue;
+        sz[v] = max(sz[v], set_d(it, v) + 1);
+    }
+    return sz[v];
+}
+
+void calc(int v, int lst, int legacy) {
+    int cur = legacy, a = 0, b = 0;
+    for (auto it : gr_neig[v]) {
+        if (it == lst)
+            continue;
+        if (sz[it] >= a) {
+            b = a;
+            a = sz[it];
+        } else if (sz[it] >= b) {
+            b = sz[it];
+        }
+    }
+    ans = min(ans, max(legacy, sz[v] - 1));
+    int kk = 0;
+    for (auto it : gr_neig[v]) {
+        if (it == lst)
+            continue;
+        int leg = a;
+        if (a == sz[it])
+            leg = b;
+        calc(it, v, max(legacy, leg) + 1);
+    }
+}
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    colour.resize(n);
+    for (int i = 0; i < n; i++)
+        scanf("%d", &colour[i]);
+    group.resize(n);
+    used.resize(n);
+    for (int i = 0; i < n - 1; i++) {
+        int a, b;
+        scanf("%d%d", &a, &b);
+        a--;
+        b--;
+        neig[a].push_back(b);
+        neig[b].push_back(a);
+    }
+
+    int cnt = 0;
+    for (int i = 0; i < n; i++) {
+        if (used[i])
+            continue;
+        dfs(i, cnt);
+        cnt++;
+    }
+
+    for (int i = 0; i < cnt; i++) {
+        for (auto it : raw_neig[i]) {
+            gr_neig[i].insert(group[it]);
+        }
+    }
+
+    sz.resize(cnt);
+    set_d(0, 0);
+    calc(0, 0, 0);
+
+    cout << ans;
+}

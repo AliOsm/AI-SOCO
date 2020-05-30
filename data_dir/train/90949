@@ -1,0 +1,51 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const ll MAX=1e5+9,MOD=1e9+9,base=1999;
+ll n,m,k,q,h[10],seg[MAX*4],lazy[MAX*4],pw[MAX],par[MAX];
+char ch;
+void shift(int s,int e,int mid,int id)
+{
+	if (lazy[id]==-1) return ;
+	lazy[id*2+1]=lazy[id*2+2]=lazy[id];
+	seg[id*2+1]=par[mid-s]*lazy[id]%MOD;
+	seg[id*2+2]=par[e-mid]*lazy[id]%MOD;
+	lazy[id]=-1;
+}
+void upd(int l,int r,ll val,int s=0,int e=n,int id=0)
+{
+	if (r<=s || e<=l) return ;
+	if (l<=s && e<=r){seg[id]=par[e-s]*val%MOD,lazy[id]=val; return ;}
+	int mid=s+e>>1;
+	shift(s,e,mid,id);
+	upd(l,r,val,s,mid,id*2+1),upd(l,r,val,mid,e,id*2+2);
+	seg[id]=(seg[id*2+1]*pw[e-mid]%MOD+seg[id*2+2])%MOD;
+}
+pair<ll,int> get(int l,int r,int s=0,int e=n,int id=0)
+{
+	if (r<=s || e<=l) return {0,0};
+	if (l<=s && e<=r) return {seg[id],e-s};
+	int mid=s+e>>1;
+	shift(s,e,mid,id);
+	pair<ll,int> le=get(l,r,s,mid,id*2+1),ri=get(l,r,mid,e,id*2+2);
+	pair<ll,int> ret;
+	ret.second=le.second+ri.second;
+	ret.first=(le.first*pw[ri.second]+ri.first)%MOD;
+	return ret;
+}
+int main()
+{
+	srand(time(NULL)),memset(lazy,-1,sizeof lazy),pw[0]=par[1]=1;
+	ios_base::sync_with_stdio(false),cin.tie(0),cout.tie(0);
+	for (int i=0;i<10;i++) h[i]=rand()%MOD;
+	for (int i=1;i<MAX;i++) pw[i]=pw[i-1]*base%MOD,par[i+1]=(par[i]+pw[i])%MOD;
+	cin>>n>>m>>k,q=m+k;
+	for (int i=0;i<n;i++) cin>>ch,upd(i,i+1,h[ch-'0']);
+	while (q--)
+	{
+		int t,l,r,d;
+		cin>>t>>l>>r>>d,l--;
+		if (t==2) if (l+d>=r || get(l,r-d).first==get(l+d,r).first) cout<<"YES\n"; else cout<<"NO\n";
+		if (t==1) upd(l,r,h[d]);
+	}
+}

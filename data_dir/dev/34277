@@ -1,0 +1,104 @@
+#include <cstdio>
+
+#include <cstring>
+
+#include <string>
+#include <vector>
+#include <algorithm>
+
+#include <cassert>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+typedef long long llong;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+llong K;
+int start_a, start_b;
+int A[4][4], B[4][4];
+
+int compare(int a, int b) {
+   if (a == b) return 0;
+   switch (a) {
+      case 1:
+         return b == 3 ? -1 : +1;
+      case 2:
+         return b == 1 ? -1 : +1;
+      case 3:
+         return b == 2 ? -1 : +1;
+      default:
+         assert(false);
+   }
+}
+
+pair<llong, llong> solve() {
+   int a = start_a, b = start_b;
+   int period = -1, start_period = 0;
+   VI alice_score = {0};
+   VI bob_score = {0};
+   VVI seen(4, VI(4));
+   for (int t = 1; t <= K; ++t) {
+      fprintf(stderr, "(%d,%d)\n", a, b);
+      if (seen[a][b]) {
+         period = t - seen[a][b];
+         start_period = seen[a][b];
+         break;
+      }
+      seen[a][b] = t;
+
+      int cmp = compare(a, b);
+      alice_score.push_back( alice_score.back() );
+      bob_score.push_back( bob_score.back() );
+      if (cmp < 0)
+         ++alice_score.back();
+      else if (cmp > 0)
+         ++bob_score.back();
+
+      int nxt_a = A[a][b];
+      int nxt_b = B[a][b];
+      a = nxt_a;
+      b = nxt_b;
+   }
+   if (period < 0) {
+      return make_pair( alice_score.back(), bob_score.back() );
+   }
+
+   fprintf(stderr, "start = %d  period = %d\n", start_period, period);
+
+   pair<llong, llong> res = make_pair(alice_score[start_period-1],
+                                      bob_score[start_period-1]);
+
+   llong remK = K - start_period + 1;
+   llong m = remK / period;
+   fprintf(stderr, "remK: %lld  mult: %lld\n", remK, m);
+   fprintf(stderr, "%d-%d  %d-%d\n", alice_score.back(), alice_score[start_period-1],
+                               bob_score.back(), bob_score[start_period-1]);
+   res.first  += m * (alice_score.back() - alice_score[start_period-1]);
+   res.second += m * (bob_score.back() - bob_score[start_period-1]);
+
+   remK -= m * period;
+   fprintf(stderr, "remK: %lld\n", remK);
+
+   res.first += alice_score[start_period + remK - 1] - alice_score[start_period-1];
+   res.second += bob_score[start_period + remK - 1] - bob_score[start_period-1];
+
+   return res;
+}
+
+int main(int argc, char* argv[]) {
+   scanf("%lld %d %d", &K, &start_a, &start_b);
+   FOR(i, 1, 3) FOR(j, 1, 3)
+      scanf("%d", &A[i][j]);
+   FOR(i, 1, 3) FOR(j, 1, 3)
+      scanf("%d", &B[i][j]);
+
+   auto res = solve();
+   printf("%lld %lld\n", res.first, res.second);
+
+   return 0;
+}

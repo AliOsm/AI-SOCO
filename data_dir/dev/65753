@@ -1,0 +1,97 @@
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+
+using namespace std;
+
+const int N=100005;
+const int Lg=20;
+
+int n,S,L;
+
+int a[2*N],ANS[2*N];
+int v[5*N];
+int Co[N],x;
+int Mx[2*N][Lg],Mn[2*N][Lg];
+
+int GetMn(int L,int R) { if (!L) L++; return min(Mn[L][Co[R-L+1]],Mn[R-(1<<Co[R-L+1])+1][Co[R-L+1]]); }
+int GetMx(int L,int R) { if (!L) L++; return max(Mx[L][Co[R-L+1]],Mx[R-(1<<Co[R-L+1])+1][Co[R-L+1]]); }
+
+void Upd(int h,int l,int r,int idx,int val)
+{
+	if (l>idx || r<idx) return ;
+	if (l==idx && r==idx) { v[h]=val; return ; }
+	
+	Upd(2*h,l,(l+r)/2,idx,val);
+	Upd(2*h+1,(l+r)/2+1,r,idx,val);
+	
+	v[h]=min(v[2*h],v[2*h+1]);
+}
+
+int Get(int h,int l,int r,int L,int R)
+{
+	if (l>R || L>r) return 1e9;
+	if (L<=l && r<=R) return v[h];
+	return min(Get(2*h,l,(l+r)/2,L,R),Get(2*h+1,(l+r)/2+1,r,L,R));
+}
+
+main ()
+{
+	scanf("%d %d %d",&n,&S,&L);
+	
+	for (int i=1; i<=5*n; i++)
+		v[i]=1e9;
+	
+	for (int i=1; i<=n; i++)
+	{
+		scanf("%d",&a[i]);
+	
+		Mx[i][0]=a[i];
+		Mn[i][0]=a[i];
+	}
+	
+	for (int j=1; j<=Lg-3; j++)
+		for (int i=1; i<=n; i++)
+		{
+			Mx[i][j]=max(Mx[i][j-1],Mx[i+(1<<(j-1))][j-1]);
+			Mn[i][j]=min(Mn[i][j-1],Mn[i+(1<<(j-1))][j-1]);
+		}
+	
+	int x=0;
+	
+	for (int i=1; i<=N; i++)
+	{
+		if (2*(1<<x)<=i) x++;
+		Co[i]=x;
+	}
+	
+	int l,r,mid,idx;
+	
+	Upd(1,0,n,0,0);
+	
+	for (int i=1; i<=n; i++)
+	{
+		l=0,r=i-L+1,mid,idx=-2;
+		
+		while (l<=r)
+		{
+			mid=(l+r)/2;
+		
+			if (GetMx(mid,i)-GetMn(mid,i)<=S) { idx=mid; r=mid-1; }
+													else l=mid+1;
+		}
+		
+		if (idx==-2)  { ANS[i]=1e9; continue; }
+		
+		idx--;
+		
+		int G=Get(1,0,n,idx,i-L);
+		Upd(1,0,n,i,G+1);
+		ANS[i]=G+1;
+	}
+
+	if (ANS[n]>=1e9) ANS[n]=-1;
+	
+	printf("%d\n",ANS[n]);
+}

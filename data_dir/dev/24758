@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+#define sz(x) (int)(x).size()
+#define all(x) (x).begin(), (x).end()
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long llu;
+typedef pair<int, int> pii;
+typedef pair<int, pii> piii;
+typedef pair<ll, ll> pll;
+typedef pair<ll, int> pli;
+typedef pair<int, ll> pil;
+typedef pair<string, int> psi;
+typedef pair<char, int> pci;
+typedef pair<int, char> pic;
+const ll MOD = (ll)1e9 + 7;
+const long double PI = 3.141592653589793238462643383279502884197;
+
+ll fac[1], inv[1];
+ll gcd(ll a,ll b){return b?gcd(b,a%b):a;}
+ll mp(ll a,ll b){ll ret=1;while(b){if(b&1)ret=ret*a%MOD;a=a*a%MOD;b>>=1;}return ret;}
+ll cmb(ll r, ll c) {return fac[r] * inv[c] % MOD * inv[r - c] % MOD;}
+
+priority_queue<int, vector<int>, greater<int>> pq;
+vector<int> v;
+
+int szz = 1 << 18;
+struct seee {
+    int tree[1 << 19];
+    void update(int i) {
+        i += szz;
+        tree[i]++;
+        while (i /= 2) tree[i] = tree[i * 2] + tree[i * 2 + 1];
+    }
+    int find(int i, int l, int r, int le, int ri) {
+        if (l > ri || r < le) return 0;
+        if (l <= le && ri <= r) return tree[i];
+        return find(i * 2, l, r, le, (le + ri) / 2) + find(i * 2 + 1, l, r, (le + ri) / 2 + 1, ri);
+    }
+} rotn;
+
+int vec[200000];
+int lo[200000];
+
+int n;
+int main() {
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &vec[i]);
+        lo[vec[i] - 1] = i;
+    }
+
+    map<int, int> ma;
+    ll ans = 0, ret = 0;
+    int now = lo[0];
+    for (int ii = 0; ii < n; ii++) {
+        int i = lo[ii];
+
+        ret += rotn.find(1, i, n-1, 0, szz - 1);
+        if (now <= i) {
+            int tmp =i-now + 1 - rotn.find(1, now, i, 0, szz - 1);
+            ans += tmp;
+            rotn.update(i);
+            ans -= rotn.find(1, i, n - 1, 0, szz - 1);
+        }
+        else {
+            int tmp = now-i+1 - rotn.find(1, i, now, 0, szz - 1);
+            ans += tmp;
+            rotn.update(i);
+            ans -= rotn.find(1, 0, i, 0, szz - 1);
+        }
+        auto k = ma.lower_bound(i);
+
+        int ri = i;
+        if (k != ma.end() && k->first == ri+1) {
+            ri = k->second;
+            ma.erase(k);
+        }
+        ma[i] = ri;
+        k = ma.find(i);
+        if (k != ma.begin() && prev(k)->second+1 == i) {
+            prev(k)->second = ri;
+            ma.erase(k);
+        }
+        k = --ma.upper_bound(now);
+
+        int flag = 0;
+        if (k != ma.begin()) {
+            int rr = prev(k)->second;
+            int l = rotn.find(1,0,rr,0,szz-1);
+            int r = rotn.find(1, k->first,n-1,0,szz-1);
+            if (l > r) {
+                ans -= (l - r) * (k->first - rr - 1);
+                now = rr;
+                flag = 1;
+            }
+        }
+        if (!flag && next(k) != ma.end()) {
+            int rr = next(k)->first;
+            int l = rotn.find(1,0,k->second,0,szz-1);
+            int r = rotn.find(1,rr,n-1,0,szz-1);
+            // printf("%d : %d\n", l, r);
+            if (r > l) {
+                ans -= (r - l) * (rr - k->second - 1);
+                now = rr;
+                flag = 1;
+            }
+        }
+
+        // printf("%d : %lld %d\n", i, ans, now);
+        printf("%lld ", ret + ans);
+    }
+}

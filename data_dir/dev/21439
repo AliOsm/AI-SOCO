@@ -1,0 +1,135 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <stack>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <set>
+#include <cstdlib>
+#include <bitset>
+#include <tuple>
+#include <assert.h>
+#include <deque>
+#include <bitset>
+#include <iomanip>
+#include <limits>
+#include <chrono>
+#include <random>
+#include <array>
+#include <unordered_map>
+#include <functional>
+#include <complex>
+#include <numeric>
+
+template<class T> inline bool chmax(T& a, T b) { if (a < b) { a = b; return 1; } return 0; }
+template<class T> inline bool chmin(T& a, T b) { if (a > b) { a = b; return 1; } return 0; }
+
+constexpr long long MAX = 5100000;
+constexpr long long INF = 1LL << 60;
+constexpr int inf = 1 << 28;
+constexpr long long mod = 1000000007LL;
+//constexpr long long mod = 998244353LL;
+
+using namespace std;
+typedef unsigned long long ull;
+typedef long long ll;
+
+int n, m;
+vector<vector<int>> g;
+vector<int> dep;
+
+void dfs(int cur, int pre) {
+	if (pre != -1) dep[cur] = dep[pre] + 1;
+	for (int next : g[cur]) {
+		if (next == pre) continue;
+		dfs(next, cur);
+	}
+}
+
+struct HLD {
+	vector<int> sz, in, out, head, par;
+	vector<vector<int>> g;
+	HLD(vector<vector<int>>& _g) : g(_g), sz(_g.size()), in(_g.size()), out(_g.size()), head(_g.size()), par(_g.size()) {}
+	void dfs_sz(int cur, int pre) {
+		sz[cur] = 1;
+		for (int& next : g[cur]) {
+			if (next == pre) continue;
+			dfs_sz(next, cur);
+			par[next] = cur;
+			sz[cur] += sz[next];
+			if (sz[next] > sz[g[cur][0]]) swap(next, g[cur][0]);
+		}
+	}
+
+	void dfs_hld(int cur, int pre, int& idx) {
+		in[cur] = idx++;
+		for (int& next : g[cur]) {
+			if (next == pre) continue;
+			if (next == g[cur][0]) head[next] = head[cur];
+			else head[next] = next;
+			dfs_hld(next, cur, idx);
+		}
+		out[cur] = idx;
+	}
+
+	void build() {
+		dfs_sz(0, -1);
+		int idx = 0;
+		dfs_hld(0, -1, idx);
+	}
+	int lca(int u, int v) {
+		for (;; v = par[head[v]]) {
+			if (in[u] > in[v]) swap(u, v);
+			if (head[u] == head[v]) return u;
+		}
+	}
+};
+
+bool comp(int u, int v) {
+	return dep[u] > dep[v];
+}
+int main()
+{
+	/*
+	cin.tie(nullptr);
+	ios::sync_with_stdio(false);
+	*/
+	scanf("%d %d", &n, &m);
+	g.resize(n);
+	dep.resize(n);
+	for (int i = 0; i < n - 1; i++) {
+		int u, v; scanf("%d %d", &u, &v);
+		u--; v--;
+		g[u].emplace_back(v);
+		g[v].emplace_back(u);
+	}
+	dfs(0, -1);
+	HLD hld(g);
+	hld.build();
+	while (m--) {
+		int k; scanf("%d", &k);
+		vector<int> v(k);
+		for (int i = 0; i < k; i++) {
+			scanf("%d", &v[i]);
+			v[i]--;
+		}
+		sort(v.begin(), v.end(), comp);
+		int tg = v[0];
+		bool ok = true;
+		for (int i = 1; i < v.size(); i++) {
+			int lca = hld.lca(tg, v[i]);
+			if (lca == v[i]) continue;
+			int par = hld.par[v[i]];
+			lca = hld.lca(tg, par);
+			if (lca == par) continue;
+			ok = false;
+			break;
+		}
+		if (ok) puts("YES");
+		else puts("NO");
+	}
+    return 0;
+} 

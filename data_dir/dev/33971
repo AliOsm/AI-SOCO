@@ -1,0 +1,68 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+
+set <pair <int, int> > s0,s;
+
+int K;
+ll xx[200010],yy[200010];
+
+void func(ll x, ll y){
+    while(K > 0 && yy[K-1] < y) K--;
+    while(K >= 2){
+        ll tmp = (x - xx[K-2]) * (yy[K-1] - yy[K-2]) - (xx[K-1] - xx[K-2]) * (y - yy[K-2]);
+        if(tmp < 0) K--; else break;
+    }
+    xx[K] = x;
+    yy[K] = y;
+    K++;
+}
+
+int main(void){
+    int N,M,x,y,i;
+    
+    cin >> N >> M >> x >> y;
+    REP(i,N){
+        scanf("%d%d", &x, &y);
+        s0.insert(make_pair(x, y));
+        s.insert(make_pair(x, -y));
+    }
+    REP(i,M){
+        scanf("%d%d", &x, &y);
+        s.insert(make_pair(x, -y));
+    }
+    
+    snuke(s,itr){
+        x = (*itr).first;
+        y = (*itr).second;
+        func(x, -y);
+    }
+    
+    string ans = "Min";
+    REP(i,K) if(s0.find(make_pair(xx[i], yy[i])) != s0.end()) ans = "Max";
+    cout << ans << endl;
+    
+    return 0;
+}

@@ -1,0 +1,240 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+
+using namespace std;
+typedef long long ll;
+typedef pair<ll, ll> ii;
+typedef pair<int, ii> iii;
+
+ll pwr(ll base, ll p, ll mod = MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+
+
+
+struct Node{
+	int cnt;
+	Node *left, *right;
+	Node(){}
+	Node(int cnt, Node *left, Node *right){
+		this->cnt = cnt;
+		this->left = left;
+		this->right = right;
+	}
+	Node* insert(int s, int e, int pos);
+};
+
+
+const int N = 100002;
+int n, root, ticks, par[20][N], lo[N], hi[N];
+int ans[N], subsize[N], depth[N];
+vector<int> adj[N], subtree_starts[N], subtree_ends[N];
+Node *tree_lo[N], *tree_hi[N];
+
+
+void dfs(int v){
+	lo[v] = ++ticks;
+	depth[v] = depth[par[0][v]]+1;
+	subsize[v] = 1;
+	for(auto vv : adj[v]){
+		dfs(vv);
+		subsize[v] += subsize[vv];
+	}
+	hi[v] = ticks;
+	subtree_starts[lo[v]].pb(subsize[v]);
+	subtree_ends[hi[v]].pb(subsize[v]);
+}
+
+
+
+Node* Node::insert(int s, int e, int pos){
+	if(s > e || pos < s || pos > e)	return this;
+	if(s == e){
+// cout<<"inserted pos "<<pos<<endl;
+		return new Node(this->cnt+1, tree_lo[0], tree_lo[0]);
+	}
+	int mid = (s+e)/2;
+	Node* a = this->left->insert(s, mid, pos);
+	Node* b = this->right->insert(mid+1, e, pos);
+	return new Node(this->cnt+1, a, b);
+}
+
+int query(Node* a, Node* b, int s, int e, int lo, int hi){
+	if(s > e || lo > e || s > hi)	return 0;
+	if(s >= lo && e <= hi)	return b->cnt - a->cnt;
+	int mid = (s+e)/2;
+	return query(a->left, b->left, s, mid, lo, hi) + query(a->right, b->right, mid+1, e, lo, hi);
+}
+
+
+bool possible_lo(int s, int e, int lo, int hi){
+	lo = max(lo, 1);	hi = min(hi, n);
+	if(lo > hi || s > e)	return false;
+// cout<<s<<" "<<e<<" "<<lo<<" "<<hi<<endl;
+	return query(tree_lo[s-1], tree_lo[e], 1, n, lo, hi) > 0;
+}
+
+
+bool possible_hi(int s, int e, int lo, int hi){
+	lo = max(lo, 1);	hi = min(hi, n);
+	if(lo > hi || s > e)	return false;
+// cout<<s<<" "<<e<<" "<<lo<<" "<<hi<<endl;
+	return query(tree_hi[s-1], tree_hi[e], 1, n, lo, hi) > 0;
+}
+
+
+int sz, stack_[N];
+
+void calc(int v){
+
+	// if(adj[v].empty() || v > 7)	return;
+
+	vector<ii> forest;
+	for(auto vv : adj[v])
+		forest.pb({subsize[vv], vv});
+	if(par[0][v] != -1)
+		forest.pb(ii(n - subsize[v], -1));
+
+	sort(forest.begin(), forest.end());
+
+// cout<<"forest: ";for(auto it : forest)	cout<<it.ff<<":"<<it.ss<<" ";cout<<endl;
+	
+	if((int)forest.size() == 1){
+		ans[v] = forest.back().ff;
+	}
+	else if(forest[0].ff == forest.back().ff){
+		ans[v] = forest.back().ff;		
+	}
+	else{
+		int lo_ = forest[(int)forest.size()-2].ff, hi_ = forest[(int)forest.size()-1].ff-1;
+		ans[v] = forest.back().ff;
+		while(lo_ <= hi_){
+			int mid = (lo_ + hi_)/2;
+			int largest_tree = forest.back().ss, largest_tree_sz = forest.back().ff;
+			int smallest_tree_sz = forest[0].ff;
+// cout<<largest_tree<<" "<<largest_tree_sz<<" "<<smallest_tree_sz<<endl;
+			if(largest_tree == -1){
+				
+				bool ok = false;
+				ok |= possible_hi(1, lo[v]-1, largest_tree_sz-mid, mid-smallest_tree_sz);
+// cout<<"ok = "<<ok<<endl;
+				ok |= possible_lo(hi[v]+1, n, largest_tree_sz-mid, mid-smallest_tree_sz);
+
+				int lo__ = 1, hi__ = sz, d = MOD;
+				while(lo__ <= hi__){
+					int mid__ = (lo__ + hi__)/2;
+					int ancestor = stack_[sz-mid__];
+					if(subsize[ancestor] - subsize[v] >= largest_tree_sz-mid){
+						d = min(d, mid__);
+						hi__ = mid__-1;
+					}
+					else{
+						lo__ = mid__+1;
+					}
+				}
+				if(d != MOD){
+					int ancestor = stack_[sz-d];
+					if(subsize[ancestor] - subsize[v] <= mid-smallest_tree_sz)
+						ok = true;
+				}
+
+				if(ok){
+					ans[v] = min(ans[v], mid);
+					hi_ = mid-1;
+				}
+				else{
+					lo_ = mid+1;
+				}
+			}
+			else{
+				if(possible_lo(lo[largest_tree], hi[largest_tree], largest_tree_sz-mid, mid-smallest_tree_sz)){
+					ans[v] = min(ans[v], mid);
+					hi_ = mid-1;
+				}
+				else{
+					lo_ = mid+1;
+				}
+			}
+		}
+	}
+
+	stack_[sz++] = v;
+	for(auto vv : adj[v])
+		calc(vv);
+	sz--;
+}
+
+
+
+int main(){
+
+    // ios_base::sync_with_stdio(0);
+    // cin.tie(0);
+
+    //remove subtree from largest tree in the forest and add it to smallest tree
+    //final ans = z is possible if there exists subtree of size s in largest tree
+    //such that largest_tree_size-s<=z and smallest_tree_size+s<=z
+    //this gives a range of allowed values for s, queried using PST
+
+    scanf("%d", &n);
+    int e = n;
+    memset(par, -1, sizeof(par));
+    while(e--){
+    	int a, b;
+    	scanf("%d%d", &a, &b);
+    	adj[a].pb(b);
+    	par[0][b] = a;
+    }
+    root = adj[0][0];
+
+    if(n == 1){
+    	printf("0\n");
+    	return 0;
+    }
+
+    ticks = 0;
+    par[0][root] = -1;
+    dfs(root);
+    for(int j=0;j<19;j++)
+    	for(int i=1;i<=n;i++)
+    		if(par[j][i] != -1)
+    			par[j+1][i] = par[j][par[j][i]];
+
+    tree_lo[0] = new Node(0, NULL, NULL);
+    tree_lo[0]->left = tree_lo[0]->right = tree_lo[0];
+
+    tree_hi[0] = new Node(0, NULL, NULL);
+    tree_hi[0]->left = tree_hi[0]->right = tree_hi[0];
+
+// cout<<"lo: ";for(int i=1;i<=n;i++)	cout<<lo[i]<<" ";cout<<endl;
+// cout<<"hi: ";for(int i=1;i<=n;i++)	cout<<hi[i]<<" ";cout<<endl;
+// cout<<"subtree_starts:\n";
+// for(int i=1;i<=n;i++){
+// 	cout<<i<<": ";for(auto sz : subtree_starts[i])	cout<<sz<<" ";cout<<endl;
+// }cout<<endl;
+// cout<<"subtree_ends:\n";
+// for(int i=1;i<=n;i++){
+// 	cout<<i<<": ";for(auto sz : subtree_ends[i])	cout<<sz<<" ";cout<<endl;
+// }cout<<endl;
+
+	for(int i=1;i<=n;i++){
+		tree_lo[i] = tree_lo[i-1];
+		for(auto sz : subtree_starts[i])
+			tree_lo[i] = tree_lo[i]->insert(1, n, sz);
+		tree_hi[i] = tree_hi[i-1];
+		for(auto sz : subtree_ends[i])
+			tree_hi[i] = tree_hi[i]->insert(1, n, sz);
+	}
+
+	calc(root);
+	for(int i=1;i<=n;i++)
+		printf("%d\n", ans[i]);
+    return 0;
+}
+

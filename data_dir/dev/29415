@@ -1,0 +1,115 @@
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+bool is_square(long long n) {
+  long long s = sqrt(n);
+  return s * s == n;
+}
+
+vector<long long> pf(long long n) {
+  vector<long long> res;
+  for (long long i = 2; i <= 1000000; i++) {
+    if (n % i == 0) {
+      res.push_back(i);
+      while (n % i == 0) {
+        n /= i;
+      }
+    }
+  }
+  if (n != 1) {
+    if (is_square(n)) {
+      n = sqrt(n);
+    }
+    res.push_back(n);
+  }
+  return res;
+}
+
+long long gcd(long long x, long long y) {
+  while (y != 0) {
+    long long tmp = x;
+    x = y;
+    y = tmp % y;
+  }
+  return x;
+}
+
+vector<long long> vec(vector<long long> &p, long long n) {
+  vector<long long> res(p.size());
+  for (int i = 0; i < res.size(); i++) {
+    while (n % p[i] == 0) {
+      res[i]++;
+      n /= p[i];
+    }
+  }
+  return res;
+}
+
+int main() {
+  int n;
+  long long X, Y;
+  cin >> n >> X >> Y;
+  auto py = pf(Y);
+  vector<long long> a(n);
+  for (int i = 0; i < n; i++) {
+    scanf("%lld", &a[i]);
+    if (py.empty()) continue;
+    long long g = gcd(py.back(), a[i]);
+    if (g != 1 && g != py.back()) {
+      py.back() /= g;
+      py.push_back(g);
+    }
+  }
+  if (Y % X != 0) {
+    cout << 0 << endl;
+    return 0;
+  }
+  const int m = py.size();
+  vector<long long> dp(1 << m);
+  vector<long long> vx = vec(py, X);
+  vector<long long> vy = vec(py, Y);
+  for (int i = 0; i < n; i++) {
+    if (Y % a[i] != 0) continue;
+    auto va = vec(py, a[i]);
+    int mask = 0;
+    for (int j = 0; j < m; j++) {
+      if (va[j] < vy[j]) {
+        mask |= 1 << j;
+      }
+    }
+    dp[mask]++;
+  }
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < 1 << m; j++) {
+      if (j >> i & 1) {
+        dp[j ^ 1 << i] += dp[j];
+      }
+    }
+  }
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < 1 << m; j++) {
+      if (~j >> i & 1) {
+        dp[j | 1 << i] -= dp[j];
+      }
+    }
+  }
+  long long ans = 0;
+  for (int i = 0; i < n; i++) {
+    auto va = vec(py, a[i]);
+    bool ok = true;
+    int mask = 0;
+    for (int j = 0; j < m; j++) {
+      ok &= va[j] >= vx[j];
+      if (va[j] > vx[j] && vx[j] < vy[j]) {
+        mask |= 1 << j;
+      }
+    }
+    if (!ok) continue;
+    ans += abs(dp[mask]);
+  }
+  cout << ans << endl;
+}

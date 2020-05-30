@@ -1,0 +1,130 @@
+#include<bits/stdc++.h>
+using namespace std;
+char s[1005][1005];
+int dist[1005][1005][8];
+int dist1[1005][1005];
+int dist2[1005][1005];
+int dist3[1005][1005];
+int n, m;
+priority_queue<pair<int, int> > pq;
+int dx[4] = {1, -1, 0, 0};
+int dy[4] = {0, 0, 1, -1};
+int get(char c) {
+	if (c == '1')
+		return 1;
+	if (c == '2')
+		return 2;
+	if (c == '3')
+		return 4;
+	return -1;
+}
+
+
+void dikstra(int src, int dist[1005][1005]) {
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			dist[i][j] = 10000000;
+	priority_queue<pair<int, int> > pq;
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			if (s[i][j] == src + '0')
+				pq.push(make_pair(0, i * m + j)), dist[i][j] = 0;
+	while (!pq.empty()) {
+		pair<int, int> X = pq.top(); pq.pop();
+		int y = X.second % m;
+		X.second /= m;
+		int x = X.second;
+		int cost = -X.first;
+		if (cost != dist[x][y])
+			continue;
+
+		for (int i = 0; i < 4; i++) {
+			int nx = x + dx[i];
+			int ny = y + dy[i];
+			int ncost = dist[x][y];
+			if (nx < 0 || nx >= n || ny < 0 || ny >= m || s[nx][ny] == '#')
+				continue;
+			if (s[nx][ny] == '.')
+				ncost++;
+			if (ncost >= dist[nx][ny])
+				continue;
+			dist[nx][ny] = ncost;
+			pq.push(make_pair(-ncost, nx * m + ny));
+		}
+	}
+
+}
+
+int main() {
+
+	ios::sync_with_stdio(false);
+
+	 scanf("%d%d", &n, &m);
+	for (int i = 0; i < n; i++)
+		scanf("%s", s[i]);
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			for (int k = 0; k < 8; k++)
+				dist[i][j][k] = 10000000;
+
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			if ('1' <= s[i][j] && s[i][j] <= '3')
+				pq.push(make_pair(0, i * (m * 8) + j * 8 + get(s[i][j]))), dist[i][j][get(s[i][j])] = 0;
+
+	int ans = -1;
+	while (!pq.empty()) {
+		pair<int, int> X = pq.top(); pq.pop();
+		int msk = X.second % 8;
+		X.second /= 8;
+		int y = X.second % m;
+		X.second /= m;
+		int x = X.second;
+		int cost = -X.first;
+//		cout << x << " " << y << " " << msk << " " << cost << endl;
+		if (cost != dist[x][y][msk])
+			continue;
+//		cout << "GO: " << x << " " << y << " " << msk << " " << cost << endl;
+		if (msk == 7) {
+			ans = dist[x][y][msk];
+			break;
+		}
+
+		for (int i = 0; i < 4; i++) {
+			int nx = x + dx[i];
+			int ny = y + dy[i];
+			int nmsk = msk;
+			int ncost = dist[x][y][msk];
+			if (nx < 0 || nx >= n || ny < 0 || ny >= m || s[nx][ny] == '#')
+				continue;
+			if (s[nx][ny] == '1')
+				nmsk |= 1;
+			if (s[nx][ny] == '2')
+				nmsk |= 2;
+			if (s[nx][ny] == '3')
+				nmsk |= 4;
+			if (s[nx][ny] == '.')
+				ncost++;
+			if (ncost >= dist[nx][ny][nmsk])
+				continue;
+//			cout << nx << " " << ny << " " << nmsk << " " << ncost << "!!" << endl;
+			dist[nx][ny][nmsk] = ncost;
+			pq.push(make_pair(-ncost, nx * m * 8 + ny * 8 + nmsk));
+		}
+	}
+	if (ans == -1) {
+		puts("-1");
+		return 0;
+	}
+	dikstra(1, dist1);
+	dikstra(2, dist2);
+	dikstra(3, dist3);
+
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			if (s[i][j] == '.')
+				ans = min(ans, dist1[i][j] + dist2[i][j] + dist3[i][j] - 2);
+	printf("%d\n", ans);
+
+	return 0;
+}

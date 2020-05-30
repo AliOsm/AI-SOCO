@@ -1,0 +1,24 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int P[3];
+    int C[3];
+    int nums[3][2];
+    int ans = 0;
+
+    scanf("%d%d%d", &P[0], &P[1], &P[2]);
+    scanf("%d%d%d", &C[0], &C[1], &C[2]);
+    for(int i=0; i<3; i++) {
+        scanf("%d%d", &nums[(i+1)%3][0], &nums[(i+1)%3][1]);
+    }
+
+    for(int i=0; i<3; i++) {
+        if(P[i] < 0)
+            ans += nums[i][0];
+        else if(P[i] > C[i])
+            ans += nums[i][1];
+    }
+
+    printf("%d\n", ans);
+}

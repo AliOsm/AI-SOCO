@@ -1,0 +1,170 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> pi;
+
+
+int root (vector<int>& r ,int i) {
+  while(r[i] != i) {
+    r[i] = r[r[ i ]]; // this is optional
+    i = r[i]; 
+  }
+  return i;
+}
+
+void wunion(vector<int>& r,vector<int>& size, int a, int b) {
+  int root_a = root(r, a);
+  int root_b = root(r, b);
+  if (root_a != root_b) {
+    if(size[root_a] < size[root_b]) {
+      r[root_a] = r[root_b];
+      size[root_b] += size[root_a];
+    }
+    else {
+      r[root_b] = r[root_a];
+      size[root_a] += size[root_b];
+    }
+  }
+}
+
+vector<vector<int> > jump, jumpc;
+vector<int> height;
+
+pi ancestor(int i, int j) {
+  int k = 0;
+  int re = 0;
+  while(j) {
+    if (j&1) {
+      re = max(re, jumpc[i][k]);
+      i = jump[i][k];
+    }
+    k++;
+    j >>= 1;
+  }
+  return pi(i, re);
+}
+
+int lca(int i, int j) {
+  int hmin = 0, hmax = 1 + min(height[i], height[j]);
+  while (hmax - hmin > 1) {
+    int hmid = (hmax + hmin) / 2;
+    pi x = ancestor(i, height[i] - hmid);
+    pi y = ancestor(j, height[j] - hmid);
+    if (x.first == y.first ) hmin = hmid;
+    else hmax = hmid;
+  }
+  return max(ancestor(i, height[i]- hmin).second, ancestor(j, height[j]-hmin).second); 
+}
+
+
+// int lca (int u, int v) {
+//     int logN = jump[u].size();
+//     int re = 0;
+//     if (height[u] < height[v]) swap(u, v);
+//     
+//     for (int i = logN - 1; i >= 0; i--)
+//         if (height[jump[u][i]] >= height[v]) {
+//             re = max(re, jumpc[u][i]);
+//             u = jump[u][i];
+//         }
+// 
+//     if (u == v) return re;
+// 
+//     for (int i = logN - 1; i >= 0; i--) {
+//         if (jump[u][i] != jump[v][i]) {
+//             re = max(re, jumpc[u][i]);
+//             u = jump[u][i];
+//             re = max(re, jumpc[v][i]);
+//             v = jump[v][i];
+//         }
+//     }
+// 
+//     return max(re, jumpc[u][0]);
+// }
+
+void initialize(int root,const vector<vector<pi > > & t ) {  
+  int n = t.size();
+  vector<int > pare(n), cpare(n);
+  height = vector<int>(n, -1);
+  stack<int> dfs;
+  height[root] = 0;
+  dfs.push(root);
+  pare[root] = root;
+  cpare[root] = 0;
+  
+  while (!dfs.empty()) {
+    int p = dfs.top();
+    dfs.pop();
+    for (pi f: t[p]) {
+      if (height[f.second] < 0) {
+        height[f.second] = height[p] + 1;
+        pare[f.second] = p;
+        cpare[f.second] = f.first;
+        dfs.push(f.second);
+      }
+    }
+  }
+  
+  int m = 1, maux = n; 
+  while (maux) {
+    maux >>= 1; 
+    m++;
+  }
+  jumpc = jump = vector<vector<int> >(n, vector<int>(m));
+  for (int i = 0; i < n; i++) {
+      jump[i][0] = pare[i];
+      jumpc[i][0] = cpare[i];
+  }
+  for (int j = 1; j < m; j++) {
+    for (int i = 0; i < n; i++) {
+      jump[i][j] = jump[ jump[i][j-1] ][j-1];
+      jumpc[i][j] = max(jumpc[i][j-1], jumpc[jump[i][j-1]][j-1]);
+    }
+  }
+ 
+}
+
+typedef pair<pi, pi> edge;
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(NULL); cout.precision(20);
+  int n, m;
+  cin >> n >> m;
+  vector<vector<pi> > g(n);
+  vector<edge>ed(m);
+  for (int i = 0; i <  m; i++) {
+    int x, y, e;
+    cin >> x >> y >> e;
+    x--; y--;
+    ed[i] = {pi(e, i), pi(x,y)}; 
+    g[y].push_back({e, x});
+    g[x].push_back({e, y});
+  }
+  sort (ed.begin(),ed.end());
+  vector<int> r(n), mida(n, 1);
+  for (int i = 0; i < n; i++)
+    r[i] = i;
+  vector<vector<pi> > t(n);
+  vector<int> pend;
+  for (int i = 0; i < m; i++) {
+    int x = ed[i].second.first, y = ed[i].second.second, e = ed[i].first.first;
+    if (root(r, x) == root(r, y)) pend.push_back(i);
+    else {
+      t[x].push_back({e,y});
+      t[y].push_back({e,x});
+      wunion(r, mida, x, y);
+    }
+  }
+  initialize(0, t);
+  vector<pi> sol;
+  for (int i: pend) {
+    int x = ed[i].second.first, y = ed[i].second.second, ind = ed[i].first.second;
+    sol.push_back({ind, lca(x,y)});
+  }
+  sort(sol.begin(), sol.end());
+  for (auto x: sol)
+    cout << x.second << "\n";
+  
+}
+

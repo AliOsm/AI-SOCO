@@ -1,0 +1,91 @@
+#include <cstdio>
+#include <set>
+#include <tuple>
+#include <algorithm>
+
+using namespace std;
+
+const int N = 200'009;
+
+int p[N];
+
+int find(int x) {
+  if (p[x] != x) {
+    p[x] = find(p[x]);
+  }
+  return p[x];
+}
+
+long long mn[N];
+tuple<long long, int, int> edges[N];
+
+int main() {
+  int n, m;
+  scanf("%d %d", &n, &m);
+  for (int i = 0; i < n; ++i) {
+    scanf("%lld", mn + i);
+  }
+  for (int i = 0; i < m; ++i) {
+    int x, y;
+    long long v;
+    scanf("%d %d %lld", &x, &y, &v);
+    --x;
+    --y;
+    edges[i] = make_tuple(v, x, y);
+  }
+  sort(edges, edges + m);
+  auto cmp = [](int i, int j) {
+    return mn[i] != mn[j] ? mn[i] < mn[j] : i < j;
+  };
+  set<int, decltype(cmp)> s(cmp);
+  for (int i = 0; i < n; ++i) {
+    p[i] = i;
+    s.insert(i);
+  }
+  long long ans = 0;
+  int i = 0;
+  while ((int)s.size() > 1) {
+    if (i < m) {
+      int xa = find(get<1>(edges[i]));
+      int ya = find(get<2>(edges[i]));
+      if (xa == ya) {
+        ++i;
+        continue;
+      }
+      long long v = get<0>(edges[i]);
+      int xb = *s.begin();
+      s.erase(s.begin());
+      int yb = *s.begin();
+      if (v < mn[xb] + mn[yb]) {
+        s.insert(xb);
+        ans += v;
+        if (s.count(xa) != 0) {
+          s.erase(xa);
+        }
+        if (s.count(ya) != 0) {
+          s.erase(ya);
+        }
+        p[ya] = xa;
+        mn[xa] = min(mn[xa], mn[ya]);
+        s.insert(xa);
+        ++i;
+      } else {
+        ans += mn[xb] + mn[yb];
+        s.erase(yb);
+        p[yb] = xb;
+        mn[xb] = min(mn[xb], mn[yb]);
+        s.insert(xb);
+      }
+    } else {
+      int xb = *s.begin();
+      s.erase(s.begin());
+      int yb = *s.begin();
+      ans += mn[xb] + mn[yb];
+      s.erase(yb);
+      p[yb] = xb;
+      mn[xb] = min(mn[xb], mn[yb]);
+      s.insert(xb);
+    }
+  }
+  printf("%lld\n", ans);
+}

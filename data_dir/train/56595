@@ -1,0 +1,164 @@
+#pragma comment(linker, "/STACK:2097152")
+
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <queue>
+#include <deque>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <complex>
+#include <memory.h>
+
+using namespace std;
+
+typedef long long LL;
+typedef vector<int> vint;
+typedef vector<vint> vvint;
+
+const int MOD = 1000 * 1000 * 1000 + 7;
+
+int n, m, k;
+int p[1 << 17], used[1 << 17];
+int c[1 << 17], cu[1 << 17];
+int cn[1 << 17];
+int tin[1 << 17], tout[1 << 17];
+int up[1 << 17][18];
+int paths[1 << 17];
+
+int T = 0;
+
+vvint G;
+vvint Gt;
+
+void cycle(int x, int to)
+{
+	while (x != to)
+	{
+		c[x] = to;
+		x = p[x];
+	}
+	cu[to] = 1;
+}
+
+void dfs(int x)
+{
+	used[x] = 1;
+	for(int i = 0; i < G[x].size(); ++i)
+	{
+		int to = G[x][i];
+		if (p[x] == to)
+			continue;
+		if (used[to] == 1)
+			cycle(x, to);
+		if (!used[to])
+		{
+			p[to] = x;
+			dfs(to);
+		}
+	}
+	used[x] = 2;
+}
+
+void go(int x, int cc)
+{
+	tin[x] = T++;
+	used[x] = 1;
+	int k = 1;
+	while (up[x][k - 1] != -1)
+	{
+		up[x][k] = up[up[x][k - 1]][k - 1];
+		k++;
+	}
+	cn[x] = cc + cu[x];
+	for(int i = 0; i < Gt[x].size(); ++i)
+	{
+		int to = c[Gt[x][i]];
+		if (!used[to])
+		{
+			up[to][0] = x;
+			go(to, cn[x]);
+		}
+	}
+	tout[x] = T++;
+}
+
+bool upper(int x, int y)
+{
+	return tin[x] <= tin[y] && tout[x] >= tout[y];
+}
+
+int LCA(int x, int y)
+{
+	if (upper(x, y))
+		return x;
+	if (upper(y, x))
+		return y;
+	for(int i = 17; i >= 0; --i)
+		if (up[x][i] != -1 && !upper(up[x][i], y))
+			x = up[x][i];
+	return up[x][0];
+}
+
+int main()
+{
+	paths[0] = 1;
+	for(int i = 1; i < 1 << 17; ++i)
+		paths[i] = (paths[i - 1] * 2) % MOD;
+	scanf("%d%d", &n, &m);
+	G.resize(n);
+	Gt.resize(n);
+	for(int i = 0; i < m; ++i)
+	{
+		int from, to;
+		scanf("%d%d", &from, &to);
+		from--, to--;
+		G[from].push_back(to);
+		G[to].push_back(from);
+	}
+	memset(p, -1, sizeof(p));
+	memset(used, 0, sizeof(used));
+	memset(cu, 0, sizeof(cu));
+	for(int i = 0; i < n; ++i)
+		c[i] = i;
+	dfs(0);
+	for(int i = 0; i < n; ++i)
+		for(int j = 0; j < G[i].size(); ++j)
+			Gt[c[i]].push_back(c[G[i][j]]);
+	memset(up, -1, sizeof(up));
+	memset(used, 0, sizeof(used));
+	memset(cn, 0, sizeof(cn));
+	go(c[0], 0);
+	scanf("%d", &k);
+	for(int i = 0; i < k; ++i)
+	{
+		int from, to;
+		scanf("%d%d", &from, &to);
+		from--, to--;
+		from = c[from], to = c[to];
+		if (from == to)
+		{
+			printf("2\n");
+			continue;
+		}
+		int v = LCA(from, to);
+		int t = 0;
+		t += cn[to] - cn[v];
+		t += cn[from] - cn[v];
+		t += cu[v];
+		printf("%d\n", paths[t]);
+	}
+	return 0;
+}

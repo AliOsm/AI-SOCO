@@ -1,0 +1,160 @@
+//marico el que lo lea
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <stdlib.h>
+#include <assert.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int, int> ii;
+
+void fastIO() {
+	std::ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+}
+
+#define FOR(i,f,t) for(int i=f; i<(int)t; i++)
+#define FORR(i,f,t) for(int i=f; i>(int)t; i--)
+#define FORE(i,c) for(auto i = (c).begin(); i != (c).end(); i++)
+#define pb push_back
+#define all(obj) obj.begin(), obj.end()
+#define ms(obj, val) memset(obj, val, sizeof(obj))
+#define ms2(obj, val, sz) memset(obj, val, sizeof(obj[0])*sz)
+
+#define fst first
+#define snd second
+
+template<typename T, typename U> inline void mnze(T &x, U y) { if(y < x) x = y; }
+template<typename T, typename U> inline void mxze(T &x, U y) { if(x < y) x = y; }
+
+void _scan( int &x ) { scanf("%d",&x); }
+void _scan( long long &x ) { scanf("%lld",&x); }
+void _scan( double &x ) { scanf("%lf",&x); }
+void _scan( char &x ) { scanf(" %c",&x); }
+void _scan( char *x ) { scanf("%s",x); }
+void scan() {}
+template<typename T, typename... U>
+void scan( T& head, U&... tail ) { _scan(head); scan(tail...);}
+
+template<typename T> void _dbg(const char* sdbg, T h) { cerr<<sdbg<<"="<<h<<"\n"; }
+template<typename T, typename... U> void _dbg(const char* sdbg, T h, U... t) {
+	while(*sdbg != ',')cerr<<*sdbg++; cerr<<"="<<h<<","; _dbg(sdbg+1, t...);
+}
+
+#ifdef LOCAL
+#define debug(...) _dbg(#__VA_ARGS__, __VA_ARGS__)
+#define debugv(x) {{cerr <<#x <<" = "; FORE(_i, (x)) cerr <<*_i <<", "; cerr <<"\n"; }}
+#define debuga(x, sz) {{cerr <<#x <<" = "; FOR(_i, 0, sz) cerr << x[_i] <<", "; cerr <<"\n"; }}
+#else
+#define debug(...) (__VA_ARGS__)
+#define debugv(x)
+#define debuga(x, sz)
+#define cerr if(0)cout
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+
+
+struct stnode{
+	int sum; 
+	stnode *l=NULL, *r=NULL;
+	void merge(){merge(*l, *r);}
+	void merge(stnode& L, stnode& R){sum = L.sum + R.sum;} ////////////////
+	void upd(int x){sum = x;} ////////////////
+};
+typedef stnode* pstnode;
+
+struct ST{
+	vector<pstnode> root, all;
+	int N;
+	void clear(){
+		FOR(i,0,all.size()) delete all[i];
+		all.clear(); root.clear();
+		N=0;
+	}
+	pstnode new_node(){
+		all.pb(new stnode());
+		return all.back();
+	}
+	void init(int n){
+		root.pb(new_node());
+		N = n;
+	}
+	void build(){build(root[0],0,N);}
+	void build(pstnode v, int l, int r){
+		if(r - l < 2){
+			v->upd(0); ////////////////
+			return;
+		}
+		int M = (l+r)>>1;
+		v->l = new_node();
+		v->r = new_node();
+		build(v->l, l, M); build(v->r, M, r);
+		v->merge();
+	}
+
+	int query(int x, int y, int ver){
+        if(x>=y) return 0;
+		return query(x,y,root[ver],0,N).sum; ////////////////
+	}
+	stnode query(int x, int y, pstnode v, int l, int r){
+		if(x == l && y == r)	return *v;
+		int M = (l+r)>>1;
+		if(x>=M)	return query(x,y,v->r,M,r);
+		if(y<=M)	return query(x,y,v->l,l,M);
+		stnode res,ln=query(x, M, v->l, l, M),rn=query(M, y, v->r, M, r);
+		return res.merge(ln, rn), res;
+	}
+
+	int update(int p, int x){
+		root.pb(update(p, x, root.back(), 0, N));
+		return root.size()-1;
+	}
+	pstnode update(int p, int x, pstnode v, int l, int r){
+		pstnode u = new_node();
+		if(r - l < 2){
+			u->upd(x);
+			return u;
+		}
+		int M = (l+r)>>1;
+		u->l = v->l, u->r = v->r;
+		if(p < M) u->l = update(p, x, v->l, l, M);
+		else u->r = update(p, x, v->r, M, r);
+		u->merge();
+		return u;
+	}
+};
+ll c2(ll n){
+    return n*(n-1)/2;
+}
+ST st;
+int n, q;
+
+int main(){
+    scan(n,q);
+    st.init(n+1);
+    st.build();
+    FOR(i,0,n){
+        int r; scan(r);
+        st.update(r,1);
+    }
+    FOR(_,0,q){
+        int l, d, r, u;
+        scan(l, d, r, u);
+        ll ans = c2(n) - c2(l-1) - c2(d-1) - c2(n-r) - c2(n-u)
+            + c2(st.query(1, d, l-1)) + c2(st.query(u+1, n+1, l-1))
+            + c2(st.query(1, d, n) - st.query(1, d, r)) 
+            + c2(st.query(u+1, n+1, n) - st.query(u+1, n+1, r));
+        printf("%lld\n", ans);
+    }
+}

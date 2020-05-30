@@ -1,0 +1,201 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	100000
+#define M	1000000
+#define LN	16	/* LN = floor(log2(N)) */
+#define INF	0x3f3f3f3f
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+int ii[M], jj[M], ww[M];
+
+int compare_h(const void *a, const void *b) {
+	int h1 = *(int *) a;
+	int h2 = *(int *) b;
+
+	return ww[h1] - ww[h2];
+}
+
+int dsu[N];
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+int join(int i, int j) {
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return 0;
+	if (dsu[i] > dsu[j])
+		dsu[i] = j;
+	else {
+		if (dsu[i] == dsu[j])
+			dsu[i]--;
+		dsu[j] = i;
+	}
+	return 1;
+}
+
+int oo[1 + (N - 1) * 2], oh[1 + (N - 1) * 2];
+
+int link(int o, int h) {
+	static int _ = 1;
+
+	oo[_] = o, oh[_] = h;
+	return _++;
+}
+
+int ae[N], dd[N], ff[N], pp[N][LN + 1], ww_[N][LN + 1], ta[N], tb[N];
+
+void dfs(int f, int p, int i, int d) {
+	static int time;
+	int o, k;
+
+	dd[i] = d, ff[i] = f;
+	if (f != -1) {
+		pp[i][0] = p;
+		ww_[i][0] = ww[f];
+		for (k = 1; 1 << k <= d; k++) {
+			int q = pp[i][k - 1];
+
+			pp[i][k] = pp[q][k - 1];
+			ww_[i][k] = max(ww_[i][k - 1], ww_[q][k - 1]);
+		}
+	}
+	ta[i] = time++;
+	for (o = ae[i]; o; o = oo[o]) {
+		int h = oh[o];
+
+		if (h != f) {
+			int j = i ^ ii[h] ^ jj[h];
+
+			dfs(h, i, j, d + 1);
+		}
+	}
+	tb[i] = time;
+}
+
+int query(int i, int j) {
+	int k, w;
+
+	if (dd[i] < dd[j])
+		return query(j, i);
+	w = -1;
+	for (k = LN; k >= 0; k--)
+		if (dd[i] - dd[j] >= 1 << k) {
+			w = max(w, ww_[i][k]);
+			i = pp[i][k];
+		}
+	if (i == j)
+		return w;
+	for (k = LN; k >= 0; k--)
+		if (dd[i] >= 1 << k && pp[i][k] != pp[j][k]) {
+			w = max(w, max(ww_[i][k], ww_[j][k]));
+			i = pp[i][k], j = pp[j][k];
+		}
+	w = max(w, max(ww_[i][0], ww_[j][0]));
+	return w;
+}
+
+struct V {
+	int h, l, r, w;
+} vv[M];
+
+int compare_V(const void *a, const void *b) {
+	struct V *u = (struct V *) a;
+	struct V *v = (struct V *) b;
+
+	return u->l != v->l ? u->l - v->l : v->h - u->h;
+}
+
+int st[N * 2], n;
+
+void pul(int i) {
+	st[i] = min(st[i << 1], st[i << 1 | 1]);
+}
+
+void st_update(int i, int x) {
+	i += n;
+	st[i] = min(st[i], x);
+	while (i > 1)
+		pul(i >>= 1);
+}
+
+int st_query(int l, int r) {
+	int x = INF;
+
+	for (l += n, r += n; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			x = min(x, st[l++]);
+		if ((r & 1) == 0)
+			x = min(x, st[r--]);
+	}
+	return x;
+}
+
+int main() {
+	static char tree[M];
+	static int hh[M], ans[M];
+	int m, m_, h, i, j, r;
+
+	scanf("%d%d", &n, &m);
+	for (h = 0; h < m; h++) {
+		scanf("%d%d%d", &ii[h], &jj[h], &ww[h]), ii[h]--, jj[h]--;
+		hh[h] = h;
+	}
+	qsort(hh, m, sizeof *hh, compare_h);
+	memset(dsu, -1, n * sizeof *dsu);
+	for (h = 0; h < m; h++) {
+		int h_ = hh[h];
+
+		i = ii[h_], j = jj[h_];
+		if (join(i, j)) {
+			tree[h_] = 1;
+			ae[i] = link(ae[i], h_), ae[j] = link(ae[j], h_);
+		}
+	}
+	dfs(-1, -1, 0, 0);
+	m_ = 0;
+	for (h = 0; h < m; h++)
+		if (!tree[h]) {
+			struct V *v;
+			int tmp;
+
+			i = ii[h], j = jj[h];
+			ans[h] = query(i, j);
+			if (ta[i] > ta[j])
+				tmp = i, i = j, j = tmp;
+			v = &vv[m_++], v->h = -1, v->l = ta[i], v->r = ta[j], v->w = ww[h];
+		} else
+			ans[h] = INF;
+	for (i = 1; i < n; i++) {
+		struct V *v;
+
+		v = &vv[m_++], v->h = ff[i], v->l = ta[i], v->r = tb[i] - 1, v->w = -1;
+	}
+	for (r = 0; r < 2; r++) {
+		qsort(vv, m, sizeof *vv, compare_V);
+		memset(st, 0x3f, n * 2 * sizeof *st);
+		for (h = 0; h < m; h++) {
+			struct V *v = &vv[h];
+
+			if (v->h == -1)
+				st_update(v->r, v->w);
+			else
+				ans[v->h] = min(ans[v->h], st_query(v->l, v->r));
+		}
+		for (h = 0; h < m; h++) {
+			struct V *v = &vv[h];
+			int tmp;
+
+			v->l = n - 1 - v->l, v->r = n - 1 - v->r;
+			tmp = v->l, v->l = v->r, v->r = tmp;
+		}
+	}
+	printf("%d\n", ans[0] == INF ? 1000000000 : ans[0]);
+	return 0;
+}

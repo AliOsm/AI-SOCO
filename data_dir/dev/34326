@@ -1,0 +1,204 @@
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <tuple>
+#include <iostream>
+
+using namespace std;
+
+const int mod = 1'000'000'007;
+
+inline int mul(int a, int b) {
+  return (int)((long long)a * b % mod);
+}
+
+inline int power(int a, int b) {
+  int res = 1;
+  while (b > 0) {
+    if (b % 2 == 1) {
+      res = mul(res, a);
+    }
+    a = mul(a, a);
+    b /= 2;
+  }
+  return res;
+}
+
+inline int inv(int a) {
+  return power(a, mod - 2);
+}
+
+const int N = 100'009;
+
+int ct;
+vector<int> g[N];
+int pa[N];
+int tin[N];
+int tout[N];
+
+void dfs(int x) {
+  tin[x] = ct++;
+  for (int y : g[x]) {
+    if (y != pa[x]) {
+      pa[y] = x;
+      dfs(y);
+    }
+  }
+  tout[x] = ct++;
+}
+
+inline bool anc(int x, int y) {
+  return tin[x] <= tin[y] && tout[x] >= tout[y];
+}
+
+const int LGN = 17;
+
+int kp[LGN][N];
+
+int lca(int x, int y) {
+  if (anc(x, y)) {
+    return x;
+  }
+  for (int i = LGN - 1; i >= 0; --i) {
+    if (!anc(kp[i][x], y)) {
+      x = kp[i][x];
+    }
+  }
+  return pa[x];
+}
+
+int st[N];
+int ans[N];
+
+const int MXV = 10'000'009;
+
+int d[MXV];
+vector<tuple<int, int, int>> w[MXV];
+
+const int LGV = 24;
+
+int cnt[LGV];
+
+int main() {
+  for (int i = 2; i < MXV; ++i) {
+    d[i] = i;
+  }
+  for (int i = 2; i * i < MXV; ++i) {
+    if (d[i] == i) {
+      for (int j = i * i; j < MXV; j += i) {
+        d[j] = i;
+      }
+    }
+  }
+  int n;
+  scanf("%d", &n);
+  for (int i = 0; i < n; ++i) {
+    g[i].clear();
+  }
+  for (int i = 0; i < n - 1; ++i) {
+    int x, y;
+    scanf("%d %d", &x, &y);
+    --x;
+    --y;
+    g[x].push_back(y);
+    g[y].push_back(x);
+  }
+  memset(pa, -1, sizeof pa);
+  pa[0] = 0;
+  ct = 0;
+  dfs(0);
+  for (int i = 0; i < n; ++i) {
+    kp[0][i] = pa[i];
+  }
+  for (int j = 1; j < LGN; ++j) {
+    for (int i = 0; i < n; ++i) {
+      kp[j][i] = kp[j - 1][kp[j - 1][i]];
+    }
+  }
+  for (int i = 0; i < MXV; ++i) {
+    w[i].clear();
+  }
+  for (int i = 0; i < n; ++i) {
+    int v;
+    scanf("%d", &v);
+    while (v > 1) {
+      int p = d[v];
+      int k = 0;
+      while (v % p == 0) {
+        v /= p;
+        ++k;
+      }
+      w[p].emplace_back(0, i, k);
+    }
+  }
+  int qq;
+  scanf("%d", &qq);
+  for (int i = 1; i <= qq; ++i) {
+    int x, y, v;
+    scanf("%d %d %d", &x, &y, &v);
+    --x;
+    --y;
+    int z = lca(x, y);
+    while (v > 1) {
+      int p = d[v];
+      int k = 0;
+      while (v % p == 0) {
+        v /= p;
+        ++k;
+      }
+      w[p].emplace_back(i, x, k);
+      w[p].emplace_back(i, y, k);
+      w[p].emplace_back(-i, z, k);
+      if (z != 0) {
+        w[p].emplace_back(-i, pa[z], k);
+      }
+    }
+  }
+  for (int i = 1; i <= qq; ++i) {
+    ans[i] = 1;
+  }
+  for (int i = 0; i < MXV; ++i) {
+    if (w[i].empty()) {
+      continue;
+    }
+    sort(w[i].begin(), w[i].end(), [](const auto &l, const auto &r) {
+      int xl = get<1>(l);
+      int xr = get<1>(r);
+      if (tin[xl] != tin[xr]) {
+        return tin[xl] < tin[xr];
+      }
+      return abs(get<0>(l)) < abs(get<0>(r));
+    });
+    memset(cnt, 0, sizeof cnt);
+    int sz = 0;
+    for (int j = 0; j < (int)w[i].size(); ++j) {
+      int x = get<1>(w[i][j]);
+      while (sz > 0 && !anc(get<1>(w[i][st[sz - 1]]), x)) {
+        --cnt[get<2>(w[i][st[sz - 1]])];
+        --sz;
+      }
+      int id = get<0>(w[i][j]);
+      int k = get<2>(w[i][j]);
+      if (id == 0) {
+        st[sz++] = j;
+        ++cnt[k];
+      } else {
+        int tot = 0;
+        for (int jj = 0; jj < LGV; ++jj) {
+          tot += min(k, jj) * cnt[jj];
+        }
+        int pw = power(i, tot);
+        if (id > 0) {
+          ans[id] = mul(ans[id], pw);
+        } else {
+          ans[-id] = mul(ans[-id], inv(pw));
+        }
+      }
+    }
+  }
+  for (int i = 1; i <= qq; ++i) {
+    printf("%d\n", ans[i]);
+  }
+}

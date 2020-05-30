@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MX = 200005;
+
+struct Segment {
+	int len, val;
+} seg[MX];
+
+int fwt[MX];
+void fwt_add(int i, int d) {
+	while (i < MX) {
+		fwt[i] += d;
+		i += i & -i;
+	}
+}
+int fwt_get(int i) {
+	int s = 0;
+	while (i) {
+		s += fwt[i];
+		i -= i & -i;
+	}
+	return s;
+}
+int fwt_get_kth(int k) {
+	int res = 0;
+	for (int i = 18; i >= 0; i--) {
+		if (res + (1 << i) < MX && fwt[res + (1 << i)] < k) {
+			res += (1 << i);
+			k -= fwt[res];
+		}
+	}
+	return res + 1;
+}
+
+struct Obj {
+	int len, pos;
+};
+bool operator< (Obj a, Obj b) {
+	if (a.len != b.len) return a.len > b.len;
+	return a.pos < b.pos;
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+
+	int segCnt = 0;
+	
+	int n;
+	cin >> n;
+	for (int i = 0, pr = -1; i < n; i++) {
+		int cur;
+		cin >> cur;
+		
+		if (cur != pr) {
+			segCnt++;
+			seg[segCnt].len = 1;
+			seg[segCnt].val = cur;
+		}
+		else {
+			seg[segCnt].len++;
+		}
+		pr = cur;
+	}
+	
+	set<Obj> S;
+	
+	for (int i = 1; i <= segCnt; i++) {
+		fwt_add(i, 1);
+		S.insert(Obj{seg[i].len, i});
+	}
+	
+	int ans = 0;
+	
+	while (segCnt > 0) {
+		Obj obj = *S.begin();
+		S.erase(obj);
+		int id = fwt_get(obj.pos);
+		
+		if (id > 1 && id < segCnt) {
+			int prPos = fwt_get_kth(id - 1);
+			int nxtPos = fwt_get_kth(id + 1);
+			
+			if (seg[prPos].val == seg[nxtPos].val) {
+				S.erase(Obj{seg[prPos].len, prPos});
+				S.erase(Obj{seg[nxtPos].len, nxtPos});
+				fwt_add(nxtPos, -1);
+				seg[prPos].len += seg[nxtPos].len;
+				S.insert(Obj{seg[prPos].len, prPos});
+				segCnt--;
+			}
+		}
+		
+		ans++;
+		fwt_add(obj.pos, -1);
+		segCnt--;
+	}
+	
+	cout << ans << "\n";
+}

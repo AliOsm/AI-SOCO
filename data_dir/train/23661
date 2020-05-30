@@ -1,0 +1,212 @@
+#pragma comment(linker, "/STACK:640000000")
+
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <iomanip>
+#include <cstdio>
+#include <cstdlib>
+#include <algorithm>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <list>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <cmath>
+#include <ctime>
+#include <cassert>
+#include <bitset>
+ 
+using namespace std;
+ 
+#define forn(i, n) for(int i = 0; i < (int)(n); i++)
+#define forn1(i, n) for(int i = 1; i <= (int)(n); i++)
+#define forr(i, l, r) for(int i = int(l); i <= int(r); i++)
+#define all(a) (a).begin(), (a).end()
+#define sz(a) (int)((a).size())
+#define mp make_pair
+#define pb push_back
+#define x first
+#define y second
+#define y1 __y1
+#define sqr(x) ((x) * (x))
+ 
+typedef long long li;
+typedef long double ld;
+typedef pair<int, int> pt;
+ 
+const int INF = (int)(1e9);
+const li INF64 = (li)(INF) * (li)(INF);
+const ld eps = 1e-9;
+const ld pi = ld(3.1415926535897932384626433832795);
+ 
+inline bool in(int i, int j, int n, int m) {
+    return i >= 1 && i <= n && j >= 1 && j <= m;
+}
+ 
+inline int myrand() {
+    return (rand() ^ (rand() << 15));
+}
+ 
+const int dx[] = {-1, 0, 1, 0};
+const int dy[] = {0, 1, 0, -1};
+ 
+const int N = 2e5 + 555;
+const int L = 3000;
+
+int n, m;
+vector<int> g[N];
+pair<int, pt> q[N];
+int val[N];
+
+inline void gen() {
+    return;
+}
+
+inline bool read() {
+	if(scanf("%d %d", &n, &m) != 2) return false;
+
+	forn1(i, n) assert(scanf("%d", &val[i]) == 1);
+
+	forn(i, n - 1) {
+		int u, v;
+		assert(scanf("%d %d", &u, &v) == 2);
+		g[u].pb(v);
+		g[v].pb(u);
+	}
+
+	forn1(i, m) {
+		int t;
+		assert(scanf("%d", &t) == 1);
+		if(t == 1) {
+			int v, x;
+			assert(scanf("%d %d", &v, &x) == 2);
+			q[i] = mp(t, mp(v, x));
+		} else {
+			int v;
+			assert(scanf("%d", &v) == 1);
+			q[i] = mp(t, mp(v, 0));
+		}
+	}
+    return true;
+}
+
+int depth[N];
+int a[N];
+int tin[N], tout[N], timer = 0;
+
+void dfs(int v, int p, int deep) {
+	tin[v] = timer++;
+	depth[v] = deep;
+	forn(i, sz(g[v])) {
+		int to = g[v][i];
+		if(to == p) continue;
+		dfs(to, v, deep + 1);
+	}
+
+	tout[v] = timer++;
+	return;
+}
+
+bool u[N];
+pt Q[N];
+
+inline void calc() {
+	forn1(i, n) u[i] = false;
+	u[1] = true;
+	int head = 0, tail = 1;
+	Q[head] = mp(1, 0);
+
+	while(head < tail) {
+		pt cc = Q[head++];
+		int v = cc.x;
+		int sum = cc.y;
+		sum += a[v];
+		val[v] += sum;
+		forn(i, sz(g[v])) {
+			int to = g[v][i];
+			if(!u[to]) {
+				u[to] = true;
+				Q[tail++] = mp(to, -sum);
+			}
+		}
+	}
+	return;
+}
+
+inline bool isAnc(int u, int v) {
+	return tin[u] <= tin[v] && tout[v] <= tout[u];
+}
+
+int used[L + 1];
+
+inline void solve() {
+	dfs(1, 0, 0);
+	int cnt = 0;
+	int l = 0;
+	int szused = 0;
+
+	for(int j = 1; j <= m; j++) {
+		int t = q[j].x;
+		if(t == 2) {
+			int ans = val[q[j].y.x];
+			int ii = cnt * L + 1;
+			int xx = 0;
+			forn(kk, szused) {
+				//xx++;
+				int i = used[kk];
+				//if(q[i].x == 2) continue;
+				int u = q[i].y.x;
+				int v = q[j].y.x;
+				if(!isAnc(u, v)) continue;
+				int add = q[i].y.y;
+				if((depth[v] - depth[u]) & 1) add = -add;
+				ans += add;
+			}
+			//assert(xx <= L);
+			printf("%d\n", ans);
+		} else {
+			a[q[j].y.x] += q[j].y.y;
+			used[szused++] = j;
+		}
+
+		l++;
+		if(l == L) {
+			calc();
+			forn(i, szused) a[q[used[i]].y.x] = 0;
+			szused = 0;
+			cnt++;
+			l = 0;
+		}
+	}	
+    return;
+}
+ 
+int main() {
+#ifdef _DEBUG
+    assert(freopen("input.txt", "rt", stdin));
+    assert(freopen("output.txt", "wt", stdout));
+#endif
+ 
+    cout << setprecision(10) << fixed;
+    cerr << setprecision(10) << fixed;
+ 
+    srand(int(time(NULL)));
+
+    int T = 1;
+    //assert(scanf("%d", &T) == 1);
+
+    forn(i, T) {
+        //cerr << "TEST == " << i + 1 << endl;
+        assert(read());
+        solve();
+    }
+ 
+#ifdef _DEBUG
+    cerr << "TIME == " << clock() << " ms" << endl;
+#endif
+    return 0;
+}

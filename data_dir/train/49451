@@ -1,0 +1,221 @@
+/*
+#####################################################
+# I will win.. maybe not immediately but definitely #
+#####################################################
+*/
+
+#include <bits/stdc++.h>
+using namespace std;
+
+//Optimizations
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+//save time
+#define endl '\n'
+#define db(x) cout << "> " << #x << ": " << x << endl;
+typedef long long ll;
+
+//for sorting
+#define all(a) a.begin(),a.end()
+
+//Constants
+#define PI   3.141592653593
+#define MOD  1000000007LL
+#define EPS  0.000000001
+#define INF  4e5+5
+
+//loops
+#define REP(i,n) 	    for(int i=0;i<(n);++i)
+#define FOR(i,a,b)      for(int i=(a);i<(b);++i)
+#define DFOR(i,a,b)     for(int i=(a);i>=(b);--i)
+
+//vectors
+#define vi vector<int>
+#define vll vector<ll>
+#define vii vector<pair<int,int>>
+#define vlll vector<pair<ll,ll>>
+#define pb 	push_back
+
+//pairs
+#define pi pair<int,int>
+#define pll pair<ll,ll>
+#define mp make_pair
+#define F first
+#define S second
+
+//fast I/O
+#ifndef _WIN32
+#define getchar getchar_unlocked
+#define putchar putchar_unlocked
+#endif
+#define gc getchar
+#define pc putchar
+
+//If using cin and cout
+#define IOS ios::sync_with_stdio(false)
+#define TIE cin.tie(NULL);cout.tie(NULL)
+
+//queue
+#define di deque<int>
+#define dll deque<ll>
+#define qi queue<int>
+#define PQ priority_queue
+
+//general
+#define E empty()
+
+//Declare all variables and methods needed between this comment and the next one(OCD lol)
+const int MAXN=100010;
+int segTree[MAXN<<2],idx[MAXN],revIdx[MAXN],dp[MAXN<<2],prevIdx[MAXN];
+void build(int low,int high,int pos){
+    int mid=(low+high)>>1;
+    if(low==high)
+        segTree[pos]=mid;
+    else{
+        build(low,mid,2*pos+1);
+        build(mid+1,high,2*pos+2);
+        segTree[pos]=dp[segTree[2*pos+1]]>dp[segTree[2*pos+2]]?segTree[2*pos+1]:segTree[2*pos+2];
+    }
+}
+
+void update(int low,int high,int pos,int qPos,int val){
+    int mid=(low+high)>>1;
+    if(qPos>high || qPos<low)
+        return ;
+    else if(low==high)
+        dp[qPos]=val;
+    else{
+        update(low,mid,2*pos+1,qPos,val);
+        update(mid+1,high,2*pos+2,qPos,val);
+        segTree[pos]=dp[segTree[2*pos+1]]>dp[segTree[2*pos+2]]?segTree[2*pos+1]:segTree[2*pos+2];
+    }
+}
+
+int query(int low,int high,int pos,int qLow,int qHigh){
+    int mid=(low+high)>>1;
+    if(qLow>high || qHigh<low)
+        return INF;
+    else if(qLow<=low && qHigh>=high)
+        return segTree[pos];
+    else{
+        int lIdx=query(low,mid,2*pos+1,qLow,qHigh);
+        int rIdx=query(mid+1,high,2*pos+2,qLow,qHigh);
+        return dp[lIdx]>dp[rIdx]?lIdx:rIdx;
+    }
+}
+//Main function
+int main(){
+    IOS;
+    TIE;
+
+    /*
+        I swear to god I will fucking kill myself if this code fails. Fuck my life.
+        I don't wanna die, Sometimes wish I've never been born at all.
+        At this point might as well kill myself.
+    */
+
+    ll n,d;
+    cin>>n>>d;
+
+    vll arr(n),tmp(n);
+    vlll sorted(n);
+    REP(i,n){
+        cin>>arr[i];
+        tmp[i]=arr[i];
+        sorted[i]=mp(arr[i],i);
+    }
+    sort(all(sorted));
+    sort(all(arr));
+
+    REP(i,n){
+        idx[sorted[i].S]=i;
+        revIdx[i]=sorted[i].S;
+    }
+
+    build(0,n-1,0);
+    dp[int(INF)]=-INF;
+
+    int maxLen=0,maxIdx=-1;
+    REP(i,n){
+        ll curEl=tmp[i];
+        int lIdx=upper_bound(all(arr),curEl-d)-arr.begin()-1;
+        int rIdx=lower_bound(all(arr),curEl+d)-arr.begin();
+
+        int leftMaxIdx=-1,rightMaxIdx=-1;
+        if(lIdx>=0)
+            leftMaxIdx=query(0,n-1,0,0,lIdx);
+        if(rIdx<n)
+            rightMaxIdx=query(0,n-1,0,rIdx,n-1);
+
+        if(leftMaxIdx==-1 && rightMaxIdx==-1){
+            update(0,n-1,0,idx[i],1);
+            prevIdx[i]=-1;
+
+            if(maxLen<1){
+                maxLen=1;
+                maxIdx=i;
+            }
+        }
+        else if(leftMaxIdx==-1){
+            update(0,n-1,0,idx[i],dp[rightMaxIdx]+1);
+            if(dp[rightMaxIdx])
+                prevIdx[i]=revIdx[rightMaxIdx];
+            else
+                prevIdx[i]=-1;
+
+            if(maxLen<dp[rightMaxIdx]+1){
+                maxLen=dp[rightMaxIdx]+1;
+                maxIdx=i;
+            }
+        }
+        else if(rightMaxIdx==-1){
+            update(0,n-1,0,idx[i],dp[leftMaxIdx]+1);
+            if(dp[leftMaxIdx])
+                prevIdx[i]=revIdx[leftMaxIdx];
+            else
+                prevIdx[i]=-1;
+
+            if(maxLen<dp[leftMaxIdx]+1){
+                maxLen=dp[leftMaxIdx]+1;
+                maxIdx=i;
+            }
+        }
+        else{
+            if(dp[leftMaxIdx]>dp[rightMaxIdx]){
+                prevIdx[i]=revIdx[leftMaxIdx];
+                update(0,n-1,0,idx[i],dp[leftMaxIdx]+1);
+
+                if(maxLen<dp[leftMaxIdx]+1){
+                    maxLen=dp[leftMaxIdx]+1;
+                    maxIdx=i;
+                }
+            }
+            else{
+                prevIdx[i]=revIdx[rightMaxIdx];
+                update(0,n-1,0,idx[i],dp[rightMaxIdx]+1);
+
+                if(maxLen<dp[rightMaxIdx]+1){
+                    maxLen=dp[rightMaxIdx]+1;
+                    maxIdx=i;
+                }
+            }
+        }
+
+        if(dp[idx[i]]==1)
+            prevIdx[i]=-1;
+    }
+    di ans;
+    while(maxIdx!=-1){
+        ans.push_front(maxIdx);
+        maxIdx=prevIdx[maxIdx];
+    }
+
+    cout<<ans.size()<<endl;
+    for(int x : ans)
+        cout<<x+1<<" ";
+    cout<<endl;
+
+    return 0;
+}

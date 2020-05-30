@@ -1,0 +1,31 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int limN = 1e3 +5;
+
+char strs[limN][7];
+
+int main() {
+    int N ;
+    bool funca = false;
+    
+    scanf("%d", &N);
+    for(int i=0; i<N; i++) {
+        scanf("%s", strs[i]);
+        for(int j=0; j<4 && !funca; j+=3) {
+            if(strs[i][j]=='O' && strs[i][j+1]=='O') {
+                funca  =true;
+                strs[i][j] = strs[i][j+1] = '+';
+            }
+        }
+    }
+
+    if(!funca) {
+        printf("NO\n");
+        return 0;
+    }
+
+    printf("YES\n");
+    for(int i=0; i<N; i++) {
+        printf("%s\n", strs[i]);
+    }
+}

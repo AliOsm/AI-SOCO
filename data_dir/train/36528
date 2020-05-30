@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e3 + 7;
+const int M = 1e4 + 7;
+const int INF = 2e9 + 7;
+
+int s[N], t[N], c[N];
+int id[N];
+vector<int> tim;
+
+int from[M], to[M], cap[M], cost[M], prv[M], head[M];
+int ecnt = 0;
+
+void add_edge(int u, int v, int uvcap, int uvcost)
+{
+    from[ecnt] = u, to[ecnt] = v, cap[ecnt] = uvcap, cost[ecnt] = uvcost , prv[ecnt] = head[u], head[u] = ecnt, ecnt++;
+    from[ecnt] = v, to[ecnt] = u, cap[ecnt] = 0    , cost[ecnt] = -uvcost, prv[ecnt] = head[v], head[v] = ecnt, ecnt++;
+}
+
+int d[N], par[N], q[N * N];
+bool mark[N];
+bool SPFA(int source, int sink)
+{
+    memset(d, 63, sizeof d);
+    int h = 0, t = 1;
+    q[0] = source;
+    d[source] = 0;
+    mark[source] = true;
+    while (h < t)
+    {
+        int v = q[h++];
+        mark[v] = false;
+        for (int i = head[v]; i != -1; i = prv[i])
+            if (cap[i] && d[to[i]] > d[v] + cost[i])
+            {
+                d[to[i]] = d[v] + cost[i];
+                par[to[i]] = i;
+                if (!mark[to[i]])
+                    q[t++] = to[i], mark[to[i]] = true;
+            }
+    }
+    if (d[sink] >= 1e9)
+        return false;
+    while (sink != source)
+    {
+        cap[par[sink]] -= 1;
+        cap[par[sink] ^ 1] += 1;
+        sink = from[par[sink]];
+    }
+    return true;
+}
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    int n, k;
+    cin >> n >> k;
+    for (int i=0; i<n; i++)
+    {
+        cin >> s[i] >> t[i] >> c[i];
+        t[i] += s[i];
+        tim.push_back(s[i]);
+        tim.push_back(t[i]);
+    }
+    sort(tim.begin(), tim.end());
+    tim.resize(unique(tim.begin(), tim.end()) - tim.begin());
+
+    memset(head, -1, sizeof head);
+    for (int i=0; i+1<tim.size(); i++)
+        add_edge(i, i+1, INF, 0);
+    for (int i=0; i<n; i++)
+    {
+        s[i] = lower_bound(tim.begin(), tim.end(), s[i]) - tim.begin();
+        t[i] = lower_bound(tim.begin(), tim.end(), t[i]) - tim.begin();
+        id[i] = ecnt;
+        add_edge(s[i], t[i], 1, -c[i]);
+    }
+    while (k--)
+        SPFA(0, tim.size()-1);
+    for (int i=0; i<n; i++)
+        if (cap[id[i]] == 0)
+            cout << "1 ";
+        else
+            cout << "0 ";
+    cout << "\n";
+    return 0;
+}

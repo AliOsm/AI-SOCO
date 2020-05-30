@@ -1,0 +1,80 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5+10;
+int n, k, arr[N], q;
+deque<int> table[N];
+
+struct node{
+	int sum;
+	node *lc, *rc;
+	node() {
+		sum = 0;
+		lc = rc = NULL;
+	}
+};
+using pnode = node*;
+pnode t[N], tmp;
+
+void build(pnode &cur, int L, int R) {
+	cur = new node();
+	cur->sum = 0;
+	if(L == R) return;
+	int mid = (L+R)>>1;
+	cur->lc = new node();
+	cur->rc = new node();
+	build(cur->lc, L, mid);
+	build(cur->rc, mid+1, R);
+}
+void upd(pnode &cur, pnode &pre, int L, int R, int pos, int x) {
+	cur = new node();
+	if(L == R) {
+		cur->sum = x;
+		return;
+	}
+	int mid = (L+R)>>1;
+	if(pos <= mid) {
+		cur->rc = pre->rc;
+		upd(cur->lc, pre->lc, L, mid, pos, x);
+	}
+	else {
+		cur->lc = pre->lc;
+		upd(cur->rc, pre->rc, mid+1, R, pos, x);
+	}
+	cur->sum = cur->lc->sum + cur->rc->sum;
+}
+
+int get(pnode &cur, int L, int R, int l, int r) {
+	if(!cur || r < L || R < l) return 0;
+	if(l <= L && R <= r) return cur->sum;
+	int mid = (L+R)>>1;
+	return get(cur->lc, L, mid, l, r) + get(cur->rc, mid+1, R, l, r);
+}
+
+int main() {
+	scanf("%d %d", &n, &k);
+	for(int i = 1; i <= n; i++)
+		scanf("%d", &arr[i]);
+	build(t[0], 1, n);
+
+	for(int i = 1; i <= n; i++) {
+		table[arr[i]].push_back(i);
+		if((int)table[arr[i]].size() > k) {
+			tmp = NULL;
+			upd(tmp, t[i-1], 1, n, i, 1);
+			upd(t[i], tmp, 1, n, table[arr[i]][0], 0);
+			table[arr[i]].pop_front();
+		}
+		else upd(t[i], t[i-1], 1, n, i, 1);
+	}
+	int last = 0;
+	scanf("%d", &q);
+	while(q--) {
+		int l, r; scanf("%d %d", &l, &r);
+		l = ((l + last) % n) + 1;
+		r = ((r + last) % n) + 1;
+		if(l > r) swap(l, r);
+		last = get(t[r], 1, n, l, r);
+		printf("%d\n", last);
+	} return 0;
+}

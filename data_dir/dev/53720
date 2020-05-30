@@ -1,0 +1,290 @@
+#include <bits/stdc++.h>
+#include <ctime>
+
+using namespace std;
+
+#define ALL(x) x.begin(), x.end()
+#define bits(x) __builtin_popcount(x)
+#define bitsll(x) __builtin_popcountll(x)
+#define precision(a) fixed << setprecision(a)
+
+typedef long long ll;
+typedef long double ld;
+typedef unsigned int uint;
+typedef unsigned long long ull;
+typedef pair <int, int> pii;
+typedef vector <int> vi;
+
+template <class T>
+inline T sqr (T x) {
+	return x * x;
+}
+
+template <class T>
+inline bool isSquare (T x) {
+	T y = sqrt(x + 0.5);
+	return (y * y) == x;
+}
+
+template <class T1, class T2>
+inline T1 gcd (T1 a, T2 b) {
+	return b ? gcd(b, a % b) : a;
+}
+
+template <class T1, class T2>
+inline T1 eqMin (T1 & x, const T2 & y) {
+	if (T1(y) < x)
+		return x = y;
+	return x;
+}
+
+template <class T1, class T2>
+inline T1 eqMax (T1 & x, const T2 & y) {
+	if (T1(y) > x)
+		return x = y;
+	return x;
+}
+
+template <class T1, class T2>
+inline T1 min (const T1 & x, const T2 & y) {
+	return x < (T1) y ? x : (T1) y;
+}
+
+template <class T1, class T2>
+inline T1 max (T1 & x, const T2 & y) {
+	return x > (T1) y ? x : (T1) y;
+}
+
+template <typename T>
+inline T getint () {
+	T x = 0, p = 1;
+	char ch;
+	do {
+		ch = getchar();
+	} while (ch <= ' ');
+	if (ch == '-')
+		p = -1, ch = getchar();
+	while (ch >= '0' && ch <= '9')
+		x = x * 10 + ch - '0', ch = getchar();
+	return x * p;
+}
+
+struct _flag_t {
+	string val;
+};
+const _flag_t _1d{", "}, _2d{"\n  "};
+_flag_t _flag_d = _1d;
+_flag_t _flag = _1d;
+
+ostream & operator<< (ostream & os, _flag_t flag) {
+	_flag = flag;
+	return os;
+}
+
+template <class Os, class It>
+Os & _out (Os & os, It f, It l) {
+	if (f == l) return os << "{}";
+	_flag_t cur_flag = _flag;
+	os << _flag_d << "{ " << *f++;
+	for (; f != l; os << cur_flag.val << *f++);
+	return os << " }";
+}
+
+template <class Os, class T>
+auto operator<< (Os & os, const T & v) -> decltype(begin(v), end(v), os) {return _out(os, begin(v), end(v));}
+
+template <class Os, class T, size_t N>
+auto operator<< (Os & os, const array <T, N> & v) -> decltype(begin(v), end(v), os) {return _out(os, begin(v), end(v));}
+
+template <size_t I = 0, bool B = false, class Os, class T>
+auto _out_tuple (Os & os, const T & tup) -> typename enable_if <(I == 0), Os &>::type {
+	return os << get <I>(tup) << (B ? ", " : "");
+}
+
+template <size_t I = 0, bool B = false, class Os, class T>
+auto _out_tuple (Os & os, const T & tup) -> typename enable_if <(I > 0), Os &>::type {
+	return _out_tuple <I - 1, true>(os, tup) << get <I>(tup) << (B ? ", " : "");
+}
+
+template <class Os, class T>
+auto operator<< (Os & os, const T & tup) -> decltype(get <tuple_size <T>::value - 1>(tup), os) {
+	return os << "[", _out_tuple <tuple_size <T>::value - 1>(os, tup) << "]";
+}
+
+const double PI = acos(-1);
+const double EPS = 1e-8;
+const int INF = (int) 2e9;
+const int MOD = (int) 1e9 + 7;
+const int MAXN = (int) 1e5 + 10;
+
+int n, q, m;
+vector <int> d[MAXN];
+vector <int> order;
+int pos[MAXN], dist[MAXN];
+vector <pair <int, int>> quests;
+pii mi[MAXN * 4], ma[MAXN * 4];
+int t[MAXN * 8];
+
+inline pii fooMin (const pii & resl, const pii & resr) {
+	if (resl.first == -1) {
+		return resr;
+	}
+	if (resr.first == -1) {
+		return resl;
+	}
+	if (pos[resl.first] < pos[resr.first]) {
+		if (resl.second == -1 || pos[resl.second] > pos[resr.first]) {
+			return {resl.first, resr.first};
+		}
+		return {resl.first, resl.second};
+	}
+	if (resr.second == -1 || pos[resr.second] > pos[resl.first]) {
+		return {resr.first, resl.first};
+	}
+	return {resr.first, resr.second};
+}
+
+inline pii fooMax (const pii & resl, const pii & resr) {
+	if (resl.first == -1) {
+		return resr;
+	}
+	if (resr.first == -1) {
+		return resl;
+	}
+	if (pos[resl.first] > pos[resr.first]) {
+		if (resl.second == -1 || pos[resl.second] < pos[resr.first]) {
+			return {resl.first, resr.first};
+		}
+		return {resl.first, resl.second};
+	}
+	if (resr.second == -1 || pos[resr.second] < pos[resl.first]) {
+		return {resr.first, resl.first};
+	}
+	return {resr.first, resr.second};
+}
+
+pii buildMin (int v, int l, int r) {
+	if (l == r) {
+		return mi[v] = {l, -1};
+	}
+	int md = (l + r) >> 1;
+
+	return mi[v] = fooMin(buildMin(v + v, l, md), buildMin(v + v + 1, md + 1, r));
+}
+
+pii buildMax (int v, int l, int r) {
+	if (l == r) {
+		return ma[v] = {l, -1};
+	}
+	int md = (l + r) >> 1;
+
+	return ma[v] = fooMax(buildMax(v + v, l, md), buildMax(v + v + 1, md + 1, r));
+}
+
+int build (int v, int l, int r) {
+	if (l == r) {
+		return t[v] = order[l];
+	}
+	int md = (l + r) >> 1;
+	int pl = build(v + v, l, md), pr = build(v + v + 1, md + 1, r);
+	return t[v] = dist[pl] < dist[pr] ? pl : pr;
+}
+
+pii getMin (int v, int l, int r, int tl, int tr) {
+	if (tl <= l && r <= tr) {
+		return mi[v];
+	}
+	if (l > tr || r < tl) {
+		return {-1, -1};
+	}
+
+	int md = (l + r) >> 1;
+	return fooMin(getMin(v + v, l, md, tl, tr), getMin(v + v + 1, md + 1, r, tl, tr));
+}
+
+pii getMax (int v, int l, int r, int tl, int tr) {
+	if (tl <= l && r <= tr) {
+		return ma[v];
+	}
+	if (l > tr || r < tl) {
+		return {-1, -1};
+	}
+
+	int md = (l + r) >> 1;
+	return fooMax(getMax(v + v, l, md, tl, tr), getMax(v + v + 1, md + 1, r, tl, tr));
+}
+
+int get (int v, int l, int r, int tl, int tr) {
+	if (tl <= l && r <= tr) {
+		return t[v];
+	}
+	if (l > tr || r < tl) {
+		return 0;
+	}
+
+	int md = (l + r) >> 1;
+	int pl = get(v + v, l, md, tl, tr), pr = get(v + v + 1, md + 1, r, tl, tr);
+	return dist[pl] < dist[pr] ? pl : pr;
+}
+
+void input () {
+	dist[0] = INF;
+	cin >> n >> q;
+	for (int i = 2; i <= n; i++) {
+		int p;
+		cin >> p;
+		d[p].push_back(i);
+	}
+	for (int i = 1; i <= q; i++) {
+		int l, r;
+		cin >> l >> r;
+		quests.emplace_back(l, r);
+	}
+}
+
+void dfs (int v, int len = 0) {
+	order.push_back(v);
+	dist[v] = len;
+	pos[v] = (int) order.size() - 1;
+	for (auto to : d[v]) {
+		dfs(to, len + 1);
+		order.push_back(v);
+	}
+	m = (int) order.size() - 1;
+}
+
+void solve (int l, int r) {
+	auto mi = getMin(1, 1, n, l, r), ma = getMax(1, 1, n, l, r);
+	int high = -1, ans = l;
+
+	{
+		int v = get(1, 0, m, pos[mi.second], pos[ma.first]);
+		if (dist[v] > high) {
+			high = dist[v], ans = mi.first;
+		}
+	}
+	{
+		int v = get(1, 0, m, pos[mi.first], pos[ma.second]);
+		if (dist[v] > high) {
+			high = dist[v], ans = ma.first;
+		}
+	}
+
+	cout << ans << ' ' << high << endl;
+}
+
+void solve () {
+	for (auto quest : quests) {
+		solve(quest.first, quest.second);
+	}
+}
+
+int main () {
+	ios_base::sync_with_stdio(false);
+	input();
+	dfs(1);
+	buildMin(1, 1, n);
+	buildMax(1, 1, n);
+	build(1, 0, m);
+	solve();
+}

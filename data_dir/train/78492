@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using pii = pair<int,int>;
+
+#define fi first
+#define se second
+#define eb emplace_back
+#define all(x) x.begin(), x.end()
+
+int const N = 100 * 1000 + 16;
+int const M = 1000 * 1000 * 1000 + 7;
+int const M2 = 999999983;
+
+template<int p, int mod>
+class string_hash {
+public:
+  int n;
+  vector<int> f;
+  vector<int> h;
+
+  constexpr static bool is_mersenne(ll x) {
+    return not (x&(x+1));
+  }
+
+  constexpr static bool is_power_of_two(ll x) {
+    return not (x&(x-1));
+  }
+
+  template<int z = mod, int o = __builtin_popcount(z)>
+  inline static enable_if_t<is_mersenne(z), ll> fix(ll x) {
+    x = (x >> o) + (x & mod);
+    x = (x >> o) + (x & mod);
+    return x;
+  }
+
+  template<int z = mod> 
+  inline static enable_if_t<is_power_of_two(z), ll> fix(ll x) {
+    return x & (mod-1);
+  }
+ 
+  template<int z = mod> 
+  inline static enable_if_t<not (is_power_of_two(z) || is_mersenne(z)), ll> fix(ll x) {
+    return x%mod;
+  }
+
+  template<class iter> 
+  static int hash_of(iter l, iter r) {
+    ll x = 0;
+    for(iter it = l; it != r; ++it)
+      x = fix(x*p + *it - 'a' + 1);
+    return x;
+  }
+
+  template<class iter>
+  string_hash(iter l, iter r) {
+    n = distance(l, r);
+    assert(n >= 0);
+    h.assign(n+1, 0);
+    f.assign(n+1, 1);
+
+    ll x = 1, y = 0;
+    iter it = l;
+    for(int i = 0; i < n; ++i, ++it) {
+      f[i+1] = x = fix(x * p);
+      h[i+1] = y = fix(y*p + (*it) - 'a' + 1);
+    }
+  }
+
+  int query(int l, int r) {
+    ll x = fix(h[r+1] - fix(1ll * h[l] * f[r-l+1]));
+    return fix(x+mod);
+  }
+};
+
+int main() {
+  cin.tie(0);
+  cin.sync_with_stdio(0);
+
+  string t, sb, se;
+  cin >> t >> sb >> se;
+
+  string tsb = sb+"$"+t;
+  string tse = se+"$"+t;
+
+  int n = t.size();
+
+  vector<int> zb(tsb.size());
+  vector<int> ze(tse.size());
+
+  vector<bool> a(n);
+  vector<bool> b(n);
+
+  for(int i = 1, j = 0; i < tsb.size(); ++i) {
+    while(j && tsb[i] != tsb[j])
+      j = zb[j-1];
+
+    j += (tsb[i] == tsb[j]);
+    zb[i] = j;
+
+    if(j == sb.size())
+      a[i-int(sb.size())-1] = true;
+  }
+
+  for(int i = 1, j = 0; i < tse.size(); ++i) {
+    while(j && tse[i] != tse[j])
+      j = ze[j-1];
+
+    j += (tse[i] == tse[j]);
+    ze[i] = j;
+
+    if(j == se.size())
+      b[i-int(se.size())-1] = true;
+  }
+
+  vector<int> v;
+  vector<pair<int,int>> s;
+  s.reserve(2000 * 1000);
+
+  // for(int i = 0; i <= 2020; ++i) {
+  //   s[i].max_load_factor(0.7);
+  // }
+
+  // bool lol = sb==se;
+
+  string_hash<31, M> hs1(t.begin(), t.end());
+  string_hash<257, M2> hs2(t.begin(), t.end());
+
+  for(int i = sb.size()-1; i < n; ++i) {
+    if(a[i]) {
+      v.emplace_back(i-int(sb.size())+1);
+    }
+
+    if(b[i]) {
+      for(int x : v) {
+        if(x > i-int(se.size())+1)
+          continue;
+        x += sb.size()-1;
+        int y = i-se.size()+1;
+        int len = max(0,y-x+1);
+        int l = x;
+        int r = x+len-1;
+        // s[len].insert(t.substr(x, y-x+1));
+        s.emplace_back(hs1.query(l, r), hs2.query(l, r));
+      }
+    }
+  }
+
+  sort(s.begin(), s.end());  
+  cout << distance(s.begin(), unique(s.begin(), s.end()));
+}

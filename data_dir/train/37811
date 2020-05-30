@@ -1,0 +1,180 @@
+// In the name of Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+pair<ll , ll> dp[20][2][2][1030];
+ll MOD = 998244353;
+vector<ll>v;
+ll l , r , k;
+
+void mem()
+{
+    for(int i=0;i<20;i++){
+
+        for(int j=0;j<2;j++){
+
+            for(int k=0;k<2;k++){
+
+                for(int l=0;l<1030;l++){
+
+                    dp[i][j][k][l].first = -1;
+                }
+            }
+        }
+    }
+}
+
+void make(ll x)
+{
+    v.clear();
+    while(x){
+
+        v.push_back(x%10);
+        x/=10;
+    }
+
+    if(v.size()==0)v.push_back(0);
+    reverse(v.begin() , v.end());
+}
+
+int cnt(int x)
+{
+    int counter = 0;
+    while(x){
+
+        if(x%2==1)counter++;
+        x/=2;
+    }
+    return counter;
+}
+
+int Set(int n , int pos)
+{
+    return n|(1<<pos);
+}
+
+ll p(ll x)
+{
+    ll now = 1;
+    for(int i=0;i<x;i++){now*=10LL;now%=MOD;}
+    return now;
+}
+
+pair<ll,ll> f(int i , int smaller ,int first , int mask)
+{
+    if(i==v.size()){
+
+        if(cnt(mask)<=k)return make_pair(0 , 1);
+        return make_pair(0 , 0);
+    }
+    if(dp[i][smaller][first][mask].first!=-1)return dp[i][smaller][first][mask];
+
+    pair<ll , ll>value;
+    pair<ll , ll>temp;
+    value.first = 0 , value.second = 0;
+
+    int lim = v[i];
+    if(smaller==1)lim = 9;
+
+    for(ll j=0;j<=lim;j++){
+
+        if(j<lim){
+
+            if(j==0){
+
+                if(first==1){
+
+                    temp = f(i+1 , 1 , first , Set(mask , j));
+                    value.second =+ temp.second;
+                    value.second%=MOD;
+
+                    value.first+=temp.first;
+                    value.first+=j*p(v.size()-i-1)*temp.second;
+                    value.first%=MOD;
+                }
+                else{
+
+                    temp = f(i+1 , 1 , first , mask);
+                    value.second += temp.second;
+                    value.second%=MOD;
+
+                    value.first+=temp.first;
+                    value.first+=j*p(v.size()-i-1)*temp.second;
+                    value.first%=MOD;
+                }
+            }
+            else{
+
+                temp = f(i+1 , 1 , 1 , Set(mask , j));
+                value.second += temp.second;
+                value.second%=MOD;
+
+                value.first+=temp.first;
+                value.first+=j*p(v.size()-i-1)*temp.second;
+                value.first%=MOD;
+            }
+        }
+        else{
+
+            if(j==0){
+
+                if(first==1){
+
+                    temp = f(i+1 , smaller , first*temp.second , Set(mask , j));
+                    value.second += temp.second;
+                    value.second%=MOD;
+
+                    value.first+=temp.first;
+                    value.first+=j*p(v.size()-i-1)*temp.second;
+                    value.first%=MOD;
+                }
+                else{
+                    temp = f(i+1 , smaller , first , mask);
+                    value.second += temp.second;
+                    value.second%=MOD;
+
+                    value.first+=temp.first;
+                    value.first+=j*p(v.size()-i-1)*temp.second;
+                    value.first%=MOD;
+                }
+            }
+            else{
+
+                temp = f(i+1 , smaller , 1 , Set(mask , j));
+                value.second += temp.second;
+                value.second%=MOD;
+
+                value.first+=temp.first;
+                value.first+=j*p(v.size()-i-1)*temp.second;
+                value.first%=MOD;
+            }
+        }
+    }
+
+    value.second%=MOD;
+    return dp[i][smaller][first][mask] = value;
+}
+
+int main(void)
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);cout.tie(0);
+
+    cin >> l >> r >> k;
+
+    make(l-1);
+
+    mem();
+    ll a = f(0 , 0 , 0 , 0).first;
+
+    make(r);
+    mem();
+    ll b = f(0 , 0 , 0 , 0).first;
+
+    cout << ((b-a)+MOD)%MOD << endl;
+
+    return 0;
+}

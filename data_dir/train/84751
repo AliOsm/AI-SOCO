@@ -1,0 +1,134 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N= 1e5 + 5;
+vector<vector<int > > g,G;
+int low[N],idx[N],id= 1,cmp,dp[18][N],sz[N],d[N],pp[N],M= 1000000007;
+bool vis[N];
+int cyc[N];
+void dfs(int u,int p){
+
+	low[u]= idx[u]= id++;
+	vis[u]= true;
+	for(int i= 0;i < g[u].size();i++){
+		int v= g[u][i];
+		if( !idx[v] && v != p && !vis[v]){
+			dfs(v,u);
+			low[u]= min(low[u],low[v]);
+		}
+		if(vis[v] && v != p){
+			low[u]= min(low[u],idx[v]);
+		}
+	}
+}
+
+void dfs2(int u,int p){
+
+	dp[0][u]= p;
+	sz[u]= (cyc[u] > 1 ? 1:0);
+	if(p != -1)
+		sz[u]+= sz[p];
+	for(int i= 0;i < G[u].size();i++){
+		int v= G[u][i];
+		if(v != p){
+			d[v]= d[u] + 1;
+			dfs2(v,u);
+		}
+	}
+}
+
+int lca(int a,int b){
+	if(d[a] < d[b])
+		swap(a,b);
+	int l= 0;
+	while((1 << l) <= d[a])
+		++l;
+	--l;
+	for(int i= l;i >= 0;--i)
+		if(d[a] - (1 << i) >= d[b])
+			a= dp[i][a];
+	if(a == b)
+		return a;
+	for(int i= l;i >= 0;--i)
+		if(dp[i][a] != dp[i][b]){
+			a= dp[i][a];
+			b= dp[i][b];
+		}
+	return dp[0][a];
+}
+
+int main(){
+
+//	freopen("readin.txt","r",stdin);
+
+	pp[0]= 1;
+	pp[1]= 2;
+	for(int i= 2;i < N;i++){
+		pp[i]= pp[i - 1] * 2;
+		pp[i]%= M;
+	}
+	int n,m;
+	scanf("%d%d", &n, &m);
+	g.resize(n);
+	for(int i= 0,a,b;i < m;i++){
+		scanf("%d%d", &a, &b);
+		a--,b--;
+		g[a].push_back(b);
+		swap(a,b);
+		g[a].push_back(b);
+	}
+	dfs(0, -1);
+	G.resize(n + 2);
+	int st= 1;
+	for(int i= 0;i < n;i++){
+		cyc[low[i]]++;
+		for(int j= 0;j < g[i].size();j++){
+			if(low[i] != low[g[i][j]] && i < g[i][j]){
+				st= low[i];
+				G[low[i]].push_back(low[g[i][j]]);
+				G[low[g[i][j]]].push_back(low[i]);
+			}
+		}
+	}
+	dfs2(st, -1);
+	for(int i= 1;i < 18;i++){
+		for(int u= 0;u <= n;u++){
+			if(dp[i - 1][u] == -1)
+				dp[i][u]= -1;
+			else
+				dp[i][u]= dp[i - 1][dp[i - 1][u]];
+		}
+	}
+
+	int k;
+	scanf("%d", &k);
+	for(int i= 0,a,b;i < k;i++){
+		scanf("%d%d", &a, &b);
+		a--,b--;
+		a= low[a];
+		b= low[b];
+		if(a == b){
+			puts("2");
+			continue;
+		}
+		int c= lca(a,b);
+		if(c == b || c == a){
+			int l;
+			if(a == c)
+				l= b;
+			if(b == c)
+				l= a;
+			int ans= sz[l] - sz[c];
+			if(cyc[c] > 1)
+				ans++;
+			printf("%d\n",pp[ans]);
+			continue;
+		}
+		int ans= sz[a] + sz[b] - 2 * sz[c];
+		if(cyc[c] > 1)
+			ans++;
+
+		printf("%d\n",pp[ans]);
+	}
+	return 0;
+}

@@ -1,0 +1,125 @@
+#include<bits/stdc++.h>
+#define ALL(c) begin(c), end(c)
+using namespace std;
+using ll = long long;
+using ld = long double;
+
+
+struct dsu{
+    vector<int> p,sz,o;
+    dsu(int n):sz(n,1),p(n),o(n,0){
+        for(int i=0;i<n;++i) p[i]=i;
+    }
+    int get(int i){
+        if(i==p[i]) return i;
+        int v = get(p[i]);
+        o[i] ^= o[p[i]];
+        return p[i]=v;
+    }
+    bool unite(int i, int j, int tp){
+        //cerr<<"+ "<<i<<' '<<j<<' '<<tp<<endl;
+        int vi = get(i);
+        int vj = get(j);
+        if(vi==vj) return false;
+        tp^=o[i]^o[j];
+        i=vi; j=vj;
+        if(sz[i]<sz[j]) swap(i,j);
+        //cerr<<i<<" <- "<<j<<endl;
+        p[j] = i;
+        o[j] = tp;
+        sz[i]+=sz[j];
+        return true;
+    }
+};
+
+
+int main(){
+    //freopen("input.txt","r",stdin); //freopen("output.txt","w",stdout);
+    ios::sync_with_stdio(0);cin.tie(0);//cout.precision(12);cout<<fixed;
+    
+    int n, m;
+    
+    cin>>n>>m;
+    
+    vector<vector<int>> f(m);
+    
+    string s;
+    cin>>s;
+    
+    vector<set<int>> uu(n);
+    
+    for(int k=0;k<m;++k){
+        int h;
+        cin>>h;
+        for(int i=0;i<h;++i){
+            int x;
+            cin>>x;
+            --x;
+            f[k].push_back(x);
+            uu[x].insert(k);
+        }
+        sort(ALL(f[k]));
+    }
+    
+    dsu z(m);
+    
+    vector<int> sl(m,1), sr(m);
+    
+    int answer = 0, inf = 1e9;
+    vector<int> ans(n);
+    for(int i=0; i<n; ++i){
+        
+        int w = (s[i]=='0');
+        
+        if(size(uu[i])==1){
+            int a = *begin(uu[i]);
+            int va = z.get(a);
+            answer-=min(sl[va],sr[va]);
+            if(w){
+                if(z.o[a]==0) sr[va] = inf; else sl[va] = inf;
+            }else{
+                if(z.o[a]==1) sr[va] = inf; else sl[va] = inf;
+            }
+            answer+=min(sl[va],sr[va]);
+            //cerr<<i<<' '<<"!"<<a<<' '<<z.o[a]<<' '<<va<<' '<<sl[va]<<' '<<sr[va]<<endl;
+        }else
+        if(size(uu[i])==2){
+            int a = *begin(uu[i]);
+            int b = *rbegin(uu[i]);
+            int va = z.get(a);
+            int vb = z.get(b);
+            
+            if(va!=vb){
+                if(z.sz[va] < z.sz[vb]) swap(va,vb);
+                
+                int L1 = sl[va], R1 = sr[va];
+                int L2 = sl[vb], R2 = sr[vb];
+                answer-=min(L1,R1);
+                answer-=min(L2,R2);
+                
+                if((z.o[a]^z.o[b])!=w) swap(L2,R2);
+                
+                answer+=min(L1+L2,R1+R2);
+                
+                z.unite(a,b,w);
+                va = z.get(a);
+                sl[va] = min(L1+L2,inf);
+                sr[va] = min(R1+R2,inf);
+                
+                //cerr<<"?"<<i<<' '<<va<<": "<<sl[va]<<' '<<sr[va]<<endl;
+            }else{
+                //cerr<<"?"<<a<<' '<<b<<' '<<w<<endl;
+                assert((z.o[a]^z.o[b])==w);
+            }
+        }
+        
+        ans[i] = answer;
+    }
+    
+    
+    for(int i=0;i<n;i++) cout<<ans[i]<<'\n';
+    
+    
+    
+    return 0;
+}

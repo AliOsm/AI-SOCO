@@ -1,0 +1,118 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int N ;
+int MAX = 0 ;
+vector<vector<int > > adjList ;
+vector<long long > ans (int(2e5) + 1) ;
+vector<int > tot (int(2e5) + 1) ;
+vector<int > curr(int(2e5) + 1) ;
+vector<int > sz ;
+vector<int > depth ;
+vector<int > a ;
+unordered_set<int > divs ;
+unordered_set<int > totDivs ;
+unordered_set<int > currDivs ;
+
+void getDivs(int x)
+{
+    divs.clear();
+    for(int i = 1 ; i <= (x / i) + 1 ; i++)
+        if(x % i == 0)
+            divs.insert(i) ,divs.insert(x / i) ;
+
+}
+
+int gcd(int a , int b){return b == 0 ? a : gcd(b , a % b);}
+
+int getSize(int u , int p)
+{
+    sz[u] = 1 ;
+    for(int v : adjList[u])
+        if(v != p && depth[v] == -1)
+            sz[u] += getSize(v , u) ;
+    return sz[u] ;
+}
+int getCentroid(int u , int p , int n)
+{
+    for(int v : adjList[u])
+        if(v != p && sz[v] * 2 > n && depth[v] == -1)
+            return getCentroid(v , u , n) ;
+    return u ;
+}
+
+void clear(vector<int > &curr) {for(int x : divs) curr[x] = 0 ; }
+
+void computeDist(int u , int p , int dist )
+{
+    ans[dist] ++ ;
+    curr[dist] ++ ;
+    currDivs.insert(dist) ;
+
+    for(int v : adjList[u])
+        if(v != p && depth[v] == -1)
+            computeDist(v , u , gcd(dist , a[v]));
+}
+
+void decompose(int u , int lvl)
+{
+    int centroid = getCentroid(u , -1 , getSize(u , -1)) ;
+    depth[centroid] = lvl ;
+
+    getDivs(a[centroid]) ;
+    clear(tot);
+    totDivs.clear() ;
+
+    for(int v : adjList[centroid])
+        if(depth[v] == -1)
+        {
+            clear(curr);
+            currDivs.clear() ;
+            computeDist(v , -1 , gcd(a[centroid] , a[v]));
+
+            for(int x : currDivs)
+                for(int y : totDivs)
+                    ans[gcd(x , y)] += 1ll * curr[x] * tot[y] ;
+
+            for(int x : divs) tot[x] += curr[x] ;
+
+            for(int x : currDivs)totDivs.insert(x) ;
+
+        }
+
+    for(int v : adjList[centroid])
+        if (depth[v] == -1)
+            decompose(v, lvl + 1);
+}
+
+int main()
+{
+    ios_base :: sync_with_stdio(false) ;
+    cin.tie(nullptr) ;
+    cin >> N  ;
+    a = vector<int > (N) ;
+    for(int &x : a) {
+        cin >> x;
+        MAX = max(x , MAX) ;
+    }
+    adjList.assign(N , vector<int >()) ;
+    depth = vector<int >(N , -1) ;
+    sz = vector<int >(N) ;
+    for(int i = 0 ; i < N - 1 ;i ++)
+    {
+        int u , v ;
+        cin >> u >> v ;
+        u -- , v -- ;
+        adjList[u].push_back(v) ;
+        adjList[v].push_back(u) ;
+    }
+    decompose(0 , 0) ;
+    for(int z : a) ans[z] ++;
+
+    for(int i = 1 ;i <= MAX ; i++)
+        if(ans[i] > 0)
+            cout << i << ' ' <<((ans[i])) << '\n';
+
+    return 0;
+}

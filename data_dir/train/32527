@@ -1,0 +1,61 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+
+const int N = 55, M = 40000 + 7;
+
+int a[N][M], dp[N][M], pmx[N][M], smx[N][M];
+
+struct RMQ {
+        vector <int> t;
+        int n;
+        RMQ(int n) : n(n) {
+                t.resize(n << 1, 0);
+        }
+        void build(int a[]) {
+                for(int i = 0; i < n; i++) t[n + i] = a[i];
+                for(int i = n - 1; i > 0; --i) t[i] = max(t[i << 1], t[i << 1 | 1]);
+        }
+        void modify(int p, int v) {
+                for(t[p += n] = v; p > 1; p >>= 1) t[p >> 1] = max(t[p], t[p ^ 1]);
+        }
+        int query(int l, int r) { int res = INT_MIN;
+                for(l += n, r += n + 1; l < r; l >>= 1, r >>= 1) {
+                        if(l & 1) res = max(res, t[l++]);
+                        if(r & 1) res = max(res, t[--r]);
+                }
+                return res;
+        }
+};
+
+int main() {
+    ios_base :: sync_with_stdio(0); cin.tie(0); cout.tie(0);
+    int n, m, k; cin >> n >> m >> k;
+    for(int i = 1; i <= n; i++) {
+        for(int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+            a[i][j] += a[i][j - 1];
+        }
+    }
+
+    RMQ P(M), Q(M);
+    for(int i = n; i >= 1; i--) {
+        for(int j = 1; j + k - 1 <= m; j++) {
+            int x = a[i][j + k - 1] - a[i][j - 1] + a[i + 1][j + k - 1] - a[i + 1][j - 1];
+            dp[i][j] = x + max((j - k >= 0) ? pmx[i + 1][j - k] : 0, smx[i + 1][j + k]);
+            dp[i][j] = max({dp[i][j], x - a[i + 1][j + k - 1] + P.query(j, j + k - 1), x + a[i + 1][j - 1] + Q.query(max(j - k + 1, 1), j)});
+        }
+
+        for(int j = 1; j <= m; j++) {
+            P.modify(j, dp[i][j] + a[i][j - 1]);
+            Q.modify(j, dp[i][j] - a[i][j + k - 1]);
+        }
+
+        for(int j = 1; j <= m; j++) pmx[i][j] = max(pmx[i][j - 1], dp[i][j]);
+        for(int j = m; j >= 1; j--) smx[i][j] = max(smx[i][j + 1], dp[i][j]);
+
+    }
+
+
+    cout << smx[1][1] << endl;
+}

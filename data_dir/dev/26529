@@ -1,0 +1,146 @@
+#include <iostream>
+#include <set>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <cmath>
+
+using namespace std;
+
+int absolut(int x)
+{
+  if (x<0) return -x;
+  return x;
+}
+
+void minimize(int &a,int b)
+{
+  a=min(a,b);
+}
+
+const int limit=1000001;
+
+int isprime[limit];
+int factor[limit];
+vector<int> divisors[300];
+
+int memcomputus[300];
+int comcomputus[300];
+
+int computus(int x)
+{
+  if (x==1) return 0;
+  int &mem=memcomputus[x];
+  int &com=comcomputus[x];
+  if (com) return mem;
+  com=1;
+  mem=1000000;
+  vector<int> &divi=divisors[x];
+  for (int idivi=0;idivi<int(divi.size());idivi++) {
+    int d=divi[idivi];
+    if (d==1) continue;
+    minimize(mem,d-1+computus(x/d));
+  }
+  return mem;
+}
+
+int nasp;
+int asp[20];
+
+int tiempo;
+int memcalculus[10][300];
+int comcalculus[10][300];
+
+int calculus(int iasp,int target)
+{
+  if (iasp==nasp) return computus(target);
+  int &mem=memcalculus[iasp][target];
+  int &com=comcalculus[iasp][target];
+  if (com==tiempo) return mem;
+  com=tiempo;
+  mem=1000000;
+  vector<int> &divi=divisors[target];
+  for (int idivi=0;idivi<int(divi.size());idivi++) {
+    int d=divi[idivi];
+    minimize(mem,absolut(asp[iasp]-(d-1))+calculus(iasp+1,target/d));
+  }
+  return mem;
+}
+
+void aspect(int x)
+{
+  nasp=0;
+  int c=0;
+  for (;x>1;x/=factor[x]) {
+    c++;
+    if (factor[x]!=factor[x/factor[x]]) {
+      asp[nasp++]=c;
+      c=0;
+    }
+  }
+  sort(asp,asp+nasp);
+}
+
+int codify(int x)
+{
+  aspect(x);
+  int b=0;
+  int c=0;
+  for (int i=0;i<nasp;i++) {
+    b+=asp[i]-1;
+    c|=1<<b;
+    b++;
+  }
+  return c;
+}
+
+map<int,vector<int> > memcompute;
+
+vector<int> &compute(int x)
+{
+  int id=codify(x);
+  if (not memcompute.count(id)) {
+    vector<int> &mem=memcompute[id];
+    mem=vector<int> (300);
+    tiempo++;
+    for (int nd=1;nd<300;nd++)
+      mem[nd]=calculus(0,nd);
+  }
+  return memcompute[id];
+}
+
+int cases;
+
+int main()
+{
+  ios::sync_with_stdio(false);
+  for (int i=2;i<limit;i++)
+    isprime[i]=1;
+  for (int i=2;i<limit;i++) {
+    if (isprime[i]) {
+      factor[i]=i;
+      for (int j=i+i;j<limit;j+=i) {
+	isprime[j]=0;
+	factor[j]=i;
+      }
+    }
+  }
+  for (int x=1;x<300;x++)
+    for (int d=1;d<=x and d<=30;d++)
+      if (x%d==0)
+	divisors[x].push_back(d);
+  cin>>cases;
+  for (int cas=1;cas<=cases;cas++) {
+    int x,y;
+    cin>>x>>y;
+    //if (cas==54) cout<<"x "<<x<<" y "<<y<<endl;
+    vector<int> &vx=compute(x);
+    vector<int> &vy=compute(y);
+    int sol=1000000;
+    for (int nd=1;nd<300;nd++)
+      minimize(sol,vx[nd]+vy[nd]);
+    //if (cases<10 or cas==54)
+    cout<<sol<<endl;
+  }
+}
+

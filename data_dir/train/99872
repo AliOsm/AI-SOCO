@@ -1,0 +1,60 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define LL long long
+#define LD long double
+#define pb push_back
+#define sz(a) (int)a.size()
+#define all(a) a.begin(),a.end()
+#define rall(a) a.rbegin(),a.rend()
+#define debug(x) cerr << #x << " is " << x << endl;
+using namespace std;
+int const MAXN = 2e6 + 9;
+map<int,vector<int>>g;
+int a[MAXN];
+int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    int n;
+    cin >> n;
+    for(int i = 0; i < n; i++){
+        cin >> a[i];
+    }
+    for(int i = 0; i < n; i++){
+        int x;
+        cin >> x;
+        g[a[i]].pb(x);
+    }
+    set<pair<int,int>> st;
+    int id = 0;
+    int last = 0;
+    LL cur = 0;
+    LL ans = 0;
+    for(auto a : g){
+        int x = a.first;
+        while((x - last) > 1 && sz(st)){
+            last++;
+            auto it = st.rbegin();
+            cur -= it-> first;
+            ans += cur;
+            st.erase(*it);
+        }
+        for(auto t : a.second){
+            cur += t;
+            st.insert({t,id});
+            id++;
+        }
+        auto it = st.rbegin();
+        cur -= it-> first;
+        ans += cur;
+        st.erase(*it);
+        last = x;
+    }
+    while(sz(st)){
+            last++;
+            auto it = st.rbegin();
+            cur -= it-> first;
+            ans += cur;
+            st.erase(*it);
+    }
+    cout << ans << endl;
+
+}

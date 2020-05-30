@@ -1,0 +1,152 @@
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <cmath>
+#include <algorithm>
+#include <ctime>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <map>
+#include <set>
+#include <functional>
+#include <numeric>
+
+#define f first
+#define s second
+#define ll long long
+#define mp make_pair
+#define pb push_back
+#define pii pair < int, int >
+#define pll pair < long long, long long >
+#define forit(it,S) for(typeof(S.begin()) it = S.begin(); it!= S.end(); it++)
+
+using namespace std;
+int const maxn = (int)202;
+int const inf = (1<<30) - 1;
+int const mod = 1000000007;
+
+int an, bn, n, m, k;
+int A[maxn][maxn], L[maxn], cost[maxn];
+int suff[maxn], to[maxn][22], b[maxn], end[maxn], a[maxn], B[maxn];
+int sz = 1;       
+int d[maxn][maxn][505][2][2]; 
+
+void add(int ind){
+    int cur = 0;
+    for (int i=0;i<L[ind];i++){
+        int c = A[ind][i];
+        if ( to[cur][c] == -1){
+            to[cur][c] = sz++;
+        }
+        cur = to[cur][c];
+    }
+    end[cur] += cost[ind];
+}
+
+void automata(){
+    queue < int > q;
+    q.push(0);
+    suff[0] = -1;
+    while ( !q.empty() ){
+        int u = q.front(); q.pop();
+        int s = suff[u];
+        for (int c=0;c<m;c++){
+            if ( to[u][c] == -1 ){
+                if ( s == -1 ) to[u][c] = 0;
+                else to[u][c] = to[s][c];
+            }   
+            else {
+                int v = to[u][c];
+                suff[v] = ( s == -1? 0 : to[s][c]);
+                B[v] = B[suff[v]] + end[v];
+                q.push(v);
+            }
+        }
+    }
+}
+
+
+int calc(int pos, int vertex, int sum, int isLeading, int sp){
+    if ( sum > k )
+        return 0;
+    if ( pos == bn )
+        return !isLeading;
+    int &res = d[pos][vertex][sum][isLeading][sp];
+    if ( res != -1 ) return res;
+    res = 0;
+    for (int i=0;(!sp && i<m) || (sp && i<=b[pos]);i++){
+        if ( isLeading && i == 0){
+            res += calc(pos+1, vertex, sum, isLeading && i == 0, sp && b[pos] == i);                
+            res %= mod;
+            continue;
+        }
+        res += calc(pos+1, to[vertex][i], sum + B[to[vertex][i]], isLeading && i == 0, sp && b[pos] == i); 
+        res %= mod;
+    }
+    return res;
+}
+
+bool get(){
+    int cur = 0;
+    int sum = 0;
+    for (int i=0;i<bn;i++){
+        int c = b[i];
+        cur = to[cur][c];
+        sum += B[cur];
+    }   
+    return sum<=k;
+}
+
+int main (){
+    #ifdef LOCAL
+    freopen ("input.txt", "r", stdin);
+    freopen ("output.txt", "w", stdout);
+    #endif
+
+    cin >>n>>m>>k;
+
+    cin >>an;
+    for (int i=0;i<an;i++)
+        scanf("%d", a + i);
+    cin >>bn;
+    for (int i=0;i<bn;i++)
+        scanf("%d", b + i);
+
+    memset(to, -1, sizeof(to));
+
+    for (int i=0;i<n;i++){
+        scanf("%d", &L[i]);
+        for (int j=0;j<L[i];j++){
+            scanf("%d", &A[i][j]);
+        }
+        scanf("%d", &cost[i]);
+        add(i);
+    }
+
+    automata();
+
+    memset(d, -1, sizeof(d));
+    ll ansr = calc(0, 0, 0, 1, 1);
+
+
+    bn = an;
+    for (int i=0;i<bn;i++)
+        b[i] = a[i];
+
+    memset(d, -1, sizeof(d));
+    ansr = ((ansr - calc(0, 0, 0, 1, 1))%mod + mod)%mod;
+
+    cout <<(ansr + get())%mod<<endl;
+
+
+    return 0;
+}
+
+
+
+
+
+

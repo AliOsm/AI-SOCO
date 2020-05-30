@@ -1,0 +1,34 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, a, i; vector<int> ans, bucket[200002];
+
+int main() {
+	cin >> n;
+	for (i = 1; i <= n; ++i) {
+		scanf("%d", &a);
+		bucket[a].push_back(i);
+	}
+
+	i = 0;
+	while (1) {
+		if (bucket[i].size() > 0) {
+			ans.push_back(bucket[i].back());
+			bucket[i++].pop_back();
+		}
+		else if (i > 2) {
+			i -= 3;
+		}
+		else {
+			break;
+		}
+	}
+
+	if (ans.size() < n) {
+		return cout << "Impossible" << endl, 0;
+	}
+
+	cout << "Possible" << endl;
+	for (int x : ans) printf("%d ", x);
+	return 0;
+}

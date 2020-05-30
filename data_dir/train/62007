@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+
+const int N = 100005;
+
+struct Segtree{
+	int n;
+	vector<ll> st, lz;
+
+	void prop(int p, int L, int R){
+		st[p] += lz[p] * (R - L + 1);
+		if(L != R) lz[2*p] += lz[p], lz[2*p+1] += lz[p];
+		lz[p] = 0;
+	}
+
+	void update(int p, int L, int R, int i, int j, ll val){
+		prop(p, L, R);
+		if(L > j || R < i) return;
+		if(L >= i && R <= j){
+			lz[p] = val;
+			prop(p, L, R);
+			return;
+		}
+		int mid = (L+R)/2;
+		update(2*p, L, mid, i, j, val);
+		update(2*p+1, mid+1, R, i, j, val);
+		st[p] = st[2*p] + st[2*p+1];
+	}
+
+	ll query(int p, int L, int R, int i, int j){
+		prop(p, L, R);
+		if(L > j || R < i) return 0;
+		if(L >= i && R <= j) return st[p];
+		int mid = (L+R)/2;
+		return query(2*p, L, mid, i, j)+
+			   query(2*p+1, mid+1, R, i, j);
+	}
+
+	Segtree(int sz = 0) : n(sz), st(4*sz), lz(4*sz) {}
+
+	void update(int i, int j, ll val){
+		update(1, 1, n, i, j, val);
+	}
+
+	ll query(int i, int j){
+		return query(1, 1, n, i, j);
+	}
+};
+
+
+void f(set<tuple<int,int,int>> &s, int l, int r, int x, Segtree &st){
+
+	auto it = s.lower_bound(make_tuple(l, l, 0));
+	if(get<0>(*it) > l) it--;
+	tuple<int,int,int> tmp;
+	tmp = *it;
+	if(get<1>(tmp) >= r){ // all in one segment
+		s.erase(it);
+		st.update(l, r, abs(x-get<2>(tmp)));
+		if(get<0>(tmp) < l)
+			s.emplace(get<0>(tmp), l-1, get<2>(tmp));
+		if(get<1>(tmp) > r)
+			s.emplace(r+1, get<1>(tmp), get<2>(tmp));
+		s.emplace(l, r, x);
+		return;
+	}
+	st.update(l, get<1>(tmp), abs(x-get<2>(tmp)));
+	get<1>(tmp) = l-1;
+	if(get<0>(tmp) <= get<1>(tmp))
+		s.insert(tmp);
+	it = s.erase(it);
+	while(it != s.end() && get<1>(*it) < r){
+		st.update(get<0>(*it), get<1>(*it), abs(x-get<2>(*it)));
+		it = s.erase(it);
+	}
+	s.emplace(l, r, x);
+	if(it == s.end()) return;
+	st.update(get<0>(*it), r, abs(x-get<2>(*it)));
+	tmp = *it;
+	get<0>(tmp) = r+1;
+	if(get<0>(tmp) <= get<1>(tmp))
+		s.insert(tmp);
+	s.erase(it);
+}
+
+int main(){
+
+	int n, m;
+
+	scanf("%d %d", &n, &m);
+
+	set<tuple<int, int, int>> s;
+	for(int i = 1; i <= n; i++)
+		s.emplace(i, i, i);
+
+	Segtree st(n);
+	
+	int t, l, r, x;
+
+	while(m--){
+		scanf("%d %d %d", &t, &l, &r);
+		if(t == 1){
+			scanf("%d", &x);
+			f(s, l, r, x, st);
+		}
+		else printf("%lld\n", st.query(l, r));
+	}
+
+}

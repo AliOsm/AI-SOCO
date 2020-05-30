@@ -1,0 +1,173 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const int MX = 200005;
+
+vector<int> neigh[MX];
+int tin[MX], tout[MX];
+int depth[MX];
+int par[MX][20];
+
+void dfs(int v, int p, int d)
+{
+	static int id = 0;
+	tin[v] = id++;
+	depth[v] = d;
+	
+	par[v][0] = p;
+	for (int i = 0; i + 1 < 20; i++) {
+		par[v][i + 1] = par[par[v][i]][i];
+	}
+	
+	for (int u : neigh[v]) {
+		if (u == p) continue;
+		dfs(u, v, d + 1);
+	}
+	
+	tout[v] = id++;
+}
+
+bool isAncestor(int u, int v) {
+	return tin[u] <= tin[v] && tin[v] <= tout[u];
+}
+int LCA(int u, int v) {
+	if (isAncestor(u, v)) return u;
+	for (int i = 20 - 1; i >= 0; i--) {
+		if (!isAncestor(par[u][i], v)) {
+			u = par[u][i];
+		}
+	}
+	return par[u][0];
+}
+
+vector<pair<int, int>> neigh_real[MX];
+tuple<int, int, int> dis[MX];
+
+int main()
+{
+	int n;
+	ignore = scanf("%d", &n);
+	
+	for (int i = 0; i < n - 1; i++) {
+		int u, v;
+		ignore = scanf("%d %d", &u, &v);
+		neigh[u].push_back(v);
+		neigh[v].push_back(u);
+	}
+	
+	dfs(1, 1, 0);
+	
+	int q;
+	ignore = scanf("%d", &q);
+	while (q--) {
+		int k, m;
+		ignore = scanf("%d %d", &k, &m);
+		
+		vector<pair<int, int>> type;
+		vector<int> all;
+		static bool taken[MX];
+		
+		for (int i = 0; i < k; i++) {
+			int v, s;
+			ignore = scanf("%d %d", &v, &s);
+			type.emplace_back(v, s);
+			all.push_back(v);
+			taken[v] = true;
+		}
+		
+		vector<int> special;
+		
+		for (int i = 0; i < m; i++) {
+			int v;
+			ignore = scanf("%d", &v);
+			special.push_back(v);
+			if (!taken[v]) {
+				taken[v] = true;
+				all.push_back(v);
+			}
+		}
+		
+		{			
+			sort(all.begin(), all.end(), [&](int u, int v) {
+				return tin[u] < tin[v];
+			});
+		
+			int sz = (int)all.size();
+			
+			for (int i = 1; i < sz; i++) {
+				int lca = LCA(all[i - 1], all[i]);
+				if (!taken[lca]) {
+					taken[lca] = true;
+					all.push_back(lca);
+				}
+			}
+			
+			sort(all.begin(), all.end(), [&](int u, int v) {
+				return tin[u] < tin[v];
+			});
+			
+			for (int v : all) {
+				neigh_real[v].clear();
+				dis[v] = {1000000000, 0, 0};
+			}
+			
+			vector<int> st;
+			for (int v : all) {
+				while (!st.empty() && !isAncestor(st.back(), v)) {
+					st.pop_back();
+				}
+				if (!st.empty()) {
+					int d = depth[v] - depth[st.back()];
+					neigh_real[st.back()].emplace_back(v, d);
+					neigh_real[v].emplace_back(st.back(), d);
+				}
+				st.push_back(v);
+			}
+			
+			for (int v : all) taken[v] = false;
+		}
+		
+		{
+			set<pair<tuple<int, int, int>, int>> S;
+			for (int i = 0; i < k; i++) {
+				dis[type[i].first] = {0, i, 0};
+				S.insert({{0, i, 0}, type[i].first});
+			}
+			
+			while (!S.empty()) {
+				auto cur = *S.begin();
+				S.erase(S.begin());
+				if (dis[cur.second] != cur.first) continue;
+				int v = cur.second;
+				int s = type[get<1>(dis[v])].second;
+				int rem = -get<2>(dis[v]);
+				
+				for (auto e : neigh_real[v]) {
+					int d, new_rem;
+					if (rem >= e.second) {
+						d = 0;
+						new_rem = rem - e.second;
+					}
+					else {
+						e.second -= rem;
+						d = (e.second + s - 1) / s;
+						new_rem = (s - e.second % s) % s; 
+					}
+					
+					auto new_dis = make_tuple(get<0>(dis[v]) + d, get<1>(dis[v]), -new_rem);
+					
+					if (dis[e.first] > new_dis) {
+						dis[e.first] = new_dis;
+						S.emplace(new_dis, e.first);
+					}
+				}
+			}
+		}
+		
+		for (int v : special) {
+			printf("%d ", get<1>(dis[v]) + 1);
+		}
+		printf("\n");
+	}
+}

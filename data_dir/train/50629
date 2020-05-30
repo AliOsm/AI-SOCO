@@ -1,0 +1,40 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef vector<int> vi;
+typedef vector<pair<int,int> > vp;
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define rep(i,n) for(int i=0;i<n;i++)
+#define MOD 1000000007
+int A[100010];
+int gcd(int a,int b){
+	return b == 0 ? a : gcd(b, a % b);
+}	
+int main(){
+	ios::sync_with_stdio(false);
+	cin.tie(NULL);
+	int n;
+	cin>>n;
+	for(int i=0;i<n;i++)cin>>A[i];
+	sort(A, A + n);
+	int x = A[0];
+	for(int i=1;i<n;i++){
+		x = gcd(x,A[i]);
+	}
+	if(x != A[0])
+		cout<<-1<<'\n';
+	else{
+		vector<int> ans;
+		for(int i=0;i<n;i++){
+			ans.pb(A[i]);
+			ans.pb(A[0]);
+		}
+		cout<<ans.size()<<'\n';
+		for(int i=0;i<ans.size();i++)
+			cout<<ans[i]<<" ";
+		cout<<'\n';
+	}
+
+	
+}

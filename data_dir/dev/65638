@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+#define LL long long
+#define PII pair<int, int>
+#define PIPII pair<int, PII>
+#define PPIII pair<PII, int>
+using namespace std;
+
+const int N = 10, K = 30000+5, INF = 1e9+7;
+
+vector<PIPII> adj[K];
+PII operator+(PII a, PII b) {return PII(a.first+b.first, a.second+b.second);}
+
+PII dis[3][K];
+PII PINF = {INF, INF};
+void Dijkstra(int s, int id) {
+    fill(dis[id], dis[id] + K, PINF);
+    dis[id][s] = {0, 0};
+
+    priority_queue<PPIII, vector<PPIII>, greater<PPIII>> pq;
+    pq.push({{0,0},s});
+
+    while (pq.size()) {
+        PII dd = pq.top().first;
+        int u = pq.top().second;
+        pq.pop();
+
+        if (dis[id][u] < dd)    continue;
+        for (auto pr: adj[u]) {
+            PII w = pr.second;
+            int v = pr.first;
+
+            PII nw = w + dd;
+            if (nw < dis[id][v]) {
+                dis[id][v] = nw;
+                pq.push({nw, v});
+            }
+        }
+    }
+}
+
+int id(int piece, int x, int y, int num) {
+    return piece*10000+num*100+x*10+y;
+}
+
+int a[N][N];
+vector<int> dx[3], dy[3];
+
+int main()
+{
+    for (int i=1; i<10; i++)    dx[0].push_back(i), dy[0].push_back(0);
+    for (int i=1; i<10; i++)    dx[0].push_back(-i),dy[0].push_back(0);
+    for (int i=1; i<10; i++)    dx[0].push_back(0), dy[0].push_back(i);
+    for (int i=1; i<10; i++)    dx[0].push_back(0), dy[0].push_back(-i);
+
+    for (int i=1; i<10; i++)    dx[1].push_back(i), dy[1].push_back(i);
+    for (int i=1; i<10; i++)    dx[1].push_back(i), dy[1].push_back(-i);
+    for (int i=1; i<10; i++)    dx[1].push_back(-i), dy[1].push_back(i);
+    for (int i=1; i<10; i++)    dx[1].push_back(-i), dy[1].push_back(-i);
+
+    dx[2] = { 1, 1,-1,-1, 2, 2,-2,-2};
+    dy[2] = { 2,-2, 2,-2, 1,-1, 1,-1};
+
+    int n;
+    cin>>n;
+
+    int ix=0, iy=0, tx=0, ty=0;
+
+    for (int i=0; i<n; i++)
+        for (int j=0; j<n; j++) {
+            cin>>a[i][j];
+            a[i][j]--;
+            if (a[i][j] == 0)       ix=i, iy=j;
+            if (a[i][j] == n*n-1)   tx=i, ty=j;
+        }
+
+    for (int p=0; p<3; p++)
+        for (int i=0; i<n; i++)
+            for (int j=0; j<n; j++) {
+                for (int ii = 0; ii<dx[p].size(); ii++) {
+                    int nx = i + dx[p][ii];
+                    int ny = j + dy[p][ii];
+
+                    if (nx>=0 && nx<n && ny>=0 && ny<n)
+                        for (int num=0; num<n*n; num++) {
+                            int tar = num + (a[nx][ny] == num+1);
+                            adj[id(p,i,j,num)].push_back({id(p,nx,ny,tar),{1,0}});
+                        }
+                }
+                for (int num=0; num<n*n; num++)
+                    for (int q=0; q<3; q++)
+                        if (p!=q)
+                            adj[id(p,i,j,num)].push_back({id(q,i,j,num),{1,1}});
+            }
+
+    Dijkstra(id(0, ix, iy, 0),0);
+    Dijkstra(id(1, ix, iy, 0),1);
+    Dijkstra(id(2, ix, iy, 0),2);
+
+    int ii = id(0,1,0,7);
+    //cout<<dis[2][ii].first<<" "<<dis[2][ii].second<<endl;
+
+    PII ans = {INF, INF};
+    for (int p=0; p<3; p++)
+        for (int q=0; q<3; q++)
+            ans = min(ans, dis[p][id(q,tx,ty,n*n-1)]);
+    cout<<ans.first<<" "<<ans.second<<endl;
+}

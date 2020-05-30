@@ -1,0 +1,191 @@
+#include<stdio.h>
+#include<string.h>
+#include<ctype.h>
+#include<math.h>
+#include<iostream>
+#include<string>
+#include<set>
+#include<map>
+#include<vector>
+#include<queue>
+#include<bitset>
+#include<algorithm>
+#include<time.h>
+using namespace std;
+void fre(){freopen("c://test//input.in","r",stdin);freopen("c://test//output.out","w",stdout);}
+#define MS(x,y) memset(x,y,sizeof(x))
+#define MC(x,y) memcpy(x,y,sizeof(x))
+#define MP(x,y) make_pair(x,y)
+#define ls o<<1
+#define rs o<<1|1
+typedef long long LL;
+typedef unsigned long long UL;
+typedef unsigned int UI;
+template <class T> inline void gmax(T &a,T b){if(b>a)a=b;}
+template <class T> inline void gmin(T &a,T b){if(b<a)a=b;}
+const int N=123456+10,M=0,Z=1e9+7,ms63=1061109567;
+int n,m,x,y;
+vector<int>a[N];
+bool imp[N],imp_[N],e[N];
+int f[N];
+int DIS,ST,ED,P;
+void dfs(int x,int dis)
+{
+	e[x]=1;
+	if(imp[x])
+	{
+		if(dis>DIS)
+		{
+			DIS=dis;
+			ED=x;
+		}
+		else if(dis==DIS)gmin(ED,x);
+	}
+	f[x]=0;
+	for(int i=a[x].size()-1;~i;--i)
+	{
+		int y=a[x][i];
+		if(e[y])continue;
+		dfs(y,dis+1);
+		if(imp[y])
+		{
+			imp[x]=1;
+			f[x]+=f[y]+1;
+		}
+	}
+}
+void dfs_(int x,int dis)
+{
+	e[x]=0;
+	if(imp[x])
+	{
+		if(dis>DIS)
+		{
+			DIS=dis;
+			P=x;
+		}
+		else if(dis==DIS)gmin(P,x);
+	}
+	for(int i=a[x].size()-1;~i;--i)
+	{
+		int y=a[x][i];
+		if(!e[y])continue;
+		dfs_(y,dis+1);
+	}
+}
+int main()
+{
+	while(~scanf("%d%d",&n,&m))
+	{
+		for(int i=1;i<=n;i++)
+		{
+			a[i].clear();
+			imp[i]=0;
+			e[i]=0;
+		}
+		for(int i=1;i<n;i++)
+		{
+			scanf("%d%d",&x,&y);
+			a[x].push_back(y);
+			a[y].push_back(x);
+		}
+		for(int i=1;i<=m;i++)
+		{
+			scanf("%d",&x);ST=x;
+			imp[x]=imp_[x]=1;
+		}
+		DIS=-1;
+		dfs(ST,0);
+		DIS=-1;
+		dfs_(ED,0);
+		printf("%d\n",min(ED,P));
+		printf("%d\n",f[ST]*2-DIS);
+	}
+	return 0;
+}
+/*
+【trick&&吐槽】
+这道题我早就想到了做法，然而虚拟赛时却没有AC>_<
+最近两场虚拟赛，都是有大量时间，而且知道算法。
+然而太过于不紧不慢，到最后就竟然真的没有AC。
+心态很重要，要保持一定的紧张状态！
+
+trick：
+DIS是往大了更新，
+是很有可能出现只有1个重要点，即DIS为0的情况。
+于是DIS的初始化要为-1
+
+【题意】
+给你一棵含有n（1<=n<=123456）个节点的树，
+我们要到点有m（1<=m<=n）个点。
+我们可以选择传送到这棵树的任意一点，
+使得我们到达这m个点后的路程尽可能小
+问你：
+1，可以传送到的点是哪个点，如果多解输出编号最小的那个点。
+2，输出最小的距离之和
+
+【类型】
+树的直径
+
+【分析】
+我们以这些点中的任意一点为根节点。
+然后，统计所有含有关键点的最小路径的二倍。
+
+换句话说，就是每个点，如果它是关键点，或者它的子节点包含关键点。
+那么我们就要算上它到父节点的距离的二倍（实际就是对答案的贡献+2）
+代码上的实现是——
+if(imp[y])
+{
+	imp[x]=1;
+	f[x]+=f[y]+1;
+}
+这其实是求出了一个环，沿着这个环，我们能走过这棵树上的所有关键点。
+因为这是一个环，所以我们实际还可以少走一段路。
+
+少走哪段路呢？可以是任意两个节点之间的路。
+基于贪心原则，我们自然要走距离最远的两个点之间的路。
+这个可以通过树的直径两遍dfs求得。
+（比赛的时候想的是树上直接记录每个点的最长次长路径，然而也是因为"编号最小"而WA掉了。）
+
+树的直径的写法，虽然是两个dfs实现，然而其实更容易一些。
+只是依然有这么一个问题——如何保证字典序最小？
+我的做法是——
+1，首先从任意一个点开始搜最长路，搜到路径最长的点中【编号最小】的那个x
+2，然后再从这个点x开始搜最长路，搜到路径最长的点中编号最小的那个y
+3，然后答案是min(x,y)
+这样就能AC喽。注意，一定要求是第一搜也要【编号最小】
+因为——
+树的所有直径必定交于树的重心。然而除了菊花图相交，还有这种图——
+3  1
+\  /
+ --
+/  \
+2  4
+这种相交状况，我们从3开始搜，可能搜到的是4，然后从4开始搜，最小的也只有2.
+于是就GG了。于是要求两次dfs都要搜编号尽可能小的点。以防遇到这种情况。
+
+
+
+最后再上一发官方题解——
+1，贪心——我们传送到的节点，一定是关键节点（否则我们一定是先走到某一关键节点肯定不更优）
+2，观察——我们最后选出的是一棵子树，这个子树中包含了所有关键点pair（C[m,2]个）之间的所有路径
+3，思考——如果我们最后返回一开始传送到的节点，那么最后走的总路程是2*V。
+	其中，V是这棵子树的边的数量。2*V是因为我们每条边都走过一次又回来一次
+4，思考——如果我们最后不返回一开始传送到的节点，那么最后走的总路程是2*V-L
+	其中，L是到达传送点距离最远的节点
+5，思考——我们一开始传送到的，和最后一次停下来的节点，之间必然是树的直径
+于是就到了最后一个问题，如何求出树的所有直径中，直径端点编号最小的那个编号？
+
+题解的方法是关于树的重心的。
+我们可以先求出树的重心（可能为1个或2个）。
+然后从树的重心开始dfs，找距离最远的那个节点即可。
+
+
+于是在最后附赠树的重心学习资料——
+定理：在树中找到一个点，使得其所有子树中，最大的子树的节点数最少
+在http://blog.csdn.net/acdreamers/article/details/16905653中有讲解
+
+【时间复杂度&&优化】
+O(n)
+
+*/

@@ -1,0 +1,107 @@
+#include <iostream>
+#include <string>
+#include <set>
+#include <map>
+#include <vector>
+#include <queue>
+#include <cstring>
+#include <algorithm>
+#include <cstdio>
+#include <cmath>
+#define R(k,a,b) k*2,a,(a+b)/2
+#define L(k,a,b) k*2+1,(a+b)/2+1,b
+using namespace std;
+typedef long long ll;
+const int N = 105000;
+int ST[N*3];
+int Up[N*3];
+struct Query {
+    int a, b;
+    int id;
+    Query(int a, int b, int c):a(a), b(b), id(c) {}
+};
+vector <Query> queries;
+int n, m;
+int ar[N];
+
+int gen(int k, int a, int b) {
+    if(a == b) return ST[k] = ar[a];
+    return ST[k] = min(gen(R(k,a,b)), gen(L(k,a,b)));
+}
+void upd_brute(int k, int a, int b, int a1, int b1, int t) {
+    for(int i = a1; i <= b1; i++) {
+        ar[i] += t;
+    }
+}
+int ffind_brute() {
+    int mn = 1000000000;
+    for(int i = 1; i <= n; i++) {
+        mn = min(mn, ar[i]);
+    }
+    return mn;
+}
+int upd_seg(int k, int a, int b, int a1, int b1, int t) {
+    if(a1 > b || b1 < a) return ST[k] + Up[k];
+    if(a1 <= a && b <= b1) { Up[k]+=t; return ST[k] + Up[k]; }
+    ST[k] = min(upd_seg(L(k, a, b), a1, b1, t), upd_seg(R(k, a, b), a1, b1, t));
+    return ST[k] + Up[k];
+}
+void upd(int k, int a, int b, int a1, int b1, int t) {
+  // upd_brute(k, a, b, a1, b1, t);
+  upd_seg(k, a, b, a1, b1, t);
+}
+int ffind() {
+    return ST[1] + Up[1];
+}
+vector<Query> st[N], fn[N];
+int main() {
+    scanf(" %d %d", &n, &m);
+    for(int i = 1; i <= n; i++) {
+        scanf(" %d", &ar[i]);
+    }
+    gen(1, 1, n);
+    for(int i = 0; i < m; i++) {
+        int a, b;
+        scanf(" %d %d", &a, &b);
+        queries.push_back(Query(a, b, i+1));
+        upd(1, 1, n, a, b, -1);
+        st[a].push_back(Query(a, b, i+1));
+        fn[b].push_back(Query(a, b, i+1));
+    }
+    // puts("ARR:");
+    // for(int i = 1; i <= n; i++)
+    //   printf("%d ", ar[i]);
+    // puts("");
+    int res = -1;
+    int kk = 0;
+    for(int i = 1; i <= n; i++) {
+        // printf("%d %d %d\n",i,ar[i],ffind());
+        for(auto q: st[i]) {
+            // printf("\t %d %d\n",q.a,q.b);
+            upd(1, 1, n, q.a, q.b, +1);
+        }
+        // printf("i = %d find = %d find_brute = %d\n", i, ffind(), ffind_brute());
+        if(ar[i] - ffind() > res) {
+            res = ar[i] - ffind();
+            // printf("%d %d %d\n",i,ar[i],ffind());
+            kk = i;
+        }
+        for(auto q: fn[i]) {
+            upd(1, 1, n, q.a, q.b, -1);
+        }
+    }
+    vector <int> vec;
+    // cout << kk << endl;
+    cout << res << endl;
+    for(int i = 0; i < m; i++) {
+        if(kk < queries[i].a || kk > queries[i].b) {
+            vec.push_back(i+1);
+        }
+    }
+    cout << vec.size() << endl;
+    for(int i = 0; i < vec.size(); i++) {
+        cout << vec[i] << " ";
+    }
+    cout << endl;
+    return 0;
+}

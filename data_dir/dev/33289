@@ -1,0 +1,20 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main(){
+    ios::sync_with_stdio(false);
+    string a, b; cin >> a >> b;
+    if(a.size() != b.size())
+        cout << "NO" << endl;
+    else{
+        int za = count(a.begin(), a.end(), '1');
+        int zb = count(b.begin(), b.end(), '1');
+        if(za > zb) swap(za,zb);
+        if(za == 0 && zb > 0)
+            cout << "NO" << endl;
+        else
+            cout << "YES" << endl;
+    }
+    
+    return 0;
+}

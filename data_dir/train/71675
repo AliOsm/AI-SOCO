@@ -1,0 +1,147 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define pb push_back
+#define fi first
+#define se second
+
+const int N = 200005, lvls = 20;
+int x[N], y[N], w[N], tree[N+N+N+N], par[N][lvls], hgt[N], arr[N], lq, rq, pos, val, cnt, n;
+vector <int> v[N], g[N], vq[N];
+bool vis[N];
+map <pair <int, int>, int> mp;
+long long mst, res[N];
+
+int LCA(int u1, int u2) {
+    if (hgt[u1] < hgt[u2]) {
+        swap(u1, u2);
+    }
+    int h = hgt[u1] - hgt[u2];
+    for (int i = 0; (1 << i) <= h; ++i) {
+        if ((1 << i) & h) {
+            u1 = par[u1][i];
+        }
+    }
+    if (u1 == u2) {
+        return u1;
+    }
+    for (int i = lvls - 1; i >= 0; i--) {
+        if (par[u1][i] != par[u2][i]) {
+            u1 = par[u1][i];
+            u2 = par[u2][i];
+        }
+    }
+    return par[u1][0];
+}
+
+void upd(int ndx, int st, int nd) {
+    if (st == nd) {
+        arr[st] = val;
+        tree[ndx] = val;
+    } else {
+        int mid = (st + nd) >> 1;
+        if (pos <= mid) {
+            upd(1+(ndx<<1), st, mid);
+        } else {
+            upd(2+(ndx<<1), mid + 1, nd);
+        }
+        tree[ndx] = max(tree[1+(ndx<<1)], tree[2+(ndx<<1)]);
+    }
+}
+
+int get(int ndx, int st, int nd) {
+    if (lq <= st && nd <= rq) {
+        return tree[ndx];
+    }
+    int mid = (st + nd) >> 1;
+    if (rq <= mid) {
+        return get(1+(ndx<<1), st, mid);
+    }
+    if (lq > mid) {
+        return get(2+(ndx<<1), mid + 1, nd);
+    }
+    return max(get(1+(ndx<<1), st, mid), get(2+(ndx<<1), mid + 1, nd));
+}
+
+void dfs(int u) {
+    val = w[mp[{par[u][0], u}]];
+    pos = cnt;
+    upd(0, 0, n - 1);
+    cnt++;
+    int szc = vq[u].size();
+    for (int i = 0; i < szc; i++) {
+        int lca = LCA(x[vq[u][i]], y[vq[u][i]]);
+        lq = hgt[lca]; // 1-indexed
+        rq = cnt - 1; // 0-indexed
+        if (rq < lq) {
+            continue;
+        }
+        res[vq[u][i]] = min(res[vq[u][i]], mst - get(0, 0, n - 1) + w[vq[u][i]]);
+    }
+    szc = v[u].size();
+    for (int i = 0; i < szc; i++) {
+        if (v[u][i] != par[u][0]) {
+            dfs(v[u][i]);
+        }
+    }
+    cnt--;
+}
+
+int main() {
+    int m;
+    scanf("%d %d", &n, &m);
+    for (int i = 0; i < N; i++) {
+        arr[i] = INT_MIN;
+    }
+    for (int i = 0; i < m; i++) {
+        scanf("%d %d %d", &x[i], &y[i], &w[i]);
+        g[x[i]].pb(y[i]);
+        g[y[i]].pb(x[i]);
+        mp[{x[i], y[i]}] = i;
+        mp[{y[i], x[i]}] = i;
+    }
+    set <pair<int, int> > s;
+    priority_queue <pair <int, pair<int, int> > > pq;
+    pq.push({0, {1, 0}});
+    while (!pq.empty()) {
+        auto tp = pq.top();
+        pq.pop();
+        if (vis[tp.se.fi]) {
+            continue;
+        }
+        par[tp.se.fi][0] = tp.se.se;
+        hgt[tp.se.fi] = hgt[tp.se.se] + 1;
+        vis[tp.se.fi] = true;
+        mst -= tp.fi;
+        s.insert({tp.se.fi, par[tp.se.fi][0]});
+        s.insert({par[tp.se.fi][0], tp.se.fi});
+        v[tp.se.fi].pb(par[tp.se.fi][0]);
+        v[par[tp.se.fi][0]].pb(tp.se.fi);
+        for (int i = 1; i < lvls; i++) {
+            if (par[tp.se.fi][i-1]) {
+                par[tp.se.fi][i] = par[par[tp.se.fi][i-1]][i-1];
+            }
+        }
+        int sz = g[tp.se.fi].size();
+        for (int i = 0; i < sz; i++) {
+            if (g[tp.se.fi][i] != par[tp.se.fi][0] && !vis[g[tp.se.fi][i]]) {
+                pq.push({-w[mp[{tp.se.fi, g[tp.se.fi][i]}]], {g[tp.se.fi][i], tp.se.fi}});
+            }
+        }
+    }
+    for (int i = 0; i < m; i++) {
+        if (!s.count({x[i], y[i]})) {
+            vq[x[i]].pb(i);
+            vq[y[i]].pb(i);
+            res[i] = LONG_LONG_MAX;
+        } else {
+            res[i] = mst;
+        }
+    }
+    dfs(1);
+    for (int i = 0; i < m; i++) {
+        printf("%lld\n", res[i]);
+    }
+    return 0;
+}

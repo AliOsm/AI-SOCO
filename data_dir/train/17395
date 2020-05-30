@@ -1,0 +1,144 @@
+//Link : https://codeforces.com/problemset/problem/821/D
+
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define N 10005
+int x[N],y[N];
+
+int row[N],col[N];
+int canReach[N], sp[N];
+bool vis[N];
+
+bool canGo(int a,int target) {
+  for(int i=a-1;i<=a+1;++i) {
+    if(i==target) {
+      return true;
+    }
+  }
+  return false;
+}
+
+vector<int> rowAdj[N],colAdj[N];
+
+vector<int> ids[N];
+int dsu[N];
+
+int f(int x) {
+  if(dsu[x]==x) {
+    return x;
+  }
+  return dsu[x] = f(dsu[x]);
+}
+void merge(int x,int y) {
+  int a = f(x),b = f(y);
+  if(ids[a].size()<ids[b].size()) {
+    swap(a,b);
+  }
+  if(a!=b) {
+    dsu[b] = a;
+    ids[a].insert(ids[a].end(),ids[b].begin(),ids[b].end());
+    ids[b].clear();
+  }
+}
+
+void solve() {
+  int n,m,k;scanf("%d %d %d ", &n,&m,&k);
+  map<pair<int,int>,int> idHash;
+  for(int i=0;i<k;++i) {
+    dsu[i] = i;
+    ids[i].push_back(i);
+    sp[i] = -1;
+    scanf("%d %d ", &x[i],&y[i]);
+    idHash[make_pair(x[i],y[i])] = i;
+    if(x[i]==n && y[i]==m) {
+      canReach[i] = 0;
+    } else if(canGo(x[i],n) || canGo(y[i],m)) {
+      canReach[i] = 1;
+    } else {
+      canReach[i] = -1;
+    }
+    for(int j=max(1,x[i]-1);j<=min(x[i]+1,n);++j) {
+      rowAdj[j].push_back(i);
+    }
+    for(int j=max(1,y[i]-1);j<=min(y[i]+1,m);++j) {
+      colAdj[j].push_back(i);
+    }
+  }
+  int dy[4] = {0,0,1,-1},dx[4] = {1,-1,0,0};
+  for(int i=0;i<k;++i) {
+
+    for(int j=0;j<4;++j) {
+      int a = x[i] + dy[j],b = y[i] + dx[j];
+      if(idHash.count(make_pair(a,b))) {
+
+        merge(i,idHash[make_pair(a,b)]);
+      }
+    }
+  }
+  int root = idHash[make_pair(1,1)];
+  queue<int> q;
+  int g = f(root);
+  for(int ch : ids[g]) {
+    q.push(ch);
+    vis[g] = true;
+    sp[ch] = 0;
+  }
+  while(!q.empty()) {
+    int node = q.front();
+    q.pop();
+    int a = x[node],b = y[node];
+    set<int> s;
+    for(int r= max(1,a-1);r<=min(a+1,n);++r) {
+      if(row[r]) {
+        continue;
+      }
+      row[r]  = 1;
+      for(int ch : rowAdj[r]) {
+        int u = f(ch);
+        if(!vis[u]) {
+          vis[u] = true;
+          s.insert(u);
+        }
+      }
+    }
+    for(int c= max(1,b-1);c<=min(b+1,m);++c) {
+      if(col[c]) {
+        continue;
+      }
+      col[c]  = 1;
+      for(int ch : colAdj[c]) {
+        int u = f(ch);
+        if(!vis[u]) {
+          vis[u] = true;
+          s.insert(u);
+        }
+      }
+    }
+    while(s.size()>0) {
+      int k = *s.begin();
+      s.erase(k);
+      for(int ch : ids[k]) {
+        q.push(ch);
+        sp[ch] = sp[node] + 1;
+      }
+    }
+  }
+
+  int ret = 1e9;
+  for(int i=0;i<k;++i) {
+    if(canReach[i]>=0 && sp[i]>=0) {
+      ret = min(ret, canReach[i] + sp[i]);
+    }
+  }
+  if(ret==1e9) {
+    ret = -1;
+  }
+  printf("%d\n", ret);
+}
+
+int main() {
+    //freopen("input.txt","r",stdin);
+    solve();
+    return 0;
+}

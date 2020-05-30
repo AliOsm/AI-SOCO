@@ -1,0 +1,129 @@
+/*input
+8
+-2 6 -4 -4 -9 -3 -7 23
+8 2
+2 3
+1 4
+6 5
+7 6
+4 7
+5 8
+
+*/
+#include <bits/stdc++.h>
+using namespace std;
+#define sp ' '
+#define endl '\n'
+#define fi first
+#define se second
+#define mp make_pair
+#define N 200005
+#define bit(x,y) ((x>>y)&1LL)
+#define For(i,l,r) for(int i=l; i<r; i++)
+
+int n;
+int lab[N];
+vector<vector<int> > a(N);
+int child[N];
+bool dead[N];
+const int mod = 1e9 + 7;
+
+void pdfs(int u, int p) {
+	child[u] = 1;
+	for (auto v : a[u]) {
+		if (v == p || dead[v]) continue;
+		pdfs(v, u);
+		child[u] += child[v];
+	}
+}
+
+int findcen(int u, int p, const int total) {
+	for (auto v : a[u]) {
+		if (v == p || dead[v]) continue;
+		if (child[v] > total / 2) return findcen(v, u, total);
+	}
+	return u;
+}
+
+long long curSum[2], preSum[2];
+long long ans = 0;
+
+void dfs(int u, int p, int c, const int key, const int root, const int out) {
+	curSum[c] = (curSum[c] + lab[u]) % mod;
+	if (key == 0)
+		ans = (ans + (curSum[c] - curSum[c ^ 1] + (1 - c * 2) * lab[root]) * 1LL * out + preSum[c] - preSum[c ^ 1]) % mod;
+	else
+		preSum[c] = (preSum[c] + 1LL * (curSum[c] - curSum[c ^ 1]) * key) % mod;
+	for (auto v : a[u]) {
+		if (v == p || dead[v]) continue;
+		dfs(v, u, c ^ 1, key, root, out);
+	}
+	curSum[c] = (curSum[c] - lab[u]) % mod;
+}
+
+void fdfs(int u, int p, int c, int root) {
+	curSum[c] = (curSum[c] + lab[u]) % mod;
+	ans = (ans + curSum[0] - curSum[1] + lab[root] + curSum[c] - curSum[c ^ 1] + (1 - c * 2) * lab[root]) % mod;
+	for (auto v : a[u]) {
+		if (v == p || dead[v]) continue;
+		fdfs(v, u, c ^ 1, root);
+	}
+	curSum[c] = (curSum[c] - lab[u]) % mod;
+}
+
+void cal(int u, int phase) {
+	int buff = 0;
+	if (phase == 0) {
+		for (int i = 0; i < a[u].size(); i++) {
+			int v = a[u][i];
+			if (dead[v]) continue;
+			dfs(v, u, 1, 0, u, buff);
+			dfs(v, u, 1, 1, u, buff);
+			buff += child[v];
+		}
+	}
+	else {
+		for (int i = a[u].size() - 1; i >= 0; i--) {
+			int v = a[u][i];
+			if (dead[v]) continue;
+			dfs(v, u, 1, 0, u, buff);
+			dfs(v, u, 1, 1, u, buff);
+			buff += child[v];
+		}
+	}
+	memset(curSum, 0, sizeof(curSum)); memset(preSum, 0, sizeof(preSum));
+}
+
+void solve(int u) {
+	pdfs(u, u);
+	u = findcen(u, u, child[u]);
+	pdfs(u, u);
+	ans = (ans + lab[u]) % mod; dead[u] = true;
+	for (auto v : a[u]) {
+		if (dead[v]) continue;
+		fdfs(v, u, 1, u);
+	}
+	cal(u, 0); cal(u, 1);
+	for (auto v : a[u]) {
+		if (dead[v]) continue;
+		solve(v);
+	}
+}
+
+signed main() {
+	ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+#ifdef in1code
+	freopen("1test.inp", "r", stdin);
+#endif
+	cin >> n;
+	for (int i = 1; i <= n; i++) cin >> lab[i];
+	for (int i = 1; i <= n - 1; i++) {
+		int u, v; cin >> u >> v;
+		a[u].push_back(v);
+		a[v].push_back(u);
+	}
+	solve(1);
+	ans %= mod;
+	while (ans < 0) ans += mod;
+	cout << ans << endl;
+}

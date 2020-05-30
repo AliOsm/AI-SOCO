@@ -1,0 +1,121 @@
+#pragma GCC optimize("O3")
+#include <bits/stdc++.h>
+#define ni(n) scanf("%d", &(n))
+#define prl(n) printf("%I64d\n", (n))
+#define pii pair<int, int>
+#define vii vector<pii>
+#define vi vector<int>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+using namespace std;
+typedef long long ll;
+const ll INF = 1e16 + 7;
+const int MAXN = 5e5 + 5;
+pii a[MAXN], b[MAXN];
+int L[MAXN*4], R[MAXN*4], segsz = 1;
+ll val[MAXN];
+
+struct node {
+	ll sm, mxpre;
+	int ind;
+} seg[MAXN*4];
+
+node operator+(node l, node r) {
+	node ret = {0,0,0};
+	ret.sm = l.sm + r.sm;
+	ret.ind = l.ind;
+	if (l.mxpre < l.sm+r.mxpre)
+		ret.ind = r.ind;
+	ret.mxpre = max(l.mxpre, l.sm+r.mxpre);
+	return ret;
+}
+
+void upd(int l, int r, int& k, int a, ll v, int idx) {
+	if (!k) {
+		k = ++segsz;
+		seg[k].sm = 0;
+		seg[k].mxpre = -INF;
+		seg[k].ind = -1;
+	}
+	if (a < l || r < a) return;
+	if (a <= l && r <= a) {
+		seg[k].sm += v;
+		seg[k].mxpre = seg[k].sm-idx;
+		seg[k].ind = idx;
+		return;
+	}
+	int m = (l+r) / 2;
+	upd(l,m,L[k],a,v,idx);
+	upd(m+1,r,R[k],a,v,idx);
+	seg[k]=seg[L[k]]+seg[R[k]];
+}
+
+node qry(int l, int r, int k, int a) {
+	if (!k) {
+		node ret;
+		ret.sm = 0;
+		ret.mxpre = -INF;
+		ret.ind = -1;
+		return ret;
+	}
+	if (a <= l) return seg[k];
+	int m = (l+r) / 2;
+	if (a <= m)
+		return qry(l,m,L[k],a)+qry(m+1,r,R[k],a);
+	return qry(m+1,r,R[k],a);
+}
+
+int main() {
+	vii arr;
+	int n; ni(n);
+	int root = 1;
+	seg[1].sm = 0;
+	seg[1].mxpre = 0;
+	seg[1].ind = 0;
+	map<int,int> mrk;
+	vi tmp;
+	for (int i = 0; i < n; i++) {
+		scanf("%d %d %I64d", &a[i].fi, &a[i].se, &val[i]);
+		if (a[i].fi > a[i].se)
+			swap(a[i].fi, a[i].se);
+		tmp.pb(a[i].fi);
+		tmp.pb(a[i].se);
+		arr.pb(mp(a[i].fi,i));
+		mrk[a[i].fi] = 1;
+		mrk[a[i].se] = 1;
+	}
+	sort(tmp.begin(),tmp.end());
+	tmp.erase(unique(tmp.begin(),tmp.end()),tmp.end());
+	for (int i = 0; i < n; i++) {
+		b[i].fi = lower_bound(tmp.begin(),tmp.end(),a[i].fi)-tmp.begin();
+		b[i].se = lower_bound(tmp.begin(),tmp.end(),a[i].se)-tmp.begin();
+	}
+	sort(arr.begin(),arr.end());
+	ll ans = -1;
+	int lo = 0, hi = 0;
+	for (int i = n-1; i >= 0;) {
+		int j = i;
+		for (; j >= 0 && arr[i].fi == arr[j].fi; j--)
+			upd(0,2*n,root,b[arr[j].se].se,val[arr[j].se],a[arr[j].se].se);
+		node cur = qry(0,2*n,root,b[arr[i].se].fi);
+		if (ans < cur.mxpre+arr[i].fi) {
+			ans = cur.mxpre+arr[i].fi;
+			lo = arr[i].fi;
+			hi = cur.ind;
+		}
+		i = j;
+	}
+	if (ans == -1) {
+		ans = 0;
+		for (int i = 0; i <= 2*n; i++)
+			if (!mrk.count(i)) {
+				lo = hi = i;
+				break;
+			}
+	}
+	prl(ans);
+	printf("%d %d %d %d\n", lo, lo, hi, hi);
+	return 0;
+}

@@ -1,0 +1,164 @@
+#include "assert.h"
+#include <algorithm>
+#include <bitset>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <deque>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <string.h>
+#include <time.h>
+#include <vector>
+
+#if LOCAL
+	#define DO_NOT_SEND
+#endif
+
+typedef long long LL;
+
+int IntMaxVal = (int) 1e20;
+int IntMinVal = (int) -1e20;
+LL LongMaxVal = (LL) 1e20;
+LL LongMinVal = (LL) -1e20;
+
+#define FOR(i, a, b) for(int i = a; i < b ; ++i)
+#define FORD(i, a, b) for(int i = a; i >= b; --i)
+
+template<typename T> inline void minimize(T &a, T b) { a = std::min(a, b); }
+template<typename T> inline void maximize(T &a, T b) { a = std::max(a, b); }
+
+#define all(v) v.begin(),v.end()
+
+using namespace std;
+
+#define endl '\n'
+template<typename T> struct argument_type;
+template<typename T, typename U> struct argument_type<T(U)> { typedef U type; };
+#define next(t, i) argument_type<void(t)>::type i; cin >> i;
+#define nextVector(t, v, size) vector< argument_type<void(t)>::type > v(size); { for (int i = 0 ; i < size ; i++) cin >> v[i]; }
+
+#define range(name, start, count) vector<int> name(count); { for (int i = 0 ; i < count ; i++) name[i] = i + start; }
+
+template <typename T1, typename T2> istream& operator >>(istream& is, pair<T1, T2>& s) { is >> s.first >> s.second; return is; }
+template <typename T> ostream& operator << (ostream& os, const vector<T> &v) { for (int i = 0 ; i < v.size() ; i++) os << v[i] << ' '; os << endl; return os; }
+template <typename T1, typename T2> ostream& operator <<(ostream& s, pair<T1, T2>& t) { s << t.first << ' ' << t.second; return s; }
+template <typename T> vector<T> readVector(int n) { vector<T> res(n); for (int i = 0 ; i < n ; i++) cin >> res[i]; return res; }
+
+int get_lca(int a, int b, vector<vector<int>> &parents, vector<int> &depths) {
+	if (depths[a] > depths[b]) return get_lca(b, a, parents, depths);
+	
+	if (depths[a] < depths[b]) {
+		int diff = depths[b] - depths[a];
+		FOR (i, 0, 100) if (diff) if (diff & (1 << i)) {
+			b = parents[b][i];
+			diff ^= 1 << i;
+		}
+	}
+	
+	if (a == b) return a;
+	
+	FORD (i, parents[a].size() - 1, 0) if (i < parents[a].size()) {
+		assert(parents[a].size() == parents[b].size());
+		if (parents[a][i] != parents[b][i]) {
+			a = parents[a][i];
+			b = parents[b][i];
+		}
+	}
+	return parents[a][0];
+}
+
+int get_nth_parent(int v, int n, vector<vector<int>> &parents) {
+	FORD (i, parents[v].size(), 0) if (i < parents[v].size() && (n & (1 << i)))  {
+		v = parents[v][i];
+	}
+	return v;
+}
+
+int main() {
+	srand (time(NULL));
+	ios_base::sync_with_stdio(false); cin.tie(NULL);
+	
+	next(int, n);
+	auto all_edges = readVector<pair<int, int>>(n - 1);
+	for (auto &e : all_edges) {
+		e.first--;
+		e.second--;
+	}
+	
+	vector<vector<int>> edges(n);
+	for (auto &e : all_edges) {
+		edges[e.first].push_back(e.second);
+		edges[e.second].push_back(e.first);
+	}
+	
+	int root = 0;
+	vector<int> order = { root };
+	vector<int> parent(n, -1);
+	vector<int> depths(n);
+	
+	FOR (i, 0, n) {
+		int v = order[i];
+		for (auto d : edges[v]) if (d != parent[v]) {
+			parent[d] = v;
+			order.push_back(d);
+			depths[d] = depths[v] + 1;
+		}
+	}
+	
+	vector<vector<int>> parents(n);
+	FOR (i, 1, n) {
+		int v = order[i];
+		parents[v].push_back(parent[v]);
+		FOR (i, 0, parents[v].size()) {
+			int p = parents[v][i];
+			if (i < parents[p].size()) parents[v].push_back(parents[p][i]);
+		}
+	}
+	
+	vector<int> tree_size(n, 1);
+	FORD (i, n - 1, 0) {
+		int v = order[i];
+		for (auto c : edges[v]) if (c != parent[v])
+			tree_size[v] += tree_size[c];
+	}
+	next(int, m);
+	while (m --> 0) {
+		next(int, a); a--;
+		next(int, b); b--;
+		int lca = get_lca(a, b, parents, depths);
+		int dist = depths[a] + depths[b] - 2 * depths[lca];
+		
+		int res;
+		if (dist % 2) {
+			res = 0;
+		} else if (a == b) {
+			res = n;
+		} else {
+			if (depths[a] > depths[b]) swap(a, b);
+			int up = dist / 2;
+			int mid = get_nth_parent(b, up, parents);
+			
+			if (mid == lca) {
+				int p1 = get_nth_parent(a, depths[a] - depths[lca] - 1, parents);
+				int p2 = get_nth_parent(b, depths[b] - depths[lca] - 1, parents);
+				res = n - tree_size[p1] - tree_size[p2];
+			} else {
+				int p2 = get_nth_parent(b, depths[b] - depths[mid] - 1, parents);
+				res = tree_size[mid] - tree_size[p2];
+			}
+			
+
+		}
+		cout << res << endl;
+	}
+}

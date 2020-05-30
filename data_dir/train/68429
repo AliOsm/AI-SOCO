@@ -1,0 +1,170 @@
+/* upsolve with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	50
+#define M	50
+#define K	50
+#define T	(N + K + 1)
+#define N_	(N * T + 1)
+#define M_	(K + (M * 2 * K + N) * (T - 1))
+#define INF	0x3f3f3f3f
+
+struct L {
+	struct L *next;
+	int j;
+} aa[N], aa_[N_];
+
+void add(int i, int j) {
+	static struct L l91[M * 2], *l = l91;
+
+	l->j = j;
+	l->next = aa[i].next; aa[i].next = l++;
+}
+
+void add_(int i, int h) {
+	static struct L l91[M_ * 2], *l = l91;
+
+	l->j = h;
+	l->next = aa_[i].next; aa_[i].next = l++;
+}
+
+int n_, m_;
+int pi[N_], dd[N_], bb[N_];
+int uu[M_], vv[M_], uv[M_], cost[M_];
+int *qq, nq = 1 << 20, head, cnt;
+char iq[N_];
+int cc[M_ * 2];
+
+void link(int u, int v, int cap, int cos) {
+	int h = m_++;
+
+	uu[h] = u, vv[h] = v, uv[h] = u ^ v;
+	cost[h] = cos;
+	cc[h << 1 ^ 0] = cap;
+	add_(u, h << 1 ^ 0);
+	add_(v, h << 1 ^ 1);
+}
+
+void enqueue(int v) {
+	if (iq[v])
+		return;
+	if (head + cnt == nq) {
+		if (cnt * 4 <= nq)
+			memcpy(qq, qq + head, cnt * sizeof *qq);
+		else {
+			int *qq_ = (int *) malloc((nq *= 2) * sizeof *qq);
+
+			memcpy(qq_, qq + head, cnt * sizeof *qq);
+			free(qq);
+			qq = qq_;
+		}
+		head = 0;
+	}
+	qq[head + cnt++] = v, iq[v] = 1;
+}
+
+int dequeue() {
+	int u = qq[cnt--, head++];
+
+	iq[u] = 0;
+	return u;
+}
+
+int spfa(int s, int t) {
+	memset(pi, 0x3f, n_ * sizeof *pi);
+	pi[s] = 0;
+	head = cnt = 0;
+	enqueue(s);
+	while (cnt) {
+		struct L *l;
+		int u = dequeue(), v, h, h_, p, d = dd[u] + 1;
+
+		for (l = aa_[u].next; l; l = l->next)
+			if (cc[h_ = l->j]) {
+				h = h_ >> 1;
+				p = pi[u] + ((h_ & 1) == 0 ? cost[h] : -cost[h]);
+				v = u ^ uv[h];
+				if (pi[v] > p || pi[v] == p && dd[v] > d) {
+					pi[v] = p;
+					dd[v] = d;
+					bb[v] = h_;
+					enqueue(v);
+				}
+			}
+	}
+	return pi[t] != INF;
+}
+
+void push(int s, int t) {
+#if 0
+	int u, h, h_, c = INF;
+
+	for (u = t; u != s; u ^= uv[h]) {
+		h = (h_ = bb[u]) >> 1;
+		if (c > cc[h_])
+			c = cc[h_];
+	}
+	for (u = t; u != s; u ^= uv[h]) {
+		h = (h_ = bb[u]) >> 1;
+		cc[h_] -= c, cc[h_ ^ 1] += c;
+	}
+#else
+	int u, h, h_;
+
+	for (u = t; u != s; u ^= uv[h]) {
+		h = (h_ = bb[u]) >> 1;
+		cc[h_]--, cc[h_ ^ 1]++;
+	}
+#endif
+}
+
+int edmonds_karp(int s, int t) {
+	int c, h;
+
+	while (spfa(s, t))
+		push(s, t);
+	c = 0;
+	for (h = 0; h < m_; h++)
+		c += cost[h] * cc[h << 1 ^ 1];
+	return c;
+}
+
+int main() {
+	static int ii[K];
+	int n, m, k, t, c, d, h, i, j, s, u, v, x;
+
+	scanf("%d%d%d%d%d", &n, &m, &k, &c, &d);
+	for (h = 0; h < k; h++)
+		scanf("%d", &ii[h]), ii[h]--;
+	while (m--) {
+		scanf("%d%d", &i, &j), i--, j--;
+		add(i, j), add(j, i);
+	}
+	t = n + k + 1;
+	n_ = n * t + 1;
+	m_ = 0;
+	for (i = 0; i < n; i++)
+		for (s = 0; s < t - 1; s++) {
+			struct L *l;
+
+			u = i * t + s;
+			for (l = aa[i].next; l; l = l->next) {
+				j = l->j;
+				v = j * t + s + 1;
+				for (x = 1; x <= k; x++)
+					link(u, v, 1, c + (x * 2 - 1) * d);
+			}
+		}
+	for (i = 0; i < n; i++)
+		for (s = 0; s < t - 1; s++) {
+			u = i * t + s, v = u + 1;
+			link(u, v, k, i == 0 ? 0 : c);
+		}
+	for (h = 0; h < k; h++)
+		link(n_ - 1, ii[h] * t + 0, 1, 0);
+	qq = (int *) malloc(nq * sizeof *qq);
+	printf("%d\n", edmonds_karp(n_ - 1, 0 * t + t - 1));
+	return 0;
+}

@@ -1,0 +1,117 @@
+#include <iostream>
+#include <algorithm>
+#include <cstring>
+using namespace std;
+typedef long long ll;
+
+struct matrix
+{
+    ll A[3][3];
+    matrix()
+    {
+        memset(A, 0, sizeof(A));
+    }
+};
+
+const int MOD = 1000000007;
+matrix I, T[8];
+int N;
+ll M;
+ll dp[3], temp[3];
+pair<pair<ll, int>, int> E[20005];
+int occ[3];
+
+matrix mult(matrix a, matrix b)
+{
+    matrix ret;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            for (int k = 0; k < 3; k++)
+                ret.A[i][j] = (ret.A[i][j] + a.A[i][k]*b.A[k][j] % MOD) % MOD;
+    return ret;
+}
+
+matrix expo(matrix m, ll p)
+{
+    if (p == 0)
+        return I;
+    else if (p == 1)
+        return m;
+    else if (p % 2 == 0)
+        return expo(mult(m, m), p/2);
+    return mult(m, expo(mult(m, m), (p-1)/2));
+}
+
+void prod(matrix m)
+{
+    memcpy(temp, dp, sizeof(temp));
+    memset(dp, 0, sizeof(dp));
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            dp[i] = (dp[i] + temp[j]*m.A[j][i] % MOD) % MOD;
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);
+
+    cin >> N >> M;
+    for (int i = 0, a; i < N; i++)
+    {
+        ll l, r;
+        cin >> a >> l >> r;
+        E[2*i] = make_pair(make_pair(l, 1), a - 1);
+        E[2*i + 1] = make_pair(make_pair(r + 1, -1), a - 1);
+    }
+
+    for (int i = 0; i < 3; i++)
+        I.A[i][i] = 1;
+    for (int mask = 0; mask < 7; mask++)
+    {
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                T[mask].A[i][j] = 1;
+        T[mask].A[0][2] = T[mask].A[2][0] = 0;
+
+        for (int i = 0; i < 3; i++)
+            if (mask & (1<<i))
+                for (int j = 0; j < 3; j++)
+                    T[mask].A[j][i] = 0;
+    }
+
+    sort(E, E + 2*N);
+    ll prv = 2;
+    dp[1] = 1;
+    for (int i = 0, mask = 0; i < 2*N;)
+    {
+        //cout << prv << " to " << E[i].first.first << " with mask: " << mask << "\n";
+        prod(expo(T[mask], E[i].first.first - prv));
+        prv = E[i].first.first;
+        int j = i;
+        while (j < 2*N && E[i].first.first == E[j].first.first)
+        {
+            if (E[j].first.second == -1) //end
+            {
+                if (occ[E[j].second] == 1)
+                    mask ^= 1<<E[j].second;
+                occ[E[j].second]--;
+            }
+            j++;
+        }
+        while (i < j)
+        {
+            if (E[i].first.second == 1) //start
+            {
+                if (occ[E[i].second] == 0)
+                    mask |= 1<<E[i].second;
+                occ[E[i].second]++;
+            }
+            i++;
+        }
+    }
+    prod(expo(T[0], M + 1 - prv));
+
+    cout << dp[1] << "\n";
+
+    return 0;
+}

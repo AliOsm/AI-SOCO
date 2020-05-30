@@ -1,0 +1,143 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <stack>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+#include <stdlib.h>
+#include <sstream>
+#include <assert.h>
+#include <memory.h>
+
+#include <time.h>
+#pragma comment(linker, "/STACK:100000000")
+using namespace std;
+
+#define mp make_pair
+#define pb push_back
+#define ll long long
+#define sz(x) (int)(x).size()
+
+ll l[30], m[30], w[30];
+
+int cnt = 0;
+pair<pair<int, int>, pair<int, int> > mas[1600000];
+int oo = -1e9;
+
+int maxres = oo; // максимальное набранная сумма
+int resmask1 = 0;
+int resmask2 = 0;
+
+
+void go(int p, int n, int mask, int a, int b, int c) {
+	if(p == n) {
+		int diffb = b - a;
+		int diffc = c - a;
+		mas[cnt++] = mp(mp(diffb, diffc), mp(a, mask));
+		return;
+	}
+	go(p+1, n, mask * 3 + 0, a, b + m[p], c + w[p]);
+	go(p+1, n, mask * 3 + 1, a + l[p], b, c + w[p]);
+	go(p+1, n, mask * 3 + 2, a + l[p], b + m[p], c);
+}
+
+void solve(int p, int n, int mask, int a, int b, int c) {
+	if(p == n) {
+		int diffb = a - b;
+		int diffc = a - c;
+		// хочу найти такое значение в mas, что mas[idx].first.first == diffb, mas[idx].first.second == diffc и a максимально
+		int l = 0, r = cnt;
+		while(l < r) {
+			int mid = (l + r) / 2;
+			if(mas[mid].first.first < diffb || mas[mid].first.first == diffb && mas[mid].first.second < diffc) l = mid + 1;
+			else r = mid;
+		}
+		if(l != cnt && mas[l].first.first == diffb && mas[l].first.second == diffc) {
+			if(a + mas[l].second.first > maxres) {
+				maxres = a + mas[l].second.first;
+				resmask1 = mas[l].second.second;
+				resmask2 = mask;
+			}
+		}
+
+		return;
+	}
+	solve(p+1, n, mask * 3 + 0, a, b + m[p], c + w[p]);
+	solve(p+1, n, mask * 3 + 1, a + l[p], b, c + w[p]);
+	solve(p+1, n, mask * 3 + 2, a + l[p], b + m[p], c);
+}
+
+bool cmp(pair<pair<int, int>, pair<int, int> > &a, pair<pair<int, int>, pair<int, int> > &b) {
+	if(a.first.first < b.first.first) return true;
+	if(a.first.first == b.first.first && a.first.second < b.first.second) return true;
+	if(a.first.first == b.first.first && a.first.second == b.first.second && a.second.first > b.second.first) return true;
+	return false;
+}
+
+int main()
+{
+    
+	//freopen("input.txt","rt",stdin);
+    //freopen("bipartite.in","rt",stdin);
+    //freopen("bipartite.out","wt",stdout);
+	
+	int n;
+	cin >> n;
+	for(int i = 0; i < n; i++) {
+		cin >> l[i] >> m[i] >> w[i];
+	}
+	if(n == 1) {
+		if(l[0] == 0 && m[0] == 0) printf("LM\n");
+		else if(l[0] == 0 && w[0] == 0) printf("LW\n");
+		else if(m[0] == 0 && w[0] == 0) printf("MW\n");
+		else printf("Impossible\n");
+		return 0;
+	}
+	int d1 = n / 2;
+	int d2 = n - d1;
+
+	go(0, d1, 0, 0, 0, 0);
+	sort(mas, mas + cnt, cmp);
+	solve(d1, n, 0, 0, 0, 0);
+	
+	if(maxres == oo) {
+		printf("Impossible\n");
+		return 0;
+	}
+	vector<string> path;
+	for(int i = 0; i < d2; i++) {
+		if(resmask2 % 3 == 0) {
+			path.pb("MW");
+		}
+		else if(resmask2 % 3 == 1) {
+			path.pb("LW");
+		}
+		else {
+			path.pb("LM");
+		}
+		resmask2 /= 3;
+	}
+	for(int i = 0; i < d1; i++) {
+		if(resmask1 % 3 == 0) {
+			path.pb("MW");
+		}
+		else if(resmask1 % 3 == 1) {
+			path.pb("LW");
+		}
+		else {
+			path.pb("LM");
+		}
+		resmask1 /= 3;
+	}
+
+	for(int i = sz(path) - 1; i >= 0; i--) cout << path[i] << endl;
+
+	
+
+    return 0;
+}

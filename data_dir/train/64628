@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+      
+#define ll long long
+#define all(aaa) aaa.begin(), aaa.end()
+  
+using namespace std;
+
+const int N = 1e5 + 5;
+vector<int> g[N];
+bool isChain[N], side[N], ver[N];
+bool ans = false;
+
+void dfs(int node, int anc) {
+    int children = 0,
+        chain = 0;
+    for (int to : g[node]) {
+        if (to != anc) {
+            dfs(to, node);
+            children++;
+            if (isChain[to]) {
+                isChain[node] = true;
+                chain++;
+            }
+        }
+    }
+    if (children == 0)
+        isChain[node] = true;
+    else if (children != 1)
+        isChain[node] = false;
+    if (chain == children && chain <= 2)
+        side[node] = true;
+}
+
+void dive(int node, int anc, bool up_side, bool up_chain) {
+    int ct[2] = {0, 0},
+        ct_all[2] = {0, 0};
+
+    ver[node] = true;
+
+    int chain = up_chain;
+    for (int to : g[node]) {
+        if (to != anc) {
+            chain += isChain[to];
+        }
+    }
+
+    for (int to : g[node]) {
+        if (to != anc) {
+            bool new_up_chain = up_chain,
+                new_up_side = false;
+
+            if (anc == -1) {
+                if (g[node].size() - 1 == 0)
+                    new_up_chain = true;
+                else if (g[node].size() - 1 == 1)
+                    new_up_chain = chain - isChain[to];
+            }
+            else {
+                if (g[node].size() - 1 == 0)
+                    new_up_chain = true;
+                else if (g[node].size() - 1 != 1)
+                    new_up_chain = false;
+            }
+            if (chain - isChain[to] == g[node].size() - 1 && 
+                chain - isChain[to] < 3)
+                new_up_side = true;
+
+            dive(to, node, new_up_side, new_up_chain);
+        }
+    }
+
+    for (int to : g[node]) {
+        if (to != anc) {
+            ct[side[to]] += ver[to];
+            ct_all[side[to]]++;
+            if (!side[to])
+                ver[node] = false;
+        }
+    }
+
+    if (ct_all[0] < 2 && ct[0] == ct_all[0])
+        ver[node] = true;
+
+    if (up_side && ct[0] <= 2 && ct[0] == ct_all[0]) {
+        ans = true;
+    }
+    
+}
+
+signed main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(NULL);
+
+    int n;
+    cin >> n;
+
+    for (int i = 0; i < n - 1; i++) {
+        int x, y;
+        cin >> x >> y;
+        x--, y--;
+        g[x].push_back(y);
+        g[y].push_back(x);
+    }
+
+    dfs(0, -1);
+    dive(0, -1, 1, 0);
+
+    // cout << ver[3] << " " << ver[5] << "\n";
+    // cout << side[12] << "\n";
+
+    cout << (ans ? "Yes" : "No");
+
+    return 0;
+}

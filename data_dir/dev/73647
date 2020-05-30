@@ -1,0 +1,205 @@
+#include<iostream>
+#include<algorithm>
+#include<vector>
+#include<queue>
+#include<map>
+#include<utility>
+#include<set>
+#include<stack>
+#include<list>
+#include<deque>
+#include<bitset>
+#include<iomanip>
+#include<cstring>
+#include<sstream>
+#include<cstdio>
+#include<cstdlib>
+#include<climits>
+#include<cmath>
+#include<cctype>
+
+
+#define pb push_back
+#define mp make_pair
+#define rep(i,a,b) for(int i=a;i<=b;i++)
+#define ren(i,a,b) for(int i=a;i>=b;i--)
+#define ff first
+#define ss second
+#define pll pair<long long int,long long int>
+#define pii pair<int,int>
+#define vll vector<long long int>
+#define vii vector<int>
+#define gi(n) scanf("%d",&n)
+#define gll(n) scanf("%lld",&n)
+#define gstr(n) scanf("%s",n)
+#define gl(n) cin >> n
+#define oi(n) printf("%d",n)
+#define oll(n) printf("%lld",n)
+#define ostr(n) printf("%s",n)
+#define ol(n) cout << n
+#define os cout<<" "
+#define on cout<<"\n"
+#define o2(a,b) cout<<a<<" "<<b
+#define all(n) n.begin(),n.end()
+#define present(s,x) (s.find(x) != s.end())
+#define cpresent(s,x) (find(all(s),x) != s.end())
+#define tr(container, it) for(__typeof(container.begin()) it = container.begin(); it != container.end(); it++)
+using namespace std;
+
+typedef unsigned long long int ull;
+typedef long long int ll;
+typedef long double ld;
+typedef vector<vector<ll> > mat;
+
+namespace FFT {//taken from https://www.codechef.com/viewsolution/11952970
+    //taken from https://www.codechef.com/viewsolution/11939789
+    const int N = 20;
+    const int MAXN = (1<<N);
+    class cmplx {
+    private:
+        double x, y;
+    public:
+        cmplx () : x(0.0), y(0.0) {}
+        cmplx (double a) : x(a), y(0.0) {}
+        cmplx (double a, double b) : x(a), y(b) {}
+        double get_real() { return this->x; }
+        double get_img() { return this->y; }
+        cmplx conj() { return cmplx(this->x, -(this->y)); }
+        cmplx operator = (const cmplx& a) { this->x = a.x; this->y = a.y; return *this; }
+        cmplx operator + (const cmplx& b) { return cmplx(this->x + b.x, this->y + b.y); }
+        cmplx operator - (const cmplx& b) { return cmplx(this->x - b.x, this->y - b.y); }
+        cmplx operator * (const double& num) { return cmplx(this->x * num, this->y * num); }
+        cmplx operator / (const double& num) { return cmplx(this->x / num, this->y / num); }
+        cmplx operator * (const cmplx& b) { 
+            return cmplx(this->x * b.x - this->y * b.y, this->y * b.x + this->x * b.y); 
+        }
+        cmplx operator / (const cmplx& b) {
+            cmplx temp(b.x, -b.y); cmplx n = (*this) * temp;
+            return n / (b.x * b.x + b.y * b.y);
+        }
+    };
+    cmplx w[MAXN];
+    cmplx f1[MAXN];
+    int rev[MAXN];
+    void ReserveBits(int k) {
+        static int rk = -1, lim;
+        if(k == rk) return ;
+        rk = k, lim = 1 << k;
+        for(int i = 1; i <= lim; ++i) {
+            int j = rev[i-1], t = k - 1;
+            while(t >= 0 && ((j>>t)&1)) {
+                j ^= 1 << t; --t;
+            }
+            if(t >= 0) {
+                j ^= 1 << t; --t;
+            }
+            rev[i] = j;
+        }
+    }
+    void fft(cmplx *a, int k) {
+        ReserveBits(k);
+        int n = 1 << k;
+        for(int i = 0 ; i < n; ++i) 
+            if(rev[i] > i) swap(a[i], a[rev[i]]);
+        for(int l = 2, m = 1; l <= n; l += l, m += m) {
+            if(w[m].get_real() == 0 && w[m].get_img() == 0) {
+                double angle = M_PI / m;
+                cmplx ww(cos(angle), sin(angle));
+                if(m > 1) {
+                    for(int j = 0; j < m; ++j) {
+                        if(j & 1) w[m + j] = w[(m+j)/2] * ww;
+                        else w[m + j] = w[(m+j)/2];
+                    }
+                }
+                else w[m] = cmplx(1, 0);
+            }
+            for(int i = 0; i < n; i += l) {
+                for(int j = 0; j < m; ++j) {
+                    cmplx v = a[i + j], u = a[i + j + m] * w[m + j];
+                    a[i + j] = v + u;
+                    a[i + j + m] = v - u;
+                }
+            }
+        }
+    }
+    vector <long long> mul(vector<long long> a, vector<long long> b) {
+        int k = 1;
+        while((1<<k) < (a.size() + b.size())) ++k;
+        int n = (1<<k);
+        for(int i = 0; i < n; ++i) f1[i] = cmplx(0,0);
+        for(int i = 0; i < a.size(); ++i) f1[i] = f1[i] + cmplx(a[i], 0);
+        for(int i = 0; i < b.size(); ++i) f1[i] = f1[i] + cmplx(0, b[i]);
+        fft(f1, k);
+        for(int i = 0; i <= n/2; ++i) {
+            cmplx p = f1[i] + f1[(n-i)%n].conj();
+            cmplx _q = f1[(n-i)%n] - f1[i].conj();
+            cmplx q(_q.get_img(), _q.get_real());
+            f1[i] = (p * q) * 0.25;
+            if(i > 0) f1[(n - i)] = f1[i].conj();
+        }
+        for(int i = 0; i < n; ++i) f1[i] = f1[i].conj();
+        fft(f1, k);
+        vector<long long> ans(a.size() + b.size() - 1);
+        for(int i = 0; i < ans.size(); ++i) {
+            ans[i] = (long long) (f1[i].get_real() / n + 0.5);
+        }
+        return ans;
+    }
+};
+
+int buff = 2e5+5;
+
+
+
+int main()
+{ios_base::sync_with_stdio(false);
+ll n,x;
+ll an[200005];
+cin>>n>>x;
+ll nn=2*buff+5;
+vll v(nn,0);
+vll v1(nn,0);
+
+v[0]=1;
+v1[buff]=1;
+ll cool=0;
+rep(i,0,n-1)
+{
+	ll xx;
+	cin>>xx;
+	if(xx<x)cool++;
+	an[0]+=v[cool];
+	v[cool]++;
+	v1[buff-cool]++;
+}
+/*rep(i,buff,buff+5)
+{
+	o2(i,v[i]);on;
+}
+ren(i,buff,buff-5)
+{
+	o2(i,v1[i]);on;
+}*/
+//ol(an[0]);on;
+vll res=FFT::mul(v,v1);
+
+int sz=res.size();
+
+/*rep(i,0,sz-1)
+{
+	o2(i,res[i]);on;
+}*/
+//ol(an[0]);on;
+rep(i,buff+1,buff+n)
+{
+	an[i-buff]=res[i];
+	
+}
+rep(i,0,n)
+{
+	ol(an[i]);os;
+}
+return 0;
+}
+
+

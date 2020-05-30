@@ -1,0 +1,136 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int sz = 1e5 + 10;
+int ar[sz], st[sz], en[sz], cnt[sz], tr[sz], br[sz*7], ans[sz];
+int n, m, tim;
+int block_size;
+vector < int > G[sz];
+
+struct nd {
+    int x, y, k, id;
+    int block_sz;
+    bool operator < ( const nd &ot ) const {
+        if( block_sz != ot.block_sz ) {
+            return block_sz < ot.block_sz;
+        }
+        return y < ot.y;
+    }
+} nds[sz];
+
+void dfs( int u, int par ) {
+    st[u] = ++tim;
+    br[tim] = ar[u];
+    for( int v: G[u] ) {
+        if( v == par ) continue;
+        dfs( v, u );
+    }
+    en[u] = ++tim;
+}
+
+void upd( int x, int v ) {
+    if( !x ) return;
+    for( ; x<=n; x+=(x&-x) ) {
+        tr[x] += v;
+    }
+}
+
+int qu( int x ) {
+    int ret = 0;
+    for( ; x > 0; x-=(x&-x) ) {
+        ret += tr[x];
+    }
+    return ret;
+}
+
+void add( int val ) {
+    if( !val ) return;
+    upd( cnt[val], -1 );
+    cnt[val]++;
+    upd( cnt[val], +1 );
+}
+
+void remove( int val ) {
+    if( !val ) return;
+    upd( cnt[val], -1 );
+    cnt[val]--;
+    upd( cnt[val], +1 );
+}
+
+int main(){
+    #ifdef CLown1331
+        freopen("in.txt","r",stdin);
+    #endif /// CLown1331
+    while( ~scanf( "%d %d", &n, &m ) ) {
+        tim = 0;
+        for( int i=0; i<=n; i++ ) G[i].clear();
+        memset( cnt, 0, sizeof cnt );
+        memset( br, 0, sizeof br );
+        memset( tr, 0, sizeof tr );
+        memset( ans, 0, sizeof ans );
+        for( int i=1; i<=n; i++ ) {
+            scanf( "%d", &ar[i] );
+        }
+        for( int i=1,x,y; i<n; i++ ) {
+            scanf( "%d %d", &x, &y );
+            G[x].push_back( y );
+            G[y].push_back( x );
+        }
+        dfs( 1, -1 );
+        block_size = sqrt( tim );
+        for( int i=0; i<m; i++ ) {
+            scanf( "%d %d", &nds[i].id, &nds[i].k );
+            nds[i].x = st[ nds[i].id ];
+            nds[i].y = en[ nds[i].id ];
+            nds[i].id = i;
+            nds[i].block_sz = nds[i].x / block_size;
+        }
+
+        sort( nds, nds+m );
+
+        int mo_l = 0, mo_r = -1, left, right;
+
+//        for( int i=1; i<=n; i++ ) printf( "%2d ", i ); cerr << "\n";
+//        for( int i=1; i<=n; i++ ) printf( "%2d ", st[i] ); cerr << "\n";
+//        for( int i=1; i<=n; i++ ) printf( "%2d ", en[i] ); cerr << "\n";
+//        for( int i=1; i<=n; i++ ) cerr << ar[i] << " \n"[ i==n ];
+//        for( int i=1; i<=tim; i++ ) cerr << br[i] << " \n"[ i==tim ];
+
+        for( int i=0; i<m; i++ ) {
+            left = nds[i].x;
+            right = nds[i].y;
+
+//            cerr << left << " " << right << "\n";
+
+            while( mo_r < right ) {
+                mo_r++;
+                add( br[mo_r] );
+            }
+
+            while( mo_r > right ) {
+                remove( br[mo_r] );
+                mo_r--;
+            }
+
+            while( mo_l < left ) {
+                remove( br[mo_l] );
+                mo_l++;
+            }
+
+            while( mo_l > left ) {
+                mo_l--;
+                add( br[mo_l] );
+            }
+
+            if( nds[i].k <= n ) ans[ nds[i].id ] = qu( n ) - qu( nds[i].k - 1 );
+        }
+
+        for( int i=0; i<m; i++ ) {
+            printf( "%d\n", ans[i] );
+        }
+
+        cerr << "-------\n";
+
+    }
+    return 0;
+}

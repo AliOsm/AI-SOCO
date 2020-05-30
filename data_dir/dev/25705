@@ -1,0 +1,166 @@
+/*
+ by skydog
+ */
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <map>
+#include <set>
+#include <stack>
+#include <queue>
+#include <deque>
+#include <cassert>
+
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<ll, ll> l4;
+
+#define mp make_pair
+#define pb push_back
+const int N = 4+1;
+const int MAXCARD = 8+1;
+const int MAXSTATE = 500;
+int id[MAXCARD][MAXCARD][MAXCARD][MAXCARD][MAXCARD];
+int state[MAXSTATE][N];
+int sz;
+int a[N];
+int &get_id(int *a)
+{
+    return id[a[0]][a[1]][a[2]][a[3]][a[4]];
+}
+void dfs(int pos, int left)
+{
+    if (pos == N-1)
+    {
+        a[pos] = left;
+        get_id(a) = ++sz;
+        for (int i = 0; i < N; ++i)
+            state[sz][i] = a[i];
+        return;
+    }
+    for (int i = 0; i <= left; ++i)
+    {
+        a[pos] = i;
+        dfs(pos+1, left-i);
+    }
+}
+
+bool win(int cur)
+{
+    return state[cur][0] == MAXCARD-1;
+}
+int nxt_state(const int &cur, int prev, int tar)
+{
+    memcpy(a, state[cur], sizeof(a));
+    assert(a[prev]);
+    a[prev] -= 1;
+    a[tar] += 1;
+    return get_id(a);
+}
+vector<ii> g[MAXSTATE][MAXSTATE];
+int in[MAXSTATE][MAXSTATE];
+void build_state()
+{
+    sz = 0;
+    dfs(0, 8);
+    cerr << "total state size = " << sz << endl;
+}
+int ans[MAXSTATE][MAXSTATE];
+const int WIN = 1, LOSE = 0, TIE = -1;
+void build_graph()
+{
+    for (int i = 1; i <= sz; ++i)
+        if (!win(i))
+            for (int j = 1; j <= sz; ++j)
+                if (!win(j))
+                {
+                    for (int a = 1; a < N; ++a) if (state[i][a])
+                        for (int b = 1; b < N; ++b) if (state[j][b])
+                        {
+                            int c = (a+b)%N;
+                            int nxt = nxt_state(i, a, c);
+                            g[j][nxt].pb(mp(i, j));
+                            ++in[i][j];
+                        }
+                    
+                }
+    queue<ii> q;
+    memset(ans, TIE, sizeof(ans));
+    for (int i = 1; i <= sz; ++i)
+        if (!win(i))
+            for (int j = 1; j <= sz; ++j)
+            {
+                assert((in[i][j]!=0)^win(j));
+                if (!in[i][j])
+                {
+                    ans[i][j] = LOSE;
+                    q.push(mp(i, j));
+                }
+            }
+    while (!q.empty())
+    {
+        ii cur = q.front();
+        q.pop();
+        int cur_ans = ans[cur.first][cur.second];
+        for (auto pr : g[cur.first][cur.second])
+        {
+            int &nxt_ans = ans[pr.first][pr.second];
+            if (nxt_ans != TIE)
+                continue;
+            if (cur_ans == LOSE)
+            {
+                nxt_ans = WIN;
+                q.push(pr);
+            }
+            else
+            {
+                int &nxt_in = in[pr.first][pr.second];
+                --nxt_in;
+                if (nxt_in == 0)
+                {
+                    nxt_ans = LOSE;
+                    q.push(pr);
+                }
+            }
+        }
+    }
+}
+int read()
+{
+    memset(a, 0, sizeof(a));
+    for (int i = 1; i < MAXCARD; ++i)
+    {
+        int x;
+        scanf("%d", &x);
+        ++a[x];
+    }
+    return get_id(a);
+}
+int main()
+{
+    build_state();
+    build_graph();
+    int T;
+    scanf("%d", &T);
+    for (int kase = 1; kase <= T; ++kase)
+    {
+        int f;
+        scanf("%d", &f);
+        int a = read(), b = read();
+        if (f)
+            swap(a, b);
+        int ret = ans[a][b];
+        if (ret == TIE)
+            puts("Deal");
+        else
+            puts(ret^f?"Alice":"Bob");
+    }
+}
+
+
+

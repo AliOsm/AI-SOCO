@@ -1,0 +1,21 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n,a[1004],b[1004];
+vector<int> ans;
+int main() {
+  cin>>n;
+  for(int i=1;i<=n;i++)cin>>a[i],b[i-1] = a[i] - a[i-1];
+  for(int i=1;i<=n;i++){
+    bool ret = 0;
+    for(int j=i;j<n;j++){
+      if(b[j]!=b[j-i])ret = 1;
+    }
+    if(!ret)ans.emplace_back(i);
+  }
+
+  cout<<ans.size()<<endl;
+  for(auto an:ans){
+    cout<<an<<" ";
+  }
+}

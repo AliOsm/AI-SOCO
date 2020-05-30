@@ -1,0 +1,215 @@
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef long double real;
+
+#ifdef WIN32
+#define INT64 "%I64d"
+#define UINT64 "%I64u"
+#else
+#define INT64 "%lld"
+#define UINT64 "%llu"
+#endif
+
+#ifdef DEBUG
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+#else
+#define eprintf(...) assert (true)
+#endif
+
+const int MaxN = 24, LIM = 1000, MaxC = 0x3F3F3F3F, NA = -1;
+const int64 MaxCL = 0x3F3F3F3F3F3F3F3FLL;
+
+int64 p [MaxN];
+int q [MaxN];
+int64 v, res, ra, rb, rc, ca, hi;
+int64 vlo [LIM + 1], vhi [LIM + 1];
+real approx;
+vector <int64> divs;
+vector <int64> good;
+int lim;
+int k, n;
+
+void recurb (int d, int64 cur)
+{
+ if (d == k)
+ {
+  int64 cb, cc, now;
+
+  cb = cur;
+  now = ca * cb;
+  cc = v / now;
+  now = 2 * (now + cc * (ca + cb));
+  if (res > now)
+  {
+   res = now;
+   ra = ca;
+   rb = cb;
+   rc = cc;
+  }
+
+  return;
+ }
+ 
+ int sq;
+
+ for (sq = q[d]; ; q[d]--)
+ {
+  recurb (d + 1, cur);
+  if (!q[d])
+   break;
+  cur *= p[d];
+  if (cur > ca)
+   break;
+ }
+ q[d] = sq;
+}
+
+void recura (int d, int64 cur)
+{
+ if (d == k)
+ {
+  if (!binary_search (good.begin (), good.end (), cur))
+//  if (find (good.begin (), good.end (), cur) == good.end ())
+   return;
+
+  ca = cur;
+  recurb (0, 1);
+
+  return;
+ }
+ 
+ int sq;
+
+ for (sq = q[d]; ; q[d]--)
+ {
+  recura (d + 1, cur);
+  if (!q[d])
+   break;
+  cur *= p[d];
+  if (cur > hi)
+   break;
+ }
+ q[d] = sq;
+}
+
+void recur0 (int d, int64 cur)
+{
+ if (d == k)
+ {
+  divs.push_back (cur);
+  return;
+ }
+ 
+ int sq;
+
+ for (sq = q[d]; ; q[d]--)
+ {
+  recur0 (d + 1, cur);
+  if (!q[d])
+   break;
+  cur *= p[d];
+ }
+ q[d] = sq;
+}
+
+int main (void)
+{
+ int test, tests;
+ int i, j, r;
+
+ ios::sync_with_stdio (false);
+ cin >> tests;
+// scanf (" %d", &tests);
+
+ for (test = 1; test <= tests; test++)
+ {
+  cin >> k;
+//  scanf (" %d", &k);
+  v = 1;
+  for (i = 0; i < k; i++)
+  {
+   cin >> p[i] >> q[i];
+//   scanf (" " INT64 " %d", &p[i], &q[i]);
+   for (j = 0; j < q[i]; j++)
+    v *= p[i];
+  }
+
+/*
+  for (i = 0; i < k - 1; i++)
+   for (j = i + 1; j < k; j++)
+    if (p[i] < p[j])
+    {
+     swap (p[i], p[j]);
+     swap (q[i], q[j]);
+    }
+*/
+
+  res = (int64) 8E18L;
+  ra = rb = rc = NA;
+  approx = pow ((real) v, (real) 1.0 / 3.0);
+
+  divs.clear ();
+  recur0 (0, 1);
+  n = divs.size ();
+  lim = LIM;
+  if (n >= 600)
+   lim = (int) (LIM * (600.0 / n));
+  memset (vlo, NA, sizeof (vlo));
+  memset (vhi, MaxC, sizeof (vhi));
+  for (i = 0; i < n; i++)
+   if (divs[i] >= approx)
+   {
+    for (j = 0; j < lim && vhi[j] < divs[i]; j++)
+     ;
+    for (r = lim - 1; r > j; r--)
+     vhi[r] = vhi[r - 1];
+    vhi[j] = divs[i];
+   }
+   else
+   {
+    for (j = 0; j < lim && vlo[j] > divs[i]; j++)
+     ;
+    for (r = lim - 1; r > j; r--)
+     vlo[r] = vlo[r - 1];
+    vlo[j] = divs[i];
+   }
+
+  hi = NA;
+  good.clear ();
+  for (j = 0; j < lim && vhi[j] != MaxCL; j++)
+  {
+   good.push_back (vhi[j]);
+   hi = max (hi, vhi[j]);
+  }
+  for (j = 0; j < lim && vlo[j] != NA; j++)
+  {
+   good.push_back (vlo[j]);
+   hi = max (hi, vlo[j]);
+  }
+  sort (good.begin (), good.end ());
+
+  recura (0, 1);
+
+  assert (res <= (int64) 4E18L);
+  cout << res << " " << ra << " " << rb << " " << rc << endl;
+//  printf (INT64 " " INT64 " " INT64 " " INT64 "\n", res, ra, rb, rc);
+ }
+
+ return 0;
+}

@@ -1,0 +1,184 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <cstdio>
+#include <iomanip>
+#include <fstream>
+#include <cassert>
+#include <cstring>
+#include <unordered_set>
+#include <unordered_map>
+#include <numeric>
+#include <ctime>
+#include <bitset>
+#include <complex>
+#include <random>
+
+using namespace std;
+
+#define int long long
+
+struct Dsu {
+	vector<int> p;
+	vector<int> rank;
+
+	int get(int v) {
+		if (p[v] != v) {
+			p[v] = get(p[v]);
+		}
+		return p[v];
+	}
+
+	void merge(int a, int b) {
+		a = get(a);
+		b = get(b);
+		if (a != b) {
+			if (rank[a] < rank[b]) {
+				swap(a, b);
+			}
+			p[b] = a;
+			if (rank[a] == rank[b]) {
+				rank[a]++;
+			}
+		}
+	}
+
+	Dsu(int n) {
+		p.resize(n);
+		rank.resize(n);
+		iota(p.begin(), p.end(), 0);
+	}
+};
+
+const int N = 53;
+const int INF = 1e18 + 239;
+
+int f[N];
+int dp[N];
+int fact[N];
+
+int safe_mul(int a, int b) {
+	if (a < (INF + b - 1) / b) {
+		return a * b;
+	} else {
+		return INF;
+	}
+}
+
+void init() {
+	f[0] = 1;
+	f[1] = 1;
+	for (int i = 2; i < N; i++) {
+		if (f[i - 1] < INF) {
+			f[i] = min(INF, f[i - 1] * (i - 1));
+		} else {
+			f[i] = INF;
+		}
+	}
+	dp[0] = 1;
+	for (int i = 0; i < N; i++) {
+		for (int j = 1; i + j < N; j++) {
+			dp[i + j] = min(INF, dp[i + j] + safe_mul(dp[i], f[j - 1]));
+		}
+	}
+	fact[0] = 1;
+	for (int i = 1; i < N; i++) {
+		fact[i] = safe_mul(i, fact[i - 1]);
+	}
+	// cout << dp[5] << endl;
+}
+
+vector<int> get_cycle(int n, int k) {
+	vector<int> ans(n);
+	ans[0] = n - 1;
+	Dsu cur(n);
+	cur.merge(0, n - 1);
+	vector<int> used(n);
+	used[n - 1] = 1;
+	for (int i = 1; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			int ok = 1;
+			if (i + 1 < n && cur.get(i) == cur.get(j)) {
+				ok = 0;
+			}
+			if (used[j]) {
+				ok = 0;
+			}
+			int left = n - (i + 1);
+			int cf = 1;
+			if (left > 0) {
+				cf = fact[left - 1];
+			}
+			int lol = ok * cf;
+			if (lol <= k) {
+				k -= lol;
+				continue;
+			}
+			cur.merge(i, j);
+			ans[i] = j;
+			used[j] = 1;
+			break;
+		}
+	}
+	return ans;
+}
+
+void gen(int i, int k, vector<int> &ans, int n) {
+	if (i == n) {
+		return;
+	}
+	for (int len = 1; i + len <= n; len++) {
+		if (safe_mul(f[len - 1], dp[n - (i + len)]) <= k) {
+			k -= safe_mul(f[len - 1], dp[n - (i + len)]);
+			continue;
+		}
+		int gk = k / dp[n - (i + len)];
+		vector<int> add = get_cycle(len, gk);
+		for (auto t : add) {
+			ans.push_back(t + i);
+		}
+		gen(i + len, k - gk * dp[n - (i + len)], ans, n);
+		break;
+	}
+}
+
+void solve() {
+	int n, k;
+	cin >> n >> k;
+	if (dp[n] < k) {
+		cout << "-1\n";
+		return;
+	}
+	k--;
+	vector<int> ans;
+	gen(0, k, ans, n);
+	for (auto t : ans) {
+		cout << t + 1 << ' ';
+	}
+	cout << '\n';
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    init();
+
+    int q;
+    cin >> q;
+    while (q--) {
+    	solve();
+    }
+
+    // for (int i = 1; i < 10; i++) {
+    // 	for (int j = 1; j < 1000; j++) {
+    // 		cout << "! " << i << ' ' << j << endl;
+    // 		solve(i, j);
+    // 	}
+    // }
+}

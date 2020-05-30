@@ -1,0 +1,218 @@
+//#pragma comment(linker, "/stack:200000000")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma GCC optimize("unroll-loops")
+
+#include <iostream>
+#include <stdlib.h>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <deque>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <random>
+#include <assert.h>
+#include <memory.h>
+#include <time.h>
+#include <bitset>
+
+#define uint unsigned int
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define rep(i, l, r) for (int i = l; i < r; i++)
+#define repb(i, r, l) for (int i = r; i > l; i--)
+#define sz(a) (int)a.size()
+#define fi first
+#define se second
+#define mp(a, b) make_pair(a, b)
+#define rank qwertyuio
+#define next dfghjk
+
+using namespace std;
+
+inline bool setmin(int &x, int y) { return (y < x) ? x = y, 1 : 0; }
+inline bool setmax(int &x, int y) { return (y > x) ? x = y, 1 : 0; }
+inline bool setmin(ll &x, ll y) { return (y < x) ? x = y, 1 : 0; }
+inline bool setmax(ll &x, ll y) { return (y > x) ? x = y, 1 : 0; }
+
+const int N = 150000;
+const int inf = (int)1e9 + 1;
+const ll big = (ll)1e18 + 1;
+const int P = 239;
+const int P1 = 31;
+const int P2 = 57;
+const int MOD = (int)1e9 + 7;
+const int MOD1 = (int)1e9 + 9;
+const int MOD2 = 998244353;
+const double eps = 1e-9;
+const double pi = atan2(0, -1);
+const int ABC = 26;
+
+vector<int> g[N];
+char ch[N];
+int par[N];
+int anc[N];
+int depth[N], height[N];
+
+void dfs(int u, int ancestor) {
+    height[u] = 0;
+    anc[u] = ancestor;
+    if (sz(g[u]) == 2) {
+        ancestor = u;
+    }
+    for (int v : g[u]) {
+        depth[v] = depth[u] + 1;
+        dfs(v, ancestor);
+        setmax(height[u], height[v] + 1);
+    }
+}
+
+int gr[N];
+int cnt[N][26];
+vector<int> G[N];
+
+int need[N][26];
+int tot[N];
+bool ok[N];
+
+void dfs1(int u) {
+    //cout << u << endl;
+    ok[u] = true;
+    for (int v : G[u]) {
+        dfs1(v);
+        rep(c, 0, 26) {
+            setmax(need[u][c], need[v][c] + cnt[v][c]);
+        }
+        if (!ok[v]) {
+            ok[u] = false;
+        }
+    }
+    rep(c, 0, 26) {
+        tot[u] += need[u][c];
+    }
+    if (tot[u] > height[u]) {
+        ok[u] = false;
+    }
+}
+
+void modify(int u, char character) {
+    int c_old = (ch[u] != '?' ? ch[u] - 'a' : -1);
+    int c_new = (character != '?' ? character - 'a' : -1);
+    ch[u] = character;
+    u = gr[u];
+    if (c_old != -1) {
+        cnt[u][c_old]--;
+    }
+    if (c_new != -1) {
+        cnt[u][c_new]++;
+    }
+    while (u != 0) {
+        u = anc[u];
+        ok[u] = true;
+        if (c_old != -1) {
+            tot[u] -= need[u][c_old];
+            need[u][c_old] = 0;
+        }
+        if (c_new != -1) {
+            tot[u] -= need[u][c_new];
+            need[u][c_new] = 0;
+        }
+        for (int v : G[u]) {
+            if (!ok[v]) {
+                ok[u] = false;
+            }
+            if (c_old != -1) {
+                setmax(need[u][c_old], need[v][c_old] + cnt[v][c_old]);
+            }
+            if (c_new != -1) {
+                setmax(need[u][c_new], need[v][c_new] + cnt[v][c_new]);
+            }
+        }
+        if (c_old != -1) {
+            tot[u] += need[u][c_old];
+        }
+        if (c_new != -1) {
+            tot[u] += need[u][c_new];
+        }
+        if (tot[u] > height[u]) {
+            ok[u] = false;
+        }
+    }
+}
+
+int main()
+{
+    //freopen("a.in", "r", stdin);
+    //freopen("a.out", "w", stdout);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.precision(20);
+    cout << fixed;
+    //ll TL = 0.95 * CLOCKS_PER_SEC;
+    //clock_t time = clock();
+    int n, q;
+    cin >> n >> q;
+    rep(i, 1, n) {
+        int p; char c;
+        cin >> p >> c; p--;
+        par[i] = p;
+        g[p].push_back(i);
+        ch[i] = c;
+    }
+    depth[0] = 0;
+    dfs(0, 0);
+    int hhh = -1;
+    rep(i, 0, n) {
+        if (sz(g[i]) == 0) {
+            if (hhh != -1 && hhh != depth[i]) {
+                rep(t, 0, q) {
+                    cout << "Fou\n";
+                }
+                return 0;
+            }
+            hhh = depth[i];
+        }
+    }
+    rep(i, 1, n) {
+        if (sz(g[i]) == 0 || sz(g[i]) == 2) {
+            G[anc[i]].push_back(i);
+            int ancestor = anc[i], cur = i;
+            while (cur != ancestor) {
+                gr[cur] = i;
+                if (ch[cur] != '?') {
+                    cnt[i][ch[cur] - 'a']++;
+                }
+                cur = par[cur];
+            }
+        }
+    }
+    /*rep(i, 0, n) {
+        for (int j : G[i]) {
+            cout << i << " -> " << j << endl;
+        }
+    }*/
+    //return 0;
+    dfs1(0);
+    //return 0;
+    while (q--) {
+        int u; char c;
+        cin >> u >> c; u--;
+        if (ch[u] != c) {
+            modify(u, c);
+        }
+        if (!ok[0]) {
+            cout << "Fou\n";
+            continue;
+        }
+        int ans = 0;
+        rep(c, 0, 26) {
+            ans += (c + 1) * (need[0][c] + (hhh - tot[0]));
+        }
+        cout << "Shi " << ans << "\n";
+    }
+    return 0;
+}

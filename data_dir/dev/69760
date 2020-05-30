@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int mod = 1000000007;
+typedef long long ll;
+const int INF = 0x7fffffff;
+const int N = 3e6 + 5;
+const int Mod = 100;
+int ans, K, ls;
+int M, l, r[N];
+char ss[N];
+vector<int> s, g, f;
+const double pi = acos(-1.0);
+class cplx
+{
+	public:
+    	double x,y;
+	    cplx(double _x=0, double _y=0) {x=_x,y=_y;}
+	    cplx operator + (const cplx& rhs) {return cplx(x+rhs.x,y+rhs.y);}
+	    cplx operator - (const cplx& rhs) {return cplx(x-rhs.x,y-rhs.y);}
+	    cplx operator * (const cplx& rhs) {return cplx(x*rhs.x-y*rhs.y,x*rhs.y+y*rhs.x);}
+}A[N],B[N],x,w,w0;
+inline void FFT(cplx *A, int f)
+{
+	int i, j, k;
+	for (i = 0; i < M; i++)
+		if (i < r[i])
+			swap(A[i], A[r[i]]);
+	for (i = 1; i < M; i <<= 1)
+	{
+		w.x = cos(pi / i), w.y = sin(pi / i) * f;
+		for (j = 0; j < M; j += i << 1)
+		{
+			w0.x = 1, w0.y = 0;
+			for (k = 0; k < i; ++k)
+			{
+				x = A[j + k];
+				A[j + k] = x + (w0 * A[i + j + k]);
+				A[i + j + k] = x - (w0 * A[i + j + k]);
+				w0 = w0 * w;
+			}
+		}
+	}
+	if (f == -1)
+		for (i = 0; i < M; ++i)
+			A[i].x /= M;
+}
+void refresh(vector<int> &a)
+{
+	int p = 0, la = a.size();
+	for (int i = 0; i < la || p; ++i)
+	{
+		if (i >= la)
+			a.push_back(0);
+		ll cur = a[i] + p;
+		a[i] = cur % Mod;
+		p = cur / Mod;
+	}
+}
+bool cmp(vector<int> a)
+{
+	int la = a.size(), lb = s.size();
+	if (la < lb)
+		return 0;
+	if (la > lb)
+		return 1;
+	for (int i = la - 1; ~i; i--)
+	{
+		if (a[i] < s[i])
+			return 0;
+		if (a[i] > s[i])
+			return 1;
+	}
+	return 1;
+}
+bool work(int x)
+{
+	vector<int> h;
+	for (int i = 0; i < g.size(); i++)
+		h.push_back(g[i] * x);
+	refresh(h);
+	return cmp(h);
+}
+void solve2()
+{
+	for (int i = 0; i < g.size(); i++)
+		g[i] = g[i] * 3;
+	refresh(g);
+}
+vector<int> solve(vector<int> a, vector<int> b)
+{
+	int la = a.size(), lb = b.size();
+	for (M = 1, l = 0; M <= la + lb; M <<= 1, l++)
+		;
+	for (int i = 0; i < a.size(); i++)
+		A[i].x = a[i], A[i].y = 0;
+	for (int i = 0; i < b.size(); i++)
+		B[i].x = b[i], B[i].y = 0;
+	for (int i = 1; i < M; i++)
+		r[i] = (r[i >> 1] >> 1) | ((i & 1) << (l - 1));
+	FFT(A, 1), FFT(B, 1);
+	for (int i = 0; i < M; i++)
+		A[i] = A[i] * B[i];
+	FFT(A, -1);
+	vector<int> z(la + lb - 1);
+	for (int i = 0; i <= la + lb - 2; i++)
+		z[i] = (int)(A[i].x + 0.5);
+	for (int i = 0; i < M; i++)
+		A[i].x = B[i].x = A[i].y = B[i].y = 0;
+	return z;
+}
+void calc()
+{
+	f.push_back(3), g.push_back(1);
+	while (K)
+	{
+		if (K & 1)
+			g = solve(g, f), refresh(g);
+		K >>= 1, f = solve(f, f), refresh(f);
+	}
+}
+int tt[10] = {0, 1, 2, 3, 4, 5, 5, 6, 6, 6};
+int main()
+{
+	scanf("%s", ss), ls = strlen(ss), reverse(ss, ss + ls);
+	if (ls == 1)
+	{
+		int zjq = ss[0] - '0';
+		return cout << tt[zjq] << endl, 0;
+	}
+	for (int i = 0; i < ls; i += 2)
+	{
+		int x = ss[i] - '0';
+		if (i + 1 < ls)
+			x += (ss[i + 1] - '0') * 10;
+		s.push_back(x);
+	}
+	K = (ls - 1) * (double)(log(10) / log(3)), --K, ans += K * 3, calc();
+	for (;; ans += 3, solve2())
+	{
+		if (work(2))
+		{
+			ans += 2;
+			break;
+		}
+		else if (work(3))
+		{
+			ans += 3;
+			break;
+		}
+		else if (work(4))
+		{
+			ans += 4;
+			break;
+		}
+	}
+	cout << ans << endl;
+	return 0;
+}

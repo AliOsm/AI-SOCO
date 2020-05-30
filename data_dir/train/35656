@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+#define f first
+#define s second
+#define pb push_back
+#define pii pair<int, int>
+#define endl '\n'
+#define vi vector<int>
+#define vvi vector<vi>
+#define pii pair<int, int>
+#define vpii vector<pii>
+#define vvpii vector<vpii>
+typedef long long ll;
+typedef long double ld;
+using namespace std;
+template<class T> using minheap = priority_queue<T, vector<T>, greater<T>>;
+template<typename T> void setmax(T& a, T b) { a = max(a, b); };
+template<typename T> void setmin(T& a, T b) { a = min(a, b); };
+template<typename T> bool in(T v, T lo, T hi) { return lo <= v && v <= hi; };
+
+template<int N>
+struct Manacher {
+  char s[N];
+  int n;
+
+  int even[N], odd[N];
+
+  Manacher() {}
+  void set(string &a) {
+    n = a.length();
+    for (int i = 0; i < n; i++) {
+      s[i] = a[i];
+      even[i] = odd[i] = 0;
+    }
+  }
+
+  void compute() {
+    for (int i = 0, L = 0, R = -1; i < n; i++) {
+      int k = (i > R) ? 1 : min(odd[L + R - i], R - i + 1);
+      while (0 <= i - k && i + k < n && s[i - k] == s[i + k]) 
+        k++;
+      odd[i] = k--;
+      if (i + k > R) {
+        R = i + k;
+        L = i - k;
+      }
+    }
+
+    for (int i = 0, L = 0, R = -1; i < n; i++) {
+      int k = (i > R) ? 0 : min(even[L + R - i + 1], R - i + 1);
+      while (0 <= i - k - 1 && i + k < n && s[i - k - 1] == s[i + k])
+        k++;
+      even[i] = k--;
+      if (i + k > R) {
+        R = i + k;
+        L = i - k - 1;
+      }
+    }
+  }
+};
+
+const int N = 1e6 + 10;
+
+void solve() {
+  static Manacher<N> man;
+  static int is_suffix[N];
+  string s;
+  cin >> s;
+  int n = s.length();
+
+  man.set(s);
+  man.compute();
+
+  for (int i = 0; i < n; i++) {
+    is_suffix[i] = 0;
+  }
+
+  is_suffix[0] = s[0] == s[n - 1];
+  for (int i = 1; i < n; i++) {
+    is_suffix[i] = is_suffix[i - 1] && (s[i] == s[n - i - 1]);
+  }
+
+  auto is_prefix = [&](int i) -> bool {
+    if (i == n) return true;
+    return is_suffix[n - i - 1];
+  };
+
+  // {palindrome length, {size of prefix, size of suffix}}
+  pair<int, pii> best = {1, {1, 0}};
+  auto update = [&](int a_len, int b_len) -> void {
+    setmax(best, {a_len + b_len, {a_len, b_len}});
+  };
+
+  for (int i = 0; i < n; i++) {
+    // s[0..i] will be the first half
+    // check odd length
+    if (2 * (i + 1) - 1 <= n && (man.odd[i] == i + 1 || is_suffix[i - man.odd[i]])) {
+      int a_len = i + 1 + man.odd[i] - 1;
+      int b_len = 2 * i + 1 - a_len;
+      update(a_len, b_len);
+    }
+    // check even length
+    if (2 * (i + 1) <= n && i + 1 < n) {
+      if (man.even[i + 1] == i + 1 || is_suffix[i - man.even[i + 1]]) {
+        int a_len = i + 1 + man.even[i + 1];
+        int b_len = 2 * (i + 1) - a_len;
+        update(a_len, b_len);
+      }
+    }
+
+    // s[i..n-1] will be the second half
+    // check odd length
+    if (2 * (n - i) - 1 <= n && is_prefix(i + man.odd[i])) {
+      int b_len = n - i + man.odd[i] - 1;
+      int a_len = 2 * (n - i) - 1 - b_len;
+      // cout << "oddsec " << i << " " << a_len << " " << b_len << endl; 
+      update(a_len, b_len);
+    }
+
+    // check even length
+    if (2 * (n - i) <= n && i - 1 >= 0) {
+      if (is_prefix(i + man.even[i])) {
+        int b_len = n - i + man.even[i];
+        int a_len = 2 * (n - i) - b_len;
+        update(a_len, b_len);
+      }
+    }
+  }
+
+  // cout << best.f << " " << best.s.f << " " << best.s.s << endl;
+  // print best
+  for (int i = 0; i < best.s.f; i++) {
+    cout << s[i];
+  }
+  for (int i = n - best.s.s; i < n; i++) {
+    cout << s[i];
+  }
+  cout << endl;
+}
+
+int main() {
+  ios::sync_with_stdio(0);
+  cin.tie(0); cout.tie(0);
+
+  int t;
+  cin >> t;
+  while (t--) {
+    solve();
+  }
+
+  return 0; 
+}

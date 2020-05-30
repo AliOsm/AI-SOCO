@@ -1,0 +1,217 @@
+//#pragma GCC optimise("Ofast,unroll-loops,no-stack-protector,fast-math");
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,abm,mmx,popcnt,avx,avx2,tune=native")
+          
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+          
+using namespace std;
+using namespace __gnu_pbds;
+          
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ld, ld> pld;
+          
+using matrix = vector<vector<ll>>;
+template<typename T>
+using kawaii_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+          
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+//#define int long long
+ 
+void FAST_IO() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    #ifndef _offline
+    //freopen("highways.in", "r", stdin);
+    //freopen("highways.out", "w", stdout);
+    #endif
+}
+
+struct edge {
+    int u, v, w;
+    bool used;
+};
+
+const ll mod = 1e9 + 7;
+const ll mod2 = 1e9 + 9;
+const int K = 17;
+const int N = (1 << K);
+vector<pii> g[N];
+int p[N], rnk[N];
+int par[N], xpar[N], tin[N], tout[N], timer = 0;
+int can[N], cnt[N], dimas[N];
+
+int find_set(int u) {
+    return (p[u] == u ? u : p[u] = find_set(p[u]));
+}
+
+void union_sets(int u, int v) {
+    int a = find_set(u);
+    int b = find_set(v);
+    if (a == b) {
+        return;
+    }
+    if (rnk[a] < rnk[b]) {
+        swap(a, b);
+    }
+    p[b] = a;
+    if (rnk[a] == rnk[b]) {
+        rnk[a]++;
+    }
+}
+
+void dfs(int u, int p, int xp) {
+    par[u] = p;
+    xpar[u] = xp;
+    tin[u] = timer++;
+    for (pii to : g[u]) {
+        if (to.first == p) {
+            continue;
+        }
+        dfs(to.first, u, to.second);
+    }
+    tout[u] = timer;
+}
+
+bool is_parent(int u, int v) {
+    return (tin[u] <= tin[v] && tout[u] >= tout[v]);
+} 
+
+ll binpow(ll x, ll n, ll m) {
+    ll res = 1;
+    while (n) {
+        if (n & 1) {
+            res = (res * x) % m;
+        }
+        x = (x * x) % m;
+        n >>= 1;
+    } 
+    return res;
+}
+ 
+void work(int *f) {
+    for (int bit = 0; bit < K; ++bit) {
+        for (int i = 0; i < N; ++i) {
+            if (!(i & (1 << bit))) {
+                ll x = f[i], y = f[i ^ (1 << bit)];
+                f[i] = x + y;
+                if (f[i] >= mod) {
+                    f[i] -= mod;
+                }
+                f[i ^ (1 << bit)] = x - y;
+                if (f[i ^ (1 << bit)] < 0) {
+                    f[i ^ (1 << bit)] += mod;
+                }
+            }
+        }
+    }
+} 
+
+void work2(int *f) {
+    for (int bit = 0; bit < K; ++bit) {
+        for (int i = 0; i < N; ++i) {
+            if (!(i & (1 << bit))) {
+                ll x = f[i], y = f[i ^ (1 << bit)];
+                f[i] = x + y;
+                if (f[i] >= mod2) {
+                    f[i] -= mod2;
+                }
+                f[i ^ (1 << bit)] = x - y;
+                if (f[i ^ (1 << bit)] < 0) {
+                    f[i ^ (1 << bit)] += mod2;
+                }
+            }
+        }
+    }
+} 
+
+signed main() {
+    FAST_IO();
+    iota(p, p + N, 0);
+    int n, m, res = 0;
+    cin >> n >> m;
+    vector<edge> ed(m);
+    for (int i = 0; i < m; ++i) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        u--;
+        v--;
+        ed[i] = {u, v, w, false};
+    }
+    for (edge &e : ed) {
+        if (find_set(e.u) != find_set(e.v)) {
+            union_sets(e.u, e.v);
+            g[e.u].push_back({e.v, e.w});
+            g[e.v].push_back({e.u, e.w});
+            res ^= e.w;
+            e.used = true;
+        }
+    }
+    dfs(0, -1, -1);
+    vector<vector<int>> kek;
+    for (edge e : ed) {
+        if (e.used) {
+            continue;
+        }
+        int u = e.u, v = e.v;
+        kek.push_back({0});
+        while (!is_parent(u, v)) {
+            kek.back().push_back(e.w ^ xpar[u]);
+            u = par[u];
+        }
+        while (v != u) {
+            kek.back().push_back(e.w ^ xpar[v]);
+            v = par[v];
+        }
+    }
+    cnt[0] = 1;
+    can[0] = 1;
+    work(cnt);
+    work2(can);
+    for (auto &v : kek) {
+        memset(dimas, 0, sizeof(dimas));
+        for (int x : v) {
+            dimas[x]++;
+        }
+        work(dimas);
+        for (int i = 0; i < N; ++i) {
+            cnt[i] = (cnt[i] * 1ll * dimas[i]) % mod;
+        }
+        memset(dimas, 0, sizeof(dimas));
+        for (int x : v) {
+            dimas[x]++;
+        }
+        work2(dimas);
+        for (int i = 0; i < N; ++i) {
+            can[i] = (can[i] * 1ll * dimas[i]) % mod2;
+        }
+    }
+    work(cnt);
+    work2(can);
+    ll rev = binpow(N, mod - 2, mod);
+    ll rev2 = binpow(N, mod2 - 2, mod2);
+    for (int i = 0; i < N; ++i) {
+        cnt[i] = (cnt[i] * rev) % mod;
+        can[i] = (can[i] * rev2) % mod2;
+    }
+    int mn = mod;
+    ll ans = 0;
+    for (int i = 0; i < N; ++i) {
+        if (cnt[i] == 0 && can[i] == 0) {
+            continue;
+        }
+        int val = (res ^ i);
+        if (val < mn) {
+            mn = val;
+            ans = cnt[i];
+        }
+    }
+    cout << mn << ' ' << ans << '\n';
+}

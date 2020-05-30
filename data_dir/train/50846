@@ -1,0 +1,371 @@
+#include <iostream>
+
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
+
+#include <string>
+
+#include <vector>
+#include <queue>
+#include <stack>
+
+using namespace std;
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+typedef pair<int,int> II;
+typedef long long llong;
+
+#define HIGHESTSETBIT(mask) ( sizeof(int)*8-1-__builtin_clz((mask)) )
+
+// Linear
+class BinaryIndexedTree {
+   int N;
+   VI tree;
+public:
+   BinaryIndexedTree(int _N) : N(_N), tree(VI(_N+4)) {}
+   int get_cumfreq(int idx) {
+      int sum = 0;
+      for (; idx > 0; idx -= (idx & -idx))
+         sum += tree[idx];
+      return sum;
+   }
+
+   void update(int idx, int val = 1) {
+      for (; idx <= N; idx += (idx & -idx))
+         tree[idx] += val;
+   }
+};
+
+vector<BinaryIndexedTree> fenwick_trees;
+
+class TreeDecomposition {
+   VI vis;
+   VI par;
+   VI Td, Tf;  // discovery and finish times in DFS
+   VI subtree_size;
+
+   vector<int> prefix_walk;
+   void _dfs();
+
+public:
+// INPUT:
+   VVI adj;
+
+// OUTPUT:
+   VVI chains;
+   vector<II> node_chain_pos;
+   // node_chain_pos[v] = (chain id, offset in path) of node v
+
+   int root;
+
+   TreeDecomposition(int _N) : adj(_N), root(0) {}
+
+   void decompose();
+
+// return whether u is an ancestor of v
+   bool is_ancestor(int u, int v) const;
+};
+
+void TreeDecomposition::_dfs() {
+   int N = adj.size();
+   vis = VI(N);
+   par = VI(N, -1);
+   Td = VI(N);
+   Tf = VI(N);
+
+   subtree_size = VI(N);
+   stack<II> S;
+   S.push(II(root, 0));
+   par[root] = root;
+   for (int t = 1; !S.empty(); ++t) {
+      int u = S.top().first, e = S.top().second;
+      if (e == 0) {
+         vis[u] = 2;
+         Td[u] = t;
+      }
+      if (e == int(adj[u].size())) {
+         Tf[u] = t;
+         subtree_size[u] = 1;
+         for (int j = 0; j < int(adj[u].size()); ++j) {
+            int v = adj[u][j];
+            if (v == par[u]) continue;
+            subtree_size[u] += subtree_size[v];
+         }
+         prefix_walk.push_back(u);
+         S.pop();
+      }
+      else {
+         ++S.top().second;
+         int v = adj[u][e];
+         if (!vis[v]) {
+            vis[v] = 1;
+            par[v] = u;
+            S.push(II(v, 0));
+         }
+      }
+   }
+}
+
+void TreeDecomposition::decompose() {
+   _dfs();
+
+   int N = adj.size();
+   vector<bool> par_edge_processed(N);
+   par_edge_processed[root] = true;
+   for (int k = 0; k < (int) prefix_walk.size(); ++k) {
+      int v = prefix_walk[k];
+      if (par_edge_processed[v]) continue;
+      vector<int> cur_path;
+      cur_path.push_back(v);
+      do {
+         int u = par[v];
+         cur_path.push_back(u);
+         par_edge_processed[v] = true;
+         if (2*subtree_size[v] < subtree_size[u]) break;  // light edge
+         v = u;
+      } while (!par_edge_processed[v]);
+      chains.push_back(cur_path);
+   }
+
+   node_chain_pos = vector<II>(N);
+   node_chain_pos[0].first = -1;
+   for (int i = 0; i < (int) chains.size(); ++i) {
+   //   cerr << "path " << i << ": ";
+      for (int j = 0; j < int(chains[i].size())-1; ++j) {
+         int u = chains[i][j];
+      //   cerr << ' ' << u;
+         node_chain_pos[u] = II(i, j);
+      }
+   //   cerr << ' ' << chains[i].back() << endl;
+   }
+}
+
+inline bool TreeDecomposition::is_ancestor(int u, int v) const {
+   return Td[u] <= Td[v] && Tf[v] <= Tf[u];
+}
+
+void update(const TreeDecomposition& td, int u, int val, bool trace=false) {
+   int p = td.node_chain_pos[u].first;
+   int lo = td.node_chain_pos[u].second;
+//   if (trace)
+//      cerr << "Update segment tree " << p << ": " << lo << " " << endl;
+   fenwick_trees[p].update(lo+1, val);
+}
+
+int query(const TreeDecomposition& td, int u, bool trace=false) {
+   int res = 0;
+   while (u != td.root) {
+      int p = td.node_chain_pos[u].first;
+      int lo = td.node_chain_pos[u].second,
+          hi = int(td.chains[p].size())-1;
+   //   if (trace)
+   //      cerr << "u = " << u << "  p = " << p << "  lo = " << lo << "  hi = " << hi << endl;
+      res +=  fenwick_trees[p].get_cumfreq(hi)
+            - fenwick_trees[p].get_cumfreq(lo);
+      u = td.chains[p][hi];
+   }
+   return res;
+}
+
+
+
+struct State {
+   // pat_id : id of pattern ending in this node
+   // outnxt : link list of output nodes
+   // fail   : failure function
+   int pat_id, outnxt, fail;
+   int edges[26];
+   State() : pat_id(-1), outnxt(-1), fail(0) {
+      memset(edges, -1, sizeof(edges));
+   }
+};
+
+struct AhoCorasick {
+   const static int ROOT = 0;
+
+   vector<State> nodes;
+   int npatterns;
+   vector<int> pat2nodes;
+
+   AhoCorasick(const vector<string>& pat) : npatterns(pat.size()) {
+      nodes.push_back(State());   // root
+      // 1. Construct keyword tree for each pattern
+      pat2nodes = vector<int>(npatterns);
+      for (int i = 0; i < npatterns; ++i) {
+         int v = ROOT;
+         for (int j = 0; j < pat[i].size(); ++j) {
+            int k = pat[i][j]-'a';
+            if (nodes[v].edges[k] < 0) {
+               nodes[v].edges[k] = nodes.size();
+               nodes.push_back(State());
+            }
+            v = nodes[v].edges[k];
+         }
+         nodes[v].pat_id = i;  // set pattern id of terminating node
+                               // assumes all patterns are distinct,
+                               // otherwise, store all patterns in a vector
+         pat2nodes[i] = v;
+      //   cerr << "Pattern " << i+1 << " terminating at node " << v << ' ' << pat[i] << endl;
+      }
+
+      // 2. Complete the goto function for missing transitions from root
+      for (int k = 0; k < 26; ++k)
+         if (nodes[ROOT].edges[k] < 0)
+            nodes[ROOT].edges[k] = ROOT;
+
+      // 3. Compute failure and output functions in BFS order
+      queue<int> q;
+
+      for (int k = 0; k < 26; ++k) {
+         int u = nodes[ROOT].edges[k];
+         if (u != ROOT) {
+            nodes[u].fail = ROOT;
+            q.push(u);
+         }
+      }
+
+      while (!q.empty()) {
+         int r = q.front();
+         q.pop();
+         for (int k = 0; k < 26; ++k) {
+            int u = nodes[r].edges[k];
+            if (u < 0) continue;
+            q.push(u);
+            // set f(u) to be deepest node labeled by a proper suffix of L(u)
+            int v = nodes[r].fail;
+            while (nodes[v].edges[k] < 0)
+               v = nodes[v].fail;
+            nodes[u].fail = nodes[v].edges[k];
+//          nodes[u].outnxt = nodes[u].fail;
+            nodes[u].outnxt = nodes[nodes[u].fail].pat_id >= 0 ?
+                  nodes[u].fail : nodes[nodes[u].fail].outnxt;
+         }
+      }
+   }
+};
+
+
+llong query(const AhoCorasick& ac, const TreeDecomposition& td, const string& S) {
+   llong res = 0;
+   int q = ac.ROOT;
+   for (int i = 0; i < S.size(); ++i) {
+      int k = S[i]-'a';
+      if (k < 0 || k > 26) {    // get rid of illegal characters
+         q = ac.ROOT;
+         continue;
+      }
+
+      while (ac.nodes[q].edges[k] < 0)
+         q = ac.nodes[q].fail;
+      q = ac.nodes[q].edges[k];
+
+      for (int x = q; x > 0; x = ac.nodes[x].outnxt) {
+         if (ac.nodes[x].pat_id >= 0) {
+            int add = query(td, ac.nodes[x].pat_id+1, ac.nodes[x].pat_id+1 == 1);
+         //   cerr << "Found pattern " << ac.nodes[x].pat_id+1 << " ... adding " << add << endl;
+            res += add;
+            break;
+         }
+      }
+   }
+   return res;
+}
+
+
+#define MAXN 100004
+bool active[MAXN];
+
+int main(int argc, char* argv[]) {
+   ios_base::sync_with_stdio(false); 
+   cin.tie(NULL);
+
+   int Q, N;
+   cin >> Q >> N;
+
+   vector<string> emp(N);
+   for (int i = 0; i < N; ++i) {
+      cin >> emp[i];
+      active[i+1] = true;
+   }
+
+   AhoCorasick ac(emp);
+
+   TreeDecomposition td(N + 1);
+
+   vector<bool> vis(ac.nodes.size());
+   vector<int> par(N + 1, 0);
+   for (int i = 0; i < N; ++i) {
+      int prv = -1;
+      for (int x = ac.pat2nodes[i]; x > 0; x = ac.nodes[x].outnxt) {
+         int cur = ac.nodes[x].pat_id;
+         if (cur >= 0) {
+            if (prv >= 0) {
+            // cerr << "Connecting " << cur+1 << " -> " << prv+1 << endl;
+               td.adj[ cur+1 ].push_back( prv+1 );
+            // td.adj[ prv+1 ].push_back( cur+1 );
+               par[prv+1] = cur+1;
+            }
+            prv = cur;
+         }
+         if (vis[x]) break;
+         vis[x] = true;
+      }
+   }
+   for (int u = 1; u <= N; ++u)
+      if (par[u] == 0) {
+      // cerr << "Connecting " << 0 << " -> " << u << endl;
+         td.adj[0].push_back(u);
+      }
+
+   td.decompose();
+
+   fenwick_trees.clear();
+   for (int i = 0; i < int(td.chains.size()); ++i) {
+   // cerr << "Size of chain " << i << " is " << td.chains[i].size() << endl;
+      int path_len = int(td.chains[i].size())-1;
+      fenwick_trees.push_back( BinaryIndexedTree( path_len ) );
+      for (int b = 1; b <= path_len; ++b)
+         fenwick_trees.back().update(b, 1);
+   }
+
+   string line;
+   getline(cin, line);
+
+   for (int q = 0; q < Q; ++q) {
+      char ch;
+      cin >> ch;
+      getline(cin, line);
+      switch (ch) {
+         case '?': {
+            llong res = query(ac, td, line);
+            cout << res << endl;
+            break;
+         }
+         case '+': {
+            int id = atoi( line.c_str() );
+            if (!active[id]) {
+            //   cerr << "Increasing pattern " << id << endl;
+               active[id] = true;
+               update(td, id, 1);
+            }
+            break;
+         }
+         case '-': {
+            int id = atoi( line.c_str() );
+            if (active[id]) {
+            //   cerr << "Decreasing pattern " << id << endl;
+               active[id] = false;
+               update(td, id, -1);
+            }
+            break;
+         }
+         default:
+            assert(false);
+      }
+   }
+
+   return 0;
+}

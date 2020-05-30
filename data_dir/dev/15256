@@ -1,0 +1,162 @@
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <complex>
+#include <cassert>
+#include <cstdlib>
+#include <cstdio>
+#include <bitset>
+#include <vector>
+#include <string>
+#include <cmath>
+#include <ctime>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+
+#define all(x) (x).begin(), (x).end()
+#define type(x) __typeof((x).begin())
+#define foreach(it, x) for(type(x) it = (x).begin(); it != (x).end(); it++)
+
+#ifdef KAZAR
+    #define eprintf(...) fprintf(stderr,__VA_ARGS__)
+#else
+    #define eprintf(...) 0
+#endif
+
+using namespace std;
+
+template<class T> inline void umax(T &a,T b){if(a<b) a = b ; }
+template<class T> inline void umin(T &a,T b){if(a>b) a = b ; }
+template<class T> inline T abs(T a){return a>0 ? a : -a;}
+template<class T> inline T gcd(T a,T b){return __gcd(a, b);}
+template<class T> inline T lcm(T a,T b){return a/gcd(a,b)*b;}
+
+const int inf = 1e9 + 143;
+const long long longinf = 1e18 + 143;
+
+inline int read(){int x;scanf(" %d",&x);return x;}
+
+const int N = int(1e5) + 100;
+const int MAX = int(2e6) + 100;
+
+int t[N], w[N], v[N];
+vector<int> g[N];
+list<int> query[N];
+list<int> ps[MAX];
+bool prime[MAX];
+int a[N];
+pair<int, int> ans[N];
+
+set<pair<int, int> > tree[MAX];
+
+pair<int, int> get(int x){
+    if(tree[x].size() == 0)
+        return make_pair(0, 0);
+    return *(--tree[x].end());
+}
+
+void add(int x,int a,int b){
+    eprintf("ADD : x : %d, d : %d, u : %d\n",x,a,b);
+    tree[x].insert(make_pair(a, b));
+}
+void del(int x,int a,int b){
+    eprintf("DEL : x : %d, d : %d, u : %d\n",x,a,b);
+    if(tree[x].find(make_pair(a, b)) == tree[x].end()){
+        puts("damn");
+        exit(0);
+    }
+    tree[x].erase(tree[x].find(make_pair(a, b)));
+}
+
+inline void solve(int u,int p,int d){
+    pair<int, int> temp(0,0);
+    foreach(x, ps[a[u]]){
+        umax(temp, get(*x));
+    }
+    foreach(it, query[u])
+        ans[*it] = temp;
+    foreach(x, ps[a[u]]){
+        add(*x, d, u);
+    }
+    foreach(it, g[u]){
+        int v = *it;
+        if(v != p){
+            solve(v, u, d + 1);
+        }
+    }
+    foreach(x, ps[a[u]])
+        del(*x, d, u);
+}
+
+int main(){
+
+#ifdef KAZAR
+    freopen("f.input","r",stdin);
+    freopen("f.output","w",stdout);
+    freopen("error","w",stderr);
+#endif
+
+    for(int i = 2; i < MAX; i++){
+        if(!prime[i]){
+            for(int j = i; j < MAX; j += i){
+                prime[j] = 1;
+                ps[j].push_back(i);
+            }
+        }
+    }
+
+    for(int i = 0; i < MAX; i++)
+        assert(ps[i].size() <= 10);
+
+    int n = read(), q = read();
+
+    for(int i = 1; i <= n; i++){
+        a[i] = read();
+    }
+
+    for(int i = 1; i < n; i++){
+        int u = read(), v = read();
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+
+    for(int i = 0; i < q; i++){
+        t[i] = read();
+        if(t[i] == 1)
+            v[i] = read();
+        else{
+            v[i] = read();
+            w[i] = read();
+        }
+    }
+
+    for(int i = 0; i < q; i++){
+        if(t[i] == 2){
+            a[v[i]] = w[i];
+            continue;
+        }
+        int j = i;
+        while(j + 1 < q && t[j + 1] == 1)
+            ++j;
+        for(int k = 1; k <= n; k++)
+            query[k].clear();
+        for(int k = i; k <= j; k++){
+            query[v[k]].push_back(k);
+        }
+        solve(1, 0, 1);
+        i = j;
+    }
+
+    for(int i = 0; i < q; i++){
+        if(t[i] == 2) continue;
+        if(ans[i].first == 0){
+            printf("-1\n");
+        }else{
+            printf("%d\n",ans[i].second);
+        }
+    }
+
+    return 0;
+}

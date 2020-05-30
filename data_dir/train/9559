@@ -1,0 +1,189 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+#define FASTIO ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL)
+#define LL long long 
+#define ar32(x) array<int, x> 
+#define ar64(x) array<LL, x>
+// Infinity xP
+const int oo = 1e9 + 5;
+// const int MOD = 998244353;
+const int MOD = 1e9 + 7;
+const LL ooll = 1e18;
+const int N = 1e6 + 5;
+const int MAX = 1e6 + 5;
+const int sqrtM = 1e3 + 5;
+
+int v[N];
+
+template<class Node> class StaticSegtree {
+    public:
+    std::vector<Node> Tree;
+    int L, R;
+    std::function<Node(Node, Node)> Merge;
+    template<class RandomIt> void Build (int node, int st, int en, RandomIt v) {
+        if (st == en) {
+            Tree[node] = v[st];
+            return;
+        }
+        int m = (st + en) >> 1;
+        Build(2 * node + 1, st, m, v);
+        Build(2 * node + 2, m+1, en, v);
+        Tree[node] = Merge(Tree[2 * node + 1], Tree[2 * node + 2]);
+        }
+    
+    template<class RandomIt> StaticSegtree(int L, int R, RandomIt v) : L(L), R(R) {
+        Tree.resize(4 * (R - L + 1), Node(1));
+        Build(0, L, R, v);
+        }
+    template<class RandomIt> StaticSegtree(int L, int R, RandomIt v, std::function<Node(Node, Node)> merge) : L(L), R(R), Merge(merge) {
+        Tree.resize(4 * (R - L + 1), Node(1));
+        Build(0, L, R, v);
+        }
+    StaticSegtree(int L, int R) : L(L), R(R) {
+        Tree.resize(4 * (R - L + 1), Node(1));
+        }
+    void Update(int pos, Node val, int node, int st, int en) {
+        if (st == en) {
+            Tree[node] = val;
+            return;
+        }
+        int m = (st + en) >> 1;
+        if (pos <= m) Update(pos, val, 2 * node + 1, st, m);
+        else Update(pos, val, 2 * node + 2, m+1, en);
+        Tree[node] = Merge(Tree[2 * node + 1], Tree[2 * node + 2]);
+        }
+    void Update(int pos, int val) {Update(pos, val, 0, L, R);}
+
+    Node Query(int l, int r, int node, int st, int en) {
+        /*
+        !!! Zero for the function, change if necessary
+        */
+        if (st > r || en < l) return Node(1);
+        if (st >= l && en <= r) return Tree[node];
+        int m = (st + en) >> 1;
+        return Merge(Query(l, r, 2 * node + 1, st, m),
+                    Query(l, r, 2 * node + 2, m+1, en));
+        }
+    Node Query(int l, int r) {return Query(l, r, 0, L, R);}
+    };
+//
+
+template<class Node> ostream & operator << (ostream &out, StaticSegtree<Node> seg) {
+    std::function<void(int,int,int)> Display = [&Display, &seg, &out] (int node ,int st, int en) {
+        out << st << ", " << en << " has " << seg.Tree[node] << '\n';
+        if (st == en) return;
+        int m = (st + en) >> 1;
+        Display(2 * node + 1, st, m);
+        Display(2 * node + 2, m+1, en);
+    };
+    Display(0, seg.L, seg.R);
+    return out;
+}
+
+LL powermod(LL a, LL b) {
+    if (b == 0) return 1;
+    LL res = powermod(a, b/2);
+    res = (res * res)%MOD;
+    if (b & 1) res = (res * a)%MOD;
+    return res;
+}
+
+int sp[MAX], inv[MAX], fac[MAX], invfac[MAX];
+void pre() {
+    for (int i=1;i<N;i++) sp[i] = i;
+    for (int i=2;i<sqrtM;i++) if (sp[i] == i) {
+        for (int j=i+i;j<N;j+=i) {
+            sp[j] = min(sp[j], i);
+        }
+    }
+    fac[0] = 1;
+    for (int i=1;i<N;i++) fac[i] = (fac[i-1] * 1LL * i)%MOD;
+    invfac[N-1] = powermod(fac[N-1], MOD-2);
+    inv[N-1] = powermod(N-1, MOD-2);
+    for (int i=N-2;i>=1;i--) {
+        invfac[i] = (invfac[i+1] * 1LL * (i + 1))%MOD;
+        inv[i] = (invfac[i] * 1LL * fac[i-1])%MOD;
+    }
+    // for (int i=1;i<N;i++) assert((inv[i] * 1LL * i)%MOD == 1);
+}
+
+
+void solve() {
+    int n, i;
+    cin >> n;
+    vector<vector<int>> pfs(n+1);
+    vector<int> dist;
+    for (i=1;i<=n;i++) {
+        cin >> v[i];
+        // cout << v[i] << " here\n";
+        int now = v[i];
+        while(now > 1) {
+            int smallp = sp[now];
+            // cout << smallp << " here small\n";
+            while(now % smallp == 0) {
+                now /= smallp;
+            }
+            dist.push_back(smallp);
+            pfs[i].push_back(smallp);
+        }
+    }
+    sort(dist.begin(), dist.end());
+    dist.erase(unique(dist.begin(), dist.end()), dist.end());
+    int m = dist.size();
+    map<int, int> getpos;
+    for (i=0;i<m;i++) getpos[dist[i]] = i;
+    vector<int> occ(m, -1);
+    int q; cin >> q;
+    vector<ar32(4)> qu(q);
+    for (i=0;i<q;i++) {
+        cin >> qu[i][0] >> qu[i][1];
+        qu[i][2] = i;
+    }
+    sort(qu.begin(), qu.end(), [](ar32(4) a, ar32(4) b) {
+        return a[0] < b[0];
+    });
+    int l = q-1;
+    StaticSegtree<int> segtree(1, n, v, [](int a, int b) {
+        return (a * 1LL * b)%MOD;
+    });
+    // cout << segtree << '\n';
+    // return;
+    for (i=n;i>=1;i--) {
+        for (auto it : pfs[i]) {
+            // cout << it << " here\n";
+            int pos = occ[getpos[it]];
+            if (pos > 0) {
+                v[pos] = (v[pos] * 1LL * it)%MOD;
+                v[pos] = (v[pos] * 1LL * inv[it-1])%MOD;
+                segtree.Update(pos, v[pos]);
+            }
+            occ[getpos[it]] = i;
+            v[i] = (v[i] - (v[i] * 1LL *  inv[it])%MOD + MOD)%MOD;
+        }
+        // cout << v[i] << " " << i << " newval\n"; 
+        segtree.Update(i, v[i]);
+        while(l>=0 && qu[l][0] == i) {
+            qu[l][3] = segtree.Query(qu[l][0], qu[l][1]);
+            l--;
+        }
+        // cout << "Updated " << i << '\n';
+        // cout << segtree << '\n';
+    }
+    sort(qu.begin(), qu.end(), [](ar32(4) a, ar32(4) b) {
+        return a[2] < b[2];
+    });
+    for (auto it : qu) cout << it[3] << '\n';
+} 
+
+int main() {
+    pre();
+    FASTIO;
+    int t = 1;
+    // cin >> t;
+    for (int tc=1;tc<=t;tc++) {
+        solve();
+    }
+    return 0;
+}

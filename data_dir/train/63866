@@ -1,0 +1,70 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> pii;
+const int maxn=1000010;
+const int inf=0x3f3f3f3f;
+struct Node{
+	int max_v,min_c;
+	Node(int _max_v=0,int _min_c=0):max_v(_max_v),min_c(_min_c){}
+} seg[maxn<<2];
+void build(int l,int r,int idx){
+	seg[idx]=Node(-inf,inf);
+	if(l!=r){
+		int mid=(l+r)>>1;
+		build(l,mid,idx<<1);
+		build(mid+1,r,idx<<1|1);
+	}
+}
+void modify(int l,int r,int pos,Node v,int idx){
+	if(l==r){
+		seg[idx]=v;
+	}else{
+		int mid=(l+r)>>1;
+		if(pos<=mid) modify(l,mid,pos,v,idx<<1);
+		else modify(mid+1,r,pos,v,idx<<1|1);
+		seg[idx].max_v=max(seg[idx<<1].max_v,seg[idx<<1|1].max_v);
+		seg[idx].min_c=min(seg[idx<<1].min_c,seg[idx<<1|1].min_c);
+	}
+}
+pii query(int l,int r,int pref_max_v,int pref_min_c,int idx){
+	if(l==r) return pii(l,min(max(pref_max_v,seg[idx].max_v),min(pref_min_c,seg[idx].min_c)));
+	int mid=(l+r)>>1;
+	if(max(pref_max_v,seg[idx<<1].max_v)<min(pref_min_c,seg[idx<<1].min_c))
+		return query(mid+1,r,max(pref_max_v,seg[idx<<1].max_v),min(pref_min_c,seg[idx<<1].min_c),idx<<1|1);
+	else
+		return query(l,mid,pref_max_v,pref_min_c,idx<<1);
+}
+int query_pref(int l,int r,int pos,int pref_max_v,int pref_min_c,int idx){
+	if(l==r) return min(max(pref_max_v,seg[idx].max_v),min(pref_min_c,seg[idx].min_c));
+	int mid=(l+r)>>1;
+	if(pos<=mid) return query_pref(l,mid,pos,pref_max_v,pref_min_c,idx<<1);
+	return query_pref(mid+1,r,pos,max(pref_max_v,seg[idx<<1].max_v),min(pref_min_c,seg[idx<<1].min_c),idx<<1|1);
+}
+int v[maxn],c[maxn],per[maxn];
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	int n,k;
+	cin>>n>>k;
+	for(int i=1;i<=n;i++)
+		cin>>v[i];
+	for(int i=1;i<=n;i++)
+		cin>>c[i];
+	build(1,n,1);
+	for(int l=n;l>=1;l--){
+		modify(1,n,l,Node(v[l]*100,c[l]),1);
+		pii qry1=query(1,n,-inf,inf,1);
+		int qry2=-inf;
+		if(l<qry1.first) qry2=query_pref(1,n,qry1.first-1,-inf,inf,1);
+		per[l]=max(qry1.second,qry2);
+	}
+	sort(per+1,per+1+n);
+	long double mul=(long double)k/n,ans=0;
+	for(int i=1;i<=n;i++){
+		ans+=per[i]*mul;
+		if(i<n) mul*=(long double)(n-k-i+1)/(n-i);
+	}
+	cout<<fixed<<setprecision(15)<<ans<<'\n';
+	return 0;
+}

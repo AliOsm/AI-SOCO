@@ -1,0 +1,163 @@
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cassert>
+
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <stack>
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
+#include <map>
+#include <set>
+
+using namespace std;
+
+typedef long long int64;
+
+const int oo = 0x3f3f3f3f;
+const int MAX_POWER = 60;
+
+
+class Reader {
+  public:
+    Reader(FILE *_stream, const int _size = (1 << 16)):
+      size(_size),
+      pointer(0),
+      buffer(new char[_size]),
+      stream(_stream) {
+        assert(fread(buffer, 1, size, stream) != 0);
+    }
+
+    template<class IntType>
+    IntType NextInt() {
+        IntType value = 0;
+        bool negative = false;
+        while ((Current() < '0' || Current() > '9') && Current() != '-')
+            NextPosition();
+        if (Current() == '-') {
+            negative = true;
+            NextPosition();
+        }
+        while(Current() >= '0' && Current() <= '9') {
+            value = value * 10 + Current() - '0';
+            NextPosition();
+        }
+        if (negative)
+            value = -value;
+        return value;
+    }
+
+    Reader &operator>>(short &value) {
+        value = NextInt<short>();
+        return *this;
+    }
+
+    Reader &operator>>(int &value) {
+        value = NextInt<int>();
+        return *this;
+    }
+
+    Reader &operator>>(long long &value) {
+        value = NextInt<long long>();
+        return *this;
+    }
+
+  private:
+    int size, pointer;
+    char *buffer;
+    FILE *stream;
+
+    char Current() const {
+        return buffer[pointer];
+    }
+
+    void NextPosition() {
+        if(++pointer == size) {
+            assert(fread(buffer, 1, size, stream) != 0);
+            pointer = 0;
+        }
+    }
+};
+
+vector< vector<int> > G, GT;
+int V, CountSCC;
+vector<int> Sign, TopologicalSort;
+
+void DFP(const int x) {
+    ++Sign[x];
+    for (const auto &y: G[x])
+        if (Sign[y] == 0)
+            DFP(y);
+    TopologicalSort.push_back(x);
+}
+
+void DFM(const int x) {
+    --Sign[x];
+    for (const auto &y: GT[x])
+        if (Sign[y] == 1)
+            DFM(y);
+}
+
+void Kosaraju() {
+    Sign = vector<int>(V, 0);
+    for (int x = 0; x < V; ++x)
+        if (Sign[x] == 0)
+            DFP(x);
+    reverse(TopologicalSort.begin(), TopologicalSort.end());
+    CountSCC = 0;
+    for (const auto &x: TopologicalSort) {
+        if (Sign[x] == 1) {
+            ++CountSCC;
+            DFM(x);
+        }
+    }
+}
+
+void Solve() {
+    Kosaraju();
+}
+
+inline void AddEdge(const int x, const int y) {
+    G[x].push_back(y);
+    GT[y].push_back(x);
+}
+
+void Read() {
+    Reader cin = Reader(stdin);
+    cin >> V;
+    G = GT = vector< vector<int> >(V, vector<int>());
+    for (int x = 0; x < V; ++x) {
+        for (int y = 0; y < V; ++y) {
+            int value;
+            cin >> value;
+            if (value > 0)
+                AddEdge(x, y);
+        }
+    }
+}
+
+void Print() {
+    if (CountSCC == 1)
+        cout << "YES\n";
+    else
+        cout << "NO\n";
+}
+
+int main() {
+    #ifndef ONLINE_JUDGE
+        assert(freopen("c.in", "r", stdin));
+        assert(freopen("c.out", "w", stdout));
+    #endif
+    Read();
+    Solve();
+    Print();
+    return 0;
+}

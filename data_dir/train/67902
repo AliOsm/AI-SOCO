@@ -1,0 +1,126 @@
+//Daniel Grzegorzewski
+// while (clock()<=69*CLOCKS_PER_SEC)
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+// #pragma GCC target ("avx2")
+// #pragma GCC optimization ("O3")
+// #pragma GCC optimization ("unroll-loops")
+
+#define MP make_pair
+#define PB push_back
+#define ST first
+#define ND second
+
+using namespace __gnu_pbds;
+using namespace std;
+
+template <typename T>
+using ordered_set =
+    tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+//X.find_by_order(k); - zwraca iterator na k-ty element (numeracja od zerowego)
+//X.order_of_key(k); - zwraca liczbę elementów ostro mniejszych niż k
+
+typedef pair<int, int> PII;
+typedef vector<int> VI;
+typedef vector<PII> VII;
+typedef long long LL;
+
+void init_ios() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+}
+
+const int N = 2*(int)1e5 + 3;
+
+int n, wie[N], siz[N], hm[1<<21];
+VI child[N];
+LL res[N];
+string s;
+bool wyw[N];
+
+void dfs_siz(int v, int p) {
+  siz[v] = 1;
+  for (int x: child[v])
+    if (!wyw[x] && x != p) {
+      dfs_siz(x, v);
+      siz[v] += siz[x];
+    }
+}
+
+int find_centroid(int v, int p, int si) {
+  for (int x: child[v])
+    if (!wyw[x] && x != p && siz[x] > si/2)
+      return find_centroid(x, v, si);
+  return v;
+}
+
+void dfs_add(int v, int p, int val, int co) {
+  val ^= wie[v];
+  hm[val] += co;
+  for (int x: child[v])
+    if (!wyw[x] && x != p)
+      dfs_add(x, v, val, co);
+}
+
+LL dfs_licz(int v, int p, int val) {
+  val ^= wie[v];
+  LL wyn = 0;
+  wyn += hm[val];
+  for (int i = 0; i < 20; ++i)
+    wyn += hm[val^(1<<i)];
+  for (int x: child[v])
+    if (!wyw[x] && x != p)
+      wyn += dfs_licz(x, v, val);
+  res[v] += wyn;
+  return wyn;
+}
+
+void calc(int v) {
+  dfs_siz(v, 0);
+  int rt = find_centroid(v, 0, siz[v]);
+  for (int x: child[rt])
+    if (!wyw[x])
+      dfs_add(x, rt, wie[rt], 1);
+  LL cnt = 0;
+  cnt += hm[0];
+  for (int i = 0; i < 20; ++i)
+    cnt += hm[1<<i];
+  ++hm[wie[rt]];
+  for (int x: child[rt]) {
+    if (!wyw[x]) {
+      dfs_add(x, rt, wie[rt], -1);
+      cnt += dfs_licz(x, rt, 0);
+      dfs_add(x, rt, wie[rt], 1);
+    }
+  }
+  res[rt] += 1+cnt/2;
+  for (int x: child[rt])
+    if (!wyw[x])
+      dfs_add(x, rt, wie[rt], -1);
+  --hm[wie[rt]];
+  wyw[rt] = true;
+  for (int x: child[rt])
+    if (!wyw[x])
+      calc(x);
+}
+
+int main() {
+  init_ios();
+  cin >> n;
+  for (int i = 1; i < n; ++i) {
+    int x, y;
+    cin >> x >> y;
+    child[x].PB(y);
+    child[y].PB(x);
+  }
+  cin >> s;
+  s = "!" + s;
+  for (int i = 1; i <= n; ++i)
+    wie[i] = (1<<((int)(s[i]-'a')));
+  calc(1);
+  for (int i = 1; i <= n; ++i)
+    cout<<res[i]<<" ";
+  cout<<"\n";
+}

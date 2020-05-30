@@ -1,0 +1,112 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+const int N = 3e5 + 10;
+long long a[N];
+long long treeSum[4 * N];
+long long treeMax[4 * N];
+long long low[4 * N];
+vector<long long> prime;
+void Precalc(){
+	for (int i=2; i<=1e6; i++){
+		if (low[i] == 0){
+			low[i] = i;
+			prime.push_back(i);
+		}
+		for (int j=0; j<prime.size() && prime[j]<=low[i] && prime[j]*i<=1e6; j++){
+			low[prime[j] * i] = prime[j];
+		}
+	}
+}
+void Build(int v, int vLeft, int vRight){
+	if (vLeft == vRight){
+		treeSum[v] = a[vLeft];
+		treeMax[v] = a[vLeft];
+		return;
+	}
+	int mid = (vLeft + vRight) / 2;
+	Build(2 * v, vLeft, mid);
+	Build(2 * v + 1, mid + 1, vRight);
+	treeSum[v] = treeSum[2 * v] + treeSum[2 * v + 1];
+	treeMax[v] = max(treeMax[2 * v], treeMax[2 * v + 1]);
+}
+long long GetSum(int v, int vLeft, int vRight, int left, int right){
+	if (left > vRight || vLeft > right){
+		return 0;
+	}
+	if (vLeft >= left && right >= vRight){
+		return treeSum[v];
+	}
+	int mid = (vLeft + vRight) / 2;
+	return GetSum(2 * v, vLeft, mid, left, right) +
+		GetSum(2 * v + 1, mid + 1, vRight, left, right);
+}
+long long GetMax(int v, int vLeft, int vRight, int left, int right){
+	if (left > vRight || vLeft > right){
+		return -1;
+	}
+	if (vLeft >= left && right >= vRight){
+		return treeMax[v];
+	}
+	int mid = (vLeft + vRight) / 2;
+	return max(GetMax(2 * v, vLeft, mid, left, right), 
+		GetMax(2 * v + 1, mid + 1, vRight, left, right));
+}
+void Update(int v, int vLeft, int vRight, int left, int right){
+	if (left > vRight || vLeft > right){
+		return;
+	}
+	if (vLeft >= left && right >= vRight){
+		if (treeMax[v] == 1 || treeMax[v] == 2){
+			return;
+		}
+	}
+	if (vLeft == vRight){
+		long long cnt = 1;
+		long long prev = 0;
+		long long prevCnt = 0;
+		long long cur = treeMax[v];
+		while (cur != 1){
+			if (prev != low[cur]){
+				cnt = cnt * (prevCnt + 1);
+				prev = low[cur];
+				prevCnt = 1;
+			}
+			else{
+				prevCnt++;
+			}
+			cur = cur / low[cur];
+		}
+		cnt = cnt * (prevCnt + 1);
+		treeMax[v] = cnt;
+		treeSum[v] = cnt;
+		return;
+	}
+	int mid = (vLeft + vRight) / 2;
+	Update(2 * v, vLeft, mid, left, right);
+	Update(2 * v + 1, mid + 1, vRight, left, right);
+	treeSum[v] = treeSum[2 * v] + treeSum[2 * v + 1];
+	treeMax[v] = max(treeMax[2 * v], treeMax[2 * v + 1]);
+}
+int main(){
+	ios_base::sync_with_stdio(0);
+	int n, m;
+	cin>>n>>m;	
+	for (int i=1; i<=n; i++){
+		cin>>a[i];
+	}
+	Build(1, 1, n);
+	Precalc();
+	for (int i=1; i<=m; i++){
+		int type, left, right;
+		cin>>type>>left>>right;
+		if (type == 1){
+			if (GetMax(1, 1, n, left, right) > 2){
+				Update(1, 1, n, left, right);
+			}
+		}
+		if (type == 2){
+			cout<<GetSum(1, 1, n, left, right)<<endl;
+		}
+	}
+}

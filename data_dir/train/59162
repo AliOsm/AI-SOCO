@@ -1,0 +1,295 @@
+#include <iostream>
+#include <cstring>
+
+#include <vector>
+#include <string>
+#include <stack>
+#include <algorithm>
+
+using namespace std;
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> II;
+typedef long long llong;
+
+#define HIGHESTSETBIT(mask) ( sizeof(int)*8-1-__builtin_clz((mask)) )
+
+bool trace;
+
+struct SegmentTreeNode {
+   llong sum;
+   llong delay_count;
+   SegmentTreeNode() : sum(0), delay_count(0) {}
+};
+
+class SegmentTree {
+   int N;
+
+   void _update(int p, int q, int node, int L, int R);
+   int  _count (int p, int q, int node, int L, int R);
+public:
+   vector<SegmentTreeNode> tree;
+   SegmentTree(int _N) : N(_N) {
+   // int M = 2 * ( 1 << (HIGHESTSETBIT(N)+1) ) + 1;
+      int M = N > 1 ? 2 * ( 1 << (HIGHESTSETBIT(N-1)+1) ) : 2;
+      tree = vector<SegmentTreeNode>(M);
+   }
+   void update(int p, int q) {
+      _update(p, q, 1, 0, N-1);
+   }
+   int count(int p, int q) {
+      return _count(p, q, 1, 0, N-1);
+   }
+};
+
+void SegmentTree::_update(int p, int q, int node, int L, int R) {
+   if (q < L || p > R) return;
+   if (p <= L && R <= q) {
+      tree[node].sum += R-L+1;
+      tree[node].delay_count++;
+      return;
+   }
+   int cL = node*2;
+   int cR = node*2 + 1;
+   if (tree[node].delay_count > 0) {
+      tree[cL].delay_count += tree[node].delay_count;
+      tree[cL].sum += ((L+R)/2 - L + 1) * tree[node].delay_count;
+      tree[cR].delay_count += tree[node].delay_count;
+      tree[cR].sum += (R - ((L+R)/2+1) + 1) * tree[node].delay_count;
+      tree[node].delay_count = 0;
+   // tree[node].sum -= R-L+1;
+   }
+   _update(p, q, cL, L, (L+R)/2);
+   _update(p, q, cR, (L+R)/2+1, R);
+   tree[node].sum = tree[cL].sum + tree[cR].sum;
+}
+
+int SegmentTree::_count(int p, int q, int node, int L, int R) {
+   if (q < L || p > R) return 0;
+   if (p <= L && R <= q)
+      return tree[node].sum;
+   int cL = node*2;
+   int cR = node*2 + 1;
+   if (tree[node].delay_count > 0) {
+      tree[cL].delay_count += tree[node].delay_count;
+      tree[cL].sum += ((L+R)/2 - L + 1) * tree[node].delay_count;
+      tree[cR].delay_count += tree[node].delay_count;
+      tree[cR].sum += (R - ((L+R)/2+1) + 1) * tree[node].delay_count;
+      tree[node].delay_count = 0;
+   // tree[node].sum -= R-L+1;
+   }
+   return _count(p, q, cL, L, (L+R)/2) + 
+          _count(p, q, cR, (L+R)/2+1, R);
+}
+
+
+vector<SegmentTree> segm_trees;
+
+class TreeDecomposition {
+   int root;
+   VI vis;
+   VI par;
+   VI Td, Tf;  // discovery and finish times in DFS
+   VI subtree_size;
+
+   vector<int> prefix_walk;
+   void _dfs();
+
+public:
+// INPUT:
+   VVI adj;
+
+// OUTPUT:
+   VVI chains;
+   vector<II> node_chain_pos;
+   // node_chain_pos[v] = (chain id, offset in path) of node v
+
+   TreeDecomposition(int _N) : adj(_N) {}
+
+   void decompose();
+
+// return whether u is an ancestor of v
+   bool is_ancestor(int u, int v) const;
+};
+
+void TreeDecomposition::_dfs() {
+   int N = adj.size();
+   vis = VI(N);
+   par = VI(N, -1);
+   Td = VI(N);
+   Tf = VI(N);
+
+   subtree_size = VI(N);
+   root = 0;
+   stack<II> S;
+   S.push(II(root, 0));
+   par[root] = root;
+   for (int t = 1; !S.empty(); ++t) {
+      int u = S.top().first, e = S.top().second;
+      if (e == 0) {
+         vis[u] = 2;
+         Td[u] = t;
+      }
+      if (e == int(adj[u].size())) {
+         Tf[u] = t;
+         subtree_size[u] = 1;
+         for (int j = 0; j < int(adj[u].size()); ++j) {
+            int v = adj[u][j];
+            if (v == par[u]) continue;
+            subtree_size[u] += subtree_size[v];
+         }
+         prefix_walk.push_back(u);
+         S.pop();
+      }
+      else {
+         ++S.top().second;
+         int v = adj[u][e];
+         if (!vis[v]) {
+            vis[v] = 1;
+            par[v] = u;
+            S.push(II(v, 0));
+         }
+      }
+   }
+}
+
+void TreeDecomposition::decompose() {
+   _dfs();
+
+   int N = adj.size();
+   vector<bool> par_edge_processed(N);
+   par_edge_processed[root] = true;
+   for (int k = 0; k < (int) prefix_walk.size(); ++k) {
+      int v = prefix_walk[k];
+      if (par_edge_processed[v]) continue;
+      vector<int> cur_path;
+      cur_path.push_back(v);
+      do {
+         int u = par[v];
+         cur_path.push_back(u);
+         par_edge_processed[v] = true;
+         if (2*subtree_size[v] < subtree_size[u]) break;  // light edge
+         v = u;
+      } while (!par_edge_processed[v]);
+      chains.push_back(cur_path);
+   }
+
+   node_chain_pos = vector<II>(N);
+   node_chain_pos[0].first = -1;
+   for (int i = 0; i < (int) chains.size(); ++i) {
+   // cerr << "path " << i << ": ";
+      for (int j = 0; j < int(chains[i].size())-1; ++j) {
+         int u = chains[i][j];
+      // cerr << ' ' << u+1;
+         node_chain_pos[u] = II(i, j);
+      }
+   // cerr << ' ' << chains[i].back()+1 << endl;
+   }
+}
+
+inline bool TreeDecomposition::is_ancestor(int u, int v) const {
+   return Td[u] <= Td[v] && Tf[v] <= Tf[u];
+}
+
+
+void update(const TreeDecomposition& td, int u, int v) {
+   while (u != v) {
+      if (td.is_ancestor(u, v))
+         swap(u, v);
+      int p = td.node_chain_pos[u].first;
+      int lo = td.node_chain_pos[u].second,
+          hi = int(td.chains[p].size())-1;
+      if (td.is_ancestor(td.chains[p][hi], v)) {
+         // binary search for lowest common ancestor
+         while (lo < hi) {
+            int mid = lo + (hi-lo)/2;
+            if (td.is_ancestor(td.chains[p][mid], v))
+               hi = mid;
+            else
+               lo = mid+1;
+         }
+         hi = lo;
+         lo = td.node_chain_pos[u].second; // restore lo
+      }
+   // trace = p == 2;
+   // cerr << "Update segment tree " << p << ": " << lo << " " << hi-1 << endl;
+      segm_trees[p].update(lo, hi-1);
+      u = td.chains[p][hi];
+   }
+}
+
+llong query(const TreeDecomposition& td, int u, int v) {
+   llong res = 0;
+   while (u != v) {
+      if (td.is_ancestor(u, v))
+         swap(u, v);
+      int p = td.node_chain_pos[u].first;
+      int lo = td.node_chain_pos[u].second,
+          hi = int(td.chains[p].size())-1;
+      if (td.is_ancestor(td.chains[p][hi], v)) {
+         // binary search for lowest common ancestor
+         while (lo < hi) {
+            int mid = lo + (hi-lo)/2;
+            if (td.is_ancestor(td.chains[p][mid], v))
+               hi = mid;
+            else
+               lo = mid+1;
+         }
+         hi = lo;
+         lo = td.node_chain_pos[u].second; // restore lo
+      }
+      res += segm_trees[p].count(lo, hi-1);
+      u = td.chains[p][hi];
+   }
+   return res;
+}
+
+
+struct Road {
+   int u, v;
+};
+
+Road roads[100004];
+
+int main(int argc, char* argv[]) {
+   cin.sync_with_stdio(false);
+   int N;
+   cin >> N;
+   TreeDecomposition td(N);
+   for (int j = 1; j < N; ++j) {
+      int u, v;
+      cin >> u >> v;
+      --u, --v;
+      roads[j].u = u;
+      roads[j].v = v;
+      td.adj[u].push_back(v);
+      td.adj[v].push_back(u);
+   }
+   
+   td.decompose();
+
+   segm_trees.clear();
+   for (int i = 0; i < int(td.chains.size()); ++i)
+      segm_trees.push_back(
+         SegmentTree( int(td.chains[i].size())-1 ) ); 
+
+   int Q;
+   cin >> Q;
+   for (int q = 1; q <= Q; ++q) {
+      int u, v;
+      cin >> u >> v;
+      if (u == v) continue;
+      --u, --v;
+      update(td, u, v);
+   }
+
+   for (int j = 1; j < N; ++j) {
+      llong res = query(td, roads[j].u, roads[j].v);
+      if (j > 1) cout << ' ';
+      cout << res;
+   }
+   cout << endl;
+
+   return 0;
+}

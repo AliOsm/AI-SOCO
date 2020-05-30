@@ -1,0 +1,78 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int const N = 200200;
+int const LOG = 19;
+
+vector<int> g[N];
+int tin[N], depth[N];
+int sp[LOG][N], logs[N], timer = 0;
+
+void dfs(int v, int par, int dep) {
+    depth[v] = dep;
+    sp[0][tin[v] = timer++] = dep;
+    for (int to : g[v]) {
+        if (to != par) {
+            dfs(to, v, dep + 1);
+            sp[0][timer++] = dep;
+        }
+    }
+}
+
+int dist(int a, int b) {
+    int x = min(tin[a], tin[b]), y = max(tin[a], tin[b]) + 1;
+    int i = logs[y - x];
+    return depth[a] + depth[b] - 2 * min(sp[i][x], sp[i][y - (1 << i)]);
+}
+
+int main() {
+    int n, m;
+    scanf("%d%d", &n, &m);
+    for (int i = 0; i < n - 1; ++i) {
+        int a, b;
+        scanf("%d%d", &a, &b);
+        --a, --b;
+        g[a].push_back(b);
+        g[b].push_back(a);
+    }
+    dfs(0, 0, 0);
+    for (int i = 1; (1 << i) <= timer; ++i) {
+        int len = 1 << i;
+        for (int j = 0; j + len <= timer; ++j)
+            sp[i][j] = min(sp[i - 1][j], sp[i - 1][j + len / 2]);
+    }
+    logs[1] = 0;
+    for (int i = 2; i <= timer; ++i)
+        logs[i] = 1 + logs[i / 2];
+    static int bfs[N];
+    fill(bfs, bfs + n, N);
+    vector<int> reds, cur_reds = {0};
+    for (int i = 0; i < m; ++i) {
+        if ((int)cur_reds.size() > 300) {
+            reds.insert(reds.end(), cur_reds.begin(), cur_reds.end());
+            cur_reds.clear();
+            static int q[N];
+            copy(reds.begin(), reds.end(), q);
+            int tail = reds.size();
+            fill(bfs, bfs + n, N);
+            for (int x : reds)
+                bfs[x] = 0;
+            for (int i = 0; i < tail; ++i)
+                for (int to : g[q[i]])
+                    if (bfs[to] == N)
+                        bfs[q[tail++] = to] = bfs[q[i]] + 1;
+        }
+        int t, v;
+        scanf("%d%d", &t, &v);
+        --v;
+        if (t == 1) {
+            cur_reds.push_back(v);
+        } else {
+            int ans = bfs[v];
+            for (int x : cur_reds) {
+                ans = min(ans, dist(x, v));
+            }
+            cout << ans << '\n';
+        }
+    }
+}

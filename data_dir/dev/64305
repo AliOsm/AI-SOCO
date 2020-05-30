@@ -1,0 +1,89 @@
+/* practice with Dukkha */
+#include <stdio.h>
+
+#define MD	998244353
+#define N_	(1 << 20)	/* N_ = pow2(ceil(log2(N * 9 + 1))) */
+
+long long ww[21], ww_[21];
+
+long long power(int a, int k) {
+	long long p;
+
+	if (k == 0)
+		return 1;
+	p = power(a, k / 2);
+	p = p * p % MD;
+	if (k % 2)
+		p = p * a % MD;
+	return p;
+}
+
+void init() {
+	int h;
+
+	for (h = 0; h <= 20; h++) {
+		ww[h] = power(3, (MD - 1) >> h);
+		ww_[h] = power(3, MD - 1 - ((MD - 1) >> h));
+	}
+}
+
+void ntt(int *aa, int n, int inverse) {
+	int h, i, j, b, l, r, u, v, tmp;
+	long long w, w_;
+
+	for (i = 1, j = 0; i < n; i++) {
+		b = n;
+		do
+			j ^= b >>= 1;
+		while ((j & b) == 0);
+		if (i < j)
+			tmp = aa[i], aa[i] = aa[j], aa[j] = tmp;
+	}
+	for (h = 0; (b = 1 << h) < n; h++) {
+		w_ = inverse ? ww_[h + 1] : ww[h + 1];
+		for (i = 0; i < n; i += b * 2) {
+			w = 1;
+			for (j = 0; j < b; j++) {
+				l = i + j, r = l + b;
+				u = aa[l], v = aa[r] * w % MD;
+				if ((aa[l] = u + v) >= MD)
+					aa[l] -= MD;
+				if ((aa[r] = u - v) < 0)
+					aa[r] += MD;
+				w = w * w_ % MD;
+			}
+		}
+	}
+}
+
+int main() {
+	static int aa[N_];
+	int n, n_, k, i;
+	long long v, a, ans;
+
+	init();
+	scanf("%d%d", &n, &k), n /= 2;
+	n_ = 1;
+	while (n_ < n * 9 + 1)
+		n_ *= 2;
+	while (k--) {
+		int d;
+
+		scanf("%d", &d);
+		aa[d] = 1;
+	}
+	ntt(aa, n_, 0);
+	for (i = 0; i < n_; i++)
+		aa[i] = power(aa[i], n);
+	ntt(aa, n_, 1);
+	v = power(n_, MD - 2);
+	for (i = 0; i < n_; i++)
+		aa[i] = aa[i] * v % MD;
+	ans = 0;
+	for (i = 0; i <= n * 9; i++) {
+		a = aa[i];
+		ans = (ans + a * a) % MD;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}

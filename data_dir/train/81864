@@ -1,0 +1,113 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define scl(x) scanf("%lld",&x)
+#define sc(x)  scanf("%d",&x)
+#define ll long long
+#define lop(i,n) for(int i=0;i<n;++i)
+typedef pair<int,int> ii;
+typedef pair<ll,ll> pll;
+
+const int fmaxN=55,fmaxE=4*50*50+100;
+int fn, src, snk;        // assign values!
+
+int head[fmaxN], from[fmaxE], nxt[fmaxE], to[fmaxE], cap[fmaxE],
+        cost[fmaxE];
+int edgeCnt, visID, vis[fmaxN];
+void init() {
+    edgeCnt = 0;
+    memset(head, -1, sizeof head);
+}
+void addEdge(int f, int t, int cp, int cst) {
+    nxt[edgeCnt] = head[f];
+    to[edgeCnt] = t;
+    cap[edgeCnt] = cp;
+    cost[edgeCnt] = cst;
+    from[edgeCnt] = f;
+    head[f] = edgeCnt++;
+}
+void addBiEdge(int f, int t, int cp, int cst) {
+    addEdge(f, t, cp, cst);
+    addEdge(t, f, 0, -cst);
+}
+#define INF 1e9
+int dist[fmaxN], flow[fmaxN], parent[fmaxN];
+int bellman() {
+    queue<int> Q;
+    visID++;
+    memset(dist, 0x3f, sizeof(dist[0]) * fn);
+    memset(flow, 0, sizeof(flow[0]) * fn);
+    dist[src] = 0;
+    flow[src] = INF;
+    Q.push(src);
+    vis[src] = visID;
+    for (int i = 0; i < fn; i++) {
+        int s = Q.size();
+        while (s--) {
+            int cur = Q.front();
+            Q.pop();
+            vis[cur] = 0;
+            for (int j = head[cur]; j != -1; j = nxt[j]) {
+                int node = to[j];
+                if (cap[j] && dist[node] > dist[cur] + cost[j]) {
+                    dist[node] = dist[cur] + cost[j];
+                    parent[node] = j;
+                    flow[node] = min(flow[cur], cap[j]);
+                    if (vis[node] != visID)
+                        Q.push(node), vis[node] = visID;
+                }
+            }
+        }
+
+        if (Q.empty()) {
+            if (flow[snk]) {//found path
+                for (int i = snk; i != src; i = from[parent[i]]) {
+                    int j = parent[i];
+                    cap[j] -= flow[snk];
+                    cap[j ^ 1] += flow[snk];
+                }
+            }
+            return flow[snk];
+        }
+    }
+    return 0;
+}
+
+int n,k;
+pair<int,int> minCost_maxFlow() {
+    int cst = 0, flw = 0;
+    if (src == snk)
+        return {0, INF};
+    while (bellman()) {
+    	if(cst+dist[snk]*flow[snk]>k){
+    		int t=(k-cst)/dist[snk];
+    		flw+=t;
+    		cst+=t*dist[snk];
+    		break;
+    	}
+    	else {
+            cst += dist[snk] * flow[snk];
+            flw += flow[snk];
+    	}
+    }
+    return {cst, flw};
+}
+
+int mat[55][55];
+
+int main(){
+#ifndef ONLINE_JUDGE
+	freopen("i.txt","r",stdin);
+#endif
+	init();
+	sc(n),sc(k);
+	src=0,snk=n-1;
+	fn=n;
+	lop(i,n)lop(j,n){
+		sc(mat[i][j]);
+		if(!mat[i][j])continue;
+		addBiEdge(i,j,mat[i][j],0);
+		addBiEdge(i,j,k,1);
+	}
+	cout<<minCost_maxFlow().second;
+}

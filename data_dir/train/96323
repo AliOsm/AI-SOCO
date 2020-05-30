@@ -1,0 +1,146 @@
+#include <cstdio>
+
+#include <vector>
+#include <queue>
+
+using namespace std;
+
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+#define FORD(i,a,b) for(int i=(a),_b=(b);i>=_b;--i)
+
+typedef long long llong;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+class BinaryIndexedTree {
+   int N;
+   VI tree;
+public:
+   BinaryIndexedTree(int _N) : N(_N), tree(VI(_N+1)) {}
+
+   int get_cumfreq(int idx) {
+      int res = 0;
+      for (int i = idx; i > 0; i -= (i & -i))
+         res += tree[i];
+      return res;
+   }
+
+   void update(int idx, int val = 1) {
+      for (int i = idx; i <= N; i += (i & -i))
+         tree[i] += val;
+   }
+};
+
+
+#define MAXD 3004
+int R, C;
+char B[MAXD][MAXD];
+
+#define LEFT 0
+#define RIGHT 1
+int zruns[2][MAXD][MAXD];
+void precompute() {
+   FOR(r, 1, R) {
+      int run = 0;
+      FOR(c, 1, C) {
+         if (B[r][c] != 'z') {
+            zruns[LEFT][r][c] = 0;
+            run = 0;
+         }
+         else
+            zruns[LEFT][r][c] = ++run;
+      }
+   }
+
+   FOR(r, 1, R) {
+      int run = 0;
+      FORD(c, C, 1) {
+         if (B[r][c] != 'z') {
+            zruns[RIGHT][r][c] = 0;
+            run = 0;
+         }
+         else
+            zruns[RIGHT][r][c] = ++run;
+      }
+   }
+}
+
+struct Event {
+   int srow, scol, upto_row;
+   bool operator<(const Event& e) const {
+      if (upto_row != e.upto_row)
+         return upto_row > e.upto_row;
+      return srow < e.srow;
+   }
+};
+
+void reset_DS(BinaryIndexedTree& bit, priority_queue<Event>& next_exits) {
+   while (!next_exits.empty()) {
+      Event e = next_exits.top(); next_exits.pop();
+      bit.update( e.srow, -1 );
+   }
+}
+
+llong solve() {
+   precompute();
+
+   BinaryIndexedTree bit(MAXD);
+   priority_queue<Event> next_exits;
+
+   llong res = 0;
+   FOR(d, 1, R+C-1) {
+      int sr, sc;
+      if (d <= C)
+         sr = 1, sc = d;
+      else
+         sr = d-C + 1, sc = C;
+
+      for (int r = sr, c = sc; r <= R && c >= 1; ++r, --c) {
+         if (B[r][c] != 'z') {
+            reset_DS(bit, next_exits);
+            continue;
+         }
+         int add = 1;
+         while (!next_exits.empty()) {
+            Event e = next_exits.top();
+            if (e.upto_row >= r)
+               break;
+            next_exits.pop();
+            bit.update( e.srow, -1 );
+         }
+         int len = zruns[RIGHT][r][c];
+         if (len > 1) {
+            add += bit.get_cumfreq(r-1) - bit.get_cumfreq( r-len );
+         }
+         len = zruns[LEFT][r][c];
+         if (len > 1) {
+            next_exits.push( Event { r, c, r + len - 1 } );
+            bit.update( r, 1 );
+         }
+      // fprintf(stderr, "%d,%d: %d\n", r, c, add);
+         res += add;
+      }
+
+      reset_DS(bit, next_exits);
+   }
+
+   return res;
+}
+
+int main(int argc, char* argv[]) {
+   scanf("%d %d", &R, &C);
+   FOR(c, 0, C+1)
+      B[0][c] = '.';
+   FOR(r, 1, R) {
+      scanf("%s", B[r]+1);
+      B[r][0] = '.';
+      B[r][C+1] = '.';
+   }
+   FOR(c, 0, C+1)
+      B[R+1][c] = '.';
+
+   printf("%I64d\n", solve());
+
+   return 0;
+}

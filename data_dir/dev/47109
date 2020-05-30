@@ -1,0 +1,164 @@
+#include <stdio.h>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <set>
+#define pb push_back
+using namespace std;
+
+const int QUERY = 0;
+const int UPDATE = 1;
+const int MAXN = (int)1e5 + 5;
+const int MAX_VAL = 4 * MAXN;
+
+struct Event {
+    int x1;
+    int x2;
+    int y;
+    int type;
+
+    Event() {}
+    Event(int x1, int x2, int y, int type):x1(x1), x2(x2), y(y), type(type) {}
+};
+
+map<int, vector<pair<int, int>>> hor;
+map<int, vector<pair<int, int>>> ver;
+
+map<int, int> mapa;
+set<int> vals;
+
+vector<Event> events;
+
+int tree[MAX_VAL];
+
+bool operator<(const Event& a, const Event& b) {
+    if (a.y != b.y) return a.y < b.y;
+    if (a.type != b.type) return a.type != QUERY;
+
+    return a.x1 < b.x1;
+}
+
+void add(int pos, int val) {
+    while(pos < MAX_VAL) {
+        tree[pos] += val;
+        pos += pos & -pos;
+    }
+}
+
+int query(int pos) {
+    int ans = 0;
+    while(pos > 0) {
+        ans += tree[pos];
+        pos -= pos & -pos;
+    }
+    return ans;
+}
+
+int query(int a, int b) {
+    return query(b) - query(a - 1);
+}
+
+bool intersect(pair<int, int>& a, pair<int, int>& b) {
+    return min(a.second, b.second) >= max(a.first, b.first);
+}
+
+int main(void) {
+    int n;
+    long long ans = 0;
+
+    scanf(" %d", &n);
+
+    for (int i = 0; i < n; i++) {
+        int x1, y1, x2, y2;
+        scanf(" %d %d %d %d", &x1, &y1, &x2, &y2);
+        if (x1 > x2) swap(x1, x2);
+        if (y1 > y2) swap(y1, y2);
+
+        vals.insert(x1);
+        vals.insert(x2);
+        vals.insert(y1);
+        vals.insert(y2);
+
+        if (x1 == x2 && y1 != y2) hor[x1].pb({y1, y2});
+        else ver[y1].pb({x1, x2});
+    }
+
+    int next = 0;
+    for(auto it : vals) {
+        next++;
+        mapa[it] = next;
+    }
+
+    for (auto& it : hor) {
+        auto& v = it.second;
+        sort(v.begin(), v.end());
+
+        int pos = 0;
+        for (int i = 1; i < (int)v.size(); i++) {
+            if (intersect(v[pos], v[i])) {
+                v[pos].second = max(v[pos].second, v[i].second);
+            } else {
+                pos++;
+                v[pos] = v[i];
+            }
+        }
+        v.resize(pos + 1);
+    }
+
+    for (auto& it : ver) {
+        auto& v = it.second;
+        sort(v.begin(), v.end());
+
+        int pos = 0;
+        for (int i = 1; i < (int)v.size(); i++) {
+            if (intersect(v[pos], v[i])) {
+                v[pos].second = max(v[pos].second, v[i].second);
+            } else {
+                pos++;
+                v[pos] = v[i];
+            }
+        }
+        v.resize(pos + 1);
+    }
+
+    for (auto& it : hor) {
+        int x = mapa[it.first];
+        auto& aux = it.second;
+        for (auto& v : aux) {
+            ans += v.second - v.first + 1;
+            v.first = mapa[v.first];
+            v.second = mapa[v.second];
+
+            events.pb(Event(x, x, v.first, UPDATE));
+            events.pb(Event(x, x, v.second + 1, -UPDATE));
+        }
+    }
+    for (auto& it : ver) {
+        int y = mapa[it.first];
+        auto& aux = it.second;
+        for (auto& v : aux) {
+            ans += v.second - v.first + 1;
+            v.first = mapa[v.first];
+            v.second = mapa[v.second];
+
+            events.pb(Event(v.first, v.second, y, QUERY));
+        }
+    }
+
+    sort(events.begin(), events.end());
+
+    for (auto& it : events) {
+        int x1 = it.x1;
+        int x2 = it.x2;
+        int op = it.type;
+
+        if (op == QUERY) {
+            ans -= query(x1, x2);
+        } else {
+            add(x1, op);
+        }
+    }
+    printf("%lld\n", ans);
+
+    return 0;
+}

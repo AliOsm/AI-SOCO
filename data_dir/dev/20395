@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 400000;
+vector<int>G[N + 2];
+long long aint[4 * N + 2], c[N + 2], lazy[4 * N + 2];
+int n, m, st[N + 2], dr[N + 2], t;
+
+void dfs (int x, int p) {
+  st[x] = ++t;
+  for (int it : G[x])
+    if (p != it)
+      dfs(it, x);
+  dr[x] = t;
+}
+
+void push (int nod, int l, int r) {
+  if (l == r)
+    return;
+  if (lazy[nod] == 0)
+    return;
+  lazy[2 * nod] = lazy[2 * nod + 1] = aint[2 * nod] = aint[2 * nod + 1] = lazy[nod];
+  lazy[nod] = 0;
+  return;
+}
+
+void update (int nod, int l, int r, int a, int b, long long val) {
+  if (l > b || r < a)
+    return;
+  if (a <= l && r <= b) {
+    aint[nod] = val;
+    lazy[nod] = val;
+    return;
+  }
+  push(nod, l ,r);
+  int mid = (l + r) / 2;
+  update(2 * nod, l, mid, a, b, val);
+  update(2 * nod + 1, mid + 1, r, a, b, val);
+  aint[nod] = (aint[2 * nod] | aint[2 * nod + 1]);
+}
+
+long long query (int nod, int l, int r, int a, int b) {
+  if (l > b || r < a)
+    return 0;
+  if (a <= l && r <= b) {
+    return aint[nod];
+  }
+  push(nod, l, r);
+  int mij = (l + r) / 2;
+  long long x, y;
+  x = query(2 * nod, l, mij, a, b);
+  y = query(2 * nod + 1, mij + 1, r, a, b);
+  return (x | y);
+}
+int main()
+{
+  ios_base::sync_with_stdio(false);
+  cin.tie(0); cout.tie(0);
+  cin >> n >> m;
+  for (int i = 1; i <= n; i++) {
+    cin >> c[i];
+    c[i]--;
+  }
+  for (int i = 1; i < n; i++) {
+    int x, y;
+    cin >> x >> y;
+    G[x].push_back(y);
+    G[y].push_back(x);
+  }
+  dfs(1, 0);
+  for (int i = 1; i <= n; i++)
+    update (1, 1, n, st[i], st[i], (1ll << c[i]));
+  int t, nr, val;
+  while (m--) {
+    cin >> t >> nr;
+    if (t == 1) {
+      cin >> val; val--;
+      update(1, 1, n, st[nr], dr[nr], (1ll << val));
+    }
+    else {
+      cout << __builtin_popcountll(query(1, 1, n, st[nr], dr[nr])) << "\n";
+    }
+  }
+  return 0;
+}

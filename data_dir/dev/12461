@@ -1,0 +1,119 @@
+#include <iostream>
+#include <map>
+#include <set>
+#include <vector>
+#include <cstdio>
+#include <algorithm>
+#include <cstring>
+
+#define si(a) scanf("%d",&a)
+
+using namespace std;
+
+map<int,int> data,position;
+
+vector<int> right_pos;
+
+int N=400005;
+
+int la[400005],ls[1600005];
+
+void build(int *a,int *s,int id = 1,int l = 0,int r = N){
+	if(r - l < 2){	//	l + 1 == r
+		s[id] = a[l];
+		return ;
+	}
+	int mid = (l+r)/2;
+	build(a,s,id * 2, l, mid);
+	build(a,s,id * 2 + 1, mid, r);
+	s[id] = s[id * 2] + s[id * 2 + 1];
+}
+
+void modify(int *a,int *s,int p,int x,int id = 1,int l = 0,int r = N){
+	s[id] += x - a[p];
+	if(r - l < 2){	//	l = r - 1 = p
+		a[p] = x;
+		return ;
+	}
+	int mid = (l + r)/2;
+	if(p < mid)
+		modify(a,s,p, x, id * 2, l, mid);
+	else
+		modify(a,s,p, x, id * 2 + 1, mid, r);
+}
+
+int sum(int *a,int *s,int x,int y,int id = 1,int l = 0,int r = N){
+	if(x >= r or l >= y)	return 0;
+	if(x <= l && r <= y)	return s[id];
+	int mid = (l+r)/2;
+	return sum(a,s,x, y, id * 2, l, mid) +
+	       sum(a,s,x, y, id * 2 + 1, mid, r);
+}
+
+int func(int x,int y)
+{
+    if(x>y)
+        swap(x,y);
+    int ans=(y-x)-1;
+
+    vector<int>::iterator it1,it2;
+    it1=upper_bound(right_pos.begin(),right_pos.end(),x);
+    it2=lower_bound(right_pos.begin(),right_pos.end(),y);
+    ans-=(it2-it1);
+
+    return ans;
+}
+
+int main()
+{
+    //freopen("input.txt","r",stdin);
+    int i,n;
+    si(n);
+    for(i=0;i<n;i++){
+        int a,b,val_a,val_b;
+        si(a);si(b);
+        val_a=a;
+        val_b=b;
+        if(data[a])
+            val_a=data[a];
+        if(data[b])
+            val_b=data[b];
+        data[a]=val_b;
+        data[b]=val_a;
+    }
+    memset(la,0,sizeof(la));
+    map<int,int>::iterator it;
+    it=data.begin();
+    while(it!=data.end()){
+        if(it->first==it->second){
+            it++;
+            continue;
+        }
+        right_pos.push_back(it->first);
+        position[it->second]=1;
+        it++;
+    }
+    it=position.begin();
+    i=0;
+    while(it!=position.end()){
+        it->second=i++;
+        it++;
+    }
+    build(la,ls);
+    long long ans=0;
+    it=data.begin();
+    while(it!=data.end()){
+        if(it->first==it->second){
+            it++;
+            continue;
+        }
+        int pos=it->first,value=it->second;
+        int value_pos=position[value];
+        ans+=sum(la,ls,value_pos,N);
+        modify(la,ls,value_pos,1);
+        ans+=func(value,pos);
+        it++;
+    }
+    cout<<ans<<endl;
+    return 0;
+}

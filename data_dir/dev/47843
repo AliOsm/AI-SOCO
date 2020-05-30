@@ -1,0 +1,239 @@
+///****In the name of ALLAH, most Gracious, most Compassionate****//
+
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+
+#define ALL(a) a.begin(), a.end()
+#define FastIO ios::sync_with_stdio(false); cin.tie(0);cout.tie(0)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+#define DBG(a) cerr<< "line "<<__LINE__ <<" : "<< #a <<" --> "<<(a)<<endl
+#define NL cout<<endl
+
+template < class T1,class T2>
+ostream &operator <<(ostream &os,const pair < T1,T2 > &p)
+{
+    os<<"{"<<p.first<<","<<p.second<<"}";
+    return os;
+}
+
+const int N=3e5+5;
+const int oo=1e9+7;
+const int K = 23  ;
+vector<int > g[N];
+
+int parent[N];
+pii a[N];
+int start[N];
+int stop[N];
+int now = 0;
+int id[N];
+int lg2[N+1];
+pii st[N][K + 1];
+bool ache[N];
+int dp[N][2];
+
+void dfs(int u,int p = 0)
+{
+    static int dfs_time = 1;
+
+    start[u] =dfs_time;
+    a[now] = { start[u], u};
+    id[u] = now ;
+
+    now++;
+    dfs_time++;
+
+    parent[u] = p;
+
+    for(int v: g[u])
+        if(v!=p)
+        {
+            dfs(v,u);
+            a[now++] = { start[u], u};
+        }
+
+    stop[u]= dfs_time - 1;
+}
+
+
+void ini()
+{
+    lg2[1] = 0;
+    for (int i = 2; i <= N; i++)
+        lg2[i] = lg2[i/2] + 1;
+}
+
+void pre()
+{
+    int n= now ;
+    for (int i = 0; i < n; i++)
+        st[i][0] = a[i];
+
+    for (int j = 1; j <= K; j++)
+        for (int i = 0; i + (1 << j) <= n; i++)
+            st[i][j] = min( st[i][j-1], st[i + (1 << (j - 1))][j - 1]);
+}
+
+int getf( int L,int R)
+{
+    if(L>R)
+        swap(L,R);
+    int j = lg2[R - L + 1];
+    return  min(st[L][j], st[R - (1 << j) + 1][j]).second;
+}
+
+int lca(int u,int v)
+{
+    return getf(id[u], id[v]);
+}
+bool ischild(int u,int v)
+{
+    return start[u]<= start[v] and stop[v]<= stop[u];
+}
+
+void calc(int u)
+{
+//    DBG(u);
+//    NL;
+
+    int sum0 = 0 ,sum1 = 0 , mn  = oo;
+    for(int v: g[u])
+    {
+        calc(v);
+        sum0+=dp[v][0];
+        sum1+=dp[v][1];
+        mn = min(mn , -dp[v][1] + dp[v][0]);
+    }
+    if(ache[u])
+    {
+        dp[u][0] = sum1;
+
+
+        dp[u][1] = 1  + sum1;
+
+    }
+    else
+    {
+        dp[u][0]= min({1+ sum0 , sum1 + mn  , sum1 });
+
+        dp[u][1] = min(1+ sum0 , sum1);
+    }
+}
+
+bool impossible(vector< pii > &x)
+{
+    for(int i=1; i<x.size(); i++)
+    {
+        if(ache[parent[x[i].second]])
+            return 1;
+    }
+    return 0;
+}
+
+int solve()
+{
+    int k;
+    cin>>k;
+    vector<pii> x(k);
+    vector<int > nodes(k);
+    for(int i=0; i<k; i++)
+    {
+        cin>>x[i].second;
+        x[i].first = start[x[i].second];
+        nodes[i] = x[i].second;
+    }
+    sort(ALL(x));
+
+    for(int u: nodes)
+            ache[u] = 1;
+
+    if(impossible(x))
+    {
+        for(int u: nodes)
+            ache[u] = 0;
+
+        return -1;
+    }
+    else
+    {
+
+
+
+        x.reserve(k+k-1);
+        for(int i=1; i<k; i++)
+        {
+            int w =lca(x[i].second, x[i-1].second );
+            x.push_back({start[w], w});
+        }
+        sort(ALL(x));
+
+        x.erase(unique(ALL(x)) , x.end());
+
+
+        int root = x.front().second;
+        stack<int > st;
+        st.push(root);
+        for(int i=1; i<x.size(); i++)
+        {
+            assert(!st.empty());
+            int u= x[i].second;
+            while(!st.empty() and  !ischild(st.top(), u))
+                st.pop();
+            assert(!st.empty());
+            assert(ischild(st.top() , u));
+
+            g[st.top()].push_back(u);
+            st.push(u);
+
+        }
+        calc(root);
+
+        int ans = dp[root][0];
+
+
+        for(int u: nodes) {
+            ache[u] = 0 ;
+        }
+        for(pii du : x)
+            g[du.second].clear();
+
+        return ans;
+    }
+}
+
+
+int32_t main()
+{
+    FastIO;
+    int n;
+    cin>>n;
+    for(int i=1; i<=n-1; i++)
+    {
+        int u,v;
+        cin>>u>>v;
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+    dfs(1);
+    ini();
+    pre();
+//    for(int i=1; i<=n; i++)
+//    {
+//        for(int j=1; j<=n; j++)
+//            cout<<lca(i,j)<<" ";
+//        NL;
+//    }
+    for(int i=1; i<=n; i++)
+        g[i].clear();
+    int q;
+    cin>>q;
+    while(q--)
+    {
+        cout<<solve()<<"\n";
+    }
+}

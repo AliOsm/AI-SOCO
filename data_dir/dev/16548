@@ -1,0 +1,122 @@
+// Daniel Grzegorzewski
+// while (clock()<=69*CLOCKS_PER_SEC)
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+// #pragma GCC target ("avx2")
+// #pragma GCC optimization ("O3")
+// #pragma GCC optimization ("unroll-loops")
+ 
+#define MP make_pair
+#define PB push_back
+#define ST first
+#define ND second
+ 
+using namespace __gnu_pbds;
+using namespace std;
+ 
+template <typename T>
+using ordered_set =
+    tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+ 
+//X.find_by_order(k); - zwraca iterator na k-ty element (numeracja od zerowego)
+//X.order_of_key(k); - zwraca liczbę elementów ostro mniejszych niż k
+ 
+typedef pair<int, int> PII;
+typedef vector<int> VI;
+typedef vector<PII> VII;
+typedef long long LL;
+ 
+void init_ios() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+}
+ 
+const int N = (1<<19);
+const int LG = 19;
+ 
+int n, a[N], jmp[2][N][LG], drz[2][LG][2*N];
+ 
+void add(int dir, int nr, int v, int val) {
+  v += N;
+  drz[dir][nr][v] = val;
+  while (v > 1) {
+    v /= 2;
+    if (dir == 0)
+      drz[dir][nr][v] = min(drz[dir][nr][2*v], drz[dir][nr][2*v+1]);
+    else
+      drz[dir][nr][v] = max(drz[dir][nr][2*v], drz[dir][nr][2*v+1]);
+  }
+}
+ 
+int get(int dir, int nr, int l, int r) {
+  l += N;
+  r += N;
+  int res;
+  if (dir == 0)
+    res = min(drz[dir][nr][l], drz[dir][nr][r]);
+  else
+    res = max(drz[dir][nr][l], drz[dir][nr][r]);
+  while (l/2 != r/2) {
+    if (l%2 == 0) {
+      if (dir == 0)
+        res = min(res, drz[dir][nr][l+1]);
+      else
+        res = max(res, drz[dir][nr][l+1]);
+    }
+    if (r%2 == 1) {
+      if (dir == 0)
+        res = min(res, drz[dir][nr][r-1]);
+      else
+        res = max(res, drz[dir][nr][r-1]);
+    }
+    l /= 2;
+    r /= 2;
+  }
+  return res;
+}
+ 
+int main() {
+  init_ios();
+  cin >> n;
+  for (int i = 0; i < n; ++i) {
+    cin >> a[i];
+    a[i+n] = a[i+2*n] = a[i];
+  }
+  if (n == 1) {
+    cout<<"0\n";
+    return 0;
+  }
+  for (int j = 0; j < LG; ++j) {
+    for (int i = 0; i < 3*n; ++i) {
+      if (j == 0) {
+        jmp[0][i][j] = max(0, i-a[i]);
+        jmp[1][i][j] = min(3*n-1, i+a[i]);
+        add(0, j, i, jmp[0][i][j]);
+        add(1, j, i, jmp[1][i][j]);
+      }
+      else {
+        int le = jmp[0][i][j-1];
+        int ri = jmp[1][i][j-1];
+        jmp[0][i][j] = get(0, j-1, le, ri);
+        jmp[1][i][j] = get(1, j-1, le, ri);
+        add(0, j, i, jmp[0][i][j]);
+        add(1, j, i, jmp[1][i][j]);
+      }
+    }
+  }
+  for (int i = n; i < 2*n; ++i) {
+    int wyn = 0, mn = i, mx = i;
+    for (int j = LG-1; j >= 0; --j) {
+      int mn2 = min(mn, get(0, j, mn, mx));
+      int mx2 = max(mx, get(1, j, mn, mx));
+      if (mx2-mn2+1 < n) {
+        mn = mn2;
+        mx = mx2;
+        wyn ^= (1<<j);
+      }
+    }
+    cout<<wyn+1<<" ";
+  }
+  cout<<"\n";
+}

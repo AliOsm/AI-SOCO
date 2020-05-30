@@ -1,0 +1,124 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+const int N = 1000005;
+struct Tree {
+    int left , right;
+    double all , seq;
+    double lazy_all , lazy_seq;
+}L[N << 2];
+int n;
+double ans[N];
+set <pair <int , int> > segment;
+pair <int , int> a[N];
+#define lson step << 1
+#define rson step << 1 | 1
+void build (int step , int l , int r) {
+    L[step].left = l;
+    L[step].right = r;
+    L[step].all = L[step].seq = L[step].lazy_seq = L[step].lazy_all = 0;
+    if (l == r) return;
+    int m = (L[step].left + L[step].right) >> 1;
+    build (lson , l , m);
+    build (rson , m + 1 , r);
+}
+void update_all (int step , int l , int r , double v) ;
+void update_seq (int step , int l , int r , double v) ;
+inline void push_down (int step) {
+    int l = L[step].left , r = L[step].right , m = (l + r) >> 1;
+    if (L[step].lazy_all != 0) {
+        update_all (lson , l , m , L[step].lazy_all);
+        update_all (rson , m + 1 , r , L[step].lazy_all);
+        L[step].lazy_all = 0;
+    }
+    if (L[step].lazy_seq != 0) {
+        update_seq (lson , l , m , L[step].lazy_seq);
+        update_seq (rson , m + 1 , r , L[step].lazy_seq);
+        L[step].lazy_seq = 0;
+    }
+}
+void update_all (int step , int l , int r , double v) {
+    if (l > r) return ;
+    if (L[step].left == l && L[step].right == r) {
+        L[step].all += v;
+        L[step].lazy_all += v;
+        return ;
+    }
+    push_down (step);
+    int m = (L[step].left + L[step].right) >> 1;
+    if (r <= m) update_all (lson , l , r , v);
+    else if (l > m) update_all (rson , l , r , v);
+    else {
+        update_all (lson , l , m , v);
+        update_all (rson , m + 1 , r , v);
+    }
+}
+void update_seq (int step , int l , int r , double v) {
+    if (l > r) return ;
+    if (L[step].left == l && L[step].right == r) {
+        L[step].seq += v;
+        L[step].lazy_seq += v;
+        return ;
+    }
+    push_down (step);
+    int m = (L[step].left + L[step].right) >> 1;
+    if (r <= m) update_seq (lson , l , r , v);
+    else if (l > m) update_seq (rson , l , r , v);
+    else {
+        update_seq (lson , l , m , v);
+        update_seq (rson , m + 1 , r , v);
+    }
+}
+void query (int step) {
+    if (L[step].left == L[step].right) {
+        ans[L[step].left] = (L[step].all + L[step].seq * L[step].left) / (n - L[step].left + 1.0);
+        return ;
+    }
+    push_down (step);
+    query (lson);
+    query (rson);
+}
+int main(){
+#ifndef ONLINE_JUDGE 
+    freopen ("input.txt" , "r" , stdin);
+    // freopen ("output.txt" , "w" , stdout);
+#endif
+    scanf ("%d" , &n);
+    for (int i = 0 ; i < n ; i ++) {
+        int k;scanf ("%d" , &k);
+        a[i] = make_pair (k , i + 1);
+    }
+    sort (a , a + n);
+    segment.insert (make_pair (1 , n));
+    build (1 , 1 , n);
+    for (int i = 0 ; i < n ; i ++) {
+        // cout << i << endl;
+        set <pair <int , int> > :: iterator it = segment.upper_bound (make_pair (a[i].second , n + 1));
+        it --;
+        pair <int , int> pre = *it;
+        segment.erase (it);
+        if (pre.first != a[i].second) {
+            segment.insert (make_pair (pre.first , a[i].second - 1));
+        }
+        if (pre.second != a[i].second) {
+            segment.insert (make_pair (a[i].second + 1 , pre.second));
+        }
+        int A = a[i].second - pre.first , B = pre.second - a[i].second;
+        if (A > B) swap (A , B);
+        // [1 , A]    1 , 2 , …… A
+        // other      A + 1
+        // [B + 2 , A + B + 1]   A …… , 2 , 1
+        update_all (1 , A + 1 , B + 1 , a[i].first * (A + 1.0));
+        update_all (1 , B + 2 , A + B + 1 , (A + B + 2.0) * a[i].first);
+        update_seq (1 , 1 , A , a[i].first);
+        update_seq (1 , B + 2 , A + B + 1 , -a[i].first);
+    }
+
+    query (1);
+    int q;scanf ("%d" , &q);
+    while (q --) {
+        int k;scanf ("%d" , &k);
+        printf ("%.10f\n" , ans[k]);
+    }
+    return 0;
+}

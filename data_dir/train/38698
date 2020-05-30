@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ll long long
+#define IO ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define endl '\n'
+#define all(x) x.begin(), x.end()
+#define row first
+#define col second
+typedef long double ld;
+
+const int mod = 998244353;
+const int N = 605;
+
+// Complexity: O(E * sqrt(V))
+
+struct graph
+{
+    int L, R;
+    vector<vector<int>> adj;
+    graph(int L, int R) : L(L), R(R), adj(L+R) { }
+    void add_edge(int u, int v)
+    {
+        adj[u].push_back(v+L);
+        adj[v+L].push_back(u);
+    }
+    int maximum_matching()
+    {
+        vector<int> level(L), mate(L+R, -1);
+
+        function<bool(void)> levelize = [&]()   // BFS
+        {
+            queue<int> Q;
+            for (int u = 0; u < L; ++u)
+            {
+                level[u] = -1;
+                if (mate[u] < 0)
+                {
+                    level[u] = 0;
+                    Q.push(u);
+                }
+            }
+            while (!Q.empty())
+            {
+                int u = Q.front();
+                Q.pop();
+                for (int w: adj[u])
+                {
+                    int v = mate[w];
+                    if (v < 0) return true;
+                    if (level[v] < 0)
+                    {
+                        level[v] = level[u] + 1;
+                        Q.push(v);
+                    }
+                }
+            }
+            return false;
+        };
+        function<bool(int)> augment = [&](int u)   // DFS
+        {
+            for (int w: adj[u])
+            {
+                int v = mate[w];
+                if (v < 0 || (level[v] > level[u] && augment(v)))
+                {
+                    mate[u] = w;
+                    mate[w] = u;
+                    return true;
+                }
+            }
+            return false;
+        };
+        int match = 0;
+        while (levelize())
+            for (int u = 0; u < L; ++u)
+                if (mate[u] < 0 && augment(u))
+                    ++match;
+        return match;
+    }
+};
+
+int g[N][N];
+
+void floyd(int n){
+	for(int k = 1; k <= n; k++)
+		for(int i = 1; i <= n; i++)
+			for(int j = 1; j <= n; j++)
+				if(g[i][j] > g[i][k] + g[k][j])
+					g[i][j] = g[i][k] + g[k][j];
+}
+
+int main(){
+
+	IO;
+
+	for(int i = 0; i < N; i++)
+		for(int j = 0; j < N; j++)
+			g[i][j] = 1e9;
+
+	int cities, roads, nofteams, k;
+	cin >> cities >> roads >> nofteams >> k;
+
+	vector<int>teams(nofteams);
+	for(int i = 0; i < nofteams; i++)
+		cin >> teams[i];
+
+	for(int i = 0; i < roads; i++){
+		int a, b, c;
+		cin >> a >> b >> c;
+		g[a][b] = g[b][a] = min(g[a][b], c);
+	}
+	for(int i = 1; i <= cities; i++)
+		g[i][i] = 0;
+	floyd(cities);
+
+	int lw = 0, hi = 1e8, T = -1;
+	
+	while(lw <= hi){
+		int t = (lw + hi) / 2;
+		graph mm(cities + 5, cities + 5);
+		for(int i = 0; i < teams.size(); i++)
+			for(int j = 1; j <= cities; j++)
+				if(g[teams[i]][j] <= t)
+					mm.add_edge(i, j);
+		if(mm.maximum_matching() >= k)
+			hi = t - 1, T = t;
+		else
+			lw = t + 1;
+	}
+	cout << T << endl;
+	
+	return 0;
+}

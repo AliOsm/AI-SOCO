@@ -1,0 +1,322 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+
+
+using namespace std;
+
+#ifdef WIN32
+    #define LLD "%I64d"
+#else
+    #define LLD "%lld"
+#endif
+
+typedef pair<int, int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<bool> vb;
+typedef vector<vb> vvb;
+typedef vector<ll> vll;
+typedef vector<vll> vvll;
+
+ll rdtsc() {
+    ll tmp;
+    asm("rdtsc" : "=A"(tmp));
+    return tmp;
+}
+
+inline int myrand() {
+	return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+	return myrand() % x;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define EPS (1e-9)
+#define INF ((int)1e9)
+#define sqr(x) ((x) * (x))         
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+void writeSimplex(int m, int n, const vector<vector<double> > &a, const vector<int> &ns, const vector<int> &bs) {
+	eprintf("m = %d, n = %d\n", m, n);
+	for (int i = 0; i <= m; ++i) {
+		if (i < m)
+			eprintf("x_%d = ", bs[i]);
+		else
+			eprintf("-func = ");
+
+	   	eprintf("%.3lf ", a[i][n]);
+		for (int j = 0; j < n; ++j) { 
+			eprintf("- %.2lf * x_%d%c", a[i][j], ns[j], " \n"[j == n - 1]);
+		}
+	}
+}
+
+void changeVariable(int m, int n, vector<vector<double> > &a, vector<int> &ns, vector<int> &bs, int l, int e) {
+	{
+		double d = a[l][e];
+		a[l][e] = 1;
+		for (int i = 0; i <= n; ++i)
+			a[l][i] /= d;	
+	}
+	for (int i = 0; i <= m; ++i) {
+		if (i == l)
+			continue;
+
+		double d = a[i][e];
+		a[i][e] = 0;
+		for (int j = 0; j <= n; ++j)
+			a[i][j] -= d * a[l][j];
+	}	
+
+	swap(ns[e], bs[l]);
+}
+
+void mainSimplex(int m, int n, vector<vector<double> >& a, vector<int> &ns, vector<int> &bs, double &ans, vector<double> &values) {
+	ans = 0;
+	while (true) {
+		int e = -1;
+		for (int i = 0; i < n; ++i)
+			if (a[m][i] > EPS) {
+				e = i;
+				break;	
+			}
+		if (e == -1)
+			break;
+		int l = -1;
+		for (int i = 0; i < m; ++i) {
+			if (a[i][e] <= EPS)
+				continue;
+			if (l != -1 && a[l][n] / a[l][e] <= a[i][n] / a[i][e] + EPS)
+				continue;
+			l = i;
+		}
+
+		if (l == -1) {
+			ans = 1e18;
+			return;
+		}
+
+		changeVariable(m, n, a, ns, bs, l, e);
+	}
+
+	values = vector<double>(n);
+	ans = -a[m][n];
+	for (int i = 0; i < n; ++i)
+		if (ns[i] < n)
+			values[ns[i]] = 0;
+	for (int i = 0; i < m; ++i)
+		if (bs[i] < n)
+			values[bs[i]] = a[i][n];
+}
+
+bool initializeSimplex(int m, int n, vector<vector<double> > &a, vector<int> &ns, vector<int> &bs) {
+	int k = 0;
+	for (int i = 1; i < m; ++i)
+		if (a[i][n] < a[k][n])
+			k = i;
+	if (a[k][n] >= -EPS) {
+		ns.resize(n);
+		bs.resize(m);
+		for (int i = 0; i < n; ++i)
+			ns[i] = i;
+		for (int j = 0; j < m; ++j)
+			bs[j] = j + n;
+		return true;
+	}
+
+	vector<vector<double> > aux = a;
+	for (int i = 0; i < m; ++i) {
+		aux[i].pb(-1);
+		swap(aux[i][n], aux[i][n + 1]);
+	}
+
+	for (int j = 0; j < n; ++j)
+		aux[m][j] = 0;
+	aux[m][n] = -1;
+	aux[m].pb(0);
+
+	ns.resize(n + 1);
+	bs.resize(m);
+	
+	for (int i = 0; i <= n; ++i)
+		ns[i] = i;
+	for (int j = 0; j < m; ++j)
+		bs[j] = j + n + 1;
+	
+	//writeSimplex(m, n + 1, aux, ns, bs);
+	
+	changeVariable(m, n + 1, aux, ns, bs, k, n);
+
+	//writeSimplex(m, n + 1, aux, ns, bs);
+	double ans;
+	vector<double> values;
+	mainSimplex(m, n + 1, aux, ns, bs, ans, values);	
+	
+	if (ans < -EPS)
+		return false;
+	for (int i = 0; i < m; ++i) {
+		if (bs[i] == n) {
+			int x = -1;
+			for (int j = 0; j <= n; ++j)
+				if (fabs(aux[i][j]) > EPS) {
+					x = j;
+					break;
+				}
+			assert(fabs(aux[i][n + 1]) < EPS && x != -1);
+			changeVariable(m, n + 1, aux, ns, bs, i, x);
+			break;
+		}
+	}
+
+	int where = find(ns.begin(), ns.end(), n) - ns.begin();
+	for (int i = 0; i <= m; ++i)
+		swap(aux[i][n], aux[i][where]);
+	swap(ns[where], ns[n]);
+	
+	for (int i = 0; i < m; ++i) {
+		for (int j = 0; j < n; ++j)
+			a[i][j] = aux[i][j];
+		a[i][n] = aux[i][n + 1];
+	}
+
+	vector<double> coef = a[m];
+	for (int i = 0; i <= n; ++i)
+		a[m][i] = 0;
+
+	for (int i = 0; i < m; ++i) {
+		if (bs[i] < n) {
+			for (int j = 0; j <= n; ++j)
+				a[m][j] -= a[i][j] * coef[bs[i]];
+		} else
+			bs[i] -= 1;
+	}	
+	for (int i = 0; i < n; ++i) {
+		if (ns[i] < n)
+			a[m][i] += coef[ns[i]];
+		else
+			ns[i] -= 1;
+	}
+	ns.resize(n);
+	return true;
+}
+
+void simplex(int m, int n, vector<vector<double> > a, double &ans, vector<double> &values) {
+	vector<int> ns, bs;
+
+	if (!initializeSimplex(m, n, a, ns, bs)) {
+		ans = -1e18;
+		return;
+	}	
+
+	mainSimplex(m, n, a, ns, bs, ans, values);
+}
+
+vvi es, cs;
+
+const int maxn = 500;
+
+int used[maxn];
+int maxu;
+
+int n, x;
+
+void dfs(int v, long long val, double* row) {
+	used[v] = maxu;
+	
+	row[v] = -(int)(val <= (long long)x);
+
+	for (int it = 0; it < sz(es[v]); ++it) {
+		int u = es[v][it];
+		if (used[u] == maxu)
+			continue;
+		dfs(u, val + cs[v][it], row);
+	}
+}
+
+bool solve() {
+	if (scanf("%d%d", &n, &x) < 2)
+		return 0;
+	vector<double> func(n + 1, 0);
+	vector<vector<double> > a;
+	
+	vector<double> toadd(n + 1, 0);
+	for (int i = 0; i < n; ++i) {
+		int type;
+		scanf("%d", &type);
+		toadd[n] += type;
+		toadd[i] = 1;
+		func[i] = type;
+	}
+	a.pb(toadd);
+	int countBlack = toadd[n];
+	
+	for (int i = 0; i <= n; ++i)
+		toadd[i] = -toadd[i];
+	a.pb(toadd);
+	
+	es = cs = vvi(n);
+	for (int i = 0; i < n - 1; ++i) {
+		int s, t, c;
+		scanf("%d%d%d", &s, &t, &c);
+		--s, --t;
+		es[s].pb(t), cs[s].pb(c);
+		es[t].pb(s), cs[t].pb(c);
+	}
+
+	for (int v = 0; v < n; ++v)
+		used[v] = 0;
+	maxu = 0;
+
+	for (int i = 0; i < n; ++i) {
+		++maxu;
+		dfs(i, 0, &(toadd[0]));
+		toadd[n] = -1;
+		a.pb(toadd);
+	}
+
+	a.pb(func);
+
+	double result;
+	vector<double> values;
+	simplex(sz(a) - 1, n, a, result, values);
+	//eprintf("result = %.18lf\n", result);
+	assert(result <= 5e17);
+	if (result <= -5e17)
+		printf("-1\n");
+	else
+		printf("%.0lf\n", countBlack - result);
+	return 1;
+}
+
+int main() {
+	srand(rdtsc());
+#ifdef DEBUG
+	freopen(TASKNAME".in", "r", stdin);
+	freopen(TASKNAME".out", "w", stdout);
+#endif
+	
+	while (1) {
+		if (!solve())
+			break;
+		#ifdef DEBUG
+			eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+		#endif
+	}
+	return 0;
+}

@@ -1,0 +1,113 @@
+#include <cstdio>
+#include <algorithm>
+using namespace std;
+
+struct T{
+    long long sum;
+    long long delta;
+    int mark;
+};
+
+const int N=105000;
+
+T tree[N*4];
+
+void push(int node){
+    if(tree[node].mark>0){
+        tree[node*2+1].mark=tree[node].mark;
+        tree[node*2+2].mark=tree[node].mark;
+        tree[node].mark=0;
+    }
+}
+
+void buildtree(int node,int l,int r){
+    if(l==r){
+        tree[node].mark=l;
+        return;
+    }
+
+    int q=(l+r)>>1;
+    buildtree(node*2+1,l,q);
+    buildtree(node*2+2,q+1,r);
+    tree[node].mark=0;
+}
+
+void clear(int node,int l,int r,int x){
+    if(tree[node].mark>0){
+        tree[node].delta+=abs(tree[node].mark-x);
+        tree[node].sum+=1LL*abs(tree[node].mark-x)*(r-l+1);
+        tree[node].mark=-1;
+        return;
+    }
+
+    int q=(l+r)>>1;
+    clear(node*2+1,l,q,x);
+    clear(node*2+2,q+1,r,x);
+
+    tree[node].sum=tree[node*2+1].sum+tree[node*2+2].sum+1LL*tree[node].delta*(r-l+1);
+    tree[node].mark=-1;
+}
+
+void Set(int node,int left,int right,int l,int r,int x){
+    if(l<=left&&right<=r){
+        clear(node,left,right,x);
+        tree[node].mark=x;
+        return;
+    }
+
+    push(node);
+
+    int q=(left+right)>>1;
+    if(r<=q){
+        Set(node*2+1,left,q,l,r,x);
+    }
+    else 
+        if(q<l){
+            Set(node*2+2,q+1,right,l,r,x);
+        }
+    else{
+            Set(node*2+1,left,q,l,r,x);
+            Set(node*2+2,q+1,right,l,r,x);
+    }
+
+    tree[node].mark=0;
+    tree[node].sum=tree[node*2+1].sum+tree[node*2+2].sum+1LL*tree[node].delta*(right-left+1);
+}
+
+long long get(int node,int left,int right,int l,int r){
+    if(l<=left&&right<=r)return tree[node].sum;
+    int q=(left+right)>>1;
+    if(r<=q) return get(node*2+1,left,q,l,r)+1LL*tree[node].delta*(r-l+1);
+    if(l>q) return get(node*2+2,q+1,right,l,r)+1LL*tree[node].delta*(r-l+1);
+
+    return get(node*2+1,left,q,l,q)+get(node*2+2,q+1,right,q+1,r)+1LL*tree[node].delta*(r-l+1);
+}
+
+int main(){
+    #ifdef LOCAL_TEST
+        freopen("in.txt","r",stdin);
+        freopen("out.txt","w",stdout);
+    #endif  
+
+    int n,m;
+    scanf("%d %d",&n,&m);
+
+    buildtree(1,1,n);
+
+    int t,l,r,x;
+    while(m--){
+        scanf("%d %d %d",&t,&l,&r);
+        if(t==1){
+            scanf("%d",&x);
+            Set(1,1,n,l,r,x);
+        }
+        else{
+            printf("%I64d\n",get(1,1,n,l,r));
+        }
+    }
+
+    #ifdef LOCAL_TEST
+        fclose(stdin);
+        fclose(stdout);
+    #endif
+}

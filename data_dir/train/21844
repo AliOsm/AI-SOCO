@@ -1,0 +1,139 @@
+#include "bits/stdc++.h"
+using namespace std;
+#define pb push_back
+#define fi first
+#define se second
+#define FF first
+#define SS second
+#define pii pair<int,int>
+#define fr(i, a, b) for(int i = a; i <= b; i++)
+#define sz(x) (int)x.size()
+#define endl '\n'
+#define mp make_pair
+
+typedef long long ll;
+typedef long double ld;
+
+int pwr(int a,int b,int mod) {
+	int ans = 1;
+	a %= mod;
+	while(b) {
+		if(b & 1) {
+			ans = ((ll)ans * a) % mod;
+		}
+		a = ((ll)a * a) % mod;
+		b >>= 1;
+	}
+	return ans;
+}
+
+const int mod2 = 1e9 + 7;
+const int mod1 = 999999937;
+
+vector<pii> cyc[55];
+const int N = 1e5 + 5;
+
+vector<pii> g[N];
+
+int vis[N];
+vector<pii> cur;
+int cc = 0;
+
+typedef vector<int> vi;
+vi FWHT(vi &P, bool inverse, int mod) {
+    for (int len = 1; 2 * len <= sz(P); len <<= 1) {
+        for (int i = 0; i < sz(P); i += 2 * len) {
+            for (int j = 0; j < len; j++) {
+                int u = P[i + j];
+                int v = P[i + len + j];
+                P[i + j] = u + v;
+                P[i + len + j] = u - v;
+                if(P[i + j] >= mod) P[i + j] -= mod;
+                if(P[i + len + j] < 0) P[i + len + j] += mod;
+            }
+        }
+    }
+    int pp = pwr(sz(P), mod - 2, mod);
+    if (inverse) {
+        for (int i = 0; i < sz(P); i++)
+            P[i] = ((ll)P[i] * pp) % mod;
+    }
+    return P;
+}
+
+void dfs(int u,int p) {
+	vis[u] = 1;
+	for(pii v : g[u]) {
+		if(!vis[v.fi]) {
+			cur.pb({u, v.se});
+			dfs(v.fi, u);
+			cur.pop_back();
+		}
+		else if(v.fi != p && vis[v.fi] == 1) {
+			cc++;
+			cyc[cc].pb({u, v.se});
+			for(int j = sz(cur) - 1; j >= 0; j--) {
+				cyc[cc].pb(cur[j]);
+				if(cur[j].fi == v.fi) break;
+			}
+		}
+	}
+	vis[u] = 2;
+}
+
+vector<int> lol[N];
+vector<int> lol2[N];
+
+int main()
+{
+ 
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	int n, m;
+	cin >> n >> m;
+	int tot = 0;
+	fr(i, 1, m) {
+		int u, v, w;
+		cin >> u >> v >> w;
+		tot ^= w;
+		g[u].pb({v, w});
+		g[v].pb({u, w});
+	}
+	fr(i, 1, n) {
+		if(!vis[i]) {
+			dfs(i, 0);
+		}
+	}
+	vector<int> v(1 << 17, 0);
+	v[0] = 1;
+	vector<int> v1(1 << 17, 0);
+	v1[0] = 1;
+	FWHT(v, 0, mod2);
+	FWHT(v1, 0, mod1);
+	fr(i, 1, cc) {
+		lol[i].resize(1 << 17, 0);
+		for(pii x : cyc[i]) {
+			lol[i][x.se]++;
+		}
+		lol2[i] = lol[i];
+		FWHT(lol[i], 0, mod2);
+		FWHT(lol2[i], 0, mod1);
+	}
+	fr(i, 1, cc)
+		fr(j, 0, (1 << 17) - 1) {
+			v[j] = ((ll)v[j] * lol[i][j]) % mod2;
+			v1[j] = ((ll)v1[j] * lol2[i][j]) % mod1;
+		}
+	FWHT(v, 1, mod2);
+	FWHT(v1, 1, mod1);
+	ll mini = 1e18;
+	int c = 0;
+	fr(i, 0, sz(v) - 1) {
+		if((v[i] || v1[i]) && (mini > (i ^ tot))) {
+			mini = i ^ tot;
+			c = v[i];
+		}
+	}
+	cout << mini << " " << c << endl;
+	return 0;
+}

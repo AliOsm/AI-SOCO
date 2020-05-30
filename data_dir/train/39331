@@ -1,0 +1,289 @@
+#include <stdio.h>
+#include <bits/stdc++.h>
+//#include "optimization.h"
+     
+#define uint unsigned int
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define rep(i, l, r) for (int i = l; i < r; i++)
+#define repb(i, r, l) for (int i = r; i > l; i--)
+#define sz(a) (int)a.size()
+#define fi first
+#define se second
+#define mp(a, b) make_pair(a, b)
+
+using namespace std;
+
+const int N = 5000;
+const int inf = (int)1e9 + 1;
+const ll big = (ll)1e18 + 1;
+const int P = 239;
+const int MOD = (int)1e9 + 7;
+const int MOD1 = (int)1e9 + 9;
+const double eps = 1e-6;
+const double pi = atan2(0, -1);
+const int ABC = 26;
+
+struct Point
+{
+    ll x, y;
+    Point() {}
+    Point(ll x, ll y) : x(x), y(y) {}
+    ll len() { return x * x + y * y; }
+};
+
+bool operator == (Point p1, Point p2) { return p1.x == p2.x && p1.y == p2.y; }
+
+bool operator != (Point p1, Point p2) { return p1.x != p2.x || p1.y != p2.y; }
+
+Point operator + (Point p1, Point p2) { return Point(p1.x + p2.x, p1.y + p2.y); }
+
+Point operator - (Point p1, Point p2) { return Point(p1.x - p2.x, p1.y - p2.y); }
+
+ll operator * (Point p1, Point p2) { return p1.x * p2.x + p1.y * p2.y; }
+
+ll operator % (Point p1, Point p2) { return p1.x * p2.y - p1.y * p2.x; }
+
+bool comp(Point p1, Point p2) { return p1.y != p2.y ? p1.y < p2.y : p1.x < p2.x; }
+
+Point mi;
+
+bool comp2(Point p1, Point p2) { return (p1 - mi) % (p2 - mi) != 0 ? (p1 - mi) % (p2 - mi) > 0 : (p1 - mi).len() < (p2 - mi).len(); }
+
+vector<Point> convex_hull(vector<Point> a)
+{
+    int pos_mi = min_element(a.begin(), a.end(), comp) - a.begin();
+    swap(a[0], a[pos_mi]);
+    mi = a[0];
+    sort(a.begin() + 1, a.end(), comp2);
+    vector<Point> hull;
+    rep(i, 0, sz(a))
+    {
+        while (sz(hull) >= 2 && (hull[sz(hull) - 1] - hull[sz(hull) - 2]) % (a[i] - hull[sz(hull) - 1]) <= 0)
+            hull.pop_back();
+        hull.push_back(a[i]);
+    }
+    return hull;
+}
+
+bool point_in_segment(Point a, Point b, Point p)
+{
+    if ((b - a) % (p - a) != 0)
+        return false;
+    return ((b - a) * (p - a) >= 0 && (a - b) * (p - b) >= 0);
+}
+
+bool point_in_triangle(Point a, Point b, Point c, Point p)
+{
+    ll v1 = (b - a) % (p - a);
+    ll v2 = (c - b) % (p - b);
+    ll v3 = (a - c) % (p - c);
+    return (v1 >= 0 && v2 >= 0 && v3 >= 0) || (v1 <= 0 && v2 <= 0 && v3 <= 0);
+}
+
+bool point_in_convex_polygon(vector<Point> &a, Point p)
+{
+    int n = sz(a);
+    if ((a[1] - a[0]) % (p - a[0]) < 0)
+        return false;
+    else if ((a[1] - a[0]) % (p - a[0]) == 0)
+        return point_in_segment(a[0], a[1], p);
+    if ((a[n - 1] - a[0]) % (p - a[0]) > 0)
+        return false;
+    else if ((a[n - 1] - a[0]) % (p - a[0]) == 0)
+        return point_in_segment(a[0], a[n - 1], p);
+    int l = 1, r = n - 1, mid;
+    while (r - l > 1)
+    {
+        mid = (l + r) / 2;
+        if ((a[mid] - a[0]) % (p - a[0]) >= 0)
+            l = mid;
+        else
+            r = mid;
+    }
+    return point_in_triangle(a[0], a[l], a[l + 1], p);
+}
+
+struct Line
+{
+    ll a, b, c;
+    Line() {}
+    Line(ll a, ll b, ll c) : a(a), b(b), c(c) {}
+    Line(Point p1, Point p2) { a = p2.y - p1.y; b = -(p2.x - p1.x); c = p2 % p1; }
+    ll val(Point p) { return a * p.x + b * p.y + c; }
+};
+
+bool line_in_convex_polygon(vector<Point> &a, Line line)
+{
+    int n = sz(a);
+    int mi_id, ma_id;
+    if (line.val(a[1]) >= line.val(a[0]))
+    {
+        int l = 0, r = n, mid;
+        while (r - l > 1)
+        {
+            mid = (l + r) / 2;
+            if (line.val(a[mid]) >= line.val(a[mid - 1]))
+            {
+                if (line.val(a[mid]) >= line.val(a[0]))
+                    l = mid;
+                else
+                    r = mid;
+            }
+            else
+            {
+                r = mid;
+            }
+        }
+        ma_id = l;
+        l = 0; r = n;
+        while (r - l > 1)
+        {
+            mid = (l + r) / 2;
+            if (line.val(a[(mid + 1) % n]) >= line.val(a[mid]))
+            {
+                if (line.val(a[mid]) >= line.val(a[0]))
+                    l = mid;
+                else
+                    r = mid;
+            }
+            else
+            {
+                l = mid;
+            }
+        }
+        mi_id = r % n;
+    }
+    else
+    {
+        int l = 0, r = n, mid;
+        while (r - l > 1)
+        {
+            mid = (l + r) / 2;
+            if (line.val(a[(mid + 1) % n]) <= line.val(a[mid]))
+            {
+                if (line.val(a[mid]) <= line.val(a[0]))
+                    l = mid;
+                else
+                    r = mid;
+            }
+            else
+            {
+                l = mid;
+            }
+        }
+        ma_id = r % n;
+        l = 0; r = n;
+        while (r - l > 1)
+        {
+            mid = (l + r) / 2;
+            if (line.val(a[mid]) <= line.val(a[mid - 1]))
+            {
+                if (line.val(a[mid]) <= line.val(a[0]))
+                    l = mid;
+                else
+                    r = mid;
+            }
+            else
+            {
+                r = mid;
+            }
+        }
+        mi_id = l;
+    }
+    return line.val(a[mi_id]) <= 0 && line.val(a[ma_id]) >= 0;
+}
+
+bool comp3(Point a, Point b)
+{
+    if (a.y >= 0 && b.y < 0)
+        return true;
+    else if (a.y < 0 && b.y >= 0)
+        return false;
+    else if (a.y == 0 && b.y == 0)
+        return a.x > b.x;
+    else
+        return a % b > 0;
+}
+
+vector<Point> minkovski(vector<Point> a, vector<Point> b)
+{
+    a = convex_hull(a);
+    b = convex_hull(b);
+    vector<Point> p;
+    rep(i, 0, sz(a))
+        p.push_back(a[(i + 1) % sz(a)] - a[i]);
+    rep(i, 0, sz(b))
+        p.push_back(b[(i + 1) % sz(b)] - b[i]);
+    sort(p.begin(), p.end(), comp3);
+    vector<Point> res(sz(p));
+    res[0] = a[0] + b[0];
+    rep(i, 0, sz(p) - 1)
+        res[i + 1] = res[i] + p[i];
+    res = convex_hull(res);
+    return res;
+}
+
+int best[N][N];
+
+int main()
+{
+    //freopen("a.in", "r", stdin);
+    //freopen("a.out", "w", stdout);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.precision(20);
+    cout << fixed;
+    //ll TL = 0.95 * CLOCKS_PER_SEC;
+    //clock_t time = clock();
+    int n;
+    cin >> n;
+    vector<Point> a(n);
+    rep(i, 0, n)
+        cin >> a[i].x >> a[i].y;
+    vector<Point> b = convex_hull(a);
+    if (sz(b) == 3)
+    {
+        ll ans = big;
+        for (auto i : a)
+        {
+            if (i == b[0] || i == b[1] || i == b[2])
+                continue;
+            ans = min(ans, (b[0] - i) % (b[1] - i));
+            ans = min(ans, (b[1] - i) % (b[2] - i));
+            ans = min(ans, (b[2] - i) % (b[0] - i));
+        }
+        ll xxx = (b[0] % b[1] + b[1] % b[2] + b[2] % b[0] - ans);
+        cout << xxx / 2;
+        if (xxx & 1)
+            cout << ".5";
+        else
+            cout << ".0";
+        cout << "\n";
+        return 0;
+    }
+    a = b;
+    n = sz(a);
+    rep(i, 0, n)
+    {
+        int p = (i + 1) % n;
+        for (int j = (i + 2) % n; j != i; j = (j + 1) % n)
+        {
+            while (abs((a[j] - a[i]) % (a[(p + 1) % n] - a[i])) > abs((a[j] - a[i]) % (a[p] - a[i])))
+                p = (p + 1) % n;
+            best[i][j] = p;
+        }
+    }
+    ll ans = 0;
+    rep(i, 0, n)
+        rep(j, i + 2, n - (i == 0))
+            ans = max(ans, abs((a[j] - a[i]) % (a[best[i][j]] - a[best[j][i]])));
+    cout << ans / 2;
+    if (ans & 1)
+        cout << ".5";
+    else
+        cout << ".0";
+    cout << "\n";
+    return 0;
+}

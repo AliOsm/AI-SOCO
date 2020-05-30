@@ -1,0 +1,187 @@
+#include <bits/stdc++.h>
+#include <ext/hash_set>
+#include <ext/numeric>
+
+using namespace std;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<int, int> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const ll MOD = 1e9 + 7;
+const long double EPS = 1e-5;
+const ll INF = 1e9;
+int di[] = { 0, 0, 1, -1 };
+int dj[] = { 1, -1, 0, 0 };
+#define all(x) x.begin(),x.end()
+
+vvi comp;
+
+class Graph {
+	int V;
+	list<int> *adj;
+
+	void SCCUtil(int u, int disc[], int low[], stack<int>* st, bool stackMember[]) {
+		static int time = 0;
+
+		disc[u] = low[u] = ++time;
+		st->push(u);
+		stackMember[u] = true;
+
+		for (auto& v : adj[u]) {
+			if (disc[v] == -1) {
+				SCCUtil(v, disc, low, st, stackMember);
+				low[u] = min(low[u], low[v]);
+			}
+			else if (stackMember[v])
+				low[u] = min(low[u], disc[v]);
+		}
+
+		int w = 0;
+		if (low[u] == disc[u]) {
+			comp.push_back({});
+			while (st->top() != u) {
+				w = st->top();
+				comp.back().push_back(w);
+				stackMember[w] = false;
+				st->pop();
+			}
+			w = st->top();
+			comp.back().push_back(w);
+			stackMember[w] = false;
+			st->pop();
+		}
+	}
+
+public:
+	Graph(vvi& adj) {
+		V = adj.size();
+		this->adj = new list<int>[V];
+		for (int i = 0; i < adj.size(); ++i) {
+			for (int j = 0; j < adj[i].size(); ++j) {
+				this->adj[i].push_back(adj[i][j]);
+			}
+		}
+	}
+
+	void SCC() {
+		int* disc = new int[V];
+		int* low = new int[V];
+		bool* stackMember = new bool[V];
+		stack<int>* st = new stack<int>();
+
+		for (int i = 0; i < V; ++i) {
+			disc[i] = -1;
+			low[i] = -1;
+			stackMember[i] = false;
+		}
+
+		for (int i = 0; i < V; ++i) {
+			if (disc[i] == -1)
+				SCCUtil(i, disc, low, st, stackMember);
+		}
+	}
+};
+
+void topoDFS(int node, vvi& adj, vb& vis, vi& ret) {
+	vis[node] = true;
+	for (auto& i : adj[node])
+		if (!vis[i])
+			topoDFS(i, adj, vis, ret);
+	ret.push_back(node);
+}
+
+vi topoSort(vvi& adj) {
+	int n = adj.size();
+	vi ret; // stack
+	vb vis(n);
+
+	for (int i = 0; i < n; ++i) {
+		if (!vis[i])
+			topoDFS(i, adj, vis, ret);
+	}
+	reverse(all(ret));
+	return ret;
+}
+
+int n;
+vvi adj, cadj;
+vi compof;
+
+int main() {
+	ios::sync_with_stdio(0), cin.tie(0);
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+#endif
+
+	cin >> n;
+	adj.assign(n, vi());
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < n; ++j) {
+			int x; cin >> x;
+			if (x)
+				adj[i].push_back(j);
+		}
+	}
+
+	Graph gr(adj);
+	gr.SCC();
+
+	compof.assign(n, -1);
+	for (int i = 0; i < comp.size(); ++i) {
+		for (auto& j : comp[i]) {
+			compof[j] = i;
+		}
+	}
+
+	cadj.assign(comp.size(), vi());
+	for (int i = 0; i < n; ++i) {
+		for (int& j : adj[i])
+			if (compof[i] != compof[j]) {
+				cadj[compof[i] ].push_back(compof[j]);
+			}
+	}
+
+	vi topo = topoSort(cadj);
+	vi lvl(cadj.size());
+	for (int i = 0; i < topo.size(); ++i) {
+		lvl[topo[i]] = topo.size() - 1 - i;
+	}
+
+	vector<vs> g(3, vs(topo.size() * 2, string(100, '#')));
+
+	int con = 0;
+	for (int& i : topo) {
+		int u = lvl[i] * 2 + 1;
+		for (int& j : cadj[i]) {
+			int v = lvl[j] * 2 + 1;
+			for (int k = v; k <= u; ++k) {
+				g[0][k][con * 2 + 1] = '.';
+			}
+			g[1][u][con * 2 + 1] = '.';
+			g[1][v][con * 2 + 1] = '.';
+			con++;
+		}
+	}
+
+	for (int& i : topo) {
+		for (int j = 0; j < comp[i].size(); ++j) {
+			g[2][lvl[i] * 2 + 1][j] = '1' + comp[i][j];
+		}
+		for (int j = comp[i].size(); j < 100; ++j) {
+			g[2][lvl[i] * 2 + 1][j] = '.';
+		}
+	}
+
+	cout << "100 3 " << topo.size() * 2 - 1 << endl;
+	for (int i = topo.size() * 2 - 1; i > 0; --i) {
+		for (int j = 0; j < 3; ++j) {
+			cout << g[j][i] << endl;
+		}
+		if (i > 1) cout << endl;
+	}
+}

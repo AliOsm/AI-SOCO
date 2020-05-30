@@ -1,0 +1,158 @@
+//Solution by Tima
+#include <iostream>
+#include <cstdio>
+#include <algorithm>
+#include <cmath>
+#include <string>
+#include <vector>
+#include <stack>
+#include <queue>
+#include <set>
+#include <cstring>
+#include <map>
+#include <cstdlib>
+#include <ctime>
+#include <cassert>
+#include <bitset>
+#define f first
+#define s second
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define mp make_pair
+#define pb push_back
+#define vi vector <int>
+#define pii pair<int, int>
+using namespace std;          
+const int N = int(2e4) + 10, K = 112;
+
+const ll inf = (ll)(1e18) + 10;
+
+ll dp[N][K];
+
+int n, k,a[N]; 
+
+int sz[4*N][2], lnk[4*N][2], l[N], r[N];
+
+vector <pair<ll,ll> > line[4*N][2];
+
+void add(int id, int v, pair<ll,ll> p){
+	int k = sz[v][id];
+	while(k > 0){
+		if((p.s - line[v][id][k].s) * (line[v][id][k - 1].f - line[v][id][k].f) > (line[v][id][k].f - p.f) * (line[v][id][k].s - line[v][id][k - 1].s)) break;
+		k--;
+		line[v][id].pop_back();
+	}
+	line[v][id].pb(p);
+	k++;
+	sz[v][id] = k;
+}
+
+
+ll get(int id,int v,ll x){
+	if(sz[v][id] == -1) return inf;
+	int k = min(lnk[v][id], sz[v][id]);
+	while(k < sz[v][id]){
+		if((line[v][id][k + 1].s - line[v][id][k].s) >= x * (line[v][id][k].f - line[v][id][k + 1].f)) break;
+		k++;
+	}
+	lnk[v][id] = max(0, k - 1);
+	return line[v][id][k].f * x + line[v][id][k].s;
+}
+
+void calc(){
+	stack <int> st;
+	for(int i = 1; i <= n; i++){
+		while(!st.empty() && a[st.top()] <= a[i]) st.pop();
+		if(st.empty()) l[i] = 1;
+		else l[i] = st.top() + 1;
+		st.push(i);
+	}
+	while(!st.empty()) st.pop();
+	for(int i = n; i > 0; i--){
+		while(!st.empty() && a[st.top()] <= a[i]) st.pop();
+		if(st.empty()) r[i] = n;
+		else r[i] = st.top() - 1;
+		st.push(i);
+	}
+}
+
+void clear(int id,int v,int tl,int tr){
+	line[v][id].clear();
+	if(tl == tr) return;
+	int tm = (tl + tr) >> 1;
+	clear(id, v + v, tl, tm);
+	clear(id, v + v + 1, tm + 1, tr);
+}
+
+void upd0(int id,int v,int tl, int tr,int pos, pair<ll,ll> p){
+	add(id, v, p);
+	if(tl == tr) return;
+	int tm = (tl + tr) >> 1;
+	if(pos <= tm) upd0(id, v + v, tl, tm, pos, p);
+	else upd0(id, v + v + 1, tm + 1, tr, pos, p);
+}
+
+ll get0(int id,int v, int tl,int tr,int l,int r,ll x){
+    if(tl > r || l > tr) return inf;
+    if(l <= tl && tr <= r){
+    	return get(id, v, x);
+    }
+    int tm = (tl + tr) >> 1;
+    return min(get0(id, v + v, tl, tm, l, r, x), get0(id, v + v + 1, tm + 1, tr, l, r, x));
+}
+
+void upd1(int id,int v,int tl,int tr,int l,int r, pair<ll,ll> p){
+	if(tl > r || l > tr) return;
+	if(l <= tl && tr <= r){
+		add(id, v, p);
+		return;
+	}
+	int tm = (tl + tr) >> 1;
+	upd1(id, v + v, tl, tm, l, r, p);
+	upd1(id, v + v + 1, tm + 1, tr, l, r, p);
+}
+
+ll res;
+
+void get1(int id,int v,int tl, int tr,int pos, ll x){ 
+	res = min(res, get(id, v, x));
+	if(tl == tr) return;
+	int tm = (tl + tr) >> 1;
+	if(pos <= tm) get1(id, v + v, tl, tm, pos, x);
+	else get1(id, v + v + 1, tm + 1, tr, pos, x);	
+}
+
+
+int main () {
+	scanf("%d%d", &n, &k);
+	ll sum = 0;
+	for(int i = 1; i <= n; i++){
+		scanf("%d", &a[i]);
+		sum += a[i];
+	}
+	calc();
+	int mx = 0;
+	for(int i = 1; i <= n; i++){
+		mx = max(mx, a[i]);
+		dp[i][1] = 1ll * mx * i;	
+	}
+	for(int kk = 2; kk <= k; kk++){
+		clear(0,1,1,n);
+		clear(1,1,1,n);
+		memset(sz, -1, sizeof(sz));
+		memset(lnk, 0, sizeof(lnk));
+		for(int i = 1; i <= n; i++){
+			if(dp[i][kk - 1] != inf) upd0(0, 1,1,n,i, mp(-i, dp[i][kk - 1]));
+			ll mn = get0(0, 1,1,n,max(l[i] - 1,1), i, a[i]);
+			upd1(1,1,1,n,i, r[i], mp(a[i], mn));
+			res = inf;
+			get1(1,1,1,n, i, i);
+			dp[i][kk] = res;
+		}
+	}
+	printf("%lld\n",dp[n][k]);
+
+
+return 0;
+}

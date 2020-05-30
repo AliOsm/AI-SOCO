@@ -1,0 +1,158 @@
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <bitset>
+#include <algorithm>
+#include <cmath>
+#include <locale>
+#include <random>
+#include <cassert>
+#include <sstream>
+using namespace std;
+#define F first
+#define S second
+#define pb push_back
+#define MP make_pair
+#define ALL(x) begin(x),end(x)
+#define SZ(x) ((int)(x).size())
+typedef long long LL;
+typedef double DB;
+typedef long double LDB;
+typedef pair<int, int> PII;
+typedef pair<LL, LL> PLL;
+#define IOS ios_base::sync_with_stdio(0); cin.tie(0)
+const int MXN = (int)1e5 + 7;
+const int mod = (int)1e9 + 7;
+vector<int> edge[MXN];
+int n, rt;
+int pre[MXN], dis[MXN];
+vector<int> buf;
+int md;
+struct Center{
+	void dfs(int u) {
+		for (int x : edge[u]) {
+			if (x == pre[u]) continue;
+			pre[x] = u;
+			dis[x] = dis[u] + 1;
+			dfs(x);
+		}
+	}	
+	int build(int root) {
+		for (int i = 1; i <= n; i++) dis[i] = 0;
+		pre[root] = -1;
+		dfs(root);
+		int res = 0;
+		for (int i = 1; i <= n; i++)
+			if (dis[i] >= dis[res]) 
+				res = i;
+		return res;
+	}
+	void solve() {
+		int root = build(1);
+		buf.pb(root);
+		root = build(root);
+		buf.pb(root);
+		int d = dis[root];
+		while (root != -1) {
+			if (d % 2 == 0 && dis[root] == d / 2) {
+				buf.pb(root);
+				md = root;
+			}
+			root = pre[root];
+		}
+		return ;
+	}
+}center;
+int ck[MXN];
+int dep[MXN];
+vector<int> tp[MXN];
+int main() {
+	scanf("%d", &n);
+	for (int i = 1; i < n; i++) {
+		int u, v; scanf("%d %d", &u, &v);
+		edge[u].pb(v);
+		edge[v].pb(u);
+	}
+	center.solve();
+	int cntp = 0;
+	for (int x : buf) {
+		cntp++;
+		for (int i = 1; i <= n; i++)
+			dep[i] = -1;
+		queue<PII> Q;
+		Q.push({x, 1});
+		ck[x] = cntp;
+		bool gg = false;
+		while (!Q.empty()) {
+			int v, dpt; tie(v, dpt) = Q.front(); Q.pop();
+			if (dep[dpt] == -1) dep[dpt] = SZ(edge[v]);
+			else if (dep[dpt] != SZ(edge[v])) gg = true;
+			for (int u : edge[v]) {
+				if (ck[u] != cntp) {
+					ck[u] = cntp;
+					Q.push({u, dpt + 1});
+				}
+			}
+		}
+		if (!gg) { printf("%d\n", x); return 0; }
+	}
+	if (md) {
+		vector<pair<vector<int>, int>> al;
+		for (int x : edge[md]) {
+			bool gg = false;
+			cntp++;
+			ck[md] = ck[x] = cntp;
+			int ed = x;
+			queue<PII> Q; Q.push({x, 1});
+			while (!Q.empty()) {
+				int v, dpt; tie(v, dpt) = Q.front(); Q.pop();
+				if (SZ(tp[x]) == dpt) {
+					if (tp[x].back() != SZ(edge[v])) gg = true;
+				} else {
+					tp[x].pb(SZ(edge[v]));
+				}
+				for (int u : edge[v]) {
+					if (ck[u] != cntp) {
+						ck[u] = cntp;
+						Q.push({u, dpt + 1});
+					}
+				}
+				ed = v;
+			}
+			if (gg) { puts("-1"); return 0; }
+			al.pb( {tp[x], ed} );
+		}
+		sort(ALL(al));
+		if (al[0].F == al[SZ(al)-2].F) {
+			bool gg = false;
+			for (int i = 0; i < SZ(al.back().F); i++) {
+				if (i == SZ(al.back().F) - 1) {
+					if (al.back().F[i] != 1) gg = true;
+				} else {
+					if (al.back().F[i] != 2) gg = true;
+				}
+			}
+			if (!gg) { printf("%d\n", al.back().S); return 0; }
+		} else if (al[1].F == al.back().F) {
+			bool gg = false;
+			for (int i = 0; i < SZ(al[0].F); i++) {
+				if (i == SZ(al[0].F) - 1) {
+					if (al[0].F[i] != 1) gg = true;
+				} else {
+					if (al[0].F[i] != 2) gg = true;
+				}
+			}
+			if (!gg) { printf("%d\n", al[0].S); return 0; }
+		}
+	}
+	puts("-1");
+	return 0;
+}

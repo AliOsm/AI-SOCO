@@ -1,0 +1,89 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int MX=(1<<19);
+struct node{
+    int mx , flag , idx;
+    node(){}
+    node(int mx , int flag , int idx):mx(mx) , flag(flag) , idx(idx){}
+}tree[MX*4];
+bool operator < (const node&a , const node&b){
+    return a.mx < b.mx;
+}
+int lim;
+void build(int x=1 , int a=1 , int b=lim){
+    if(a == b) {
+        tree[x] = node(0 , 0 , a);
+        return;
+    }
+    build(x*2 , a , (a+b)/2);
+    build(x*2+1 , (a+b)/2+1 , b);
+    tree[x] = max(tree[x*2] , tree[x*2+1]);
+}
+int st , en , upd;
+void push(int x){
+    tree[x*2].mx += tree[x].flag; tree[x*2].flag += tree[x].flag;
+    tree[x*2+1].mx += tree[x].flag; tree[x*2+1].flag += tree[x].flag;
+    tree[x].flag = 0;
+}
+void update(int x=1 , int a=1 , int b=lim){
+    if(st > b || en < a) return;
+    if(a >= st && b <= en){
+        tree[x].flag += upd;
+        tree[x].mx += upd;
+        return;
+    }
+    push(x);
+    update(x*2 , a , (a+b)/2);
+    update(x*2+1 , (a+b)/2+1 , b);
+    tree[x] = max(tree[x*2] , tree[x*2+1]);
+    tree[x].flag = 0;
+}
+node query(int x =1 , int a =1 , int b = lim){
+    if(st > b || en < a) return node(0 , 0 , a);
+    if( a>=st && b<=en ) return tree[x];
+    push(x);
+    return max(query(x*2 , a , (a+b)/2) , query(x*2+1 , (a+b)/2+1 , b));
+}
+vector < pair < int , int > > Queries[MX];
+int L[MX] , R[MX] , V[MX];
+int n;
+int main(){
+    scanf("%d",&n);
+    for(int j=1;j<=n;j++){
+        scanf("%d %d %d",&L[j],&V[j],&R[j]);
+        lim = max(lim , R[j]);
+        Queries[L[j]].push_back({1 , j});
+        Queries[V[j]+1].push_back({-1 , j});
+    }
+    build();
+    int ans = 0 , solst , solen;
+    for(int X = 1 ; X <= lim ; X++){
+        sort(Queries[X].begin() , Queries[X].end());
+        for(auto Q : Queries[X]){
+            int type = Q.first , idx = Q.second;
+            st = V[idx] , en = R[idx];
+            if(type == -1){
+                upd = -1;
+                update();
+                continue;
+            }
+            upd = 1;
+            update();
+            st = V[idx] , en = R[idx];
+            auto rep = query();
+            if(rep.mx > ans){
+                ans = rep.mx;
+                solst = X;
+                solen = rep.idx;
+            }
+        }
+    }
+    vector < int > sol;
+    for(int j=1;j<=n;j++){
+        if(V[j] >= solst && V[j] <= solen && R[j] >= solen && L[j] <= solst)
+            sol.push_back(j);
+    }
+    cout<<ans<<endl;//<<' '<<solst<<' '<<solen<<endl;
+    for(auto pp : sol)
+        cout<<pp<<' ';
+}

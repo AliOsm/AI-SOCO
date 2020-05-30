@@ -1,0 +1,220 @@
+#include<bits/stdc++.h>
+#define int long long
+using namespace std;
+
+int s,t;
+vector<vector<pair<int,int> > >adj[2];
+vector<vector<pair<int,int> > >temp1;
+vector<vector<pair<int,int> > >temp2;
+
+const int mod=3000000517;
+
+int dis[2][100005];
+int vis[100005];
+vector<int>comp;
+vector<int>temp;
+int parent[100004];
+void dikstra(int x)
+{
+  priority_queue<pair<int,int>,vector<pair<int,int> >,greater<pair<int,int> > >qq;
+  if(x==0)
+  {
+    dis[x][s]=0;
+    qq.push({0,s});
+  }
+  else
+  {
+    dis[x][t]=0;
+    qq.push({0,t}); 
+  }
+  while (!qq.empty())
+  {
+    pair<int,int>p=qq.top();
+    qq.pop();
+    if(dis[x][p.second]<p.first)
+      continue;
+    for(auto i:adj[x][p.second])
+    {
+      if(dis[x][i.first]>p.first+i.second)
+      {
+        dis[x][i.first]=p.first+i.second;
+        qq.push({dis[x][i.first],i.first});
+      }
+    }
+  }  
+}
+
+void dfs(int ver)
+{
+  vis[ver]=1;
+  for(auto i:temp1[ver])
+  {
+    if(!vis[i.first])
+      dfs(i.first);
+  }
+  comp.push_back(ver);
+}
+
+void dfs2(int ver)
+{
+  vis[ver]=1;
+  temp.push_back(ver);
+  for(auto i:temp2[ver])
+  {
+    if(!vis[i.first])
+      dfs2(i.first);
+  }
+}
+int dp[2][100005];
+int fi[100005];
+signed main()
+{
+  ios_base::sync_with_stdio(false);
+  cin.tie(NULL);  
+  cout.tie(0);   
+#ifndef ONLINE_JUDGE
+    if(fopen("INPUT.txt","r"))
+    {
+    freopen ("INPUT.txt" , "r" , stdin);
+    freopen ("OUTPUT.txt" , "w" , stdout);
+    }
+#endif
+
+  int n,m;
+  cin>>n>>m>>s>>t;
+  adj[0].resize(n+1);
+  adj[1].resize(n+1);
+  temp1.resize(n+1);
+  temp2.resize(n+1);
+  for(int i=1;i<=n;i++)
+  {
+    dis[0][i]=1e17;
+    dis[1][i]=1e17;
+  }
+  int x,y,z;
+  vector<pair<pair<int,int>,int> >pp;
+  for(int i=0;i<m;i++)
+  {
+    cin>>x>>y>>z;
+    adj[0][x].push_back({y,z});
+    adj[1][y].push_back({x,z});
+    pp.push_back({{x,y},z});
+  }
+  dikstra(0);
+  dikstra(1);
+  int index=0;
+  vector<int>lol;
+  for(auto i:pp)
+  {
+    int mn=dis[0][i.first.first]+i.second+dis[1][i.first.second];
+    if(mn==dis[0][t])
+    {
+      lol.push_back(index);
+      temp1[i.first.first].push_back({i.first.second,index});
+      temp2[i.first.second].push_back({i.first.first,index});
+    }
+    index++;
+  }
+
+  dfs(s);
+
+  reverse(comp.begin(),comp.end());
+  fill_n(vis,n+1,0);
+  for(auto i:comp)
+  {
+    if(!vis[i])
+    {
+      temp.clear();
+      dfs2(i);
+      for(auto j:temp)
+        parent[j]=i;
+    }
+  }
+
+  temp1.clear();
+  temp1.resize(n+1);
+  temp2.clear();
+  temp2.resize(n+1);
+  for(auto i:lol)
+  {
+    int x=parent[pp[i].first.first];
+    int y=parent[pp[i].first.second];
+    // cout<<x<<" "<<y<<'\n';
+    temp1[x].push_back({y,i});
+    temp2[y].push_back({x,i});
+  }
+  comp.clear();
+  fill_n(vis,n+1,0);
+  dfs(parent[s]);
+  reverse(comp.begin(),comp.end());
+  dp[0][parent[s]]=1;
+  for(auto i:comp)
+  {
+    for(auto j:temp2[i])
+    {
+      dp[0][i]+=dp[0][j.first];
+      dp[0][i]%=mod;
+    }
+  }
+
+  temp1.clear();
+  temp1.resize(n+1);
+  temp2.clear();
+  temp2.resize(n+1);
+  for(auto i:lol)
+  {
+    int x=parent[pp[i].first.first];
+    int y=parent[pp[i].first.second];
+    temp2[x].push_back({y,i});
+    temp1[y].push_back({x,i});
+  }
+  comp.clear();
+  fill_n(vis,n+1,0);
+  dfs(parent[t]);
+  reverse(comp.begin(),comp.end());
+  dp[1][parent[t]]=1;
+  for(auto i:comp)
+  {
+    for(auto j:temp2[i])
+    {
+      dp[1][i]+=dp[1][j.first];
+      dp[1][i]%=mod;
+    }
+  }
+  fill_n(fi,m,-1);
+  for(auto i:lol)
+  {
+    int x=parent[pp[i].first.first];
+    int y=parent[pp[i].first.second];
+    if((dp[0][x]*dp[1][y])%mod==dp[0][parent[t]])
+    {
+      fi[i]=0;
+    }
+  }
+  int mini=dis[0][t];
+  for(int i=0;i<m;i++)
+  {
+    if(fi[i]==-1)
+    {
+      int mn=dis[0][pp[i].first.first]+dis[1][pp[i].first.second];
+      int aa=mini-mn-1;
+      if(pp[i].second>aa)
+      {
+        if(aa>=1)
+        {
+          fi[i]=pp[i].second-aa;
+        }
+      }
+    }
+  }
+  for(int i=0;i<m;i++)
+  {
+    if(fi[i]==-1)
+      cout<<"NO\n";
+    else if(fi[i]==0)
+      cout<<"YES\n";
+    else
+      cout<<"CAN "<<fi[i]<<'\n';
+  }
+
+}

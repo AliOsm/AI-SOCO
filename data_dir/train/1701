@@ -1,0 +1,97 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define ll long long
+#define maxn 300005
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+#define ms1(i) memset(i,-1,sizeof(i));
+#define bg begin()
+#define ed end()
+#define pii pair<int,int>
+const ll mod = 1e9+7;
+struct s{
+	int num;
+	int one;
+};
+bool cmp(s x,s y){
+	return x.num < y.num;
+}
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	int t;
+	cin >> t;
+	while(t--){
+		int n;
+		cin >> n;
+		unordered_map<int,int>mp;
+		unordered_map<int,int>one;
+		f(n){
+			int add,add2;
+			cin >> add >> add2;
+			mp[add]++;
+			if(add2)one[add]++;
+		}
+		vector<s>v;
+		for(auto i:mp){
+			int num = i.first;
+			v.pb({i.second,one[num]});
+		}
+		sort(v.begin(),v.end(),cmp);
+		if(v.size()==1){
+			cout<<v[0].num<<' '<<v[0].one<<'\n';
+		}
+		else{
+			int sum = 0;
+			int ff = 0;
+			multiset<int>pool;
+			int nxt = -1;
+			int last = v[v.size()-1].num-1;
+			for(int i=v.size()-1;i>=0;i--){
+				if(v[i].num==v[v.size()-1].num){
+					pool.insert(v[i].one);
+				}
+				else{
+					nxt = i;
+					break;
+				}
+			}
+			sum = v[v.size()-1].num;
+			ff = *(--pool.end());
+			pool.erase(pool.lower_bound(ff));
+			while(nxt!=-1&&last!=0){
+				
+				//cout<<"gg"<<endl;
+				while(v[nxt].num==last){
+					pool.insert(v[nxt].one);
+					nxt--;
+					if(nxt == -1)break;
+				}
+				if(pool.empty()){
+					pool.insert(v[nxt].one);
+					last = v[nxt].num;
+					nxt--;
+				}
+				else{
+					sum += last;
+					int kk = *(--pool.end());
+					ff += min(last,kk);
+					pool.erase(pool.lower_bound(kk));
+					last-- ;
+				}
+			}
+			while(last >=1 && pool.size()){
+				sum += last;
+				int kk = *(--pool.end());
+				ff += min(last,kk);
+				pool.erase(pool.lower_bound(kk));
+				last-- ;
+			}
+			cout << sum <<' '<<ff<<'\n';
+		}
+	}
+}

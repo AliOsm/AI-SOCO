@@ -1,0 +1,225 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define x first
+#define y second
+#define mp make_pair
+#define pb push_back
+#define sqr(a) ((a) * (a))
+#define sz(a) int(a.size())
+#define all(a) a.begin(), a.end()
+#define forn(i, n) for(int i = 0; i < int(n); i++) 
+#define fore(i, l, r) for(int i = int(l); i < int(r); i++)
+
+typedef long long li;
+typedef long double ld;
+typedef pair<int, int> pt;
+
+template <class A, class B> ostream& operator << (ostream& out, const pair<A, B> &a) {
+	return out << "(" << a.x << ", " << a.y << ")";
+}
+
+template <class A> ostream& operator << (ostream& out, const vector<A> &v) {
+	out << "[";
+	forn(i, sz(v)) {
+		if(i) out << ", ";
+		out << v[i];
+	}
+	return out << "]";
+}
+
+mt19937 rnd(time(NULL));
+
+const int INF = int(1e9);
+const li INF64 = li(1e18);
+const int MOD = INF + 7;
+const ld EPS = 1e-9;
+const ld PI = acos(-1.0);
+
+const int N = 100 * 1000 + 13;
+const int LOGN = 19;
+
+int n, m;
+vector<int> g[N];
+pt q[N];
+
+bool read () {
+	if (scanf("%d%d", &n, &m) != 2)
+		return false;
+	forn(i, n)
+		g[i].clear();
+	forn(i, n - 1){
+		int p;
+		scanf("%d", &p);
+		--p;
+		g[p].pb(i + 1);
+	}
+	forn(i, m){
+		scanf("%d%d", &q[i].x, &q[i].y);
+		--q[i].x, --q[i].y;
+	}
+	return true;
+}
+
+pt st[2 * N][LOGN];
+int pw[2 * N];
+
+int h[N];
+int tin[N], tout[N], T;
+vector<int> ord;
+int pos[N];
+
+void dfs(int v){
+	pos[v] = sz(ord);
+	ord.pb(v);
+	tin[v] = T++;
+	for (auto u : g[v]){
+		h[u] = h[v] + 1;
+		dfs(u);
+		ord.pb(v);
+	}
+	tout[v] = T++;
+}
+
+void init(){
+	ord.clear();
+	T = 0;
+	dfs(0);
+	forn(i, sz(ord))
+		st[i][0] = mp(h[ord[i]], ord[i]);
+	fore(j, 1, LOGN){
+		forn(i, sz(ord)){
+			st[i][j] = st[i][j - 1];
+			if (i + (1 << (j - 1)) < sz(ord))
+				st[i][j] = min(st[i][j], st[i + (1 << (j - 1))][j - 1]);
+		}
+	}
+	pw[0] = pw[1] = 0;
+	fore(i, 2, 2 * N)
+		pw[i] = pw[i / 2] + 1;
+}
+
+int lca(int v, int u){
+	if (v == -1) return u;
+	if (u == -1) return v;
+	int l = pos[v];
+	int r = pos[u];
+	if (l > r) swap(l, r);
+	++r;
+	int len = pw[r - l];
+	return min(st[l][len], st[r - (1 << len)][len]).y;
+}
+
+int t[4 * N];
+int ttin[4 * N], ttout[4 * N];
+
+void build(int v, int l, int r){
+	if (l == r - 1){
+		t[v] = l;
+		ttin[v] = l;
+		ttout[v] = l;
+		return;
+	}
+	
+	int m = (l + r) / 2;
+	
+	build(v * 2, l, m);
+	build(v * 2 + 1, m, r);
+	
+	t[v] = lca(t[v * 2], t[v * 2 + 1]);
+	ttin[v] = (tin[ttin[v * 2]] < tin[ttin[v * 2 + 1]] ? ttin[v * 2] : ttin[v * 2 + 1]);
+	ttout[v] = (tout[ttout[v * 2]] > tout[ttout[v * 2 + 1]] ? ttout[v * 2] : ttout[v * 2 + 1]);
+}
+
+int getfst(int v, int l, int r, int L, int R){
+	if (L >= R)
+		return -1;
+	
+	if (l == L && r == R)
+		return ttin[v];
+	
+	int m = (l + r) / 2;
+	
+	int resl = getfst(v * 2, l, m, L, min(m, R));
+	int resr = getfst(v * 2 + 1, m, r, max(m, L), R);
+	
+	if (resl == -1) return resr;
+	if (resr == -1) return resl;
+	
+	return (tin[resl] < tin[resr] ? resl : resr);
+}
+
+int getlst(int v, int l, int r, int L, int R){
+	if (L >= R)
+		return -1;
+	
+	if (l == L && r == R)
+		return ttout[v];
+	
+	int m = (l + r) / 2;
+	
+	int resl = getlst(v * 2, l, m, L, min(m, R));
+	int resr = getlst(v * 2 + 1, m, r, max(m, L), R);
+	
+	if (resl == -1) return resr;
+	if (resr == -1) return resl;
+	
+	return (tout[resl] > tout[resr] ? resl : resr);
+}
+
+int getlca(int v, int l, int r, int L, int R){
+	if (L >= R)
+		return -1;
+	
+	if (l == L && r == R)
+		return t[v];
+	
+	int m = (l + r) / 2;
+	
+	int resl = getlca(v * 2, l, m, L, min(m, R));
+	int resr = getlca(v * 2 + 1, m, r, max(m, L), R);
+	
+	return lca(resl, resr);
+}
+
+void solve() {
+	init();
+	build(1, 0, n);
+	
+	forn(i, m){
+		int l = q[i].x, r = q[i].y;
+		int fst = getfst(1, 0, n, l, r + 1);
+		int lst = getlst(1, 0, n, l, r + 1);
+		int res1 = lca(getlca(1, 0, n, l, fst), getlca(1, 0, n, fst + 1, r + 1));
+		int res2 = lca(getlca(1, 0, n, l, lst), getlca(1, 0, n, lst + 1, r + 1));
+		if (h[res1] < h[res2])
+			swap(res1, res2), swap(fst, lst);
+		printf("%d %d\n", fst + 1, h[res1]);
+	}
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+	
+	int tt = clock();
+	
+#endif
+	
+	cerr.precision(15);
+	cout.precision(15);
+	cerr << fixed;
+	cout << fixed;
+
+	while(read()) {	
+		solve();
+		
+#ifdef _DEBUG
+	cerr << "TIME = " << clock() - tt << endl;
+	tt = clock();
+#endif
+
+	}
+}

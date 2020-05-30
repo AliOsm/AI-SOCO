@@ -1,0 +1,159 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+#define COST_INF 1.0E+9
+
+template <typename T> class MinCostFlow{
+	private:
+	
+	struct edge{int to,cap; T cost; int rev;};
+	
+	int V;
+	vector <vector <edge> > adj;
+	vector <T> pot;
+	
+	pair <int, T> dijkstra(int s, int t, int FLOW_BOUND){
+		int i;
+		
+		vector <int> used(V, 0);
+		vector <T> dist(V, COST_INF);
+		vector <pair <int, int> > path(V, make_pair(-1, -1));
+		
+		priority_queue <pair <T, int> > q;
+		dist[s] = 0;
+		q.push(make_pair(0, s));
+		
+		while(!q.empty()){
+			int x = q.top().second;
+			q.pop();
+			if(used[x]) continue;
+			used[x] = true;
+			
+			REP(i,adj[x].size()){
+				edge e = adj[x][i];
+				int y = e.to;
+				if(e.cap > 0){
+					T d = dist[x] + e.cost + pot[x] - pot[y];
+					if(d < dist[y]){
+						dist[y] = d;
+						path[y] = make_pair(x, i);
+						q.push(make_pair(-d, y));
+					}
+				}
+			}
+		}
+		
+		REP(i,V) pot[i] += dist[i];
+		
+		if(dist[t] == COST_INF) return make_pair(0, 0);
+		
+		int f = FLOW_BOUND;
+		T sum = 0;
+		
+		int x = t;
+		while(x != s){
+			int y = path[x].first;
+			int id = path[x].second;
+			sum += adj[y][id].cost;
+			f = min(f, adj[y][id].cap);
+			x = y;
+		}
+		
+		x = t;
+		while(x != s){
+			int y = path[x].first;
+			int id = path[x].second;
+			adj[y][id].cap -= f;
+			int id2 = adj[y][id].rev;
+			adj[x][id2].cap += f;
+			x = y;
+		}
+		
+		return make_pair(f, f * sum);
+	}
+	
+	public:
+	
+	MinCostFlow(int n){
+		V = n;
+		adj.resize(V, vector <edge>(0));
+		pot.resize(V, 0);
+	}
+	
+	void add_edge(int s, int t, int f, T c){
+		edge e1 = {t, f, c, adj[t].size()};
+		edge e2 = {s, 0, -c, adj[s].size()};
+		adj[s].push_back(e1);
+		adj[t].push_back(e2);
+	}
+	
+	pair <int, T> mincostflow(int s, int t, int FLOW_BOUND = (1<<29)){
+		pair <int, T> ans = make_pair(0, 0);
+		
+		while(FLOW_BOUND > 0){
+			pair <int, T> tmp = dijkstra(s, t, FLOW_BOUND);
+			if(tmp.first == 0) break;
+			ans.first += tmp.first;
+			ans.second += tmp.second;
+			FLOW_BOUND -= tmp.first;
+		}
+		
+		return ans;
+	}
+	
+};
+
+int N;
+int x[410],y[410];
+
+int main(void){
+	int i,j;
+	
+	cin >> N;
+	REP(i,N) cin >> x[i] >> y[i];
+	
+	MinCostFlow <double> mcf(2*N+2);
+	
+	REP(i,N){
+		bool found = false;
+		REP(j,N) if(y[j] > y[i]){
+			found = true;
+			double dx = x[i] - x[j];
+			double dy = y[i] - y[j];
+			double d = sqrt(dx * dx + dy * dy);
+			mcf.add_edge(i, N+j, 1, d);
+		}
+		
+		if(found) mcf.add_edge(2*N, i, 1, 0);
+		mcf.add_edge(N+i, 2*N+1, 2, 0);
+	}
+	
+	pair <int, double> p = mcf.mincostflow(2*N, 2*N+1);
+	double ans = p.second;
+	if(p.first != N-1) ans = -1;
+	
+	printf("%.9f\n", ans);
+	
+	return 0;
+}

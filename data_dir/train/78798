@@ -1,0 +1,131 @@
+// by tmt514
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
+#define SZ(x) ((int)(x).size())
+#define FOR(it, c) for(__typeof((c).begin()) it = (c).begin(); it != (c).end(); ++it)
+using namespace std;
+typedef long long LL;
+
+int a[2005][12];
+
+void inline update(int &x, int v) {
+  if(x<v) x=v;
+}
+int inline rotate(int n, int state, int shift) {
+  int lo = (state & ((1<<shift)-1));
+  int hi = state >> shift;
+  return hi + (lo << (n-shift));
+}
+
+void solve() {
+  int n, m;
+  scanf("%d%d", &n, &m);
+  for(int i=0;i<n;i++) for(int j=0;j<m;j++) scanf("%d", &a[j][i]);
+  int dp[2][512] = {};
+  int goodstate[4096] = {};
+  int togoodstate[4096] = {};
+  int stateidx[4096] = {};
+  int glist[4096] = {};
+  vector<pair<short, short>> tr[4096];
+
+  int g = 0;
+
+  for(int i=0;i<(1<<n);i++) {
+    int state_min = i;
+    for(int k=0;k<n;k++) state_min = min(state_min, rotate(n, i, k));
+    if(state_min == i) {
+      goodstate[i] = 1;
+      glist[g] = i;
+      stateidx[i] = g;
+      ++g;
+    }
+    togoodstate[i] = stateidx[state_min];
+  }
+
+
+  for(int i=0;i<g;i++) {
+    int state = glist[i];
+      int mask = (1<<n)-1-state;
+      tr[i].push_back({togoodstate[0], togoodstate[state]});
+      for(int j=mask;j>0;j=(j-1)&mask) {
+        tr[i].push_back({ togoodstate[j], togoodstate[state+j] });
+        //printf("i=%d, j=%d (to: %d), i+j=%d (to: %d)\n", i, j, togoodstate[j], i+j, togoodstate[i+j]); 
+      }
+      sort(tr[i].begin(), tr[i].end());
+      tr[i].resize(distance(tr[i].begin(), unique(tr[i].begin(), tr[i].end())));
+    
+  }
+
+  // compute largest n stuff.
+
+  int skipcolumns[2005] = {};
+  if (m>n) {
+    vector<pair<int, int>> pp;
+    for(int j=0;j<m;j++) {
+      pp.push_back({*max_element(a[j], a[j]+n), j});
+    }
+    sort(pp.begin(), pp.end());
+    reverse(pp.begin(), pp.end());
+    pp.resize(n);
+    reverse(pp.begin(), pp.end());
+
+    for(int j=0;j<m;j++) {
+      vector<int> z;
+      int nothing = 0;
+      for(int i=0;i<n;i++) if(pp[i].second == j) nothing = 1;
+      if(nothing) continue;
+
+      for(int i=0;i<n;i++) z.push_back(a[j][i]);
+      sort(z.begin(), z.end());
+      for(int i=0;i<n;i++) if(z[i] > pp[i].first) nothing = 1;
+
+      if(!nothing) skipcolumns[j] = 1;
+    }
+  }
+
+
+
+
+  //double allt = 0;
+  int u = 0;
+  for(int j=0;j<m;j++) {
+    if (skipcolumns[j]) continue;
+
+    memset(dp[1-u], 0, sizeof(dp[1-u]));
+    int v[512] = {};
+    int b[16] = {};
+    int sum=0, idx=0;
+    while(b[n]==0) {
+      update(v[togoodstate[idx]], sum);
+
+      int w=0;
+      while(b[w]==1) { b[w]=0; sum -= a[j][w]; w++; }
+      b[w] = 1; if(w<n) sum += a[j][w];
+      ++idx;
+    }
+//  double p = clock();
+    for(int i=0;i<g;i++) {
+      for(const auto& it : tr[i]) {
+        update(dp[1-u][it.second], dp[u][i] + v[it.first]);
+      }
+    }
+    //double q = clock();
+    //allt += q-p;
+    u = 1-u;
+  }
+  //printf("%.3f\n", (allt)/CLOCKS_PER_SEC);
+  printf("%d\n", dp[u][togoodstate[(1<<n)-1]]);
+}
+
+int main(void) {
+  int t;
+  scanf("%d", &t);
+  while(t--) solve();
+  return 0;
+}

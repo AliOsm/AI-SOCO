@@ -1,0 +1,151 @@
+#pragma comment(linker, "/STACK:1024000000,1024000000")
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <set>
+#include <queue>
+#include <map>
+#include <sstream>
+#include <stack>
+#include <cassert>
+#include <ctime>
+#include <cmath>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+
+#define pb push_back
+#define sz(x) ((x).size())
+
+const int N = 209;
+const int inf = 0x3f3f3f3f;
+const ll oo = 0x3f3f3f3f3f3f3f3fll;
+
+int n, l=2, u[N], q[N], ql, qr;
+struct E
+{
+    int e, n;
+    int a;
+};
+E e[10*N];
+int g, p[N], y[N], v[10 * N], h[N];
+int f[10*N];
+int endv;
+int dfs(int i, int f)
+{
+    int k, r;
+    if(!f || i==endv) return f;
+    r=0;
+    for(int &j=p[i]; j; j=e[j].n)
+        if(e[j].a && u[e[j].e]==u[i]-1)
+        {
+            k=dfs(e[j].e, min(f, e[j].a));
+            e[j].a-=k;
+            e[j^1].a+=k;
+            f-=k;
+            r+=k;
+            if(!f) break;
+        }
+    return r;
+}
+bool bfs(int s)
+{
+    int i, j;
+    E k;
+    for(i=0; i<n; u[i]=0, p[i]=h[i], i++);
+    for(ql=0, qr=0, q[qr++]=endv, u[endv]=1; ql<qr; )
+    {
+        i=q[ql++];
+        if(i==s) break;
+        for(j=h[i]; j; j=k.n)
+        {
+            k=e[j];
+            if(e[j^1].a>0 && !u[k.e]) { u[k.e]=u[i]+1; q[qr++]=k.e; }
+        }
+    }
+    return u[s]>0;
+}
+int mxfl(int s, int t)
+{
+    int f;
+    endv=t;
+    for(f=0; bfs(s); f+=dfs(s, inf));
+    return f;
+}
+void add(int i, int j, int c)
+{
+    e[l].e=j; e[l].a=c; e[l].n=h[i]; h[i]=l++;
+    e[l].e=i; e[l].a=c; e[l].n=h[j]; h[j]=l++;
+}
+struct T
+{
+    int i, j, c;
+    T(int i=0, int j=0, int c=0): i(i), j(j), c(c) {}
+};
+bool operator <(T a, T b) { return a.c>b.c; }
+T t[N*N];
+int fnd(int i) { return p[i]=p[i]==i?i:fnd(p[i]); }
+void uni(int i, int j) { p[fnd(i)]=fnd(j); }
+int res;
+vector <int> m[N], d[N];
+void edge(T e)
+{
+    if(fnd(e.i)==fnd(e.j)) return;
+    uni(e.i, e.j);
+    m[e.i].push_back(e.j);
+    m[e.j].push_back(e.i);
+    d[e.i].push_back(e.c);
+    d[e.j].push_back(e.c);
+    res+=e.c;
+}
+int r[N][N], bv, bi, bj;
+void dfs1(int i, int p)
+{
+    int j;
+    for(j=0; j<m[i].size(); j++)
+        if(m[i][j]!=p && !r[i][m[i][j]])
+        {
+            if(d[i][j]<bv) { bv=d[i][j]; bi=i; bj=m[i][j]; }
+            dfs1(m[i][j], i);
+        }
+}
+void out(int i)
+{
+    int j;
+    bv=inf;
+    dfs1(i, -1);
+    if(bv==inf) printf("%d ", i+1);
+    else
+    {
+        i=bi;
+        j=bj;
+        r[i][j]=1;
+        r[j][i]=1;
+        out(i);
+        out(j);
+    }
+}
+int main()
+{
+    int i, j, k, c;
+    for(scanf("%d%d", &n, &k); k--; scanf("%d%d%d", &i, &j, &c), i--, j--, add(i, j, c));
+    k=0;
+    for(i=0; i<n; i++)
+        for(j=i+1; j<n; j++)
+        {
+            for(c=2; c<l; e[c].a=(e[c].a+e[c+1].a)/2, e[c+1].a=e[c].a, c+=2);
+            t[k++]=T(i, j, mxfl(i, j));
+        }
+    sort(t, t+k);
+    for(i=0; i<n; p[i]=i, m[i].clear(), i++);
+    for(i=0; i<k; edge(t[i]), i++);
+    printf("%d\n", res);
+    out(0);
+    printf("\n");
+    return 0;
+}

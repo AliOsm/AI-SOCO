@@ -1,0 +1,58 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,pos,N) for (I=pos;I<N;I++)
+#define rrep(I,pos,N) for (I=N-1;I>=pos;I--)
+#define FOR(I,pos,N) for (I=pos;I<=N;I++)
+#define rFOR(I,pos,N) for (I=N;I>=pos;I--)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=1e5+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a,T b){T ret=1;for (;b;b>>=1ll,a=a*a%M) ret=1ll*ret*a%M;return ret;}
+
+
+int n,m;
+int i,j,k;
+map<int,int> pos;
+queue<int> Q;
+int p[maxn],a,b;
+bool mark1,mark2;
+int col[maxn],ans[maxn];
+int main(){
+	scanf("%d%d%d",&n,&a,&b);
+	REP(i,n){
+		scanf("%d",&p[i]);
+		pos[p[i]]=i;
+	}
+	REP(i,n) if (!pos.count(a-p[i])) Q.push(i);
+	while (Q.size()){
+		i=Q.front();Q.pop();
+		if (!pos.count(b-p[i])) return 0*puts("NO");
+		ans[i]=1;
+		if (pos.count(b-p[i])&&!ans[pos[b-p[i]]]) Q.push(pos[b-p[i]]);
+		if (pos.count(a-p[i])&&!ans[pos[a-p[i]]]) Q.push(pos[a-p[i]]);
+	}
+	puts("YES");
+	REP(i,n) printf("%d ",ans[i]);
+}
+/*
+*/

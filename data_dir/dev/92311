@@ -1,0 +1,109 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef vector<ll> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<ll, ll> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const int di[] = { -1, 0, 1, 0 };
+const int dj[] = { 0, 1, 0, -1 };
+const ll MOD = 1e9 + 7;
+const ll INF = 1e9;
+const double EPS = 1e-5;
+#define mp make_pair
+#define all(pt) pt.begin(),pt.end()
+
+struct Flight {
+	ll u, v, cost;
+};
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(0);
+	int n, m, k; cin >> n >> m >> k;
+	vector<vector<Flight>> day(1e6 + 5);
+	for (int i = 0; i < m; i++) {
+		int d; Flight x;
+		cin >> d >> x.u >> x.v >> x.cost;
+		day[d].push_back(x);
+	}
+
+	vi juryIn(n + 1, INF), juryOut(n + 1, INF);
+	int a = 0, jin = 0;
+	while (a < day.size() && jin < n) {
+		for (int i = 0; i < day[a].size(); i++) {
+			if (day[a][i].v == 0) {
+				if (juryIn[day[a][i].u] == INF) jin++;
+				juryIn[day[a][i].u] = min(juryIn[day[a][i].u], day[a][i].cost);
+			}
+		}
+		a++;
+	}
+	int b = 1e6, jout = 0;
+	while (b >= 0 && jout < n) {
+		for (int i = 0; i < day[b].size(); i++) {
+			if (day[b][i].u == 0) {
+				if (juryOut[day[b][i].v] == INF) jout++;
+				juryOut[day[b][i].v] = min(juryOut[day[b][i].v], day[b][i].cost);
+			}
+		}
+		b--;
+	}
+	bool w = b - a + 1 < k;
+	if (jout < n || jin < n) w = true;
+	if (w) {
+		cout << -1 << endl; return 0;
+	}
+
+	vector<multiset<ll>> juryMinIn(n + 1), juryMinOut(n + 1);
+	for (int i = 1; i < juryIn.size(); i++)
+		juryMinIn[i].insert(juryIn[i]);
+	for (int i = 1; i < juryOut.size(); i++)
+		juryMinOut[i].insert(juryOut[i]);
+
+	int c = b;
+	while (c - a + 1 > k) {
+		for (int i = 0; i < day[c].size(); i++) {
+			if (day[c][i].u == 0) {
+				juryMinOut[day[c][i].v].insert(day[c][i].cost);
+			}
+		}
+		c--;
+	}
+
+	ll sum = 0;
+	for (int i = 1; i < n + 1; i++) {
+		if (!juryMinIn[i].empty())
+			sum += *juryMinIn[i].begin();
+		if (!juryMinOut[i].empty())
+			sum += *juryMinOut[i].begin();
+	}
+
+	ll mn = sum;
+	while (c < b) {
+		// in at a
+		for (int i = 0; i < day[a].size(); i++) {
+			if (day[a][i].v == 0) {
+				sum -= *juryMinIn[day[a][i].u].begin();
+				juryMinIn[day[a][i].u].insert(day[a][i].cost);
+				sum += *juryMinIn[day[a][i].u].begin();
+			}
+		}
+		a++;
+
+		// out at c + 1
+		c++;
+		for (int i = 0; i < day[c].size(); i++) {
+			if (day[c][i].u == 0) {
+				sum -= *juryMinOut[day[c][i].v].begin();
+				juryMinOut[day[c][i].v].erase(day[c][i].cost);
+				sum += *juryMinOut[day[c][i].v].begin();
+			}
+		}
+		mn = min(mn, sum);
+	}
+	cout << mn << endl;
+	//cin.ignore(), cin.get();
+}

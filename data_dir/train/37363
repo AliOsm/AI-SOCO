@@ -1,0 +1,91 @@
+#include <iostream>
+#include <stdio.h>
+#include <string>
+#include <memory.h>
+#include <set>
+#include <map>
+#include <vector>
+#include <queue>
+#include <time.h>
+#include <assert.h>
+#include <cmath>
+#include <stack>
+#include <string.h>
+#include <sstream>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+int s[64];
+void toBase(ll n, int b) {
+	memset(s, 0, sizeof(s));
+	int idx = 63;
+	while (n) {
+		s[idx] = n%b;
+		n /= b;
+		--idx;
+	}
+}
+ll dp[64][11][1 << 10][2];
+ll calc(ll n, int b) {
+	toBase(n, b);
+	ll res = 0;
+	int mask = 0;
+	bool zero = true;
+	bool one = false;
+	for (int i = 0; i<64; ++i) {
+		for (int d = 0; d < s[i]; ++d) {
+			if (!zero || d) {
+				mask ^= 1 << d;
+				res += dp[64 - i - 1][b][mask][0];
+				mask ^= 1 << d;
+			}
+		}
+		if (one)
+			res += dp[64 - i][b][0][1];
+		if (i == 63)
+			zero = false;
+		if (zero && s[i] == 0)
+			continue;
+		if (s[i]) {
+			zero = false;
+			one = true;
+		}
+		mask ^= 1 << s[i];
+	}
+	if (!mask)
+		++res;
+	return res;
+}
+ll calc(int rem, int b, int mask, int f) {
+	if (!rem)
+		return dp[rem][b][mask][f] = !mask && !f;
+	ll &ret = dp[rem][b][mask][f];
+	if (ret != -1)
+		return ret;
+	ret = 0;
+	for (int d = f; d < b; ++d)
+		ret += calc(rem - 1, b, mask ^ (1 << d), false);
+	return ret;
+}
+int main()
+{
+	memset(dp, -1, sizeof(dp));
+	for (int b = 2; b <= 10; ++b)
+		for (int i = 0; i < 64; ++i)
+			for (int mask = 0; mask < (1<<b); ++mask)
+				for (int f = 0; f<2; ++f)
+					calc(i, b, mask, f);
+	int q;
+	scanf("%d", &q);
+	while (q--) {
+		int b;
+		scanf("%d", &b);
+		ll n;
+		scanf("%lld", &n);
+		ll res = -calc(n - 1, b);
+		scanf("%lld", &n);
+		res += calc(n, b);
+		printf("%lld\n", res);
+	}
+	return 0;
+}

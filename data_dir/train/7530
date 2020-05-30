@@ -1,0 +1,195 @@
+#pragma GCC optimize("O3")
+//#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define ld  double
+#define pii pair<int,int>
+#define pip pair<int,pii>
+#define ppi pair<pii,int> 
+#define ppp pair<pii,pii>
+#define pb push_back
+#define ppb pop_back
+#define pf push_fron
+#define ppf pop_front
+#define inf (ll)(1e5+11)
+#define warmup ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+const int N = 100003;
+const ll mod=1e9+7;
+int n, l;
+vector<int> g[N];
+int timer;
+vector<int> tin, tout, height;
+vector<vector<int>> up;
+
+void dfs(int i, int p, int h=0)
+{
+    height[i]=h;
+    tin[i] = ++timer;
+    up[i][0] = p;
+    
+    for(int j=1 ; j<=l ; ++j)
+        up[i][j]=up[up[i][j-1]][j-1];
+
+    for(int u:g[i])
+        if(u!=p)
+            dfs(u, i, h+1);
+
+    tout[i]=++timer;
+}
+
+bool is_ancestor(int u, int v)
+{
+    return (tin[u]<=tin[v] && tout[u]>=tout[v]);
+}
+
+int lca(int u, int v)
+{
+    if(is_ancestor(u, v))
+        return u;
+    if(is_ancestor(v, u))
+        return v;
+    
+    for (int i=l ; i>=0 ; --i)
+        if (!is_ancestor(up[u][i], v))
+            u=up[u][i];
+        
+    return up[u][0];
+}
+
+void preprocess(int root) 
+{
+    tin.resize(n+2);
+    tout.resize(n+1);
+    height.resize(n+1);
+    tin[0]=inf;
+    tin[n+1]=0;
+    timer=0;
+    l=ceil(log2(n));
+    up.assign(n+1, vector<int>(l + 1));
+    dfs(root, root);
+}
+
+pii tree1[4*N];
+
+void build1(int node,int s,int e)
+{
+    if(s==e)                                                
+        tree1[node]={s,s};
+    else
+    {
+        int mid=s+(e-s>>1);
+
+        build1(node<<1,s,mid);
+        build1(node<<1|1,mid+1,e);
+
+        tree1[node].first=(tin[tree1[node<<1].first]<tin[tree1[node<<1|1].first] ? tree1[node<<1].first:tree1[node<<1|1].first);
+        tree1[node].second=(tin[tree1[node<<1].second]>tin[tree1[node<<1|1].second] ? tree1[node<<1].second:tree1[node<<1|1].second);
+    }
+}
+
+pii query1(int node,int s,int e,int l,int r)
+{
+    if(s>e or r<s or e<l or l>r)                                          
+        return {0,n+1};
+    if(l<=s and e<=r)                                       
+        return tree1[node];
+
+    int mid=s+(e-s>>1);
+
+    pii p1=query1(node<<1,s,mid,l,r);
+    pii p2=query1(node<<1|1,mid+1,e,l,r);
+
+    if(p1.first==0)
+        return p2;
+    else if(p2.first==0)
+        return p1;
+    pii ans;
+    ans.first=(tin[p1.first]<tin[p2.first] ? p1.first:p2.first);
+    ans.second=(tin[p1.second]>tin[p2.second] ? p1.second:p2.second);
+    return ans;
+}
+
+
+int tree2[4*N];
+
+void build2(int node,int s,int e)
+{
+    if(s==e)                                                
+        tree2[node]=s;
+    else
+    {
+        int mid=s+(e-s>>1);
+
+        build2(node<<1,s,mid);
+        build2(node<<1|1,mid+1,e);
+
+        tree2[node]=lca(tree2[node<<1],tree2[node<<1|1]);        
+    }
+}
+
+int query2(int node,int s,int e,int l,int r)
+{
+    if(s>e or r<s or e<l or l>r)                                          
+        return 0;
+    if(l<=s and e<=r)                                       
+        return tree2[node];
+
+    int mid=s+(e-s>>1);
+
+    int p1=query2(node<<1,s,mid,l,r);
+    int p2=query2(node<<1|1,mid+1,e,l,r);
+    
+    if(!p1)
+        return p2;
+    else if(!p2)
+        return p1;
+    
+    return lca(p1,p2);
+}
+
+signed main()
+{
+    warmup
+    
+    int q;
+    cin>>n>>q;
+    int i,j,u,v;
+    for(i=2;i<=n;++i)
+        cin>>u, g[u].pb(i);
+    
+    preprocess(1);
+    build1(1,1,n);
+    build2(1,1,n);
+    int l,r,x,y;
+    while(q--)
+    {
+        cin>>l>>r;
+        j=query2(1,1,n,l,r);
+        tie(u,v)=query1(1,1,n,l,r);
+        
+        if(l==u)
+            x=query2(1,1,n,l+1,r);
+        else if(r==u)
+            x=query2(1,1,n,l,r-1);
+        else
+            x=lca(query2(1,1,n,l,u-1),query2(1,1,n,u+1,r));
+        
+        if(l==v)
+            y=query2(1,1,n,l+1,r);
+        else if(r==v)
+            y=query2(1,1,n,l,r-1);
+        else
+            y=lca(query2(1,1,n,l,v-1),query2(1,1,n,v+1,r));
+        
+//        cout<<u<<' '<<x<<" .. "<<v<<' '<<y<<" : ";
+        if(height[x]>height[y])
+            cout<<u<<' '<<height[x]<<'\n';
+        else
+            cout<<v<<' '<<height[y]<<'\n';
+    }   
+    
+    return 0;
+}

@@ -1,0 +1,194 @@
+#include <cstdio>
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <queue>
+#include <stack>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <complex>
+#include <memory.h>
+#include <time.h>
+
+using namespace std;
+
+typedef long long LL;
+
+int have[1 << 17];
+
+int u[1 << 17], v[1 << 17];
+int used[1 << 17];
+
+vector<int> G[1 << 17];
+vector<int> V;
+
+int m;
+int n = 1 << 17;
+
+void go(int x, vector<int> & c, vector<int> & odd)
+{
+	used[x] = 1;
+	c.push_back(x);
+	if (G[x].size() & 1)
+		odd.push_back(x);
+	for(int i = 0; i < G[x].size(); ++i)
+	{
+		int id = G[x][i];
+		int to = u[id] == x ? v[id] : u[id];
+		if (!used[to])
+			go(to, c, odd);
+	}
+}
+
+void euler(int x, vector<int> & path)
+{
+	for(int i = 0; i < G[x].size(); ++i)
+	{
+		int id = G[x][i];
+		if (used[id])
+			continue;
+		int to = v[id] == x ? u[id] : v[id];
+		used[id] = 1;
+		euler(to, path);
+		path.push_back(id);
+	}
+}
+
+void solve(vector<vector<int> > & res)
+{
+	memset(used, 0, sizeof(used));
+	vector<vector<int> > C;
+	vector<vector<int> > Odd;
+	for(int i = 0; i < V.size(); ++i)
+	{
+		if (used[V[i]])
+			continue;
+		vector<int> c, odd;
+		go(V[i], c, odd);
+		C.push_back(c);
+		Odd.push_back(odd);
+	}
+	memset(used, 0, sizeof(used));
+	if (C.size() > 2)
+		return;
+	if (C.size() == 2)
+	{
+		int M = m;
+		for(int i = 0; i < 2; ++i)
+		{
+			vector<int> path;
+			if (Odd[i].size() > 2)
+				return;
+			if (Odd[i].size() > 0)
+			{
+				G[Odd[i][0]].push_back(M);
+				G[Odd[i][1]].push_back(M);
+				u[M] = Odd[i][0];
+				v[M] = Odd[i][1];
+				euler(C[i][0], path);
+				auto it = find(path.begin(), path.end(), M);
+				rotate(path.begin(), it, path.end());
+				path = vector<int>(path.begin() + 1, path.end());
+				M++;
+			}
+			else
+				euler(C[i][0], path);
+			res.push_back(path);
+		}
+		return;
+	}
+	if (Odd[0].size() == 0)
+	{
+		vector<int> path;
+		euler(V[0], path);
+		res.push_back(vector<int>(path.begin(), path.begin() + 1));
+		res.push_back(vector<int>(path.begin() + 1, path.end()));
+		return;
+	}
+	if (Odd[0].size() == 2)
+	{
+		int M = m;
+		G[Odd[0][0]].push_back(M);
+		G[Odd[0][1]].push_back(M);
+		u[M] = Odd[0][0];
+		v[M] = Odd[0][1];
+
+		vector<int> path;
+		euler(V[0], path);
+
+		auto it = find(path.begin(), path.end(), M);
+		rotate(path.begin(), it, path.end());
+		path = vector<int>(path.begin() + 1, path.end());
+		res.push_back(vector<int>(path.begin(), path.begin() + 1));
+		res.push_back(vector<int>(path.begin() + 1, path.end()));
+
+		M++;
+		return;
+	}
+
+	int M = m;
+	G[Odd[0][0]].push_back(M);
+	G[Odd[0][1]].push_back(M);
+	u[M] = Odd[0][0];
+	v[M] = Odd[0][1];
+	M++;
+	G[Odd[0][2]].push_back(M);
+	G[Odd[0][3]].push_back(M);
+	u[M] = Odd[0][2];
+	v[M] = Odd[0][3];
+
+	vector<int> path;
+	euler(V[0], path);
+
+	auto it = find(path.begin(), path.end(), M - 1);
+	rotate(path.begin(), it, path.end());
+	path = vector<int>(path.begin() + 1, path.end());
+	res.push_back(vector<int>(path.begin(), find(path.begin(), path.end(), M)));
+	res.push_back(vector<int>(find(path.begin(), path.end(), M) + 1, path.end()));
+	M++;
+}
+
+int main()
+{
+#ifndef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	scanf("%d", &m);
+	for(int i = 0; i < m; ++i)
+	{
+		scanf("%d%d", &u[i], &v[i]);
+		u[i]--, v[i]--;
+		G[u[i]].push_back(i);
+		G[v[i]].push_back(i);
+		have[u[i]] = 1;
+		have[v[i]] = 1;
+	}
+	for(int i = 0; i < n; ++i)
+		if (have[i])
+			V.push_back(i);
+	memset(used, 0, sizeof(used));
+
+	vector<vector<int> > res;
+
+	solve(res);
+
+	if (res.size() != 2 || m == 1)
+	{
+		printf("-1\n");
+		return 0;
+	}
+	printf("%d\n", res[0].size());
+	for(int i = 0; i < res[0].size(); ++i)
+		printf("%d ", res[0][i] + 1);
+	printf("\n");
+	printf("%d\n", res[1].size());
+	for(int i = 0; i < res[1].size(); ++i)
+		printf("%d ", res[1][i] + 1);
+	printf("\n");
+	return 0;
+}

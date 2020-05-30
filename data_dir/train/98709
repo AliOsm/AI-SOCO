@@ -1,0 +1,155 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long int
+#include <ext/pb_ds/assoc_container.hpp> 
+#include <ext/pb_ds/tree_policy.hpp> 
+using namespace __gnu_pbds;   
+#define ordered_set tree<ll, null_type,less<ll>, rb_tree_tag,tree_order_statistics_node_update> 
+#define ld long double
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define all(a) a.begin(),a.end()
+#define sz(a) (ll)(a.size())
+const ll M=2e5+5;
+struct SuffixArray
+{
+    // Note that string should not have '#' character, if you want to join two strings, use '$'. 0 is appended to lcp array. O(NlogN) implementation of suffix array and O(N) implementation of lcp array.
+    ll n;
+    const ll alphabet = 256;
+    string s;
+    vector<ll> p, c;
+
+    SuffixArray(const string &s1) : n(s1.length()+1), s(s1+"#"), p(n), c(n)
+    {
+        vector<ll> cnt(max(alphabet, n), 0);
+        for (ll i = 0; i < n; i++) cnt[s[i]]++;
+        for (ll i = 1; i < alphabet; i++) cnt[i] += cnt[i-1];
+        for (ll i = 0; i < n; i++) p[--cnt[s[i]]] = i;
+        c[p[0]] = 0;
+        ll classes = 1;
+        for (ll i = 1; i < n; i++)
+        {
+            if (s[p[i]] != s[p[i-1]]) classes++;
+            c[p[i]] = classes - 1;
+        }
+
+        vector<ll> pn(n), cn(n);
+        for (ll h = 0; (1 << h) < n; ++h)
+        {
+            for (ll i = 0; i < n; i++)
+            {
+                pn[i] = p[i] - (1 << h);
+                if (pn[i] < 0) pn[i] += n;
+            }
+            fill(cnt.begin(), cnt.begin() + classes, 0);
+            for (ll i = 0; i < n; i++) cnt[c[pn[i]]]++;
+            for (ll i = 1; i < classes; i++) cnt[i] += cnt[i-1];
+            for (ll i = n-1; i >= 0; i--) p[--cnt[c[pn[i]]]] = pn[i]; // 
+            cn[p[0]] = 0, classes = 1;
+            for (ll i = 1; i < n; i++)
+            {
+                pair<ll, ll> cur = {c[p[i]], c[(p[i] + (1 << h)) % n]};
+                pair<ll, ll> prev = {c[p[i-1]], c[(p[i-1] + (1 << h)) % n]};
+                if (cur != prev) ++classes;
+                cn[p[i]] = classes - 1;
+            }
+            c.swap(cn);
+        }
+        s.pop_back();
+        n--;
+        p.erase(p.begin());
+    }
+
+    vector<ll> GetSuffixArray() { return p; }
+
+    vector<ll> GetLCP()
+    {
+        ll k = 0;
+        vector<ll> lcp(n-1, 0);
+        vector<ll> rank(n, 0);
+        for(ll i=0;i<n;i++) rank[p[i]] = i;
+        for(ll i=0;i<n;i++, k?k--:0)
+        {
+            if (rank[i] == n-1) { k=0; continue; }
+            ll j = p[rank[i] + 1];
+            while (i + k < n && j + k < n && s[i+k] == s[j+k]) k++;
+            lcp[rank[i]] = k;
+        }
+        lcp.pb(0);
+        return lcp;
+    }
+};
+map<ll,vector<ll> > H;
+ll val1[M],val2[M],ct[M];
+int main()
+{
+	ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+	string t;
+    cin>>t;
+	ll n;
+	cin>>n;
+	ll c=0;
+    string st[n+1];
+    for(ll i=1;i<=n;i++)
+    {
+		cin>>st[i];
+        H[sz(st[i])].pb(i);
+    }
+    SuffixArray obj(t);
+    std::vector<ll> sa=obj.GetSuffixArray();
+	for(auto it=H.begin();it!=H.end();it++)
+    {
+        memset(ct,0,sizeof(ct));
+        for(auto u:it->ss)
+        {
+            ll l=0,r=sz(t)-1,m,p=-1;
+            bool fl=0;
+            while(l<r)
+            {
+                m=(l+r)/2;
+                if(m==p)
+                    m++;
+                p=m;
+                string pp=t.substr(sa[m],min(sz(st[u]),sz(t)-sa[m]));
+                if(pp<st[u])
+                    l=m+1;
+                else
+                    r=m;
+            }
+            ll lf=r;
+            string pp=t.substr(sa[r],min(sz(st[u]),sz(t)-sa[r]));
+            if(pp!=st[u])
+                continue;
+            l=0;r=sz(t)-1;p=-1;
+            while(l<r)
+            {
+                m=(l+r)/2;
+                if(m==p)
+                    m++;
+                p=m;
+                string pp=t.substr(sa[m],min(sz(st[u]),sz(t)-sa[m]));
+                if(pp>st[u])
+                    r=m-1;
+                else
+                    l=m;
+            }
+            ll rf=r;
+            ct[lf]++;
+            ct[rf+1]--;
+        }
+        ll c=0;
+        for(ll i=0;i<sz(t);i++)
+        {
+            c=c+ct[i];
+            val1[sa[i]]+=c;
+            val2[sa[i]+it->ff]+=c;
+        }         
+    }
+    ll ans=0;
+    for(ll i=0;i<sz(t);i++)
+        ans=ans+val2[i]*val1[i];
+    cout<<ans<<"\n";
+	return 0;
+}

@@ -1,0 +1,165 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define IOS ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define endl "\n"
+#define mod 1000000007
+#define int long long
+#define ll long long
+#define EPS 0.000000001
+#define ld long double
+#define inf 1e8
+#define N 1000001
+#define K 18
+vector<int> cd[N],g[N];
+int subs[N],level[N],mark[N],par[N];
+int lca_dp[K][N];
+int ans[N];
+void dfs0(int s,int p)
+{
+    subs[s] = 1;
+    for(auto it : g[s])
+    {
+        if(it != p)
+        {
+            level[it] = level[s] + 1;
+            dfs0(it,s);
+            subs[s] += subs[it];
+            lca_dp[0][it] = s;
+        }
+    }
+}
+
+void preprocess(int n)
+{
+    level[1] = 1;
+    lca_dp[0][1] = 1;
+    dfs0(1,1);
+    for(int i = 1;i < K;i++)
+    {
+        for(int j = 1;j <= n;j++)
+        {
+            lca_dp[i][j] = lca_dp[i - 1][lca_dp[i - 1][j]];
+        }
+    }
+} 
+int lca(int a,int b)
+{
+    if(level[a] > level[b])swap(a,b);
+    int d = level[b] - level[a];
+    for(int i = 0;i < K;i++)
+        if(d & (1 << i))b = lca_dp[i][b];
+    if(a == b)
+        return a;
+    for(int i = K - 1;i >= 0;i--)
+    {
+        if(lca_dp[i][a] != lca_dp[i][b])a = lca_dp[i][a],b = lca_dp[i][b]; 
+    }
+    return lca_dp[0][a];
+}
+int dist(int a,int b)
+{
+    return level[a] + level[b] - 2 * level[lca(a,b)];
+}
+/*----Decomposition Part----*/
+int nn;
+
+void dfs1(int s,int p)
+{
+    subs[s] = 1;
+    for(auto it : g[s])
+    {
+        if(it != p and mark[it] == 0)
+        {
+            dfs1(it,s);
+            subs[s] += subs[it];
+        }
+    }
+    nn++;
+}
+int find_centroid(int s,int p)
+{
+    for(auto it : g[s])
+    {
+        if(it != p and mark[it] == 0 and subs[it] > nn / 2)
+            return find_centroid(it,s);
+    }
+    return s;
+}
+
+void decompose(int root,int p = 0)
+{
+    nn = 0;
+    dfs1(root,root);
+    int centroid = find_centroid(root,root);
+    par[centroid] = p;
+    cd[p].push_back(centroid);
+    mark[centroid] = 1;
+    for(auto it : g[centroid])
+    {
+        if(!mark[it])
+        {
+            decompose(it,centroid); 
+        }
+    }
+}
+
+/*----End Decomposition Part----*/
+
+void update(int u)
+{
+    int x = u;
+    while(x)
+    {
+        ans[x] = min(ans[x],dist(x,u));
+        x = par[x]; 
+    }
+}
+
+int query(int u)
+{
+    int x = u;
+    int val = inf;
+    while(x)
+    {
+        val = min(val,ans[x] + dist(u,x));
+        x = par[x];
+    }
+    return val;
+}
+
+
+int32_t main()
+{
+    IOS;
+    #ifndef ONLINE_JUDGE
+    freopen("int.txt","r",stdin);
+    freopen("out.txt","w",stdout);
+    #endif
+    int n, m;
+    cin >> n >> m;
+    for(int i = 0;i < n - 1;i++)
+    {
+        int a,b;
+        cin >> a >> b;
+        g[a].push_back(b);
+        g[b].push_back(a);
+        ans[i + 1] = ans[i + 2] = inf;
+    }
+    preprocess(n);
+    decompose(1);
+    update(1);
+    
+    while(m--)
+    {
+        int t,v;
+        cin >> t >> v;
+        if(t == 1)
+            update(v);
+        else
+            cout << query(v) << endl;
+    }
+
+
+    return 0;
+ 
+}

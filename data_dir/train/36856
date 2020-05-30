@@ -1,0 +1,150 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 1001;
+ll n, m, k;
+ll rem;
+
+ll mat[N][N];
+ll vis[N][N];
+
+vec <pii> pairs;
+
+struct Dsu {
+    ll par[N * N];
+    ll cnt[N * N];
+} dsu;
+
+void input() {
+    cin >> n >> m >> k;
+    for(ll i = 0; i < n; ++i) {
+        for(ll j = 0; j < m; ++j) {
+            cin >> mat[i][j];
+            pairs.pb({i, j});
+        }
+    }
+}
+
+ll root(ll u) {
+    if(dsu.par[u] == u) {
+        return u;
+    } else {
+        return dsu.par[u] = root(dsu.par[u]);
+    }
+}
+
+void unite(ll u, ll v) {
+    u = root(u);
+    v = root(v);
+    if(u == v) {
+        return;
+    }
+    dsu.cnt[u] += dsu.cnt[v];
+    dsu.par[v] = u;
+}
+
+ll id(ll i, ll j) {
+    return i * m + j;
+}
+
+bool ok(ll x) {
+    return x >= 0 && x < n * m;
+}
+
+void dfs(ll i, ll j, ll mnm) {
+    rem--;
+    vis[i][j] = 1;
+    for(pii e: {pii(1, 0), pii(0, 1), pii(0, -1), pii(-1, 0)}) {
+        pii x = {i + e.xx, j + e.yy};
+        if(ok(id(x.xx, x.yy)) && !vis[x.xx][x.yy] && mat[x.xx][x.yy] >= mnm && rem) {
+            dfs(x.xx, x.yy, mnm);
+        }
+    }
+}
+
+void solve() {
+    if(k > 1e15) {
+        cout << "NO\n";
+        return;
+    }
+    sort(all(pairs), [](pii x, pii y) {
+        return mat[x.xx][x.yy] > mat[y.xx][y.yy];
+    });
+    for(ll i = 0; i < n; ++i) {
+        for(ll j = 0; j < m; ++j) {
+            dsu.par[id(i, j)] = id(i, j);
+            dsu.cnt[id(i, j)] = 1;
+        }
+    }
+    for(pii p: pairs) {
+        ll mnm = mat[p.xx][p.yy];
+        for(pii e: {pii(1, 0), pii(0, 1), pii(0, -1), pii(-1, 0)}) {
+            pii x = {p.xx + e.xx, p.yy + e.yy};
+            if(ok(id(x.xx, x.yy)) && mat[x.xx][x.yy] >= mnm) {
+                unite(id(p.xx, p.yy), id(x.xx, x.yy));
+            }
+        }
+        if(k % mnm == 0) {
+            if(dsu.cnt[root(id(p.xx, p.yy))] >= k / mnm) {
+                rem = k / mnm;
+                dfs(p.xx, p.yy, mnm);
+                cout << "YES\n";
+                for(int i = 0; i < n; ++i) {
+                    for(int j = 0; j < m; ++j) {
+                        if(vis[i][j]) {
+                            cout << mnm << " ";
+                        } else {
+                            cout << "0 ";
+                        }
+                    }
+                    cout << "\n";
+                }
+                return;
+            }
+        }
+    }
+    cout << "NO\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

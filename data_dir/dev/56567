@@ -1,0 +1,241 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define fi first
+#define se second
+#define long long long
+typedef pair<int,int> ii;
+typedef pair<ii,long> iil;
+typedef pair<long,long> ll;
+typedef pair<ii,ll> iill;
+
+const long MOD = 1e9+7;
+long fac[1000003], facmod[1000003];
+long pwr(long a, long b)
+{
+	if(b == 0) return 1;
+	else if(b == 2) return (a*a)%MOD;
+	else if(b&1) return (a*pwr(a,b-1))%MOD;
+	else return pwr(pwr(a,b/2),2);
+}
+
+int n;
+int L[100003], R[100003];
+int cenpar[100003];
+int sz[100003], depth[100003];
+long mul[100003], ilen[100003];
+long all_com = 1;
+bool visited[100003], is_chosen[100003];
+vector<int> vec[100003], cen[100003], mem[100003];
+
+int len(int i) {return R[i]-L[i]+1;}
+
+int szz;
+void cen_init(int u)
+{
+	visited[u] ^= 1;
+	sz[u] = 1;
+	for(int v : vec[u])
+	{
+		if(visited[u] == visited[v] || is_chosen[v]) continue;
+		cen_init(v);
+		sz[u] += sz[v];
+
+	}
+}
+void cen_dfs(int u, int start, int ROOT)
+{
+	// printf("%d %d %d\n", u, start, ROOT);
+	bool bol = 0;
+	for(int v : vec[u])
+	{
+		if(is_chosen[v] || sz[v] > sz[u]) continue;
+		// printf("	v : %d %d %d\n", v, sz[v], sz[start]);
+		if(sz[v] >= (sz[start]+1)/2)
+		{
+			bol = 1;
+			cen_dfs(v, start, ROOT);
+			break;
+		}
+	}
+	if(!bol)
+	{
+		is_chosen[u] = 1;
+		cen[ROOT].push_back(u);
+		// printf("%d %d\n", ROOT, u);
+		cenpar[u] = ROOT;
+		for(int v : vec[u])
+		{
+			if(is_chosen[v]) continue;
+			cen_init(v);
+			cen_dfs(v, v, u);
+		}
+	}
+}
+int T[200003][21];
+int lg[200003];
+int path[200003], occ[200003];
+void build()
+{
+	for(int i = 1; i <= 200000; i++)
+		lg[i] = (int)log2(i);
+	for(int i = 0; i <= 20; i++)
+		for(int j = 1; j+(1<<i)-1 <= szz; j++)
+			T[j][i] = (i == 0)? occ[path[j]] : min(T[j][i-1], T[j+(1<<(i-1))][i-1]);
+}
+ 
+int mn_occ(int kir, int kan)
+{
+	if(kir > kan) swap(kir,kan);
+	int x = lg[kan-kir+1];
+	return min(T[kir][x], T[kan-(1<<x)+1][x]);
+}
+
+int LCA(int u, int v) { return path[mn_occ(occ[u],occ[v])]; }
+
+long dist(int u, int v)
+{
+	return depth[u] + depth[v] - 2*depth[LCA(u, v)];
+}
+
+void dfs_lca(int u)
+{
+	occ[u] = ++szz;
+	path[szz] = u;
+	for(int v : vec[u])
+	{
+		if(!occ[v])
+		{
+			depth[v] = depth[u]+1;
+			dfs_lca(v);
+			path[++szz] = u;
+		}
+	}
+}
+
+
+ii operator+ (const ii &a, const ii &b) { return {(a.fi+b.fi)%MOD, (a.se+b.se)%MOD}; }
+ii operator* (const ii &a, const int &b) { return {(1ll*a.fi*b)%MOD, (1ll*a.se*b)%MOD}; }
+ii operator- (const ii &a, const ii &b) { return {(a.fi-b.fi)%MOD, (a.se-b.se)%MOD}; }
+ii operator- (const ii &a) {return {-a.fi, -a.se}; }
+
+ii ft1[100003];
+ii ft2[100003];
+void update1(int p, ii v) { for(; p <= 100000; p += p&(-p)) ft1[p] = ft1[p]+v;}
+void update2(int p, ii v) { for(; p <= 100000; p += p&(-p)) ft2[p] = ft2[p]+v;}
+void update(int a, int b, ii v)
+{
+	update1(a, v);
+	update1(b+1, -v);
+	update2(a, v*(a-1));
+	update2(b+1, -v * b);
+}
+ii query1(int a) { return (a)? ft1[a] + query1(a - (a&-a)) : ii(0,0); }
+ii query2(int a) { return (a)? ft2[a] + query2(a - (a&-a)) : ii(0,0); }
+ii query(int b) {return query1(b)*b-query2(b);}
+ii query(int a, int b) {return query(b)-query(a-1);}
+
+long res = 0;
+vector<iill> updates;
+void gab(int u, int v)
+{
+	long CON = pwr(mul[u], MOD-2);
+	for(int x : mem[v])
+	{
+
+		ll q = query(L[x], R[x]);
+		q.fi = (q.fi*mul[u])%MOD;
+		q.se = (q.se*mul[u])%MOD;
+
+		long outcom = ((all_com*ilen[x])%MOD*CON)%MOD;
+		long tot = (q.fi*(dist(u, x)) + q.se)%MOD;
+		// printf("	U V : %d %d %lld %lld\n", u, v, tot, outcom);
+		res = (res+tot*outcom)%MOD;
+		// printf("%lld %lld\n",)
+	}
+	for(int x : mem[v])
+	{
+		mem[u].push_back(x);
+		
+		long temp = mul[u]; // temp/mul[u] = 1/len[u] = ilen[u]
+		mul[u] = (mul[u]*len(x))%MOD;
+
+		updates.push_back({{L[x], R[x]},{ilen[x], (ilen[x]*dist(u,x))%MOD}});
+		update(L[x], R[x], {ilen[x], (ilen[x]*dist(u,x))%MOD});
+	}
+	// printf("U : %d %lld\n", u, mul[u]);
+	// for(int i = 1; i <= 5; i++)
+	// {
+	// 	ll q = query(tree[u], 1, 100000, i, i);
+	// 	printf("%lld|%lld ", (q.fi*mul[u])%MOD, (q.se*mul[u])%MOD);
+	// }
+	// printf("\n");
+}
+
+void dfs(int u)
+{
+	mem[u] = {u};
+	mul[u] = len(u);
+	
+	for(int v : cen[u])
+		dfs(v);
+
+	updates.push_back({{L[u], R[u]},{ilen[u], 0}});
+	update(L[u], R[u], {ilen[u], 0});
+	for(int v : cen[u])
+		gab(u, v);
+
+	// printf("U : %d\n", u);
+	// for(int i = 1; i <= 5; i++)
+	// {
+	// 	ll q = query(i, i);
+	// 	printf("%lld|%lld ", ((q.fi*mul[u])%MOD+MOD)%MOD, ((q.se*mul[u])%MOD+MOD)%MOD);
+	// }
+	// printf("\n");
+
+	for(auto upd : updates)
+	{
+		// printf("%d %d %lld %lld\n", upd.fi.fi, upd.fi.se, upd.se.fi, upd.se.se);
+		update(upd.fi.fi, upd.fi.se, -upd.se);
+	}
+	updates.clear();
+	
+}
+
+int main()
+{
+	// freopen("input.in", "r", stdin);
+	
+	scanf("%d", &n);
+	for(int i = 1; i <= n; i++)
+	{
+		scanf("%d %d", &L[i], &R[i]);
+		all_com = (all_com*len(i))%MOD;
+		ilen[i] = pwr(len(i), MOD-2);
+	}
+
+	for(int i = 1; i < n; i++)
+	{
+		int u, v;
+		scanf("%d %d", &u, &v);
+		vec[u].push_back(v);
+		vec[v].push_back(u);
+	}
+	cen_init(1);
+	cen_dfs(1, 1, 0);
+
+	dfs_lca(1);
+	build();
+	// printf("%d\n", dist(2, 8));
+
+
+	int root = 0;
+	for(int i = 1; i <= n; i++)
+		if(cenpar[i] == 0)
+			root = i;
+
+	memset(visited, 0, sizeof visited);
+
+	dfs(root);
+	printf("%lld\n", (res+MOD)%MOD);
+}

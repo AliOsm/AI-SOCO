@@ -1,0 +1,83 @@
+
+// In the name of God
+#include <bits/stdc++.h>
+
+using namespace std;
+#define Size(x) ((int)(x).size())
+#define pb push_back
+typedef long long ll;
+typedef long double ld;
+typedef pair<int,int>pii;
+const int INF = 1e9 + 10;
+const int MN = 1e5 + 10;
+
+int n , q;
+vector<pii>seg[MN<<2];
+int a[MN] , m[MN];
+
+ll calc(int id,int x){return 1ll*m[id]*x + a[id];}
+int calc2(int id1,int id2){
+	return (a[id1] - a[id2] + (m[id2] - m[id1] - 1)) / (m[id2] - m[id1]); 
+}
+
+void Add(vector<pii>&vec , pii A)
+{
+	while(!vec.empty() && calc(vec.back().second , vec.back().first) <= calc(A.second , vec.back().first))
+		vec.pop_back();
+	if(vec.empty()){
+		vec.pb({0 , A.second});
+		return;
+	}
+	if(m[vec.back().second] == m[A.second]) return;
+	vec.pb({calc2(vec.back().second , A.second) , A.second});
+}
+
+void build(int id,int b,int e)
+{
+	if(e-b==1){
+		seg[id].pb({0 , b});
+		return;	
+	}
+	int mid = b+e>>1;
+	build(id<<1 , b , mid) , build(id<<1|1 , mid , e);
+	int pnt = 0;
+	for(int i=0;i<Size(seg[id<<1]);++i){
+		pii A = seg[id<<1][i];
+		while(pnt < Size(seg[id<<1|1]) && m[seg[id<<1|1][pnt].second] <= m[A.second]){
+			Add(seg[id] , seg[id<<1|1][pnt]);
+			++pnt;
+		}
+		Add(seg[id] , A);
+	}
+	while(pnt < Size(seg[id<<1|1])) Add(seg[id] , seg[id<<1|1][pnt]) ,++pnt;
+}
+
+pair<ll , int> get(int id,int b,int e,int l,int r,int x)
+{
+	if(r <= b || e <= l) return {0 , -1};
+	if(l <= b && e <= r){
+		int ind = upper_bound(seg[id].begin() , seg[id].end() , make_pair(x , INF)) - seg[id].begin() - 1;
+		ind = seg[id][ind].second;
+		return {1ll*m[ind]*x + a[ind] , ind};
+	}
+	int mid = b+e>>1;
+	pair<ll , int> A , B;
+	A = get(id<<1 , b , mid , l , r , x) , B = get(id<<1|1 , mid , e , l , r , x);
+	if(A.first >= B.first) return A;
+	return B;
+}
+
+int main()
+{
+	ios_base :: sync_with_stdio(false) ,cin.tie(0) , cout.tie(0);
+	cin >> n >> q;
+	for(int i=0;i<n;++i) cin >> a[i] >> m[i];
+	build(1 , 0 , n);
+
+	while(q--){
+		int l , r , x;cin>>l>>r>>x;--l;
+		cout << get(1 , 0 , n , l , r , x).second+1 << '\n';
+	}
+	return 0;
+}
+

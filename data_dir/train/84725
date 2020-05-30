@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define endl           '\n'
+#define all(x)         x.begin(), x.end()
+#define rall(x)        x.rbegin(), x.rend()
+#define mem(x, y)      memset(x, y, sizeof x)
+
+template <typename T> T gcd(T a, T b) {return !b ? a : gcd(b, a % b);}
+template <typename T> inline void umin(T &a, T b) {a = a < b ? a : b;}
+template <typename T> inline void umax(T &a, T b) {a = a > b ? a : b;}
+template <typename T>
+inline void Int(T &x) {
+    x = 0; int f = 1;
+    register int ch = getchar();
+    for (; !isdigit(ch); ch = getchar()) {
+        if ('-' == ch) f = -1;
+    }
+    for (; isdigit(ch); ch = getchar()) {
+        x = (x << 3) + (x << 1) + ch - '0';
+    }
+    x = x * f;
+}
+
+const int N = (int) 5e6 + 5;
+const int INF = (int) 1e9 + 7;
+const long long MOD = (long long) 1e9 + 7;
+
+int n, m, node, a[N], last[N], R[N];
+int root[N], val[N], t[N][2];
+
+int newNode(int v = 0) {
+    ++node;
+    val[node] += v, t[node][0] = t[node][1] = -1;
+    return node;
+}
+
+void Build(int nd, int s, int e) {
+    if (s == e) return;
+    int md = s + e >> 1;
+    t[nd][0] = newNode(), t[nd][1] = newNode();
+    Build(t[nd][0], s, md);
+    Build(t[nd][1], md + 1, e);
+}
+
+int modify(int nd, int s, int e, int p, int v) {
+    if (p < s or p > e) return nd;
+    if (s == e) {
+        int cur = newNode(val[nd] + v);
+        return cur;
+    }
+    int md = s + e >> 1;
+    int cur = newNode();
+    t[cur][0] = modify(t[nd][0], s, md, p, v);
+    t[cur][1] = modify(t[nd][1], md + 1, e, p, v);
+    val[cur] = val[t[cur][0]] + val[t[cur][1]];
+    return cur;
+}
+
+int findKth(int nd, int s, int e, int k) {
+    if (s == e) return k != val[nd] ? n + 1 : s;
+    int md = s + e >> 1;
+    int cnt = val[t[nd][0]];
+    if (cnt >= k) return findKth(t[nd][0], s, md, k);
+    else return findKth(t[nd][1], md + 1, e, k - cnt);
+}
+
+int calc(int k) {
+    int i = 1, seg = 0;
+    while (i <= n) {
+        seg++;
+        i = findKth(root[i], 1, n, k + 1);
+        i = R[i];
+    }
+    return seg;
+}
+
+int main() {
+    Int(n);
+    root[n + 1] = newNode();
+    Build(root[n + 1], 1, n);
+
+    for (int i = 1; i <= n; i++) Int(a[i]);
+
+    R[n + 1] = n + 1, a[n + 1] = -1;
+    for (int i = n; i >= 1; i--) {
+        R[i] = a[i] == a[i + 1] ? R[i + 1] : i;
+    }
+
+    for (int i = n; i >= 1; i--) {
+        root[i] = root[i + 1];
+        if (last[a[i]]) root[i] = modify(root[i], 1, n, last[a[i]], -1);
+        last[a[i]] = i;
+        root[i] = modify(root[i], 1, n, last[a[i]], 1);
+    }
+
+    for (int k = 1; k <= n; ++k) {
+        int seg = calc(k);
+        if (k > 1) putchar(' ');
+        printf("%d", seg);
+    }
+    printf("\n");
+    return 0;
+}

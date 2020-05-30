@@ -1,0 +1,155 @@
+
+/* [ I am working on improving my English ]
+	
+	( I know that there are simpler solutions for this problem but I want to use and learn graph properties codes )
+
+	create a undirected graph with pointed places. then :
+	answer is always -1 , 1 or 2
+		-1 : when number of #'s is less than 3 ( we can't disconnect graph )
+		1  : when we have articulation point
+		2  : otherwise ( there is always at least one point that has at most 2 neighbors )
+*/
+
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long int lli;
+
+// Template code for finding Articulatin points and Bridges in undirected graph
+
+struct Edge				// bidirectional edge
+{
+	int u , v , w;
+	bool bridge;
+	Edge() { bridge = false; }
+	Edge( int _u , int _v , int _w = 0 ) { u = _u , v = _v , w = _w; bridge = false; }
+	int other( int x ) { return x == u ? v : u; }
+};
+
+const int M = 1e5;
+Edge e[ M + 5 ];					// edges
+vector<int> v[ M + 5 ]; 			// vertices
+bool artic[ M + 5 ];				// is an articulation vertex ?
+
+const int Not = 0 , Exp = 2 , Vis = 1;
+int dfs_root , dfs_childs , dfs_i = 1;
+int dfs_num[ M + 5 ];
+int dfs_low[ M + 5 ];
+int dfs_vis[ M + 5 ];
+int dfs_par[ M + 5 ];
+
+void dfs( int x )
+{
+	dfs_vis[x] = Exp;
+	dfs_low[x] = dfs_num[x] = dfs_i++;
+	
+	int p = dfs_par[x];
+	int xs = v[x].size();
+	for ( int i=0 ; i<xs ; i++ )
+	{
+		int id = v[x][i];
+		int y  = e[id].other( x );
+		if ( y == p ) continue;
+		
+		if ( dfs_vis[y] == Not )
+		{
+			dfs_par[y] = x;
+			if ( x == dfs_root ) dfs_childs++;
+			dfs( y );
+			
+			if ( dfs_low[y] >= dfs_num[x] )
+				artic[x] = true;
+			if ( dfs_low[y] >  dfs_num[x] )
+				e[id].bridge = true;
+			dfs_low[x] = min( dfs_low[x] , dfs_low[y] );
+		}
+		else
+		{
+			dfs_low[x] = min( dfs_low[x] , dfs_num[y] );
+		}
+	}
+	
+	dfs_vis[x] = Vis;
+}
+
+int n , m;
+inline int getID( int r , int c )
+{
+	return r * m + c;
+}
+
+int main()
+{
+	cin>>n>>m;
+	
+	string l = "" , s;
+	int ei = 0;
+	int first = -1 , cnt = 0;
+	for ( int i=0 ; i<n ; i++ )
+	{
+		cin>>s;
+		
+		for ( int j=0 ; j<m ; j++ )
+		{
+			cnt += (s[j] == '#');
+			if ( first == -1 && s[j] == '#' ) first = getID( i , j );
+		}
+		
+		for ( int j=0 ; j<m ; j++ )
+		{
+			if ( s[j] == '#' )
+			{
+				int thiz = getID( i , j );
+				
+				if ( i && l[j] == '#' ) 
+				{
+					int that = getID( i-1 , j );
+					e[ei] = Edge( thiz , that );
+					v[thiz].push_back( ei );
+					v[that].push_back( ei );
+					ei++;
+				}
+				
+				if ( j && s[j-1] == '#' )
+				{
+					int that = getID( i , j-1 );
+					e[ei] = Edge( thiz , that );
+					v[thiz].push_back( ei );
+					v[that].push_back( ei );
+					ei++;
+				}
+			}
+		}
+		l = s;
+	}
+	
+	// -----------------------------------------------------
+	
+	if ( cnt < 3 )
+		cout<<-1;
+	else
+	{
+		dfs_root = first , dfs_childs = 0;
+		dfs( first );
+		artic[first] = (dfs_childs > 1);
+		
+		bool art = 0;
+		int all = n * m;
+		for ( int i=0 ; i<all ; i++ ) art |= artic[i];
+		
+		if ( art ) cout<<1<<"\n";
+		else cout<<2<<"\n";
+	}
+	
+	
+	return 0;
+}
+
+/*
+3 5
+##.##
+##.##
+#####
+
+1 5
+.###.
+*/

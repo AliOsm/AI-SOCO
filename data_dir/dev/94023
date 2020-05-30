@@ -1,0 +1,221 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define debug(args...) // fprintf (stderr, args)
+
+const int MAXN = 1e5 + 10;
+
+int N, M;
+
+int ON[MAXN];
+
+struct edge
+{
+	vector <int> nodes;
+} S[MAXN];
+
+bool mrk[MAXN];
+
+int state[MAXN];
+int L[MAXN], R[MAXN];
+
+int mex (int lamp, int cur)
+{
+	if (L[lamp] == cur)
+		return R[lamp];
+
+	return L[lamp];
+}
+
+set <int> used;
+
+bool dfs (int v)
+{
+	// v is a switch
+
+	debug ("node %d %d\n", v, state[v]);
+
+	for (auto u: S[v].nodes)
+		if (!mrk[u])
+		{
+			debug ("lamp %d\n", u);
+
+			if (state[v])
+			{
+				if (ON[u])
+				{
+					int nextNode = mex (u, v);
+
+					debug ("1\n");
+
+					used.insert (u);
+					mrk[u] = true;
+
+					if (state[nextNode] == -1)
+					{
+						state[nextNode] = 1;
+
+						if (!dfs (nextNode))
+							return false;
+					}
+					else
+						if (state[nextNode] != 1)
+							return false;
+				}
+
+				if (!ON[u])
+				{
+					int nextNode =  mex (u, v);
+
+					debug ("2\n");
+
+					used.insert (u);
+					mrk[u] = true;
+
+					if (state[nextNode] == -1)
+					{
+						state[nextNode] = 0;
+						if (!dfs (nextNode))
+							return false;
+					}
+					else
+						if (state[nextNode] != 0)
+							return false;
+				}
+			}
+
+			if (!state[v])
+			{
+				if (ON[u])
+				{
+					int nextNode =  mex (u, v);
+
+					debug ("3\n");
+
+					used.insert (u);
+					mrk[u] = true;
+
+					if (state[nextNode] == -1)
+					{
+						state[nextNode] = 0;
+						if (!dfs (nextNode))
+							return false;
+					}
+					else
+						if (state[nextNode] != 0)
+							return false;
+				}
+
+				if (!ON[u])
+				{
+					int nextNode = mex (u, v);
+
+					debug ("4\n");
+
+					used.insert (u);
+					mrk[u] = true;
+
+					if (state[nextNode] == -1)
+					{
+						state[nextNode] = 1;
+						if (!dfs (nextNode))
+							return false;
+					}
+					else
+						if (state[nextNode] != 1)
+							return false;
+				}
+			}
+		}
+
+	return true;
+}
+
+int main ()
+{
+	cin.sync_with_stdio (false);
+	cin.tie (0);
+	cout.tie (0);
+
+	cin >> N >> M;
+
+	for (int i = 1; i <= N; i++)
+		cin >> ON[i];
+
+	for (int i = 1; i <= M; i++)
+	{
+		int SZ;
+		cin >> SZ;
+
+		while (SZ)
+		{
+			SZ--;
+
+			int X;
+			cin >> X;
+
+			S[i].nodes.push_back (X);
+
+			if (!L[X])
+				L[X] = i;
+			else
+				R[X] = i;
+		}
+	}
+
+	memset (state, -1, sizeof (state));
+
+	for (int lamp = 1; lamp <= N; lamp++)
+		if (!ON[lamp])
+		{
+			if (mrk[lamp])
+				continue;
+
+			debug ("lamp = %d\n", lamp);
+
+			used.clear();
+
+			// turn on L and turn off R
+
+			mrk[lamp] = true;
+			used.insert (lamp);
+
+			debug ("%d %d\n", L[lamp], R[lamp]);
+
+			state[L[lamp]] = 1;
+			state[R[lamp]] = 0;
+
+			if (dfs (L[lamp]) && dfs (R[lamp]))
+				continue;
+
+			for (auto i: used)
+			{
+				debug ("lamp out = %d\n", i);
+				mrk[i] = false;
+				state[L[i]] = -1;
+				state[R[i]] = -1;
+			}
+
+			used.clear();
+
+			// turn off L and turn on R
+
+			debug ("lamp = %d\n", lamp);
+
+			mrk[lamp] = true;
+			used.insert (lamp);
+
+			state[L[lamp]] = 0;
+			state[R[lamp]] = 1;
+
+			if (dfs (L[lamp]) && dfs (R[lamp]))
+				continue;
+
+			cout << "NO\n";
+			return 0;
+		}	
+
+	cout << "YES\n";
+
+	return 0;
+}

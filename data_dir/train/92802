@@ -1,0 +1,226 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <unordered_set>
+#include <functional>
+#include <climits>
+#include <cstring>
+#include <cmath>
+#include <numeric>
+#include <random>
+#include <tuple>
+
+using namespace std;
+using ll = long long;
+const int N = 100010;
+const int LOG = 20;
+
+int n;
+vector<int> g[N];
+int tick = 0;
+int up[LOG][N];
+vector<int> tin, tout;
+vector<int> h;
+
+struct P {
+  int v, idx;
+  P(int _v, int _idx): v(_v), idx(_idx) {}
+  P(): v(-1), idx(-1){}
+};
+
+using MergeFunc = function<P(P, P)>;
+
+class SegmentTree {
+  public:
+    SegmentTree(MergeFunc _merger, const vector<int>& a): n(a.size()), merger(move(_merger)) {
+      int N = max(4, highestOneBit(n) << 2);
+      tree.resize(N);
+      build(1, 0, n - 1, a);
+    }
+
+    P query(int l, int r) {
+      return query(1, 0, n - 1, l, r);
+    }
+  private:
+    static int highestOneBit(int n) {
+      n |= n >> 1;
+      n |= n >> 2;
+      n |= n >> 4;
+      n |= n >> 8;
+      n |= n >> 16;
+      return n ^ (((unsigned)n) >> 1);
+    }
+
+    void build(int v, int tl, int tr, const vector<int>& a) {
+      if (tl == tr) {
+        tree[v] = P(a[tl], tl);
+        return;
+      }
+      int tm = (tl + tr) / 2;
+      build(2 * v, tl, tm, a);
+      build(2 * v + 1, tm + 1, tr, a);
+      tree[v] = merger(tree[2 * v], tree[2 * v + 1]);
+    }
+
+    P query(int v, int tl, int tr, int l, int r) {
+      if (l > r) return P();
+      if (tl == l && tr == r) {
+        return tree[v];
+      }
+      int tm = (tl + tr) / 2;
+      P lhs = query(2 * v, tl, tm, l, min(tm, r));
+      P rhs = query(2 * v + 1, tm + 1, tr, max(l, tm + 1), r);
+      return merger(lhs, rhs);
+    }
+
+    int n;
+    MergeFunc merger;
+    vector<P> tree;
+};
+
+inline bool upper(int a, int b) {
+  return tin[a] <= tin[b] && tout[b] <= tout[a];
+}
+
+inline int lca(int a, int b) {
+  if (upper(a, b)) {
+    return a;
+  }
+  if (upper(b, a)) {
+    return b;
+  }
+  // int B = b;
+  for(int i = LOG - 1; i >= 0; --i) {
+    if (up[i][b] == -1) {
+      continue;
+    }
+    if (!upper(up[i][b], a)) {
+      b = up[i][b];
+    }
+  }
+  // cout << "lca of " << a << " " << B << " = " << up[0][b] << endl;
+  return up[0][b];
+}
+
+inline int lca(int lo, int hi, SegmentTree& minTree, SegmentTree& maxTree) {
+  // cout << "lca " << lo << " " << hi << endl;
+  auto p1 = minTree.query(lo, hi);
+  // cout << "lca min " << p1.idx <<  " " << p1.v << endl;
+  auto p2 = maxTree.query(lo, hi);
+  // cout << "lca max " << p2.idx <<  " " << p2.v << endl;
+  int LCA = lca(p1.idx, p2.idx);
+  // cout << "LCA " << p1.idx << ", " << p2.idx << " = " << LCA << endl;
+  return LCA;
+}
+
+inline pair<int, int> query(int lo, int hi, SegmentTree& minTree, SegmentTree& maxTree) {
+  // cout << "query " << lo << " " << hi << endl;
+  auto p = minTree.query(lo, hi);
+  // cout << "min " << p.idx << " " << p.v << endl;
+  int rem1 = p.idx + 1;
+  int v1 = -1;
+  if (lo < p.idx) {
+    v1 = lca(lo, p.idx - 1, minTree, maxTree);
+  }
+  int v2 = -1;
+  if (p.idx < hi) {
+    v2 = lca(p.idx + 1, hi, minTree, maxTree);
+  }
+  int lca1 = -1;
+  if (v1 >= 0 && v2 >= 0) lca1 = lca(v1, v2);
+  else if (v1 >= 0) lca1 = v1;
+  else if (v2 >= 0) lca1 = v2;
+
+  p = maxTree.query(lo, hi);
+  // cout << "max " << p.idx << " " << p.v << endl;
+  int rem2 = p.idx + 1;
+  int v3 = -1;
+  if (lo < p.idx) {
+    v3 = lca(lo, p.idx - 1, minTree, maxTree);
+  }
+  int v4 = -1;
+  if (p.idx < hi) {
+    v4 = lca(p.idx + 1, hi, minTree, maxTree);
+  }
+  int lca2 = -1;
+  if (v3 >=0 && v4 >= 0) lca2 = lca(v3, v4);
+  else if (v3 >= 0) lca2 = v3;
+  else if (v4 >= 0) lca2 = v4;
+
+  if (lca1 == -1 && lca2 == -1) throw runtime_error("bad input");
+  if (lca1 == -1) return make_pair(rem2, h[lca2]);
+  if (lca2 == -1) return make_pair(rem1, h[lca1]);
+
+  if (h[lca1] < h[lca2]) {
+    return make_pair(rem2, h[lca2]);
+  } else {
+    return make_pair(rem1, h[lca1]);
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie();
+  int q;
+  cin >> n >> q;
+  tin.resize(n);
+  tout.resize(n);
+  h.resize(n);
+  for(int i = 1; i < n; ++i) {
+    int v;
+    cin >> v;
+    g[--v].emplace_back(i);
+  }
+
+  function<void(const int, const int, const int)> dfs = [&](const int v, const int parent, const int depth) {
+    tin[v] = tout[v] = tick++;
+    h[v] = depth;
+    up[0][v] = parent;
+    for(int i = 1; i < LOG; ++i) {
+      if (up[i - 1][v] == -1) {
+        up[i][v] = -1;
+      } else {
+        up[i][v] = up[i - 1][up[i - 1][v]];
+      }
+    }
+    for(int to : g[v]) {
+      dfs(to, v, depth + 1);
+      tout[v] = max(tout[v], tout[to]);
+    }
+  };
+
+  dfs(0, -1, 0);
+  // for(int i = 0; i < n; ++i) {
+  //   cout << i << " -> " << tin[i] << " " << tout[i] << " " << h[i] << endl;
+  // }
+  auto getMin = [](P lhs, P rhs) {
+    if (lhs.v == -1) return rhs;
+    if (rhs.v == -1) return lhs;
+    if (lhs.v < rhs.v) return lhs;
+    return rhs;
+  };
+  SegmentTree minTree(getMin, tin);
+
+  auto getMax = [](P lhs, P rhs) {
+    if (lhs.v == -1) return rhs;
+    if (rhs.v == -1) return lhs;
+    if (lhs.v > rhs.v) return lhs;
+    return rhs;
+  };
+  SegmentTree maxTree(getMax, tin);
+
+  for(int cs = 0; cs < q; ++cs) {
+    int lo, hi;
+    cin >> lo >> hi;
+    --lo; --hi;
+    auto ans = query(lo, hi, minTree, maxTree);
+    cout << ans.first << " " << ans.second << endl;
+    // cout << "---- end of query ----" << endl;
+  }
+  return 0;
+}

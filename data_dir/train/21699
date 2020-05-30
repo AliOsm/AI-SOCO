@@ -1,0 +1,134 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define pb push_back
+#define eb emplace_back
+#define ll long long
+#define pii pair < int, int >
+#define fr first
+#define sc second
+#define mk make_pair
+#define sz(s) (int)s.size()
+#define all(s) s.begin(), s.end()
+#define ok puts("ok");
+#define whatis(x) cerr << #x << " = " << x << endl;
+
+const int N = (int)1e5 + 7;
+const int inf = (int)1e9 + 7;
+
+struct query {
+  int id, v, p;
+  query() {}
+  query(int _id, int _p) {
+    id = _id; p = _p;
+  }
+};
+
+vector < int > gr[N];
+vector < query > qq[N];
+int n;
+bool root[N];
+int sz[N];
+int ans[N];
+int lca[18][N];
+int h[N];
+int cnt[N];
+int isbig[N];
+
+void getsz(int v, int p = 0) {
+  sz[v] = 1;
+  lca[0][v] = p;
+  for (int i = 1; i <= 17; i++) {
+    lca[i][v] = lca[i - 1][lca[i - 1][v]];
+  }
+  for (int to : gr[v]) {
+    h[to] = h[v] + 1;
+    getsz(to, v);
+    sz[v] += sz[to];
+  }
+}
+
+void del(int v) {
+  cnt[h[v]]--;
+  for (int to : gr[v]) {
+    if (isbig[to]) continue;
+    del(to);
+  }
+}
+
+void add(int v ) {
+  cnt[h[v]]++;
+  for (int to : gr[v]) {
+    if (isbig[to]) continue;
+    add(to);
+  }
+}
+
+void dfs(int v, bool keep) {
+  int big = -1, siz = 0;
+  for (int to : gr[v]) {
+    if (sz[to] > siz) {
+      siz = sz[to];
+      big = to;
+    }
+  }
+  for (int to : gr[v]) {
+    if (to != big) {
+      dfs(to, 0);
+    }
+  }
+  if (big != -1) {
+    dfs(big, 1);
+    isbig[big] = 1;
+  }
+  add(v);
+  for (auto it : qq[v]) {
+    ans[it.id] = cnt[h[v] + it.p] - 1;
+  }
+  if (big != -1)
+    isbig[big] = 0;
+  if (!keep) {
+    del(v);
+  }
+}
+
+int get(int v, int pp) {
+  for (int i = 17; i >= 0; i--) {
+    if (pp & (1 << i)) {
+      v = lca[i][v];
+    }
+  }
+  return v;
+}
+
+main() {
+  scanf("%d", &n);
+  for (int i = 1; i <= n; i++) {
+    int p;
+    scanf("%d", &p);
+    if (p) {
+      gr[p].pb(i);
+
+    } else {
+      root[i] = 1;
+    }
+  }
+  for (int i = 1; i <= n; i++)
+    if (root[i])
+      getsz(i);
+  int q;
+  scanf("%d", &q);
+  for (int i = 1; i <= q; i++) {
+    int a, b, c;
+    scanf("%d %d", &a, &b);
+    c = get(a, b);
+    qq[c].pb(query(i, b));
+  }
+  for (int i = 1; i <= n; i++)
+    if (root[i])
+      dfs(i, 0);
+  for (int i = 1; i <= q; i++) {
+    printf("%d ", ans[i]);
+  }
+}

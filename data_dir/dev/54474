@@ -1,0 +1,130 @@
+#include<iostream>
+#include<cmath>
+#include<algorithm>
+#include<string>
+#include<string.h>
+#include<vector>
+#include<set>
+#include<map>
+#include<cstdio>
+using namespace std;
+ 
+typedef long long Int;
+#define FOR(i,a,b) for(int i=(a); i<=(b);++i)
+#define mp make_pair
+#define pb push_back
+#define sz(s) (int)((s).size())
+const int inf = 1000000000;
+const int MOD = 1000000007;
+
+const int N = 100009;
+
+struct fenwick{
+	int s[N+1];
+	int total;
+	void clear() {
+		memset(s,0,sizeof(s));
+		total=0;
+	}
+	void upd(int v, int delta) {
+		if(!v) return;
+		total+=delta;
+		while(v<=N) {
+			s[v]+=delta;
+			v=(v|(v+1));
+		}
+	}
+	int get(int v) {
+		int ans=0;
+		while(v>0) {
+			ans+=s[v];
+			v=(v&(v+1))-1;
+		}
+		return ans;
+	}
+	int get1(int l) {
+		return total-get(l-1);
+	}
+};
+
+struct four{
+	int x,y,z,t;
+	bool operator<(four other)const {
+		return y<other.y;
+	}
+	four(int x, int y, int z, int t):x(x),y(y),z(z),t(t){}
+};
+
+vector<four>q[1000];
+vector<int> g[N+1];
+int c[N+1];
+fenwick fn;
+int cnt[N+1];
+int n;
+int res[N+1];
+vector<int> order;
+int from[N+1], to[N+1];
+
+void dfs(int v, int fath) {
+	from[v]=sz(order);
+	order.pb(v);
+	FOR(i,0,sz(g[v])-1) {
+		int to = g[v][i];
+		if(to==fath) continue;
+		dfs(to, v);
+	}
+	to[v]=sz(order)-1;
+}
+
+void add(int v) {
+	int c=::c[v];
+	fn.upd(cnt[c],-1);
+	cnt[c]++;
+	fn.upd(cnt[c],1);
+}
+
+void del(int v) {
+	int c=::c[v];
+	fn.upd(cnt[c], -1);
+	cnt[c]--;
+	fn.upd(cnt[c], 1);
+}
+
+int main() {
+    //freopen("input.txt","r",stdin); freopen("output.txt","w",stdout);
+	int m;cin>>n>>m;
+	FOR(i,1,n) scanf("%d",&c[i]);
+	FOR(i,1,n-1) {
+		int x,y;scanf("%d %d",&x,&y);
+		g[x].pb(y);
+		g[y].pb(x);
+	}
+	dfs(1, -1);
+	int step = max(1, (int)sqrt(double(n)));
+	FOR(i,1,m) {
+		int v,k;
+		scanf("%d %d",&v,&k);
+		int s=from[v], f=to[v];
+		q[s/step].pb(four(s, f, k, i));
+	}
+
+	FOR(part,0,n/step) if(!q[part].empty()) {
+		memset(cnt,0,sizeof(cnt));
+		sort(q[part].begin(), q[part].end());
+		fn.clear();
+		FOR(i,q[part][0].x,q[part][0].y) add(order[i]);
+		res[q[part][0].t]=fn.get1(q[part][0].z);
+		int l=q[part][0].x,
+			r=q[part][0].y;
+		FOR(i,1,sz(q[part])-1) {
+			while(r<q[part][i].y) add(order[++r]);
+			while(l>q[part][i].x) add(order[--l]);
+			while(l<q[part][i].x) del(order[l++]);
+			res[q[part][i].t]=fn.get1(q[part][i].z);
+		}
+	}
+
+	FOR(i,1,m) {
+		printf("%d\n", res[i]);
+	}
+}

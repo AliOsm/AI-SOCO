@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+const int N = 2e5+50;
+const int M = 1e6;
+const ll oo = 1e18;
+const int mod = 1e9+7;
+
+int l,r,ids,n,q,s;
+ll cost[1<<18],seg[1<<18],cur;
+vector<pair<int,ll>> g[1<<18];
+bool vis[1<<18];
+
+vector<int> getin(int n,int s,int e){
+	if(s > r || e < l)return {};
+	if(s >= l && e <= r)return {n};
+	vector<int> cur,tmp;
+	tmp = getin(n*2,s,(s+e)/2);
+	for(int v : tmp)cur.push_back(v);
+	tmp = getin(n*2+1,(s+e)/2+1,e);
+	for(int v : tmp)cur.push_back(v);
+	return cur;
+}
+
+void get(int n,int s,int e){
+	if(s > r || e < l)return;
+	cur = min(cur,seg[n]);
+	if(s == e)return;
+	get(n*2,s,(s+e)/2);
+	get(n*2+1,(s+e)/2+1,e);
+}
+
+void build(int n,int s,int e){
+	if(s == e)return;
+	g[n].push_back({n*2,0});
+	g[n].push_back({n*2+1,0});
+	g[n*2].push_back({n,-1});
+	g[n*2+1].push_back({n,-1});
+	build(n*2,s,(s+e)/2);
+	build(n*2+1,(s+e)/2+1,e);
+}
+
+void dij(){
+	priority_queue<pair<ll,int>> q;
+	for(int i=0;i<(1<<18);i++)seg[i] = cost[i] = oo;
+	build(1,1,n);
+	seg[ids] = 0;
+	cost[ids] = 0;
+	q.push({0,ids});
+	while(q.size()){
+		int u = q.top().second;
+		ll cst = -q.top().first;
+		q.pop();
+		if(seg[u] < cst)continue;
+		for(pair<int,ll> cur : g[u]){
+			int v = cur.first;
+			ll w = cur.second;
+			ll ncst = cost[u] + w;
+			if(w == 0)ncst = seg[u];
+			if(w == -1)ncst = cost[u];
+			if(w == -1 && cost[v] < ncst)continue;
+			if(seg[v] <= ncst)continue;
+			if(w != -1)seg[v] = ncst;
+			cost[v] = min(cost[v],ncst);
+			q.push({-seg[v],v});
+		}
+	}
+}
+	
+int main(){
+	#ifndef ONLINE_JUDGE
+		freopen("input.txt","r",stdin);
+	#endif
+	scanf("%d%d%d",&n,&q,&s);
+	l = r = s;
+	ids = getin(1,1,n).back();
+	vector<int> fr,to;
+	for(int i=0;i<q;i++){
+		int t,u,v,w,lf,ri;
+		scanf("%d",&t);
+		if(t == 1){
+			scanf("%d%d%d",&u,&v,&w);
+			l = r = u;
+			fr = getin(1,1,n);
+			l = r = v;
+			to = getin(1,1,n);
+		}else if(t == 2){
+			scanf("%d%d%d%d",&u,&lf,&ri,&w);
+			l = r = u;
+			fr = getin(1,1,n);
+			l = lf;
+			r = ri;
+			to = getin(1,1,n);
+		}else{
+			scanf("%d%d%d%d",&u,&lf,&ri,&w);
+			l = lf;
+			r = ri;
+			fr = getin(1,1,n);
+			l = r = u;
+			to = getin(1,1,n);
+			if(s >= lf && s <= ri)fr.push_back(ids);
+		}
+		for(int u : fr)
+			for(int v : to)
+				g[u].push_back({v,w});
+	}
+	dij();
+	for(int i=1;i<=n;i++){
+		cur = 1e18;
+		l = r = i;
+		get(1,1,n);
+		if(cur == 1e18)cur = -1;
+		printf("%lld ", cur);
+	}
+	printf("\n");
+}

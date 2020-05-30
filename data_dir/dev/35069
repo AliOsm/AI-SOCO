@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MAGIC 500
+
+int n, m, pc, la, par[200001], now, ver[200001], tar;
+bool ans;
+pair<pair<int, int>, int*> p[400000];
+pair<int, int> q[400000];
+vector<pair<int, int>> v[200001];
+
+bool dfs(int a) {
+	if (a == tar)
+		return 1;
+	ver[a] = now;
+	for (auto& i : v[a])
+		if (ver[i.first] != now && !(q[i.second].first & (1 << 30)) && dfs(i.first))
+			return 1;
+	return 0;
+}
+
+int find(int a) {
+	return par[a] == a ? a : par[a] = find(par[a]);
+}
+
+struct Query {
+	struct Edge {
+		int x, y, id;
+		void Add() {
+			if (x > y)
+				swap(x, y);
+			p[pc++] = {{x, y}, &id};
+		}
+	} e[2];
+	int t;
+	void Input() {
+		scanf("%d%d%d", &t, &e[0].x, &e[0].y);
+		if (t == 1) {
+			e[0].Add();
+			e[1].x = e[0].x % n + 1;
+			e[1].y = e[0].y % n + 1;
+			e[1].Add();
+		}
+	}
+} x[200000];
+
+int main() {
+	scanf("%d%d", &n, &m);
+	for (int i = 0; i < m; i++)
+		x[i].Input();
+	sort(p, p + pc);
+	q[0] = p[0].first;
+	q[0].first ^= 1 << 30;
+	for (int i = 1; i < pc; i++) {
+		if (p[i].first != p[i - 1].first) {
+			la++;
+			q[la] = p[i].first;
+			q[la].first ^= 1 << 30;
+		}
+		*p[i].second = la;
+	}
+	for (int i = 0; i < m; ) {
+		int to = min(m, i + MAGIC);
+		for (int j = 1; j <= n; j++)
+			v[j].clear();
+		for (int j = i; j < to; j++)
+			if (x[j].t == 1)
+				for (auto& e : x[j].e)
+					q[e.id].first |= 1 << 29;
+		for (int j = 1; j <= n; j++)
+			par[j] = j;
+		for (int j = 0; j <= la; j++)
+			if (q[j].first & (1 << 29))
+				q[j].first ^= 1 << 29;
+			else if (!(q[j].first & (1 << 30))) {
+				int ta = find(q[j].first);
+				int tb = find(q[j].second);
+				if (ta != tb)
+					par[ta] = tb;
+			}
+		for (int j = i; j < to; j++)
+			if (x[j].t == 1)
+				for (auto& e : x[j].e) {
+					int ta = find(e.x);
+					int tb = find(e.y);
+					if (ta != tb) {
+						v[ta].emplace_back(tb, e.id);
+						v[tb].emplace_back(ta, e.id);
+					}
+				}
+		for (int j = i; j < to; j++) {
+			if (x[j].t == 1)
+				q[x[j].e[ans].id].first ^= 1 << 30;
+			else {
+				int ta = x[j].e[0].x;
+				int tb = x[j].e[0].y;
+				if (ans) {
+					ta = ta % n + 1;
+					tb = tb % n + 1;
+				}
+				ta = find(ta);
+				tb = find(tb);
+				if (ta == tb)
+					ans = 1;
+				else {
+					now++;
+					tar = tb;
+					ans = dfs(ta);
+				}
+				printf("%d", ans);
+			}
+		}
+		i = to;
+	}
+	puts("");
+}

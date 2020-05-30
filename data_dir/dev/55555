@@ -1,0 +1,157 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <cstring>
+#include <cmath>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
+int nextInt() {
+    int x = 0, p = 1;
+    char c;
+    do {
+        c = getchar();
+    } while (c <= 32);
+    if (c == '-') {
+        p = -1;
+        c = getchar();
+    }
+    while (c >= '0' && c <= '9') {
+        x = x * 10 + c - '0';
+        c = getchar();
+    }
+    return x * p;
+}
+
+const long long P = 1000000009LL;
+
+long long md(long long x) {
+    x %= P;
+    if (x < 0) x += P;
+    return x;
+}
+
+const int maxn = 100500 * 3;
+
+template<class T, int L, int R> struct myArr {
+    T * arr;
+    myArr() {
+        arr = new T[R - L + 1];
+        memset(arr, 0, sizeof(T) * (R - L + 1));
+    }
+    T & operator [](int idx) {
+        return arr[idx - L];
+    }
+};
+
+myArr<long long, -maxn, maxn> fib;
+
+void calcFib() {
+    fib[1] = 1;
+    fib[2] = 1;
+    for (int i = 3; i <= maxn; i++)
+        fib[i] = md(fib[i - 1] + fib[i - 2]);
+    for (int i = 0; i >= -maxn; i--)
+        fib[i] = md(fib[i + 2] - fib[i + 1]);
+}
+
+inline void getIthFib(long long & fm1, long long & f0, int x) {
+    long long nfm1 = fm1 * fib[x - 1] + f0 * fib[x];
+    long long nf0 = fm1 * fib[x] + f0 * fib[x + 1];
+    fm1 = md(nfm1);
+    f0 = md(nf0);
+}
+
+inline long long getSumFib(long long fm1, long long f0, int r) {
+    long long sec = f0;
+    getIthFib(fm1, f0, r + 2);
+    return md(f0 - sec);
+}
+
+inline long long getSumFib(long long fm1, long long f0, int l, int r) {
+    return md(getSumFib(fm1, f0, r) - getSumFib(fm1, f0, l - 1));
+}
+
+struct node {
+    long long fm1, f0, sum;
+    node() {}
+};
+
+int n, q;
+int a[maxn];
+node t[maxn * 4];
+
+void build(int v, int tl, int tr) {
+    if (tl == tr) {
+        t[v].sum = a[tl];
+        return ;
+    }
+    int tm = (tl + tr) >> 1;
+    build((v << 1) + 1, tl, tm);
+    build((v << 1) + 2, tm + 1, tr);
+    t[v].sum = md(t[(v << 1) + 1].sum + t[(v << 1) + 2].sum);
+}
+
+void add(int v, int tl, int tr, int l, int r, long long fm1, long long f0) {
+    t[v].sum = md(t[v].sum + getSumFib(fm1, f0, l - tl + 1, r - tl + 1));
+    if (tl == l && tr == r) {
+        t[v].fm1 = md(t[v].fm1 + fm1);
+        t[v].f0 = md(t[v].f0 + f0);
+        return;
+    }
+    int tm = (tl + tr) >> 1;
+    if (r <= tm)
+        add((v << 1) + 1, tl, tm, l, r, fm1, f0);
+    else if (l > tm) {
+        getIthFib(fm1, f0, tm - tl + 1);
+        add((v << 1) + 2, tm + 1, tr, l, r, fm1, f0);
+    }
+    else {
+        add((v << 1) + 1, tl, tm, l, tm, fm1, f0);
+        getIthFib(fm1, f0, tm - tl + 1);
+        add((v << 1) + 2, tm + 1, tr, tm + 1, r, fm1, f0);
+    }
+}
+
+long long getSum(int v, int tl, int tr, int l, int r) {
+    if (tl == l && tr == r) return t[v].sum;
+    long long res = getSumFib(t[v].fm1, t[v].f0, l - tl + 1, r - tl + 1);
+    int tm = (tl + tr) >> 1;
+    if (r <= tm) return md(res + getSum((v << 1) + 1, tl, tm, l, r));
+    else if (l > tm) return md(res + getSum((v << 1) + 2, tm + 1, tr, l, r));
+    else return md(res + getSum((v << 1) + 1, tl, tm, l, tm) + getSum((v << 1) + 2, tm + 1, tr, tm + 1, r));
+}
+
+int main() {
+    //freopen("input.txt", "r", stdin);
+
+    calcFib();
+
+    n = nextInt();
+    q = nextInt();
+
+    for (int i = 1; i <= n; i++)
+        a[i] = nextInt();
+
+    build(0, 1, n);
+
+    while (q--) {
+        int t, l, r;
+        t = nextInt();
+        l = nextInt();
+        r = nextInt();
+        if (t == 1) {
+            long long fm1 = fib[-1];
+            long long f0 = fib[0];
+            getIthFib(fm1, f0, 1 - l);
+            add(0, 1, n, l, r, fm1, f0);
+        }
+        else {
+            printf("%d\n", (int)getSum(0, 1, n, l, r));
+        }
+    }
+
+    return 0;
+}

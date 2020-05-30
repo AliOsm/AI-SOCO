@@ -1,0 +1,135 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5+7, K = 20, RT = 500;
+vector<int> adj[N];
+int st[N], en[N], dep[N], anc[N][K], order[N];
+
+int tim = 0;
+void dfs(int u, int p, int dep) {
+    ::dep[u] = dep;
+    st[u] = ++tim;
+    order[tim] = u;
+    anc[u][0] = p;
+    for (int k=1; k<K; k++) anc[u][k] = anc[anc[u][k-1]][k-1];
+    for (int v: adj[u]) {
+        if (v == p) continue;
+        dfs(v, u, dep+1);
+    }
+    en[u] = tim;
+}
+
+int lca(int u, int v) {
+    if (dep[u] > dep[v])    swap(u, v);
+    for (int k=K-1; k>=0; k--)
+        if (dep[u] + (1<<k) <= dep[v])
+            v = anc[v][k];
+    if (u == v) return u;
+    for (int k=K-1; k>=0; k--)
+        if (anc[u][k] != anc[v][k])
+            u = anc[u][k], v = anc[v][k];
+    return anc[u][0];
+}
+
+vector<pair<int,int>> ej[N];
+pair<int,int> dis[N];
+bool issub(int p, int u) {
+    return st[p] <= st[u] && en[u] <= en[p];
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n;
+    cin>>n;
+
+    for (int i=1; i<n; i++) {
+        int u, v;
+        cin>>u>>v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    dfs(1, 0, 0);
+
+    int q;
+    cin>>q;
+
+    while (q--) {
+        int k, m;
+        cin>>k>>m;
+
+        vector<int> special;
+        vector<pair<int, int>> sources(k);
+        for (int i=0; i<k; i++) {
+            cin>>sources[i].first>>sources[i].second;
+            special.push_back(sources[i].first);
+        }
+
+        vector<int> qq(m);
+        for (int i=0; i<m; i++) {
+            cin>>qq[i];
+            special.push_back(qq[i]);
+        }
+        sort(special.begin(), special.end(), [](int u, int v) {return st[u] < st[v];});
+        special.erase(unique(special.begin(), special.end()), special.end());
+
+        for (int i=special.size()-1; i>0; i--) {
+            int a = special[i-1];
+            int b = special[i];
+            special.push_back(lca(a, b));
+        }
+
+        sort(special.begin(), special.end(), [](int u, int v) {return st[u] < st[v];} );
+        special.erase(unique(special.begin(), special.end()), special.end());
+        for (int x: special)    {
+            ej[x].clear();
+            dis[x] = {N, N};
+        }
+
+        stack<int> stk;
+        stk.push(special[0]);
+
+        for (int i=1; i<special.size(); i++) {
+            while(!issub(stk.top(), special[i]))   stk.pop();
+            int u = stk.top(), v = special[i];
+            int d = dep[v] - dep[u];
+            ej[u].push_back({v, d});
+            ej[v].push_back({u, d});
+            stk.push(special[i]);
+        }
+
+        priority_queue<tuple<int, int, int, int>> pq;
+        for (int i=0; i<sources.size(); i++) {
+            int s = sources[i].first;
+            dis[s] = {0, i};
+            pq.push({-0, -i, s, 0});
+        }
+
+        while(pq.size()) {
+            int k = -get<0>(pq.top());
+            int i = -get<1>(pq.top());
+            int u = get<2>(pq.top());
+            int dd = get<3>(pq.top());
+            pq.pop();
+
+            if (make_pair(k, i) > dis[u])   continue;
+            int s = sources[i].first;
+            int sk = sources[i].second;
+            for (auto pr: ej[u]) {
+                int v = pr.first;
+                int d = dd + pr.second;
+                int kk = (d+sk-1)/sk;
+                if (make_pair(kk, i) < dis[v]) {
+                    dis[v] = make_pair(kk, i);
+                    pq.push({-kk, -i, v, d});
+                }
+            }
+        }
+
+        for (int x: qq) {
+            cout<<dis[x].second+1<<" ";
+        }
+        cout<<"\n";
+    }
+}

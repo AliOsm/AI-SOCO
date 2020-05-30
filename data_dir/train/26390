@@ -1,0 +1,350 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+	AssertsCounter(): counter(0) {}
+	~AssertsCounter() { std::cerr << std::endl << "DIAG: " << (counter == 0 ? "OK" : "FAIL!!!") << " Asserts count: " << counter << std::endl; }
+	void Increment() { counter++; }
+	uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cerr << "ASSERT FAILED (" << __LINE__ << "): '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cerr << "ASSERT FAILED (" << __LINE__ << "): '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+volatile bool isLocalTestEnabled = 0;
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+bool g_isLocalPrintEnabled = (bool)(LOCAL_TEST);
+#define LOCAL_PRINT() if (!g_isLocalPrintEnabled) { } else std::cerr // << .. << ..
+
+typedef std::string string8_t;
+typedef long double ld_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<uint8_t> vector_uint8_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<vector_int32_t> vector_2d_int32_t;
+typedef std::vector<vector_uint32_t> vector_2d_uint32_t;
+typedef std::vector<vector_int64_t> vector_2d_int64_t;
+typedef std::vector<vector_uint64_t> vector_2d_uint64_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+typedef std::set<string8_t> set_string8_t;
+
+typedef std::multiset<size_t> multiset_size_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> void UpdateMin(T& a, const T b) {a = std::min(a, b);}
+template<typename T> void UpdateMax(T& a, const T b) {a = std::max(a, b);}
+
+const ld_t Pi = std::atan(1.0L) * 4.0L;
+static const ld_t Eps = 1.0e-09;
+template<typename T> bool IsEqual(const T a, const T b) { return std::abs(a - b) < Eps; }
+template<typename T> bool IsGreater(const T a, const T b) { return a > b + Eps; }
+template<typename T> bool IsLess(const T a, const T b) { return a + Eps < b; }
+template<typename T> bool IsGreaterEqual(const T a, const T b) { return !IsLess(a, b); }
+template<typename T> bool IsLessEqual(const T a, const T b) { return !IsGreater(a, b); }
+
+template<typename T> string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+	LOCAL_ASSERT(!!ist);
+	for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+	return ist;
+}
+
+template<typename T> T Read(std::istream& ist)
+{
+	LOCAL_ASSERT(!!ist);
+	T val; ist >> val; return val;
+}
+
+template<typename T> std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+	for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+	return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+struct ISolver
+{
+	virtual vector_uint32_t Query(const vector_size_t& q) = 0;
+	virtual void Finish(const vector_uint32_t& mins) = 0;
+	virtual ~ISolver() { }
+};
+
+class SolverInteractive : public ISolver
+{
+public:
+	SolverInteractive(const size_t n): n(n) { }
+
+	virtual vector_uint32_t Query(const vector_size_t& q)
+	{
+		LOCAL_ASSERT(q.size() != 0);
+		LOCAL_ASSERT(q.size() <= n);
+
+		std::cout << q.size() << std::endl;
+		for (size_t i = 0; i < q.size(); i++)
+		{
+			if (i != 0)
+				std::cout << " ";
+			std::cout << (q[i] + 1);
+		}
+		std::cout << std::endl;
+
+		vector_uint32_t v(n);
+		std::cin >> v;
+		return v;
+	}
+
+	virtual void Finish(const vector_uint32_t& mins)
+	{
+		std::cout << "-1" << std::endl;
+		std::cout << mins << std::endl;
+	}
+
+private:
+	const size_t n;
+};
+
+
+const uint32_t Inf = 1UL << 31;
+class SolverAutomatic : public ISolver
+{
+public:
+	SolverAutomatic(const vector_2d_uint32_t &m): m(m), n(m.size()), queries(0), isFinished(false), isOk(false) { }
+
+	virtual vector_uint32_t Query(const vector_size_t& q)
+	{
+		LOCAL_ASSERT(q.size() != 0);
+		LOCAL_ASSERT(q.size() <= n);
+		queries++;
+
+		vector_uint32_t mins(n, Inf);
+		for (size_t i = 0; i < n; i++)
+		{
+			for (size_t j = 0; j < q.size(); j++)
+			{
+				const size_t idx = q[j];
+				UpdateMin(mins[i], m[i][idx]);
+			}
+		}
+
+		std::cout << mins << std::endl;
+		return mins;
+	}
+
+	virtual void Finish(const vector_uint32_t& ans)
+	{
+		LOCAL_ASSERT(!isFinished);
+		isFinished = true;
+
+		vector_uint32_t mins(n, Inf);
+		for (size_t i = 0; i < n; i++)
+		{
+			for (size_t j = 0; j < n; j++)
+			{
+				if (i == j)
+					continue;
+				UpdateMin(mins[i], m[i][j]);
+			}
+		}
+
+		if (mins == ans)
+			isOk = true;
+	}
+
+public:
+	const vector_2d_uint32_t m;
+	const size_t n;
+	size_t queries;
+	bool isFinished;
+	bool isOk;
+};
+
+const size_t MaxBits = 10;
+
+vector_size_t BuildQuery(const size_t n, const vector_uint32_t& mask)
+{
+	vector_size_t q;
+	for (size_t i = 0; i < n; i++)
+	{
+		if (mask[i] != 0)
+			q.push_back(i);
+	}
+	return q;
+}
+
+void GetAns(const size_t n, ISolver& solver)
+{
+	vector_2d_uint32_t t(MaxBits * 2, vector_uint32_t(n));
+
+	for (size_t i = 0; i < MaxBits; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+		{
+			const uint32_t x = (1UL << i);
+			const uint32_t y = j / x;
+			t[2 * i + 0][j] = (y & 1) ^ 1;
+			t[2 * i + 1][j] = (y & 1);
+		}
+	}
+
+	vector_2d_uint32_t answers(t.size());
+	for (size_t i = 0; i < t.size(); i++)
+	{
+		const vector_size_t q = BuildQuery(n, t[i]);
+		if (q.empty())
+			continue;
+
+		answers[i] = solver.Query(q);
+	}
+
+	vector_uint32_t mins(n, Inf);
+	for (size_t r = 0; r < n; r++)
+	{
+		for (size_t i = 0; i < t.size(); i++)
+		{
+			if (t[i][r] != 1)
+			{
+				if (!answers[i].empty())
+				{
+					LOCAL_ASSERT(answers[i].size() > r);
+					UpdateMin(mins[r], answers[i][r]);
+				}
+			}
+		}
+	}
+
+	solver.Finish(mins);
+}
+
+void Solve(std::istream& ist, std::ostream& ost)
+{
+	StopWatch<1> sw; (void)sw;
+
+	// 
+	size_t n;
+	ist >> n;
+
+	LOCAL_PRINT() << std::endl << "Main test" << std::endl;
+	SolverInteractive solver(n);
+	GetAns(n, solver);
+}
+
+
+#if LOCAL_TEST
+void Test()
+{
+	while (std::cin)
+	{
+		size_t n;
+		std::cin >> n;
+
+		if (!std::cin)
+			break;
+
+		vector_2d_uint32_t m(n, vector_uint32_t(n));
+		for (size_t i = 0; i < n; i++)
+		{
+			std::cin >> m[i];
+		}
+
+		SolverAutomatic solver(m);
+		GetAns(n, solver);
+
+		LOCAL_ASSERT(solver.isFinished);
+		LOCAL_ASSERT(solver.isOk);
+		std::cout << "n = " << n << ", queries: " << solver.queries << std::endl;
+		{
+		if (solver.isOk)
+			std::cout << "passed" << std::endl;
+		else
+			std::cout << "failed" << std::endl;	
+		}
+	}
+}
+#endif
+
+int main(int argc, const char *argv[])
+{
+#if LOCAL_TEST
+	Test();
+#endif
+
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+    Solve(*ist, *ost);
+}

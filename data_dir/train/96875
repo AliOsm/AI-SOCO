@@ -1,0 +1,148 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+#define INF (1<<29)
+
+int N;
+vector <int> graph[200010];
+vector <int> child[200010];
+int dp[200010],up[200010];
+
+int merge(int p, int q){
+	if(p == -1 || q == -1 || p != q) return -1;
+	return p;
+}
+
+int inc(int p){
+	if(p != -1) p++;
+	return p;
+}
+
+void dfs1(int p, int x){
+	int i;
+	
+	REP(i,graph[x].size()){
+		int y = graph[x][i];
+		if(y != p){
+			child[x].push_back(y);
+			dfs1(x, y);
+		}
+	}
+	
+	int sz = child[x].size();
+	if(sz == 0){
+		dp[x] = 0;
+		return;
+	}
+	
+	dp[x] = dp[child[x][0]];
+	for(i=1;i<sz;i++) dp[x] = merge(dp[x], dp[child[x][i]]);
+	dp[x] = inc(dp[x]);
+}
+
+int L[200010],R[200010];
+
+void dfs2(int p, int x){
+	int i;
+	int sz = child[x].size();
+	
+	if(sz != 0){
+		L[0] = dp[child[x][0]];
+		for(i=1;i<sz;i++) L[i] = merge(L[i-1], dp[child[x][i]]);
+		R[sz-1] = dp[child[x][sz-1]];
+		for(i=sz-2;i>=0;i--) R[i] = merge(R[i+1], dp[child[x][i]]);
+		
+		REP(i,sz){
+			L[i] = inc(L[i]);
+			R[i] = inc(R[i]);
+		}
+	}
+	
+	if(x == 0){
+		if(sz == 1){
+			up[child[x][0]] = 0;
+		} else {
+			REP(i,sz){
+				if(i == 0){
+					up[child[x][i]] = R[1];
+				} else if(i == sz-1){
+					up[child[x][i]] = L[sz-2];
+				} else {
+					up[child[x][i]] = merge(R[i+1], L[i-1]);
+				}
+			}
+		}
+	} else {
+		REP(i,sz){
+			up[child[x][i]] = up[x];
+			if(i > 0) up[child[x][i]] = merge(up[child[x][i]], L[i-1]);
+			if(i+1 < sz) up[child[x][i]] = merge(up[child[x][i]], R[i+1]);
+		}
+	}
+	
+	REP(i,sz) up[child[x][i]] = inc(up[child[x][i]]);
+	
+	REP(i,sz) dfs2(x, child[x][i]);
+}
+
+int main(void){
+	int i,j,s,t;
+	
+	cin >> N;
+	REP(i,N-1){
+		scanf("%d%d", &s, &t);
+		s--; t--;
+		graph[s].push_back(t);
+		graph[t].push_back(s);
+	}
+	
+	dfs1(-1, 0);
+	dfs2(-1, 0);
+	
+	int ans = INF;
+	
+	// REP(i,N) cout << dp[i] << ' ' << up[i] << endl;
+	
+	REP(i,N){
+		vector <int> v;
+		REP(j,child[i].size()) v.push_back(inc(dp[child[i][j]]));
+		if(i != 0) v.push_back(up[i]);
+		
+		sort(v.begin(),v.end());
+		bool good = true;
+		if(v[0] == -1) good = false;
+		REP(j,v.size()) if(v[j] != v[0] && v[j] != v[v.size()-1]) good = false;
+		
+		if(good){
+			int x = v[0] + v[v.size()-1];
+			while(x % 2 == 0) x /= 2;
+			ans = min(ans, x);
+		}
+	}
+	
+	if(ans == INF) ans = -1;
+	cout << ans << endl;
+	
+	return 0;
+}

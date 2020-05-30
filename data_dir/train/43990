@@ -1,0 +1,210 @@
+//#pragma GCC optimize("Ofast,no-stack-protector")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx")
+//#pragma GCC target("avx,tune=native")
+// Anand Jaisingh
+
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+#define pii pair<int,int>
+#define pll pair< ll, ll >
+
+const int LN=65,maxn=(int)(1e5+5);
+const ll mod=(ll)(1e9+7);
+int dp[LN][maxn],f[LN][maxn],sdp[LN][maxn];
+int fact[maxn],inv_fact[maxn];
+
+inline int mul(ll a,ll b)
+{
+    return (a*b)%mod;
+}
+
+inline int add(int a,int b)
+{
+    int ret=a+b;
+
+    if(ret>=mod)
+    {
+        ret-=mod;
+    }
+
+    return ret;
+}
+
+inline int sub(int a,int b)
+{
+    int ret=a-b;
+
+    if(ret<0)
+    {
+        ret+=mod;
+    }
+
+    return ret;
+}
+
+inline int poww(ll a,ll b)
+{
+    int x=1,y=a;
+
+    while(b>0)
+    {
+        if(b%2)
+        {
+            x=mul(x,y);
+        }
+
+        y=mul(y,y);b/=2;
+    }
+
+    return (int)(x%mod);
+}
+
+void build()
+{
+    fact[0]=1;
+
+    for(int i=1;i<maxn;i++)
+    {
+        fact[i]=mul(fact[i-1],i);
+    }
+
+    inv_fact[maxn-1]=poww(fact[maxn-1],mod-2);
+
+    for(int i=maxn-2;i>=0;i--)
+    {
+        inv_fact[i]=mul(inv_fact[i+1],i+1);
+    }
+}
+
+int inv(int x)
+{
+    assert(x>0);
+
+    return mul(fact[x-1],inv_fact[x]);
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+
+    ll n;int k;cin>>n>>k;build();
+
+    vector< ll > divs;
+
+    for(ll i=1;i*i<=n;i++)
+    {
+        if(n%i==0)
+        {
+            divs.pb(i);
+
+            if(i!=n/i)
+            {
+                divs.pb(n/i);
+            }
+        }
+    }
+
+    vector< pll > v;
+
+    for(ll i=2;i*i<=n;i++)
+    {
+        int ctr=0;
+
+        while(n%i==0)
+        {
+            n/=i;
+
+            ctr++;
+        }
+
+        if(ctr>0)
+        {
+            v.pb({i,ctr});
+        }
+    }
+
+    if(n>1)
+    {
+        v.pb({n,1});
+    }
+
+    for(int i=0;i<v.size();i++)
+    {
+        int last=v[i].second;
+
+        for(int j=0;j<LN;j++)
+        {
+            for(int x=0;x<=k;x++)
+            {
+                dp[j][x]=0;
+
+                sdp[j][x]=0;
+            }
+        }
+
+        dp[last][0]=1;int tot=0;
+
+        for(int j=last;j>=0;j--)
+        {
+            tot=add(tot,mul(dp[j][0],inv(j+1)));
+
+            sdp[j][0]=tot;
+        }
+
+        for(int j=1;j<=k;j++)
+        {
+            for(int x=last;x>=0;x--)
+            {
+                dp[x][j]=sdp[x][j-1];
+            }
+
+            tot=0;
+
+            for(int x=last;x>=0;x--)
+            {
+                tot=add(tot,mul(dp[x][j],inv(x+1)));
+
+                sdp[x][j]=tot;
+            }
+        }
+
+        for(int j=0;j<LN;j++)
+        {
+            f[i][j]=dp[j][k];
+        }
+    }
+
+    int res=0;
+
+    for(int i=0;i<divs.size();i++)
+    {
+        int prob=1;
+
+        for(int j=0;j<v.size();j++)
+        {
+            int ctr=0;ll now=divs[i];
+
+            while(now%v[j].first==0)
+            {
+                now/=v[j].first;
+
+                ctr++;
+            }
+
+            prob=mul(prob,f[j][ctr]);
+        }
+
+        res=add(res,mul(divs[i]%mod,prob));
+    }
+
+    cout<<res<<endl;
+
+    return 0;
+}

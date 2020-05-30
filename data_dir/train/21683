@@ -1,0 +1,165 @@
+#include <iostream>
+#include <vector>
+#include <cstdio>
+using namespace std;
+
+const int MAXN = 500005;
+long long ST[MAXN << 2];
+long long L[MAXN << 2];
+
+int c[MAXN], idx[MAXN];
+int in[MAXN], out[MAXN];
+vector<int> E[MAXN];
+long long d[MAXN];
+
+int TT = 0;
+void dfs(int node, int father = -1){
+	
+	in[node] = TT;
+	idx[TT] = node;
+	TT++;
+	
+	for(int i = 0 ; i < E[node].size(); i++){
+		int to = E[node][i];
+		if(to == father) continue;
+		dfs(to, node);
+	}
+	
+	
+	
+	out[node] = TT;
+	
+	
+}
+
+void update(int node, int lo, int hi, int from, int to, int val){
+
+	if(L[node]){
+		ST[node] = L[node];
+		
+		if(lo != hi){
+			L[2*node] = L[node];
+			L[2*node+1] = L[node];
+		}
+		
+		L[node] = 0;
+	}
+
+	if(lo > to || hi < from)
+		return;
+		
+	if(lo >= from && hi <= to){
+		
+
+		ST[node] = (1LL << val);
+		
+		if(lo != hi){
+			L[2*node]  = ST[node];
+			L[2*node+1] = ST[node];
+		}
+	//	cout << lo << " - " << hi << " = " << ST[node] << endl;
+		return;
+	}
+	
+	int mid = (lo + hi) / 2;
+	update( 2*node, lo, mid, from, to, val);
+	update( 2*node+1, mid + 1, hi, from, to, val);
+	
+	ST[node] = ST[2*node] | ST[2*node+1];
+	
+//	cout << "ANS FOR " << lo << " - " << hi << " = " << ST[node] << endl;
+}
+
+long long query(int node, int lo, int hi, int from, int to){
+	
+	if(L[node]){
+		ST[node] = L[node];
+		
+		if(lo != hi){
+			L[2*node] = L[node];
+			L[2*node+1] = L[node];
+		}
+		
+		L[node] = 0;
+	}
+	
+	if(lo > to || hi < from)
+		return 0;
+		
+	if(lo >= from && hi <= to)
+		return ST[node];
+	
+	int mid = (lo + hi) / 2;
+	long long left = query(2*node, lo, mid, from, to);
+	long long right = query( 2*node + 1, mid + 1, hi, from, to);
+	
+	return left | right;
+}
+
+void build(int node, int lo, int hi){
+	
+	
+	if(lo == hi){
+		int v = idx[lo];
+		ST[node] = (1LL << c[v]);
+	//	cout << "BUILD " << lo << " - " << hi << " = " << ST[node] << endl;
+		return;
+	}
+	
+	int mid = (lo + hi ) / 2;
+	build( 2*node , lo, mid);
+	build( 2*node + 1, mid + 1, hi);
+	ST[node] = ST[2*node] | ST[ 2*node + 1	];
+	
+}
+
+int main() {
+	int n, m;  scanf("%d %d", &n, &m);
+	
+	for(int i = 0; i < n; i++){
+		scanf("%d", &c[i]);
+	}
+	
+	for(int i = 1; i < n; i++){
+		int x, y; scanf("%d %d", &x, &y);
+		x--;
+		y--;
+		
+		E[x].push_back(y);
+		E[y].push_back(x);
+	}
+	dfs(0);
+	
+	build(1, 0, n - 1);
+	
+	for(int i = 0; i < m; i++){
+		int type; scanf("%d", &type);
+		
+		
+		if(type == 1){
+			int v, to; scanf("%d %d", &v, &to);
+			v--;
+			int x = in[v];
+			int y = out[v] - 1;
+			update(1, 0, n - 1, x, y, to);
+		}else{
+			int v; scanf("%d", &v);
+			v--;
+			
+			int x = in[v];
+			int y = out[v] - 1;
+			
+			
+			long long ret = query(1, 0, n - 1, x, y);
+			
+			int ans = 0;
+			
+			while(ret){
+				if(ret & 1) ans++;
+				ret >>= 1;
+			}
+			printf("%d\n", ans);
+		}
+	}
+	return 0;
+}

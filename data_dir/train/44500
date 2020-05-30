@@ -1,0 +1,81 @@
+//In the name of God
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair <int , int> pii;
+
+const int N = 5e3+10 , MOD = 1e9+7;
+
+int dp[N][N][2] , S[2][N][2] , l[N];
+vector <int> g[N];
+
+void dfs(int u , int p){
+    if(g[u].size() == 1){
+        l[u]++;
+        dp[u][1][1] = 0;
+        dp[u][0][0] = 0;
+        return;
+    }
+    if(u != p){
+        auto z = lower_bound(g[u].begin() , g[u].end() , p);
+        g[u].erase(z);
+    }
+    for(int v:g[u]){
+        dfs(v , u);
+        l[u] += l[v];
+    }
+    int lst;
+    for(int col=0 ; col<2 ; col++){
+        bool f = false;
+        for(int w=0 ; w<g[u].size() ; w++){
+            for(int i=0 ; i<=l[u] ; i++)
+                S[w % 2][i][col] = MOD;
+            int v = g[u][w];
+            if(!f){
+                f = true;
+                for(int k=0 ; k<=l[v] ; k++)
+                    S[w % 2][k][col] = min(dp[v][k][col] , dp[v][k][1-col] + 1);
+                lst = w;
+                continue;
+            }
+            for(int k=l[u] ; k>=0 ; k--)
+                for(int i=min(l[v] , k) ; i>=0 ; i--)
+                    S[w % 2][k][col] = min(S[w % 2][k][col] , min(S[lst % 2][k - i][col] + dp[v][i][col] , S[lst % 2][k - i][col] + dp[v][i][1-col] + 1));
+            lst = w;
+        }
+        for(int i=0 ; i<=l[u] ; i++)
+            dp[u][i][col] = S[lst % 2][i][col];
+    }
+}
+
+int32_t main()
+{
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+    memset(dp , 63 , sizeof(dp));
+    int n , root , u , v;
+    cin>>n;
+    if(n == 2)
+        return cout<<"1\n" , 0;
+    for(int i=0 ; i<n-1 ; i++){
+        cin>>u>>v;
+        u-- , v--;
+        g[u].push_back(v);
+        g[v].push_back(u);
+        if(g[u].size() > 1)
+            root = u;
+        else if(g[v].size() > 1)
+            root = v;
+    }
+    for(int i=0 ; i<n ; i++)
+        sort(g[i].begin() , g[i].end());
+    dfs(root , root);
+    //for(int i=0 ; i<n ; i++)
+        //for(int j=0 ; j<=l[i] ; j++)
+            //cout<<i<<" "<<j<<" "<<dp[i][j][0]<<" "<<dp[i][j][1]<<endl;
+    cout<<min(dp[root][l[root]/2][0] , dp[root][l[root]/2][1])<<"\n";
+    return 0;
+}

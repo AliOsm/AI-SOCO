@@ -1,0 +1,205 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<long double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+
+const int maxn=(int)2e5+5;
+
+ld pi=2.0*acos(0.0);
+const ll mod=(ll)(1009);
+int cnt[maxn];
+
+ll mul(ll a,ll b)
+{
+	ll ret=(a*b);
+	
+	if(ret>=mod)
+	{
+		ret%=mod;
+	}
+	
+	return ret;
+}
+
+ll add(ll a,ll b)
+{
+	ll ret=a+b;
+	
+	if(ret>=mod)
+	{
+		ret%=mod;
+	}
+	
+	return ret;
+}
+
+void fft(vector<base> &a,bool invert)
+{
+	int n=(int)a.size();
+	
+	for(int i=1,j=0;i<n;i++)
+	{
+		int bit=n>>1;
+		
+		for(;j>=bit;bit>>=1)
+		{
+			j-=bit;
+		}
+		
+		j+=bit;
+		
+		if(i<j) 
+		{
+			swap(a[i],a[j]);
+		}
+	}
+ 
+	for(int len=2;len<=n;len<<=1)
+	{
+		ld ang=(2.0*pi/len)*(invert?-1:1);
+			
+		base mul_factor(cos(ang),sin(ang));
+		
+		for(int i=0;i<n;i+=len)
+		{
+			base now(1,0);
+			
+			for(int j=0;j<len/2;j++)
+			{
+				base u=a[i+j],v=a[i+j+len/2]*now;
+				
+				a[i+j]=u+v;;a[i+j+len/2]=u-v;
+				
+				now*=mul_factor;
+			}
+		}
+	}
+	
+	if(invert)
+	{
+		for(int i=0;i<n;i++)
+		{
+			a[i]/=base(n,0);
+		}
+	}
+}
+
+vector<ll> mul_naive(vector<ll> &a,vector<ll> &b)
+{
+	vector<ll> ret((a.size()+b.size()-1));
+	
+	for(int i=0;i<(int)a.size();i++)
+	{
+		for(int j=0;j<(int)b.size();j++)
+		{
+			ret[i+j]=add(ret[i+j],mul(a[i],b[j]));
+		}
+	}
+	
+	return ret;
+}
+
+vector<ll> mult(vector<ll> &a,vector<ll> &b)
+{
+	
+	if(max(a.size(),b.size())<=150)
+	{
+		return mul_naive(a,b);
+	}
+	
+	int size=1;
+	
+	while(size<max(a.size(),b.size()))
+	{
+		size*=2;
+	}
+	
+	size*=2;
+	
+	vector<base> fa(size),fb(size);
+	
+	for(int i=0;i<(int)a.size();i++)
+	{
+		fa[i]=base(a[i],0);
+	}
+	
+	for(int i=0;i<(int)b.size();i++)
+	{
+		fb[i]=base(b[i],0);
+	}
+	
+	fft(fa,0);fft(fb,0);
+	
+	for(int i=0;i<size;i++)
+	{
+		fa[i]*=fb[i];
+	}
+	
+	fft(fa,1);vector<ll> ret;ret.resize(size,0);
+	
+	for(int i=0;i<size;i++)
+	{
+		ret[i]=(ll)(fa[i].real()+0.5)%mod;
+	}
+	
+	while(ret.back()==0)
+	{
+		ret.pop_back();
+	}
+	
+	return ret;
+}
+
+vector<ll> solve(int l,int r)
+{
+	if(l==r)
+	{
+		vector<ll> ret;
+		
+		for(int i=0;i<=cnt[l];i++)
+		{
+			ret.pb(1);
+		}
+		
+		return ret;
+	}
+	
+	else
+	{
+		int mid=(l+r)>>1;
+		
+		vector<ll> x=solve(l,mid),y=solve(mid+1,r),ret=mult(x,y);
+		
+		return ret;
+	}
+}
+
+int main()
+{		
+	int n,m,k;
+	
+	scanf("%d%d%d",&n,&m,&k);
+	
+	for(int i=0;i<n;i++)
+	{
+		int val;
+		
+		scanf("%d",&val);
+	
+		cnt[val]++;
+	}
+	
+	vector<ll> poly=solve(1,m);
+	
+	printf("%lld\n",poly[k]);
+	
+	return 0;
+}
+
+
+

@@ -1,0 +1,155 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define fr first
+#define sc second
+#define ii pair<int,int>
+#define mp make_pair
+using namespace std;
+int a[300005];
+int n,q;
+class wavelet_tree
+{
+public:
+    // Range to elements
+    int low, high;
+
+    // Left and Right child
+    wavelet_tree* l, *r;
+
+    vector<int> freq;
+
+    // Default constructor
+    // Array is in range [x, y]
+    // Indices are in range [from, to]
+    wavelet_tree()
+    {
+
+    }
+    void build(int* from, int* to, int x, int y)
+    {
+        // Initialising low and high
+        low = x, high = y;
+        // Array is of 0 length
+        if (from >= to)
+            return;
+        // Array is homogenous
+        // Example : 1 1 1 1 1
+        if (high == low)
+        {
+            // Assigning storage to freq array
+            freq.reserve(to - from + 1);
+            // Initialising the Freq array
+            freq.push_back(0);
+            // Assigning values
+            for (auto it = from; it != to; it++)
+                // freq will be increasing as there'll
+                // be no further sub-tree
+                freq.push_back(freq.back() + 1);
+            return;
+        }
+        // Computing mid
+        int mid = (low + high) / 2;
+        // Lambda function to check if a number
+        // is less than or equal to mid
+        auto lessThanMid = [mid](int x)
+        {
+            return x <= mid;
+        };
+        // Assigning storage to freq array
+        freq.reserve(to - from + 1);
+        // Initialising the freq array
+        freq.push_back(0);
+        // Assigning value to freq array
+        for (auto it = from; it != to; it++)
+            // If lessThanMid returns 1(true), we add
+            // 1 to previous entry. Otherwise, we add 0
+            // (element goes to right sub-tree)
+            freq.push_back(freq.back() + lessThanMid(*it));
+        // std::stable_partition partitions the array w.r.t Mid
+        auto pivot = stable_partition(from, to, lessThanMid);
+        // Left sub-tree's object
+        l = new wavelet_tree(from, pivot, low, mid);
+        // Right sub-tree's object
+        r = new wavelet_tree(pivot, to, mid + 1, high);
+    }
+    wavelet_tree(int* from, int* to, int x, int y)
+    {
+        build(from,to,x,y);
+    }
+    // Count of numbers in range[L..R] less than
+    // or equal to k
+    int kOrLess(int l, int r, int k)
+    {
+        // No elements int range is less than k
+        if (l > r or k < low)
+            return 0;
+        // All elements in the range are less than k
+        if (high <= k)
+            return r - l + 1;
+        // Computing LtCount and RtCount
+        int LtCount = freq[l - 1];
+        int RtCount = freq[r];
+        // Answer is (no. of element <= k) in
+        // left + (those <= k) in right
+        return (this->l->kOrLess(LtCount + 1, RtCount, k) +
+                this->r->kOrLess(l - LtCount, r - RtCount, k));
+    }
+};
+wavelet_tree T ;
+int solve(ii range , int st,int En,int tar,int last)
+{
+    if(st > En)
+        return 1e9;
+    int mid = (st+En)/2;
+    int sum = T.kOrLess(range.fr,range.sc,mid);
+    if(st == En)
+    {
+        if(sum-last >= tar)
+            return st;
+        else
+            return 1e9;
+    }
+    int res = 1e9;
+    if(sum-last >= tar)
+    {
+        res = min(res , solve(range,st,mid,tar,last));
+        if(res != 1e9)
+            return res;
+    }
+    int rem = range.sc-range.fr+1;
+    rem-=sum;
+    if(rem >= tar)
+    {
+        res = min(res , solve(range,mid+1,En,tar,sum));
+    }
+    return res;
+}
+map < pair < ii , int > , int > my,vis;
+int main()
+{
+    cin>>n>>q;
+    for(int i=1; i<=n; i++)
+    {
+        scanf("%d",&a[i]);
+    }
+    T.build(a+1, a+n+1, 1, n);
+    while(q--)
+    {
+        int l,r,k;
+        scanf("%d%d%d",&l,&r,&k);
+        if(vis[mp(mp(l,r),k)])
+        {
+            int ans = my[mp(mp(l,r),k)];
+            printf("%d\n",ans);
+            continue;
+        }
+        int tar = (r-l+1)/k;
+        tar++;
+        int ans = solve(mp(l,r),1,n,tar,0);
+        if(ans == 1e9)
+            ans = -1;
+        my[mp(mp(l,r),k)] = ans;
+        vis[mp(mp(l,r),k)] = 1;
+        printf("%d\n",ans);
+    }
+}

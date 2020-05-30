@@ -1,0 +1,33 @@
+#include <bits/stdc++.h>
+#define maxx 100000
+using namespace std;
+int t, n, x, y;
+int x1, x2, y1, y2;
+int v1, v2, v3, v4;
+int main()
+{
+    cin >> t;
+    while (t--)
+    {
+        cin >> n;
+        x1 = -maxx, x2 = maxx;
+        y1 = -maxx, y2 = maxx;
+        for (int i=1;i<=n;++i)
+        {
+            cin>>x>>y>>v1>>v2>>v3>>v4;
+            if (!v1)
+                x1 = max(x1, x);
+            if (!v2)
+                y2 = min(y2, y);
+            if (!v3)
+                x2 = min(x2, x);
+            if (!v4)
+                y1 = max(y1, y);
+        }
+        if (x1 > x2 || y1 > y2)
+            cout << "0\n";
+        else
+            cout << "1 " << x1 << ' '<< y1 << '\n';
+    }
+    return 0;
+}

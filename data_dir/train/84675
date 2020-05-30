@@ -1,0 +1,124 @@
+#include<iostream>
+#include<cstdio>
+#include<vector>
+using namespace std;
+int n,k;
+int fastmin(int x,int y)
+{
+    return ((((y-x)>>(31))&(x^y))^(x));
+}
+int fastmax(int x,int y)
+{
+    return ((((y-x)>>(31))&(x^y))^(y));
+}
+struct rebro
+{
+    int v;
+    int nom;
+};
+vector < vector<rebro> > g;
+int h[200003];
+int first[200003];
+int order[200003];
+
+bool flag[100003];
+int res[100003];
+int ver[100003];
+int coun;
+void dfs(int x,int y)
+{
+    h[coun]=y;
+    first[x]=coun;
+    order[coun++]=x;
+    flag[x]=true;
+    int i;
+    for(i=0;i<g[x].size();i++)
+        if(!flag[g[x][i].v])
+        {
+            dfs(g[x][i].v,y+1);
+            h[coun]=y;
+            order[coun++]=x;
+        }
+}
+int log2[200003];
+int ans[20][200003];
+void LCA_DP()
+{
+    int i,j;
+    dfs(0,0);
+    j=0;
+    for(i=0;i<200003;i++)
+    {
+        if((1<<(j+1))<=i)
+            j++;
+        log2[i]=j;
+    }
+    for(i=0;i<coun;i++)
+        ans[0][i]=i;
+    for(j=1;j<=log2[coun-1];j++)
+        for(i=0;i<coun;i++)
+        {
+            ans[j][i]=ans[j-1][i];
+            if(i+(1<<(j-1))<coun && h[ans[j-1][i+(1<<(j-1))]]<h[ans[j][i]])
+                ans[j][i]=ans[j-1][i+(1<<(j-1))];
+        }
+}
+int LCA(int x,int y)
+{
+    int k=log2[y-x+1];
+    if(h[ans[k][x]]<h[ans[k][y-(1<<k)+1]])
+        return ans[k][x];
+    return ans[k][y-(1<<k)+1];
+}
+void dfs2(int x)
+{
+    flag[x]=true;
+    int i;
+    for(i=0;i<g[x].size();i++)
+        if(!flag[g[x][i].v])
+        {
+            dfs2(g[x][i].v);
+            ver[x]+=ver[g[x][i].v];
+            res[g[x][i].nom]=ver[g[x][i].v];
+        }
+}
+int main()
+{
+    scanf("%d",&n);
+    g.resize(n);
+    rebro a;
+    int x,y;
+    int i;
+    for(i=0;i<n-1;i++)
+    {
+        scanf("%d %d",&x,&y);
+        x--;
+        y--;
+        a.nom=i;
+        a.v=y;
+        g[x].push_back(a);
+        a.v=x;
+        g[y].push_back(a);
+    }
+    LCA_DP();
+    scanf("%d",&k);
+    int lca;
+    for(i=0;i<k;i++)
+    {
+        scanf("%d %d",&x,&y);
+        x--;
+        y--;
+        lca=LCA(fastmin(first[x],first[y]),fastmax(first[x],first[y]));
+        lca=order[lca];
+        ver[lca]-=2;
+        ver[x]++;
+        ver[y]++;
+    }
+    for(i=0;i<n;i++)
+        flag[i]=false;
+    dfs2(0);
+    printf("%d",res[0]);
+    for(i=1;i<n-1;i++)
+        printf(" %d",res[i]);
+    printf("\n");
+}

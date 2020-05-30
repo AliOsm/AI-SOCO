@@ -1,0 +1,199 @@
+//
+//  main.cpp
+//  CF
+//
+//  Created by Admin on 9/30/17.
+//  Copyright © 2017 Admin. All rights reserved.
+//
+
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <string>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <memory.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <cmath>
+#include <queue>
+
+using namespace std;
+#define DEBUG false
+#define FILE_PREFIX "../../../../../../../../CompetitiveProgramming/CF/CF/"
+const int N = 1e6;
+const int MOD = 1e9 + 7;
+
+int t[N * 4];
+int a[N * 4];
+int n;
+
+int gcd(int a, int b) {
+    while (a > 0 && b > 0) {
+        if (a > b) a %= b;
+        else b %= a;
+    }
+    return (a + b);
+};
+
+void build(int v, int l, int r) {
+    if (l == r) {
+        t[v] = a[l];
+        return ;
+    }
+    int m = (l + r) >> 1;
+    build(v + v, l, m);
+    build(v + v + 1, m + 1, r);
+    t[v] = gcd(t[v + v], t[v + v + 1]);
+}
+void update (int v, int l, int r, int pos, int val) {
+    if (l == r) {
+        t[v] = val;
+        return;
+    }
+    int m = (l + r) >> 1;
+    if (m >= pos) update(v + v, l, m, pos, val);
+    else update(v + v + 1, m + 1, r, pos, val);
+    t[v] = gcd(t[v + v], t[v + v + 1]);
+}
+
+int get(int v, int l, int r, int ll, int rr) {
+    if (l == ll && r == rr) return t[v];
+    int m = ( l + r ) >> 1;
+    if (m >= rr) return get(v + v, l, m, ll, rr);
+    else if (m < ll) return get(v + v + 1, m + 1, r, ll, rr);
+    else {
+        int tl = get(v + v, l, m, ll, m);
+        int tr = get(v + v + 1, m + 1, r, m + 1, rr);
+        return gcd(tl, tr);
+    }
+}
+
+int cnt = 0;
+int was = 0;
+
+void good(int v, int l, int r, int ll, int rr, int val) {
+    if (cnt > 1) return;
+    if (l == ll && r == rr) {
+        int g = t[v];
+        if (g == val) return;
+        if (g > val) {
+            if (g % val == 0) return;
+            if (l == r) { cnt += 1; return; }
+            if (cnt > 0) { cnt = 2; return; }
+        } else {
+            if (val % g != 0 && cnt > 0) { cnt = 2; return; }
+            if (l == r) { cnt += 1; return; }
+        }
+        int m = (l + r) >> 1;
+        good(v + v, l, m, ll, m, val);
+        good(v + v + 1, m + 1, r, m+1, rr, val);
+    } else {
+        int m = (l + r) >> 1;
+        if (m >= rr) good(v + v, l, m, ll, rr, val);
+        else if (m < ll) good(v + v + 1, m + 1, r, ll, rr, val);
+        else {
+            good(v + v, l, m, ll, m, val);
+            good(v + v + 1, m + 1, r, m + 1, rr, val);
+        }
+    }
+}
+
+
+//void good(int l, int r, int val) {
+//    if (cnt > 1) return;
+//    int g = get(1, 0, n-1, l, r);
+//
+//    if (g == val) {
+//        return ;
+//    } else if (g > val) {
+//        if (g % val == 0) return;
+//        if (l == r) {
+//            cnt += 1;
+//            return;
+//        }
+//
+//        if (g % val != 0 && cnt > 0) {
+//            cnt = 2;
+//            return;
+//        }
+//
+//        int m = (l + r) >> 1;
+//        good(l, m, val);
+//        if (cnt > 1) return;
+//        good(m + 1, r, val);
+//    } else {
+//
+//        if (val % g != 0 && cnt > 0) {
+//            cnt = 2;
+//            return ;
+//        }
+//
+//        if (l == r) {
+//            cnt += 1;
+//            return;
+//        }
+//
+//        int m = ( l + r ) >> 1;
+//        good(l, m, val);
+//        if (cnt > 1) return;
+//        good(m + 1, r, val);
+//    }
+//
+//}
+
+bool solve2q(int l, int r, int val) {
+//    if (val % wg != 0 && wg % val != 0) return false;
+//    cout << "I AM HERE" << endl;
+    cnt = 0;
+    was = 0;
+    good(1, 0, n-1, l, r, val);
+    return cnt + was <= 1;
+}
+
+void solve() {
+    cin >> n;
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i];
+    }
+    
+    build(1, 0, n-1);
+    int q;
+    cin >> q;
+    for (int i = 0; i < q; ++i) {
+//        cout << "QUERY " << i << endl;
+        int t;
+        cin >> t;
+        if (t == 1) {
+            int l, r, val;
+            cin >> l >> r >> val; l--; r--;
+            bool ans = solve2q(l, r, val);
+            if (ans) cout << "YES" << endl;
+            else cout << "NO" << endl;
+        } else {
+            int pos, val;
+            cin >> pos >> val; pos--; a[pos] = val;
+            update(1, 0, n-1, pos, val);
+        }
+    }
+}
+
+int main() {
+    if (DEBUG) {
+        freopen(FILE_PREFIX"input.txt", "r", stdin);
+    }
+    ios :: sync_with_stdio(false);
+    int t;
+    if (DEBUG) {
+        cin >> t;
+    } else {
+        t = 1;
+    }
+    while (t--) {
+        solve();
+    }
+    return 0;
+}

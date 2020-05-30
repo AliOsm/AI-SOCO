@@ -1,0 +1,108 @@
+#include <iostream>
+#include <cstdio>
+#include <set>
+using namespace std;
+#define INF (((long long)1)<<40)
+long long dp[1<<17][18];
+
+void updateDP(int i,long long val)
+{
+	dp[i][17] = val;
+	for(int j=16;j>=0;j--)
+	{
+		i /= 2;
+		dp[i][j] = min(dp[2*i][j+1],dp[2*i+1][j+1]);
+	}
+}
+
+inline int left(int i,int j)
+{
+	j = 17-j;
+	return i<<j;
+}
+inline int right(int i,int j)
+{
+	j = 17-j;
+	return -1+((i+1)<<j);
+}
+
+long long dpMin(int low,int high,int i,int j)
+{
+	if(low>high) return INF;
+	int l = left(i,j);
+	int r = right(i,j);
+	if((low==l)&&(high==r)) return dp[i][j];
+	i <<= 1;
+	j++;
+	return min(dpMin(max(low,l),min(right(i,j),high),i,j),
+		dpMin(max(low,left(i+1,j)),min(high,r),i+1,j));
+}
+
+long long N,S,L;
+
+int A[100000];
+
+int main()
+{
+	int mxl = 0;
+	int mnl = 0;
+	scanf("%I64d %I64D %I64D",&N,&S,&L);
+	for(int i=0;i<N;i++)
+	{
+		scanf("%d",A+i);
+		if(i<L)
+		{
+			if(A[i] > A[mxl]) mxl = i;
+			if(A[i] < A[mnl]) mnl = i;
+		}
+	}
+
+	for(int i=0;i<L;i++)
+		updateDP(i,INF);
+	if((A[mxl]-A[mnl])<=S)
+		updateDP(L-1,1);
+
+	multiset<int> heap;
+	heap.insert(A[0]);
+	int low = 0;
+	multiset<int>::iterator it;
+	for(int i=1;i<L;i++)
+	{
+		heap.insert(A[i]);
+		it = heap.end();
+		it--;
+		while((*it - *heap.begin()) > S)
+		{
+			it = heap.find(A[low]);
+			heap.erase(it);
+			low++;
+			it = heap.end();
+			it--;
+		}
+	}
+	for(int i=L;i<N;i++)
+	{
+		heap.insert(A[i]);
+		it = heap.end();
+		it--;
+		while((*it - *heap.begin()) > S)
+		{
+			it = heap.find(A[low]);
+			heap.erase(it);
+			low++;
+			it = heap.end();
+			it--;
+		}
+
+		int high = i-L;
+		if((low-1) > high)
+			updateDP(i,INF);
+		else if((low-1)==-1)
+			updateDP(i,min((long long)1,1+dpMin(0,high,0,0)));
+		else
+			updateDP(i,1+dpMin(low-1,high,0,0));
+	}
+	if(dp[N-1][17]>N) printf("-1\n");
+	else printf("%d\n",dp[N-1][17]);
+	return 0;
+}

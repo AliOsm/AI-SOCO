@@ -1,0 +1,128 @@
+#include "omp.h"
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <queue>
+#include <vector>	
+#include <cassert>
+#include <fstream>
+#include <algorithm>
+#include <list>
+#include <random>
+#include <ctime>
+#include <random>
+#include <bitset>
+#include <unordered_set>
+#include <cassert>
+#include <list>
+
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+
+
+const int sze = 1e6 + 1;
+
+vector<vector<int>> vertices;
+vector<int> ans;
+int dep[sze];
+
+
+int dfs1(int v, int p)
+{
+	for (int u : vertices[v])
+		if (u != p)
+			dep[v] = max(dep[v], dfs1(u, v));
+
+	return dep[v] + 1;
+}
+
+
+bool comp(int a, int b)
+{
+	return dep[a] < dep[b];
+}
+
+
+pair<int, int> dfs2(int v, int p, map<int, int> &cur)//first - shift, second - ans
+{
+	pair<int, int> a = { 0, 0 }, b = { 0, 0 };
+	int label = 1;
+
+	for (int u : vertices[v])
+		if (u != p)
+		{
+			if (label == 1)
+			{
+				a = dfs2(u, v, cur);
+				label = 0;
+			}
+			else
+			{
+				map<int, int> next;
+				b = dfs2(u, v, next);
+				for (auto q : next)
+				{
+					cur[q.first + b.first - a.first] += q.second;
+
+					if (cur[q.first + b.first - a.first] > cur[a.second])
+						a.second = q.first + b.first - a.first;
+
+					if (cur[q.first + b.first - a.first] == cur[a.second] && q.first + b.first - a.first <= a.second)
+						a.second = q.first + b.first - a.first;
+				}
+			}
+		}
+
+	cur[-a.first] = 1;
+	if (cur[-a.first] > cur[a.second] || (cur[-a.first] == cur[a.second] && -a.first <= a.second))
+		a.second = -a.first;
+
+	if (a.second + a.first < 0)
+		assert(false);
+
+	ans[v] = a.second + a.first;
+	a.first++;
+
+	return a;
+}
+
+
+signed main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(NULL);
+	cout.tie(NULL);
+
+	int n;
+	cin >> n;
+	vertices.resize(n + 1);
+	ans.resize(n + 1);
+
+	for (int i = 1; i < n; ++i)
+	{
+		int a, b;
+		cin >> a >> b;
+		vertices[a].push_back(b);
+		vertices[b].push_back(a);
+	}
+
+	dfs1(1, -1);
+	for (int i = 1; i <= n; ++i)
+		sort(vertices[i].rbegin(), vertices[i].rend(), comp);
+
+	map<int, int> cur;
+	dfs2(1, -1, cur);
+
+	for (int i = 1; i <= n; ++i)
+		cout << ans[i] << '\n';
+
+	return 0;
+}

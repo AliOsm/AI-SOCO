@@ -1,0 +1,154 @@
+#include <list>
+#include <deque>
+#include <queue>
+#include <cstdlib>
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <functional>
+#include <iomanip>
+#include <vector>
+#include <stack>
+#include <map>
+#include <set>
+#include <memory>
+#include <hash_map>
+#include <hash_set>
+#include <cmath>
+#include <string>
+#include <cctype>
+#include <iomanip>
+#include <sstream>
+#include <utility>
+#include <ctime>
+#include <bitset>
+#include <iterator>
+#include <numeric>
+
+using namespace std;
+
+int n, m;
+string s;
+vector<pair<pair<int, int>, int> > q;
+vector<int> answer, bracket;
+
+int getbracket(int lt, int rt) {
+    if (lt == 0) {
+        return bracket[rt];
+    }else{
+        return bracket[rt]-bracket[lt-1];
+    }
+}
+
+class Tree {
+private:
+    int sz;
+    vector<int> vect;
+
+    void build(int v, int lt, int rt, const vector<int>& a) {
+        if(lt==rt){
+            vect[v]=a[lt];
+        }   else{
+            int mt = (lt + rt) / 2;
+            build(v+v,lt,mt,a);
+            build(v+v+1,mt+1,rt,a);
+            vect[v]=std::min(vect[v+v],vect[v+v+1]);
+        }
+    }
+
+    int get_(int v, int lt, int rt, int l, int r) {
+        if (lt == l && rt == r) {
+            return vect[v];
+        }else{
+            int mt = (lt + rt) / 2;
+            if(r<=mt){
+                return get_(v+v,lt,mt,l,r);
+            }else
+            if(mt+1<=l){
+                return get_(v+v+1,mt+1,rt,l,r);
+            }else{
+                return std::min(get_(v+v,lt,mt,l,mt),get_(v+v+1,mt+1,rt,mt+1,r));
+            }
+        }
+    }
+
+
+public:
+    Tree(){}
+        
+    void init(const vector<int>& a) {
+        sz=a.size();
+        vect.resize(sz*4); //init
+        build(1,0,sz-1,a);
+    }
+
+    int get(int l, int r) {
+        return get_(1, 0, sz-1,l,r);
+    }
+};
+
+vector<int> a;
+Tree tree;
+
+int main() {
+
+  //  freopen("input.txt", "r", stdin);
+  //  freopen("output.txt", "w", stdout);
+
+  ios::sync_with_stdio(false);
+  cin.tie(NULL);
+
+    cin >> s;
+    n = s.size();
+    bracket.resize(n,0);
+    for (int i = 0; i < n; ++i) {
+        if(i>0)bracket[i]=bracket[i-1];
+        if (s[i]==')'){
+            ++bracket[i];
+        }
+    }
+
+    a.resize(n,0);
+    for (int i = 0; i < n; ++i) {
+        if(i>0){
+            a[i]=a[i-1];
+        }
+        if(s[i]=='('){
+            ++a[i];
+        }   else{
+            --a[i];
+        }
+    }
+    tree.init(a);
+
+    cin >> m;
+    q.reserve(m);
+    for (int i = 0, lt, rt; i < m; ++i) {
+        cin >> lt >> rt;
+        q.push_back(make_pair(make_pair(lt-1, rt-1), i));
+    }
+    sort(q.begin(),q.end());
+
+    answer.resize(m);
+    int lt, rt, mini;
+    for (int i=0, sum=0, qpos=0;i<n;++i) {
+        while(qpos<m && q[qpos].first.first==i) {
+            lt=q[qpos].first.first;
+            rt=q[qpos].first.second;
+            mini= tree.get(lt, rt) + sum;
+            if(mini>0)mini=0;
+            answer[q[qpos].second]=getbracket(lt, rt) + mini;                   
+            ++qpos;
+        }
+        if(s[i]=='('){
+            --sum;
+        }else{
+            ++sum;
+        }
+    }
+
+    for (int i=0;i<m;++i){
+        cout << answer[i] + answer[i] << "\n";
+    }
+    return 0;
+}

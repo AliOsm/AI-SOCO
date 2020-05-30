@@ -1,0 +1,68 @@
+#include<bits/stdc++.h>
+//#define DEBUG
+#define FOR(i,n) for(int i=1;i<=n;i++)
+#define FORZ(i,n) for(int i=0;i<n;i++)
+#define ll long long
+#define ull unsigned long long
+#define pii pair<int,int>
+#define piii pair<int,pair<int,int>>
+#define ff first
+#define ss second
+#define mp make_pair
+#define pb push_back
+#define SIZE 10000002
+#define MOD 998244353
+#define LD long long double
+#define bpc __builtin_popcount
+#define gentum getnum
+using namespace std;
+
+inline ll getnum()
+{
+    char c = getchar();
+    ll num,sign=1;
+    for(;c<'0'||c>'9';c=getchar())if(c=='-')sign=-1;
+    for(num=0;c>='0'&&c<='9';)
+    {
+        c-='0';
+        num = num*10+c;
+        c=getchar();
+    }
+    return num*sign;
+}
+
+int A[100005];
+int B[100005];
+
+int main()
+{
+    int n=getnum(),m=getnum(),mm=0;
+
+    for(int i=1;i<=n;i++)A[i]=getnum();
+    A[++n]=1000000000;
+    for(int i=1;i<=m;i++)
+    {
+        int x1=getnum(),x2=getnum(),y=getnum();
+        if(x1==1)B[++mm]=x2;
+    }
+
+    sort(A+1,A+n+1);
+    sort(B+1,B+mm+1);
+
+    int ans=INT_MAX;
+
+    if(mm==0)
+    {
+        printf("0");
+        return 0;
+    }
+
+    for(int i=1;i<=n;i++)
+    {
+        int x=lower_bound(B+1,B+mm+1,A[i])-B;
+
+        ans=min(ans,(mm-x)+i);
+    }
+
+    cout<<ans;
+}

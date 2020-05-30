@@ -1,0 +1,109 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+using namespace std;
+
+const int N = 200010;
+struct Point {
+	int a[N], n;
+	void clear() {n = 0;}
+	void push_back(int x) {a[n ++] = x;}
+	void Sort() {sort(a, a + n); n = unique(a, a + n) - a;}
+	int operator[](int x) {	return lower_bound(a, a + n, x) - a; }
+}Pt;
+int X[N], A[N];
+struct Query {
+	int typ, l, r;
+	void read() {
+		scanf("%d%d%d", &typ, &l, &r);
+	}
+}ly[N];
+namespace SGT {
+#define lc o<<1
+#define rc o<<1|1
+#define lson l,m,lc
+#define rson m+1,r,rc
+	LL cnt[N << 2], sum[N << 2], ans[N << 2];
+	LL answer;
+	void up(int o) {
+		cnt[o] = cnt[lc] + cnt[rc];
+		sum[o] = sum[lc] + sum[rc];
+		ans[o] = ans[lc] + ans[rc] + cnt[lc]*sum[rc] - cnt[rc]*sum[lc];
+	}
+	void update(int l, int r, int o, int val, int L) {
+		if(l == r) {
+			cnt[o] += val;
+			sum[o] += val*Pt.a[L];
+		//	printf("%I64d\n", sum[o]);
+			return;
+		}
+		int m = l + r >> 1;
+		if(L <= m)	update(lson, val, L);
+		else		update(rson, val, L);
+		up(o);
+	}
+	pair<LL, int> query(int l, int r, int o, int L, int R) {
+	//	printf("%I64d\n", answer);
+		if(L <= l && r <= R) {
+			answer += ans[o];
+			return make_pair(sum[o], cnt[o]);
+		}
+		int m = l + r >> 1;
+		pair<LL, int> ret;
+		if(L <= m) {
+			ret = query(lson, L, R);
+		}
+		if(R > m) {
+			pair<LL, int> t = query(rson, L, R);
+			answer += t.first*ret.second - t.second*ret.first;
+			ret.first += t.first;
+			ret.second += t.second;
+		}
+		return ret;
+	}
+}
+
+			
+int main() {
+	int n, m;
+	scanf("%d", &n);
+	rep(i, n) 
+		scanf("%d", X + i), A[i] = X[i];
+	Pt.clear();
+	rep(i, n)
+		Pt.push_back(A[i]);
+	scanf("%d", &m);
+	rep(i, m) {
+		ly[i].read();
+		if(ly[i].typ == 1) {
+			ly[i].l --;
+			A[ly[i].l] += ly[i].r;
+			Pt.push_back(A[ly[i].l]);
+		}
+	}
+	Pt.Sort();
+	rep(i, n) {
+		SGT::update(0, Pt.n, 1, 1, Pt[X[i]]);	
+	//	printf("%d\n", Pt[X[i]]);
+	}
+	rep(i, m) {
+		int typ = ly[i].typ;
+		if(typ == 1) {
+			int L = ly[i].l;
+			SGT::update(0, Pt.n, 1, -1, Pt[X[L]]);
+			X[L] += ly[i].r;
+			SGT::update(0, Pt.n, 1, 1, Pt[X[L]]);
+		} else {
+			int L = ly[i].l, R = ly[i].r;
+			L = Pt[L];
+			R = Pt[R+1] - 1;
+	//		printf("%d %d\n", L, R);
+			SGT::answer = 0;
+			if(R >= L)
+				SGT::query(0, Pt.n, 1, L, R);
+			printf("%I64d\n", SGT::answer);
+		}
+	}
+	return 0;
+}
+

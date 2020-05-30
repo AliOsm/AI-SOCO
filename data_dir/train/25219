@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cassert>
+#include <algorithm>
+#include <functional>
+
+const int INF = (int)1e9+1;
+
+struct Segment { int l, r; };
+
+int main() {
+    int n; scanf("%d", &n);
+    std::vector<int> coord;
+    std::vector<Segment> segments(n);
+    for (int i = 0; i < n; ++i) {
+        auto& it = segments[i];
+        scanf("%d %d", &it.l, &it.r);
+        coord.push_back(it.l-1);
+        coord.push_back(it.l);
+        coord.push_back(it.r);
+        coord.push_back(it.r+1);
+    }
+    std::sort(coord.begin(), coord.end());
+    coord.erase(std::unique(coord.begin(), coord.end()), coord.end());
+    const int nCells = (int)coord.size();
+    std::vector<int> value(nCells, 0);
+    std::vector<int> add(nCells, 0), dec(nCells, 0);
+    for (auto& e : segments) {
+        e.l = int(std::lower_bound(coord.begin(), coord.end(), e.l) - coord.begin());
+        e.r = int(std::lower_bound(coord.begin(), coord.end(), e.r) - coord.begin());
+        add[e.l]++;
+        dec[e.r]++;
+    }
+    int bal = 0;
+    for (int p = 0; p < nCells; ++p) {
+        bal += add[p];
+        value[p] = bal;
+        bal -= dec[p];
+    }
+    std::vector<int> log2(1+nCells);
+    for (int i = 2; i <= nCells; ++i) {
+        log2[i] = log2[i/2]+1;
+    }
+    const int NMAX = (int)1024*1024, PMAX = 20;
+    static int min[PMAX][NMAX];
+    std::fill(&min[0][0], &min[0][0]+NMAX*PMAX, INF);
+    for (int i = 0; i < nCells; ++i) {
+        min[0][i] = value[i];
+    }
+    for (int p = 1; p < PMAX; ++p) {
+        for (int i = 0; i + (1 << p) - 1 < nCells; ++i) {
+            min[p][i] = std::min(min[p-1][i], min[p-1][i+(1<<(p-1))]);
+        }
+    }
+    std::function<int(int,int)> get_min = [&](int l, int r) {
+        int len = r - l + 1;
+        int log = log2[len];
+        int i = l, j = r+1 - (1 << log);
+        return std::min(min[log][i], min[log][j]);
+    };
+    for (int i = 0; i < n; ++i) {
+        const auto& s = segments[i];
+        int ret = get_min(s.l, s.r);
+        if (ret >= 2) {
+            printf("%d\n", i+1);
+            return 0;
+        }
+    }
+    printf("-1");
+    return 0;
+}

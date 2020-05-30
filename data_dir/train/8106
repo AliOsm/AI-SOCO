@@ -1,0 +1,33 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int limN = 1e6 + 5;
+
+char str[limN];
+int resos[limN];
+
+int main() {
+    int a, b ;
+    int N ;
+
+    scanf("%s", str);
+    N = strlen(str);
+    scanf("%d%d", &a, &b);
+
+    for(int i=N-1, p=1; i>=0; i--, p=(p*10)%b) {
+        resos[i] = ((str[i]-'0')*p + resos[i+1] ) % b;
+    }
+    for(int i=0, w=0; i+1<N; i++) {
+        w = (w*10 + (str[i]-'0')) % a;
+        if(str[i+1]=='0' || resos[i+1] || w)
+            continue;
+        char c = str[i+1];
+        str[i+1] = 0;
+        printf("YES\n");
+        printf("%s\n", str);
+        str[i+1] = c;
+        printf("%s\n", str + (i+1));
+        return 0;
+    }
+
+    printf("NO\n");
+}

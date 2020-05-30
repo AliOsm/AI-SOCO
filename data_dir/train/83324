@@ -1,0 +1,124 @@
+#include<cstdio>
+#include<cstring>
+#include<cstdlib>
+#include<cmath>
+#include<iostream>
+#include<algorithm>
+#include<stack>
+using namespace std;
+const int MAXN=100005;
+const int BLOCK=325;
+struct DSU
+{
+    int n,fa[MAXN],ra[MAXN],cnt;
+    stack<pair<int*,int> >stk;
+    void Init(int _n)
+    {
+        n=cnt=_n;
+        for(int i=1;i<=n;i++)fa[i]=i,ra[i]=0;
+        while(!stk.empty())stk.pop();
+    }
+    int Find(int x)
+    {
+        return fa[x]==x ? x : Find(fa[x]);
+    }
+    void Union(int x,int y,int on)
+    {
+        x=Find(x),y=Find(y);
+        if(x==y)return;
+        if(on)stk.push(make_pair(&cnt,cnt));
+        cnt--;
+        if(ra[x]<=ra[y])
+        {
+            if(on)stk.push(make_pair(&fa[x],fa[x]));
+            fa[x]=y;
+            if(ra[x]==ra[y])
+            {
+                if(on)stk.push(make_pair(&ra[x],ra[x]));
+                ra[y]++;
+            }
+        }
+        else
+        {
+            if(on)stk.push(make_pair(&fa[y],fa[y]));
+            fa[y]=x;
+        }
+    }
+    void Rollback()
+    {
+        while(!stk.empty())
+        {
+            *stk.top().first=stk.top().second;
+            stk.pop();
+        }
+    }
+}dsu;
+vector<int>e[MAXN];
+int l[MAXN],r[MAXN];
+vector<int>blk[BLOCK];
+int res[MAXN];
+int main()
+{
+    int n,k,m;
+    scanf("%d%d%d",&n,&k,&m);
+    for(int i=1;i<=m;i++)
+    {
+        int u,v;
+        scanf("%d%d",&u,&v);
+        e[u].push_back(v);
+        e[v].push_back(u);
+    }
+    int q;
+    scanf("%d",&q);
+    for(int i=1;i<=q;i++)
+    {
+        scanf("%d%d",&l[i],&r[i]);
+        int tl=(l[i]-1)/BLOCK,tr=(r[i]-1)/BLOCK;
+        if(tl==tr)
+        {
+            int ost=tl*BLOCK;
+            dsu.Init(BLOCK);
+            for(int u=l[i];u<=r[i];u++)
+                for(int _=0;_<(int)e[u].size();_++)
+                {
+                    int v=e[u][_];
+                    if(v<l[i] || v>r[i])continue;
+                    dsu.Union(u-ost,v-ost,0);
+                }
+            res[i]=(r[i]-l[i]+1)-(BLOCK-dsu.cnt);
+        }
+        else blk[tl].push_back(i);
+    }
+    for(int i=0;i<BLOCK;i++)
+        sort(blk[i].begin(),blk[i].end(),[&](int a,int b){return r[a]<r[b];});
+    for(int i=0;(i+1)*BLOCK<=n;i++)
+    {
+        dsu.Init(n);
+        int nl=(i+1)*BLOCK,nr=nl-1;
+        for(int j=0;j<(int)blk[i].size();j++)
+        {
+            while(nr<r[blk[i][j]])
+            {
+                nr++;
+                for(int _=0;_<(int)e[nr].size();_++)
+                {
+                    int v=e[nr][_];
+                    if(v<nl || v>nr)continue;
+                    dsu.Union(nr,v,0);
+                }
+            }
+            for(int u=l[blk[i][j]];u<nl;u++)
+                for(int _=0;_<(int)e[u].size();_++)
+                {
+                    int v=e[u][_];
+                    if(v<l[blk[i][j]] || v>nr)continue;
+                    dsu.Union(u,v,1);
+                }
+            res[blk[i][j]]=(r[blk[i][j]]-l[blk[i][j]]+1)-(n-dsu.cnt);
+            dsu.Rollback();
+        }
+    }
+    for(int i=1;i<=q;i++)
+        printf("%d\n",res[i]);
+    return 0;
+}

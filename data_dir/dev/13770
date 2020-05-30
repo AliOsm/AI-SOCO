@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace __gnu_pbds;
+using namespace std;
+
+template<typename T>
+using Tree = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+const int N = 2e5 + 5;
+int a[N] , inv[N] , pos[N] , n;
+
+struct median_tracker {
+    priority_queue<long long> a;
+    priority_queue<long long , vector<long long> , greater<long long> > b;
+
+    long long get_mid() {
+        return a.top();
+    }
+
+    void insert(long long x) {
+        a.size() == b.size() ? b.push(x) : a.push(x);
+        if (b.size() > a.size()) a.push(b.top()) , b.pop();
+        if (a.size() - 1 > b.size()) b.push(a.top()) , a.pop();
+    }
+};
+
+struct BIT {
+    vector<long long> tree;
+    BIT(int n) : tree(n + 2){}
+
+    void upd(int p) {
+        for (int i = ++p ;i < tree.size() ; i += i & -i)
+            tree[i] += p - 1;
+    }
+
+    long long get(int p) {
+        long long sum = 0;
+        for (int i = ++p; i ; i -= i & -i)
+            sum += tree[i];
+        return sum;
+    }
+
+    long long query(int l , int r) {
+        if (r < l) return 0;
+        return get(r) - get(l - 1);
+    }
+};
+
+void pre() {
+    Tree<int> t;
+    for (int i = n - 1 ; ~i ;i--) {
+        inv[a[i]] = t.order_of_key(a[i]);
+        t.insert(a[i]);
+        pos[a[i]] = i;
+    }
+}
+
+long long sum(int n) {
+    return (n * (n + 1ll)) / 2;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+    freopen("input.in" , "r" , stdin);
+#endif
+    scanf("%d" , &n);
+    for (int i = 0 ;i < n ;i++)
+        scanf("%d" , a + i);
+
+
+    pre();
+    median_tracker mt;
+    BIT bit(n);
+
+    long long cur_invs = 0 , all = 0;
+    for (int i = 1 ;i <= n ;i++) {
+        all += pos[i];
+        cur_invs += inv[i];
+        mt.insert(pos[i]);
+        bit.upd(pos[i]);
+
+        int med = mt.get_mid();
+        int right = i / 2 , left = right - !(i&1);
+        long long sum_left = bit.query(0 ,med - 1);
+        long long optimal = (left * 1ll * med) - sum_left;
+        optimal += (right * 1ll * (n - med)) - (n * 1ll * right - (all - sum_left - med));
+        optimal -= sum(left) + sum(right);
+
+        printf("%lld " , optimal + cur_invs);
+    }
+}

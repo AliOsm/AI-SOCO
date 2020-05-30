@@ -1,0 +1,130 @@
+#include"bits/stdc++.h"
+#include<valarray>
+using namespace std;
+
+#define MAX 300002
+
+int n;
+
+vector<int> v;
+
+
+map<int, int> mp;
+
+long long int seg[MAX * 4];
+long long int laz[MAX * 4];
+int w[MAX * 4];
+
+
+
+vector<pair<int,int> > maxi;
+vector<pair<int,int> > mini;
+
+
+void upd(int b) {
+	seg[b] += laz[b];
+	if (b * 2 + 2 < MAX * 4) {
+		laz[b * 2 + 1] += laz[b];
+		laz[b * 2 + 2] += laz[b];
+	}
+	laz[b] = 0;
+}
+
+int ww[MAX];
+
+inline void add(int b, int l, int r, int ll,int rr,int x,bool flag=false) {
+	/*if (b == 0) {
+		for (int i = ll; i < rr; i++) {
+			ww[i] += x;
+		}
+	}*/
+	upd(b);
+	if (r <= ll || rr <= l) {
+		return;
+	}
+	if (ll <= l && r <= rr) {
+		laz[b] += x;
+		upd(b);
+		if (flag) {
+			w[b]++;
+		}
+		return;
+	}
+	add(b * 2 + 1, l, (l + r) >> 1, ll, rr, x,flag);
+	add(b * 2 + 2, (l + r) >> 1, r, ll, rr, x,flag);
+	seg[b] = min(seg[b * 2 + 1], seg[b * 2 + 2]);
+	w[b] = 0;
+	if (seg[b * 2 + 1] == seg[b]) {
+		w[b] += w[b * 2 + 1];
+	}
+	if (seg[b * 2 + 2] ==seg[b]) {
+		w[b] += w[b * 2 + 2];
+	}
+}
+pair<int, int> merge(pair<int, int> a, pair<int, int> b) {
+	pair<int, int> r = make_pair(min(a.first, b.first), 0);
+	if (r.first == a.first) {
+		r.second += a.second;
+	}
+	if (r.first == b.first) {
+		r.second += b.second;
+	}
+	return r;
+}
+
+inline pair<int,int> sum(int b,int l,int r,int ll,int rr) {
+	upd(b);
+	if (r <= ll || rr <= l) {
+		return make_pair(114514, 0);
+	}
+	if (ll <= l && r <= rr) {
+		return make_pair(seg[b], w[b]);
+	}
+	auto ret = merge(sum(b * 2 + 1, l, (l + r) >> 1, ll, rr), sum(b * 2 + 2, (l + r) >> 1, r, ll, rr));
+	return ret;
+}
+
+int main() {
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		int a;
+		scanf("%d", &a);
+		v.push_back(a);
+	}
+	int rig2 = 0;
+	for (int i = 0; i < n; i++) {
+		add(0, 0, n, i, i + 1, i,true);
+	}
+	long long int A = 0;
+	for (int i = 0; i < v.size(); i++) {
+		if (mp.count(v[i])) {
+			rig2 = max(rig2, mp[v[i]] + 1);
+		}
+		mp[v[i]] = i;
+		//(max-min)-(i-idx)=0
+		//max-min+idx-i=0
+		int rig = i;
+		while (mini.size() && mini.back().first >= v[i]) {
+			add(0, 0, n, mini.back().second, rig, (mini.back().first - v[i]));
+			rig = mini.back().second;
+			mini.pop_back();
+		}
+		mini.push_back(make_pair(v[i], rig));
+		rig = i;
+		while (maxi.size() && maxi.back().first <= v[i]) {
+			add(0, 0, n, maxi.back().second, rig, (v[i] - maxi.back().first));
+			rig = maxi.back().second;
+			maxi.pop_back();
+		}
+		maxi.push_back(make_pair(v[i], rig));
+		if (mp.count(1)) {
+			auto ans = sum(0, 0, n, rig2, mp[1] + 1);
+			if (ans.first == 0) {
+				A += ans.second;
+			}
+		}
+		add(0, 0, n, 0, n, -1);
+	}
+	printf("%lld\n", A);
+	return 0;
+}

@@ -1,0 +1,164 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int INF = (int)1e9 + 1;
+const ld EPS = 1e-9;
+
+const int maxn = (int)1e5 + 10;
+long long a[maxn];
+
+vector<int> sets[maxn];
+
+long long added[maxn];
+
+const int K = 300, maxBig = (maxn + K - 1) / K;
+int bigIds[maxBig];
+long long bigValues[maxBig];
+
+int bigPos[maxn];
+
+int inter[maxBig][maxn];
+
+bool solve() {
+  int n, m, q;
+  if (scanf("%d%d%d", &n, &m, &q) < 3) {
+    return 0;
+  }
+
+  for (int i = 0; i < n; ++i) {
+    scanf(LLD, &a[i]);
+  }
+
+  vector<vector<int> > inside(n);
+  int big = 0;
+  for (int i = 0; i < m; ++i) {
+    int k;
+    scanf("%d", &k);
+    sets[i].resize(k);
+    for (int j = 0; j < k; ++j) {
+      scanf("%d", &sets[i][j]);
+      --sets[i][j];
+      inside[sets[i][j]].pb(i);
+    }
+    added[i] = 0;
+    if (k >= K) {
+      //eprintf("bigIds[%d] = %d\n", big, i);
+      bigValues[big] = 0;
+      for (int j = 0; j < k; ++j) {
+        bigValues[big] += a[sets[i][j]];
+      }
+      bigPos[i] = big;
+      bigIds[big++] = i;
+    } else {
+      bigPos[i] = -1;
+    }
+  }
+
+  for (int i = 0; i < big; ++i) {
+    int id = bigIds[i];
+    for (int j = 0; j < m; ++j) {
+      inter[i][j] = 0;
+    }
+    for (int j = 0; j < sz(sets[id]); ++j) {
+      int pos = sets[id][j];
+      for (int it = 0; it < sz(inside[pos]); ++it) {
+        int shareId = inside[pos][it];
+        inter[i][shareId] += 1;
+      }
+    }
+  }
+
+  for (int test = 0; test < q; ++test) {
+    char type;
+    int k;
+    scanf(" %c%d", &type, &k);
+    --k;
+    if (type == '?') {
+      if (bigPos[k] == -1) {
+        long long sum = 0;
+        for (int j = 0; j < sz(sets[k]); ++j) {
+          sum += a[sets[k][j]];
+        }
+        for (int j = 0; j < big; ++j) {
+          sum += added[j] * inter[j][k];
+        }
+        printf(LLD "\n", sum);
+      } else {
+        printf(LLD "\n", bigValues[bigPos[k]]);
+      }
+    } else {
+      int much;
+      scanf("%d", &much);
+      for (int j = 0; j < big; ++j) {
+        bigValues[j] += (long long) much * inter[j][k];
+      }
+      if (bigPos[k] == -1) {
+        for (int j = 0; j < sz(sets[k]); ++j) {
+          int who = sets[k][j];
+          a[who] += much;
+        }
+      } else {
+        added[bigPos[k]] += much;
+      }
+    }
+  }
+  return 1;
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!solve()) {
+      break;
+    }
+#ifdef DEBUG
+    eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

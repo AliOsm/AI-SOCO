@@ -1,0 +1,125 @@
+
+ #include <bits/stdc++.h>
+#define db double
+#define poly vector<Complex>
+#define eps 1e-8
+#define pi 3.1415926536
+ 
+using namespace std;
+ 
+struct Complex {
+	db re, im;
+	Complex(db _re = 0, db _im = 0) : re(_re), im(_im) {}
+	
+	Complex operator + (Complex &r)
+	{
+		return Complex(re + r.re, im + r.im);
+	}
+	
+	Complex operator - (Complex &r)
+	{
+		return Complex(re - r.re, im - r.im);
+	}
+	
+	Complex operator * (Complex &r)
+	{
+		return Complex(re * r.re - im * r.im, re * r.im + im * r.re);
+	}
+	
+	Complex operator /= (db x)
+	{
+		re /= x, im /= x;
+		return *this;
+	}
+};
+ 
+int N, rev[2000010];
+ 
+void init(int len)
+{
+	for (N = 1; N <= len; N <<= 1);
+	for (int i = 0; i < N; i++)
+		rev[i] = (rev[i >> 1] >> 1) + (bool)(i & 1) * (N >> 1);
+}
+ 
+void FFT(poly &v, int dir)
+{
+	for (int i = 0; i < N; i++)
+		if (i < rev[i]) swap(v[i], v[rev[i]]);
+	for (int i = 1; i < N; i <<= 1)
+	{
+		Complex wn = Complex(cos(pi / i), sin(pi / i) * dir);
+		for (int j = 0; j < N; j += 2 * i)
+		{
+			Complex w = Complex(1, 0);
+			for (int k = 0; k < i; k++)
+			{
+				Complex x = v[j + k], y = v[j + k + i] * w;
+				v[j + k] = x + y;
+				v[j + k + i] = x - y;
+				w = w * wn;
+			}
+		}
+	}
+	if (dir == -1)
+	{
+		for (int i = 0; i < N; i++)
+			v[i] /= N;
+	}
+}
+ 
+poly operator * (poly a, poly b)
+{
+	int n = a.size() - 1, m = b.size() - 1;
+	init(n + m + 1);
+	a.resize(N), b.resize(N);
+	FFT(a, 1), FFT(b, 1);
+	for (int i = 0; i < N; i++)
+		a[i] = a[i] * b[i];
+	FFT(a, -1);
+	a.resize(n + m + 1);
+	for (int i = 0; i < n + m + 1; i++)
+		if ((int)(a[i].re + .5) > 0)
+			a[i] = Complex(1, 0);
+		else a[i] = Complex(0, 0);
+	return a; 
+}
+ 
+poly unit;
+ 
+poly mul(poly a, int b)
+{
+	if (!b) return unit;
+	poly k = mul(a, b / 2);
+	if (b & 1) return k * k * a;
+	return k * k;
+}
+ 
+int n, k, x[1010];
+poly f;
+ 
+int main()
+{
+	ios::sync_with_stdio(false);
+	#ifdef debug
+	freopen("1.in", "r", stdin);
+	freopen("1.out", "w", stdout);
+	#endif
+	unit.push_back(Complex(1, 0));
+	cin >> n >> k;
+	int MAX = 0;
+	for (int i = 1; i <= n; i++)
+	{
+		cin >> x[i];
+		MAX = max(MAX, x[i]);
+	}
+	f.resize(MAX + 1);
+	for (int i = 1; i <= n; i++)
+		f[x[i]] = 1;
+	f = mul(f, k);
+	for (int i = 0; i < f.size(); i++)
+		if (f[i].re > eps)
+			cout << i << ' ';
+	cout << endl;
+	return 0;
+}

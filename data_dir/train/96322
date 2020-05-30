@@ -1,0 +1,60 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 105;
+int n, a[maxn];
+bool seen[maxn];
+
+int dp[maxn][maxn][maxn][2];
+void amin(int& a, int b) {
+    a = min(a,b);
+}
+
+int f(int i, int odd, int even, int par) { //parity of last element
+    int& res = dp[i][odd][even][par];
+    if (res != -1) return res;
+    if (i > n) return res = 0;
+    res = maxn;
+    if (a[i] != 0) {
+        if (i == 1) amin(res,f(i+1,odd,even,a[i]%2));
+        else amin(res,(par!=a[i]%2?1:0)+f(i+1,odd,even,a[i]%2));
+    }
+    else {
+        if (i == 1) {
+            if (odd > 0) amin(res,f(i+1,odd-1,even,1));
+            if (even > 0) amin(res,f(i+1,odd,even-1,0));
+        }
+        else {
+            if (odd > 0) amin(res,(par==0?1:0)+f(i+1,odd-1,even,1));
+            if (even > 0) amin(res,(par==1?1:0)+f(i+1,odd,even-1,0));
+        }
+    }
+    return res;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> n;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        seen[a[i]] = true;
+    }
+    if (n == 1) {
+        cout << 0 << '\n';
+        return 0;
+    }
+    int odd = 0, even = 0;
+    for (int i = 1; i <= n; i++) {
+        if (!seen[i] && (i % 2 == 1)) {
+            odd++;
+        }
+        else if (!seen[i] && i % 2 == 0) {
+            even++;
+        }
+    }
+    memset(dp,-1,sizeof dp);
+    int ans = f(1,odd,even,0);
+    cout << ans << '\n';
+}
+

@@ -1,0 +1,193 @@
+/////////////////////////   _LeMur_
+#define _CRT_SECURE_NO_WARNINGS
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <chrono>
+#include <random>
+#include <bitset>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <list>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 15;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 1000 * 1000 * 1000 + 7;
+
+int n;
+
+bool dp[(1 << N) + 5];
+int parent[(1 << N) + 5];
+
+vector <long long> mas[N];
+
+bool can[(1 << N) + 5];
+vector < pair<int,int> > res[(1 << N) + 5];
+
+long long s[N];
+
+vector < pair<int,int> > g[N][5005];
+
+bool mark[N];
+
+pair <int,int> papa[N][5005];
+int used[N][5005] , color;
+
+bool lava[N];
+
+void update(int v1,int ind1,int v2,int ind2){
+    for(int i=0;i<n;i++){
+        lava[i] = false;
+    }
+    vector < pair<int,int> > cycle;
+    int mask = 0;
+    while(true){
+        if(v1 == v2 && ind1 == ind2)break;
+        if(lava[v1])return ;
+        lava[v1] = true;
+        mask |= (1 << v1);
+        cycle.push_back(make_pair(v1 , ind1));
+        ///
+        int vv = papa[v1][ind1].first;
+        int id = papa[v1][ind1].second;
+        v1 = vv;
+        ind1 = id;
+    }
+    if(lava[v1])return ;
+    mask |= (1 << v1);
+    cycle.push_back(make_pair(v1 , ind1));
+    if(can[mask])return ;
+    can[mask] = true;
+    swap(res[mask] , cycle);
+}
+
+void dfs(int v,int id){
+    used[v][id] = 1;
+    for(int i=0;i<(int)g[v][id].size();i++){
+        int to = g[v][id][i].first;
+        int ind = g[v][id][i].second;
+        if(used[to][ind] == 2)continue;
+        if(used[to][ind] == 1){
+            update(v , id , to , ind);
+            continue;
+        }
+        papa[to][ind] = make_pair(v , id);
+        dfs(to , ind);
+    }
+    used[v][id] = 2;
+}
+
+pair <int,int> pat[N];
+
+int main(){
+    cin >> n;
+    long long all = 0;
+    for(int i=0;i<n;i++){
+        int k;
+        scanf("%d",&k);
+        while(k--){
+            int x;
+            scanf("%d",&x);
+            s[i] += x;
+            mas[i].push_back(x);
+        }
+        sort(mas[i].begin() , mas[i].end());
+        all += s[i];
+    }
+    if(all % n){
+        cout << "No" << endl;
+        return 0;
+    }
+    ///
+    long long each = all / n;
+    for(int i=0;i<n;i++){
+        if(s[i] == each){
+            mark[i] = true;
+        }
+    }
+    ///
+    for(int i=0;i<n;i++){
+        if(mark[i])continue;
+        for(int j=0;j<(int)mas[i].size();j++){
+            for(int h=0;h<n;h++){
+                if(i == h || mark[h])continue;
+                /// s[i] mas[i][j] -> s[h]
+                long long a_h = s[h] + mas[i][j] - each;
+                int id = lower_bound(mas[h].begin() , mas[h].end() , a_h) - mas[h].begin();
+                if(id != (int)mas[h].size() && mas[h][id] == a_h){
+                    g[i][j].push_back(make_pair(h , id));
+                }
+            }
+        }
+    }
+    ///
+    for(int i=0;i<n;i++){
+        if(mark[i])continue;
+        for(int j=0;j<(int)mas[i].size();j++){
+            if(used[i][j] == 2)continue;
+            dfs(i , j);
+        }
+    }
+    ///
+    dp[0] = true;
+    for(int i=1;i<(1 << n);i++){
+        int cur = i;
+        while(cur){
+            if(can[cur] && dp[i ^ cur]){
+                dp[i] = true;
+                parent[i] = cur;
+                break;
+            }
+            cur = (cur - 1) & i;
+        }
+    }
+    int sum = (1 << n) - 1;
+    for(int i=0;i<n;i++){
+        if(mark[i]){
+            sum ^= (1 << i);
+        }
+    }
+    if(dp[sum]){
+        cout << "Yes" << endl;
+        while(sum){
+            int now = parent[sum];
+            for(int i=0;i<(int)res[now].size();i++){
+                int hamar = res[now][i].first;
+                int x = mas[hamar][ res[now][i].second ];
+                if(i == 0){
+                    int sz = (int)res[now].size() - 1;
+                    int go = res[now][sz].first + 1;
+                    pat[hamar] = make_pair(x , go);
+                }
+                else{
+                    int go = res[now][i - 1].first + 1;
+                    pat[hamar] = make_pair(x , go);
+                }
+            }
+            sum ^= now;
+        }
+        for(int i=0;i<n;i++){
+            if(mark[i])
+                cout << mas[i][0] << " " << i + 1 << endl;
+            else
+                cout << pat[i].first << " " << pat[i].second << endl;
+        }
+    }
+    else
+        cout << "No" << endl;
+    return 0;
+}

@@ -1,0 +1,149 @@
+/*input
+8
+1 5 7 8 1 7 6 1
+*/
+#include <algorithm>
+#include <bitset>
+#include <cassert>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <list>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <utility>
+#include <vector>
+using namespace std;
+#define sp ' '
+#define endl '\n'
+#define fi first
+#define se second
+#define mp make_pair
+#define int long long
+#define N 100005
+#define M 200005
+#define hash hash__
+struct data {
+	int lid, rid, val;
+	data() {};
+	data(int _lid, int _rid, int _val): lid(_lid), rid(_rid), val(_val) {};
+};
+
+int n;
+int a[N];
+data f[4 * N + M * 20];
+int root[M];
+int curid = 0, curver = 0;
+int last[N];
+
+void init(int l, int r) {
+	if (l == r) {
+		f[++curid].val = 0;
+		return;
+	}
+	int mid = (l + r) / 2;
+	int node = ++curid;
+	f[node].lid = curid + 1;
+	init(l, mid);
+	f[node].rid = curid + 1;
+	init(mid + 1, r);
+}
+
+void update(int k, int l, int r, int pos, int val) {
+	if (pos < l || r < pos) return;
+	if (l == pos && pos == r) {
+		f[++curid].val = f[k].val + val;
+		return;
+	}
+	int mid = (l + r) / 2;
+	int node = ++curid;
+	if (pos <= mid) {
+		f[node].rid = f[k].rid;
+		f[node].lid = curid + 1;
+		update(f[k].lid, l, mid, pos, val);
+	}
+	else {
+		f[node].lid = f[k].lid;
+		f[node].rid = curid + 1;
+		update(f[k].rid, mid + 1, r, pos, val);
+	}
+	f[node].val = f[f[node].lid].val + f[f[node].rid].val;
+}
+
+void update_tree(int pos, int val) {
+	if (last[val] == 0) {
+		curver++;
+		root[curver] = curid + 1;
+		update(root[curver - 1], 1, n, pos, 1);
+		last[val] = pos;
+	}
+	else {
+		curver++;
+		root[curver] = curid + 1;
+		int prev = curid + 1;
+		update(root[curver - 1], 1, n, last[val], -1);
+		root[curver] = curid + 1;
+		update(prev, 1, n, pos, 1);
+		last[val] = pos;
+	}
+}
+
+int get(int k, int l, int r, int L, int R) {
+	if (r < L || R < l) return 0;
+	if (L <= l && r <= R) {
+		return f[k].val;
+	}
+	int mid = (l + r) / 2;
+	return get(f[k].lid, l, mid, L, R) + get(f[k].rid, mid + 1, r, L, R);
+}
+
+int back(int k, int l, int r, int val) {
+	if (l == r) {
+		return l;
+	}
+	int mid = (l + r) / 2;
+	if (f[f[k].lid].val >= val)
+		return back(f[k].lid, l, mid, val);
+	else
+		return back(f[k].rid, mid + 1, r, val - f[f[k].lid].val);
+}
+
+int solve(int k) {
+	int pos = n;
+	int ret = 0;
+	while (pos) {
+		ret++;
+		int c = get(root[pos], 1, n, 1, pos);
+		if (c <= k)
+			pos = 0;
+		else
+			pos = back(root[pos], 1, n, c - k);
+	}
+	return ret;
+}
+
+signed main() {
+	ios_base::sync_with_stdio(false); cin.tie(0);
+	cin >> n;
+	for (int i = 1; i <= n; i++) {
+		cin >> a[i];
+	}
+	root[0] = 1;
+	init(1, n);
+	for (int i = 1; i <= n; i++) {
+		update_tree(i, a[i]);
+	}
+	for (int i = 1; i <= n; i++) {
+		cout << solve(i) << sp;
+	}
+}

@@ -1,0 +1,35 @@
+#include <bits/stdc++.h>
+#define f first
+#define s second
+#define endl '\n'
+#define LL long long
+#define pb push_back
+#define sz(a) (int)a.size()
+#define all(a) a.begin(),a.end()
+#define rall(a) a.rbegin(),a.rend()
+#define debug(x) cerr << #x << " is " << x << endl;
+using namespace std;
+int const MAXN = 2e6 + 9;
+vector<int> g[2][2];
+int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    string s;
+    cin >> s;
+    int n = s.size();
+    for (int i = 0; i < n; i++){
+        int x = s[i] - 'a';
+        g[x][i%2].push_back(i);
+    }
+    LL ans1 = 0, ans2 = 0;
+    for (int i = 0; i < n; i++){
+        int x = s[i] - 'a';
+        int p = i%2;
+        int it = lower_bound(all(g[x][p]),i) - g[x][p].begin();
+        ans2 += sz(g[x][p]) - it;
+        p^=1;
+        it = lower_bound(all(g[x][p]),i) - g[x][p].begin();
+        ans1 += sz(g[x][p]) - it;
+
+    }
+    cout << ans1 << " " << ans2 << endl;
+}

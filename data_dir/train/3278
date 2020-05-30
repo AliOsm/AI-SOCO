@@ -1,0 +1,88 @@
+#include <bits/stdc++.h>
+#pragma GCC optimize("O3")
+using namespace std;
+typedef long long LL;
+
+struct Dsu {
+  int compo;
+  struct node_struct {
+    int par, size;
+    node_struct(int p, int s) : par(p), size(s) {}
+    void merge(node_struct &b) {
+      b.par = par;
+      size += b.size;
+    }
+  };
+  vector<node_struct> nodes;
+  vector<int> isImportant;
+  stack<tuple<int, int, node_struct, node_struct>> stk;
+  Dsu(int n, int k) {
+    compo = k;
+    nodes.reserve(n);
+    isImportant.resize(n);
+    for (int i = 0; i < n; ++i) nodes.emplace_back(i, 1);
+  }
+  int anc(int x) {
+    while (x != nodes[x].par) x = nodes[x].par;
+    return x;
+  }
+  bool unite(int x, int y) {
+    int a = anc(x);
+    int b = anc(y);
+    stk.emplace(a, b, nodes[a], nodes[b]);
+    if (a == b) return false;
+    compo -= isImportant[a] and isImportant[b];
+    if (nodes[a].size < nodes[b].size) swap(a, b);
+    nodes[a].merge(nodes[b]);
+    isImportant[a] |= isImportant[b];
+    return true;
+  }
+  void revert(int version = -1) {  // 0 index
+    if (version == -1) version = stk.size() - 1;
+    for (; stk.size() != version; stk.pop()) {
+      nodes[get<0>(stk.top())] = get<2>(stk.top());
+      nodes[get<1>(stk.top())] = get<3>(stk.top());
+    }
+  }
+};
+
+
+
+
+class Solution {
+  int n, m, k;
+  struct Edge{
+    int u, v, w;
+    bool operator<(Edge e) const { return w < e.w; }
+    Edge(int u, int v, int w) : u(u), v(v), w(w) {}
+  };
+  vector<Edge> Es;
+  public:
+  void run() {
+    cin >> n >> m >> k;
+    Dsu djs(n, k);
+    for (int i = 0; i < k; ++i) {
+      int x; cin >> x; --x; djs.isImportant[x] = 1;
+    }
+    for (int i = 0; i < m; ++i) {
+      int u, v, w;
+      cin >> u >> v >> w;
+      --u, --v;
+      Es.emplace_back(u, v, w);
+    }
+    sort(Es.begin(), Es.end());
+    for (Edge e : Es) {
+      djs.unite(e.u, e.v);
+      if (djs.compo == 1) {
+        for (int i = 0; i < k; ++i) cout << e.w << " \n"[i == k - 1];
+        return;
+      }
+    }
+    assert(0);
+  }
+};
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0);
+  Solution().run();
+}
+

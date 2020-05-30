@@ -1,0 +1,152 @@
+//marico el que lo lea
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+using namespace std;
+
+void fastIO() {
+	std::ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+}
+
+#define FOR(i,f,t) for(int i=f; i<(int)t; i++)
+#define FORR(i,f,t) for(int i=f; i>(int)t; i--)
+#define pb push_back
+#define all(obj) obj.begin(), obj.end()
+#define ms(obj, val) memset(obj, val, sizeof(obj))
+#define ms2(obj, val, sz) memset(obj, val, sizeof(obj[0])*sz)
+#define ri(x) scanf("%d",&x)
+#define rl(x) scanf("%lld",&x)
+#define rii(x,y) ri(x), ri(y)
+#define rll(x,y) rl(x), rl(y)
+
+#define fst first
+#define snd second
+#define dprintf debug && printf
+#define debug false
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int, int> ii;
+
+
+const int MAXN = 12100;
+const ll INF = 0x3f3f3f3f3f3f3f3f;
+
+struct edge {
+	int a, b;
+	ll cap, cost;
+};
+
+int N, s, t;
+int from[MAXN];
+ll d[MAXN];
+bool in_q[MAXN];
+vector<edge> e;
+vi G[MAXN];
+
+void add_edge(int a, int b, ll cap, ll cost) {
+	edge e1 = { a, b, cap, cost};
+	edge e2 = { b, a, 0, -cost};
+	G[a].pb((int)e.size());
+	e.pb(e1);
+	G[b].pb((int) e.size());
+	e.pb(e2);
+}
+
+void augment(ll &flow, ll &cost, ll flow_limit=INF){
+	cost = flow = 0;
+	ms2(in_q,false,N);
+	ms2(from,-1,N);
+	ms2(d,0x3f,N);
+	in_q[s] = true;
+	queue<int> q;
+	q.push(s);
+	d[s] = 0;
+	while(!q.empty()){
+		int v=q.front(); q.pop(); in_q[v] = false;
+		//printf("%d  %lld\n",v,d[v]);
+		FOR(i,0,G[v].size()){
+			int id=G[v][i];
+			if(e[id].cap == 0)continue;
+			int u=e[id].b;
+			if(d[v]+e[id].cost < d[u]){
+				d[u] = d[v] + e[id].cost;
+				from[u] = id;
+				if(!in_q[u])
+					q.push(u), in_q[u]=true;
+			}
+		}
+	}
+	if(from[t]==-1) return;
+	flow = flow_limit;
+	int cur=t, prev;
+	while(from[cur] != -1){
+		flow = min(flow, e[from[cur]].cap);
+		cur = e[from[cur]].a;
+	}
+	cur=t;
+	while(from[cur] != -1){
+		cost += e[from[cur]].cost * flow;
+		e[from[cur]].cap -= flow;
+		e[from[cur]^1].cap += flow;
+		cur = e[from[cur]].a;
+	}
+}
+
+pair<ll, ll> min_cost_flow(ll flow_limit){
+	ll flow=0, cost=0, f, c;
+	while(flow < flow_limit){
+		augment(f, c);
+		if(!f) break;
+		flow += f; cost += c;
+	}
+	return {flow, cost};
+}
+
+int n;
+int a[MAXN];
+
+int in(int v){return 4*v;}
+int out(int v){return in(v)+1;}
+int val(int v){return out(v)+1;}
+int mod7(int v){return val(v)+1;}
+
+int main(){
+	ri(n);
+	FOR(i,0,n) ri(a[i]);
+	N = 4*n+2;
+	s=4*n, t=4*n+1;
+	FOR(i,0,n){
+		add_edge(s,in(i),1,0);
+		add_edge(out(i),t,1,0);
+		add_edge(in(i),out(i),1,-1);
+		add_edge(mod7(i),in(i),1,0);
+		add_edge(val(i),in(i),1,0);
+		FOR(j,i+1,n) if(a[i]%7 == a[j]%7){
+				add_edge(out(i),mod7(j),1,0);
+				add_edge(mod7(i),mod7(j),INF,0);
+				break;
+		}
+		FOR(j,i+1,n) if(a[i] == a[j]){
+				add_edge(val(i),val(j),INF,0);
+				break;
+		}
+		FOR(j,i+1,n) if(a[i] == a[j]+1){
+				add_edge(out(i),val(j),1,0);
+				break;
+		}
+		FOR(j,i+1,n) if(a[i] == a[j]-1){
+				add_edge(out(i),val(j),1,0);
+				break;
+		}
+	}
+	printf("%lld\n",-min_cost_flow(4).snd);
+}

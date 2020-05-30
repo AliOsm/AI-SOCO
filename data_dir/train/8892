@@ -1,0 +1,85 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define SZ(x) ((int)(x).size())
+#define PB(x) push_back(x)
+#define MEMSET(x,v) memset(x,v,sizeof(x))
+#define REP(i,n) for(int i=0;(i)<(n);++(i))
+#define x first
+#define y second
+#define INF (0x3f3f3f3f)
+
+typedef long long LL;
+typedef pair<int, int> P2;
+template<class A, class B> inline bool mina(A &x, B y) {return (x > y)?(x=y,1):0;}
+template<class A, class B> inline bool maxa(A &x, B y) {return (x < y)?(x=y,1):0;}
+
+const int MAXR = 10;
+const int MAXN = 70;
+int N, R;
+double win_p[MAXN][MAXN];
+
+double dp[MAXN][MAXR];
+
+vector<int> comp[MAXN][MAXR];
+
+bool can_meet(int a, int b, int r) {
+    REP(i, r) a /= 2;
+    REP(i, r) b /= 2;
+    return (a ^ 1) == b;
+}
+
+double max_score_game[MAXN][MAXR];
+
+double solve(int winner, int round) {
+    double res = 0;
+    if (round == 0) return dp[winner][0];
+    if (max_score_game[winner][round] > -0.5)
+        return max_score_game[winner][round];
+    for (int p : comp[winner][round]) {
+        maxa(res, solve(winner, round - 1) + solve(p, round - 1));
+    }
+    res += dp[winner][round] * (1<<round);
+    return max_score_game[winner][round] = res;
+}
+
+int main() {
+    cin >> R;
+    N = 1<<R;
+    REP(i, N) {
+        REP(j, N) {
+            int x;
+            cin >> x;
+            win_p[i][j] = 1.0 * x / 100;
+        }
+    }
+    REP(i, N) {
+        REP(j, i) {
+            REP(k, R) {
+                if (can_meet(i, j, k)) {
+                    comp[i][k].PB(j);
+                    comp[j][k].PB(i);
+                }
+            }
+        }
+    }
+    REP(i, N) dp[i][0] = win_p[i][i^1];
+    REP(i, N) REP(j, R) max_score_game[i][j] = -1;
+    for (int j = 1; j < R; j++) {
+        REP(i, N) {
+            dp[i][j] = 0;
+            for (int p : comp[i][j]) {
+                dp[i][j] += dp[p][j - 1] * win_p[i][p];
+            }
+            dp[i][j] *= dp[i][j - 1];
+        }
+    }
+
+    double ans = 0;
+    REP(i, N) {
+        maxa(ans, solve(i, R - 1));
+    }
+    printf("%.9lf\n", ans);
+    return 0;
+}

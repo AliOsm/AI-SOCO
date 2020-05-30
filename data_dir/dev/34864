@@ -1,0 +1,154 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<int, int> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const int di[] = { -1, 0, 1, 0, -1, 1, 1, -1 };
+const int dj[] = { 0, 1, 0, -1, -1, 1, -1, 1 };
+const ll MOD = 1e9;
+const ll INF = 1e9;
+const long double EPS = 1e-7;
+#define all(x) x.begin(),x.end()
+
+typedef vector<int> vi;
+
+class SegmentTree {
+private:
+	vi st, A;
+	vb lazy;
+	int n;
+	int left(int p) { return p << 1; }
+	int right(int p) { return (p << 1) + 1; }
+
+	void build(int p, int L, int R) {
+		if (L == R)
+			st[p] = A[L];
+		else {
+			build(left(p), L, (L + R) / 2);
+			build(right(p), (L + R) / 2 + 1, R);
+			int p1 = st[left(p)], p2 = st[right(p)];
+			st[p] = p1 + p2;
+		}
+	}
+
+	int query(int p, int L, int R, int i, int j) {
+		if (i > R || j < L) return 0; //-1; // current segment outside query range
+
+		if (lazy[p]) { // swap ones with zeros
+			st[p] = R - L + 1 - st[p];
+
+			if (L != R) {
+				lazy[left(p)] = !lazy[left(p)];
+				lazy[right(p)] = !lazy[right(p)];
+			}
+
+			lazy[p] = false;
+		}
+
+		if (L >= i && R <= j) return st[p];               // inside query range
+
+		int p1 = query(left(p), L, (L + R) / 2, i, j);
+		int p2 = query(right(p), (L + R) / 2 + 1, R, i, j);
+
+		// if (p1 == -1) return p2;   // if we try to access segment outside query
+		// if (p2 == -1) return p1;                               // same as above
+		return p1 + p2;
+	}
+
+	int update(int p, int L, int R, int i, int j) {
+		if (lazy[p]) {
+			st[p] = R - L + 1 - st[p];
+
+			if (L != R) {
+				lazy[left(p)] = !lazy[left(p)];
+				lazy[right(p)] = !lazy[right(p)];
+			}
+
+			lazy[p] = false;
+		}
+
+		// if the current interval does not intersect 
+		// the update interval, return this st node value!
+		if (i > R || j < L)
+			return st[p];
+
+		if (i <= L && R <= j) { // Segment fully within range
+			st[p] = R - L + 1 - st[p];
+
+			if (L != R) {
+				lazy[left(p)] = !lazy[left(p)];
+				lazy[right(p)] = !lazy[right(p)];
+			}
+			else A[i] = !A[i];
+
+			return st[p];
+		}
+
+		int p1 = update(left(p), L, (L + R) / 2, i, j);
+		int p2 = update(right(p), (L + R) / 2 + 1, R, i, j);
+
+		return st[p] = p1 + p2;
+	}
+
+public:
+	SegmentTree(const vi &_A) {
+		A = _A; n = (int)A.size();
+		st.assign(4 * n, 0);
+		lazy.assign(4 * n, false);
+		build(1, 0, n - 1);
+	}
+
+	int query(int i, int j) { return query(1, 0, n - 1, i, j); }   // overloading
+
+	int update(int i, int j) {
+		return update(1, 0, n - 1, i, j);
+	}
+};
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(0);
+	int n; cin >> n;
+	vi num(n);
+	vvi bit(64, vi(n));
+	for (int i = 0; i < n; i++) {
+		cin >> num[i];
+		for (int j = 0; j < 64; j++) {
+			if (num[i] & (1ll << j)) {
+				bit[j][i] = 1;
+			}
+		}
+	}
+
+	vector<SegmentTree> seg;
+	for (int i = 0; i < 64; i++) {
+		seg.emplace_back(bit[i]);
+	}
+
+	int q; cin >> q;
+	while (q--) {
+		int tp, a, b; cin >> tp >> a >> b;
+		a--, b--;
+		if (tp == 1) {
+			ll r = 0;
+			for (int i = 0; i < 64; i++) {
+				ll x = seg[i].query(a, b);
+				r += x * (1ll << i);
+			}
+			cout << r << endl;
+		}
+		else {
+			ll x; cin >> x;
+			for (int i = 0; i < 64; i++) {
+				if (x & (1ll << i)) {
+					seg[i].update(a, b);
+				}
+			}
+		}
+	}
+	cin.ignore(), cin.get();
+}

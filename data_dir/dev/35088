@@ -1,0 +1,170 @@
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+typedef long long int64;
+typedef long double real;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+#else
+#define eprintf(...) assert (true)
+#endif
+
+#ifdef WIN32
+#define INT64 "%I64d"
+#else
+#define INT64 "%lld"
+#endif
+
+using namespace std;
+
+const int MAX_N = 100005, LIM = 203, NA = -1, MAX_C = 0x3F3F3F3F;
+const int MAX_H = 2048, AND_H = MAX_H - 1, ADD_H = LIM, PRIME = 40999999;
+
+vector <int> adj [MAX_N];
+int d [MAX_N];
+int kh [MAX_H + ADD_H];
+int wh [MAX_H + ADD_H];
+int ph [MAX_H + ADD_H];
+int nph;
+int n, m, h, t;
+
+void clearhash (void)
+{
+ for (int i = 0; i < nph; i++)
+ {
+  kh[ph[i]] = NA;
+  wh[ph[i]] = 0;
+ }
+ nph = 0;
+}
+
+void add (int nk, int nv)
+{
+ int hash = ((nk * PRIME) ^ (nk >> 2) ^ (nk >> 5)) & AND_H;
+ while ((kh[hash] != NA) && (kh[hash] != nk))
+  hash++;
+
+ if (kh[hash] == NA)
+ {
+  ph[nph++] = hash;
+  kh[hash] = nk;
+ }
+ wh[hash] |= nv;
+}
+
+int main (void)
+{
+ while (scanf (" %d %d %d %d", &n, &m, &h, &t) != EOF)
+ {
+  for (int i = 1; i <= n; i++)
+   adj[i].clear ();
+  memset (d, 0, sizeof (d));
+  for (int i = 0; i < m; i++)
+  {
+   int u, v;
+   scanf (" %d %d", &u, &v);
+   adj[u].push_back (v);
+   adj[v].push_back (u);
+   d[u]++;
+   d[v]++;
+  }
+
+  memset (kh, NA, sizeof (kh));
+  memset (wh, 0, sizeof (wh));
+  nph = 0;
+  for (int i = 0; i < m; i++)
+  {
+   int len = adj[i].size ();
+   for (int pj = 0; pj < len; pj++)
+   {
+    int j = adj[i][pj];
+    int lenj = adj[j].size ();
+    if (d[i] + d[j] >= h + t + 2)
+    {
+     clearhash ();
+//     map <int, int> s;
+     for (int k = 0; k < min (len, LIM); k++)
+      if (adj[i][k] != j)
+       add (adj[i][k], 1);
+//       s[adj[i][k]] |= 1;
+     for (int k = 0; k < min (lenj, LIM); k++)
+      if (adj[j][k] != i)
+       add (adj[j][k], 2);
+//       s[adj[j][k]] |= 2;
+     if (nph < h + t)
+      continue;
+/*
+     if ((int) s.size () < h + t)
+      continue;
+*/
+
+     vector <int> vh, vm, vt;
+     vh.reserve (LIM);
+     vm.reserve (LIM);
+     vt.reserve (LIM);
+     for (int k = 0; k < nph; k++)
+     {
+      int r = ph[k];
+      switch (wh[r])
+      {
+       case 1: vh.push_back (kh[r]); break;
+       case 2: vt.push_back (kh[r]); break;
+       case 3: vm.push_back (kh[r]); break;
+      }
+     }
+/*
+     for (map <int, int>::iterator it = s.begin (); it != s.end (); it++)
+      switch (it -> second)
+      {
+       case 1: vh.push_back (it -> first); break;
+       case 2: vt.push_back (it -> first); break;
+       case 3: vm.push_back (it -> first); break;
+       default: assert (false); break;
+      }
+*/
+     if (!(((int) vh.size () + (int) vm.size () >= h) &&
+           ((int) vt.size () + (int) vm.size () >= t)))
+      continue;
+
+     int r = 0;
+     while ((r < (int) vm.size ()) && ((int) vh.size () < h))
+      vh.push_back (vm[r++]);
+     if ((int) vh.size () < h)
+      continue;
+     while ((r < (int) vm.size ()) && ((int) vt.size () < t))
+      vt.push_back (vm[r++]);
+     if ((int) vt.size () < t)
+      continue;
+
+     printf ("YES\n");
+     printf ("%d %d\n", i, j);
+     for (int k = 0; k < h; k++)
+      printf ("%d%c", vh[k], "\n "[k + 1 < h]);
+     for (int k = 0; k < t; k++)
+      printf ("%d%c", vt[k], "\n "[k + 1 < t]);
+     goto end1;
+    }
+   }
+  }
+
+  printf ("NO\n");
+  continue;
+
+end1:
+  ;
+ }
+
+ return 0;
+}

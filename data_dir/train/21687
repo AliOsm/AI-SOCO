@@ -1,0 +1,190 @@
+//marico el que lo lea
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <stdlib.h>
+#include <assert.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int, int> ii;
+
+void fastIO() {std::ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);}
+
+#define pb push_back
+#define all(obj) obj.begin(), obj.end()
+#define ms(obj, val) memset(obj, val, sizeof(obj))
+#define ms2(obj, val, sz) memset(obj, val, sizeof(obj[0])*sz)
+
+#define fst first
+#define snd second
+
+template<typename T, typename U> inline void mnze(T &x, U y) {if(y < x) x = y;}
+template<typename T, typename U> inline void mxze(T &x, U y) {if(x < y) x = y;}
+
+void _scan( int &x ) { scanf("%d",&x); }
+void _scan( long long &x ) { scanf("%lld",&x); }
+void _scan( double &x ) { scanf("%lf",&x); }
+void _scan( char &x ) { scanf(" %c",&x); }
+void _scan( char *x ) { scanf("%s",x); }
+void scan() {}
+template<typename T, typename... U>
+void scan( T& head, U&... tail ) { _scan(head); scan(tail...);}
+
+template<typename T> void _dbg(const char* sdbg, T h)
+	{ cerr<<sdbg<<"="<<h<<"\n"; }
+template<typename T, typename... U> void _dbg(const char* sdbg, T h, U... t) {
+	while(*sdbg != ',')cerr<<*sdbg++;
+	cerr<<"="<<h<<","; _dbg(sdbg+1, t...);
+}
+
+#ifdef LOCAL
+#define debug(...) _dbg(#__VA_ARGS__, __VA_ARGS__)
+#define debugv(x) {{cerr<<#x<<" = "; for(auto _i:x) cerr<<_i<<", ";cerr<<"\n";}}
+#define debuga(x, sz) {{cerr<<#x<<" = ";for(int _i=0;_i<sz;_i++)cerr<<x[_i]<<", ";cerr<<"\n";}}
+#else
+#define debug(...) (__VA_ARGS__)
+#define debugv(x)
+#define debuga(x, sz)
+#define cerr if(0)cout
+#endif
+
+ll MOD = 1e9+7;
+
+inline ll Msum(ll x){return x;}
+template<typename... Rest>
+inline ll Msum(ll x, Rest... rest){ return (x + Msum(rest...)) % MOD; }
+
+inline ll Mprod(ll x){return x;}
+template<typename... Rest>
+inline ll Mprod(ll x, Rest... rest){ return x * Mprod(rest...) % MOD; }
+
+inline ll Mnorm(ll x){ return (x%MOD + MOD) %MOD; }
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+#define no_lazy 0
+// other updates
+
+struct stnode{
+	int mx;
+    void merge(stnode& L, stnode& R){
+		mx = max(L.mx, R.mx);
+	}
+    void operator=(int x){
+		mx = x;
+	}
+    void upd(int l, int r, int u){
+		mx += u;
+	}
+};
+
+struct ST{
+    vector<stnode> T;
+    vi lazy;
+    int N;
+    void init(int n){
+        T.resize(4*n + 4);
+        lazy.resize(4*n + 4);
+        N = n;
+    }
+    void build(int *a){build(1,0,N,a);}
+    void build(int id, int l, int r, int *a){
+        lazy[id] = no_lazy;
+        if(r - l < 2){
+            T[id] = a[l];
+            return;
+        }
+        int M = (l+r)>>1, L=id<<1, R=L|1;
+        build(L, l, M, a); build(R, M, r, a);
+        T[id].merge(T[L],T[R]);
+    }
+
+    // this supposes u!=no_lazy (normally this holds)
+    void upd(int id, int l, int r, int u){
+        lazy[id] += u;
+        T[id].upd(l,r,u);
+    }
+
+    void shift(int id, int l, int r){
+        if(lazy[id] == no_lazy) return;
+        int M = (l+r)>>1, L=id<<1, R=L|1;
+        upd(L, l, M, lazy[id]);
+        upd(R, M, r, lazy[id]);
+        lazy[id] = no_lazy;
+    }
+
+    void update(int x, int y, int v){update(x, y, v, 1, 0, N);}
+    void update(int x, int y, int v, int id, int l, int r){
+        if(x >= r || l >= y) return;
+        if(x <= l && r <= y){
+            upd(id, l, r, v);
+            return;
+        }
+        shift(id, l, r);
+        int M = (l+r)>>1, L=id<<1, R=L|1;
+        update(x, y, v, L, l, M);
+        update(x, y, v, R, M, r);
+        T[id].merge(T[L], T[R]);
+    }
+
+};
+
+const int MAXN = 51;
+const int MAXM = 2e4+4;
+
+
+int n, m, k;
+int a[MAXN][MAXM];
+int aa[MAXN][MAXM];
+
+void pre(){
+	for(int d=0; d<n; d++){
+		aa[d][0] = a[d][0];
+		for(int i=1; i<m; i++) aa[d][i] = a[d][i]+aa[d][i-1];
+	}
+}
+
+// semi closed
+int sum(int d, int l, int r){
+	int ret = aa[d][r-1];
+	if(l) ret -= aa[d][l-1];
+	return ret;
+}
+
+ST st;
+int dp[MAXN][MAXM];
+
+int main(){
+	scan(n, m, k);
+	for(int d=0; d<n; d++) for(int i=0; i<m; i++) scan(a[d][i]);
+	pre();
+
+	for(int i=0; i<m-k+1; i++){
+		dp[0][i] = sum(0, i, i+k) + sum(1, i, i+k);
+	}
+	st.init(m-k+1);
+	for(int d=1; d<n; d++){
+		st.build(dp[d-1]);
+		for(int i=0; i<k; i++)
+			st.update(0, min(i+1, m-k+1), -a[d][i]);
+		dp[d][0] = sum(d, 0, k) + sum(d+1, 0, k) + st.T[1].mx;
+		for(int j=0; j+1<m-k+1; j++){
+			st.update(max(0, j-k+1), min(j+1, m-k+1), a[d][j]);
+			st.update(max(0, j+1), min(j+k+1, m-k+1), -a[d][j+k]);
+			dp[d][j+1] = sum(d, j+1, j+1+k) + sum(d+1, j+1, j+1+k) + st.T[1].mx;
+		}
+	}
+	int ans = dp[n-1][0];
+	for(int i=1; i<m-k+1; i++) mxze(ans, dp[n-1][i]);
+	printf("%d\n", ans);
+}

@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MaxN = 2e5 + 25;
+
+struct state {
+	int len, link;
+	bool good;
+	map<char,int> next;
+};
+
+state st[MaxN*2];
+int sz, last;
+
+void sa_init() {
+	sz = last = 0;
+	st[0].len = 0;
+	st[0].link = -1;
+	st[0].good = 0;
+	++sz;
+}
+
+void sa_extend (char c, bool OK) {
+	int cur = sz++;
+	st[cur].good = OK;
+	st[cur].len = st[last].len + 1;
+	int p;
+	for (p=last; p!=-1 && !st[p].next.count(c); p=st[p].link)
+		st[p].next[c] = cur;
+	if (p == -1)
+		st[cur].link = 0;
+	else {
+		int q = st[p].next[c];
+		if (st[p].len + 1 == st[q].len)
+			st[cur].link = q;
+		else {
+			int clone = sz++;
+			st[clone].len = st[p].len + 1;
+			st[clone].next = st[q].next;
+			st[clone].link = st[q].link;
+			st[clone].good = st[q].good;
+			for (; p!=-1 && st[p].next[c]==q; p=st[p].link)
+				st[p].next[c] = clone;
+			st[q].link = st[cur].link = clone;
+		}
+	}
+	last = cur;
+}
+
+long long ans;
+bool used[MaxN * 2];
+int cnt[MaxN * 2];
+int TO[MaxN * 2];
+
+void dfs(int x)
+{
+    used[x] = true;
+
+    cnt[x] = st[x].good;
+
+    if(!used[TO[x]])
+        dfs(TO[x]);
+
+    cnt[x] += cnt[TO[x]];
+
+    //cout << x << ' ' << TO[x] << ' ' << cnt[TO[x]] << ' ' << st[x].good << '\n';
+
+    ans = max(ans, cnt[x] * 1ll * st[x].len);
+
+    if(x == 0)
+        cnt[x] = 0;
+}
+
+int main()
+{
+    //freopen("input.txt", "r", stdin);
+    ios_base :: sync_with_stdio(false);
+    cin.tie(NULL);
+    sa_init();
+    string s, s1;
+    int n;
+    cin >> n;
+    cin >> s >> s1;
+    for(int i = 0; i < s.size(); ++i)
+        sa_extend(s[i], 1 - s1[i] + '0');
+    for(int i = 1; i < sz; ++i)
+        TO[st[i].link] = i;
+    for(int i = 1; i < sz; ++i)
+        if(!used[i])
+            dfs(i);
+    cout << ans << '\n';
+}

@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+
+struct state {
+    int cnt;
+    int link;
+    int len;
+    int fp;
+    int nxt[26];
+};
+
+const int N = 200005;
+state st[N];
+int sz;
+int last;
+
+void init() {
+    sz = 1;
+    last = 0;
+    memset(st[0].nxt, 255, sizeof(st[0].nxt));
+    st[0].len = 0;
+    st[0].link = -1;
+    st[0].fp = -1;
+    st[0].cnt = 0;
+}
+
+void ext(int c) {
+    int cur = sz++;
+    st[cur].len = st[last].len + 1;
+    st[cur].fp = st[cur].len;
+    st[cur].cnt = 1;
+    memset(st[cur].nxt, 255, sizeof(st[cur].nxt));
+    int p;
+    for (p = last; p != -1 && st[p].nxt[c] == -1; p = st[p].link) {
+        st[p].nxt[c] = cur;
+    }
+
+    if (p == -1) {
+        st[cur].link = 0;
+    } else {
+        int q = st[p].nxt[c];
+        if (st[q].len == st[p].len + 1) {
+            st[cur].link = q;
+        } else {
+            int clone = sz++;
+            st[clone].len = st[p].len + 1;
+            memcpy(st[clone].nxt, st[q].nxt, sizeof(st[q].nxt));
+            st[clone].link = st[q].link;
+            st[clone].fp = st[q].fp;
+            st[clone].cnt = 0;
+
+            for (; p != -1 && st[p].nxt[c] == q; p = st[p].link) {
+                st[p].nxt[c] = clone;
+            }
+            st[q].link = st[cur].link = clone;
+        }
+    }
+    last = cur;
+}
+
+int main(){
+    ios_base::sync_with_stdio(false);
+
+    string s;
+    cin >> s;
+
+    init();
+    for (char c : s) {
+        ext(c - 'A');
+    }
+
+    vector<int> states_by_len[s.length() + 1];
+    for (int i = 0; i < sz; ++i) {
+        states_by_len[st[i].len].push_back(i);
+    }
+
+    for (int i = s.length(); i > 0; --i) {
+        for (int t : states_by_len[i]) {
+            st[st[t].link].cnt += st[t].cnt;
+            st[st[t].link].fp = max(st[st[t].link].fp, st[t].fp);
+        }
+    }
+
+    int cur_state = 0;
+    vector<pair<int, int> > ans;
+    for (int i = 0; i < (int)s.length(); ++i) {
+        cur_state = st[cur_state].nxt[s[i] - 'A'];
+        if (st[cur_state].fp == (int)s.length()) {
+            ans.push_back(make_pair(i + 1, st[cur_state].cnt));
+        }
+    }
+    cout << ans.size() << "\n";
+    for (pair<int, int> p : ans) {
+        cout << p.first << " " << p.second << "\n";
+    }
+    return 0;
+}

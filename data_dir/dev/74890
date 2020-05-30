@@ -1,0 +1,128 @@
+#include<bits/stdc++.h>
+#define LL long long
+#define LD long double
+#define ull unsigned long long
+#define fi first
+#define se second
+#define mk make_pair
+#define PLL pair<LL, LL>
+#define PLI pair<LL, int>
+#define PII pair<int, int>
+#define SZ(x) ((int)x.size())
+#define ALL(x) (x).begin(), (x).end()
+#define fio ios::sync_with_stdio(false); cin.tie(0);
+
+using namespace std;
+
+const int N = 5e5 + 7;
+const int inf = 0x3f3f3f3f;
+const LL INF = 0x3f3f3f3f3f3f3f3f;
+const int mod = 998244353;
+const double eps = 1e-8;
+const double PI = acos(-1);
+
+template<class T, class S> inline void add(T& a, S b) {a += b; if(a >= mod) a -= mod;}
+template<class T, class S> inline void sub(T& a, S b) {a -= b; if(a < 0) a += mod;}
+template<class T, class S> inline bool chkmax(T& a, S b) {return a < b ? a = b, true : false;}
+template<class T, class S> inline bool chkmin(T& a, S b) {return a > b ? a = b, true : false;}
+
+
+int n, q, idx, L[N], R[N], who[N];
+bool leaf[N];
+vector<PII> G[N];
+vector<pair<PLL, int>> qus[N];
+LL dis[N], ans[N];
+
+#define lson l, mid, rt << 1
+#define rson mid + 1, r, rt << 1 | 1
+template<class T> struct SGT {
+    T mn[N << 2], lazy[N << 2];
+    inline void pull(int rt) {
+        mn[rt] = min(mn[rt << 1], mn[rt << 1 | 1]);
+    }
+    inline void push(int rt) {
+        if(lazy[rt]) {
+            mn[rt << 1] += lazy[rt]; mn[rt << 1 | 1] += lazy[rt];
+            lazy[rt << 1] += lazy[rt]; lazy[rt << 1 | 1] += lazy[rt];
+            lazy[rt] = 0;
+        }
+    }
+    void build(int l, int r, int rt) {
+        mn[rt] = INF; lazy[rt] = 0;
+        if(l == r) {
+            mn[rt] = leaf[who[l]] ? dis[who[l]] : INF;
+            return;
+        }
+        int mid = l + r >> 1;
+        build(lson); build(rson);
+        pull(rt);
+    }
+    void update(int L, int R, int val, int l, int r, int rt) {
+        if(L > R) return;
+        if(R < l || r < L) return;
+        if(L <= l && r <= R) {
+            mn[rt] += val;
+            lazy[rt] += val;
+            return;
+        }
+        push(rt);
+        int mid = l + r >> 1;
+        update(L, R, val, lson);
+        update(L, R, val, rson);
+        pull(rt);
+    }
+    T query(int L, int R, int l, int r, int rt) {
+        if(L > R) return INF;
+        if(R < l || r < L) return INF;
+        if(L <= l && r <= R) return mn[rt];
+        push(rt);
+        int mid = l + r >> 1;
+        return min(query(L, R, lson), query(L, R, rson));
+    }
+};
+SGT<LL> Tree;
+
+void dfs(int u) {
+    L[u] = ++idx;
+    who[idx] = u;
+    if(u != 1 && !SZ(G[u])) leaf[u] = true;
+    for(auto& e : G[u]) dis[e.fi] = dis[u] + e.se, dfs(e.fi);
+    R[u] = idx;
+}
+void solve(int u) {
+    for(auto& q : qus[u]) {
+        ans[q.se] = Tree.query(q.fi.fi, q.fi.se, 1, n, 1);
+    }
+    for(auto& e : G[u]) {
+        int v = e.fi, w = e.se;
+        Tree.update(L[v], R[v], -w, 1, n, 1);
+        Tree.update(1, L[v] - 1, w, 1, n, 1);
+        Tree.update(R[v] + 1, n, w, 1, n, 1);
+
+        solve(e.fi);
+
+        Tree.update(L[v], R[v], w, 1, n, 1);
+        Tree.update(1, L[v] - 1, -w, 1, n, 1);
+        Tree.update(R[v] + 1, n, -w, 1, n, 1);
+    }
+}
+int main() {
+    scanf("%d%d", &n, &q);
+    for(int i = 2; i <= n; i++) {
+        int p, w; scanf("%d%d", &p, &w);
+        G[p].push_back(mk(i, w));
+    }
+    for(int i = 1; i <= n; i++) sort(ALL(G[i]));
+    dfs(1);
+    Tree.build(1, n, 1);
+    for(int i = 1; i <= q; i++) {
+        int v, l, r; scanf("%d%d%d", &v, &l, &r);
+        qus[v].push_back(mk(mk(l, r), i));
+    }
+    solve(1);
+    for(int i = 1; i <= q; i++) printf("%lld\n", ans[i]);
+    return 0;
+}
+
+/*
+*/

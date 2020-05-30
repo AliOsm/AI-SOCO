@@ -1,0 +1,112 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+const LL INF = 1e18;
+
+typedef vector<vector<LL>> matrix;
+
+matrix mul(matrix a, matrix b) {
+    matrix ans(a.size(), vector<LL> (b[0].size(), INF));
+
+    for (int i=0; i<a.size(); i++)
+        for (int j=0; j<b[0].size(); j++)
+            for (int k=0; k<b.size(); k++)
+                ans[i][j] = min(ans[i][j], a[i][k] + b[k][j]);
+    return ans;
+}
+
+const int K = 30;
+matrix pre[K];
+matrix unit;
+
+matrix powermul(matrix base, int p, matrix mn) {
+    matrix ans = mn;
+    for (int i=0; i<K; i++)
+        if (p&(1<<i))
+            ans = mul(ans, pre[i]);
+    return ans;
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int x, k, n, q;
+    cin>>x>>k>>n>>q;
+
+    map<int, int> mp;
+    vector<int> states;
+
+    for (int i=0; i<(1<<k); i++) {
+        if (__builtin_popcount(i) != x)     continue;
+        states.push_back(i);
+        mp[i] = states.size()-1;
+    }
+
+    int z = states.size();
+
+    vector<int> costs(k);
+    for (int i=0; i<k; i++)     cin>>costs[i];
+
+
+    vector<vector<LL>> tr(z, vector<LL> (z, INF));
+    for (int i=0; i<z; i++) {
+        int mask = states[i];
+        if (mask&1) {
+            for (int b=1; b<=k; b++) {
+                if (mask & (1<<b))  continue;
+                int nwmask = (mask | (1<<b)) >> 1;
+                int j = mp[nwmask];
+                tr[i][j] = costs[b-1];
+            }
+        }
+        else {
+            int j = mp[mask>>1];
+            tr[i][j] = 0;
+        }
+    }
+
+    unit = matrix(z, vector<LL>(z, INF));
+    for (int i=0; i<z; i++) unit[i][i] = 0;
+
+    pre[0] = tr;
+    for (int i=1; i<K; i++)
+        pre[i] = mul(pre[i-1], pre[i-1]);
+
+    long long ans = 0;
+    int en = n-x+1;
+    vector<pair<int, int>> events;
+    for (int i=0; i<q; i++) {
+        int t, c;
+        cin>>t>>c;
+        if (t>en)  ans += c;
+        else events.push_back({t, c});
+    }
+
+    events.push_back({en, 0});
+    sort(events.begin(), events.end());
+
+    int cur = 1;
+    int startstate = (1<<x)-1;
+    assert(mp.count(startstate) && mp[startstate] == 0);
+
+    matrix mn(1, vector<LL> (z, INF));
+    mn[0][0] = 0;
+
+    for (auto pr: events) {
+        int nxt = pr.first;
+        int d = nxt-cur;
+        mn = powermul(tr, d, mn);
+
+        for (int i=0; i<z; i++)
+            if (states[i]&1) {
+                mn[0][i] += pr.second;
+                mn[0][i] = min(mn[0][i], INF);
+            }
+        cur = nxt;
+    }
+
+    ans += mn[0][0];
+    cout<<ans<<endl;
+}

@@ -1,0 +1,70 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+
+using namespace __gnu_pbds;
+
+template <class T>
+using ordered_set = tree <T,null_type,std::less <T>,rb_tree_tag,tree_order_statistics_node_update> ;
+///find_by_order()
+///order_of_key()
+
+template <class T,class U>
+void maximize(T &x,U y){
+    if(x < y)x = y;
+}
+template <class T,class U>
+void minimize(T &x,U y){
+    if(x > y)x = y;
+}
+template <class T>
+T Abs(T x){
+    return (x < (T)0 ? -x : x);
+}
+
+#define len(c) (int)((c).size())
+#define llong long long
+#define MASK(i) ((1LL) << (i))
+#define BIT(x,i) (((x) >> (i)) & 1)
+#define all(c) (c).begin(),(c).end()
+#define fn "test"    ///FILE_NAME_HERE
+
+/*----------END_OF_TEMPLATE----------*/
+
+namespace task{
+
+    void solve(){
+        int n;
+        cin>>n;
+        vector <int> a(n + 2,0);
+        vector <int> b(n + 2,0);
+        for(int i = 1;i <= n;++i){
+            cin>>a[i];
+        }
+        for(int i = 1;i <= n;++i){
+            cin>>b[i];
+        }
+        ordered_set <pair <int,int> > heap;
+        llong ans = 0;
+        for(int i = n;i >= 1;--i){
+            if(!heap.empty()){
+                ans += 1LL * heap.order_of_key(make_pair(a[i] - b[i],-1));
+            }
+            heap.insert(make_pair(b[i] - a[i],i));
+        }
+        cout<<ans;
+    }
+}
+
+int main(void){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+    #ifndef ONLINE_JUDGE
+    freopen(fn".inp","r",stdin);
+    //freopen(fn".out","w",stdout);
+    #endif // ONLINE_JUDGE
+    task::solve();
+}

@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#define N	200000
+#define Q	100000
+#define M	(Q * 2)
+#define A	1000000000
+#define MD	0x7fffffff
+
+int X;
+int oo[1 + Q], ok1[1 + Q], ok2[1 + Q], ov[1 + Q];
+int ht[M], m;
+
+int rand_(int n) {
+	return (rand() * 76543LL + rand()) % n;
+}
+
+void init(int q) {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+	m = q * 2;
+	X = rand_(MD - A) + A;
+}
+
+int hash(int k1, int k2) {
+	return ((long long) k1 * X + k2) % m;
+}
+
+int link(int o, int k1, int k2, int v) {
+	static int _ = 1;
+
+	oo[_] = o, ok1[_] = k1, ok2[_] = k2, ov[_] = v;
+	return _++;
+}
+
+void ht_add(int k1, int k2, int v) {
+	int h = hash(k1, k2);
+
+	ht[h] = link(ht[h], k1, k2, v);
+}
+
+int ht_remove(int k1, int k2) {
+	int h = hash(k1, k2);
+	int o_, o;
+
+	for (o_ = 0, o = ht[h]; o; o_ = o, o = oo[o])
+		if (ok1[o] == k1 && ok2[o] == k2) {
+			if (o_ == 0)
+				ht[h] = oo[o];
+			else
+				oo[o_] = oo[o];
+			return ov[o];
+		}
+	return -1;
+}
+
+int main() {
+	static int aa[N], kk[N];
+	int n, q, i;
+	long long ans;
+
+	scanf("%d", &n);
+	ans = 0;
+	for (i = 0; i < n; i++) {
+		scanf("%d", &aa[i]);
+		ans += aa[i];
+	}
+	scanf("%d", &q), init(q);
+	while (q--) {
+		int j, j_, t;
+
+		scanf("%d%d%d", &i, &t, &j), i--, j--;
+		j_ = ht_remove(i, t);
+		if (j_ != -1)
+			if (--kk[j_] < aa[j_])
+				ans++;
+		if (j != -1) {
+			ht_add(i, t, j);
+			if (kk[j]++ < aa[j])
+				ans--;
+		}
+		printf("%lld\n", ans);
+	}
+	return 0;
+}

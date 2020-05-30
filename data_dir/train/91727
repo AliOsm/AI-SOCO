@@ -1,0 +1,61 @@
+#include <bits/stdc++.h>
+using LL = long long ;
+
+int h,q;
+std::vector<std::pair<LL,LL>> bad;
+
+int main() {
+    scanf("%d%d",&h,&q);
+    LL L = 1ll << h - 1;
+    LL R = (1ll << h) - 1;
+    for (int i = 0; i < q; ++ i) {
+        int ii,ans;
+        LL l,r;
+        scanf("%d%I64d%I64d%d",&ii,&l,&r,&ans);
+        for (int j = ii + 1; j <= h; ++ j) {
+            l <<= 1;
+            r <<= 1;
+            r |= 1;
+        }
+        if (ans == 0) {
+            bad.push_back({l,r});
+        } else {
+            if (r < L || R < l) {
+                puts("Game cheated!");
+                return 0;
+            } else {
+                L = std::max(L,l);
+                R = std::min(R,r);
+            }
+        }
+    }
+    std::sort(bad.begin(),bad.end());
+    std::vector<std::pair<LL,LL>> answer;
+    int i = 0;
+    LL t = L;
+    while (t <= R && i < bad.size()) {
+        if (bad[i].first <= t) {
+            t = std::max(t,bad[i].second + 1);
+        } else if (R < bad[i].first) {
+            break;
+        } else {
+            answer.push_back({t,bad[i].first - 1});
+            t = bad[i].second + 1;
+        }
+        ++ i;
+    }
+    if (t <= R) {
+        answer.push_back({t,R});
+    }
+    LL total = 0;
+    for (auto t : answer) {
+        total += t.second - t.first + 1;
+    }
+    if (total == 0) {
+        puts("Game cheated!");
+    } else if (total > 1) {
+        puts("Data not sufficient!");
+    } else {
+        printf("%I64d\n",answer[0].first);
+    }
+}

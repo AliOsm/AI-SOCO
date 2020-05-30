@@ -1,0 +1,156 @@
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <stdio.h>
+#include <cmath>
+using namespace std;
+class sp{
+  public:
+  int q,e;
+  sp *w;
+  sp(int q1,sp *w1,int e1){
+   q=q1;w=w1;e=e1;
+  }
+};
+const int i=1<<21;
+int mx=1<<30;
+int a[50000],f1[i],f2[i],f3[i],f4[i];
+int h1[5000],h2[5000];
+void ini(){
+  for(int e=1;e<i;e++){
+   f1[e]=mx;
+   f2[e]=-mx;
+   f3[e]=0;
+   f4[e]=0;
+  }
+}
+sp *req[50000];
+int xor1[1<<20],fans[5000];
+inline void add1(int w,int c,char t){
+  f3[w]+=t;
+  if(f3[w]==0)
+   f1[w+(i>>1)]=mx;
+  else
+   f1[w+(i>>1)]=c;
+  for(w=(w+(i>>1))>>1;w;w>>=1)
+   f1[w]=min(f1[w<<1],f1[(w<<1)+1]);
+}
+inline void add2(int w,int c,char t){
+  f4[w]+=t;
+  if(f4[w]==0)
+   f2[w+(i>>1)]=-mx;
+  else
+   f2[w+(i>>1)]=c;
+  for(w=(w+(i>>1))>>1;w;w>>=1)
+   f2[w]=max(f2[w<<1],f2[(w<<1)+1]);
+}
+void madd(int r,char t){
+  add1(xor1[a[r]-1],a[r],t);
+  add2(xor1[a[r]]  ,a[r],t);
+}
+inline void sch1(int y,int y1,int &mans){
+  int w=1,e,t;
+  for(t=i>>2;t;t>>=1){
+   w<<=1;
+   e=1;
+   if((y&t)==0){
+    w++;
+    e=-1;
+   }
+   if(f1[w]<=y1){
+    y|=t;
+   }else{
+    w+=e;
+    y=(y|t)^t;
+   }
+  }
+  if(mans<y)
+   mans=y;
+}
+inline void sch2(int y,int y1,int &mans){
+  int w=1,e,t;
+  for(t=i>>2;t;t>>=1){
+   w<<=1;
+   e=1;
+   if((y&t)==0){
+    w++;
+    e=-1;
+   }
+   if(f2[w]>=y1){
+    y|=t;
+   }else{
+    w+=e;
+    y=(y|t)^t;
+   }
+  }
+  if(mans<y)
+   mans=y;
+}
+void msch(int r,int &ans){
+  sch1(xor1[a[r]]  ,a[r],ans);
+  sch2(xor1[a[r]-1],a[r],ans);
+}
+int main(){
+  #ifdef Vlad_kv
+   freopen("input.txt","r",stdin);
+   freopen("output.txt","w",stdout);
+  #endif // Vlad_kv
+  int q,w,e,r,t,sq,h[300],v;
+  xor1[0]=0;
+  for(e=1;e<(1<<20);e++)
+   xor1[e]=xor1[e-1]^e;
+  scanf("%d%d",&q,&w);
+  sq=(int)sqrt(q+0.0001);
+  for(e=0;e<q;e++)
+   scanf("%d",&a[e]);
+  for(e=0;e<w;e++){
+   scanf("%d%d",&h1[e],&h2[e]);
+   h1[e]--;
+   h2[e]--;
+  }
+  h[0]=0;
+  r=0;
+  for(e=1;r<q;e++){
+   r=min(r+sq,q);
+   h[e]=r;
+  }
+  ini();
+  for(e=0;e<w;e++){
+   fans[e]=-1;
+   if(h2[e]-h1[e]+1<=sq){
+    for(r=h1[e];r<=h2[e];r++){
+     madd(r,1);
+     msch(r,fans[e]);
+    }
+    for(r=h1[e];r<=h2[e];r++)
+     madd(r,-1);
+   }
+  }
+  int mans;
+  sp *c;
+  for(e=0;h[e]<q;e++){
+   for(r=0;r<q;r++)
+    req[r]=0;
+   for(r=0;r<w;r++)
+    if(((h[e]<=h1[r])&&(h1[r]<h[e+1]))&&(fans[r]<0))
+     req[h2[r]]=new sp(h1[r],req[h2[r]],r);
+   ini();
+   mans=0;
+   for(r=h[e+1];r<q;r++){
+    madd(r,1);
+    msch(r,mans);
+    for(c=req[r];c;c=c->w){
+     fans[c->e]=mans;
+     for(v=h[e+1]-1;v>=h1[c->e];v--){
+      madd(v,1);
+      msch(v,fans[c->e]);
+     }
+     for(v++;v<h[e+1];v++)
+      madd(v,-1);
+    }
+   }
+  }
+  for(e=0;e<w;e++)
+   printf("%d\n",fans[e]);
+  return 0;
+}

@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m, len, a[55][20055], st[55][20055 * 4], lazy[55][20055 * 4];
+
+void build(int node, int l, int r) {
+	int kiri = (node << 1);
+	int kanan = (node << 1) + 1;
+	int mid = (l + r) >> 1;
+
+	if (l == r) {
+		st[1][node] = a[1][l] - a[1][l + len]
+					+ a[2][l] - a[2][l + len];
+	} else {
+		build(kiri, l, mid);
+		build(kanan, mid + 1, r);
+		st[1][node] = max(st[1][kiri], st[1][kanan]);
+	}
+}
+
+void update(int node, int l, int r, int i, int lo, int hi, int val) {
+	int kiri = (node << 1);
+	int kanan = (node << 1) + 1;
+	int mid = (l + r) >> 1;
+
+	if (lazy[i][node]) {
+		st[i][node] += lazy[i][node];
+
+		if (l != r) {
+			lazy[i][kiri] += lazy[i][node];
+			lazy[i][kanan] += lazy[i][node];
+		}
+
+		lazy[i][node] = 0;
+	}
+
+	if (l > hi || r < lo) {
+		return;
+	}
+
+	if (l >= lo && r <= hi) {
+		st[i][node] += val;
+
+		if (l != r) {
+			lazy[i][kiri] += val;
+			lazy[i][kanan] += val;
+		}
+	} else {
+		update(kiri, l, mid, i, lo, hi, val);
+		update(kanan, mid + 1, r, i, lo, hi, val);
+		st[i][node] = max(st[i][kiri], st[i][kanan]);
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	cin >> n >> m >> len;
+	for (int i = 1; i <= n; i++) {
+		for (int j = 1; j <= m; j++) {
+			cin >> a[i][j];
+		}
+	}
+
+	for (int i = 1; i <= n; i++) {
+		for (int j = m; j >= 1; j--) {
+			a[i][j] += a[i][j + 1];
+		}
+	}
+
+	build(1, 1, m - len + 1);
+
+	for (int i = 2; i <= n; i++) {
+		for (int j = 1; j <= len; j++) {
+			update(1, 1, m - len + 1, i - 1, max(1, j - len + 1), min(m - len + 1, j), -(a[i][j] - a[i][j + 1]));
+		}
+
+		for (int j = 1; j <= m - len + 1; j++) {
+			update(1, 1, m - len + 1, i, j, j, st[i - 1][1] + (a[i][j] - a[i][j + len]) + (a[i + 1][j] - a[i + 1][j + len]));
+
+			update(1, 1, m - len + 1, i - 1, max(1, j - len + 1), min(m - len + 1, j), (a[i][j] - a[i][j + 1]));
+			if (j + len <= m) {
+				update(1, 1, m - len + 1, i - 1, max(1, (j + len) - len + 1), min(m - len + 1, j + len), -(a[i][j + len] - a[i][j + len + 1]));
+			}
+		}
+	}
+
+	cout << st[n][1] << '\n';
+
+	return 0;
+}

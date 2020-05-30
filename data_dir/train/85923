@@ -1,0 +1,114 @@
+#include <cstdio>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
+#include <cmath>
+#include <cstdlib>
+#include <ctype.h>
+#include <cstring>
+#include <ctime>
+#include <cassert>
+#include <utility>
+
+using namespace std;
+
+#define MAXK 1024
+#define MAXN 505
+char A[MAXN][MAXN];
+vector< vector< vector< bitset<MAXN> > > > B(MAXK), T(MAXK);
+int N, M, Q, X1, Y1, X2, Y2;
+
+bool query(int k, int upper, int lower) {
+    int m = (upper + lower) / 2;
+
+    if(X1 <= m && X2 >= m) {
+        return (T[k][X1 - upper][Y1] & B[k][X2 - m][Y2]).any();
+    }
+
+    if(X2 < m)
+        return query(2 * k, upper, m);
+    return query(2 * k + 1, m, lower);
+}
+
+void calc(int k, int upper, int lower) {
+    int m = (upper + lower) / 2;
+
+    // allocate memory
+    int up = m - upper + 1;
+    T[k].assign(up, vector< bitset<MAXN> >(M));
+
+    int down = lower - m + 1;
+    B[k].assign(down, vector< bitset<MAXN> >(M));
+    // initialize
+    for(int j = M - 1; j >= 0; j--) {
+        if(A[m][j] == '.') {
+            if(j + 1 < M) {
+                T[k][up - 1][j] = T[k][up - 1][j + 1];
+            }
+            T[k][up - 1][j].set(j);
+        }
+    }
+    for(int j = 0; j < M; j++) {
+        if(A[m][j] == '.') {
+            if(j > 0) {
+                B[k][0][j] = B[k][0][j - 1];
+            }
+            B[k][0][j].set(j);
+        }
+    }
+
+    // compute
+    for(int i = up - 2; i >= 0; i--)
+        for(int j = M - 1; j >= 0; j--)
+            if(A[i + upper][j] == '.') {
+                if(j + 1 < M)
+                    T[k][i][j] = T[k][i][j + 1];
+                T[k][i][j] |= T[k][i + 1][j];
+            }
+    for(int i = 1; i < down; i++)
+        for(int j = 0; j < M; j++)
+            if(A[i + m][j] == '.') {
+                if(j > 0)
+                    B[k][i][j] = B[k][i][j - 1];
+                B[k][i][j] |= B[k][i - 1][j];
+            }
+
+    if(upper + 1 >= lower)
+        return;
+
+    calc(2 * k, upper, m);
+    calc(2 * k + 1, m, lower);
+}
+
+int main() {
+//	freopen("date.in", "r", stdin);
+//	freopen("date.out","w", stdout);
+
+    scanf("%d %d\n", &N, &M);
+
+    N++;
+    for(int i = 0; i < N - 1; i++)
+        fgets(A[i], sizeof(A[i]), stdin);
+
+    calc(1, 0, N - 1);
+
+    scanf("%d", &Q);
+    for(int i = 0; i < Q; i++) {
+        scanf("%d %d %d %d", &X1, &Y1, &X2, &Y2);
+        X1--; Y1--; X2--; Y2--;
+
+        bool ans = query(1, 0, N - 1);
+        printf("%s\n", ans ? "Yes" : "No");
+    }
+
+	return 0;
+}

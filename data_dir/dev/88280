@@ -1,0 +1,254 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 2e5 + 10;
+const int MOD = 1e9 + 7;
+
+typedef pair < int, int > pii;
+
+int N, Q;
+long long V[MAXN];
+
+vector < int > adj [MAXN];
+vector < pii > queries;
+
+long long EXP (int e, long long b)
+{
+	if (!e)
+		return 1LL;
+
+	if (e == 1)
+		return b;
+
+	if (e % 2 != 0)
+		return (b * EXP (e - 1, b)) % MOD;
+
+	long long ret = EXP (e >> 1, b);
+
+	return (ret * ret) % MOD;
+}
+
+int T;
+int st [MAXN];
+int ed [MAXN]; 
+int par [MAXN];
+long long deg [MAXN];
+
+void dfs (int v)
+{
+	st[v] = ++T;
+
+	for (int i = 0; i < adj[v].size(); ++i)
+	{
+		int u = adj[v][i];
+
+		dfs (u);
+	}
+
+	ed[v] = T;
+}
+
+struct node
+{
+	long long LAZY, SUM;
+
+	int sum;
+
+} seg [4 * MAXN];
+
+void build (int idx, int i, int j)
+{
+	if (i == j)
+	{
+		seg[idx].LAZY = 1LL;
+		seg[idx].SUM = 0LL;
+
+		return;
+	}
+
+	int mid = (i + j) >> 1;
+	int left = idx << 1;
+	int right = left | 1;
+
+	build (left, i, mid);
+	build (right, mid + 1, j);
+
+	seg[idx].SUM = 0LL;
+	seg[idx].LAZY = 1LL;
+}
+
+void refresh (int idx, int i, int j)
+{
+	if (seg[idx].LAZY == 1LL)
+		return;
+
+	int left = idx << 1;
+	int right = left | 1;
+
+	if (i != j)
+	{
+		if (seg[left].sum)
+			seg[left].LAZY = (seg[left].LAZY * seg[idx].LAZY) % MOD;
+
+		if (seg[right].sum)
+			seg[right].LAZY = (seg[right].LAZY * seg[idx].LAZY) % MOD;
+	}
+
+	seg[idx].SUM = (seg[idx].SUM * seg[idx].LAZY) % MOD;
+	seg[idx].LAZY = 1LL;
+}
+
+void updateRANGE (int idx, int i, int j, int ini, int fim, long long prod)
+{
+	refresh (idx, i, j);
+
+	if (i > j || j < ini || fim < i)
+		return;
+
+	if (!seg[idx].sum)
+		return;
+
+	if (ini <= i && j <= fim)
+	{
+		seg[idx].LAZY = (seg[idx].LAZY * prod) % MOD;
+		refresh (idx, i, j);
+		return;
+	}
+
+	int mid = (i + j) >> 1;
+	int left = idx << 1;
+	int right = left | 1;
+
+	updateRANGE (left, i, mid, ini, fim, prod);
+	updateRANGE (right, mid + 1, j, ini, fim, prod);
+
+	seg[idx].SUM = (seg[left].SUM + seg[right].SUM) % MOD;
+	seg[idx].sum = (seg[left].sum + seg[right].sum);
+}
+
+void change (int idx, int i, int j, int pos, long long val)
+{
+	refresh (idx, i, j);
+
+	if (i == j)
+	{
+		seg[idx].SUM = val;
+		seg[idx].sum = 1;
+		return;
+	}
+
+	int mid = (i + j) >> 1;
+	int left = idx << 1;
+	int right = left | 1;
+
+	if (pos <= mid)
+		change (left, i, mid, pos, val);
+	else
+		change (right, mid + 1, j, pos, val);
+
+	refresh (left, i, mid);
+	refresh (right, mid + 1, j);
+	
+	seg[idx].SUM = (seg[left].SUM + seg[right].SUM) % MOD;
+	seg[idx].sum = (seg[left].sum + seg[right].sum);
+}
+
+long long query (int idx, int i, int j, int ini, int fim)
+{
+	refresh (idx, i, j);
+
+	if (i > j || j < ini || fim < i)
+		return 0LL;
+
+	if (!seg[idx].sum)
+		return 0LL;
+
+	if (ini <= i && j <= fim)
+		return seg[idx].SUM;
+
+	int mid = (i + j) >> 1;
+	int left = idx << 1;
+	int right = left | 1;
+
+	refresh (left, i, mid);
+	refresh (right, mid + 1, j);
+
+	return (query (left, i, mid, ini, fim) + query (right, mid + 1, j, ini, fim)) % MOD;
+}
+
+void solve ()
+{
+	dfs (1);
+
+	build (1, 1, N);
+
+	deg[1] = 1LL;
+	change (1, 1, N, st[1], V[1]);
+
+	for (int i = 0; i < Q; ++i)
+	{
+		int type = queries[i].first;
+		int v = queries[i].second;
+
+		if (type == 1)
+		{
+			int p = par[v];
+
+			deg[v] = 1LL;
+			++deg[p];
+
+			long long prod = (EXP (MOD - 2, deg[p] - 1) * deg[p]) % MOD;
+			updateRANGE (1, 1, N, st[p], ed[p], prod);
+
+			long long val = (query (1, 1, N, st[p], st[p]) * EXP (MOD - 2, V[p])) % MOD;
+			change (1, 1, N, st[v], (val * V[v]) % MOD);
+		}
+		else
+		{
+			if (v == 1)
+				printf ("%lld\n", query (1, 1, N, st[v], ed[v]));
+			else
+			{
+				int p = par[v];
+
+				long long prod = (query (1, 1, N, st[p], st[p]) * EXP (MOD - 2, V[p])) % MOD;
+				printf ("%lld\n", (query (1, 1, N, st[v], ed[v]) * EXP (MOD - 2, prod)) % MOD);
+			}
+		}
+	}
+}
+
+int main ()
+{
+	scanf ("%d %d", &V[1], &Q);
+
+	N = 1;
+
+	for (int i = 0; i < Q; ++i)
+	{
+		int type;
+		scanf ("%d", &type);
+
+		if (type == 1)
+		{
+			++N;
+
+			int p;
+			scanf ("%d %lld", &p, &V[N]);
+
+			adj[p].push_back (N);
+			par[N] = p;
+			queries.push_back (pii (type, N));
+		}
+		else
+		{
+			int v;
+			scanf ("%d", &v);
+			queries.push_back (pii (type, v));
+		}
+	}
+
+	solve();
+
+	return 0;
+}

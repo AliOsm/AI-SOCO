@@ -1,0 +1,48 @@
+#include<bits/stdc++.h>
+#define MAX 5002
+#define pb push_back
+#define For(i,s,e) for (ll i=(s); i<(e); i++)
+#define Debug_array(a,n) for (ll i=(0); i<(n); i++) cout<<a[i]<<" "
+#define Foe(i,s,e) for (ll i=(s); i<=(e); i++)
+#define Fod(i,s,e) for (ll i=(s)-1; i>=(e); i--)
+#define Mod 1000000007
+#define pii pair<ll,ll>
+#define fi first
+#define se second
+#define endl "\n"
+
+using namespace std;
+
+typedef long long ll;
+
+bool check(ll n,ll k,ll x,ll m){
+	ll rem = 0;
+	ll left = min(k-1,x-1);
+	rem = k-1 - left;
+	ll right = min(n-k,x-1);
+	rem += ((n-k) - right);
+	// cout<<(x+x*(left+right)-(left*(left+1))/2 - ((right)*(right+1))/2 + rem)<<endl;
+	return (x+x*(left+right)-(left*(left+1))/2 - ((right)*(right+1))/2 + rem)<=m;
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	
+	ll n,m,k;cin>>n>>m>>k;
+
+	ll start = 1 , end = m;
+	ll ans = -1;
+	while(start<=end){
+		ll mid = (start+end)/2;
+		// cout<<mid<<endl;
+		if(check(n,k,mid,m)){
+			start = mid+1;
+			ans = mid;
+		}else{
+			end = mid-1;
+		}
+	}
+
+
+	cout<<ans<<endl;
+}

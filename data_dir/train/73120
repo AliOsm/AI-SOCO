@@ -1,0 +1,150 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long       ll;
+typedef pair<int,int>   pii;
+typedef vector<int>     vi;
+typedef long double     ld;
+#define MOD         1000000007
+#define pb          push_back
+#define all(a)      (a).begin(),(a).end()
+#define F           first
+#define S           second
+#define endl        '\n'
+#define PI          3.14159265359d
+#define sz(x)       (int)x.size()
+struct ST{
+    const int inf = 1e9;
+    vector<map<int,int>> next;
+    vi len,start,link,s;
+    int node,pos,N,n;
+    ST(): node(0),pos(0),N(0),n(0){
+        make_node(0,0);
+    }
+    pii get_label(int k){
+        int l=start[k];
+        int r=min(l+len[k]-1,n-1);
+        return {l,r};
+    }
+    int make_node(int _start, int _len)
+    {
+        next.emplace_back();
+        link.emplace_back(0);
+        start.emplace_back(_start);
+        len.emplace_back(_len);
+        return N++;
+    }
+    void go_edge()
+    {
+        while(next[node].count(s[n-pos]) && pos > len[next[node][s[n - pos]]])
+        {
+            node = next[node][s[n - pos]];
+            pos -= len[node];
+        }
+    }
+    void add_letter(int c)
+    {
+        s.pb(c);
+        n++;
+        pos++;
+        int last = 0;
+        while(pos > 0)
+        {
+            go_edge();
+            int edge = s[n - pos];
+            int &v = next[node][edge];
+            int t = s[start[v] + pos - 1];
+            if(v == 0)
+            {
+                v = make_node(n - pos, inf);
+                link[last] = node;
+                last = 0;
+            }
+            else if(t == c)
+            {
+                link[last] = node;
+                return;
+            }
+            else
+            {
+                int u = make_node(start[v], pos - 1);
+                next[u][c] = make_node(n - 1, inf);
+                next[u][t] = v;
+                start[v] += pos - 1;
+                len [v] -= pos - 1;
+                v = u;
+                link[last] = u;
+                last = u;
+            }
+            if(node == 0)
+                pos--;
+            else
+                node = link[node];
+        }
+    }
+};
+vector<pair<int,ll>> A;
+ll cost[100005];
+vector<ll> dp;
+vi L,sizes,stop;
+ST st;
+ll maxi;
+void dfs(int u,int p)
+{
+    if(st.start[u]+st.len[u]>st.n)
+        st.len[u]=st.n-st.start[u];
+    L[u]=L[p]+st.len[u];
+    if(st.next[u].empty())
+    {
+        int x=st.n-L[u];
+        dp[u]=A[x].S;
+        if(A[x].F==A[st.start[u]].F)
+            maxi=max(maxi,1LL*A[x].S*(stop[x]-x));
+        return;
+    }
+    for(auto i:st.next[u])
+    {
+        dfs(i.S,u);
+        dp[u]+=dp[i.S];
+    }
+    maxi=max(maxi,dp[u]*L[u]);
+}
+int main()
+{
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n,i,cur;
+    string t;
+    map<int,int> mp;
+    cin>>n;
+    for(i=0;i<n;i++)
+    {
+        cin>>t;
+        sizes.pb(sz(t));
+        for(auto j:t)
+            A.pb({(int)j,i});
+        A.pb({100000+i,-i-1});
+    }
+    for(i=0;i<n;i++)
+        cin>>cost[i];
+    for(i=0;i<sz(A);i++)
+    {
+        st.add_letter(A[i].F);
+        A[i].F=A[i].S;
+        if(A[i].S<0)
+            A[i].S=0;
+        else
+            A[i].S=cost[A[i].S];
+    }
+    stop.resize(sz(A));
+    for(i=sz(A)-1;i>=0;i--)
+        if(A[i].F<0)
+            cur=i;
+        else
+            stop[i]=cur;
+    dp.resize(st.N);
+    L.resize(st.N);
+    dfs(0,0);
+    cout<<maxi;
+    return 0;
+}

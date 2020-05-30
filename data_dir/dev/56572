@@ -1,0 +1,114 @@
+#include <math.h>
+#include <stdio.h>
+
+#define N	300000
+#define N_	(1 << 19)	/* N_ = pow2(ceil(log2(N_))) */
+
+double PI;
+
+void init() {
+	PI = acos(-1);
+}
+
+double st_x[N_ * 2], st_y[N_ * 2], lz_x[N_], lz_y[N_]; int n_, h_;
+
+void mult(double *vx, double *vy, double x, double y) {
+	double x_ = *vx * x - *vy * y, y_ = *vx * y + *vy * x;
+
+	*vx = x_, *vy = y_;
+}
+
+void put(int i, double x, double y) {
+	mult(&st_x[i], &st_y[i], x, y);
+	if (i < n_)
+		mult(&lz_x[i], &lz_y[i], x, y);
+}
+
+void pus(int i) {
+	if (lz_x[i] != 1 || lz_y[i] != 0) {
+		put(i << 1, lz_x[i], lz_y[i]);
+		put(i << 1 | 1, lz_x[i], lz_y[i]);
+		lz_x[i] = 1, lz_y[i] = 0;
+	}
+}
+
+void pul(int i) {
+	if (lz_x[i] == 1 && lz_y[i] == 0) {
+		int l = i << 1, r = i << 1 | 1;
+
+		st_x[i] = st_x[l] + st_x[r];
+		st_y[i] = st_y[l] + st_y[r];
+	}
+}
+
+void push(int i) {
+	int h;
+
+	for (h = h_; h > 0; h--)
+		pus(i >> h);
+}
+
+void pull(int i) {
+	while (i > 1)
+		pul(i >>= 1);
+}
+
+void build(int n) {
+	int i;
+
+	h_ = 0;
+	while (1 << h_ < n)
+		h_++;
+	n_ = 1 << h_;
+	for (i = 0; i < n; i++)
+		st_x[n_ + i] = 1, st_y[n_ + i] = 0;
+	for (i = 0; i < n_; i++)
+		lz_x[i] = 1, lz_y[i] = 0;
+	for (i = n_ - 1; i > 0; i--)
+		pul(i);
+}
+
+void update1(int i, double a) {
+	push(i += n_);
+	st_x[i] *= a, st_y[i] *= a;
+	pull(i);
+}
+
+void update2(int l, double x, double y) {
+	int r = n_ - 1, l_ = l += n_, r_ = r += n_;
+
+	push(l_), push(r_);
+	for ( ; l <= r; l >>= 1, r >>= 1)
+		if ((l & 1) == 1)
+			put(l++, x, y);
+	pull(l_), pull(r_);
+}
+
+int main() {
+	static int ll[N];
+	int n, m, i;
+
+	init();
+	scanf("%d%d", &n, &m);
+	for (i = 0; i < n; i++)
+		ll[i] = 1;
+	build(n);
+	while (m--) {
+		int t, i;
+
+		scanf("%d%d", &t, &i), i--;
+		if (t == 1) {
+			int l;
+
+			scanf("%d", &l);
+			update1(i, ((double) ll[i] + l) / ll[i]), ll[i] += l;
+		} else {
+			int z;
+
+			scanf("%d", &z);
+			update2(i, cos(z / 180.0 * PI), -sin(z / 180.0 * PI));
+		}
+		printf("%f %f\n", st_x[1], st_y[1]);
+	}
+	return 0;
+}

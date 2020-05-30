@@ -1,0 +1,151 @@
+#include <stdio.h>
+
+#define ll long long
+#define MOD 1000000009LL
+
+struct sPoint {
+    int x, y, val;
+} p[100009], q[100009];
+
+bool removed[100009];
+bool inQueue[100009];
+int cntInQueue;
+
+int m;
+
+bool operator<(sPoint a, sPoint b) {
+    if (a.x == b.x) return a.y < b.y;
+    else return a.x < b.x;
+}
+
+void QSort(int l, int r){
+    int x = l, y = r;
+    sPoint m = p[(l+r)/2];
+    while (x <= y) {
+        while (p[x] < m) x++;
+        while (m < p[y]) y--;
+        if (x <= y) {
+            sPoint t = p[x];
+            p[x] = p[y];
+            p[y] = t;
+            x++; y--;
+        }
+    }
+    if (x < r) QSort(x, r);
+    if (l < y) QSort(l, y);
+}
+
+int BinSearch(int x, int y)
+{
+    sPoint tmp = {x, y, 0};
+    int L = 0, R = m-1;
+    while (L <= R) {
+        int M = (L+R)/2;
+        if (p[M] < tmp)
+            L = M+1;
+        else if (tmp < p[M])
+            R = M-1;
+        else if (removed[p[M].val])
+            return -1;
+        else
+            return p[M].val;
+    }
+    return -1;
+}
+
+int fwt[100009];
+
+void Add(int i, int d) {
+    i++;
+    while (i <= m) {
+        fwt[i] += d;
+        i += i&(-i);
+    }
+}
+int GetKth(int k) {
+    int ans = 0;
+    for (int i = 20; i >= 0; i--) {
+        if (ans + (1<<i) <= m && fwt[ans+(1<<i)] < k) {
+            ans += 1<<i;
+            k -= fwt[ans];
+        }
+    }
+    return ans;
+}
+
+int ans[100009];
+
+bool CanRemove(int x, int y)
+{
+    if (BinSearch(x-1, y+1) != -1 && BinSearch(x-1, y) == -1 && BinSearch(x-2, y) == -1) return false;
+    if (BinSearch(x, y+1) != -1 && BinSearch(x-1, y) == -1 && BinSearch(x+1, y) == -1) return false;
+    if (BinSearch(x+1, y+1) != -1 && BinSearch(x+1, y) == -1 && BinSearch(x+2, y) == -1) return false;
+    return true;
+}
+
+int main()
+{
+    scanf("%d", &m);
+
+    for (int i = 0; i < m; i++) {
+        scanf("%d %d", &p[i].x, &p[i].y);
+        p[i].val = i;
+        q[i] = p[i];
+    }
+
+    QSort(0, m-1);
+
+    //for (int i = 0; i < m; i++) printf("%d %d\n", p[i].x, p[i].y);
+
+    for (int i = 0; i < m; i++) {
+        if (CanRemove(q[i].x, q[i].y)) {
+            inQueue[i] = true;
+            cntInQueue++;
+            Add(i, 1);
+        }
+    }
+
+    for (int i = 0; i < m; i++) {
+
+        int cur;
+        if (i%2 == 0)
+            cur = GetKth(cntInQueue);
+        else
+            cur = GetKth(1);
+
+        Add(cur, -1);
+        ans[i] = cur;
+        removed[cur] = true;
+        inQueue[cur] = false;
+        cntInQueue--;
+
+
+
+        for (int ny = q[cur].y-1; ny <= q[cur].y; ny++) {
+            for (int nx = q[cur].x-3; nx <= q[cur].x+3; nx++) {
+                int tmp = BinSearch(nx, ny);
+                if (tmp == -1) continue;
+
+                if (inQueue[tmp] && !CanRemove(nx, ny)) {
+                    inQueue[tmp] = false;
+                    cntInQueue--;
+                    Add(tmp, -1);
+                }
+                else if (!inQueue[tmp] && CanRemove(nx, ny)) {
+                    inQueue[tmp] = true;
+                    cntInQueue++;
+                    Add(tmp, 1);
+                }
+            }
+        }
+
+    }
+
+    ll a = 0;
+    ll b = 1;
+    for (int i = m-1; i >= 0; i--) {
+        a = (a + b * (ll)ans[i])%MOD;
+        b = (b*(ll)m)%MOD;
+    }
+    printf("%I64d", a);
+}

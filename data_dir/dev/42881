@@ -1,0 +1,45 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define ll long long
+#define maxn 100005
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+#define ms1(i) memset(i,-1,sizeof(i));
+#define bg begin()
+#define ed end()
+
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	int n,m,k;
+	while(cin >> n >> m >> k){
+		int mm[105] = {},nn[105]={};
+		int b[105][105];
+		f(m)cin >> mm[i];
+		f(n)cin >> nn[i];
+		f(n){
+			fr(j,0,m){
+				cin >> b[i][j];
+			}
+		}
+		f(n){
+			fr(j,0,m){
+				if(b[i][j]){
+					b[i][j] = min(mm[j],nn[i]);
+				}
+			}
+		}
+		f(n){
+			fr(j,0,m){
+				cout<<b[i][j]<<' ';
+			}
+			cout << endl;
+		}
+	}
+
+}

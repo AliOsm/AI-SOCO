@@ -1,0 +1,95 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int N = 100005;
+int n, q;
+long long tot, MXL = 1e18, F[N], MN[N * 2];
+set < int > G, B;
+inline void Add(int i, long long val)
+{
+    for (; i < N; i += i & -i)
+        F[i] += val;
+}
+inline long long Getval(int i)
+{
+    long long rt = 0;
+    for (; i; i -= i & -i)
+        rt += F[i];
+    return (rt);
+}
+inline void Set(int i, long long val)
+{
+    for (MN[i += n] = val; i; i >>= 1)
+        MN[i >> 1] = min(MN[i], MN[i ^ 1]);
+}
+inline long long GetMin(int l, int r)
+{
+    long long Mn = MXL;
+    for (l += n, r += n; l < r; l >>= 1, r >>= 1)
+    {
+        if (l & 1) Mn = min(Mn, MN[l ++]);
+        if (r & 1) Mn = min(Mn, MN[-- r]);
+    }
+    return (Mn);
+}
+inline void Reset(int i)
+{
+    if (i <= 1 || i >= n)
+        return ;
+    G.erase(i); B.erase(i);
+    long long a = Getval(i), b = Getval(i - 1), c = Getval(i + 1);
+    if (a >= b && a >= c)
+        G.insert(i), Set(i, MXL);
+    else if (a < b && a < c)
+        B.insert(i), Set(i, MXL);
+    else
+        Set(i, max(b, c) - a);
+}
+int main()
+{
+    scanf("%d", &n);
+    for (int i = 1, val; i <= n; i++)
+        scanf("%d", &val), Add(i, val), Add(i + 1, -val);
+    memset(MN, 63, sizeof(MN));
+    for (int i = 2; i <= n; i++)
+        tot += abs(Getval(i) - Getval(i - 1));
+    for (int i = 1; i <= n; i++)
+        Reset(i);
+    scanf("%d", &q);
+    for (; q; q --)
+    {
+        int t, l, r; long long x;
+        scanf("%d%d%d%lld", &t, &l, &r, &x); r ++;
+        if (t == 2)
+        {
+            if (l > 1) tot -= abs(Getval(l) - Getval(l - 1));
+            if (r <= n) tot -= abs(Getval(r) - Getval(r - 1));
+            Add(l, x); Add(r, - x);
+            Reset(l - 1); Reset(l);
+            Reset(r - 1); Reset(r);
+            if (l > 1) tot += abs(Getval(l) - Getval(l - 1));
+            if (r <= n) tot += abs(Getval(r) - Getval(r - 1));
+            continue;
+        }
+        auto it = G.lower_bound(l);
+        if (it != G.end() && (*it) < r)
+        {
+            printf("%lld\n", tot + x + x);
+            continue;
+        }
+        long long Mx = (x - GetMin(l, r)) * 2;
+        if (GetMin(l, r) != MXL)
+            Mx = max(Mx, 0ll);
+        it = B.lower_bound(l);
+        if (it != B.end() && (*it) < r)
+        {
+            long long a = Getval(*it), b = Getval((*it) - 1), c = Getval((*it) + 1);
+            Mx = max(Mx, max(x - max(c, b) + a, 0ll) * 2 - min(x, min(b, c) - a) * 2);
+        }
+        if (l == 1)
+            Mx = max(Mx, x - max(Getval(2) - Getval(1), 0ll) * 2);
+        if (r == n + 1)
+            Mx = max(Mx, x - max(Getval(n - 1) - Getval(n), 0ll) * 2);
+        printf("%lld\n", tot + Mx);
+    }
+    return (0);
+}

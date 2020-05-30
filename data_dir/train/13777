@@ -1,0 +1,118 @@
+/**
+ *    author:  skmonir
+ *    created: 20-Apr-2018 19:21:46
+**/
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define endl                '\n'
+#define TN                  typename
+#define mod                 1000000007LL
+#define all(x)              x.begin(), x.end()
+#define rall(x)             x.rbegin(), x.rend()
+#define mem(x, y)           memset(x, y, sizeof x)
+#define FOR(x, l, r)        for (int x = l; x <= r; ++x)
+#define ROF(x, l, r)        for (int x = l; x >= r; --x)
+
+template <TN T> inline void Int(T &n) {
+    n = 0; int f = 1; register int ch = getchar();
+    for (; !isdigit(ch); ch = getchar()) if (ch == '-') f = -1;
+    for (; isdigit(ch); ch = getchar()) n = (n << 3) + (n << 1) + ch - '0';
+    n = n * f;
+}
+
+template <TN T> T gcd(T a, T b) {return !b ? a : gcd(b, a % b);}
+template <TN T> inline void umin(T &a, T b) {a = a < b ? a : b;}
+template <TN T> inline void umax(T &a, T b) {a = a > b ? a : b;}
+template <TN T, TN W> inline void Int(T &x, W &y) {Int(x), Int(y);}
+template <TN T, TN W, TN Q> inline void Int(T &x, W &y, Q &z) {Int(x, y), Int(z);}
+
+const int N = 1e5 + 7;
+const int inf = 1e9 + 7;
+
+vector <int> g[N], fen[N];
+int chainId, lev[N], sz[N], belongs[N];
+
+void modify(int x, int y, int z) {
+    while (y <= sz[x]) fen[x][y] += z, y += y & -y;
+}
+
+int ask(int x, int y) {
+    int res = 0;
+    while (y > 0) res += fen[x][y], y -= y & -y;
+    return res;
+}
+
+void dfs(int u, int p) {
+    lev[u] = lev[p] + 1;
+    sz[chainId]++;
+    belongs[u] = chainId;
+    FOR (i, 1, g[u].size()) {
+        int v = g[u][i - 1];
+        if (v != p) dfs(v, u);
+    }
+}
+
+int solve() {
+    int n, m; Int(n, m);
+    FOR (i, 2, n) {
+        int u, v; Int(u, v);
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+
+    FOR (i, 1, n + 2) sz[i] = 3;
+
+    lev[1] = 1, belongs[1] = n + 1;
+    for (int v : g[1]) {
+        ++chainId; dfs(v, 1);
+    }
+
+    sz[0] = n + 2;
+    fen[0].resize(n + 5);
+    FOR (i, 1, n + 2) fen[i].resize(sz[i] + 3);
+
+    while (m--) {
+        int t, v, x, d; Int(t, v);
+        int vchain = belongs[v], R, L;
+        if (t == 0) {
+            Int(x, d);
+            if (v == 1) {
+                modify(0, 1, x);
+                modify(0, min(sz[0], d + lev[v] + 1), -x);
+                continue;
+            }
+            // updating inside the same chain
+            L = max(2, lev[v] - d);
+            R = min(sz[vchain], lev[v] + d);
+            modify(vchain, L, x);
+            modify(vchain, R + 1, -x);
+
+            if (lev[v] - d == 1) { // updating the root
+                modify(0, 1, x);
+                modify(0, 2, -x);
+            } else if (lev[v] - d < 1) { // updating other chain levels
+                modify(0, 1, x);
+                modify(0, min(sz[0], d - lev[v] + 3), -x);
+
+                modify(vchain, 2, -x);
+                modify(vchain, min(sz[vchain], d - lev[v] + 3), x);
+            }
+        } else {
+            printf("%d\n", ask(0, lev[v]) + ask(vchain, lev[v]));
+        }
+    }
+
+    return 0;
+}
+
+int main() {
+    int tests = 1, CaseNo = 0; //Int(tests);
+    while (tests--) {
+        //printf("Case %d: ", ++CaseNo);
+        solve();
+    }
+    return 0;
+}

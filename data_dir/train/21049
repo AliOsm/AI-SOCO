@@ -1,0 +1,205 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MOD = 1e9 + 7;
+const int N = 3e5 + 5;
+int ans[N] , cnt[3][N];
+
+template<typename T>
+vector<int> sort_cyclic_shifts(const T &s) {
+    int n = s.size();
+    const int alphabet = 256; // change according to the problem
+    vector<int> p(n) , g(n) , cnt(max(n , alphabet) , 0);
+
+    for (int i = 0 ;i < n ;i++) cnt[s[i]]++;
+    for (int i = 1 ;i < alphabet ;i++) cnt[i] += cnt[i - 1];
+    for (int i = 0 ;i < n ;i++) p[--cnt[s[i]]] = i;
+
+    g[p[0]] = 0;
+    int groups = 1;
+    for (int i = 1 ;i < n ;i++) {
+        groups += (s[p[i - 1]] != s[p[i]]);
+        g[p[i]] = groups - 1;
+    }
+
+    vector<int> pn(n) , gn(n);
+    for (int h = 0 ; (1 << h) < n ;h++) {
+        fill(cnt.begin() , cnt.begin() + groups , 0);
+
+        for (int i = 0 ;i < n ;i++) pn[i] = (p[i] - (1 << h) + n) % n;
+        for (int i = 0 ;i < n ;i++) cnt[g[pn[i]]]++;
+        for (int i = 1 ;i < groups ;i++) cnt[i] += cnt[i - 1];
+        for (int i = n - 1 ;i >= 0 ;i--) p[--cnt[g[pn[i]]]] = pn[i];
+
+        gn[p[0]] = 0;
+        groups = 1;
+        for (int i = 1 ;i < n ;i++) {
+            groups += tie(g[p[i]] , g[(p[i] + (1 << h)) % n])
+                      != tie(g[p[i - 1]] , g[(p[i - 1] + (1 << h)) % n]);
+            gn[p[i]] = groups - 1;
+        }
+        g = gn;
+    }
+
+    return p;
+}
+
+template <typename T>
+vector<int> build_lcp(T const& s, const vector<int> &p) {
+    int n = s.size();
+    vector<int> rank(n, 0);
+    for (int i = 0; i < n; i++)
+        rank[p[i]] = i;
+
+    int k = 0;
+    vector<int> lcp(n-1, 0);
+    for (int i = 0; i < n; i++) {
+        if (rank[i] == n - 1) {
+            k = 0;
+            continue;
+        }
+        int j = p[rank[i] + 1];
+        while (i + k < n && j + k < n && s[i+k] == s[j+k])
+            k++;
+        lcp[rank[i]] = k;
+        if (k)
+            k--;
+    }
+    return lcp;
+}
+
+template <typename T>
+vector<int> suffix_array_construction(T s) {
+    s.push_back(*min_element(s.begin() , s.end()) - 1); // don't if you want to sort cyclic strings
+    vector<int> sorted_shifts = sort_cyclic_shifts(s);
+    sorted_shifts.erase(sorted_shifts.begin());
+    return sorted_shifts;
+}
+
+template <typename T, class F = function<T(int i , int j , const vector<T> &t)>>
+class SparseTable {
+public:
+    int n;
+    vector<T> a;
+    vector<vector<T>> sp;
+    F func;
+
+    SparseTable(const vector<T> &_a , const F& f) : a(_a) , func(f) {
+        n = static_cast<int>(a.size());
+        int max_log = 32 - __builtin_clz(n);
+        sp.resize(max_log);
+        sp[0].resize(n);
+        iota(sp[0].begin() , sp[0].end() , 0);
+        for (int j = 1; j < max_log; ++j) {
+            sp[j].resize(n - (1 << j) + 1);
+            for (int i = 0; i <= n - (1 << j); ++i) {
+                sp[j][i] = func(sp[j - 1][i], sp[j - 1][i + (1 << (j - 1))] , a);
+            }
+        }
+    }
+
+    T get_element(int i) {
+        return a[i];
+    }
+
+    T get(int l , int r) const {
+        int lg = 32 - __builtin_clz(r - l + 1) - 1;
+        return func(sp[lg][l] , sp[lg][r - (1 << lg) + 1] , a);
+    }
+};
+
+int sum(int a[] , int l , int r) {
+    if (!l) return a[r];
+    return a[r] - a[l - 1];
+}
+
+int add(int a , int b) {
+    a += b;
+    while (a >= MOD) a -= MOD;
+    while (a < 0) a += MOD;
+    return a;
+}
+
+int mul(int a , int b) {
+    return a * 1ll * b % MOD;
+}
+
+void addRange(int l , int r , int v) {
+    ans[l] = add(ans[l] , v);
+    ans[r + 1] = add(ans[r + 1] , -v);
+}
+
+void go(int l , int r , int prev , SparseTable<int> &sp) {
+    if (r - l < 2)
+        return;
+
+    int mn_ind = sp.get(l , r - 1);
+    int mn = sp.get_element(mn_ind);
+
+    if (mn > prev) {
+        int a = sum(cnt[0] , l , r);
+        int b = sum(cnt[1] , l , r);
+        int c = sum(cnt[2] , l , r);
+        addRange(prev + 1 , mn , mul(mul(a , b) , c));
+    }
+
+    go(l , mn_ind , mn , sp);
+    go(mn_ind + 1 , r , mn , sp);
+}
+
+int main() {
+    ios::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+#ifndef ONLINE_JUDGE
+    freopen("input.in", "r", stdin);
+#endif
+    string a, b, c;
+    cin >> a >> b >> c;
+
+    string all = a + '#' + b + '$' + c;
+
+    vector<int> sa = suffix_array_construction(all);
+    vector<int> lcp = build_lcp(all, sa);
+
+//    for (int i = 0 ;i < sa.size() ;i++) {
+//        cout << all.substr(sa[i]);
+//        if (i + 1 < sa.size())
+//            cout << ' ' << lcp[i];
+//        cout << endl;
+//    }
+
+    SparseTable<int> sp(lcp, [&](int i, int j, const vector<int> &v) {
+        if (v[i] < v[j]) // returns the index of the min
+            return i;
+        return j;
+    });
+
+    auto getString = [&](int i) {
+        if (i < a.size())
+            return 0;
+        if (i < a.size() + b.size() + 1)
+            return 1;
+        return 2;
+    };
+
+
+    for (int i = 0; i < sa.size(); i++) {
+        if (all[sa[i]] == '#' || all[sa[i]] == '$') continue;
+        cnt[getString(sa[i])][i] = 1;
+    }
+
+    for (int i = 1; i < sa.size(); i++) {
+        cnt[0][i] += cnt[0][i - 1];
+        cnt[1][i] += cnt[1][i - 1];
+        cnt[2][i] += cnt[2][i - 1];
+    }
+
+    go(0 , (int)sa.size() - 1 , 0 , sp);
+
+    int len = min(min(a.size() , b.size()) , c.size());
+    for (int i = 1 ;i <= len ;i++) {
+        ans[i] = add(ans[i] , ans[i - 1]);
+        cout << ans[i] << ' ';
+    }
+}
+        

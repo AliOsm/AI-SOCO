@@ -1,0 +1,114 @@
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <set>
+#include <cassert>
+#include <map>
+#include <cstring>
+#include <cstdlib>
+#include <cmath>
+
+using namespace std;
+
+using ll = long long;
+using ii = pair<int, int>;
+
+inline int read() {
+    int x;
+    scanf(" %d", &x);
+    return x;
+}
+
+const int N = 1 << 18;
+const int T = N << 1;   
+const int K = 20;
+
+int a[N];
+
+struct segtree {
+    int L[T], R[T];
+
+    segtree() {
+        for (int i = 0; i < N; i++) {
+            L[i + N] = i;
+            R[i + N] = i;
+        }
+    }
+
+    void set(int x, int lv, int rv) {
+        x += N;
+        L[x] = lv;
+        R[x] = rv;
+        while (x > 1) {
+            x >>= 1;
+            L[x] = min(L[x + x], L[x + x + 1]);
+            R[x] = max(R[x + x], R[x + x + 1]);
+        }
+    }
+
+    ii get(int l, int r) {
+        int rl = l, rr = r;
+        for (l += N, r += N; l <= r; l >>= 1, r >>= 1) {
+            if (l & 1) {
+                rl = min(rl, L[l]);
+                rr = max(rr, R[l]);
+                ++l;
+            }
+            if (!(r & 1)) {
+                rl = min(rl, L[r]);
+                rr = max(rr, R[r]);
+                --r;
+            }
+        }
+        return make_pair(rl, rr);
+    }
+};
+
+segtree tree[K];
+
+int main() {
+    int n = read();
+    for (int i = 0; i < n; i++) {
+        a[i] = read();
+        a[i + n] = a[i];
+    }
+    for (int i = 0; i < 2 * n; i++) {
+        int l = max(0, i - a[i]);
+        int r = min(2 * n - 1, i + a[i]);
+        tree[0].set(i, l, r);
+    }
+    for (int k = 0; k + 1 < K; k++) {
+        for (int i = 0; i < 2 * n; i++) {
+            auto [from, to] = tree[k].get(i, i);
+            auto [l, r] = tree[k].get(from, to);
+            tree[k + 1].set(i, l, r);
+        }
+    }
+    auto calc = [&](int x) {
+        int from = x, to = x;
+        int cur = 0;
+        for (int k = K - 1; k >= 0; k--) {
+            int d = 1 << k;
+            auto [l, r] = tree[k].get(from, to);
+            int nfrom = min(from, l);
+            int nto = max(to, r);
+            if (nto - nfrom + 1 < n) {
+                cur += d;
+                from = nfrom;
+                to = nto;
+            }
+        }
+        return cur + 1;
+    };
+    if (n == 1) {
+        printf("0\n");
+        return 0;
+    }
+    for (int i = 0; i < n; i++) {
+        printf("%d ", min(calc(i), calc(i + n)));
+    }
+    printf("\n");
+    return 0;
+}

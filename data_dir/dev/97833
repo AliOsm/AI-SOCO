@@ -1,0 +1,177 @@
+/**************************************************************************************
+    Palindrome tree. Useful structure to deal with palindromes in strings. O(N)
+    This code counts number of palindrome substrings of the string.
+    Based on problem 1750 from informatics.mccme.ru:
+    http://informatics.mccme.ru/moodle/mod/statements/view.php?chapterid=1750
+**************************************************************************************/
+
+#include<bits/stdc++.h>
+using namespace std;
+
+const int LOGN = 20;
+const int MAXN = 1005000;
+//const int MAXN = 6000;
+
+struct node {
+    int next[26];
+    int len;
+    int sufflink;
+    int num;
+
+    void saaf() {
+        memset(next, 0, sizeof next);
+        len = num = sufflink = 0;
+    }
+};
+
+int len;
+string s;
+node tree[MAXN];
+int bap[LOGN][MAXN];
+int num;            // node 1 - root with len -1, node 2 - root with len 0
+int suff;           // max suffix palindrome
+
+bool addLetter(int pos) {
+    int cur = suff, curlen = 0;
+    int let = s[pos] - 'a';
+
+    while (true) {
+        curlen = tree[cur].len;
+        if (pos - 1 - curlen >= 0 && s[pos - 1 - curlen] == s[pos])
+            break;
+        cur = tree[cur].sufflink;
+    }
+    if (tree[cur].next[let]) {
+        suff = tree[cur].next[let];
+        return false;
+    }
+
+    num++;
+    suff = num;
+    tree[num].len = tree[cur].len + 2;
+    tree[cur].next[let] = num;
+
+    if (tree[num].len == 1) {
+        tree[num].sufflink = 2;
+        tree[num].num = 1;
+        return true;
+    }
+
+    while (true) {
+        cur = tree[cur].sufflink;
+        curlen = tree[cur].len;
+        if (pos - 1 - curlen >= 0 && s[pos - 1 - curlen] == s[pos]) {
+            tree[num].sufflink = tree[cur].next[let];
+            break;
+        }
+    }
+
+    tree[num].num = 1 + tree[tree[num].sufflink].num;
+
+    return true;
+}
+
+void initTree() {
+    for (int i = 0; i < len+7; i++) {
+        tree[i].saaf();
+    }
+    num = 2; suff = 2;
+    tree[1].len = -1; tree[1].sufflink = 1;
+    tree[2].len = 0; tree[2].sufflink = 1;
+}
+
+typedef pair< int , int >PII;
+
+int getLen(const PII &p) {
+    return p.first+(len-p.second)*2;
+}
+
+string solve() {
+//    cout << "solving " << s << endl;
+
+    initTree();
+
+    PII soln(1, len);
+
+    int pr;
+    for (pr = 0; pr < len-1-pr; pr++) {
+        if (s[pr] != s[len-1-pr]) break;
+        PII tmp((pr+1 < len-1-pr), len-1-pr);
+        soln = tmp;
+    }
+
+//    cout << "best " << soln.first << " " << soln.second << endl;
+
+    for (int i = 0; i < len; i++) {
+        if (addLetter(i)) {
+            bap[0][suff] = tree[suff].sufflink;
+            for (int k = 1; k < LOGN; k++) {
+                bap[k][suff] = bap[k-1][bap[k-1][suff]];
+            }
+        }
+        if (i >= len-1-pr) {
+            ///this could be a solution
+            PII tmp(0, i+1);
+            int u = suff;
+            int available = len-2*(len-1-i);
+
+            if (tree[u].len > 0 && tree[u].len <= available) {
+                tmp.first = tree[u].len;
+            } else {
+                for (int k = LOGN-1; k >= 0; k--) {
+                    int v = bap[k][u];
+                    if (tree[v].len < 1) continue;
+                    if (tree[v].len > available) u = v;
+                }
+                u = bap[0][u];
+                assert(tree[u].len <= available);
+                if (tree[u].len > 0) tmp.first = tree[u].len;
+            }
+//            cout << "bam of " << i << endl;
+
+//            while (tree[u].len > 0) {
+////                cout << " --> " << tree[u].len << endl;
+//                if (tree[u].len <= available) {
+//                    tmp.first = tree[u].len;
+//                    break;
+//                }
+//                u = tree[u].sufflink;
+//            }
+            if (getLen(tmp) > getLen(soln)) soln = tmp;
+        }
+    }
+
+//    cout << "result " << soln.first << " " << soln.second << endl;
+
+    string r;
+    for (int i = len-1; i >= soln.second; i--)  r += s[i];
+    for (int i = 1; i <= soln.first; i++)       r += s[soln.second-i];
+    for (int i = soln.second; i < len; i++)     r += s[i];
+    return r;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int t;
+    cin >> t;
+
+    while (t--) {
+        cin >> s;
+        len = s.size();
+        string r1 = solve();
+
+        reverse(s.begin(), s.end());
+        string r2 = solve();
+
+        if (r1.size() < r2.size()) {
+            reverse(r2.begin(), r2.end());
+            swap(r1, r2);
+        }
+
+        cout << r1 << "\n";
+    }
+
+    return 0;
+}

@@ -1,0 +1,203 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+typedef long double ld;
+const ll INF = 1LL<<62;
+//dynamic hull
+struct FN
+{
+    ll m, b; //in this case, function is a line
+    bool is_query;
+    FN(ll _m, ll _b, bool is = false) : m(_m), b(_b), is_query(is) {}
+    mutable function<ld()> xRight; //right intersection point of line in hull, is infinity for rightmost line
+    ll eval(ll x) const {
+        return m*x + b;
+    }
+    ld intersect(const FN& r) const { //returns x coordinate of intersection
+        //assert(m != r.m);
+        return (ld)(r.b-b)/(ld)(m-r.m);
+    }
+
+    friend bool comp(const FN& l1, const FN& l2, const FN& l) {
+    	//order in deque: l1, l2, l
+    	//true --> l2 is unnecessary
+    	ld x1 = l1.intersect(l);
+        ld x2 = l1.intersect(l2);
+        return x1 <= x2;
+    }
+
+    bool operator<(const FN& rhs) const {
+        //make sure to check which </> should be used
+        if (!rhs.is_query) return m < rhs.m;
+        ll x = rhs.m;
+        return xRight() < (ld)x;
+    }
+};
+
+//goal: dynamic variant of convex hull
+//insert, delete, and query in O(log n)
+struct Hull: public set<FN> //convex hull for maximum
+{
+    void addFN(FN fn) {
+        Hull::iterator it = lower_bound(fn);
+        if (it != end() && it->m == fn.m) {
+            if (it->b >= fn.b) return; //no need to consider it
+            //this line must be changed based on +/- slope!!!
+            erase(it);
+        }
+        it = insert(fn).first;
+        //check if what we just inserted is necessary
+        if (it != begin() && next(it) != end()) {
+            if (comp(*prev(it),*it,*next(it))) {
+                //not needed
+                erase(it);
+                return;
+            }
+        }
+        it->xRight = [=] { return next(it) == end() ? INF : it->intersect(*next(it)); };
+        //function pointer magic
+        //Removes unnecessary lines above and below
+        Hull::iterator b1, b2, f1, f2;
+        while (true) {
+            if (it == begin()) break;
+            else {
+                b1 = prev(it);
+                if (b1 == begin()) break;
+                else {
+                    b2 = prev(b1);
+                    if (comp(*b2,*b1,*it)) {
+                        erase(b1);
+                    }  
+                    else break;     
+                }
+            }
+        }
+        while (true) {
+            f1 = next(it);
+            if (f1 == end()) break;
+            else {
+                f2 = next(f1);
+                if (f2 == end()) break;
+                else {
+                    if (comp(*it,*f1,*f2)) {
+                        erase(f1);
+                    }
+                    else break;
+                }
+            }
+        }
+    }
+
+    ll query(ll x) {
+        if (this->empty()) return 0; //because querying for maximum
+        auto it = lower_bound(FN(x,0,true));
+        return it->eval(x);
+    }
+};
+
+const int maxn = 150005;
+int n, a[maxn];
+vector<int> adj[maxn];
+
+//centroid decomposition
+bool blocked[maxn];
+int sub_size[maxn];
+
+int dfsSize(int i, int p) {
+    sub_size[i] = 1;
+    for (int j: adj[i]) {
+        if (j == p || blocked[j]) continue;
+        sub_size[i] += dfsSize(j,i);
+    }
+    return sub_size[i];
+}
+int getCentroid(int i, int p, int compSize) {
+    for (int j: adj[i]) {
+        if (j == p || blocked[j]) continue;
+        if (sub_size[j] * 2 > compSize) return getCentroid(j,i,compSize);
+    }
+    return i;
+}
+
+ll ans = 0;
+
+void dfsUp(int i, int p, ll sum, ll height, int d, vector<pair<ll,int>>& up) { 
+    height += a[i];
+    sum += height;
+    int cnt = 0;
+    for (int j: adj[i]) {
+        if (j == p || blocked[j]) continue;
+        dfsUp(j,i,sum,height,d+1,up);
+        cnt++;
+    }
+    if (cnt == 0) {
+        up.push_back({sum,d});
+    }
+}
+
+void dfsDown(int i, int p, ll sum, ll height, int d, vector<pair<ll,ll>>& down) {
+    sum += 1LL*a[i]*d;
+    height += a[i];
+    int cnt = 0;
+    for (int j: adj[i]) {
+        if (j == p || blocked[j]) continue;
+        dfsDown(j,i,sum,height,d+1,down);
+        cnt++;
+    }
+    if (cnt == 0) {
+        down.push_back({sum,height});
+    }
+}
+
+ll solve(int centroid) {
+    ll res = 0;
+    for (int qq : {0,1}) {
+        reverse(adj[centroid].begin(),adj[centroid].end());
+        Hull hull;
+        hull.addFN(FN(1,a[centroid]));
+        for (int j: adj[centroid]) {
+            if (blocked[j]) continue;
+            vector<pair<ll,int>> up;
+            vector<pair<ll,ll>> down;
+            dfsUp(j,centroid,a[centroid],a[centroid],2,up);
+            dfsDown(j,centroid,0,0,1,down);
+            //cout << "down:\n";
+            for (auto p: down) {
+                //cout << p.first << ' ' << p.second << '\n';
+                res = max(res,p.first+hull.query(p.second));
+            }
+            //cout << "up:\n";
+            for (auto p: up) {
+                //cout << p.first << ' ' << p.second << '\n';
+                hull.addFN(FN(p.second,p.first));
+            }
+        }
+    }
+    return res;
+}
+
+void decomp(int i) {
+    int compSize = dfsSize(i,i);
+    int centroid = getCentroid(i,i,compSize);
+    blocked[centroid] = true;
+    ans = max(ans,solve(centroid));
+    for (int j: adj[centroid]) {
+        if (blocked[j]) continue;
+        decomp(j);
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> n;
+    for (int i = 0; i < n-1; i++) {
+        int a, b; cin >> a >> b;
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+    }
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+    decomp(1);
+    cout << ans << '\n';
+}

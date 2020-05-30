@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+
+vector<int> adj[200005];
+int li[200005];
+int n;
+pair<int, int> v[200005];
+int st[2000006];
+int lazy[2000006];
+int tempo;
+
+void prop(int id, int l, int r){
+	if(lazy[id]){
+		st[id] = (r - l + 1) - st[id];
+		lazy[2 * id] ^= 1;
+		lazy[2 * id + 1] ^= 1;
+		lazy[id] = 0;
+	}
+}
+
+void upd2(int l, int r, int x, int L = 1, int R = n, int id = 1){
+	if(l > R || r < L || L > R) return;
+	if(l == L && r == R){
+		st[id] += x;
+		return;
+	}
+
+	int mid = (L + R) / 2;
+	upd2(l, r, x, L, mid, 2 * id);
+	upd2(l, r, x, mid + 1, R, 2 * id + 1);
+	st[id] = st[2 * id] + st[2 * id + 1];
+}
+
+void upd(int l, int r, int x, int L = 1, int R = n, int id = 1){
+	prop(id, L, R);
+
+	if(l > R || r < L || L > R) return;
+	if(l <= L && r >= R){
+		lazy[id] ^= x;
+		prop(id, L, R);
+		return;	
+	}
+
+	int mid = (L + R) / 2;
+	upd(l, r, x, L, mid, 2 * id);
+	upd(l, r, x, mid + 1, R, 2 * id + 1);
+	st[id] = st[2 * id] + st[2 * id + 1];
+}
+
+int qry(int l, int r, int L = 1, int R = n, int id = 1){
+	prop(id, L, R);
+
+	if(l > R || r < L || L > R) return 0;
+	if(l <= L && r >= R)
+		return st[id];
+
+	int mid = (L + R) / 2;
+	return qry(l, r, L, mid, 2 * id) + qry(l, r, mid + 1, R, 2 * id + 1);
+}
+
+void dfs(int x, int p){
+	int tc = tempo;
+	upd2(tc, tc, li[x]);
+
+	for(int i = 0; i < adj[x].size(); i++){
+		if(adj[x][i] != p){
+			tempo++;
+			dfs(adj[x][i], x);
+		}
+	}
+	v[x] = mp(tc,tempo);
+}
+
+int main(){
+	scanf("%d",&n);
+	for(int i = 2; i <= n; i++){
+		int x;
+		scanf("%d",&x);
+		adj[x].pb(i);
+		adj[i].pb(x);
+	}
+	for(int i = 1; i <= n; i++){
+		scanf("%d",li+i);
+	}
+
+	tempo = 1;
+	dfs(1, 0);
+
+	int q;
+	scanf("%d",&q);
+	while(q--){
+		char op[5];
+		int u;
+		scanf("%s %d",op, &u);
+		if(strcmp(op,"get") == 0)
+			printf("%d\n",qry(v[u].ff,v[u].ss));
+		else
+			upd(v[u].ff, v[u].ss, 1);
+	}
+	return 0;
+}

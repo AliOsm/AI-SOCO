@@ -1,0 +1,177 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 2e5 + 2;
+ll n, k;
+
+ll dia[N];
+ll wgt[N];
+
+ll pre_mxm[N];
+ll suf_mxm[N];
+ll pre_dst[N];
+ll suf_dst[N];
+
+vec <ll> cycle;
+
+pii ans = {inf, inf};
+
+struct Graph {
+    ll par[N];
+    bool vis[N];
+    vec <pii> adj[N];
+} graph;
+
+void input() {
+    cin >> n;
+    for(ll i = 0; i < n; ++i) {
+        ll u; cin >> u;
+        ll v; cin >> v;
+        ll w; cin >> w;
+        graph.adj[u].pb({v, w});
+        graph.adj[v].pb({u, w});
+    }
+}
+
+bool dfs_cycle(ll u) {
+    static stack <ll> st;
+    graph.vis[u] = 1;
+    st.push(u);
+    for(pii p: graph.adj[u]) {
+        ll v = p.xx;
+        ll w = p.yy;
+        if(!graph.vis[v]) {
+            graph.par[v] = u;
+            if(dfs_cycle(v)) {
+                return 1;
+            }
+        } else if(graph.par[u] != v) {
+            while(st.top() != v) {
+                cycle.pb(st.top()); st.pop();
+            }
+            cycle.pb(v); st.pop();
+            return 1;
+        }
+    }
+    st.pop();
+    return 0;
+}
+
+pii dfs_dia(ll u) {
+    graph.vis[u] = 1;
+    pii res = {0, u};
+    for(pii p: graph.adj[u]) {
+        ll v = p.xx;
+        ll w = p.yy;
+        if(!graph.vis[v]) {
+            pii x = dfs_dia(v);
+            res = max(res, {x.xx + w, x.yy});
+        }
+    }
+    return res;
+}
+
+ll diameter() {
+    ll a = dfs_dia(1).yy;
+    fill(graph.vis, graph.vis + N, 0);
+    return dfs_dia(a).xx;
+}
+
+void solve() {
+    dfs_cycle(1);
+    fill(graph.vis, graph.vis + N, 0);
+    k = len(cycle);
+    for(ll e: cycle) {
+        graph.vis[e] = 1;
+    }
+    for(ll i = 1; i <= k; ++i) {
+        dia[i] = dfs_dia(cycle[i - 1]).xx;
+        for(pii p: graph.adj[cycle[i - 1]]) {
+            ll v = p.xx;
+            ll w = p.yy;
+            if(v == cycle[i % k]) {
+                wgt[i] = w;
+            }
+        }
+    }
+    for(ll i = 1, mxm = 0; i <= k; ++i) {
+        pre_mxm[i] = max(pre_mxm[i - 1], mxm + dia[i]);
+        mxm = max(mxm, dia[i]);
+        mxm += wgt[i];
+    }
+    for(ll i = k, mxm = 0; i >= 1; --i) {
+        suf_mxm[i] = max(suf_mxm[i + 1], mxm + dia[i]);
+        mxm = max(mxm, dia[i]);
+        mxm += wgt[i - 1];
+    }
+    for(ll i = 1, sum = 0; i <= k; ++i) {
+        pre_dst[i] = max(pre_dst[i - 1], dia[i] + sum);
+        sum += wgt[i];
+    }
+    for(ll i = k, sum = 0; i >= 1; --i) {
+        suf_dst[i] = max(suf_dst[i + 1], dia[i] + sum + wgt[k]);
+        sum += wgt[i - 1];
+    }
+    for(ll i = 1; i <= k; ++i) {
+        ans = min(ans, mp(max(max(pre_mxm[i], suf_mxm[i + 1]), pre_dst[i] + suf_dst[i + 1]), i));
+    }
+    ll u = cycle[(ans.yy - 1) % k];
+    ll v = cycle[ans.yy % k];
+    for(ll i = 0; i < len(graph.adj[u]); ++i) {
+        ll e = graph.adj[u][i].xx;
+        if(e == v) {
+            graph.adj[u].erase(graph.adj[u].begin() + i);
+        }
+    }
+    for(ll i = 0; i < len(graph.adj[v]); ++i) {
+        ll e = graph.adj[v][i].xx;
+        if(e == u) {
+            graph.adj[v].erase(graph.adj[v].begin() + i);
+        }
+    }
+    fill(graph.vis, graph.vis + N, 0);
+    cout << diameter() << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

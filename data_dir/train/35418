@@ -1,0 +1,147 @@
+
+//template by murugappan....Copied from chamow :p
+
+#include<bits/stdc++.h>
+using namespace std;
+
+#define ll int
+#define ld long double
+#define x first
+#define y second
+#define pb push_back
+#define mp make_pair
+#define priq(i,comp) priority_queue( i, vector< i >,comp)
+template<class t>
+t lcm(t a,t b)
+{
+    return ((a*b)/__gcd(a,b));
+}
+#define fastread ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL);
+
+//end of template
+const ll maxn=1e5+2,logN=21;
+vector<ll> adjlist[maxn],dist[maxn];
+vector< pair<ll,ll> > edges;
+map< pair<ll,ll>,ll > myMap;
+ll n,parent[maxn][logN],depth[maxn],child[maxn];
+void input()
+{
+    ll u,v;
+    cin>>n;
+    for(ll i=1;i<n;i++)
+    {
+        cin>>u>>v;
+        edges.pb(mp(min(u,v),max(u,v)));
+        adjlist[u].pb(v);
+        adjlist[v].pb(u);
+        dist[u].pb(0);
+        dist[v].pb(0);
+    }
+}
+
+void dfs(ll cur,ll par)
+{
+    for(ll i=0;i<adjlist[cur].size();i++)
+    {
+        if(adjlist[cur][i]!=par)
+        {
+            child[cur]++;
+            parent[adjlist[cur][i]][0]=cur;
+            depth[adjlist[cur][i]]=depth[cur]+1;
+            dfs(adjlist[cur][i],cur);
+        }
+    }
+}
+
+
+void buildLca()
+{
+    for(ll i=1;i<logN;i++)
+    {
+        for(ll j=1;j<=n;j++)
+            parent[j][i]=parent[parent[j][i-1]][i-1];
+    }
+}
+
+void lca(ll u,ll v)
+{
+    if(depth[u]<depth[v])
+        swap(u,v);
+    if(u==v)
+        return;
+    myMap[mp(min(u,parent[u][0]),max(u,parent[u][0]))]++;
+    for(ll i=(logN-1);i>=0;i--)
+    {
+        ll shift=1<<i;
+        if((depth[u]-shift)>=depth[v])
+            u=parent[u][i];
+    }
+    if(u==v)
+    {
+        myMap[mp(min(u,parent[u][0]),max(u,parent[u][0]))]--;
+        return;
+    }
+    myMap[mp(min(v,parent[v][0]),max(v,parent[v][0]))]++;
+    for(ll i=(logN-1);i>=0;i--)
+    {
+        if(parent[u][i]!=0 && parent[v][i]!=0 && parent[u][i]!=parent[v][i])
+        {
+            u=parent[u][i];
+            v=parent[v][i];
+        }
+    }
+    u=parent[u][0];
+    myMap[mp(min(u,parent[u][0]),max(u,parent[u][0]))]-=2;
+}
+
+void prefix()
+{
+    queue<ll> q;
+    for(ll i=1;i<=n;i++)
+    {
+        if(child[i]==0)
+            q.push(i);
+    }
+    while(!q.empty())
+    {
+        ll cur=q.front();
+        q.pop();
+        ll val=0,par=parent[cur][0];
+        for(ll i=0;i<adjlist[cur].size();i++)
+        {
+            ll nxt=adjlist[cur][i];
+            if(child[nxt]==0)
+            {
+                val=val+myMap[mp(min(nxt,cur),max(nxt,cur))];
+            }
+        }
+        myMap[mp(min(par,cur),max(par,cur))]+=val;
+        child[par]--;
+        if(child[par]==0)
+            q.push(par);
+    }
+}
+
+int main()
+{
+    /*
+        assert(freopen("input.txt","r",stdin));
+        assert(freopen("output.txt","w",stdout));
+    */
+    fastread;
+    input();
+    dfs(1,1);
+    buildLca();
+    ll m,u,v;
+    cin>>m;
+    while(m--)
+    {
+        cin>>u>>v;
+        lca(u,v);
+    }
+    prefix();
+    for(ll i=0;i<(n-1);i++)
+        cout<<myMap[edges[i]]<<" ";
+    return 0;
+}
+

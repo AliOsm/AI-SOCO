@@ -1,0 +1,186 @@
+//ITNOA
+#include<bits/stdc++.h> 
+
+using namespace std;
+ 
+#define scan(x) do{while((x=getchar())<'0'); for(x-='0'; '0'<=(_=getchar()); x=(x<<3)+(x<<1)+_-'0');}while(0)
+char _;
+
+///#define int long long
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+#define X first
+#define Y second
+ 
+typedef long long ll;
+typedef long double ld;
+
+const int maxN = 200 + 15;
+const int maxM = 100*100 + 5;
+const int mod = 1000*1000*1000 + 7;
+const int base = 701;
+const int SQ = 500;
+const int maxL = 17;
+
+int s[maxN][maxN];
+int len[maxN], val[maxN];
+int L[maxN], R[maxN], Llen, Rlen;
+
+
+int c[maxN][20], h[maxN], f[maxN], v[maxN], ch[maxN], par[maxN], cnt = 1;
+vector<int> g[maxN];
+int n,m,k;
+void make_aho()
+{
+    vector<pair<int,int> > x;
+    rep(i,1,cnt)
+	x.push_back({h[i], i});
+    sort(x.begin(), x.end());
+    rep(i,0,m)
+	if(c[0][i] == -1)
+	    c[0][i] = 0;
+    
+    for(auto it : x)
+    {
+	int cur = it.Y;
+	if(h[cur] > 1)
+	    f[cur] = c[f[par[cur]]][ch[cur]];
+	g[f[cur]].push_back(cur);
+
+	rep(i,0,m)
+	    if(c[cur][i] == -1)
+		c[cur][i] = c[f[cur]][i];
+    }
+}
+void dfs(int vv)
+{
+    for(auto u : g[vv])
+    {
+	v[u] += v[vv];
+	dfs(u);
+    }
+}
+
+int dp[maxN][2][maxN][502];
+int T[maxN], tlen;
+int get()
+{
+    if(tlen == 0) return 0;
+    rep(i,1,T[0]+1)
+	dp[1][(T[0] == i)][c[0][i]][v[c[0][i]]] ++;
+
+    /*
+    rep(i,0,cnt)
+    {
+	rep(j,0,k+1)
+	    cout << dp[1][0][i][j] << ' ';
+	cout << endl;
+    }
+    */
+    
+    rep(i,2,tlen+1)
+    {
+	int cc = T[i-1];
+	rep(j,0,cnt) rep(arz,0,k+1) rep(las,0,m)
+	{
+	    int now = c[j][las];
+	    if(arz + v[now] <= k)
+	    {
+		dp[i][0][now][arz+v[now]] += dp[i-1][0][j][arz];
+		if(las < cc)
+		    dp[i][0][now][arz+v[now]] += dp[i-1][1][j][arz];
+		if(las == cc)
+		    dp[i][1][now][arz+v[now]] += dp[i-1][1][j][arz];
+	    }
+
+	    dp[i][0][now][arz+v[now]] %= mod;
+	    dp[i][1][now][arz+v[now]] %= mod;
+	}
+
+	rep(j,1,m)
+	    dp[i][0][c[0][j]][v[c[0][j]]] ++;
+    }
+
+    int ans = 0;
+    rep(i,0,2) rep(j,0,cnt) rep(arz,0,k+1)
+	ans = (ans + dp[tlen][i][j][arz]) % mod;
+
+    return ans;
+}
+
+int32_t main()
+{
+    ios::sync_with_stdio(0); cin.tie(0);
+    cin >> n >> m >> k;
+    cin >> Llen;
+    rep(i,0,Llen) cin >> L[i];
+    reverse(L,L+Llen);
+    L[0] --;
+    rep(i,0,Llen)
+	if(L[i] < 0)
+	{
+	    L[i] += m;
+	    L[i+1] --;	    
+	}
+    while(Llen && L[Llen-1] == 0)
+	Llen --;
+    reverse(L,L+Llen);
+
+    cin >> Rlen;
+    rep(i,0,Rlen) cin >> R[i];
+
+    rep(i,0,n)
+    {
+	cin >> len[i];
+	rep(j,0,len[i])
+	    cin >> s[i][j];
+	cin >> val[i];
+    }
+    
+    memset(c,-1,sizeof c);
+    rep(i,0,n)
+    {
+	int cur = 0;	
+	rep(j,0,len[i])
+	{
+	    if(c[cur][s[i][j]] == -1)
+	    {
+		par[cnt] = cur;
+		h[cnt] = h[cur] + 1;
+		ch[cnt] = s[i][j];
+		c[cur][s[i][j]] = cnt ++;
+	    }
+	    cur = c[cur][s[i][j]];
+	}
+	v[cur] += val[i];
+    }
+    make_aho();
+    dfs(0);
+
+    /*
+    rep(i,0,cnt)
+    {
+	rep(j,0,10)
+	    cout << c[i][j] << ' ';
+	cout << endl;
+    }
+    */
+
+    
+    int bozorg = 0, kochik = 0;
+    
+    tlen = Rlen;
+    rep(i,0,Rlen)
+	T[i] = R[i];
+    bozorg = get();
+    
+    
+    memset(dp,0,sizeof dp);
+    tlen = Llen;
+    rep(i,0,Llen)
+	T[i] = L[i];
+    kochik = get();
+    //cout << kochik << endl;
+    
+    cout << (bozorg + mod - kochik) % mod << endl;
+    return 0;
+}

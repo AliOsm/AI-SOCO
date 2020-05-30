@@ -1,0 +1,138 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+using namespace std;
+template<class T, class T2> inline void chkmax(T &x, const T2 &y) { if(x < y) x = y; }
+template<class T, class T2> inline void chkmin(T &x, const T2 &y) { if(x > y) x = y; } 
+const int MAXN = (5017);
+const int mod = (int)1e9 + 7;
+const int inf = (int)1e9 + 17;
+
+int n;
+string s;
+
+void read()
+{
+	cin >> s;
+	n = s.size();
+}
+
+int pref[MAXN][MAXN];
+int dp[MAXN][MAXN];
+
+int lcp(int i, int j)
+{
+	if(i >= n || j >= n) return 0;
+	if(s[i] != s[j]) return 0;
+	int &memo = pref[i][j];
+	if(memo != -1) return memo;
+	return memo = lcp(i + 1, j + 1) + 1;
+}
+
+bool ok(int i, int len)
+{
+	if(i - 2 * len + 1 < 0) return false;
+	if(len > 1 && (s[i - len + 1] == '0' || s[i - 2 * len + 1] == '0')) return false;
+	
+	int lc = min(len, lcp(i - len + 1, i - 2 * len + 1));
+	if(lc == len) return true;
+	if(i - len + 1 + lc == n) return true;
+	if(s[i - len + 1 + lc] >= s[i - 2 * len + 1 + lc]) return true;
+	return false;
+}
+
+int sum[MAXN][MAXN];
+int cnt[MAXN][MAXN];
+int mn[MAXN][MAXN];
+
+void solve()
+{
+	memset(pref, -1, sizeof(pref));
+
+	for(int i = 0; i < n; i++)
+	{
+		mn[i][0] = inf;
+		for(int l = 1; l <= i; l++)
+		{
+			dp[i][l] = 0;
+			cnt[i][l] = inf;
+			
+			if(s[i - l + 1] == '0' && l != 1) 
+			{
+				sum[i][l] = (sum[i][l - 1] + dp[i][l]) % mod;
+				mn[i][l] = min(mn[i][l - 1], cnt[i][l]);
+				continue;
+			}
+
+			dp[i][l] = sum[i - l][l - 1];					
+			cnt[i][l] = mn[i - l][l - 1] + 1;
+
+			if(ok(i, l)) 
+			{
+				chkmin(cnt[i][l], cnt[i - l][l] + 1);
+				dp[i][l] = (dp[i][l] + dp[i - l][l]) % mod;
+			}
+
+			sum[i][l] = (sum[i][l - 1] + dp[i][l]) % mod;
+			mn[i][l] = min(mn[i][l - 1], cnt[i][l]);
+		}
+	
+		if(s[0] != '0' || i + 1 == 0)
+		{
+			dp[i][i + 1] = 1;
+			cnt[i][i + 1] = 1;
+		}
+		else
+		{
+			dp[i][i + 1] = 0;
+			cnt[i][i + 1] = inf;
+		}
+
+		mn[i][i + 1] = min(mn[i][i], cnt[i][i + 1]);
+		sum[i][i + 1] = (sum[i][i] + dp[i][i + 1]) % mod;
+	
+		for(int oo = i + 1; oo <= n; oo++)
+			mn[i][oo] = mn[i][i + 1], sum[i][oo] = sum[i][i + 1];
+	}
+
+	int ans = 0;
+	for(int i = 1; i <= n; i++)
+		ans = (ans + dp[n - 1][i]) % mod;
+
+	cout << ans << endl;
+
+	int answer = -17, pw = 1, add = 0;
+	for(int p = n - 1; p >= 0; p--)
+	{
+		add = (add + pw * (s[p] - '0')) % mod;
+		pw = (pw * 2) % mod;
+
+		if(cnt[n - 1][n - p] >= inf) continue;
+
+		int c_ans = (add + cnt[n - 1][n - p]) % mod;
+		if(n - p >= 25 && answer == -17)
+		{
+			answer = c_ans;
+			break;
+		}
+		else if(n - p <= 25)
+		{
+			if(answer != -17)
+				chkmin(answer, c_ans);
+			else answer = c_ans;	
+		}
+	}
+
+	cout << answer << endl;
+}	
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

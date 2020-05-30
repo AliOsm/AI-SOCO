@@ -1,0 +1,169 @@
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+typedef long long int64;
+typedef long double real;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+#else
+#define eprintf(...) assert (true)
+#endif
+
+#ifdef WIN32
+#define INT64 "%I64d"
+#else
+#define INT64 "%lld"
+#endif
+
+using namespace std;
+
+const int MaxN = 1003, MedD = 4, MaxD = 8, NA = -1, MaxC = 0x3F3F3F3F;
+const int dx [MaxD] = {-1,  0, +1,  0, -1, -1, +1, +1},
+          dy [MaxD] = { 0, -1,  0, +1, -1, +1, -1, +1};
+
+char a [MaxN] [MaxN];
+int b [MaxN] [MaxN];
+int chk, cur, m, n, px, py, res, v;
+bool bad;
+
+void recur (int x, int y)
+{
+ if (a[x][y] == 2)
+  bad = true;
+ if (a[x][y] != 0)
+  return;
+ if (b[x][y] == v)
+  return;
+ b[x][y] = v;
+
+ int d;
+ for (d = 0; d < MaxD; d++)
+  recur (x + dx[d], y + dy[d]);
+}
+
+void recur2 (int x, int y)
+{
+ if (a[x][y] == 2)
+  assert (false);
+ if (a[x][y] != 0)
+  return;
+ if (b[x][y] == v + MaxC)
+  return;
+ b[x][y] = v + MaxC;
+
+ int d;
+ for (d = 0; d < MaxD; d++)
+ {
+  if (a[x + dx[d]][y + dy[d]] == 0 && b[x + dx[d]][y + dy[d]] != v &&
+   b[x + dx[d]][y + dy[d]] != v + MaxC)
+    bad = true;
+  if (a[x + dx[d]][y + dy[d]] == 1 && b[x + dx[d]][y + dy[d]] != v + MaxC)
+  {
+   cur++;
+   px = x + dx[d];
+   py = y + dy[d];
+   b[x + dx[d]][y + dy[d]] = v + MaxC;
+  }
+ }
+
+ for (d = 0; d < MaxD; d++)
+  recur2 (x + dx[d], y + dy[d]);
+}
+
+void recur3 (int x, int y)
+{
+ if (a[x][y] != 1)
+  return;
+ if (b[x][y] != v + MaxC)
+  return;
+ if (b[x][y] == v + MaxC + MaxC)
+  return;
+ chk++;
+ b[x][y] = v + MaxC + MaxC;
+
+ int d, k;
+ k = 0;
+ for (d = 0; d < MedD; d++)
+  if (a[x + dx[d]][y + dy[d]] == 1 &&
+      (b[x + dx[d]][y + dy[d]] == v + MaxC ||
+       b[x + dx[d]][y + dy[d]] == v + MaxC + MaxC))
+   k++;
+ if (k != 2)
+  bad = true;
+
+ for (d = 0; d < MaxD; d++)
+  recur3 (x + dx[d], y + dy[d]);
+}
+
+int main (void)
+{
+ int i, j;
+ char ch;
+
+ while (scanf (" %d %d", &n, &m) != EOF)
+ {
+  memset (a, 2, sizeof (a));
+  for (i = 1; i <= n; i++)
+   for (j = 1; j <= m; j++)
+   {
+    scanf (" %c", &ch);
+    a[i][j] = (ch == '1');
+   }
+
+  res = 4;
+  v = 0;
+  memset (b, 0, sizeof (b));
+  for (i = 2; i < n; i++)
+   for (j = 2; j < m; j++)
+    if (a[i][j] == 0 && b[i][j] == 0)
+    {
+     v++;
+//     printf ("> %d %d: %d %d %d\n", n, m, i, j, v);
+     bad = false;
+     recur (i, j);
+     if (!bad)
+     {
+//      printf ("! %d %d: %d %d %d\n", n, m, i, j, v);
+      cur = 0;
+      bad = false;
+      recur2 (i, j);
+      if (!bad)
+      {
+       chk = 0;
+       bad = false;
+       recur3 (px, py);
+       if (!bad && cur == chk)
+        res = max (res, cur);
+      }
+     }
+    }
+
+  if (res > 4)
+   printf ("%d\n", res);
+  if (res == 4)
+  {
+   for (i = 1; i < n && res == 4; i++)
+    for (j = 1; j < m && res == 4; j++)
+     if (a[i][j] && a[i][j + 1] && a[i + 1][j] && a[i + 1][j + 1])
+     {
+      printf ("4\n");
+      res = 0;
+     }
+  }
+  if (res == 4)
+   printf ("0\n");
+ }
+ return 0;
+}

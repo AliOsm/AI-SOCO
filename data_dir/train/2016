@@ -1,0 +1,121 @@
+#include <iostream>
+#include <cstdlib>
+#include <stdio.h>
+#include <algorithm>
+#include <vector>
+#include <cstring>
+
+using namespace std;
+
+const int INF = 1000*1000*1000;
+
+string sss,ss;
+
+struct rib {
+	int b, u, c, f;
+	size_t back;
+};
+
+int counts[100], countt[100];
+
+
+int n, m, k,i, og,j;
+vector < vector<rib> > g (200);
+int s, t;
+
+
+
+void add_rib (vector < vector<rib> > & g, int a, int b, int u, int c) {
+	rib r1 = { b, u, c, 0, g[b].size() };
+	rib r2 = { a, 0, -c, 0, g[a].size() };
+	g[a].push_back (r1);
+	g[b].push_back (r2);
+}
+
+int main()
+{
+	
+	cin >> sss;
+	
+	k = sss.size();
+	
+	for (i=0;i<sss.size();i++)
+	    counts[sss[i] - 'a' + 1]++;
+	    
+	cin >> n;
+	
+	s = 0;
+	
+	t = n+26+1;
+
+	for (i=1;i<=26;i++)
+	    add_rib(g,n+i,n+26+1,counts[i],0);
+
+	for (i=1;i<=n;i++)
+	{
+        cin >> ss >> og;
+               
+        add_rib(g,0,i,og,i);
+        
+        memset(countt,0,sizeof(countt));
+        for (j=0;j<ss.size();j++)        
+            countt[ss[j] - 'a' + 1]++;
+        for (j=1;j<=26;j++)
+            add_rib(g,i,n+j,countt[j],0);
+    }
+    
+    n = n + 26 + 1;
+
+	int flow = 0,  cost = 0;
+	while (flow < k) {
+		vector<int> id (200, 0);
+		vector<int> d (200, INF);
+		vector<int> q (200);
+		vector<int> p (200);
+		vector<size_t> p_rib (200);
+		int qh=0, qt=0;
+		q[qt++] = s;
+		d[s] = 0;
+		while (qh != qt) {
+			int v = q[qh++];
+			id[v] = 2;
+			if (qh == n)  qh = 0;
+			for (size_t i=0; i<g[v].size(); ++i) {
+				rib & r = g[v][i];
+				if (r.f < r.u && d[v] + r.c < d[r.b]) {
+					d[r.b] = d[v] + r.c;
+					if (id[r.b] == 0) {
+						q[qt++] = r.b;
+						if (qt == n)  qt = 0;
+					}
+					else if (id[r.b] == 2) {
+						if (--qh == -1)  qh = n-1;
+						q[qh] = r.b;
+					}
+					id[r.b] = 1;
+					p[r.b] = v;
+					p_rib[r.b] = i;
+				}
+			}
+		}
+		if (d[t] == INF)  break;
+		int addflow = k - flow;
+		for (int v=t; v!=s; v=p[v]) {
+			int pv = p[v];  size_t pr = p_rib[v];
+			addflow = min (addflow, g[pv][pr].u - g[pv][pr].f);
+		}
+		for (int v=t; v!=s; v=p[v]) {
+			int pv = p[v];  size_t pr = p_rib[v],  r = g[pv][pr].back;
+			g[pv][pr].f += addflow;
+			g[v][r].f -= addflow;
+			cost += g[pv][pr].c * addflow;
+		}
+		flow += addflow;
+	}
+
+   if (flow != k) cout << -1 << endl; else
+   cout << cost << endl;
+
+//   system("pause");
+   return 0;
+}

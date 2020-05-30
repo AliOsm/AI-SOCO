@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;	
+typedef long double ld;
+
+const int INF = (int)1e9 + 5;
+
+struct line {
+	ll k, b;
+	line() {}
+	line(ll k, ll b) : k(k), b(b) {}
+	bool operator <(const line & l) const {
+		if (k != l.k) return k < l.k;
+		return b < l.b;
+	}
+};
+
+struct ConvexHullTrick {
+	vector<line> v;
+	ConvexHullTrick() {}
+	void addOffline(line l) {
+		v.push_back(l);
+	}
+	static ld intersectPoint(line a, line b) {
+		return ld(b.b - a.b) / (a.k - b.k);
+	}
+	static bool isBad(line a, line b, line c) {
+		return intersectPoint(a, b) >= intersectPoint(b, c);
+	}
+	void addOnline(line l) {
+		while ((v.size() >= 1 && v.back().k == l.k && v.back().b <= l.b) || 
+			   (v.size() >= 2 && isBad(v[(int)v.size() - 2], v.back(), l))) v.pop_back();
+		v.push_back(l);
+	}
+	void process() {
+		vector<line> tmp = v;
+		v.resize(0);
+		sort(tmp.begin(), tmp.end());
+		for (auto p : tmp) {
+			addOnline(p);
+		}
+	}
+	static ll get(line l, ll x) {
+		return x * l.k + l.b;
+	}
+	ll best(ll x) {
+		if (v.empty()) return numeric_limits<ll>::min();
+		int l = -1, r = (int)v.size() - 1;
+		while (r - l > 1) {
+			int mid = (l + r) >> 1;
+			if (get(v[mid], x) <= get(v[mid + 1], x)) l = mid;
+			else r = mid;
+		}
+		return get(v[r], x);
+	}
+};
+
+const int N = 300500;
+
+ConvexHullTrick * tree = new ConvexHullTrick[N * 4];
+
+int n;
+bool del[N];
+line lines[N];
+vector<pair<int, int>> qrs;
+
+void addOnSegment(int v, int tl, int tr, int l, int r, line x) {
+	if (tl == l && tr == r) {
+		tree[v].addOffline(x);
+		return;
+	}
+	int tm = (tl + tr) >> 1;
+	if (r <= tm) {
+		addOnSegment((v << 1) + 1, tl, tm, l, r, x);
+	}
+	else if (l > tm) {
+		addOnSegment((v << 1) + 2, tm + 1, tr, l, r, x);
+	}
+	else {
+		addOnSegment((v << 1) + 1, tl, tm, l, tm, x);
+		addOnSegment((v << 1) + 2, tm + 1, tr, tm + 1, r, x);
+	}
+}
+
+void addOnSegment(int l, int r, line x) {
+	//cerr << "l, r = " << l << ", " << r << endl;
+	addOnSegment(0, 1, n, l, r, x);
+}
+
+ll getBest(int v, int tl, int tr, int idx, ll x) {
+	ll res = tree[v].best(x);
+	if (tl == tr) return res;
+	int tm = (tl + tr) >> 1;
+	if (idx <= tm) {
+		return max(res, getBest((v << 1) + 1, tl, tm, idx, x));
+	}
+	else {
+		return max(res, getBest((v << 1) + 2, tm + 1, tr, idx, x));
+	}
+}
+
+ll getBest(int idx, ll x) {
+	return getBest(0, 1, n, idx, x);
+}
+
+int main() {
+#ifdef LOCAL
+
+#else
+	
+#endif 	
+	
+	scanf("%d", &n);
+	
+	for (int i = 1; i <= n; i++) {
+		int t;
+		scanf("%d", &t);
+		del[i] = true;
+		if (t == 1) {
+			del[i] = false;
+			int a, b;
+			scanf("%d%d", &a, &b);
+			lines[i] = line(a, b);
+		}
+		else if (t == 2) {
+			int idx;
+			scanf("%d", &idx);
+			addOnSegment(idx, i - 1, lines[idx]);
+			del[idx] = true;
+		}
+		else if (t == 3) {
+			int x;
+			scanf("%d", &x);
+			qrs.push_back(make_pair(i, x));
+		}
+	}
+
+	for (int i = 1; i <= n; i++) {
+		if (!del[i]) {
+			addOnSegment(i, n, lines[i]);
+		}
+	}
+
+	for (int i = 0; i < n * 4; i++) {
+		tree[i].process();
+	}
+
+	for (auto p : qrs) {
+		ll res = getBest(p.first, p.second);
+		if (res == numeric_limits<ll>::min()) puts("EMPTY SET");
+		else printf("%lld\n", res);
+	}
+}

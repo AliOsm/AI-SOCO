@@ -1,0 +1,178 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+int tree1[2000000];
+int tree2[2000000];
+int dpl[500000];
+int ans[500000];
+int cnt[500000];
+int need[500000];
+int good[500000];
+int a[500000];
+int x[500000];
+int y[500000];
+int dpr[500000];
+int dp1[500000];
+int dp2[500000];
+multiset<int> s[2000000];
+map<int,int> mp,mp1;
+int n,m;
+int sz;
+vector<pair<int,int> >v[500000];
+
+
+int get1(int x,int l,int r,int ll,int rr)
+{
+    if(l>rr || r<ll || ll>rr)return 0;
+    if(l>=ll && r<=rr)return tree1[x];
+    int u=((l+r)>>1);
+    return max(get1(x+x,l,u,ll,rr),get1(x+x+1,u+1,r,ll,rr));
+}
+
+int get2(int x,int l,int r,int ll,int rr)
+{
+    if(l>rr || r<ll || ll>rr)return 0;
+    if(l>=ll && r<=rr)return tree2[x];
+    int u=((l+r)>>1);
+    return max(get2(x+x,l,u,ll,rr),get2(x+x+1,u+1,r,ll,rr));
+}
+
+void up2(int x,int y)
+{
+    x+=sz-1;
+    s[x].insert(-y);
+    tree2[x]=-(*(s[x].begin()));
+    x=(x>>1);
+    while(x)
+    {
+        tree2[x]=max(tree2[x+x],tree2[x+x+1]);
+        x=(x>>1);
+    }
+}
+void dup2(int x,int y)
+{
+    x+=sz-1;
+    s[x].erase(s[x].lower_bound(-y));
+    if(s[x].empty())
+        tree2[x]=0;
+    else
+        tree2[x]=-(*(s[x].begin()));
+    x=(x>>1);
+    while(x)
+    {
+        tree2[x]=max(tree2[x+x],tree2[x+x+1]);
+        x=(x>>1);
+    }
+}
+
+void up1(int x,int y)
+{
+    x+=sz-1;
+    tree1[x]=max(tree1[x],y);
+    x=(x>>1);
+    while(x)
+    {
+        tree1[x]=max(tree1[x+x],tree1[x+x+1]);
+        x=(x>>1);
+    }
+}
+
+
+
+int main()
+{
+    scanf("%d%d",&n,&m);
+    for(int i=1;i<=n;++i)
+    {
+        scanf("%d",&a[i]);
+        mp[a[i]]=1;
+    }
+    for(int i=1;i<=m;++i)
+    {
+        scanf("%d%d",&x[i],&y[i]);
+        mp[y[i]]=1;
+    }
+    int kek=0;
+    for(map<int,int>::iterator it=mp.begin();it!=mp.end();++it)
+    {
+        mp1[it->first]=++kek;
+    }
+    for(int i=1;i<=n;++i)
+        a[i]=mp1[a[i]];
+    for(int i=1;i<=m;++i)
+    {
+        y[i]=mp1[y[i]];
+        v[x[i]].push_back(make_pair(y[i],i));
+    }
+    for(int i=1;i<=n;i++)
+    {
+        dp1[i]=1111111111;
+        dp2[i]=0;
+    }
+    dp2[0]=1111111111;
+    for(int i=1;i<=n;++i)
+    {
+        int l=0;
+        int r=i-1;
+        while(r-l>1)
+        {
+            int mid=((l+r)>>1);
+            if(dp1[mid]<a[i])l=mid;else r=mid;
+        }
+        if(dp1[r]<a[i])l=r;
+        dpl[i]=l+1;
+        dp1[l+1]=min(dp1[l+1],a[i]);
+    }
+    int usAns=0;
+    for(int i=n;i>0;--i)
+    {
+        int l=0;
+        int r=n-i;
+        while(r-l>1)
+        {
+            int mid=((l+r)>>1);
+            if(dp2[mid]>a[i])l=mid;else r=mid;
+        }
+        if(dp2[r]>a[i])l=r;
+        dpr[i]=l+1;
+        dp2[l+1]=max(dp2[l+1],a[i]);
+        usAns=max(usAns,l+1);
+    }
+    sz=1;
+    while(sz<=n+m+1)
+        sz+=sz;
+    for(int i=n;i>0;--i)
+        up2(a[i],dpr[i]);
+    for(int i=1;i<=n;++i)
+    {
+        dup2(a[i],dpr[i]);
+        int kek=dpl[i];
+        if(kek+get2(1,1,sz,a[i]+1,n+m+1)==usAns)
+        {
+            cnt[kek]++;
+            good[i]=1;
+        }
+    }
+    for(int i=1;i<=n;++i)
+    {
+        int kek=dpl[i];
+        if(good[i])
+        {
+            if(cnt[kek]==1)
+                need[i]=1;
+        }
+    }
+    for(int i=n;i>0;--i)
+        up2(a[i],dpr[i]);
+    for(int i=1;i<=n;++i)
+    {
+        dup2(a[i],dpr[i]);
+        int kek=dpl[i];
+        int cur=usAns-need[i];
+        for(int j=0;j<v[i].size();++j)
+            ans[v[i][j].second]=max(cur,1+get1(1,1,sz,1,v[i][j].first-1)+get2(1,1,sz,v[i][j].first+1,n+m+1));
+        up1(a[i],dpl[i]);
+    }
+    for(int i=1;i<=m;++i)
+        printf("%d\n",ans[i]);
+}

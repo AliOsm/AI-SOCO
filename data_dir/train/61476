@@ -1,0 +1,71 @@
+#include<cstdio>
+#include<cstdlib>
+#include<cstring>
+#include<algorithm>
+#include<map>
+#define N 210000
+#define inf 1100000
+using namespace std;
+struct seg_tree{
+	int sign[N*4],minn[N*4];
+	void add(int p,int l,int r,int x,int y,int k){
+		int mid=(l+r)/2;
+		if(x<=l && y>=r){
+			sign[p]+=k;
+			minn[p]+=k;
+			return;
+		}
+		if(x<=mid)add(p*2,l,mid,x,y,k);
+		if(y>mid)add(p*2+1,mid+1,r,x,y,k);
+		minn[p]=min(minn[p*2],minn[p*2+1])+sign[p];
+	}
+	int calc(int p,int l,int r,int k){
+		int mid=(l+r)/2;
+		if(l==r)return l;
+		k-=sign[p];
+		if(minn[p*2]<=k)return calc(p*2,l,mid,k);
+		return calc(p*2+1,mid+1,r,k);
+	}
+}T;
+int ans1,ans2,ans,n,m,d,a[N],last,i,sta1[N],sta2[N],n1,n2;
+map<int,int> Map;
+int main(){
+	scanf("%d%d%d",&n,&m,&d);
+	for(i=1;i<=n;++i)scanf("%d",&a[i]);
+	if(!d){
+		for(i=1;i<=n;++i){
+			if(i==1 || a[i]!=a[i-1])last=i;
+			if(i-last+1>ans)ans=i-last+1,ans1=last,ans2=i;
+		}
+	}else{
+		T.add(1,1,n,1,n, inf);
+		for(i=1;i<=n;++i){
+			if(i!=1 && (a[i]-a[i-1])%d){
+				T.add(1,1,n,last+1,i-1,inf);
+				last=i-1;
+			}
+			if(Map[a[i]]>last){
+				T.add(1,1,n,last+1,Map[a[i]],inf);
+				last=Map[a[i]];
+			}
+			Map[a[i]]=i;
+			while(n1>0 && a[i]>a[sta1[n1]]){
+				T.add(1,1,n,sta1[n1-1]+1,sta1[n1],a[i]/d-a[sta1[n1]]/d);
+				--n1;
+			}
+			while(n2>0 && a[i]<a[sta2[n2]]){
+				T.add(1,1,n,sta2[n2-1]+1,sta2[n2],a[sta2[n2]]/d-a[i]/d);
+				--n2;
+			}
+			sta1[++n1]=sta2[++n2]=i;
+			T.add(1,1,n,i,i,-inf+i);
+			int tmp=T.calc(1,1,n,i+m);
+			if(i-tmp+1>ans){
+				ans=i-tmp+1;
+				ans1=tmp;
+				ans2=i;
+			}
+		}
+	}
+	printf("%d %d\n",ans1,ans2);
+}

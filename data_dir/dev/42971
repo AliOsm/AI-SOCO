@@ -1,0 +1,95 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <memory.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <assert.h>
+#include <queue>
+#include <sstream>
+using namespace std;
+
+const int MOD = 1000000007;
+int st[2000055], res[2000055];
+int x, n;
+int b[1000005];
+int a[2000055], p[2000055];
+int f[1000055][21];
+int ansW[1000055];
+int g[1000055][22];
+int ger[1000005];
+int add(int &x, int y) {
+    x += y;
+    if (x >= MOD) x -= MOD;
+}
+
+void precalc() {
+    for (int i = 1000000; i >= 0; --i) {
+        f[i][20] = a[i];
+        for (int j = 20; j > 0; --j) {
+                f[i][j-1] += f[i][j];
+                if (i & (1 << (j-1))) f[i-(1 << (j-1))][j-1] += f[i][j];
+        }
+    }
+    for (int i = 0; i <= 1000000; ++i) p[i] = f[i][0];
+}
+
+bool bit(int x, int y) {
+    x = x & (1 << y);
+    return (x > 0);
+}
+
+void solve() {
+    int ret = 0;
+    for (int i = 1; i < (1 << n); ++i) {
+        int x = (1 << 20) - 1;
+        for (int j = 0; j < n; ++j)
+            if (bit(i, j)) x &= b[j];
+        ansW[x]++;
+        ret += (x == 0);
+    }
+    cout << ret << endl;
+}
+
+int main(){
+    scanf("%d", &n);
+    int mx = 0;
+    for (int i = 0; i < n; ++i) {
+        scanf("%d", &x);
+        b[i] = x;
+        if (x != 0) a[x]++;
+        mx = max(mx, x + 1);
+    }
+   // solve();
+    st[0] = 1;
+    precalc();
+    /*for (int i = mx; i >= 0; --i)
+        for (int j = 0; j <= i; ++j)
+            if (i & j) p[j] += a[i];
+    */
+    for (int i = 1; i <= 2 * n; ++i) st[i] = st[i - 1] * 2 % MOD;
+    int ret = 1;
+    for (int i = 0; i < n; ++i) add(ret, ret);
+    int ans = 0;
+    for (int i = mx; i >= 1; --i) {
+        res[i] = (st[p[i]] - 1 + MOD) % MOD;
+        for (int j = 0; j < 20; ++j)
+            if (j % 2) res[i] = (res[i] + g[i][j]) % MOD; else res[i] = (res[i] - g[i][j] + MOD) % MOD;
+        if (res[i] < 0) res[i] += MOD;
+        g[i][20] = res[i];
+        for (int j = 20; j > 0; --j) {
+            g[i][j-1] = (g[i][j-1] - g[i][j] + MOD) % MOD;
+            if (i & (1 << (j-1))) g[i-(1 << (j-1))][j-1] = (g[i - (1 << (j - 1))][j - 1] - g[i][j] + MOD) % MOD;
+        }
+        ans = (ans + res[i]) % MOD;
+        if (ans < 0) ans += MOD;
+    }
+    ret = (ret - 1 + MOD) % MOD;
+    ret = ret - ans + MOD;
+    ret %= MOD;
+    printf("%d\n", ret);
+    return 0;
+}

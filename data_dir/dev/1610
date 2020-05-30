@@ -1,0 +1,139 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef complex<double> point;
+#define F first
+#define S second
+
+vector<ll> k;
+
+ll get(int i, int j)
+{
+	if (i > j) return 0;
+	if (i == 0) return k[j];
+	return k[j] - k[i-1];
+}
+
+const ll inf = numeric_limits<ll>::max();
+
+struct seg_tree
+{
+	vector<ll> st, val;
+
+	seg_tree(int n) : st(4*n), val(4*n, inf) {}
+
+	inline void push(int cur, int b, int e, int m)
+	{
+		if (val[cur] != inf)
+		{
+			st[cur<<1] = val[cur]*(m-b) + get(b, m-1);
+			st[cur<<1|1] = val[cur]*(e-m) + get(m, e-1);
+			val[cur<<1] = val[cur];
+			val[cur<<1|1] = val[cur];
+			val[cur] = inf;
+		}
+	}
+
+	void update(int cur, int b, int e, int l, int r, ll x)
+	{
+		if (l <= b && e <= r)
+		{
+			st[cur] = x*(e-b) + get(b, e-1);
+			val[cur] = x;
+			return;
+		}
+
+		int m = (b+e) >> 1;
+		push(cur, b, e, m);
+
+		if (l < m)
+			update(cur<<1, b, m, l, r, x);
+		if (m < r)
+			update(cur<<1|1, m, e, l, r, x);
+
+		st[cur] = st[cur<<1] + st[cur<<1|1];
+	}
+
+	ll query(int cur, int b, int e, int l, int r)
+	{
+		if (l <= b && e <= r)
+			return st[cur];
+
+		int m = (b+e) >> 1;
+		push(cur, b, e, m);
+
+		ll ret = 0;
+		if (l < m)
+			ret += query(cur<<1, b, m, l, r);
+		if (m < r)
+			ret += query(cur<<1|1, m, e, l, r);
+		return ret;
+	}
+};
+
+int main()
+{
+	#ifdef DGC
+		freopen("a.txt", "r", stdin);
+	#endif
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int n;
+	cin >> n;
+	vector<ll> a(n);
+	for (auto &i : a) cin >> i;
+
+	ll last = 0;
+	k.resize(n-1);
+	for (auto &i : k) { cin >> i, i += last, last = i; }
+	last = 0;
+	for (auto &i : k) { i += last, last = i; }
+	k.insert(k.begin(), 0);
+
+	seg_tree st(n);
+	for (int i = 0; i < n; ++i)
+		st.update(1, 0, n, i, i+1, a[i]-get(i, i));
+
+	int q;
+	char op;
+	cin >> q;
+	for (int l, r; q--; )
+	{
+		cin >> op >> l >> r, --l;
+
+		if (op == '+')
+		{
+			st.update(1, 0, n, l, l+1, st.query(1, 0, n, l, l+1)+r-get(l, l));
+			ll v = st.query(1, 0, n, l, l+1);
+
+			int b = l+1, e = n-1;
+			while (b < e)
+			{
+				int m = (b+e+1) >> 1;
+				ll x = st.query(1, 0, n, m, m+1);
+				if (v - get(l, l) + get(m, m) > x)
+					b = m;
+				else
+					e = m-1;
+			}
+
+			if (b == e)
+			{
+				ll x = st.query(1, 0, n, b, b+1);
+				if (v - get(l, l) + get(b, b) > x)
+				{
+					st.update(1, 0, n, l+1, b+1, v-get(l, l));
+				}
+			}
+
+			continue;
+		}
+
+		cout << st.query(1, 0, n, l, r) << "\n";
+	}
+
+	return 0;
+}

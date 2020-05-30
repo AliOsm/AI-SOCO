@@ -1,0 +1,181 @@
+#include <bits/stdc++.h>
+#ifdef BUG
+    #include "debug.hpp"
+#else
+    #define DEBUG(var)
+    #define EXPECT(expr)
+#endif
+#define NO_IO_TIE ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+using namespace std;
+template< class T1, class T2 > inline istream &
+operator>>( istream & fin, pair< T1, T2 > & pr )
+{ fin >> pr.first >> pr.second; return fin; }
+template< class T0, class T1, class T2 > inline istream &
+operator>>( istream & fin, tuple< T0, T1, T2 > & t )
+{ fin >> get<0>(t) >> get<1>(t) >> get<2>(t); return fin; }
+template< class T > inline istream &
+operator>>( istream & fin, vector< T > & a ) {
+for( auto & u: a) fin >> u; return fin; }
+template<class T, size_t n> inline istream &
+operator>>( istream & fin, array<T, n> & a ) {
+for( auto & u: a) fin >> u; return fin; }
+/* @@@ ----------------------------------- */
+
+bool
+fail(const size_t nrow,
+     const size_t ncol,
+     const vector<pair<size_t, size_t>> & a)
+{
+
+    const auto icomp = [&a](const size_t i, const size_t j) {
+        return a[j].first < a[i].first ||
+            ( a[j].first == a[i].first && a[i].second < a[j].second );
+    };
+
+    const auto jcomp = [&a](const size_t i, const size_t j) {
+        return a[i].second < a[j].second ||
+            ( a[i].second == a[j].second && a[j].first < a[i].first );
+    };
+
+    priority_queue<size_t, vector<size_t>, decltype(icomp)> iheap(icomp);
+    priority_queue<size_t, vector<size_t>, decltype(jcomp)> jheap(jcomp);
+
+    for(size_t i = 0; i < a.size(); ++ i)
+        iheap.push(i);
+
+    vector<unordered_map<size_t, bool>> tag(nrow + 2);
+    queue<pair<size_t, size_t>> q;
+
+    for(const auto & pr: a)
+    {
+        auto & ref = tag[pr.first][pr.second];
+        ref = false;
+        if(pr.first == 1 || pr.second == ncol)
+        {
+            if(pr.first == nrow || pr.second == 1)
+                return true;
+            q.push(pr), ref = true;
+        }
+    }
+
+    while(!q.empty())
+    {
+        const auto pr = q.front();
+        q.pop();
+        DEBUG( pr );
+
+        if(pr.first == nrow || pr.second == 1)
+            return true;
+
+        while(! iheap.empty() )
+        {
+            const auto j = iheap.top();
+            auto & ref = tag[a[j].first][a[j].second];
+            if( ref )
+                iheap.pop();
+            else if(a[j].first < pr.first + 2)
+            {
+                iheap.pop();
+
+                if( pr.second < a[j].second + 2)
+                    ref = true, q.push(a[j]);
+                else
+                    jheap.push(j);
+            }
+            else
+                break;
+        }
+
+        while(! jheap.empty())
+        {
+            const auto j = jheap.top();
+            auto & ref = tag[a[j].first][a[j].second];
+
+            if(ref)
+                jheap.pop();
+            else if (pr.second < 2 + a[j].second && a[j].first < pr.first + 2)
+                jheap.pop(), q.push(a[j]), ref = true;
+            else
+                break;
+        }
+
+        for(size_t i = max((size_t) 1, pr.first - 1);
+            i < min(nrow + 1, pr.first + 2); ++ i)
+        {
+            auto & irow = tag[i];
+            if( ! irow.empty())
+            {
+                for(size_t j = max((size_t) 1, pr.second - 1);
+                        j < min(ncol + 1, pr.second + 2); ++ j)
+                    if(pr != make_pair(i, j))
+                    {
+                        auto l = irow.find(j);
+                        if(l != end(irow) && ! l->second)
+                        {
+                            if(i == nrow || j == 1)
+                                return true;
+
+                            l->second = true;
+                            q.emplace(i, j);
+                        }
+                    }
+            }
+        }
+    }
+
+    return false;
+}
+
+int b383()
+{
+    size_t n, m;
+    cin >> n >> m;
+    vector<pair<size_t, size_t>> a(m);
+    cin >> a;
+
+    /* compress rows */
+    vector<size_t> irow;
+    irow.reserve(2 * m + 1);
+
+    irow.push_back( 1 );
+    irow.push_back( n );
+
+    for( const auto & pr: a)
+        irow.push_back(pr.first);
+
+    sort(begin(irow), end(irow));
+    irow.erase(unique(begin(irow), end(irow)), end(irow));
+
+    const auto w = irow.size();
+    for(size_t i = 1; i < w; ++ i )
+        if(irow[i] != irow[i - 1] + 1)
+            irow.push_back(irow[i - 1] + 1),
+                irow.push_back(irow[i] - 1);
+
+    sort(begin(irow), end(irow));
+    irow.erase(unique(begin(irow), end(irow)), end(irow));
+
+    DEBUG( irow );
+
+    unordered_map<size_t, size_t> imap;
+    imap.reserve(irow.size());
+    for(size_t i = 0; i < irow.size(); ++ i)
+        imap[irow[i]] = i + 1;
+
+    for(auto & pr : a)
+        pr.first = imap[pr.first];
+
+    DEBUG( a );
+    DEBUG(imap[n]);
+
+    return fail(imap[n], n, a) ? -1 : 2 * (n - 1);
+}
+
+int main( const int argc, char * argv [])
+{
+    NO_IO_TIE;
+    cout << b383();
+
+    return EXIT_SUCCESS;
+}

@@ -1,0 +1,19 @@
+#include <bits/stdc++.h>
+using namespace std;
+int n, m;
+int main()
+{
+    cin>>n>>m;
+    if (n == m)
+    {
+        cout<<"0\n";
+        return 0;
+    }
+    if (m == 0 || m == 1)
+    {
+        cout<<"1\n";
+        return 0;
+    }
+    cout<<min(m, n-m)<<'\n';
+    return 0;
+}

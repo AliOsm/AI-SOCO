@@ -1,0 +1,127 @@
+#include <bits/stdc++.h>
+#define LL long long
+using namespace std;
+
+struct PT {
+  LL x, y;
+  PT() {}
+  PT(LL x, LL y) : x(x), y(y) {}
+  PT(const PT &p) : x(p.x), y(p.y)    {}
+  PT operator + (const PT &p)  const { return PT(x+p.x, y+p.y); }
+  PT operator - (const PT &p)  const { return PT(x-p.x, y-p.y); }
+  PT operator * (LL c)     const { return PT(x*c,   y*c  ); }
+  PT operator / (LL c)     const { return PT(x/c,   y/c  ); }
+  PT operator % (LL c)     const { return PT(x%c,   y%c  ); }
+
+  bool operator == (PT b) const   {return x==b.x && y==b.y;}
+  bool operator  < (PT b) const   {return x==b.x ? y < b.y : x < b.x;}
+};
+
+LL dot(PT p, PT q)     { return p.x*q.x+p.y*q.y; }
+LL dist2(PT p, PT q)   { return dot(p-q,p-q); }
+LL cross(PT p, PT q)   { return p.x*q.y-p.y*q.x; }
+ostream &operator<<(ostream &os, const PT &p) {
+  return os << "(" << p.x << "," << p.y << ")";
+}
+
+
+// determine if lines from a to b and c to d are parallel or collinear
+bool LinesParallel(PT a, PT b, PT c, PT d) {
+  return cross(b-a, c-d) == 0;
+}
+
+bool LinesCollinear(PT a, PT b, PT c, PT d) {
+  return LinesParallel(a, b, c, d)
+      && cross(a-b, a-c) == 0
+      && cross(c-d, c-a) == 0;
+}
+
+// determine if line segment from a to b intersects with
+// line segment from c to d
+
+bool samesign(LL a, LL b) {
+    return (a>0 && b>0) || (a<0 && b<0);
+}
+
+bool SegmentsIntersect(PT a, PT b, PT c, PT d) {
+  if (LinesCollinear(a, b, c, d)) {
+    if (dist2(a, c) == 0 || dist2(a, d) == 0 ||
+      dist2(b, c) == 0 || dist2(b, d) == 0) return true;
+    if (dot(c-a, c-b) > 0 && dot(d-a, d-b) > 0 && dot(c-b, d-b) > 0)
+      return false;
+    return true;
+  }
+  if (samesign(cross(d-a, b-a), cross(c-a, b-a))) return false;
+  if (samesign(cross(a-c, d-c), cross(b-c, d-c))) return false;
+  return true;
+}
+
+// compute intersection of line passing through a and b
+// with line passing through c and d, assuming that unique
+// intersection exists; for segment intersection, check if
+// segments intersect first
+
+LL INF = 2e18+7;
+PT BAD(INF, INF);
+PT ZERO(0, 0);
+
+PT ComputeSegmentIntersection(PT a, PT b, PT c, PT d) {
+  if (!SegmentsIntersect(a,b,c,d))  return BAD;
+  if (dist2(a,b) == 0)     return a;
+  if (dist2(c,d) == 0)     return c;
+
+  b=b-a; d=c-d; c=c-a;
+  PT num =      b*cross(c, d);
+  LL denom =    cross(b, d);
+  if (denom == 0)   return BAD;
+
+  if (!(num%denom == ZERO))    return BAD;
+  return a + num/denom;
+}
+
+const int N = 1000+7;
+PT A[N], B[N];
+
+LL count(PT A, PT B) {
+    LL x = abs(B.x - A.x);
+    LL y = abs(B.y - A.y);
+
+    if (x==0)   return 1+y;
+    if (y==0)   return 1+x;
+    return 1+__gcd(x, y);
+}
+
+int main()
+{
+    int n;
+    cin>>n;
+
+    for (int i=1; i<=n; i++)
+        cin>>A[i].x>>A[i].y>>B[i].x>>B[i].y;
+
+    map<PT, vector<int> > mp;
+    LL ans = 0;
+    for (int i=1; i<=n; i++) {
+        LL add = count(A[i], B[i]);
+        ans += add;
+        //cout<<add<<endl;
+
+        for (int j=i+1; j<=n; j++) {
+            PT X = ComputeSegmentIntersection(A[i], B[i], A[j], B[j]);
+            //cout<<i<<" "<<j<<" "<<X<<endl;
+            if (X == BAD)   continue;
+            mp[X].push_back(i);
+            mp[X].push_back(j);
+        }
+    }
+
+    for (auto pr: mp) {
+        vector<int> vals = pr.second;
+        sort(vals.begin(), vals.end());
+        vals.erase(unique(vals.begin(), vals.end()), vals.end());
+
+        LL x = vals.size();
+        ans -= x-1;
+    }
+    cout<<ans<<endl;
+}

@@ -1,0 +1,129 @@
+// Author : Mohamed Sameh
+#include <bits/stdc++.h>
+#define pb push_back
+#define f first
+#define s second
+#define all(v) v.begin(),v.end()
+#define rall(v) v.rbegin(),v.rend()
+#define SZ(a) (int)a.size()
+#define Flush fflush(stdout);
+typedef long long ll ;
+using namespace std ;
+const int M = 2e5 ;
+int n;
+vector<int> adj[M];
+int a,b,c=-1,len,rem;
+int node ;
+int Par[M];
+bool vis[M];
+int diameter (int par = -1 , int u =0 , int dp=0)
+{
+    if (dp > len )
+    {
+        node = u ; 
+        len = dp;
+    }
+    Par[u] = par ; 
+    for (int i : adj[u])
+    {
+        if (i != par )
+        {
+            diameter(u , i , dp + 1 ); 
+        }
+    }
+}
+void find_path(int u)
+{
+    if (Par[u] == -1)
+    {
+        vis[u] = 1; 
+        return;
+    }
+    find_path(Par[u]);
+    vis[u] = vis[ Par[u] ] = 1 ; 
+}
+void dfs (int par = -1 , int u = a , int dp =0)
+{
+    if (dp > len && !vis[u])
+    {
+        len = dp;
+        c = u;
+    }
+    for (int i : adj[u])
+    {
+        if (par != i)
+        {
+            dfs (u , i , dp + 1 ); 
+        }
+    }
+}
+int myc , mylen ; 
+void start (int par , int u , int dp )
+{
+    if (dp > mylen )
+    {
+        myc = u ;
+        mylen = dp;
+    }
+    for (int i : adj[u])
+    {
+        if (i != par )
+        {
+            start(u , i , dp + 1 ); 
+        }
+    }
+}
+void findC()
+{
+    myc = -1 ; 
+    for (int i =0 ; i < n ;i++)
+    {
+        if (vis[i])
+        {
+            for (int j : adj[i])
+            {
+                if (!vis[j])
+                {
+                    start(i , j, 1);
+                }
+            }
+        }
+    }
+    c = myc ; 
+    rem = mylen ; 
+}
+int ans ;
+int main()
+{
+    scanf("%d" , &n );
+    for (int i = 1 ; i < n ;i++)
+    {
+        int u,v ;
+        scanf("%d%d" , &u ,&v );
+        u--;v--;
+        adj[u].pb(v);
+        adj[v].pb(u); 
+    }
+    diameter(); 
+    a = node ;
+    len =0 ;
+    diameter(-1 , a , 0 ); 
+    b = node ; 
+    ans = len ; 
+    find_path(b); 
+    len =0;
+    findC();
+    if (c == -1 )
+    {
+        for (int i =0 ; i < n ;i++)
+        {
+            if (a != i && b != i )
+            {
+                c = i ;
+                break; 
+            }
+        }
+    }
+    cout << ans + rem <<"\n"; 
+    cout << a + 1 <<" " << b + 1  <<" " << c+ 1;
+}

@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define LL long long int
+#define FASTIO ios::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL)
+
+const int oo = 1e9;
+// const LL oo = 1e16 + 5;
+const int MOD = 1e9 + 7;
+const int N = 2e5+5;
+// const int MOD = 998244353;
+// const long double PI = acos(-1);
+
+array<int, 2> v[N];
+int ans[N], w[N], nxt[N];
+
+int spmn[20][N];
+void build_sparse(int n) {
+    int i, j;
+    for (i=0;i<n;i++) spmn[0][i] = i;
+    for (j=1;(1<<j)<=n;j++) {
+        for (i=0;i+(1<<j)<=n;i++) {
+            int lef = spmn[j-1][i], rig = spmn[j-1][i + (1<<(j-1))];
+            if (w[lef] <= w[rig]) spmn[j][i] = lef;
+            else spmn[j][i] = rig;
+        }
+    }
+}
+int query_min(int l, int r) {
+    int j;
+    for (j=0;(1<<j)<=(r-l+1);j++);
+    j--;
+    int lef = spmn[j][l], rig = spmn[j][r-(1<<j)+1];
+    if (w[lef] <= w[rig]) return lef;
+    else return rig;
+}
+
+void solve() {
+    int n, i, mx = 0;
+    cin >> n;
+    for (i=0;i<n;i++) {
+        cin >> v[i][0];
+        w[i] = v[i][0];
+        nxt[i] = n + n;
+        v[i][1] = i;
+        mx = max(mx, v[i][0]);
+    }
+    for (i=0;i<n;i++) if (w[i] * 2 < mx) break;
+    if (i == n) {
+        for (i=0;i<n;i++) cout << "-1 ";
+        cout << '\n';
+        return;
+    }
+    sort(v, v + n, [](array<int, 2> a, array<int, 2> b) {
+        if (a[0] == b[0]) return a[1] > b[1];
+        return a[0] > b[0];
+    });
+    stack<int> st;
+    for (i=0;i<n;i++) {
+        w[i+n] = w[i];
+        nxt[i+n] = n + n;
+    }
+    st.push(0);
+    for (i=1;i<n+n;i++) {
+        while(!st.empty() && w[i] > w[st.top()]) {
+            nxt[st.top()] = i;
+            st.pop();
+        }
+        st.push(i);
+    }
+    build_sparse(n + n);
+    for (i=0;i<n;i++) {
+        int lo = v[i][1], hi = n + n - 1;
+        while(lo < hi-1) {
+            int mid = (lo + hi)/2;
+            int go = query_min(v[i][1], mid);
+            if (w[go] * 2 < v[i][0]) hi = mid;
+            else lo = mid; 
+        }
+        int go = query_min(v[i][1], lo);
+        if (w[go] * 2 < v[i][0]) hi = lo;
+
+        if (w[hi] * 2 < v[i][0] && hi < nxt[v[i][1]]) {
+            ans[v[i][1]] = hi - v[i][1] + 1;
+        } else {
+            int go = nxt[v[i][1]];
+            if (go >= n) go -= n;
+            ans[v[i][1]] = ans[go] + nxt[v[i][1]] - v[i][1]; 
+        }
+     }
+    for (i=0;i<n;i++) cout << ans[i] - 1 << " \n"[i==n-1];
+}
+
+int main() {
+    FASTIO; int t = 1; 
+    // cin >> t;
+    for (int tc = 1; tc <= t; ++tc) {
+        solve();
+    }
+    return 0;
+}

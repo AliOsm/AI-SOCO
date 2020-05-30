@@ -1,0 +1,72 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int N = 15;
+
+mt19937 rng(std::chrono::system_clock::now().time_since_epoch().count());
+int n,a[N];
+int dp[N + 1][N + 1][1<<N],sum[1<<N],at[1<<N],now[N + 1];
+pair<int,int>p[N + 1][N + 1][1<<N];
+vector<int>msk;
+int main(){
+	int T;
+	cin >> T;
+	while(T--){
+		scanf("%d",&n);
+		for(int i = 0;i <= n;i++)now[i] = i;
+		for(int i = 0;i < (1<<n);i++)sum[i] = 0;
+		for(int i = 0;i < n;i++){
+			scanf("%d",a + i);
+			sum[1<<i] = a[i];
+		}
+		for(int i = 2;i < (1<<n);i++)at[i] = at[i>>1] + 1;
+		for(int i = 0;i < n;i++)
+			for(int msk = 0;msk < (1<<n);msk++)
+				if(!(msk&(1<<i)))
+					sum[msk|(1<<i)]+=sum[msk];
+		for(int i = 0;i <= n;i++)
+			for(int j = 0;j <= n;j++)
+				for(int k = 0;k < (1<<n);k++)
+					dp[i][j][k] = 1e9;
+		dp[0][0][0] = 0;
+		for(int i = 0;i < n;i++)
+			for(int j = 0;j < n;j++)
+				for(int msk = 0;msk < (1<<n);msk++){
+					if(dp[i][j][msk] >= 1e9)continue;
+					int op = (~msk)&((1<<n) - 1);
+					for(int curmsk = op;curmsk;curmsk = (curmsk - 1)&op){
+						int is = sum[curmsk];
+						int first = (1<<n) - (1<<j);
+						first = first&curmsk;
+						if(!first)continue;
+						first = (-first)&first;
+						if(dp[i][j][msk] >= is || at[first] < j)continue;
+						if(dp[i + 1][at[first] + 1][msk|curmsk] > is){
+							dp[i + 1][at[first] + 1][msk|curmsk] = is;
+							p[i + 1][at[first] + 1][msk|curmsk] = {j,msk}; 
+						}
+					}
+				}
+		bool done = 0;
+		for(int i = n;i && !done;i--)
+			for(int j = n;j && !done;j--)
+				if(dp[i][j][(1<<n) - 1] < 1e9){
+					printf("%d\n",n - i);
+					int cur = (1<<n) - 1;
+					while(cur){
+						int need = cur^p[i][j][cur].second;
+						while(need){
+							int temp = at[need&(-need)];
+							need-=need&(-need);
+							if(temp + 1 == j)continue;
+							printf("%d %d\n",now[temp + 1],now[j]);
+							for(int i = temp + 2;i <= n;i++)now[i]--;
+						}
+						int temp = p[i][j][cur].first;
+						cur = p[i][j][cur].second;
+						j = temp;
+						i--;
+					}
+					done = 1;
+				}
+	}
+}

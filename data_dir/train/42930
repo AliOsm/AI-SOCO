@@ -1,0 +1,237 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+#define rep(i, a, b) for(int i=(a); i<(b); i++)
+#define repi(i, a, b) for(int i=(a); i>(b); i--)
+#define db(x) (cerr << #x << ": " << (x) << '\n')
+#define sync ios_base::sync_with_stdio(false), cin.tie(NULL)
+#define tests(t) int t; cin >> t; while(t--)
+#define iceil(n, x) (((n) + (x) - 1) / (x))
+#define ll long long
+#define gcd __gcd
+#define eb emplace_back
+#define pb push_back
+#define pf push_front
+#define pob pop_back
+#define pof pop_front
+#define sz size()
+#define all(v) (v).begin(), (v).end()
+#define uni(v) sort(all(v)); (v).erase(unique(all(v)), (v).end())
+#define pii pair<int, int>
+#define vi vector<int>
+#define vpii vector<pii>
+#define vvi vector<vi>
+#define fi first
+#define se second
+#define pqueue priority_queue
+#define bitcount(x) __builtin_popcount(x)
+#define cps CLOCKS_PER_SEC
+#define PI acos(-1.0)
+#define EPS 1e-9
+#define mod 1000000007
+using namespace std;
+
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+    cerr << name << " : " << arg1 << '\n';
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+    const char* comma = strchr(names + 1, ','); cerr.write(names, comma - names) << " : " << arg1<<" | ";__f(comma+1, args...);
+}
+
+template<typename T1, typename T2>
+ostream& operator << (ostream& os, const pair<T1, T2>& p) { return os << '(' << p.fi << ", " << p.se << ')'; }
+
+template<typename T>
+void printv(const T& v) { for(auto i : v) cerr << i << ' '; cerr << '\n'; }
+
+template<typename T>
+using minpq = priority_queue<T, vector<T>, greater<T>>;
+
+template<typename T>
+using maxpq = priority_queue<T>;
+
+//All indexing is 0-based
+using namespace __gnu_pbds;
+template<class key, class cmp = std::less<key>>
+using ordered_set = tree<key, null_type, cmp, rb_tree_tag, tree_order_statistics_node_update>;
+//methods: find_by_order(k); & order_of_key(k);
+//To make it an ordered_multiset, use pairs of (value, time_of_insertion)
+//to distinguish values which are similar
+
+template<class key, class value, class cmp = std::less<key>>
+using ordered_map = tree<key, value, cmp, rb_tree_tag, tree_order_statistics_node_update>;
+
+//Returns no. of values x for which ceil(n / x) == y (y must be > 1).
+inline ll CC(ll n, ll y) { return iceil(n, y-1) - iceil(n, y); }
+
+//Returns no. of values x for which floor(n / x) == y
+inline ll FF(ll n, ll y) { return n / y - n / (y+1); }
+
+//a and b are assumed to be taken modulo p
+inline int add(int a, int b, int p = mod){ int c = a + b; if(c >= p) c -= p; return c; }
+inline int sub(int a, int b, int p = mod){ int c = a - b; if(c < 0) c += p; return c; }
+inline int mul(int a, int b, int p = mod){ return (a * 1ll * b) % p; }
+
+#define N 100005
+#define int ll
+// #define trace(...) 42
+
+
+const int base[2] = {255, 257};
+const int mods[2] = {1000000007, 1000000009};
+int powb[2][N]; //base ^ i (mod mods)
+
+void prep() {
+    powb[0][0] = powb[1][0] = 1;
+    rep(i, 0, N-1) {
+        powb[0][i+1] = mul(powb[0][i], base[0], mods[0]);
+        powb[1][i+1] = mul(powb[1][i], base[1], mods[1]);
+    }
+}
+
+
+//Also called polynomial hashing.
+//Use double hashing to avoid getting hacked.
+struct StringHash {
+
+    string s;
+    int n;
+    vector<pii> pre; //hash of prefix of length i.
+
+    //O(n)
+    StringHash(string _s = "") :s(_s) {
+        n = s.size();
+        pre.resize(n + 1); 
+        pre[0].fi = pre[0].se = 0;
+        for(int i = 0; i < n; i++) {
+            pre[i+1].fi = add(mul(pre[i].fi, base[0], mods[0]), s[i], mods[0]);
+            pre[i+1].se = add(mul(pre[i].se, base[1], mods[1]), s[i], mods[1]);
+        }
+    }
+
+    //Returns hash of the substring of length len starting at pos. i
+    //O(1)
+    pii hash(int i, int len) {
+        if(!len) return {0, 0};
+        int j = i + len - 1;
+        pii ans;
+        ans.fi = sub(pre[j+1].fi, mul(pre[i].fi, powb[0][len], mods[0]), mods[0]);
+        ans.se = sub(pre[j+1].se, mul(pre[i].se, powb[1][len], mods[1]), mods[1]);
+        return ans;
+    }
+
+    //Returns true if s[i .. i2] < s[j .. j2] lexicographically.
+    //Uses binary search to determine the first position at which the two substrings differ.
+    //O(lg n).
+    bool comp(int i, int i2, int j, int j2) {
+        int len1 = i2-i+1, len2 = j2-j+1;
+        if(len1 > len2) return !comp(j, j2, i, i2);
+        int lo = 0, hi = len1 + 1;
+        while(hi - lo > 1) {
+            int m = (hi + lo) / 2;
+            if(hash(i, m) == hash(j, m)) lo = m;
+            else                         hi = m;
+        }
+        int k = hi - 1;                    //k: First pos. at which the 2 substrings differ.
+        if(k == len1) return len1 != len2; //First substring is a prefix of the second.
+        return s[i+k] < s[j+k]; 
+    }
+};
+
+pii Hash(string s) {
+    for(char& c : s) c = tolower(c);
+    reverse(all(s));
+    int n = s.size();
+    pii ans = {0, 0};
+    for(int i = 0; i < n; i++) {
+        ans.fi = add(mul(ans.fi, base[0], mods[0]), s[i], mods[0]);
+        ans.se = add(mul(ans.se, base[1], mods[1]), s[i], mods[1]);
+    }
+    return ans;
+}
+
+int n; string s;
+StringHash sh;
+int dp[N], sol[N];
+vector<int> len;
+map<pii, string> words[N];
+
+int rec(int i) {
+    if(i == n) return 1;
+    int& ans = dp[i];
+    if(ans != -1) return ans;
+
+    ans = 0;
+
+    for(int l : len) {
+        if(l > n-i) break;
+        // trace(l);
+        // printv(words[l]);
+        // trace(sh.hash(i, l));
+        if(words[l].count(sh.hash(i, l))) {
+            ans |= rec(i + l);
+        }
+        if(ans) {
+            sol[i] = l;
+            break;
+        }
+    }
+    // trace(i, dp[i], sol[i]);
+    return ans;
+}
+
+string ans;
+
+void print(int i) {
+    if(i == n) return;
+    int l = sol[i];
+    pii h = sh.hash(i, l);
+    string s = words[l][h];
+    if(i) ans += ' ';
+    ans += s;
+    print(i + l);
+}
+
+main()
+{   
+    #ifndef ONLINE_JUDGE
+        freopen("/home/tarun/Desktop/input.txt", "r", stdin);
+     // freopen("/home/tarun/Desktop/output.txt", "w", stdout);
+    #endif
+    sync;
+    clock_t clk = clock();
+    cerr << "I will return...\n";
+
+    prep();
+    cin >> n >> s;
+    sh = StringHash(s);
+
+    int m; cin >> m;
+    rep(i, 0, m) {
+        string t; 
+        cin >> t;
+        pii h = Hash(t);
+        int k = t.size();
+        len.pb(k);
+        words[k][h] = t;
+    }
+
+    uni(len);
+    printv(len);
+
+    memset(dp, -1, sizeof dp);
+    assert(rec(0));
+    print(0);
+    cout << ans << '\n';
+
+    cerr << "...don't you ever hang your head.\n";
+    cerr << "Time (in ms): " << (double)(clock() - clk) * 1000.0 / cps << '\n';
+}
+
+//Compile using:
+//g++ -o filename.exe --std=c++11 filename.cpp
+//Use -D CP for defining a macro CP in the local environment
+

@@ -1,0 +1,115 @@
+#include <bits/stdc++.h>
+#define F first
+#define S second
+#define pii pair<int,int>
+#define pb push_back
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+
+const int N = 1000019 , L = 26;
+
+int nex[N][L] , sz = 1 , que[N] , f[N] , id[N];
+vector<int> adj[N];
+string s[N];
+int st[N] , en[N] , tim = 0;
+ll seg[4*N];
+bool mark[N];
+
+void aho(){
+	int en = 0;
+	for(int ch=0; ch<L; ch++){
+		if(nex[0][ch] == -1)nex[0][ch] = 0;
+		else{
+			que[en++] = nex[0][ch];
+			adj[0].pb(nex[0][ch]);
+			adj[nex[0][ch]].pb(0);
+		}
+	}
+	for(int i=0; i<en; i++){
+		int curr = que[i];
+		for(int ch=0; ch<L; ch++){
+			if(nex[curr][ch] == -1){
+				nex[curr][ch] = nex[f[curr]][ch];
+			}else{
+				f[nex[curr][ch]] = nex[f[curr]][ch];
+				adj[nex[curr][ch]].pb(nex[f[curr]][ch]);
+				adj[nex[f[curr]][ch]].pb(nex[curr][ch]);
+				que[en++] = nex[curr][ch];
+			}
+		}
+	}
+
+}
+
+void dfs(int v = 0, int p = -1){
+	st[v] = tim++;
+	for(auto u : adj[v]){
+		if(u == p)continue;
+		dfs(u , v);
+	}en[v] = tim;
+}
+
+ll get(int d , int s , int e , int p){
+	if(e - s < 2)return seg[d];
+	ll ans = 0;
+	ans += seg[d];
+	int mid = (s + e)/2;
+	if(p < mid)ans += get(2*d , s , mid , p);
+	else ans += get(2*d + 1 , mid , e , p);
+	return ans;
+}
+
+void add(int d , int s , int e , int L , int R , int v){
+	if(L<=s && e<=R){
+		seg[d] += v;
+		return ;
+	}if(L>=e || s>=R)return ;
+	int mid = (s + e)/2;
+	add(2*d , s , mid , L , R , v);
+	add(2*d + 1 , mid , e , L , R , v);
+}
+
+int main(){
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	memset(nex , -1 , sizeof nex);
+	int n , k; cin >> n >> k;
+	for(int i=0; i<k; i++){
+		cin >> s[i];
+		int curr = 0;
+		for(auto c : s[i]){
+			int ch = (int)(c - 'a');
+			if(nex[curr][ch] == -1){
+				nex[curr][ch] = sz++;
+			}
+			curr = nex[curr][ch];
+		}
+		id[i] = curr;
+	}
+	aho();
+	dfs();
+	for(int i=0; i<k; i++){
+		add(1 , 0 , sz , st[id[i]] , en[id[i]] , 1);
+		mark[i] = true;
+	}for(int i=0; i<n; i++){
+		string p; cin >> p;
+		if(p[0] == '?'){
+			int curr = 0;
+			ll ans = 0;
+			for(auto c : p){
+				if(c == '?')continue;
+				int ch = (int)(c - 'a');
+				curr = nex[curr][ch];
+				ans += get(1 , 0 , sz , st[curr]);
+			}
+			cout << ans << '\n';
+		}else{
+			int len = p.size();
+			int v = 0;
+			for(int i=1; i<len; i++)v *= 10 , v += (p[i] - '0');
+			v--;
+			if(p[0] == '-' && mark[v])add(1 , 0 , sz , st[id[v]] , en[id[v]] , -1) , mark[v] = 0;
+			else if(p[0] == '+' && !mark[v])add(1 , 0 , sz , st[id[v]] , en[id[v]] , 1) , mark[v] = 1;
+		}
+	}
+}

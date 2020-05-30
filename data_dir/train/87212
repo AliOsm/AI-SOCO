@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX = 1e5 + 5;
+const int MOD = 1e9 + 7;
+
+#define dbg(x) cout << "-> " << #x << " = " << x << endl
+
+const int buck = 400;
+
+vector<int> G[MAX];
+int c[MAX];
+
+int st[MAX], en[MAX], ptr;
+int base[MAX];
+
+vector<int> cnt(MAX, 0);
+
+int T[MAX];
+
+struct Query {
+    int l, r, ind, k;
+    Query() {}
+    bool operator < (const Query &p) {
+        if(l / buck == p.l / buck) {
+            return r < p.r;
+        }
+        return l < p.l;
+    }
+};
+
+void dfs(int u, int p) {
+    st[u] = ++ptr;
+    base[ptr] = c[u];
+    for(int v : G[u]) {
+        if(v != p) {
+            dfs(v, u);
+        }
+    }
+    en[u] = ptr;
+}
+
+int sum(int i) {
+    int ret = 0;
+    while(i > 0) {
+        ret += T[i];
+        i -= i & -i;
+    }
+    return ret;
+}
+
+void upd(int i, int v) {
+    while(i > 0 and i < MAX) {
+        T[i] += v;
+        i += i & -i;
+    }
+}
+
+void add(int i) {
+    upd(cnt[base[i]], -1);
+    upd(++cnt[base[i]], 1);
+}
+
+void del(int i) {
+    upd(cnt[base[i]], -1);
+    upd(--cnt[base[i]], 1);
+}
+
+int main() {
+	int n, m;
+    scanf("%d %d", &n, &m);
+    for(int i = 1; i <= n; i++) {
+        scanf("%d", c + i);
+    }
+    for(int i = 1; i < n; i++) {
+        int u, v;
+        scanf("%d %d", &u, &v);
+        G[u].push_back(v);
+        G[v].push_back(u);
+    }
+    dfs(1, -1);
+    vector<Query> query(m);
+    for(int i = 0; i < m; i++) {
+        int v, k;
+        scanf("%d %d", &v, &k);
+        query[i].ind = i;
+        query[i].l = st[v];
+        query[i].r = en[v];
+        query[i].k = k;
+    }
+    sort(query.begin(), query.end());
+
+    vector<int> ans(m);
+    int l = 0, r = 0;
+    for(Query q : query) {
+        while(l < q.l) {
+            del(l++);
+        }
+        while(l > q.l) {
+            add(--l);
+        }
+        while(r > q.r) {
+            del(r--);
+        }
+        while(r < q.r) {
+            add(++r);
+        }
+        ans[q.ind] = sum(MAX - 1) - sum(q.k - 1);
+    }
+    for(int v : ans) {
+        printf("%d\n", v);
+    }
+	return 0;
+}

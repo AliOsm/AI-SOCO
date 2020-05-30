@@ -1,0 +1,156 @@
+///****In the name of Allah, most Gracious, most Compassionate****//
+
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+
+#define ALL(a) a.begin(), a.end()
+#define FastIO ios::sync_with_stdio(false); cin.tie(nullptr);cout.tie(nullptr)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+#define DBG(a) cout<< #a <<" --> "<<(a)<<endl
+#define NL cout<<"\n"
+
+template < class T1,class T2>
+ostream &operator <<(ostream &os,const pair < T1,T2 > &p)
+{
+    os<<"{"<<p.first<<","<<p.second<<"}";
+    return os;
+}
+
+const int N=500+5;
+const int oo=1e9+7;
+string s[N];
+int id(char c)
+{
+    if(c=='R') return 0;
+    if(c=='G') return 1;
+    if(c=='B') return 2;
+    if(c=='Y') return 3;
+    assert(0);
+    return 4;
+}
+
+int mx[5][N][N] ;
+
+
+const int K = 8 ; /// k >= ceil(lg22(n)) +1
+int arr[N][N];
+int st[K+1][K+1][N][N];
+int lg2[N+1];
+void ini()
+{
+    lg2[1] = 0;
+    for (int i = 2; i <= N; i++)
+        lg2[i] = lg2[i/2] + 1;
+}
+int f(int i,int j)
+{
+    return max(i,j);
+}
+
+void pre( int n,int m)
+{
+    for(int x=0;x<=K;x++)
+    {
+        for(int y=0;y<=K;y++)
+        {
+            for(int i=0;i<n;i++)
+            {
+                for(int j=0;j<m;j++)
+                {
+                    if(i+(1<<x)>n or j+(1<<y) > m) continue;
+                    if(x>0) st[x][y][i][j] = f(st[x-1][y][i][j] , st[x-1][y][i+(1<<(x-1))][j]);
+                    else if(y>0) st[x][y][i][j] = f(st[x][y-1][i][j] , st[x][y-1][i][j+(1<<(y-1))]);
+                    else st[x][y][i][j] = f(arr[i][j] , arr[i][j]);
+                }
+            }
+        }
+    }
+}
+int getf( int R1 ,int C1 , int R2 ,  int C2)
+{
+    if(R1>R2) swap(R1,R2);
+    if(C1>C2) swap(C1,C2);
+    int x = lg2[R2 - R1 + 1];
+    int y = lg2[C2 - C1 + 1];
+    return  f(f(f(st[x][y][R1][C1],st[x][y][R2-(1<<x)+1][C1]  ), st[x][y][R1][C2 - (1<<y)+1]), st[x][y][R2-(1<<x)+1][C2-(1<<y)+1]);
+}
+
+
+
+int32_t main()
+{
+    FastIO;
+    int n,m,q;
+    cin>>n>>m>>q;
+    for(int i=1;i<=n;i++)
+    {
+        cin>>s[i];
+        s[i] = "#"+s[i];
+        for(int j=1;j<=m;j++)
+            s[i][j] =id(s[i][j]);
+    }
+    for(int i=1;i<=n;i++)
+    {
+        for(int j=1;j<=m;j++)
+        {
+            mx[0][i][j] = s[i][j] == 0 ? min( { mx[0][i][j-1]+1 , mx[0][i-1][j]+1 , mx[0][i-1][j-1]+1 }) : 0 ;
+        }
+    }
+    for(int i=1;i<=n;i++)
+    {
+        for(int j=m;j>=1;j--)
+            mx[1][i][j] = s[i][j] == 1 ? min( { mx[1][i][j+1]+1 , mx[1][i-1][j]+1 , mx[1][i-1][j+1]+1 }) : 0 ;
+    }
+    for(int i=n;i>=1;i--)
+    {
+        for(int j=m;j>=1;j--)
+            mx[2][i][j] = s[i][j] == 2 ? min( { mx[2][i][j+1]+1 , mx[2][i+1][j]+1 , mx[2][i+1][j+1]+1 }) : 0 ;
+    }
+    for(int i=n;i>=1;i--)
+    {
+        for(int j=1;j<=m;j++)
+            mx[3][i][j] = s[i][j] == 3 ? min( { mx[3][i][j-1]+1 , mx[3][i+1][j]+1 , mx[3][i+1][j-1]+1 }) : 0 ;
+
+    }
+
+//    for(int i=1;i<=n;i++)
+//    {
+//        for(int j=1;j<=m;j++)
+//            cout<<mx[0][i][j]<<" ";
+//        NL;
+//    }
+    for(int i=1;i<=n;i++)
+    {
+        for(int j=1;j<=m;j++)
+        {
+            arr[i][j] = min( {mx[0][i][j] , mx[1][i][j+1] , mx[2][i+1][j+1] , mx[3][i+1][j] });
+//            cout<<arr[i][j]<<" ";
+        }
+//        NL;
+    }
+    ini();
+    pre(n+1,m+1);
+    while(q--)
+    {
+        int r1,r2,c1,c2;
+        cin>>r1>>c1>>r2>>c2;
+        int lo =  0 , hi = min(n,m);
+        while(lo<hi)
+        {
+            int mid = (lo+hi+1)/2;
+            int x1  = r1 + mid-1  , x2 = r2-mid   , y1 = c1+mid-1  , y2 = c2 - mid;
+            if(x1<=x2 and y1<=y2 and getf(x1,y1,x2,y2)>=mid)
+            {
+                lo = mid;
+            }
+            else hi = mid-1;
+        }
+        cout<<4*lo*lo<<"\n";
+    }
+
+}

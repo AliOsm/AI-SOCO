@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = (int)5e5 + 50, M = (int)1e6, LOGN = 20, B = 20;
+struct P {
+    int l, r, id;
+};
+
+struct Basis{
+    int bas[B];
+    int sz;
+
+    Basis(){
+        sz = 0;
+    }
+
+    void insert(int i, int x) {
+        for(int j = sz; j > i; j--) bas[j] = bas[j-1];
+        bas[i] = x;
+        sz++;
+    }
+
+    void add(int x) {
+        for(int i = 0; i < sz; i++) {
+            if(x == 0) return ;
+            if((x ^ bas[i]) < x) x ^= bas[i];
+        }
+        if(x == 0) return ;
+        int loc = 0;
+        while(loc < sz && bas[loc] > x) loc++;
+
+        insert(loc, x);
+    }
+
+    int get_max(){
+        int res = 0;
+        for(int i = 0; i < sz; i++) {
+            if((res ^ bas[i]) > res) res ^= bas[i];
+        }
+        return res;
+    }
+
+} basis;
+
+Basis merge(Basis &a, Basis &b) {
+    Basis res = a;
+    for(int j = 0; j < b.sz; j++) res.add(b.bas[j]);
+    return res;
+}
+
+int n,q;
+int num[N];
+int res[N];
+
+void solve(int l, int r, vector<P> &qs){
+    if(l == r) {
+        for(auto &p : qs){
+            Basis b;
+            for(int j = p.l; j <= p.r; j++) b.add(num[j]);
+            res[p.id] = b.get_max();
+        }
+        return ;
+    }
+    int mid = (l + r) / 2;
+    vector<Basis> left, right;
+    left.push_back(Basis()); left.back().add(num[mid]);
+    right.push_back(Basis()); right.back().add(num[mid+1]);
+    for(int i = mid - 1; i >= l; i--) {
+        left.push_back(left.back());
+        left.back().add(num[i]);
+    }
+    for(int i = mid + 2; i <= r; i++){
+        right.push_back(right.back());
+        right.back().add(num[i]);
+    }
+    vector<P> lqs, rqs;
+    for(auto &p : qs) {
+        if(p.r <= mid) lqs.push_back(p);
+        else if(p.l >= mid + 1) rqs.push_back(p);
+        else {
+            res[p.id] = merge(left[mid - p.l], right[p.r - (mid + 1)]).get_max();
+        }
+    }
+    solve(l, mid, lqs);
+    solve(mid + 1, r, rqs);
+}
+
+int main(){
+    ios::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    cin >> n;
+    for(int i = 0; i < n; i++) cin >> num[i];
+    cin >> q;
+    vector<P> qs;
+    for(int i = 0; i < q; i++){
+        int l, r;
+        cin >> l >> r; l--, r--;
+        qs.push_back({l, r, i});
+    }
+    solve(0, n - 1, qs);
+    for(int i = 0; i < q; i++) cout << res[i] << "\n";
+
+}

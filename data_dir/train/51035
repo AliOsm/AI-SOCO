@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long Long;
+
+const Long MX = 5e5 + 10;
+const Long INF = 1e18;
+
+Long A[MX];
+Long C[MX];
+Long B[MX];
+Long memo[MX];
+Long st[MX<<2];
+vector<Long> adj[MX];
+vector<Long> pes[MX];
+vector<Long> pos[MX];
+
+void update(Long a, Long v, Long l, Long r, Long nodo){
+	if(a < l || r < a) return;
+	if(l == r){
+		st[nodo]=v;
+		return;
+	}
+	Long med = (l+r)/2;
+	update(a,v,l,med,2*nodo);
+	update(a,v,med+1,r,2*nodo+1);
+	st[nodo] = st[2*nodo] + st[2*nodo+1];
+	return;
+}
+
+Long query(Long ini, Long fin, Long l, Long r, Long nodo){
+	if(ini > fin) return 0;
+	if(fin<l || r<ini) return 0;
+	if(ini<=l && r<=fin) return st[nodo];
+	Long med = (l+r)/2;
+	Long L = query(ini,fin,l,med,nodo*2);
+	Long R = query(ini,fin,med+1,r,nodo*2+1);
+	return R + L;
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	cout.tie(NULL);
+	cout.precision(10);
+	cout << fixed;
+
+	Long n, m;
+	cin >> n;
+	for(Long i = 1; i <= n; i++) cin >> A[i];
+	for(Long i = 1; i <= n; i++) cin >> C[i];
+	cin >> m;
+	for(Long i = 1; i <= m; i++) cin >> B[i];
+	n += 2;
+	m += 2;
+	A[0] = B[0] = 0;
+	A[n - 1] = B[m - 1] = MX - 1;
+	
+	vector< pair<Long,Long> > order;
+	for(Long i = 0; i < n; i++){
+		pos[A[i]].push_back(i);
+		order.push_back({A[i],i});
+		if(C[i] < 0) update(i, C[i], 0, n-1, 1);
+	}
+	sort(order.rbegin(),order.rend());
+	
+	Long cur = 0;
+	for(Long i = m - 1; i >= 0; i--){
+		while(cur < n && B[i] < order[cur].first){
+			if(C[order[cur].second] >= 0){
+				update(order[cur].second, C[order[cur].second], 0, n-1, 1);
+			}
+			cur++;
+		}
+		if(i + 1 < m){
+			for(Long j = 0; j < pos[B[i]].size(); j++){
+				Long u = pos[B[i]][j];
+				Long v = lower_bound(pos[B[i+1]].begin(), pos[B[i+1]].end(), u) - pos[B[i+1]].begin();
+				if(v != pos[B[i+1]].size()){
+					v = pos[B[i+1]][v];
+					Long w = query(u+1,v-1,0,n-1,1);
+					adj[u].push_back(v);
+					pes[u].push_back(w);
+				}
+			}
+			if(pos[B[i+1]].size() > 1){
+				for(Long j = 0; j < pos[B[i+1]].size() - 1; j++){
+					Long u = pos[B[i+1]][j];
+					Long v = pos[B[i+1]][j + 1];
+					Long w = query(u,v-1,0,n-1,1);
+					adj[u].push_back(v);
+					pes[u].push_back(w);
+				}
+			}
+		}
+	}
+	
+	for(Long i = 0; i < MX; i++) memo[i] = INF;
+	
+	set<Long> q;
+	q.insert(0);
+	memo[0] = 0;
+	while(!q.empty()){
+		Long u = *q.begin();
+		q.erase(q.begin());
+		Long sz = adj[u].size();
+		for(Long i = 0; i < sz; i++){
+			Long v = adj[u][i];
+			Long w = pes[u][i];
+			memo[v] = min(memo[v],memo[u] + w);
+			q.insert(v);
+		}
+	}
+	
+	if(memo[n - 1] == INF){
+		cout << "NO\n";
+	}else{
+		cout << "YES\n";
+		cout << memo[n - 1] << "\n";
+	}
+	return 0;
+}

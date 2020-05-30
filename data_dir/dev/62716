@@ -1,0 +1,110 @@
+#include<iostream>
+#include<stdio.h>
+#include<cassert>
+#include<cstring>
+#include<time.h>
+#include<cstdlib>
+#include<cmath>
+#include<string>
+#include<sstream>
+#include<map>
+#include<set>
+#include<queue>
+#include<stack>
+#include<vector>
+#include<algorithm>
+#pragma comment(linker, "/STACK:16777216")
+#define pb push_back
+#define ppb pop_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define sz(x) (int)(x).size()
+#define LL long long
+#define bit __builtin_popcountll
+#define sqr(x) (x) * (x)
+#define forit(it,S) for(__typeof((S).begin()) it = (S).begin(); it != (S).end(); it++)
+using namespace std;
+typedef pair<int, int> pii;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+const LL INF = (LL)1e18;
+int n;
+LL a[11],val[11];
+LL dp[1 << 8][1 << 8];
+int lastBit[1 << 8];
+LL del[11][1 << 8];
+LL get(LL v) {
+    LL i = 2;
+    LL res = 0;
+    while(i * i <= v) {
+        while (v % i == 0) {
+            res++;
+            v /= i;
+        }
+        i++;
+    }
+    if (v > 1) {
+        res++;
+    }
+    return res;
+}
+LL dfs(int mask1, int mask2) {
+    if (mask1 == 0 && mask2 == 0) return 0;
+    if (mask2 == 0 && mask1 != 0) return INF;
+    LL &res = dp[mask1][mask2];
+    if (res != -1) return res;
+    res = INF;
+    int last = lastBit[mask2];
+    for (int sub = mask1;; sub = (sub - 1) & mask1) {
+        if (del[last][sub] != -1) {
+            res = min(res,dfs(mask1 ^ sub,mask2 ^ (1 << last) ^ sub) + 1 + (sub == 0 ? val[last] : del[last][sub]));
+        }
+        if (sub == 0) break;
+    }
+    
+    return res;
+}
+int main()
+{
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt","r",stdin);
+    freopen("output.txt","w",stdout);
+    #endif
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+    sort(a,a + n);
+    for (int i = 0; i < n; i++) {
+        val[i] = get(a[i]);
+        if (val[i] == 1) val[i] = 0;
+    }
+    for (int mask = 0; mask < (1 << n); mask++) {
+        int last = -1;
+        for (int i = 0; i < n; i++) if (mask & (1 << i)) {
+            last = i;
+        }
+        lastBit[mask] = last;
+    }
+    for (int i = 0; i < n; i++) {   
+        for (int mask = 0; mask < (1 << n); mask++) {
+            LL v = a[i];
+            for (int j = 0; j < n; j++) if (mask & (1 << j)) {
+                if (v % a[j] != 0) {
+                    v = -1;
+                    break;
+                } else {
+                    v /= a[j];
+                }
+            }
+            del[i][mask] = v == -1 ? -1 : get(v);
+        }
+    }
+    memset(dp,-1,sizeof(dp));
+    LL res = INF;
+    for (int mask = 1; mask < (1 << n); mask++) {
+        res = min(res,dfs(((1 << n) - 1) ^ mask,mask) + (bit(mask) == 1 ? 0 : 1));
+    }
+    cout << res << endl;
+    return 0;
+}

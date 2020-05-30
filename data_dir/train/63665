@@ -1,0 +1,128 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+#define MOD 12345
+#define INF 1900000000
+
+int D;
+
+struct matrix {int a[125][125];};
+
+matrix mat_prod(matrix &A, matrix &B){
+    int i,j,k;
+    matrix C;
+    REP(i,D) REP(j,D){
+        int tmp = 0;
+        REP(k,D){
+            tmp += A.a[i][k] * B.a[k][j];
+            if(tmp > INF) tmp %= MOD;
+        }
+        C.a[i][j] = tmp % MOD;
+    }
+    return C;
+}
+
+matrix mat_power(matrix &A, ll N){
+    int i,j;
+    matrix ans;
+    REP(i,D) REP(j,D) ans.a[i][j] = ((i == j) ? 1 : 0);
+    for(i=62;i>=0;i--) if(N&(1ll<<i)) break;
+    for(;i>=0;i--){
+        ans = mat_prod(ans, ans);
+        if(N&(1ll<<i)) ans = mat_prod(ans, A);
+    }
+    return ans;
+}
+
+set <int> conditions[30];
+int cycle[30];
+bool good[30][130];
+vector <int> states[130];
+map <vector <int>, int> mp;
+
+void generate(vector <int> v, int pos){
+    if(pos == 26){
+        states[D] = v;
+        mp[v] = D;
+        D++;
+        return;
+    }
+    
+    int i;
+    REP(i,cycle[pos]){
+        v[pos] = i;
+        generate(v, pos+1);
+    }
+}
+
+int main(void){
+    int M,i,j;
+    ll N;
+    
+    cin >> N >> M;
+    REP(i,M){
+        char type;
+        int d;
+        cin >> type >> d;
+        conditions[type-'A'].insert(d);
+    }
+    
+    REP(i,26) cycle[i] = 1;
+    REP(i,26) foreach(conditions[i],itr) cycle[i] *= (*itr);
+    REP(i,26){
+        good[i][0] = true;
+        foreach(conditions[i],itr){
+            int d = (*itr);
+            for(j=0;j<cycle[i];j+=d) good[i][j] = true;
+        }
+    }
+    
+    vector <int> v;
+    REP(i,26) v.push_back(i);
+    generate(v, 0);
+    
+    matrix A;
+    REP(i,D) REP(j,D) A.a[i][j] = 0;
+    REP(i,D){
+        vector <int> v = states[i];
+        REP(j,26) if(!conditions[j].empty()){
+            int c = cycle[j];
+            v[j] = (v[j] + 1) % c;
+            A.a[i][mp[v]]++;
+            v[j] = (v[j] - 1 + c) % c;
+        }
+    }
+    
+    matrix B = mat_power(A, N);
+    
+    int ans = 0;
+    REP(i,D){
+        vector <int> v = states[i];
+        bool flag = true;
+        REP(j,26) if(!good[j][v[j]]) flag = false;
+        if(flag) ans = (ans + B.a[0][i]) % MOD;
+    }
+    
+    cout << ans << endl;
+    
+    return 0;
+}

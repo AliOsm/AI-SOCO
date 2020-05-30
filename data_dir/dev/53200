@@ -1,0 +1,156 @@
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cstring>
+#include <queue>
+#include <set>
+#include <map>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+
+using namespace std;
+
+template<class T> T nextInt() {
+    T x = 0, p = 1;
+    char c;
+    do {
+        c = getchar();
+    } while (c <= 32);
+    if (c == '-') {
+        p = -1;
+        c = getchar();
+    }
+    while (c >= '0' && c <= '9') {
+        x = x * 10 + c - '0';
+        c = getchar();
+    }
+    return x * p;
+}
+
+typedef long double ld;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef unsigned short ushort;
+
+const int maxn = 100500 * 2;
+
+const ll LINF = 1e18;
+
+int n, m;
+ll d[maxn], h[maxn];
+ll s[maxn], A[maxn], B[maxn];
+
+struct node {
+    ll maxA, maxB, best;
+    node() {}
+    node(ll a, ll b) {
+        maxA = a, maxB = b;
+        best = -LINF;
+    }
+};
+
+node combine(node l, node r) {
+    node res;
+    res.maxB = max(l.maxB, r.maxB);
+    res.maxA = max(l.maxA, r.maxA);
+    res.best = max(max(l.best, r.best), l.maxA + r.maxB);
+    return res;
+}
+
+node t[maxn * 4];
+
+void buildTree(int v, int tl, int tr) {
+    if (tl == tr) {
+        t[v] = node(A[tl], B[tl]);
+        return;
+    }
+    int tm = (tl + tr) >> 1;
+    buildTree((v << 1) + 1, tl, tm);
+    buildTree((v << 1) + 2, tm + 1, tr);
+    t[v] = combine(t[(v << 1) + 1], t[(v << 1) + 2]);
+}
+
+node queryT(int v, int tl, int tr, int l, int r) {
+    if (tl == l && tr == r) {
+        return t[v];
+    }
+    int tm = (tl + tr) >> 1;
+    if (r <= tm)
+        return queryT((v << 1) + 1, tl, tm, l, r);
+    else if (l > tm)
+        return queryT((v << 1) + 2, tm + 1, tr, l, r);
+    else {
+        return combine(queryT((v << 1) + 1, tl, tm, l, tm),
+                       queryT((v << 1) + 2, tm + 1, tr, tm + 1, r));
+    }
+}
+
+void precalc() {
+    d[0] = d[n];
+    s[1] = 0;
+    for (int i = 1; i <= n; i++)
+        h[i] *= 2;
+    for (int i = 1; i <= n; i++)
+        h[n + i] = h[i];
+    for (int i = 2; i <= n; i++)
+        s[i] = s[i - 1] + d[i - 1];
+    for (int i = 1; i <= n; i++) {
+        s[n + i] = s[n + i - 1] + d[i - 1];
+    }
+    for (int i = 1; i <= n * 2; i++) {
+        A[i] = h[i] - s[i];
+        B[i] = h[i] + s[i];
+    }
+    buildTree(0, 1, n * 2);
+}
+
+ll brute(int l, int r) {
+    ll best = 0;
+    for (int i = l; i <= r; i++)
+        for (int j = i + 1; j <= r; j++)
+            best = max(best, A[i] + B[j]);
+    return best;
+}
+
+ll query(int l, int r) {
+    if (l <= r) {
+        int le = l + n, ri = r + n;
+        return queryT(0, 1, n * 2, r + 1, le - 1).best;
+    }
+
+    int le = r + 1, ri = l - 1;
+    ll res = queryT(0, 1, n * 2, le, ri).best;
+    return res;
+}
+
+int main()
+{
+    srand(time(0));
+
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+
+    ios_base::sync_with_stdio(0);
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> d[i];
+    }
+
+    for (int j = 1; j <= n; j++) {
+        cin >> h[j];
+    }
+
+    precalc();
+
+    while (m--) {
+        int l, r;
+        cin >> l >> r;
+        cout << query(l, r) << "\n";
+    }
+
+    return 0;
+}

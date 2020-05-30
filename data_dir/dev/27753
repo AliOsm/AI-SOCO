@@ -1,0 +1,144 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2010;
+
+struct Node {
+  int x, y, w;
+};
+
+struct Id {
+  int bl, ps;
+};
+
+int n, m, k, q;
+int len[N];
+int ll[N], rr[N], uu[N], dd[N];
+Id id[N][N];
+bool fl[N];//, addfl[N];
+//int top[N];
+vector<Node> v[N];
+vector<pair<int, int> > vp[N];
+vector<long long> ds[N];
+
+bool in(int x, int l, int r) {
+  return x <= r && x >= l;
+}
+
+void go(int a, int b, int c, int d, long long &s) {
+  if (!in(a, 1, n) || !in(b, 1, m) || !in(c, 1, n) || !in(d, 1, m)) return;
+  //printf("%d %d %d %d %lld\n", a, b, c, d, s);
+  //printf("%d %d\n", id[a][b].bl, id[c][d].bl);
+  if (id[a][b].bl != id[c][d].bl) return;
+  if (!fl[id[a][b].bl]) return;
+  if (id[a][b].ps > id[c][d].ps) {
+    if (id[a][b].ps == id[c][d].ps + 1) {
+      vp[id[a][b].bl].push_back(make_pair(id[c][d].ps, -1));
+/*
+      s -= ds[id[a][b].bl][id[c][d].ps];
+      if (top[id[a][b].bl] < id[c][d].ps) {
+        top[id[a][b].bl] = id[c][d].ps;
+        addfl[id[a][b].bl] = 1;
+      }*/
+    }
+  }
+  else {
+    if (id[a][b].ps + 1 == id[c][d].ps) {
+      vp[id[a][b].bl].push_back(make_pair(id[a][b].ps, 1));
+      /*
+      s += ds[id[a][b].bl][id[a][b].ps];
+      if (top[id[a][b].bl] < id[a][b].ps) {
+        top[id[a][b].bl] = id[a][b].ps;
+        addfl[id[a][b].bl] = 0;
+      }*/
+    }
+  }
+  //printf("s : %lld\n", s);
+}
+
+long long solve(int u, int l, int d, int r) {
+  //memset(addfl, 0, sizeof(addfl));
+  //memset(top, 0, sizeof(top));
+  long long s = 0;
+  for (int i = 0; i < k; ++i) vp[i].clear();
+  for (int i = l; i <= r; ++i) {
+    //printf("go %d %d %d %d\n", u, i, u - 1, i);
+    //printf("go %d %d %d %d\n", d, i, d + 1, i);
+    go(u, i, u - 1, i, s);
+    go(d, i, d + 1, i, s);
+  }
+  for (int i = u; i <= d; ++i) {
+    //printf("go %d %d %d %d\n", i, l, i, l - 1);
+    //printf("go %d %d %d %d\n", i, r, i, r + 1);
+    go(i, l, i, l - 1, s);
+    go(i, r, i, r + 1, s);
+  }
+  for (int i = 0; i < k; ++i) sort(vp[i].begin(), vp[i].end());
+  for (int i = 0; i < k; ++i) if (!vp[i].empty()) {
+    for (int j = 0; j < vp[i].size(); ++j) {
+      s = s + vp[i][j].second * ds[i][vp[i][j].first];
+    }
+    if (vp[i].back().second == -1) {
+      s = s + ds[i].back();
+    }
+  }
+  for (int i = 0; i < k; ++i) {
+    if (in(ll[i], l, r) && in(rr[i], l, r) && in(uu[i], u, d) && in(dd[i], u, d)) {
+      if (fl[i])
+        s += ds[i].back();
+    }
+  }
+  //printf("top");
+  //for (int i = 0; i < k; ++i) printf("%d ", top[i]); puts("");
+  /*
+  for (int i = 0; i < k; ++i) {
+    if (addfl[i]) s += ds[i].back();
+  }*/
+  return s;
+}
+
+void get(vector<Node> &v, vector<long long> &d) {
+  d.push_back(v[0].w);
+  for (int i = 1; i < v.size(); ++i) {
+    d.push_back(v[i].w + d.back());
+  }
+}
+
+int main() {
+  scanf("%d%d%d", &n, &m, &k);
+  for (int i = 1; i <= n; ++i) for (int j = 1; j <= m; ++j) id[i][j] = {-1, -1};
+  for (int i = 0; i < k; ++i) {
+    scanf("%d", len + i);
+    ll[i] = INT_MAX, uu[i] = INT_MAX;
+    rr[i] = 0, dd[i] = 0;
+    for (int j = 0, x, y, w; j < len[i]; ++j) {
+      scanf("%d%d%d", &x, &y, &w);
+      v[i].push_back({x, y, w});
+      id[x][y] = {i, j};
+      ll[i] = min(y, ll[i]);
+      rr[i] = max(y, rr[i]);
+      uu[i] = min(x, uu[i]);
+      dd[i] = max(x, dd[i]);
+    }
+    get(v[i], ds[i]);
+  }
+  fill(fl, fl + k, true);
+  scanf("%d", &q);
+  while (q--) {
+    char cmd[20];
+    scanf("%s", cmd);
+    if (cmd[0] == 'S') {
+      int i;
+      scanf("%d", &i);
+      --i;
+      fl[i] = !fl[i];
+    }
+    else {
+      int x1, y1, x2, y2;
+      scanf("%d%d%d%d", &x1, &y1, &x2, &y2);
+      printf("%lld\n", solve(x1, y1, x2, y2));
+    }
+  }
+  return 0;
+}

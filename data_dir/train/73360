@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int MAX = 1e4 + 5;
+const vector<ii> dir {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+int max_x[MAX], min_x[MAX], min_y[MAX], max_y[MAX];
+bool adj[MAX][MAX], foda[MAX], has_final[MAX];
+int n, m, k;
+set<ii> lit, visited;
+int comp_cnt = 1, start = -1;
+
+inline bool ok(int x, int y) {
+	return lit.count(ii(x, y)) == 1;
+}
+
+void dfs(int x, int y) {
+	if(x == 1 && y == 1) {
+		start = comp_cnt;
+	}
+	if(x == n && y == m) {
+		has_final[comp_cnt] = true;
+	}
+	max_x[comp_cnt] = max(max_x[comp_cnt], x);
+	min_x[comp_cnt] = min(min_x[comp_cnt], x);
+	max_y[comp_cnt] = max(max_y[comp_cnt], y);
+	min_y[comp_cnt] = min(min_y[comp_cnt], y);
+	visited.emplace(x, y);
+	for(auto &each : dir) {
+		int nx = x + each.first;
+		int ny = y + each.second;
+		if(ok(nx, ny) && !visited.count(ii(nx, ny))) {
+			dfs(nx, ny);
+		}
+	}
+}
+
+int dis[MAX];
+int bfs() {
+	queue<int> q;
+	q.push(start);
+	int ans = 1 << 30;
+	memset(dis, -1, sizeof dis);
+	dis[start] = 0;
+	while(!q.empty()) {
+		int cur = q.front(); q.pop();
+		if(foda[cur]) {
+			ans = min(ans, dis[cur] + !has_final[cur]);
+		}
+		fori(i, 1, comp_cnt + 1) {
+			if(adj[cur][i] && dis[i] == -1) {
+				dis[i] = dis[cur] + 1;
+				q.push(i);
+			}
+		}
+	}
+	return (ans == (1 << 30)) ? -1 : ans;
+}
+
+bool test(int i, int j) {
+	if(min_x[i] <= min_x[j] && min_x[j] <= max_x[i]) {
+		return true;
+	}
+	if(min_x[i] <= max_x[j] && max_x[j] <= max_x[i]) {
+		return true;
+	}
+	if(min_x[i] - max_x[j] == 1 || min_x[i] - max_x[j] == 2) {
+		return true;
+	}
+	if(min_x[j] - max_x[i] == 1 || min_x[j] - max_x[i] == 2) {
+		return true;
+	}
+	if(min_y[i] <= min_y[j] && min_y[j] <= max_y[i]) {
+		return true;
+	}
+	if(min_y[i] <= max_y[j] && max_y[j] <= max_y[i]) {
+		return true;
+	}
+	if(min_y[i] - max_y[j] == 1 || min_y[i] - max_y[j] == 2) {
+		return true;
+	}
+	if(min_y[j] - max_y[i] == 1 || min_y[j] - max_y[i] == 2) {
+		return true;
+	}
+	return false;
+}
+
+int main() {
+	scanf("%d %d %d", &n, &m, &k);
+	fori(i, 0, k) {
+		int x, y;
+		scanf("%d %d", &x, &y);
+		lit.emplace(x, y);
+	}
+
+
+	memset(max_x, 0x8F, sizeof max_x);
+	memset(min_x, 0x3F, sizeof min_x);
+	memset(max_y, 0x8F, sizeof max_y);
+	memset(min_y, 0x3F, sizeof min_y);
+	for(auto &each : lit) {
+		if(!visited.count(ii(each.first, each.second))) {
+			dfs(each.first, each.second);
+			if(max_x[comp_cnt] >= n - 1 || max_y[comp_cnt] >= m - 1) {
+				foda[comp_cnt] = true;
+			}
+			comp_cnt++;
+		}
+	}
+	comp_cnt--;
+
+	fori(i, 1, comp_cnt + 1) {
+		fori(j, 1, comp_cnt + 1) {
+			adj[i][j] = adj[j][i] = test(i, j) || test(j, i);
+		}
+	}
+
+	printf("%d\n", bfs());
+
+	return 0;
+}
+

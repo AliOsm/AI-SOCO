@@ -1,0 +1,104 @@
+/**
+ *    author:  skmonir
+ *    created: 16-Feb-2018 23:23:41
+**/
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define endl                '\n'
+#define TN                  typename
+#define mod                 1000000007LL
+#define all(x)              x.begin(), x.end()
+#define rall(x)             x.rbegin(), x.rend()
+#define mem(x, y)           memset(x, y, sizeof x)
+#define FOR(x, l, r)        for (int x = l; x <= r; ++x)
+#define ROF(x, l, r)        for (int x = l; x >= r; --x)
+
+template <TN T> inline void Int(T &n) {
+    n = 0; int f = 1; register int ch = getchar();
+    for (; !isdigit(ch); ch = getchar()) if (ch == '-') f = -1;
+    for (; isdigit(ch); ch = getchar()) n = (n << 3) + (n << 1) + ch - '0';
+    n = n * f;
+}
+
+template <TN T> T gcd(T a, T b) {return !b ? a : gcd(b, a % b);}
+template <TN T> T modinverse(T bs) {return modpow(bs, mod - 2);}
+template <TN T> inline void umin(T &a, T b) {a = a < b ? a : b;}
+template <TN T> inline void umax(T &a, T b) {a = a > b ? a : b;}
+template <TN T, TN W> inline void Int(T &x, W &y) {Int(x), Int(y);}
+template <TN T, TN W, TN Q> inline void Int(T &x, W &y, Q &z) {Int(x, y), Int(z);}
+
+const int N = 1e5 + 7;
+const int inf = 1e9 + 7;
+
+int n, m, a[N << 1], t[N << 2][2], f[N << 2][2];
+
+void propagate(int nd, int s, int e) {
+    if (~f[nd][0]) {
+        t[nd][0] = f[nd][0], t[nd][1] = f[nd][1];
+        if (s != e) {
+            int x = t[nd][0], y = t[nd][1];
+            int md = s + e >> 1;
+            int lfc = md - s + 1;
+            int lnx = x, lny = x + lfc - 1;
+            int rnx = x + lfc, rny = y;
+
+            f[nd << 1][0] = lnx, f[nd << 1][1] = lny;
+            f[nd << 1 | 1][0] = rnx, f[nd << 1 | 1][1] = rny;
+        }
+        f[nd][0] = -1;
+    }
+}
+
+void modify(int nd, int s, int e, int l, int r, int x, int y) {
+    propagate(nd, s, e);
+    if (e < l or r < s) return;
+    if (s >= l and e <= r) {
+        f[nd][0] = x, f[nd][1] = y;
+        propagate(nd, s, e);
+        return;
+    }
+    int md = (s + e) >> 1;
+    if (r <= md) modify(nd << 1, s, md, l, r, x, y);
+    else if (md < l) modify(nd << 1 | 1, md + 1, e, l, r, x, y);
+    else {
+        int lfc = md - l + 1;
+        int lnx = x, lny = x + lfc - 1;
+        int rnx = x + lfc, rny = y;
+        modify(nd << 1, s, md, l, md, lnx, lny);
+        modify(nd << 1 | 1, md + 1, e, md + 1, r, rnx, rny);
+    }
+}
+
+int ask(int nd, int s, int e, int l, int r) {
+    propagate(nd, s, e);
+    if (e < l or r < s) return 0;
+    int md = (s + e) >> 1;
+    if (s >= l and e <= r) return t[nd][0];
+    int c1 = ask(nd << 1, s, md, l, r);
+    int c2 = ask(nd << 1 | 1, md + 1, e, l, r);
+    return max(c1, c2);
+}
+
+int main() {
+    Int(n, m);
+    FOR (i, 1, n) Int(a[i]);
+    FOR (i, 1, n) Int(a[i + n]);
+
+    mem(f, -1);
+    modify(1, 1, n, 1, n, n + 1, n * 2);
+
+    while (m--) {
+        int tp, l, r, x, y, k;
+        Int(tp, x);
+        if (tp == 1) {
+            Int(l, k);
+            r = l + k - 1, y = x + k - 1;
+            modify(1, 1, n, l, r, x, y);
+        } else printf("%d\n", a[ask(1, 1, n, x, x)]);
+    }
+
+    return 0;
+}

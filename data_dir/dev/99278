@@ -1,0 +1,129 @@
+#include <algorithm>
+#include <iostream>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <set>
+
+using namespace std;
+
+#define type(x) __typeof((x).begin())
+#define foreach(i, x) for(type(x) i = (x).begin(); i != (x).end(); i++)
+
+typedef long long ll;
+typedef pair < int, int > ii;
+
+const int inf = 1e9 + 333;
+const ll linf = 1e18 + 333;
+
+const int N = 2500 + 5;
+const int K = 6 + 1;
+
+int n, m, k, sum[N][N];
+char s[N][N];
+ll ans, lf[K], rg[K];
+
+int get(int x1, int x2, int y1, int y2) {
+    return sum[x2][y2] - sum[x1 - 1][y2] - sum[x2][y1 - 1] + sum[x1 - 1][y1 - 1];
+}
+
+void cut_row(int x1, int x2, int y1, int y2, int cut) {
+    
+    if(x1 > x2 or y1 > y2)
+        return;
+    
+    for(int i = y1; i <= y2; i++) {
+        for(int i = 0; i <= k; i++) {
+            lf[i] = x1;
+            rg[i] = x2;
+        }
+        for(int j = i; j <= y2; j++) {
+            for(int p = 0; p <= k; p++) {
+                while(lf[p] < cut and get(lf[p], cut - 1, i, j) > p)
+                    lf[p]++;
+                while(rg[p] >= cut and get(cut, rg[p], i, j) > p)
+                    rg[p]--;
+            }
+            for(int l = 0; l <= k; l++) {
+                int r = k - l;
+                int val_l = (l ? lf[l - 1] - lf[l] : cut - lf[0]);
+                int val_r = (r ? rg[r] - rg[r - 1] : rg[0] - cut + 1);
+                if(val_l > 0)
+                    ans += val_l * val_r;
+            }
+            ans += (k ? rg[k] - rg[k - 1] : rg[0] - cut + 1);
+        }
+    }
+    
+};
+
+void cut_col(int x1, int x2, int y1, int y2, int cut) {
+    
+    if(x1 > x2 or y1 > y2)
+        return;
+    
+    for(int i = x1; i <= x2; i++) {
+        for(int i = 0; i <= k; i++) {
+            lf[i] = y1;
+            rg[i] = y2;
+        }
+        for(int j = i; j <= x2; j++) {
+            for(int p = 0; p <= k; p++) {
+                while(lf[p] < cut and get(i, j, lf[p], cut - 1) > p)
+                    lf[p]++;
+                while(rg[p] >= cut and get(i, j, cut, rg[p]) > p)
+                    rg[p]--;
+            }
+            for(int l = 0; l <= k; l++) {
+                int r = k - l;
+                int val_l = (l ? lf[l - 1] - lf[l] : cut - lf[0]);
+                int val_r = (r ? rg[r] - rg[r - 1] : rg[0] - cut + 1);
+                if(val_l > 0)
+                    ans += val_l * val_r;
+            }
+            ans += (k ? rg[k] - rg[k - 1] : rg[0] - cut + 1);
+        }
+    }
+    
+};
+
+void solve(int lx, int rx, int ly, int ry) {
+    
+    if(lx > rx or ly > ry)
+        return;
+    
+    int mx = lx + rx >> 1;
+    int my = ly + ry >> 1;
+    
+    cut_row(lx, rx, ly, ry, mx);    
+    cut_col(lx, mx - 1, ly, ry, my);
+    cut_col(mx + 1, rx, ly, ry, my);
+    
+    solve(lx, mx - 1, ly, my - 1);
+    solve(lx, mx - 1, my + 1, ry);
+    solve(mx + 1, rx, ly, my - 1);
+    solve(mx + 1, rx, my + 1, ry);
+    
+}
+
+int main () {
+    
+    scanf("%d %d %d", &n, &m, &k);
+    
+    for(int i = 1; i <= n; i++) {
+        scanf("%s", s[i] + 1);
+        for(int j = 1; j <= m; j++)
+            sum[i][j] = sum[i - 1][j] + sum[i][j - 1] - sum[i - 1][j - 1] + (s[i][j] == '1');
+    }
+    
+    solve(1, n, 1, m);
+    
+    printf("%lld\n", ans);
+    
+    return 0;
+    
+}

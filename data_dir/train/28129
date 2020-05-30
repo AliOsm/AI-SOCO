@@ -1,0 +1,44 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int limN = 1005;
+
+bool usd[limN];
+
+int main() {
+    int N;
+    int A[limN], B[limN];
+    vector <int> reps;
+
+    scanf("%d", &N);
+    for(int i=0; i<N; i++)
+        scanf("%d", &A[i]);
+    for(int i=0; i<N; i++)
+        scanf("%d", &B[i]);
+
+    for(int i=0; i<N; i++) {
+        if(A[i]==B[i])
+            usd[A[i]] = true;
+        else
+            reps.push_back(i);
+    }
+
+    if(reps.size() == 1) {
+        for(int i=1; i<=N; i++) {
+            if(usd[i])
+                continue;
+            A[reps[0]] = i;
+            break;
+        }
+    }
+    else {
+        int x = reps[0], y = reps[1];
+        if(!usd[B[x]] && !usd[A[y]])
+            A[x] = B[x];
+        else
+            A[y] = B[y];
+    }
+
+    for(int i=0; i<N; i++)
+        printf("%d ", A[i]);
+    printf("\n");
+}

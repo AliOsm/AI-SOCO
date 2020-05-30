@@ -1,0 +1,326 @@
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+
+const int INF = (int)(1e9 + 1337);
+const int64 LINF = (int64)(4e18);
+const double EPS = 1e-11;
+#define sq(x) ((x)*(x))
+#define FAIL() ((*(int*)0)++)
+const int MOD = 1000000007;
+
+const int MAXN = 100005;
+const int ROOT = 350;
+
+struct change
+{
+	int v, p, s;
+};
+
+int n, m, k;
+bool b[MAXN][6];
+vector <vector <int> > g;
+int timer;
+int p[MAXN], s[MAXN];
+change c[MAXN];
+int ccount;
+int tim[MAXN];
+int l[MAXN], r[MAXN], num[MAXN];
+int bb;
+int cnt[MAXN];
+int _p[MAXN], _s[MAXN];
+int _l, _r;
+int _t;
+
+void init()
+{
+	int m;
+	scanf ("%d%d%d", &n, &k, &m);
+	g.resize(n + 1);
+	for (int i = 0; i < m; i++)
+	{
+		int a, b;
+		scanf ("%d%d", &a, &b);
+		if (a > b)
+		{
+			swap(a, b);
+		}
+		g[a].push_back(b);
+		::b[a][b - a] = true;
+	}
+	for (int i = 1; i <= n; i++)
+	{
+		sort(g[i].begin(), g[i].end());
+	}
+}
+
+inline void chan(int v, int np, int ns)
+{
+	if (tim[v] == timer)
+	{
+		p[v] = np;
+		s[v] = ns;
+		return;
+	}
+	else
+	{
+		tim[v] = timer;
+		++ccount;
+		c[ccount].v = v;
+		c[ccount].p = p[v];
+		c[ccount].s = s[v];
+		p[v] = np;
+		s[v] = ns;
+	}
+}
+
+int get_parent(int v)
+{
+	if (p[v] == v)
+	{
+		return v;
+	}
+	else
+	{
+		int res = get_parent(p[v]);
+		if (res != p[v])
+		{
+			chan(v, res, s[v]);
+		}
+		return res;
+	}
+}
+
+int get_parent0(int v)
+{
+	if (p[v] == v)
+	{
+		return v;
+	}
+	else
+	{
+		return p[v] = get_parent(p[v]);
+	}
+}
+
+int union_sets(int p1, int p2)
+{
+	p1 = get_parent(p1);
+	p2 = get_parent(p2);
+//	if ((p1 < _l || p1 > _r) && _t == 2)
+//	{
+//		while (true){};
+//	}
+//	if ((p2 < _l || p2 > _r) && _t == 2)
+//	{
+//		while (true){};
+//	}
+	if (p1 == p2)
+	{
+		return 0;
+	}
+	if (s[p1] < s[p2] || s[p1] == s[p2] && p1 > p2)
+	{
+		swap(p1, p2);
+	}
+	chan(p2, p1, s[p2]);
+	chan(p1, p[p1], s[p1] + s[p2]);
+	return 1;
+}
+
+int union_sets0(int p1, int p2)
+{
+	p1 = get_parent0(p1);
+	p2 = get_parent0(p2);
+	if (p1 == p2)
+	{
+		return 0;
+	}
+	if (s[p1] < s[p2] || s[p1] == s[p2] && p1 > p2)
+	{
+		swap(p1, p2);
+	}
+	p[p2] = p1;
+	s[p1] += s[p2];
+	return 1;
+}
+
+int connect(int v, int r)
+{
+	int res = 0;
+	for (int j = 0; j < (int)g[v].size(); j++)
+	{
+		int to = g[v][j];
+		if (to > r)
+		{
+			continue;//break;
+		}
+		res += union_sets(v, to);
+	}
+	return res;
+}
+
+int connect_block(int nu, int r)
+{
+	int st = max(l[nu], ::r[nu] - k + 1);
+	int res = 0;
+	for (int i = st; i <= ::r[nu]; i++)
+	{
+		for (int j = ::r[nu] + 1 - i; j <= min(k, r - i); j++)
+		{
+			if (b[i][j])
+			{
+				res += union_sets(i, i + j);
+			}
+		}
+	}
+	return res;
+}
+
+void update(int l, int r)
+{
+	for (int i = l; i <= r; i++)
+	{
+		if (s[i] != 1 || p[i] != i)
+		{
+			chan(i, i, 1);
+		}
+	}
+}
+
+void get_blocks()
+{
+	for (int i = 1; i <= n; i = r[num[i]] + 1)
+	{
+		++bb;
+		int q1 = i;
+		int q2 = min(i + ROOT - 1, n);
+		l[bb] = q1;
+		r[bb] = q2;
+		for (int j = q1; j <= q2; j++)
+		{
+			num[j] = bb;
+		}
+	}
+	for (int i = 1; i <= n; i++)
+	{
+		s[i] = 1;
+		p[i] = i;
+	}
+	for (int i = 1; i <= bb; i++)
+	{
+		cnt[i] = r[i] - l[i] + 1;
+		for (int j = l[i]; j < r[i]; j++)
+		{
+			for (int h = 0; h < (int)g[j].size(); h++)
+			{
+				int to = g[j][h];
+				if (to > r[i])
+				{
+					continue;
+				}
+				cnt[i] -= union_sets0(j, to);
+			}
+		}
+	}
+	for (int i = 1; i <= n; i++)
+	{
+		get_parent0(i);
+	}
+	memcpy(_p, p, sizeof(p));
+	memcpy(_s, s, sizeof(s));
+}
+
+void clear()
+{
+	for (int i = 1; i <= ccount; i++)
+	{
+		change &cc = c[i];
+		p[cc.v] = cc.p;
+		s[cc.v] = cc.s;
+	}
+	ccount = 0;
+}
+
+void solve()
+{
+	init();
+	get_blocks();
+	ccount = 0;
+	scanf ("%d", &m);
+	for (int i = 1; i <= m; i++)
+	{
+		++timer;
+		int l, r;
+		scanf ("%d%d", &l, &r);
+		_l = l;
+		_r = r;
+		if (num[l] == num[r])
+		{
+			_t = 1;
+			update(l, r);
+			int ans = r - l + 1;
+			for (int v = l; v < r; v++)
+			{
+				ans -= connect(v, r);
+			}
+			printf("%d\n", ans);
+		}
+		else
+		{
+			_t = 2;
+			int rr = ::r[num[l]];
+			int ll = ::l[num[r]];
+			update(l, rr);
+			update(ll, r);
+			int ans = rr - l + 1 + r - ll + 1;
+			for (int j = l; j <= rr; j++)
+			{
+				ans -= connect(j, r);
+			}
+			for (int j = ll; j < r; j++)
+			{
+				ans -= connect(j, r);
+			}
+			for (int j = num[l] + 1; j < num[r]; j++)
+			{
+				ans += cnt[j];
+				ans -= connect_block(j, r);
+			}
+			printf("%d\n", ans);
+		}
+//		for (int j = 1; j <= ccount; j++)
+//		{
+//			printf("c %d %d %d\n", c[j].v, c[j].p, c[j].s);
+//		}
+		clear();
+		//for (int j = 1; j <= n; j++)
+		//{
+			//if (_p[j] != p[j]) exit(0);
+			//if (_s[j] != s[j]) exit(0);
+			//printf("%d %d %d\n", j, p[j], s[j]);
+		//}
+	}
+}
+
+int main()
+{
+	srand(3333);
+    ios_base::sync_with_stdio(false); cin.tie(0);
+#ifdef _MY_DEBUG
+    freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#endif
+
+    solve();
+
+    return 0;
+}

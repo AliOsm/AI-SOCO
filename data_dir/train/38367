@@ -1,0 +1,124 @@
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+#include <algorithm>
+#include <limits>
+#include <tuple>
+#include <numeric>
+
+const int MAX_VALUE = 10'000'000;
+
+void Precalculation(std::vector<int>* max_divs) {
+  std::iota(begin(*max_divs), end(*max_divs), 0);
+  for (size_t i = 2; i * i < max_divs->size(); ++i) {
+    if (max_divs->at(i) != i) continue;
+    for (size_t j = i; j < max_divs->size(); j += i) {
+      max_divs->at(j) = static_cast<int>(i);
+    }
+  }
+}
+
+// <div, count>
+std::vector<std::pair<int, int>> GetFactorization(
+    int value, const std::vector<int>& max_divs) {
+  std::vector<std::pair<int, int>> prime_divs;
+  while (value != 1) {
+    int div = max_divs[value];
+    if (!prime_divs.empty() && prime_divs.back().first == div) {
+      ++prime_divs.back().second;
+    } else {
+      prime_divs.emplace_back(div, 1);
+    }
+    value /= div;
+  };
+
+  return prime_divs;
+}
+
+void AppendDivsRecursively(
+    int pos, int mul, std::vector<int>* divs,
+    const std::vector<std::pair<int, int>>& prime_divs) {
+  if (pos == prime_divs.size()) {
+    divs->push_back(mul);
+    return;
+  }
+  for (int i = 0; i <= prime_divs[pos].second; ++i) {
+    AppendDivsRecursively(pos + 1, mul, divs, prime_divs);
+    mul *= prime_divs[pos].first;
+  }
+}
+
+std::vector<int> GetDivs(
+    int value, const std::vector<int>& max_divs) {
+  std::vector<int> divs;
+  AppendDivsRecursively(0, 1, &divs, GetFactorization(value, max_divs));
+  return divs;
+}
+
+struct Answer {
+  int64_t lcm;
+  int ind_1;
+  int ind_2;
+
+  void NormalizeIndexes() {
+    if (ind_1 > ind_2) {
+      std::swap(ind_1, ind_2);
+    }
+  }
+};
+
+std::vector<std::pair<int, int>> quotients[MAX_VALUE + 1];
+int cnt[MAX_VALUE + 1];
+
+void NormalizeQuotients(int div) {
+  auto& x = quotients[div][0];
+  auto& y = quotients[div][1];
+  auto& z = quotients[div][2];
+  if (x > y) x.swap(y);
+  if (y > z) y.swap(z);
+  quotients[div].pop_back();
+}
+
+int main() {
+  std::ios_base::sync_with_stdio(false);
+  std::cin.tie(nullptr);
+  std::cout.tie(nullptr);
+
+  int n;
+  std::cin >> n;
+  std::vector<int> max_divs(MAX_VALUE + 1);
+  Precalculation(&max_divs);
+
+  for (int iteration = 1; iteration <= n; ++iteration) {
+    int value;
+    std::cin >> value;
+    ++cnt[value];
+    if (cnt[value] >= 3) continue;
+    for (const auto& div : GetDivs(value, max_divs)) {
+      quotients[div].emplace_back(value / div, iteration);
+      if (quotients[div].size() > 2) {
+        NormalizeQuotients(div);
+      }
+    }
+  }
+
+  // a = x * y_1
+  // b = x * y_2
+  // gcd(y_1, y_2) = 1
+
+  Answer result = {-1, 0, 0};
+  int x = -1;
+  for (auto& quotient : quotients) {
+    ++x;
+    if (quotient.size() < 2) continue;
+    int64_t lcm = static_cast<int64_t>(x) * quotient[0].first * quotient[1].first;
+    if (lcm < result.lcm || result.lcm == -1) {
+      result = {lcm, quotient[0].second, quotient[1].second};
+    }
+  }
+
+  result.NormalizeIndexes();
+  std::cout << result.ind_1 << " " << result.ind_2 << std::endl;
+
+  return 0;
+}

@@ -1,0 +1,176 @@
+
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <stack>
+#include <string>
+#include <assert.h>
+#include <queue>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <cstdio>
+#include <random>
+#include <chrono>
+#define ll long long
+#define ld long double
+#define pb push_back
+#define eb emplace_back
+#define int long long
+using namespace std;
+
+const int INF = 1e9;
+const int MOD = 1e9 + 7;
+
+int timer = 0, start = 0;
+vector<int> w, tin, tout, colors, used1, w1, dp1;
+vector<vector<pair<int, int>>> g;
+vector<vector<int>> ng;
+vector<bool> isBridge, used, dp2;
+
+void find_bridges(int v, int pr = -1) {
+	used[v] = true;
+	tin[v] = tout[v] = timer++;
+
+	for (auto & p : g[v]) {
+		int u = p.first;
+		int num = p.second;
+		if (!used[u]) {
+			find_bridges(u, v);
+			tout[v] = min(tout[u], tout[v]);
+			if (tout[u] > tin[v]) isBridge[num] = true;
+		}
+		else if (u != pr) {
+			tout[v] = min(tin[u], tout[v]);
+		}
+	}
+
+
+}
+
+void dfs1(int v) {
+	used[v] = true;
+	colors[v] = timer;
+	for (auto & p : g[v]) {
+		int u = p.first;
+		int num = p.second;
+		if (!used[u] && !isBridge[num]) {
+			dfs1(u);
+		}
+	}
+}
+
+void dfs2(int v) {
+	used[v] = true;
+	w1[colors[v]] += w[v];
+	for (auto & p : g[v]) {
+		int u = p.first;
+		if (!used[u] && colors[v] == colors[u]) {
+			dfs2(u);
+		}
+		else if(colors[v] != colors[u] && used1[colors[u]] != colors[v]) {
+			ng[colors[v]].pb(colors[u]);
+			used1[colors[u]] = colors[v];
+		}
+	}
+}
+
+vector<int> sizes;
+int ans = 0;
+
+void dfs3(int v, int p = -1) {
+	dp2[v] = sizes[v] > 1;
+	for (int u : ng[v]) {
+		if (u != p) {
+			dfs3(u, v);
+			dp2[v] = dp2[v] || dp2[u];
+		}
+	}
+}
+
+void dfs4(int v, int p = -1) {
+	if (dp2[v]) ans += w1[v];
+	for (int u : ng[v]) {
+		if (u != p) {
+			dfs4(u, v);
+			dp1[v] = max(dp1[v], dp1[u]);
+		}
+	}
+	if(!dp2[v]) dp1[v] += w1[v];
+}
+
+void solve() {
+	int n, m;
+	cin >> n >> m;
+	w.resize(n);
+	for (int i = 0; i < n; i++) {
+		cin >> w[i];
+	}
+	g.resize(n);
+	for (int i = 0; i < m; i++) {
+		int from, to;
+		cin >> from >> to;
+		from--; to--;
+		g[from].pb({ to, i });
+		g[to].pb({ from, i });
+	}
+
+	int s;
+	cin >> s;
+	s--;
+
+	tin.resize(n);
+	tout.resize(n);
+	used.resize(n);
+	isBridge.resize(m);
+	find_bridges(s);
+
+	used.clear();
+	used.resize(n);
+	colors.resize(n, -1);
+	timer = 0;
+
+	for (int i = 0; i < n; i++) {
+		if (!used[i]) {
+			dfs1(i);
+			timer++;
+		}
+	}
+
+	ng.resize(timer);
+	used.clear();
+	used.resize(n);
+	w1.resize(timer);
+	used1.resize(timer, -1);
+
+	for (int i = 0; i < n; i++) {
+		if (!used[i]) {
+			dfs2(i);
+		}
+	}
+
+	sizes.resize(timer);
+	for (int i = 0; i < n; i++) {
+		sizes[colors[i]]++;
+	}
+
+	used.clear();
+	used.resize(timer);
+	dp1.resize(timer);
+	dp2.resize(timer);
+	dfs3(colors[s]);
+	dfs4(colors[s]);
+	cout << ans + dp1[colors[s]];
+}
+
+signed main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.tie(nullptr);
+	cout.precision(12);
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	solve();
+}

@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long int
+#define LD long double
+
+const LD INF = 1e20;
+vector< pair<LD, LD> > vec;
+
+struct Line{
+    LD m,c;
+    Line (LD x, LD y) {m = x; c = y;}
+    LD Get(LD x) {return m * x + c;}
+    bool operator < (const Line &other) const {return m < other.m;}
+};
+
+bool Bad(Line &P, Line &C, Line &N){
+    return (P.c - C.c) * 1.0L * (N.m - P.m) > (P.c - N.c) * 1.0L * (C.m - P.m);
+}
+
+namespace ConvexHull{
+    vector<Line>hull;
+
+    void Add(LD m, LD c){
+        if(hull.size() > 0 && hull.back().m == m) {
+            if(hull.back().c > c) hull.pop_back();
+            else return;
+        }
+
+        hull.push_back(Line(m, c));
+        int sz = hull.size();
+        while(sz > 2 && Bad(hull[sz-3], hull[sz-2], hull[sz-1])){
+            swap(hull[sz-2],hull[sz-1]); hull.pop_back(); sz--;
+        }
+    }
+};
+using namespace ConvexHull;
+
+const int MAX = 3;
+struct Matrix{
+    int row, col;
+    LD m[MAX][MAX];
+    Matrix() {memset(m,0,sizeof(m));}
+    void Set(int r,int c) {row = r; col = c;}
+    Matrix(int r,int c) {memset(m,0,sizeof(m)); Set(r,c);}
+};
+
+Matrix Multiply(Matrix A,Matrix B){
+    Matrix ans(A.row,B.col);
+    for(int i=0;i<A.row;i++){
+        for(int j=0;j<B.col;j++){
+            ans.m[i][j] = 0;
+            for(int k=0;k<A.col;k++){
+                ans.m[i][j] += (A.m[i][k] * B.m[k][j]);
+            }
+        }
+    }
+    return ans;
+}
+
+const int LOG = 35;
+Matrix pwr[LOG];
+void preProcess(int idx, LD M){
+    pwr[0].Set(3, 3);
+    pwr[0].m[0][0] = 1;   pwr[0].m[0][1] = -hull[idx].m;   pwr[0].m[0][2] = -hull[idx].c;
+    pwr[0].m[1][0] = 0;   pwr[0].m[1][1] = 1+hull[idx].m;  pwr[0].m[1][2] = M+hull[idx].c;
+    pwr[0].m[2][0] = 0;   pwr[0].m[2][1] = 0;              pwr[0].m[2][2] = 1;
+
+    for(int i=1; i<LOG; i++) pwr[i] = Multiply(pwr[i-1], pwr[i-1]);
+}
+
+pair<ll, LD> jump(ll cur, int id, LD x, LD ans, ll t){
+    for(int j = LOG-1; j >= 0; j--){
+        if(cur + (1LL << j) > t) continue;
+
+        LD nx = pwr[j].m[1][1] * x + pwr[j].m[1][2];
+        if(id == hull.size()-1 || hull[id].c - hull[id+1].c <= (hull[id+1].m - hull[id].m) * nx){
+            cur += (1LL << j);
+            ans = pwr[j].m[0][0] * ans + pwr[j].m[0][1] * x + pwr[j].m[0][2];
+            x = nx;
+        }
+    }
+    return {cur, ans};
+}
+
+int main(){
+    int n; ll t;
+    scanf("%d %lld",&n, &t);
+
+    LD M = 0;
+    int a, b; double p;
+    for(int i=1; i<=n; i++){
+        scanf("%d %d %lf",&a, &b, &p);
+        vec.push_back({p, a});
+        M = max(M, b * 1.0L * p);
+    }
+    sort(vec.begin(), vec.end());
+    for(auto v : vec) Add(-v.first, -v.first * v.second);
+
+    int id = 0;
+    LD ans = 0;
+    int sz = hull.size();
+
+    for(ll i=1; i<=t; i++){
+        //Jump from i-1 to i
+        LD x = (i - 1) * M - ans;
+        while(id + 1 < sz && hull[id].c - hull[id+1].c > (hull[id+1].m - hull[id].m) * x) id++;
+        ans -= hull[id].Get(x);
+
+        preProcess(id, M);
+
+        // Jump from i + 1 to ret.first
+        x = i * M - ans;
+        auto ret = jump(i, id, x, ans, t);
+        i = ret.first;
+        ans = ret.second;
+    }
+
+    double out = ans;
+    printf("%.12f", out);
+}

@@ -1,0 +1,284 @@
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+const bool CHECK_OVERFLOW64 = true;
+const long long LL_INF = (long long) 2e18 + 5;
+
+struct point {
+    long long x, y;
+
+    point() : x(0), y(0) {}
+
+    point(long long _x, long long _y) : x(_x), y(_y) {}
+
+    point operator-(const point &other) const {
+        return point(x - other.x, y - other.y);
+    }
+};
+
+long long cross(const point &a, const point &b) {
+    return a.x * b.y - b.x * a.y;
+}
+
+int cross_sign(const point &a, const point &b) {
+    if (CHECK_OVERFLOW64) {
+        double double_value = (double) a.x * b.y - (double) b.x * a.y;
+
+        if (abs(double_value) > 1e18)
+            return double_value > 0 ? +1 : -1;
+    }
+
+    uint64_t uint64_value = (uint64_t) a.x * b.y - (uint64_t) b.x * a.y;
+
+    if (uint64_value == 0)
+        return 0;
+
+    return uint64_value >> 63 ? -1 : +1;
+}
+
+bool left_turn(const point &a, const point &b, const point &c) {
+    return cross_sign(b - a, c - b) > 0;
+}
+
+// monotonic_dp_hull enables you to do the following two operations in amortized O(1) time:
+// 1. Insert a pair (a_i, b_i) into the structure. a_i must be non-decreasing.
+// 2. For any value of x, query the maximum value of a_i * x + b_i. x must be non-decreasing.
+// All values a_i, b_i, and x can be positive or negative.
+struct monotonic_dp_hull {
+    vector<point> points;
+    int front = 0;
+
+    int size() const {
+        return (int) points.size() - front;
+    }
+
+    void clear() {
+        points.clear();
+        front = 0;
+        prev_x = -LL_INF;
+        prev_y = 1;
+    }
+
+    void insert(const point &p) {
+        assert(size() == 0 || p.x >= points.back().x);
+
+        if (size() > 0 && p.x == points.back().x) {
+            if (p.y <= points.back().y)
+                return;
+
+            points.pop_back();
+        }
+
+        while (size() >= 2 && left_turn(points[points.size() - 2], points.back(), p))
+            points.pop_back();
+
+        points.push_back(p);
+    }
+
+    void insert(long long a, long long b) {
+        insert(point(a, b));
+    }
+
+    long long prev_x = -LL_INF, prev_y = 1;
+
+    // Queries the maximum value of ax + by.
+    long long query(long long x, long long y = 1) {
+        assert(prev_x == -LL_INF || x * prev_y >= prev_x * y);
+        prev_x = x; prev_y = y;
+
+        while (size() >= 2 && x * (points[front + 1].x - points[front].x) >= (points[front].y - points[front + 1].y) * y)
+            front++;
+
+        return points[front].x * x + points[front].y * y;
+    }
+};
+
+
+struct vertex {
+    long long A = 0, B = 0;
+    int index;
+
+    bool operator<(const vertex &other) const {
+        return B < other.B;
+    }
+};
+
+int N, Q;
+int BUCKET_SIZE;
+vector<int> parent;
+vector<vector<int>> children;
+vector<vertex> vertices;
+vector<vertex> sums, sorted_sums;
+vector<int> tour_start, tour_end;
+
+void dfs(int node) {
+    static int tour;
+
+    if (parent[node] < 0)
+        tour = 0;
+
+    tour_start[node] = tour++;
+
+    sums[tour_start[node]].A = vertices[node].A + (parent[node] < 0 ? 0 : sums[tour_start[parent[node]]].A);
+    sums[tour_start[node]].B = vertices[node].B + (parent[node] < 0 ? 0 : sums[tour_start[parent[node]]].B);
+
+    for (int child : children[node])
+        dfs(child);
+
+    tour_end[node] = tour;
+}
+
+vector<monotonic_dp_hull> hulls;
+vector<long long> bucket_add;
+
+int get_bucket_start(int index) {
+    return index - index % BUCKET_SIZE;
+}
+
+int get_bucket_end_from_start(int start) {
+    return min(start + BUCKET_SIZE, N);
+}
+
+void build_bucket(int start, int end) {
+    hulls[start].clear();
+
+    for (int i = end - 1; i >= start; i--)
+        hulls[start].insert(-sorted_sums[i].B, -sorted_sums[i].A * sorted_sums[i].B);
+
+    for (int i = start; i < end; i++)
+        hulls[start].insert(sorted_sums[i].B, sorted_sums[i].A * sorted_sums[i].B);
+}
+
+void build() {
+    BUCKET_SIZE = 0.5 * sqrt(N) + 1;
+    sorted_sums = sums;
+    hulls.resize(N);
+    bucket_add.assign(N, 0);
+
+    for (int start = 0, end = 0; start < N; start = end) {
+        end = get_bucket_end_from_start(start);
+        sort(sorted_sums.begin() + start, sorted_sums.begin() + end);
+        build_bucket(start, end);
+    }
+}
+
+void update_bucket(int start, int x) {
+    bucket_add[start] += x;
+}
+
+long long query_bucket(int start) {
+    return hulls[start].query(bucket_add[start]);
+}
+
+void update_partial_bucket(int bucket_start, int bucket_end, int start, int end, int x) {
+    for (int i = start; i < end; i++)
+        sums[i].A += x;
+
+    for (int i = bucket_start; i < bucket_end; i++)
+        if (start <= sorted_sums[i].index && sorted_sums[i].index < end)
+            sorted_sums[i].A += x;
+
+    build_bucket(bucket_start, bucket_end);
+}
+
+long long query_partial_bucket(int bucket_start, int start, int end) {
+    long long most = 0;
+
+    for (int i = start; i < end; i++)
+        most = max(most, abs(sums[i].A + bucket_add[bucket_start]) * sums[i].B);
+
+    return most;
+}
+
+void update(int start, int end, int x) {
+    int bucket_start = get_bucket_start(start);
+    int bucket_end = get_bucket_end_from_start(bucket_start);
+
+    if (bucket_start < start) {
+        update_partial_bucket(bucket_start, bucket_end, start, min(end, bucket_end), x);
+        start = bucket_end;
+    }
+
+    while (start < end && get_bucket_end_from_start(start) <= end) {
+        update_bucket(start, x);
+        start = get_bucket_end_from_start(start);
+    }
+
+    if (start < end)
+        update_partial_bucket(start, get_bucket_end_from_start(start), start, end, x);
+}
+
+long long query(int start, int end) {
+    long long best = 0;
+    int bucket_start = get_bucket_start(start);
+    int bucket_end = get_bucket_end_from_start(bucket_start);
+
+    if (bucket_start < start) {
+        best = query_partial_bucket(bucket_start, start, min(end, bucket_end));
+        start = bucket_end;
+    }
+
+    while (start < end && get_bucket_end_from_start(start) <= end) {
+        best = max(best, query_bucket(start));
+        start = get_bucket_end_from_start(start);
+    }
+
+    if (start < end)
+        best = max(best, query_partial_bucket(start, start, end));
+
+    return best;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    cin >> N >> Q;
+    parent.assign(N, -1);
+    children.assign(N, {});
+    vertices.resize(N);
+    sums.resize(N);
+    tour_start.resize(N);
+    tour_end.resize(N);
+
+    for (int i = 1; i < N; i++) {
+        cin >> parent[i];
+        parent[i]--;
+        children[parent[i]].push_back(i);
+    }
+
+    for (int i = 0; i < N; i++)
+        cin >> vertices[i].A;
+
+    for (int i = 0; i < N; i++)
+        cin >> vertices[i].B;
+
+    dfs(0);
+
+    for (int i = 0; i < N; i++) {
+        vertices[i].index = i;
+        sums[i].index = i;
+        sums[i].B = abs(sums[i].B);
+    }
+
+    build();
+
+    for (int q = 0; q < Q; q++) {
+        int type, v, x;
+        cin >> type >> v;
+        v--;
+
+        if (type == 1) {
+            cin >> x;
+            update(tour_start[v], tour_end[v], x);
+        } else if (type == 2) {
+            cout << query(tour_start[v], tour_end[v]) << '\n';
+        } else {
+            assert(false);
+        }
+    }
+}

@@ -1,0 +1,80 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+
+int q;
+LL n;
+
+bool cek(LL x){
+    while (x > 0){
+        if (x%3 == 2) return false;
+        x /= 3;
+    }
+    return true;
+}
+
+LL ubah(string s){
+    LL res = 1;
+    LL ret = 0;
+    for (int i = (int)s.size()-1; i >= 0; --i){
+        ret += res * (s[i] - '0');
+        res *= 3;
+    }
+    return ret;
+}
+
+string toString(LL bil){
+    string ret = "";
+    while (bil > 0){
+        char c = '0' + (bil%3);
+        ret = c + ret;
+        bil /= 3;
+    }
+    return ret;
+}
+
+int main(){
+    ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+    cin >> q;
+    while (q--){
+        cin >> n;
+        if (cek(n)) cout << n << '\n';
+        else {
+            string st = toString(n);
+            int pos = -1;
+            int nol = -1;
+            for (int i = 0; i < (int)st.size(); ++i){
+                if (st[i] == '2') {
+                    pos = i;
+                    break;
+                }
+            }
+            for (int i = pos-1; i >= 0; --i){
+                if (st[i] == '0'){
+                    nol = i;
+                    break;
+                }
+            }
+            if (nol != -1){
+                string ans = "";
+                for (int i = 0; i < nol; ++i){
+                    ans = ans + st[i];
+                }
+                ans = ans + '1';
+                for (int i = nol+1; i < (int)st.size(); ++i){
+                    ans = ans + '0';
+                }
+                cout << ubah(ans) << '\n';
+            }else {
+                string ans = "";
+                ans = ans + '1';
+                for (int i = 0; i < (int)st.size(); ++i){
+                    ans = ans + '0';
+                }
+                cout << ubah(ans) << '\n';
+            }
+        }
+    }
+    return 0;
+}

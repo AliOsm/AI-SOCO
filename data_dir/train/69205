@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int maxn=2e6+7;
+const int inf=INT_MAX;
+const ll inff=1e18;
+const ll mod=1e9+7;
+#define pii pair<int,int>
+#define mkp make_pair
+#define F first
+#define S second
+#define pb push_back
+#define sz(v) ((int)(v).size())
+#define all(v) (v).begin(),(v).end()
+#define int ll
+
+#ifdef HNO2
+#define IOS
+#else
+#define endl '\n'
+#define IOS ios::sync_with_stdio(0); cin.tie(0);
+#endif // HNO2
+
+int n,N;
+pii a[maxn],dp[maxn];
+int b[maxn];
+vector<int> V;
+
+int seg1[maxn];
+
+void modify1(int now,int l,int r,int x,int v)
+{
+    if (l==r)
+    {
+        seg1[now]=min(seg1[now],v);
+        return;
+    }
+    int m=(l+r)>>1;
+    if (x<=m) modify1(now*2,l,m,x,v);
+    else modify1(now*2+1,m+1,r,x,v);
+    seg1[now]=min(seg1[now*2],seg1[now*2+1]);
+}
+
+int query1(int now,int l,int r,int ql,int qr)
+{
+    if (r<ql||l>qr) return inff;
+    else if (l>=ql&&r<=qr) return seg1[now];
+    int m=(l+r)>>1;
+    return min(query1(now*2,l,m,ql,qr),query1(now*2+1,m+1,r,ql,qr));
+}
+
+pii seg2[maxn];
+
+pii pull2(pii x,pii y)
+{
+    if (x.F>y.F) return y;
+    else if (x.F<y.F) return x;
+    else return mkp(x.F,(x.S+y.S)%mod);
+}
+
+void modify2(int now,int l,int r,int x,pii v)
+{
+    if (l==r)
+    {
+        seg2[now]=pull2(seg2[now],v);
+        return;
+    }
+    int m=(l+r)>>1;
+    if (x<=m) modify2(now*2,l,m,x,v);
+    else modify2(now*2+1,m+1,r,x,v);
+    seg2[now]=pull2(seg2[now*2],seg2[now*2+1]);
+}
+
+pii query2(int now,int l,int r,int ql,int qr)
+{
+    if (r<ql||l>qr) return mkp(inff,0);
+    else if (l>=ql&&r<=qr) return seg2[now];
+    int m=(l+r)>>1;
+    return pull2(query2(now*2,l,m,ql,qr),query2(now*2+1,m+1,r,ql,qr));
+}
+
+int32_t main()
+{
+    IOS
+    cin>>n;
+    for (int i=1;i<=n;i++)
+    {
+        cin>>a[i].S>>a[i].F;
+        V.pb(a[i].F);
+        V.pb(a[i].S);
+    }
+
+    sort(all(V));
+    N=unique(all(V))-V.begin();
+    for (int i=0;i<N;i++) b[i+1]=V[i];
+    for (int i=1;i<=n;i++)
+    {
+        a[i].F=lower_bound(V.begin(),V.begin()+N,a[i].F)-V.begin()+1;
+        a[i].S=lower_bound(V.begin(),V.begin()+N,a[i].S)-V.begin()+1;
+    }
+    sort(a+1,a+n+1);
+    //for (int i=1;i<=n;i++) cout<<a[i].F<<' '<<a[i].S<<endl;
+    a[0].S=1;
+    for (int i=0;i<=2000000;i++) seg1[i]=inff;
+    for (int i=0;i<=2000000;i++) seg2[i]=mkp(inff,0);
+
+    for (int i=n;i>=0;i--)
+    {
+        int R=query1(1,1,N,a[i].S,N);
+        //cout<<R<<endl;
+        if (R==inff) dp[i]=mkp(0,1);
+        else
+        {
+            dp[i]=query2(1,1,N,a[i].S,R-1);
+            if (i!=0) dp[i].F-=b[a[i].S];
+        }
+        if (i!=0) modify2(1,1,N,a[i].F,mkp(dp[i].F+b[a[i].F],dp[i].S));
+        if (i!=0) modify1(1,1,N,a[i].F,a[i].S);
+    }
+    cout<<dp[0].S<<endl;
+}
+

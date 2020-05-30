@@ -1,0 +1,159 @@
+/*
+ * Author: Gatevin
+ * Created Time:  2015/3/31 10:34:41
+ * File Name: Rin_Tohsaka.cpp
+ */
+#include<iostream>
+#include<sstream>
+#include<fstream>
+#include<vector>
+#include<list>
+#include<deque>
+#include<queue>
+#include<stack>
+#include<map>
+#include<set>
+#include<bitset>
+#include<algorithm>
+#include<cstdio>
+#include<cstdlib>
+#include<cstring>
+#include<cctype>
+#include<cmath>
+#include<ctime>
+#include<iomanip>
+using namespace std;
+const double eps(1e-8);
+typedef long long lint;
+
+#define maxn 2000010
+const lint mod = 51123987LL;
+char s[maxn];
+int dp[maxn];
+
+struct Palindromic_Tree
+{
+    struct node
+    {
+        //int next[26];直接开next[26]的话会TLE, 用vector来代替(因为很多分支用不到)
+        vector<pair<int, int> > next;
+        int len;
+        int sufflink;
+        int cnt;
+    };
+    node tree[maxn];
+    int L, len, suff;
+    void newnode()
+    {
+        L++;
+        /*
+        for(int i = 0; i < 26; i++)
+            tree[L].next[i] = -1;
+            */
+        tree[L].next.clear();
+        tree[L].len = tree[L].sufflink = tree[L].cnt = 0;
+        return;
+    }
+    void init()
+    {
+        L = 0, suff = 2;
+        newnode(), newnode();
+        tree[1].len = -1; tree[1].sufflink = 1;
+        tree[2].len = 0; tree[2].sufflink = 1;
+        return;
+    }
+    bool addLetter(int pos)
+    {
+        int cur = suff, curlen = 0;
+        int alp = s[pos] - 'a';
+        while(1)
+        {
+            curlen = tree[cur].len;
+            if(pos - 1 - curlen >= 0 && s[pos - 1 - curlen] == s[pos])
+                break;
+            cur = tree[cur].sufflink;
+        }
+        int find = -1;
+        for(unsigned int i = 0, sz = tree[cur].next.size(); i < sz; i++)
+            if(tree[cur].next[i].first == alp)
+            {
+                find = i;
+                break;
+            }
+        //if(tree[cur].next[alp] != -1)
+        if(find != -1)
+        {
+            //suff = tree[cur].next[alp];
+            suff = tree[cur].next[find].second;
+            return false;
+        }
+        newnode();
+        suff = L;
+        tree[L].len = tree[cur].len + 2;
+        //tree[cur].next[alp] = L;
+        tree[cur].next.push_back(make_pair(alp, L));
+        if(tree[L].len == 1)
+        {
+            tree[L].sufflink = 2;
+            tree[L].cnt = 1;
+            return true;
+        }
+        while(1)
+        {
+            cur = tree[cur].sufflink;
+            curlen = tree[cur].len;
+            if(pos - 1 - curlen >= 0 && s[pos - 1 - curlen] == s[pos])
+            {
+                //tree[L].sufflink = tree[cur].next[alp];
+                int to = -1;
+                for(unsigned int i = 0, sz = tree[cur].next.size(); i < sz; i++)
+                    if(tree[cur].next[i].first == alp)
+                    {
+                        to = tree[cur].next[i].second;
+                        break;
+                    }
+                tree[L].sufflink = to;
+                break;
+            }
+        }
+        tree[L].cnt = 1 + tree[tree[L].sufflink].cnt;
+        return true;
+    }
+};
+
+Palindromic_Tree pal;
+
+int main()
+{
+    int n;
+    while(scanf("%d", &n) != EOF)
+    {
+        scanf("%s", s);
+       pal.init();
+       for(int i = 0; i < n; i++)
+       {
+           pal.addLetter(i);
+           dp[i] = pal.tree[pal.suff].cnt;//dp[i]表示以i位置结尾的回文串的数量
+       }
+       for(int i = 1; i < n; i++)
+       {
+           dp[i] = dp[i] + dp[i - 1];//现在dp[i]表示在i位置或之前结尾的回文串数量
+           if(dp[i] >= mod) dp[i] -= mod;
+       }
+       reverse(s, s + n);
+       pal.init();
+       lint ans = 0;
+       lint all = 0;//全部的回文串数量
+       for(int i = 0; i < n; i++)
+       {
+           pal.addLetter(i);
+           ans = (ans + (lint)pal.tree[pal.suff].cnt*(lint)dp[n - 1 - i - 1] % mod) % mod;
+           all = all + pal.tree[pal.suff].cnt;
+           if(all >= mod) all -= mod;
+       }
+       ans = ((all*(all - 1)) >> 1) % mod - ans + mod;//用全部的减去不相交的就行了
+       if(ans >= mod) ans -= mod;
+       printf("%I64d\n", ans);
+    }
+    return 0;
+}

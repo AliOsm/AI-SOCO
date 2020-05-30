@@ -1,0 +1,89 @@
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+using namespace std;
+typedef long long ll;
+
+const int MAXN = 300005;
+const int MAXSEG = 1<<20;
+int N;
+ll A;
+ll D[MAXN];
+ll C[MAXN];
+ll seg[MAXSEG];
+ll lazy[MAXSEG];
+vector<pair<ll, int> > v;
+
+void down(int node)
+{
+    if (lazy[node] != 0)
+    {
+        seg[2*node] += lazy[node];
+        seg[2*node + 1] += lazy[node];
+        lazy[2*node] += lazy[node];
+        lazy[2*node + 1] += lazy[node];
+        lazy[node] = 0;
+    }
+}
+
+void update(int node, int left, int right, int ql, int qr, ll val)
+{
+    if (left > right || ql > qr || right < ql || qr < left)
+        return;
+
+    if (ql <= left && right <= qr)
+    {
+        seg[node] += val;
+        lazy[node] += val;
+        return;
+    }
+
+    down(node);
+    int mid = (left + right)/2;
+    update(2*node, left, mid, ql, qr, val);
+    update(2*node + 1, mid + 1, right, ql, qr, val);
+    seg[node] = max(seg[2*node], seg[2*node + 1]);
+}
+
+ll query(int node, int left, int right, int ql, int qr)
+{
+    if (left > right || ql > qr || right < ql || qr < left)
+        return 0;
+
+    if (ql <= left && right <= qr)
+        return seg[node];
+
+    down(node);
+    int mid = (left + right)/2;
+    return max(query(2*node, left, mid, ql, qr), query(2*node + 1, mid + 1, right, ql, qr));
+}
+
+int main()
+{
+    scanf("%d %lld", &N, &A);
+    for (int i = 1; i <= N; i++)
+        scanf("%lld %lld", &D[i], &C[i]);
+    
+    ll ans = 0;
+    v.emplace_back(1LL<<60, 0);
+    for (int i = 1; i <= N; i++)
+    {
+        update(1, 1, N, 1, i, -C[i]);
+        update(1, 1, N, 1, i, A);
+        
+        ans = max(ans, query(1, 1, N, 1, i));
+        
+        ll cur = (D[i + 1] - D[i])*(D[i + 1] - D[i]);
+        while (v.size() >= 2 && v.back().first <= cur)
+        {
+            update(1, 1, N, v[v.size() - 2].second + 1, v.back().second, v.back().first);
+            v.pop_back();
+        }
+        update(1, 1, N, v.back().second + 1, i, -cur);
+        v.emplace_back(cur, i);
+    }
+
+    printf("%lld\n", ans);
+
+    return 0;
+}

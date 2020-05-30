@@ -1,0 +1,150 @@
+#include <iostream>
+#include <vector>
+#include <complex>
+#include <map>
+#include <algorithm>
+#include <cassert>
+#include <functional>
+#include <set>
+#include <iomanip>
+#include <unordered_map>
+#include <cstring>
+#include <bitset>
+#include <numeric>
+#include <queue>
+#include <stack>
+
+using namespace std;
+
+typedef unsigned long long ULong;
+typedef long long Long;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+typedef pair<int,PII> PIP;
+
+using namespace std;
+
+int MAX_BITS = 29;
+struct Trie {
+    struct Node
+    {
+        int childs[2];
+        Node(){
+            childs[0] = childs[1] = -1;
+        }
+    };
+    vector<Node> V;
+    Trie(int reserved = 0) {
+        V = vector<Node>();
+        V.reserve(reserved);
+        V.push_back(Node());
+    }
+    void insert(int S) {
+        int v = 0;
+        for (int i = MAX_BITS; i >= 0; --i) {
+            int p = ((1<<i) & S) ? 1 : 0;
+            if(V[v].childs[p] == -1){
+                V[v].childs[p] = V.size();
+                V.push_back(Node());
+            }
+            v = V[v].childs[p];
+        }
+    }
+    int getMin(int x) {
+        int v = 0;
+        int a = 0;
+        for (int i = MAX_BITS; i >= 0; --i) {
+            int p = ((1<<i) & x) ? 1 : 0;
+            if(V[v].childs[p] == -1) {
+                p = 1-p;
+            }
+            a |= p << i;
+            v = V[v].childs[p];
+        }
+        return a;
+    }
+};
+
+Long join(VI V, int bit = 29) {
+    if (V.size() == 1) return 0;
+    auto it = partition(V.begin(), V.end(), [bit](int a) { return (a >> bit) & 1; });
+    if (it == V.begin() || it == V.end()) {
+        return join(V, bit-1);
+    }
+    int p = it - V.begin();
+    Long ans = join(VI(V.begin(), it), bit-1) + join(VI(it, V.end()), bit-1);
+    Trie t;
+    Long mn = 1000000000000000000LL;
+    for (int i = 0; i < V.size(); ++i) {
+        if (i < p) {
+            t.insert(V[i]);
+        } else {
+            mn = min(mn, Long(t.getMin(V[i]) ^ V[i]));
+        }
+    }
+//    cout << "  " << mn << " " << bit << endl;
+    return ans + mn;
+}
+
+using namespace std;
+struct DisjointSet
+{
+    vector<int> P; // if < 0 then negative size, else parentId
+    DisjointSet(int N) : P(N, -1) {}
+    int find(int x) {
+        return P[x] < 0 ? x : (P[x] = find(P[x]));
+    }
+    bool join(int x,int y) {
+        if((x = find(x)) == (y = find(y))) return false;
+        if(P[y] < P[x]) swap(x,y);
+        P[x] += P[y];
+        P[y] = x;
+        return true;
+    }
+};
+
+Long bf(VI V) {
+    int N = V.size();
+    struct edge {
+        int u, v, c;
+        bool operator<(const edge e) const {
+            return c < e.c;
+        }
+    };
+    vector<edge> E;
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            E.push_back({i, j, V[i] ^ V[j]});
+        }
+    }
+    sort(E.begin(), E.end());
+    DisjointSet DS(N);
+    Long ans = 0;
+    for (int i = 0; i < E.size(); ++i) {
+        if (DS.join(E[i].u, E[i].v)) {
+            ans += E[i].c;
+            cout << "\t\t" << E[i].c << endl;
+        }
+    }
+    return ans;
+}
+
+int main() {
+
+    int N;
+    cin >> N;
+    VI V(N);
+    for (int i = 0; i < N; ++i) {
+        int &n = V[i];
+        cin >> n;
+    }
+    sort(V.begin(), V.end());
+    V.erase(unique(V.begin(), V.end()), V.end());
+    cout << join(V) << endl;
+//    cout << string(100, '-') << endl;
+//    cout << bf(V) << endl;
+
+
+
+}

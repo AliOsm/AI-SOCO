@@ -1,0 +1,186 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef pair<double, double> pdd;
+
+const int MOD = 1000000007;
+
+const int N = 200002;
+const int LOGN = 18;
+
+int ans[N], n, m, dsu[N], it, depth[N];
+pii dp[N][LOGN];
+bool used[N];
+
+vector<int> rem[N],add[N];
+multiset<int> mst[N];
+
+int find(int u)
+{
+	return dsu[u] == u ? u : dsu[u] = find(dsu[u]);
+}
+struct edge {
+	int u, v, w, idx;
+	edge(int _v, int _idx)
+	{
+		v = _v;
+		idx = _idx;
+	};
+	edge() {};
+	bool operator<(const edge& rhs) const
+	{
+		if (rhs.w == w) {
+			if (it)
+				return idx > rhs.idx;
+			else
+				return idx < rhs.idx;
+		}
+		return w < rhs.w;
+	}
+};
+
+edge E[N];
+vector<edge> g[N];
+void pre(int u, int p, int edge)
+{
+	dp[u][0] = make_pair(p, edge);
+	for (int i = 0; i < g[u].size(); ++i) {
+		int v = g[u][i].v;
+		if (v == p)
+			continue;
+		depth[v] = depth[u] + 1;
+		pre(v, u, g[u][i].w);
+	}
+}
+int lca(int u, int v)
+{
+	if (depth[v] > depth[u])
+		swap(u, v);
+	for (int k = LOGN - 1; k >= 0; k--) {
+		if (depth[u] - (1ll << k) >= depth[v]) {
+			u = dp[u][k].first;
+		}
+		if (u == v)
+			break;
+	}
+	if (u == v)
+		return u;
+	for (int k = LOGN - 1; k >= 0; k--) {
+		if (dp[u][k].first != dp[v][k].first) {
+			u = dp[u][k].first;
+			v = dp[v][k].first;
+		}
+	}
+	return dp[u][0].first;
+}
+int mn(int u, int v)
+{
+	if (depth[v] > depth[u])
+		swap(u, v);
+	int mn = 0;
+	for (int k = LOGN - 1; k >= 0; k--) {
+		if (depth[u] - (1ll << k) >= depth[v]) {
+			mn = max(dp[u][k].second, mn);
+			u = dp[u][k].first;
+		}
+		if (u == v)
+			break;
+	}
+	return mn;
+}
+void solve(int u, int p, int edge) {
+	int mx = 0, at = -1;
+	for (int i = 0; i < g[u].size(); ++i) {
+		int v = g[u][i].v;
+		if (v == p)continue;
+		solve(v, u, g[u][i].idx);
+		int sz = mst[v].size();
+		if (sz  > mx) {
+			mx = sz;
+			at = v;
+		}
+	}
+	if (at != -1) {
+		mst[u].swap(mst[at]);
+	}
+	for (int i = 0; i < add[u].size(); ++i){
+		mst[u].insert(add[u][i]);
+	}
+
+	for (int i = 0; i < g[u].size(); ++i) {
+		int v = g[u][i].v;
+		if (v == p || v == at)continue;
+		for (multiset<int>::iterator it = mst[v].begin(); it != mst[v].end(); it++)
+			mst[u].insert(*it);
+		mst[v].clear();
+	}
+	for (int i = 0 ; i < rem[u].size(); i++) {
+		mst[u].erase(mst[u].find(rem[u][i]));
+	}
+	if (mst[u].size() && edge != -1) {
+		ans[edge] = (*mst[u].begin());
+	}
+}
+int main()
+{
+//	freopen("input.txt", "r", stdin);
+	memset(ans, -1 , sizeof ans);
+	scanf("%d%d", &n, &m);
+	for (int i = 0; i < m; ++i) {
+		scanf("%d%d%d", &E[i].u, &E[i].v, &E[i].w);
+		E[i].idx = i;
+	}
+	memset(dp, -1, sizeof dp);
+	memset(used, 0, sizeof used);
+	memset(depth, 0, sizeof depth);
+	for (int i = 1; i <= n; i++)
+		dsu[i] = i, g[i].clear();
+	sort(E, E + m);
+	for (int i = 0; i < m; i++) {
+		int a = find(E[i].u);
+		int b = find(E[i].v);
+		if (find(a) != find(b)) {
+			used[E[i].idx] = 1;
+			g[E[i].u].push_back(E[i]);
+			swap(E[i].u, E[i].v);
+			g[E[i].u].push_back(E[i]);
+			dsu[find(a)] = find(b);
+		}
+	}
+	pre(1, -1, -1);
+	for (int k = 1; k < LOGN; k++) {
+		for (int i = 1; i <= n; i++) {
+			if (dp[i][k - 1].first == -1) {
+				dp[i][k] = dp[i][k - 1];
+				continue;
+			}
+			dp[i][k].first = dp[dp[i][k - 1].first][k - 1].first;
+			dp[i][k].second = max(dp[i][k - 1].second, dp[dp[i][k - 1].first][k - 1].second);
+		}
+	}
+	for (int idx = 0; idx < m; ++idx) {
+		int i = E[idx].idx;
+		if (used[i])
+			continue;
+		int lc = lca(E[idx].u, E[idx].v);
+
+		rem[lc].push_back(E[idx].w - 1);
+		rem[lc].push_back(E[idx].w - 1);
+
+		add[E[idx].u].push_back(E[idx].w - 1);
+		add[E[idx].v].push_back(E[idx].w - 1);
+		int fn = max(mn(E[idx].u, lc), mn(E[idx].v, lc));
+		ans[i] = fn - 1;
+	}
+	solve(1, -1, -1);
+	for (int i = 0; i < m; ++i) {
+		if (i)
+			printf(" ");
+		printf("%d", ans[i]);
+	}
+	puts("");
+	return 0;
+}

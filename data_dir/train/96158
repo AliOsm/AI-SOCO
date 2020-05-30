@@ -1,0 +1,79 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 202;
+int f[N];
+std::vector<int> G[N], G2[N];
+LL gcd(LL x, LL y) {
+	return x ? gcd(y % x, x) : y;
+}
+int pre[N], dfs_clock, S[N], top;
+int scc[N], sccno;
+int num[N];
+int dfs(int u) {
+	int lowu = pre[u] = ++ dfs_clock;
+	S[top ++] = u;
+	for(int v: G[u]) {
+		if(!pre[v]) {
+			lowu = std::min(lowu, dfs(v));
+		} else if(!scc[v]) {
+			lowu = std::min(lowu, pre[v]);
+		}
+	}
+	if(pre[u] == lowu) {
+		sccno ++;
+		for(int v = -1; v != u;) {
+			v = S[-- top];
+			scc[v] = sccno;
+			num[sccno] ++;
+		}
+	}
+	return lowu;
+}
+int dfs2(int u) {
+	int ret = 0;
+	for(int v: G2[u]) {
+		if(pre[v] == -1) {
+			ret = std::max(ret, dfs2(v) + 1);
+		} else {
+			ret = std::max(ret, pre[v] + 1);
+		}
+	}
+	return pre[u] = ret;
+}
+int main() {
+	int n;
+	srand(time(NULL));
+	scanf("%d", &n);
+	for(int i = 1; i <= n; i ++) {
+		scanf("%d", f + i);
+		G[i].push_back(f[i]);
+	}
+	for(int i = 1; i <= n; i ++) if(!pre[i]) {
+		dfs(i);
+	}
+	for(int i = 1; i <= n; i ++) {
+		for(int v: G[i]) {
+			if(scc[v] != scc[i]) {
+				G2[scc[i]].push_back(scc[v]);
+			}
+		}
+	}
+	LL k = 1;
+	for(int i = 1; i <= sccno; i ++) {
+		k = k / gcd(k, num[i]) * num[i];
+	}
+	memset(pre, -1, sizeof pre);
+	int max = 0;
+	for(int i = 1; i <= sccno; i ++) if(pre[i] == -1) {
+		int res = dfs2(i);
+		max = std::max(res, max);
+	}
+	int res = max;
+	if(res > k)
+		k = (res / k + (res % k != 0)) * k;
+	printf("%I64d\n", k);
+	return 0;
+}
+

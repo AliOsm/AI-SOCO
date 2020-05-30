@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// why am I so weak
+
+typedef pair<int, int> P;
+
+#define ft first
+#define sd second
+
+int n;
+long long a[100055];
+vector<int> g[100055];
+
+long long res;
+
+int subsize[100055];
+bool centroid[100055];
+
+void compute(int v, int par = -1) {
+	subsize[v] = 1;
+
+	for (auto u : g[v]) {
+		if (centroid[u] || u == par) continue;
+
+		compute(u, v);
+		subsize[v] += subsize[u];
+	}
+}
+P search(int v, int par, int tot) {
+	P ret = P(INT_MAX, -1);
+	int high = 0;
+
+	for (auto u : g[v]) {
+		if (centroid[u] || u == par) continue;
+
+		ret = min(ret, search(u, v, tot));
+		high = max(high, subsize[u]);
+	}
+
+	ret = min(ret, P(max(high, tot - subsize[v]), v));
+	return ret;
+}
+
+#define MAX_LOG 20
+
+inline void insert(int val, vector<int> &contain, int &num) {
+	num++;
+
+	for (int i = 0; i < MAX_LOG; i++) {
+		if (val & (1 << i)) {
+			contain[i]++;
+		}
+	}
+}
+inline void calc(long long sum, long long ac, vector<int> &contain, int &num) {
+	long long tot = 0;
+
+	for (int i = 0; i < MAX_LOG; i++) {
+		if (ac & (1 << i)) {
+			int have = contain[i];
+
+			tot -= 1ll * (1 << i) * have;
+			tot += 1ll * (1 << i) * num;
+		} else {
+			int have = contain[i];
+
+
+			tot += 1ll * (1 << i) * have;
+		}
+	}
+
+	res += tot;
+}
+void go(int v, int par, long long &sum, long long ac, vector<int> &contain, int &num) {
+	ac ^= a[v];
+	calc(sum, ac, contain, num);
+
+	for (auto u : g[v]) {
+		if (u == par || centroid[u]) continue;
+		go(u, v, sum, ac, contain, num);
+	}
+}
+void travel(int v, int par, long long &sum, long long ac, vector<int> &contain, int &num) {
+	ac ^= a[v];
+	insert(ac, contain, num);
+	sum += ac;
+
+	for (auto u : g[v]) {
+		if (centroid[u] || u == par) continue;
+		travel(u, v, sum, ac, contain, num);
+	}
+}
+void solve(int v) {
+	compute(v);
+
+	int w = search(v, -1, subsize[v]).sd;
+	centroid[w] = true;
+
+	int num = 0;
+	long long sum = 0ll;
+	vector<int> contain(MAX_LOG);
+
+	insert(a[w], contain, num);
+	sum += a[w];
+
+	res += a[w];
+
+	for (auto u : g[w]) {
+		if (centroid[u]) continue;
+
+		go(u, w, sum, 0, contain, num);
+		travel(u, w, sum, a[w], contain, num);
+	}
+
+	for (auto u : g[w]) {
+		if (centroid[u]) continue;
+		solve(u);
+	}
+
+	centroid[w] = false;
+}
+int main() {
+	scanf("%d", &n);
+
+	for (int i = 0; i < n; i++) {
+		scanf("%lld", &a[i]);
+	}
+
+	for (int i = 0; i + 1 < n; i++) {
+		int x, y;
+		scanf("%d %d", &x, &y);
+		x--, y--;
+
+		g[x].push_back(y);
+		g[y].push_back(x);
+	}
+
+	solve(0);
+
+	printf("%lld\n", res);
+
+	return 0;
+}
+

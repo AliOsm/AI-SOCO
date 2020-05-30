@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <stack>
+#include <map>
+#include <string.h>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <math.h>
+#include <vector>
+#include <set>
+#include <queue>
+#include <climits>
+#include <unordered_map>
+#include <iterator> 
+using namespace std;
+#define ll long long
+#define ull unsigned long long
+#define ui unsigned int
+#define mp make_pair
+#define inf32 INT_MAX
+#define inf64 LLONG_MAX
+#define PI acos(-1)
+#define cos45 cos(PI/4)
+#define ld long double
+#define inf 1000000
+#define pii pair<int, int>
+#define pll pair<ll, ll>
+const int mod = (1e9) + 7;
+const double eps = 1e-6;
+const int siz = 1e6 + 5, siz2 = 1049659, siz3 = 5032108;
+int n, k, arr[siz], tree[siz*4], ans;
+int add(int a, int b) {
+	return (a + b) % mod;
+}
+int sub(int a, int b) {
+	return (a - b + mod) % mod;
+}
+int mul(ll a, int b) {
+	return (a*b) % mod;
+}
+void build(int node, int s, int e) {
+	if (s == e) {
+		tree[node] = arr[s];
+		return;
+	}
+	int mid = (s + e) / 2;
+	build(node * 2, s, mid);
+	build(node * 2+1, mid+1, e);
+	tree[node] = max(tree[node * 2], tree[node * 2 + 1]);
+}
+int mostright(int node, int s, int e, int i) {
+	if (e <= i) {
+		return e;
+	}
+	if (s == e) {
+		return arr[e] <= arr[i] ? e : s - 1;
+	}
+	if (s > i && tree[node] <= arr[i]) {
+		return e;
+	}
+	int mid = (s + e) / 2;
+	int frst = mostright(node * 2, s, mid, i);
+	if (frst == mid) {
+		return mostright(node * 2 + 1, mid + 1, e, i);
+	}
+	return frst;
+}
+int mostleft(int node, int s, int e, int i) {
+	if (s >= i) {
+		return s;
+	}
+	if (s == e) {
+		return arr[s] < arr[i] ? s : e + 1;
+	}
+	if (e < i && tree[node] < arr[i]) {
+		return s;
+	}
+	int mid = (s + e) / 2;
+	int frst = mostleft(node * 2+1, mid+1, e, i);
+	if (frst == mid+1) {
+		return mostleft(node * 2, s, mid, i);
+	}
+	return frst;
+}
+int numcnt(int lft, int rit) {
+	int len = rit - lft + 1;
+	if (len < k) {
+		return 0;
+	}
+	int x = 1 + (len - k) / (k - 1), f = (len-k) % (k-1) + 1, strtcnt = len-k+1;
+	int tot = mul(min(f, strtcnt), x);
+	strtcnt -= min(f, strtcnt);
+	int wh = strtcnt / (k - 1), rem = strtcnt % (k - 1);
+	if (wh > 0) {
+		int term = (((ll)wh*(wh + 1)) / 2) % mod;
+		int sum = add(mul(x-wh-1, wh), term);
+		tot = add(tot, mul(sum, k-1));
+	}
+	if (rem > 0) {
+		tot = add(tot, mul(x-wh-1, rem));
+	}
+	return tot;
+}
+int solve(int i) {
+	int lft = i>0 && arr[i-1] < arr[i]?mostleft(1, 0, n - 1, i):i, 
+		rit = i<n-1 && arr[i+1] <= arr[i]?mostright(1, 0, n - 1, i):i;
+	int tot = numcnt(lft, rit);
+	if (lft < i) {
+		tot = sub(tot, numcnt(lft, i - 1));
+	}
+	if (rit > i) {
+		tot = sub(tot, numcnt(i+1, rit));
+	}
+	return mul(tot, arr[i]);
+}
+int main()
+{
+	scanf("%d%d", &n, &k);
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &arr[i]);
+	}
+	build(1, 0, n - 1);
+	for (int i = 0; i < n; i++) {
+		ans = add(ans, solve(i));
+	}
+	printf("%d\n", ans);
+	return 0;
+}

@@ -1,0 +1,267 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+const int maxi = 1e6 + 10;
+const int sz =  1<<18;
+pair<int,int> a[maxi], b[maxi], rez[maxi];
+int n,m;
+long long ans;
+long long tree[maxi];
+int x,y,z;
+
+void update(int node, int tl, int tr, int l, int r, int val)
+{
+    if (tr<l || tl>r)
+        return;
+    if (tr<=r && tl>=l)
+    {
+        tree[node]+=val;
+        return;
+    }
+
+    update(2*node, tl, (tl+tr)/2, l, r, val);
+    update(2*node+1, (tl+tr)/2+1, tr, l,r, val);
+}
+
+pair<int,int> findi(int l, int r, pair<int,int> *a)
+{
+    int li = 0;
+    int ri = n+1;
+
+    int ansL =  0;
+    int ansR = 0;
+    while(li<ri-1)
+    {
+        int mid = li + ri>>1;
+        if (a[mid].first<l)
+            li = mid;
+        else
+            ri = mid;
+    }
+
+    li++;
+    if (li==n+1 || a[li].first>r)
+        return {-1,-1};
+    else
+        ansL = li;
+
+    li = 0;
+    ri = n+1;
+
+    while(li<ri-1)
+    {
+        int mid = li + ri>> 1;
+        if (a[mid].first>r)
+            ri = mid;
+        else
+            li = mid;
+    }
+
+    ri--;
+    ansR = ri;
+
+    return {ansL, ansR};
+}
+
+void dodaj(int l, int r, int val, int idx)
+{
+
+    if (l>r || r<=0 || r>m || l<=0 || l>m) return;
+
+    pair<int,int> inter = findi(l,r,b);
+
+    if (inter.first==-1)
+        return;
+    inter.first-=idx;
+    inter.first++;
+    inter.second-=idx;
+    inter.second++;
+
+    if (inter.first<=0)
+        inter.first+=n;
+    if (inter.second<=0)
+        inter.second+=n;
+
+
+    if (inter.first>inter.second)
+    {
+      // cout<<"UPDATOVAN A: "<<idx<<" "<<1<<" "<<inter.second<<" "<<val<<endl;
+
+        update(1, 1, sz, 1, inter.second, val);
+
+       // cout<<"UPDATOVAN A: "<<idx<<" "<<inter.first<<" "<<n<<" "<<val<<endl;
+
+        update(1, 1, sz, inter.first, n, val);
+    }
+    else{
+
+        //cout<<"UPDATOVAN A: "<<idx<<" "<<inter.first<<" "<<inter.second<<" "<<val<<endl;
+
+        update(1, 1, sz, inter.first, inter.second, val);
+
+        }
+}
+
+void dodaj1(int l, int r, int val, int idx)
+{
+
+    if (l>r || r<=0 || r>m || l<=0 || l>m) return;
+
+    pair<int,int> inter = findi(l,r,a);
+
+    if (inter.first == -1)
+        return;
+
+
+    int len = inter.second - inter.first;
+
+    swap(inter.second, inter.first);
+    inter.first=idx - inter.first;
+    inter.first++;
+
+    if (inter.first<=0)
+        inter.first+=n;
+
+    if (inter.first+len>n)
+    {
+        //cout<<" UPDATOVAN B: "<<idx<<" "<<1<<" "<<inter.first+ len - n<<" "<<val<<endl;
+
+        update(1, 1, sz, 1, inter.first + len - n, val);
+
+      //  cout<<" UPDATOVAN B: "<<idx<<" "<<inter.first<<" "<<n<<" "<<val<<endl;
+
+        update(1, 1, sz, inter.first, n, val);
+    }
+    else{
+
+       // cout<<" UPDATOVAN B: "<<idx<<" "<<inter.first<<" "<<inter.first + len<<" "<<val<<endl;
+        update(1, 1, sz, inter.first, inter.first+len, val);
+    }
+}
+
+
+int main()
+{
+    cin>>m>>n;
+
+    for (int i=1; i<=n; i++)
+    {
+        scanf("%d",&a[i].first);
+        a[i].second = i;
+    }
+
+    for (int i=1; i<=n; i++)
+    {
+        scanf("%d",&b[i].first);
+        b[i].second = i;
+    }
+
+    sort(b+1,b+n+1);
+    sort(a+1,a+n+1);
+
+
+    for (int i=1; i<=n; i++)
+    {
+        int l,r;
+        x = a[i].first;
+        y = m - a[i].first;
+
+        if (x<=y)
+        {
+            l = 1;
+            r = a[i].first;
+
+            dodaj(l,r, a[i].first, i);
+
+            z = (y-x)/2;
+            if ((y-x)&1) z++;
+            r++;
+
+            dodaj(r,m -z, -a[i].first, i);
+            dodaj(m-z + 1, m, a[i].first + m, i);
+        }
+        else
+        {
+            z  = (x-y)/2;
+            r = a[i].first;
+
+            if ((x-y)%2==0) z--;
+
+            l = z + 1;
+
+            dodaj(l,r, a[i].first, i);
+            dodaj(1,z, m - a[i].first, i);
+
+            r++;
+            dodaj(r, m, -a[i].first, i);
+        }
+    }
+
+    for (int i=1; i<=n; i++)
+    {
+        int x = b[i].first;
+        int y = m - b[i].first;
+
+        if (x<=y)
+        {
+            //cout<<"EEEEEEJ: "<<i<<endl;
+            int l = 1;
+            int r = x;
+            dodaj1(l,r - 1,b[i].first,i);
+            z = (y - x)/2;
+            if ((y-x)&1) z++;
+            dodaj1(r, m - z, - b[i].first,i);
+            dodaj1(m-z+1, m, b[i].first,i);
+        }
+        else
+        {
+            z = (x-y)/2;
+            if ((x-y)%2==1) z++;
+            int l = z;
+            int r = x;
+            dodaj1(l,r -1,b[i].first,i);
+            dodaj1(1, z-1, -b[i].first,i);
+            dodaj1(r, m, -b[i].first,i);
+        }
+    }
+
+    for (int i=1; i<sz; i++)
+    {
+        tree[2*i]+=tree[i];
+        tree[2*i+1]+=tree[i];
+    }
+
+    int shift = 0;
+    long long ans = 1e18;
+    for (int i = 1; i<=n; i++)
+    {
+        if (ans>tree[sz+i-1])
+        {
+            ans = tree[sz+i-1];
+            shift = i;
+        }
+    }
+
+    ans = 0;
+    for (int i = 1; i<=n; i++)
+    {
+        int idx = (i + shift -1 +n) % n;
+        if (idx == 0)
+            idx = n;
+        rez[i] = {a[i].second, b[idx].second};
+
+        long long x  = abs(a[i].first - b[idx].first);
+        ans+= min(m-x,x);
+    }
+
+    sort(rez+1,rez+n+1);
+
+     printf("%lld\n",ans);
+
+
+    for (int i=1; i<=n; i++)
+        printf("%d ",rez[i].second);
+    printf("\n");
+    return 0;
+}

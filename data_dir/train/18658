@@ -1,0 +1,94 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+#define se second
+#define fi first
+#define pb push_back
+const int N=2e5 + 5,M=1e9 + 7;
+int V[N],sz[N],mx,cen,csz;
+bool cc[N];
+vector<int> g[N];
+ll dp[N][2];
+int fr[N][2];
+
+void dfs(int u,int p){
+
+	sz[u]=1;
+	int mn=0;
+	for(int i=0;i < g[u].size();i++){
+		int v=g[u][i];
+		if(v != p && !cc[v]){
+			dfs(v,u);
+			mn=max(mn,sz[v]);
+			sz[u]+=sz[v];
+		}
+	}
+	mn=max(mn,csz - sz[u]);
+	if(mn < mx){
+		mx=mn;
+		cen=u;
+	}
+}
+ll fans;
+vector<pair<ll, int> > temp;
+void go(int u,int p,ll sum,int dep){
+
+	ll x=(((fr[cen][dep & 1]) * sum) % M + dp[cen][dep & 1]) % M;
+	fans=(fans + 2LL * x) % M;
+	if(!(dep & 1)) fans=(fans + 2LL * sum) % M;
+	temp.pb({ sum, dep & 1 });
+	for(int i=0;i < g[u].size();i++){
+		int v=g[u][i];
+		if(v != p && !cc[v]) go(v,u,(V[v] - sum + M) % M,dep + 1);
+	}
+
+}
+void calc(int u,int siz){
+	mx=1e9, csz=siz;
+	dfs(u,-1);
+	int cen=::cen;
+	cc[cen]=1;
+	fans=(fans + V[cen]) % M;
+	for(int i=0;i < g[cen].size();i++){
+		int v=g[cen][i];
+		if(!cc[v]){
+			go(v,cen,(V[v] - V[cen] + M) % M,1);
+			while(temp.size()){
+				ll d=V[cen];
+				if(!temp.back().se) d=(-d + M) % M;
+				dp[cen][temp.back().se]=(dp[cen][temp.back().se]
+					+ temp.back().fi + d + M) % M;
+				fr[cen][temp.back().se]++;
+				temp.pop_back();
+			}
+		}
+	}
+	for(int i=0;i < g[cen].size();i++){
+		int v=g[cen][i];
+		if(!cc[v]){
+			int temp=sz[v];
+			if(sz[v] > sz[cen]) temp=siz - sz[cen];
+			calc(v,temp);
+		}
+	}
+}
+
+int main(){
+
+//	freopen("in.txt","r",stdin);
+
+	int n;
+	cin >> n;
+	for(int i=1;i <= n;i++){
+		scanf("%d",V + i);
+		if(V[i] < 0) V[i]=(V[i] + M) % M;
+	}
+	for(int i=0,a,b;i < n - 1;i++){
+		scanf("%d%d",&a,&b);
+		g[a].pb(b);
+		g[b].pb(a);
+	}
+	calc(1,n);
+	cout << fans << endl;
+
+}

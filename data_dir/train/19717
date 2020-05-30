@@ -1,0 +1,81 @@
+/*
+    Take me to church
+    I'll worship like a dog at the shrine of your lies
+    I'll tell you my sins and you can sharpen your knife
+    Offer me that deathless death
+    Good God, let me give you my life
+*/
+#include<bits/stdc++.h>
+#define Get(i, j) ((i) * m + j)
+using namespace std;
+const int MXN = 202, MXK = 7;
+int n, m, k, A[MXN], dp[MXN][1 << MXK];
+bitset < MXN > db[MXN][1 << MXK];
+priority_queue < pair < int , int > > Pq;
+inline void Relax(int i, int v, int u)
+{
+    if (dp[u][i] > dp[v][i] + A[u])
+    {
+        dp[u][i] = dp[v][i] + A[u];
+        db[u][i] = db[v][i];
+        db[u][i][u] = 1;
+        Pq.push({-dp[u][i], u});
+    }
+}
+int main()
+{
+    scanf("%d%d%d", &n, &m, &k);
+    for (int i = 0; i < n; i ++)
+        for (int j = 0; j < m; j ++)
+            scanf("%d", &A[Get(i, j)]);
+    memset(dp, 63, sizeof(dp));
+    for (int i = 0; i < k; i ++)
+    {
+        int a, b;
+        scanf("%d%d", &a, &b);
+        a --; b --;
+        dp[Get(a, b)][1 << i] = A[Get(a, b)];
+        db[Get(a, b)][1 << i][Get(a, b)] = 1;
+    }
+    for (int i = 0; i < (1 << k); i ++)
+    {
+        for (int j = 0; j < n * m; j ++)
+        {
+            for (int sub = i; sub; sub = (sub - 1) & i)
+                if (dp[j][sub] + dp[j][i ^ sub] - A[j] < dp[j][i])
+                {
+                    dp[j][i] = dp[j][sub] + dp[j][i ^ sub] - A[j];
+                    db[j][i] = db[j][sub] | db[j][i ^ sub];
+                }
+            Pq.push({-dp[j][i], j});
+        }
+        while (Pq.size())
+        {
+            int v = Pq.top().second;
+            int d = -Pq.top().first;
+            Pq.pop();
+            if (d > dp[v][i])
+                continue;
+            int a = v / m, b = v % m;
+            if (a > 0) Relax(i, v, v - m);
+            if (a < n - 1) Relax(i, v, v + m);
+            if (b > 0) Relax(i, v,  v - 1);
+            if (b < m - 1) Relax(i, v, v + 1);
+        }
+    }
+    int id = 0;
+    for (int i = 0; i < n * m; i ++)
+        if (dp[i][(1 << k) - 1] < dp[id][(1 << k) - 1])
+            id = i;
+    printf("%d\n", dp[id][(1 << k) - 1]);
+    for (int i = 0; i < n * m; i ++)
+    {
+        if (db[id][(1 << k) - 1][i])
+            printf("X");
+        else
+            printf(".");
+        if (i % m == m - 1)
+            printf("\n");
+    }
+    return 0;
+}

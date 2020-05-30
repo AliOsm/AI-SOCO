@@ -1,0 +1,30 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {
+  int n, h;
+  scanf("%d %d", &n, &h);
+  double goal = (double) h / 2 / n;
+  vector<double> ans;
+  double now = h;
+  for (int i = 1; i < n; i++) {
+    double l = 0, r = now;
+    for (int it = 0; it < 300; it++) {
+      double mid = (l + r) / 2;
+      double a = mid / h;
+      double b = now / h;
+      double area = (a + b) * (now - mid) / 2;
+      if (area < goal) {
+        r = mid;
+      } else {
+        l = mid;
+      }
+    }
+    ans.push_back(r);
+    now = r;
+  }
+  sort(ans.begin(), ans.end());
+  for (auto it : ans) printf("%.15f ", it);
+  return 0;
+}

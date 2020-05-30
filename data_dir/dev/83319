@@ -1,0 +1,144 @@
+#include <bits/stdc++.h>
+using namespace std;
+//#define int long long
+//typedef long long ll;
+
+const int N = 4e5+10, shift = 2e5;
+set<int> adj[N];
+map<pair<int, int>, int> edgeID;
+int cntRed[N], degree[N];
+bool visited[N];
+string res;
+
+void dfs(int node, char prevColor) {
+    while(!adj[node].empty()) {
+        int to = *adj[node].begin();
+        int currEdge = edgeID[{min(node,to), max(node,to)}];
+        assert(!visited[currEdge]);
+
+        visited[currEdge] = true;
+        char newColor = 'r'+'b'-prevColor;
+        if(newColor == 'r') {
+            ++cntRed[node];
+            ++cntRed[to];
+        }
+        res[currEdge] = newColor;
+        adj[node].erase(to);
+        adj[to].erase(node);
+        dfs(to, newColor);
+    }
+}
+
+
+signed main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n;
+    cin >> n;
+    res = string(n,'$');
+    vector<pair<int, int>> points(n);
+    vector<int> nodes;
+    nodes.reserve(2*n);
+    for(int i = 0; i < n; ++i) {
+        int x,y;
+        cin >> x >> y;
+        adj[x].insert(y+shift);
+        adj[y+shift].insert(x);
+        edgeID[{x, y+shift}] = i;
+        points[i] = {x,y};
+        nodes.push_back(x);
+        nodes.push_back(y+shift);
+    }
+    queue<int> odd;
+    for(int i = 0; i < N; ++i) {
+        if(adj[i].size()%2 == 1) {
+            odd.push(i);
+        }
+    }
+    vector<pair<int, int>> removedEdges;
+    removedEdges.reserve(n);
+    while(!odd.empty()) {
+        int node = odd.front();
+        odd.pop();
+        if(adj[node].size()%2 == 0) continue;
+        int to = *adj[node].begin();
+        removedEdges.push_back({node, to});
+        adj[node].erase(to);
+        adj[to].erase(node);
+        if(adj[to].size()%2 == 1) {
+            odd.push(to);
+        }
+    }
+    //solve euler circuits, and update cntRed
+    //for(int i = 0; i < N; ++i) {
+    for(int i : nodes) {
+        degree[i] = adj[i].size();
+    }
+    for(int i : nodes) {
+        if(adj[i].size()) {
+            assert(adj[i].size()%2 == 0);//TODO
+            int numRed = 0, numBlue = 0;
+            for(int to : adj[i]) {
+                int currEdge = edgeID[{min(i,to), max(i,to)}];
+                if(visited[currEdge]) {
+                    if(res[currEdge] == 'r') ++numRed;
+                    else ++numBlue;
+                }
+            }
+            char color = 'r';
+            if(numRed >= numBlue) {
+                color = 'b';
+            }
+            dfs(i, color);
+        }
+    }
+    for(int i = (int)removedEdges.size()-1; i >= 0; --i) {
+        int node = removedEdges[i].first;
+        int to = removedEdges[i].second;
+        assert(degree[to] >= cntRed[to]);//TODO
+        assert(degree[node]%2 == 0);//TODO
+        int blue = degree[to] - cntRed[to]; 
+        if(blue > cntRed[to]) {
+            res[edgeID[{min(node,to), max(node,to)}]] = 'r';
+            ++cntRed[node];
+            ++cntRed[to];
+        } else {
+            res[edgeID[{min(node,to), max(node,to)}]] = 'b';
+        }
+        ++degree[node];
+        ++degree[to];
+    }
+    cout << res << '\n';
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

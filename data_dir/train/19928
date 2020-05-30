@@ -1,0 +1,157 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int lg = 11;
+const int maxn = 1 << lg;
+const int max1 = maxn / 2;
+const int logg = 33;
+
+
+long long ans[logg][maxn + 3];
+long long rev[maxn];
+long long aa[maxn], bb[maxn], cc[maxn];
+
+const long long base = 7340033;
+//const long long root = 6618267;
+const long long root = 5;
+const int log_max = 1 << 20;
+long long r_root = 0;
+
+int powmod(long long a, long long b, long long c)
+{
+    long long ret = 1;
+    while (b > 0)
+    {
+        if (b & 1ll)
+        {
+            ret = ret * a % c;
+        }
+        a = a * a % c;
+        b /= 2;
+    }
+    return ret;
+}
+
+void calc_rev()
+{
+    for (int i = 0; i < maxn; i++)
+    {
+        rev[i] = 0;
+        for (int j = 0; j < lg; j++)
+        {
+            if (i & (1 << j))
+            {
+                rev[i] += (1 << (lg - 1 - j));
+            }
+        }
+    }
+}
+
+void fft(long long a[], int n, bool invert)
+{
+    if (n == 1)
+        return;
+
+    for (int i = 0; i < n; i++)
+        if (i < rev[i])
+            swap(a[i], a[rev[i]]);
+
+    for (int len = 2; len <= n; len <<= 1)
+    {
+        long long wlen = invert ? r_root : root;
+        for (int i= len; i< log_max; i<<=1)
+            wlen = wlen *  wlen % base;
+
+        int len1 = len >> 1ll;
+        for (int i = 0; i < n; i += len)
+        {
+            long long w = 1;
+            for (int j = 0; j < len1; j++)
+            {
+                long long aa = a[i + j];
+                assert(aa >= 0);
+                long long bb = a[i + j + len1] * w % base;
+                assert(bb >= 0);
+                a[i + j] = (aa + bb);
+                if (a[i + j] >= base)
+                    a[i + j] -= base;
+                a[i + j + len1] = aa - bb;
+                if (a[i + j + len1] < 0)
+                    a[i + j + len1] += base;
+                w = w * wlen % base;
+                assert(w >= 0);
+            }
+        }
+    }
+    if (invert)
+    {
+        long long r_n = powmod(n, base - 2, base);
+        for (int i = 0; i < n; i++)
+        {
+            a[i] = (long long)(1ll * a[i] * 1ll * r_n) % base;
+        }
+    }
+}
+
+void print(long long a[])
+{
+    for (int i = 0; i < 20; i++)
+        cout << a[i] << " ";
+    cout << endl;
+}
+
+void calc_dp()
+{
+    r_root = powmod(root, base - 2, base);
+    calc_rev();
+    ans[0][0] = 1;
+    for (int i = 1; i <= 31; i++)
+    {
+        for (int j = 0; j < maxn; j++)
+            cc[j] = 0;
+        cc[0] = 1;
+        for (int j = 0; j < max1; j++)
+            aa[j] = ans[i - 1][j];
+        for (int j = max1; j < maxn; j++)
+            aa[j] = 0;
+        fft(aa, maxn, false);
+        for (int q = 0; q < 4; q++)
+        {
+            for (int j = 0; j < maxn; j++)
+                bb[j] = cc[j];
+            for (int j = max1; j < maxn; j++)
+                bb[j] = 0;
+            fft(bb, maxn, false);
+            for (int j = 0; j < maxn; j++)
+                cc[j] = (long long)(aa[j] * 1ll * bb[j] % base);
+            fft(cc, maxn, true);
+        }
+        for (int j = 0; j < max1 - 1; j++)
+            ans[i][j + 1] = cc[j] % base;
+        ans[i][0] = 1;
+//        print(ans[i]);
+
+    }
+}
+
+int main()
+{
+    int q = 0;
+    calc_dp();
+    ios_base :: sync_with_stdio(0);
+    cin >> q;
+    while (q--)
+    {
+        int n = 0, k = 0;
+        cin >> n >> k;
+        int height = 0;
+        while (n > 1 && (n % 2 == 1))
+        {
+            n >>= 1;
+            height++;
+        }
+        cout << ans[height][k] << "\n";
+    }
+    return 0;
+}

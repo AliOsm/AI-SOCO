@@ -1,0 +1,113 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int N = 3333;
+vector<int> e[N], e1[N], tin, tout, d;
+vector<char> flag;
+int jump[N][15], V, U;
+
+
+char f(int x, int y) {
+    if (x == -1) return true;
+    return tin[x] <= tin[y] && tout[x] >= tout[y];
+}
+
+
+int find_lca(int x, int y) {
+    if (tin[x] > tin[y])
+        return find_lca(y, x);
+
+    if (f(x, y)) return x;
+
+    for (int step = 15; step; step--)
+        if (!f(jump[x][step], y))
+            x = jump[x][step];
+
+    return jump[x][0];
+}
+
+
+void dfs(int v = 0, int p = -1) {
+    static int timer = 0;
+    tin[v] = tout[v] = timer++;
+    flag[v] = true;
+
+    for (int to : e[v]) {
+        if (to == p) continue;
+        if (!flag[to]) {
+            e1[v].push_back(to);
+            dfs(to, v);
+            tout[v] = tout[to];
+        } else {
+            V = v;
+            U = to;
+        }
+    }
+}
+
+
+main() {
+#ifndef ONLINE_JUDGE
+    freopen("1.txt", "r", stdin);
+#endif // ONLINE_JUDGE
+
+    int n;
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        x--; y--;
+        e[x].push_back(y);
+        e[y].push_back(x);
+    }
+
+    flag.assign(n, false);
+    tin.resize(n);
+    tout.resize(n);
+    dfs();
+
+    for (int v = 0; v < n; v++)
+        for (int j = 0; j < 15; j++)
+            jump[v][j] = -1;
+
+    for (int v = 0; v < n; v++)
+        for (int to : e1[v])
+            jump[to][0] = v;
+
+    for (int j = 1; 1<<j <= n; j++)
+        for (int v = 0; v < n; v++)
+            if (jump[v][j - 1] != -1) jump[v][j] = jump[ jump[v][j - 1] ][j - 1];
+    d.assign(n, 1e9);
+
+
+    priority_queue< pair<int, int> > q;
+    flag.assign(n, false);
+    int lca = find_lca(V, U);
+    for (int i = V; i != lca; i = jump[i][0]) {
+        d[i] = 0;
+        q.push(make_pair(0, i));
+    }
+    for (int i = U; i != lca; i = jump[i][0]) {
+        d[i] = 0;
+        q.push(make_pair(0, i));
+    }
+    d[lca] = 0;
+    q.push(make_pair(0, lca));
+
+    while (!q.empty()) {
+        int v = q.top().second;
+        q.pop();
+        if (flag[v]) continue;
+        flag[v] = true;
+        for (int to : e[v]) {
+            if (d[to] <= d[v] + 1) continue;
+            d[to] = d[v] + 1;
+            q.push(make_pair(-d[to], to));
+        }
+    }
+
+    for (int i : d)
+        printf("%d ", i);
+
+    return 0;
+}

@@ -1,0 +1,132 @@
+/********************************************************
+*||  Code written by Akikaze                          ||*
+*||  Duy-Bach Le, #Team4T's Chief Executor            ||*
+*||  #Team4T Tertiary Flagship - Oblivion             ||*
+*||                                                   ||*
+*||  Written by a random fan of momocashew and Chiho  ||*
+********************************************************/
+
+/***********************************************
+** File name: EDUCFR63D.cpp
+** Time created: Mon Apr 22 2019 14:33
+***********************************************/
+
+/************** [OPTIMIZATION PROTOCOL] **************/
+#pragma GCC optimize("Ofast")
+/*****************************************************/
+
+/************** [LIBRARY PROTOCOL] **************/
+#include <bits/stdc++.h>
+using namespace std;
+/************************************************/
+
+/************** [GNU OMISSIONS] **************/
+#define y0 withindarkness
+#define y1 apinklotusbloomed
+#define yn carryingapurplesoul
+#define j1 togetherformingtheTeam
+/*********************************************/
+
+/************** [LEGENDS/CONSTANTS] **************/
+#define endl '\n'
+#define i64 long long
+#define ld long double
+const long long Mod = 1000000007LL, INF = 1e9, LINF = 1e18;
+const long double Pi = 3.141592653589793116L;
+const long double EPS = 0.000000001L, Gold = ((1.0L+sqrt(5.0L))/2.0L);
+long long keymod[] = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL};
+mt19937 rng32(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng64(chrono::steady_clock::now().time_since_epoch().count());
+/*************************************************/
+
+/************** [MASTER CONTROLS - PHASE 1] **************/
+int OImode = 0;
+int MultiTest = 0;
+int Interactive = 0;
+
+void ConfigMonitor();
+char infile[] = "FILE.IN";
+char outfile[] = "FILE.OUT";
+/*********************************************************/
+
+/************** [GLOBAL VARIABLES] **************/
+int n, x; vector<int> a;
+/************************************************/
+
+/************** [FUNCTIONS] **************/
+
+
+void Input() {
+	cin >> n >> x; a.resize(n);
+	for (auto &z: a) cin >> z;
+}
+
+void Solve() {
+	i64 ans1 = 0, ans2 = 0, ans3 = 0, cur = 0;
+	for (int i=0; i<n; i++) {
+		cur = max(cur + a[i], 1LL * a[i]);
+		ans1 = max(ans1, cur);
+	}
+	if (x > 0) ans1 *= x;
+	else if (x <= 0) {
+		for (int i=0; i<n; i++) {
+			cur = max(cur + 1LL * x * a[i], 1LL * x * a[i]);
+			ans2 = max(ans2, cur);
+		}
+	}
+	if (x <= 0) {
+		vector<i64> startAt(n, 0), endAt(n, 0);
+		i64 curr = 0;
+		for (int i=0; i<n; i++) {
+			curr = max(curr + a[i], 1LL * a[i]);
+			endAt[i] = max(endAt[i], curr);
+		}
+		curr = 0;
+		for (int i=n-1; i>=0; i--) {
+			curr = max(curr + a[i], 1LL * a[i]);
+			startAt[i] = max(startAt[i], curr);
+		}
+		i64 curswap = 0;
+		vector<i64> dp(n, 0);
+		for (int i=0; i<n; i++) {
+			curswap = max(((i > 0) ? endAt[i-1] : 0LL) + 1LL * a[i] * x, ((i > 0) ? dp[i-1] : 0LL) + 1LL * a[i] * x);
+			dp[i] = max(dp[i], curswap);
+		}
+		for (int i=0; i<n; i++) {
+			if (i < n-1) ans3 = max(ans3, max(dp[i], endAt[i]) + startAt[i+1]);
+			else ans3 = max(ans3, max(dp[i], endAt[i]));
+		}
+	}
+	cout << max(max(ans1, ans2), ans3) << endl;
+}
+/*****************************************/
+
+/************** [MAIN] **************/
+int main(int argc, char* argv[]) {
+	ConfigMonitor();
+	ios_base::sync_with_stdio(false);
+	if (!Interactive) cin.tie(NULL);
+	
+	int T = 1; if (MultiTest) cin >> T;
+	while(T--) {Input(); Solve();}
+	
+	return 0;
+}
+/************************************/
+
+/************** [MASTER CONTROLS - PHASE 2] **************/
+void ConfigMonitor() {
+	#ifdef Akikaze
+		cout << "Source code by #Team4T-Akikaze.\n";
+		cout << "Input: " << ((OImode) ? infile : "stdin");
+		cout << " | Output: " << ((OImode) ? outfile : "stdout") << endl << endl;
+		cout << "MultiTest-Mode: " << ((MultiTest) ? "ON\n" : "OFF\n");
+		cout << "Interactive-Mode: " << ((Interactive) ? "ON\n\n" : "OFF\n\n");
+	#else
+		if (OImode) {
+			freopen(infile, "r", stdin);
+			freopen(outfile, "w", stdout);
+		}
+	#endif
+}
+/*********************************************************/

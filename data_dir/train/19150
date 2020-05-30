@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, m;
+vector<string> a;
+vector<vector<int>> dp[4];
+vector<vector<int>> row, col;
+
+void rotateDp(vector<vector<int>> &dp) {
+	vector<vector<int>> tmp(dp[0].size());
+	for (int i = 0; i < (int) tmp.size(); ++i) {
+		tmp[i].resize(dp.size());
+	}
+	for (int i = 0; i < (int) dp.size(); ++i) {
+		for (int j = 0; j < (int) dp[i].size(); ++j) {
+			tmp[j][(int) dp.size() - i - 1] = dp[i][j];
+		}
+	}
+	dp = tmp;
+}
+
+void rotate(vector<string> &s) {
+	vector<string> tmp(s[0].size());
+	for (int i = 0; i < (int) tmp.size(); ++i) {
+		tmp[i].resize(s.size());
+	}
+	for (int i = 0; i < (int) s.size(); ++i) {
+		for (int j = 0; j < (int) s[i].size(); ++j) {
+			tmp[j][(int) s.size() - i - 1] = s[i][j];
+		}
+	}
+	s = tmp;	
+}
+
+void calcDp(vector<string> &a, vector<vector<int>> &dp) {
+	dp.resize(a.size());
+	for (int i = 0; i < (int) dp.size(); ++i) {
+		dp[i].resize(a[i].size());
+		for (int j = 0; j < (int) a[i].size(); ++j) {
+			if (a[i][j] == '*') {
+				dp[i][j] = (j == 0 ? 0 : dp[i][j - 1]) + 1;
+			} else {
+				dp[i][j] = 0;
+			}
+		}
+	}
+}
+
+bool good() {
+	for (int i = 0; i < n; ++i) {
+		for (int j = 1; j < m; ++j) {
+			row[i][j] += row[i][j - 1];
+		}
+	}
+	for (int i = 0; i < m; ++i) {
+		for (int j = 1; j < n; ++j) {
+			col[j][i] += col[j - 1][i];
+		}
+	}
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < m; ++j) {
+			bool cover = row[i][j] > 0 || col[i][j] > 0;
+			if (cover ^ (a[i][j] == '*')) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cin >> n >> m;
+	a.resize(n);
+	for (int i = 0; i < n; ++i) {
+		cin >> a[i];
+	}
+	for (int i = 0; i < 4; ++i) {
+		calcDp(a, dp[i]);
+		for (int j = 0; j < (4 - i) % 4; ++j) {
+			rotateDp(dp[i]);
+		}
+		rotate(a);
+	}
+	row.resize(n);
+	col.resize(n);
+	for (int i = 0; i < n; ++i) {
+		row[i].resize(m);
+		col[i].resize(m);
+	}
+	vector<pair<pair<int, int>, int>> res;
+	for (int i = 0; i < (int) a.size(); ++i) {
+		for (int j = 0; j < (int) a[i].size(); ++j) {
+			int radius = min({dp[0][i][j], dp[1][i][j], dp[2][i][j], dp[3][i][j]});
+			--radius;
+			if (radius > 0) {
+				row[i][j - radius]++;
+				if (j + radius + 1 < (int) row[i].size()) {
+					row[i][j + radius + 1]--;
+				}
+				col[i - radius][j]++;
+				if (i + radius + 1< (int) col.size()) {
+					col[i + radius + 1][j]--;
+				}
+				res.push_back({{i + 1, j + 1}, radius});
+			}
+		}
+	}
+	if (good()) {
+		cout << res.size() << endl;
+		for (auto it : res) {
+			cout << it.first.first << ' ' << it.first.second << ' ' << it.second << '\n';
+		}
+	} else {
+		cout << -1 << endl;
+	}
+	return 0;
+}

@@ -1,0 +1,57 @@
+#include <cstring>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <memory.h>
+#include <cassert>
+using namespace std;
+int isp[2002][2002];
+string s;
+long long ans,a[2002];
+int sol(int i,int j){
+    if(i>j){return 1;}
+    if(i==j){
+        return isp[i][j]= 1;}
+    if((i+1)==j){return isp[i][j]= (s[i]==s[j]);}
+    if(isp[i][j]!=-1){return isp[i][j];}
+    if(s[i]!=s[j]){return isp[i][j]= 0;}
+    return isp[i][j]=sol(i+1,j-1);}
+int main() {
+    cin>>s;
+    memset(isp,-1,sizeof(isp));
+    for(int i=0;i<s.size();i++){
+        for(int j=i;j<s.size();j++){sol(i,j);}
+    }
+    for(int i=0;i<s.size();i++){
+        for(int j=i;j<s.size();j++){
+            if(isp[i][j]==1){a[i]++;}
+        
+        }
+    }
+    for(int i=(int)s.size()-2;i>-1;i--){
+        a[i]+=a[i+1];
+    }
+    for(int i=0;i<s.size();i++){
+        for(int j=i;j<s.size();j++){
+            if(isp[i][j]==1){ans+=a[j+1];}
+            
+        }
+    }
+    cout<<ans<<endl;
+    return 0;
+}

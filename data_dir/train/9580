@@ -1,0 +1,236 @@
+#include "bits/stdc++.h"
+using namespace std;
+
+#define debug(args...) fprintf(stderr, args);
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int maxn = 6e5 + 10;
+const ll INF = 1e18;
+
+int n, w;
+
+int ans[maxn];
+
+int cur = -1;
+
+int upd[2][maxn];
+bool mrk[maxn];
+
+struct st {
+    int a, b, id;
+} v[maxn];
+
+inline bool operator<(st x, st y) {
+    return x.b < y.b;
+}
+
+vector<pii> vec;
+
+struct node {
+    int sum;
+    ll pre;
+
+    void merge(node L, node R) {
+	sum = L.sum + R.sum;
+	pre = L.pre + R.pre;
+    }
+    
+} seg[8 * maxn];
+
+inline void build(int idx, int i, int j) {
+    if(i == j) {
+	int x = vec[i].second;
+
+	seg[idx].pre = 0;
+	seg[idx].sum = 0;
+
+	if(x <= n) {
+	    seg[idx].sum = 1;
+	    seg[idx].pre = vec[i].first;
+	}
+
+	return;
+    }
+
+    int mid = (i + j) >> 1;
+    int left = idx << 1;
+    int right = left | 1;
+
+    build(left, i, mid);
+    build(right, mid + 1, j);
+
+    seg[idx].merge(seg[left], seg[right]);
+}
+
+inline void update(int idx, int i, int j, int pos) {
+    if(i == j) {
+	if(seg[idx].sum) {
+	    seg[idx].sum = 0;
+	    seg[idx].pre = 0;
+	}
+	else {
+	    seg[idx].sum = 1;
+	    seg[idx].pre = vec[i].first;
+	}
+
+	return;
+    }
+
+    int mid = (i + j) >> 1;
+    int left = idx << 1;
+    int right = left | 1;
+
+    if(pos <= mid)
+	update(left, i, mid, pos);
+    else
+	update(right, mid + 1, j, pos);
+
+    seg[idx].merge(seg[left], seg[right]);
+}
+
+inline int bs(int idx, int i, int j, int W) {
+    if(W < 0 || seg[idx].sum < W)
+	return -1;
+
+    if(!W)
+	return 0;
+    
+    if(i == j)
+	return i;
+
+    int mid = (i + j) >> 1;
+    int left = idx << 1;
+    int right = left | 1;
+
+    if(seg[left].sum >= W)
+	return bs(left, i, mid, W);
+
+    return bs(right, mid + 1, j, W - seg[left].sum);
+}
+
+inline ll querySum(int idx, int i, int j, int l, int r) {
+    if(i > j || j < l || r < i || l > r)
+	return 0LL;
+
+    if(l <= i && j <= r)
+	return seg[idx].pre;
+
+    int mid = (i + j) >> 1;
+    int left = idx << 1;
+    int right = left | 1;
+
+    return querySum(left, i, mid, l, r) + querySum(right, mid + 1, j, l, r);
+}
+
+inline ll solve() {
+    ll t = INF;
+
+    sort(v + 1, v + 1 + n);
+
+    for(int i = 1; i <= n; ++i) {
+	int id = v[i].id;
+	
+	vec.push_back({v[i].a, id});
+	vec.push_back({v[i].b - v[i].a, id + n});
+    }
+
+    vec.push_back({INT_MIN,INT_MIN});
+    sort(vec.begin(), vec.end());
+
+    int N = n + n;
+
+    for(int i = 1; i <= N; ++i) {
+    	int id = vec[i].second;
+
+    	if(id > n)
+    	    upd[1][id - n] = i;
+    	else
+    	    upd[0][id] = i;
+    }
+
+    build(1, 1, N);
+
+    ll sum = 0;
+    
+    for(int i = 0; i <= min(n, w); ++i) {
+	if(i) {
+	    int id = v[i].id;
+	    sum += v[i].a;
+	    
+	    update(1, 1, N, upd[0][id]);
+	    update(1, 1, N, upd[1][id]);
+	}
+
+	int pos = bs(1, 1, N, w - i);
+		     
+	if(pos == -1)
+	    continue;
+
+    	ll cmp = sum + querySum(1, 1, N, 1, pos);
+
+    	if(cmp < t) {
+    	    t = cmp;
+    	    cur = i;
+    	}
+    }
+    
+    build(1, 1, N);
+
+    if(!cur) {
+	int pos = bs(1, 1, N, w);
+
+	for(int k = 1; k <= pos; ++k) {
+	    int idx = vec[k].second;
+
+	    if(idx <= n)
+		++ans[idx];
+	}
+    }
+    else 
+	for(int i = 1; i <= cur; ++i) {
+	    int id = v[i].id;
+	    
+	    mrk[id] = true;
+	    ++ans[id];
+	
+	    update(1, 1, N, upd[0][id]);
+	    update(1, 1, N, upd[1][id]);
+
+	    if(i == cur) {
+		int pos = bs(1, 1, N, w - i);
+
+		for(int k = 1; k <= pos; ++k) {
+		    int idx = vec[k].second;
+
+		    if(idx > n && mrk[idx - n])
+			++ans[idx - n];
+		    else
+			if(!mrk[idx])
+			    ++ans[idx]; 
+		}
+	    }
+	}
+
+    return t;
+}
+
+int main() {
+    scanf("%d %d", &n, &w);
+
+    for(int i = 1; i <= n; ++i) {
+	int a, b;
+	
+	scanf("%d %d", &a, &b);
+
+	v[i] = {a, b, i};
+    }
+
+    printf("%lld\n", solve());
+
+    for(int i = 1; i <= n; ++i)
+	printf("%d", ans[i]);
+    
+    return 0;
+}

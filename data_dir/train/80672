@@ -1,0 +1,118 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <set>
+#include <cmath>
+#include <algorithm>
+#include <map>
+#include <queue>
+#include <vector>
+using namespace std;
+typedef unsigned long long LL;
+const int N = 100005;
+const int M = 100001;
+const int inf = 1000000005;
+struct Student {
+    int b , c , id;
+    bool operator < (const Student &n) const {
+        return b < n.b;
+    }
+}p[N] , bug[N];
+int n , m , s , a[N] , ret[N] , ans[N];
+vector <pair <int , pair <int , int> > > v;
+struct Tree {
+    int left , right ;
+    pair <int , int> mn;
+}L[N << 2];
+#define lson step << 1
+#define rson step << 1 | 1
+void build (int step , int l , int r) {
+    L[step].left = l;
+    L[step].right = r;
+    if (l == r) {
+        L[step].mn = make_pair (p[l].c , l);
+        return ;
+    }
+    int m = (l + r) >> 1;
+    build (lson , l , m);
+    build (rson , m + 1 , r);
+    L[step].mn = min (L[lson].mn , L[rson].mn);
+}
+pair <int , int> query (int step , int l , int r) {
+    if (L[step].left == l && L[step].right == r) {
+        return L[step].mn;
+    }
+    int m = (L[step].left + L[step].right) >> 1;
+    if (r <= m) return query (lson , l , r);
+    else if (l > m) return query (rson , l , r);
+    else return min (query (lson , l , m) , query (rson , m + 1 , r));
+}
+void update (int step , int pos) {
+    if (L[step].left == L[step].right) {
+        L[step].mn.first = inf;
+        return ;
+    }
+    int m = (L[step].left + L[step].right) >> 1;
+    if (pos <= m) update (lson , pos);
+    else update (rson , pos);
+    L[step].mn = min (L[lson].mn , L[rson].mn);
+}
+bool check (int day) {
+    int remain = s;
+    build (1 , 0 , n - 1);
+    int last = m - 1;
+    while (last >= 0) {
+        int it = lower_bound (v.begin () , v.end () , make_pair(bug[last].b , make_pair (0 , 0))) - v.begin ();
+        if (it == n) return false;
+        pair <int , int> pos = query (1 , it , n - 1);
+        remain -= pos.first;
+        if (remain < 0) return false;
+        for (int i = last ; i >= 0 && i > last - day ; i --) {
+            ret[bug[i].id] = v[pos.second].second.second;//(it -> second).second;
+        }
+        // cout << pos.second << endl;
+        update (1 , pos.second);
+        last -= day;
+    }
+    return true;
+}
+int main () {
+    #ifndef ONLINE_JUDGE
+        freopen ("input.txt" , "r" , stdin);
+    #endif
+    scanf ("%d %d %d" , &n , &m , &s);
+    for (int i = 0 ; i < m ; i ++) {
+        scanf ("%d" , &bug[i].b);
+        bug[i].id = i;
+    }
+    sort (bug , bug + m);
+    for (int i = 0 ; i < n ; i ++) {
+        scanf ("%d" , &p[i].b);
+        p[i].id = i + 1;
+    }
+    for (int i = 0 ; i < n ; i ++) {
+        scanf ("%d" , &p[i].c);
+    }
+    sort (p , p + n);
+    for (int i = 0 ; i < n ; i ++) {
+        v.push_back (make_pair (p[i].b , make_pair (p[i].c , p[i].id)));
+    }
+    int low = 1 , high = m , mid , gao = -1;
+    while (low <= high) {
+        mid = (low + high) >> 1;
+        if (check (mid)) {
+            memcpy (ans , ret , sizeof(ans));
+            gao = mid;
+            high = mid - 1;
+        }
+        else low = mid + 1;
+    }
+    if (gao == -1) puts ("NO");
+    else {
+        puts ("YES");
+        for (int i = 0 ; i < m ; i ++) {
+            printf ("%d " , ans[i]);
+        }
+    }
+    return 0;
+}

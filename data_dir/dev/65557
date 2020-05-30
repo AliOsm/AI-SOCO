@@ -1,0 +1,242 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <cmath>
+#include <climits>
+#include <memory.h>
+
+#if !defined(__GNUC__)
+#include <hash_set>
+#include <hash_map>
+
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+
+#else // !defined(__GNUC__)
+
+#include <ext/hash_set>
+#include <ext/hash_map>
+namespace stdext = __gnu_cxx;
+#define _CrtDbgBreak()
+
+#endif // !defined(__GNUC__)
+
+typedef size_t vertex_index_t;
+typedef uint32_t weight_t;
+typedef uint32_t distance_t;
+
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::set<size_t> set_size_t;
+typedef std::vector<set_size_t> vector_set_size_t;
+typedef stdext::hash_set<size_t> hash_set_size_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#elif !defined(__GNUC__)
+#include <library/lib_stopwatch.h>
+#else 
+#include "../../library/library/lib_stopwatch.h"
+#endif
+
+typedef std::vector<vertex_index_t> vertex_sequence_t;
+typedef std::vector<vertex_sequence_t> vertex_sequences_t;
+
+typedef std::vector<vertex_index_t> link_list_t;
+typedef std::vector<vertex_index_t> vertex_index_list_t;
+typedef std::vector<link_list_t> link_lists_t;
+
+typedef std::vector<distance_t> distances_t;
+typedef std::vector<distances_t> distance_matrix_t;
+
+typedef std::vector<uint8_t> binary_vector_t;
+
+class DfsWalk
+{
+public:
+    // walk only given linked component
+    void PerformWalk(const link_lists_t& links, const vertex_index_t startIndex, vertex_sequence_t& sequence)
+    {
+        const size_t n = links.size();      
+        binary_vector_t wasHere(n);
+        sequence.clear();
+        PerformWalkReqPart(links, startIndex, wasHere, sequence);
+    }
+
+    // walk only given linked component
+    vertex_sequence_t PerformWalk(const link_lists_t& links, const vertex_index_t startIndex)
+    {
+        vertex_sequence_t sequence;
+        PerformWalk(links, startIndex, sequence);
+        return sequence;
+    }
+
+    // walk all linked components, start index is zero
+    void PerformWalkAll(const link_lists_t& links, vertex_sequences_t& sequences)
+    {
+        const size_t n = links.size();
+        binary_vector_t wasHere(n);
+        sequences.clear();
+        for (size_t i = 0; i < n; i++)
+        {           
+            if (!wasHere[i])
+            {
+                vertex_sequence_t nextSequence;
+                PerformWalkReqPart(links, i, wasHere, nextSequence);
+                sequences.push_back(nextSequence);
+            }           
+        }
+    }
+
+    vertex_sequences_t PerformWalkAll(const link_lists_t& links)
+    {
+        vertex_sequences_t sequences;
+        PerformWalkAll(links, sequences);
+        return sequences;
+    }
+
+private:
+    void PerformWalkReqPart(const link_lists_t& links, const vertex_index_t startIndex, binary_vector_t& wasHere, vertex_sequence_t& sequence)
+    {
+        if (wasHere[startIndex])
+            return;
+
+        wasHere[startIndex] = true;
+        sequence.push_back(startIndex);
+
+        const link_list_t currentLinks = links[startIndex];
+        for (size_t i = 0; i < currentLinks.size(); i++)
+        {
+            const size_t nextIndex = currentLinks[i];
+            if (!wasHere[nextIndex])
+            {
+                PerformWalkReqPart(links, nextIndex, wasHere, sequence);
+            }
+        }
+    }
+};
+
+bool IsConnected(const vector_set_size_t& langs, const size_t i, const size_t j)
+{
+    const set_size_t x = langs[i];
+    const set_size_t y = langs[j];
+
+    for (set_size_t::const_iterator px = x.begin(); px != x.end(); ++px)
+    {
+        if (y.find(*px) != y.end())
+            return true;
+    }
+
+    return false;
+}
+
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw;
+
+    // 
+    size_t n, m;
+    ist >> n >> m;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    vector_set_size_t langs(n);
+    for (size_t i = 0; i < n; i++)
+    {
+        size_t langCount;
+        ist >> langCount;
+        for (size_t j = 0; j < langCount; j++)
+        {
+            size_t lang;
+            ist >> lang;
+            langs[i].insert(lang);
+        }
+    }
+
+    // 
+    vector_2d_size_t links(n);
+    for (size_t i = 0; i < n; i++)
+    {
+        for (size_t j = i + 1; j < n; j++)
+        {
+            if (IsConnected(langs, i, j))
+            {
+                links[i].push_back(j);
+                links[j].push_back(i);
+            }
+        }
+    }
+
+    size_t zeroCount = 0;
+    for (size_t i = 0; i < n; i++)
+        if (langs[i].empty())
+            zeroCount++;
+
+    DfsWalk dfs;
+    vertex_sequences_t parts;
+    dfs.PerformWalkAll(links, parts);
+
+    const size_t partsCount = parts.size();
+
+    size_t ans = 0;
+    if (zeroCount != n)
+    {
+        ans = partsCount - 1;
+    }
+    else
+    {
+        ans = partsCount;
+    }
+
+    ost << ans << std::endl;
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

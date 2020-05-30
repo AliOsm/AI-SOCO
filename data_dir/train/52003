@@ -1,0 +1,100 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <string>
+#include <cstdio>
+#include <cstdlib>
+#include <set>
+#include <map>
+using namespace std;
+const int N = 1e6;
+#define REP(i, n) for (int i = 0; i < n; ++i)
+int coords[N][5];
+int res[N];
+int xr[N * 4];
+int tree[N * 4];
+vector < int > f;
+bool bit(int mask, int x) {
+    mask &= (1 << x);
+    return mask > 0;
+}
+int get(int x, const vector < int > &f) {
+    int l = 0;
+    int r = f.size();
+    while (l + 1 < r) {
+        int m = (l + r) >> 1;
+        if (f[m] > x) r = m;
+        else l = m;
+    }
+    return l;
+}
+bool cmp(vector < int > a, vector < int > b) {
+    return a[0] < b[0] || (a[0] == b[0] && a.back() < b.back()) || (a[0] == b[0] && a.back() == b.back() && a[1] < b[1]);
+}
+vector < vector < int > > events;
+void addEvent(int x, int l, int r, int id, int t) {
+    vector < int > e;
+    e.push_back(x);
+    e.push_back(l);
+    e.push_back(r);
+    e.push_back(id);
+    e.push_back(t);
+    events.push_back(e);
+}
+void push(int v, int l, int r) {
+    tree[v] ^= xr[v];
+    if (l != r) {
+        xr[v + v] ^= xr[v];
+        xr[v + v + 1] ^= xr[v];
+    }
+    xr[v] = 0;
+}
+void treeupd(int v, int l, int r, int nl, int nr, int val) {
+    if (l == nl && r == nr) {
+        xr[v] ^= (1 << val);
+        push(v, l, r);
+        return;
+    }
+    push(v, l, r);
+    int m = (l + r) >> 1;
+    if (m >= nr) treeupd(v + v, l, m, nl, nr, val);
+    else if (m < nl) treeupd(v + v + 1, m + 1, r, nl, nr, val);
+    else {
+        treeupd(v + v, l, m, nl, m, val);
+        treeupd(v + v + 1, m + 1, r, m + 1, nr, val);
+    }
+    tree[v] = tree[v + v] | tree[v + v + 1];
+}
+int treeget(int v, int l, int r, int nl, int nr) {
+    push(v, l, r);
+    if (l == nl && r == nr) return tree[v];
+    int m = (l + r) >> 1;
+    int res;
+    if (m >= nr) res = treeget(v + v, l, m, nl, nr);
+    else if (m < nl) res = treeget(v + v + 1, m + 1, r, nl, nr);
+    else {
+        res = treeget(v + v, l, m, nl, m) | treeget(v + v + 1, m + 1, r, m + 1, nr);
+    }
+    tree[v] = tree[v + v] | tree[v + v + 1];
+    return res;
+}
+int main() {
+    int n;
+    scanf("%d", &n);
+    int t[5];
+    REP(i, n) {
+        REP(j, 4) {
+            cin >> coords[i][j];
+            t[j] = min(t[j], coords[i][j]);
+        }
+    }
+    REP(i, n) REP(j, 4) coords[i][j] -= t[j];
+    cout << "YES" << endl;
+    REP(i, n) {
+        int res = 0;
+        if (coords[i][0] % 2) res += 1;
+        if (coords[i][1] % 2) res += 2;
+        cout << res + 1 << endl;
+    }
+}

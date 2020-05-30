@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+typedef pair< int, int > ii;
+typedef vector< ll > vi;
+typedef vector< ii > vii;
+
+#define INF 0x3F3F3F3F
+#define LINF 0x3F3F3F3F3F3F3F3FLL
+#define pb push_back
+#define mp make_pair
+#define pq priority_queue
+#define LSONE(s) ((s)&(-s))
+#define DEG_to_RAD(X)   (X * PI / 180)
+#define F first
+#define S second
+#define PI 2*acos(0)
+
+#ifdef ONLINE_JUDGE
+#define debug(args...)
+#else
+#define debug(args...) fprintf(stderr,args)
+#endif
+
+//////////////////////
+int dx[] = {-1,0,1,0};
+int dy[] = {0,1,0,-1};
+//////////////////////
+
+const int N = 2e6 + 10LL;
+
+#define MAX_N 200001                           // adjust this value as needed
+#define LOG_TWO_N 23            // 2^10 > 1000, adjust this value as needed
+
+class RMQ {                                          // Range Minimum Query
+private:
+  int _A[MAX_N], SpT[MAX_N][LOG_TWO_N];
+public:
+  RMQ(){};
+  RMQ(int n, int A[]) {    // constructor as well as pre-processing routine
+    for (int i = 0; i < n; i++) {
+      _A[i] = A[i];
+      SpT[i][0] = i; // RMQ of sub array starting at index i + length 2^0=1
+    }
+    // the two nested loops below have overall time complexity = O(n log n)
+    for (int j = 1; (1<<j) <= n; j++) // for each j s.t. 2^j <= n, O(log n)
+      for (int i = 0; i + (1<<j) - 1 < n; i++)    // for each valid i, O(n)
+        if (_A[SpT[i][j-1]] < _A[SpT[i+(1<<(j-1))][j-1]])            // RMQ
+          SpT[i][j] = SpT[i][j-1];    // start at index i of length 2^(j-1)
+        else                  // start at index i+2^(j-1) of length 2^(j-1)
+          SpT[i][j] = SpT[i+(1<<(j-1))][j-1];
+  }
+
+  int query(int i, int j) {
+    int k = 31 - __builtin_clz(j - i + 1);
+    if (_A[SpT[i][k]] <= _A[SpT[j-(1<<k)+1][k]]) return SpT[i][k];
+    else                                         return SpT[j-(1<<k)+1][k];
+} };
+
+int n;
+int a[N], b[N];
+RMQ *sa, *sb;
+
+int main() {
+
+  scanf("%d", &n);
+  for(int i = 0; i < n; ++i) {
+    scanf("%d", a + i);
+    a[i] = -a[i];
+  }
+  for(int i = 0; i < n; ++i) {
+    scanf("%d", b + i);
+  }
+  sa = new RMQ(n, a);
+  sb = new RMQ(n, b);
+  ll ans = 0;
+  for(int i = 0; i < n; ++i) {
+    int l1 = i, r1 = n - 1;
+    while(l1 < r1) {
+      int mid = (l1 + r1) >> 1;
+      ll qa = -a[sa->query(i, mid)];
+      ll qb = b[sb->query(i, mid)];
+      if(qa < qb) l1 = mid + 1;
+      else r1 = mid;
+    }
+    int l2 = i, r2 = n - 1;
+    while(l2 < r2) {
+      int mid = (l2 + r2 + 1) >> 1;
+      ll qa = -a[sa->query(i, mid)];
+      ll qb = b[sb->query(i, mid)];
+      if(qa <= qb) l2 = mid;
+      else r2 = mid - 1;
+    }
+    ll qa = -a[sa->query(i, l2)];
+    ll qb = b[sb->query(i, l2)];
+    if(qa == qb) {
+      ans += l2 - l1 + 1;
+    }
+  }
+  printf("%lld\n", ans);
+  return 0;
+}

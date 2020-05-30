@@ -1,0 +1,246 @@
+#pragma comment (linker, "/STACK:64000000")
+
+#define _USE_MATH_DEFINES
+#define _CRT_NO_DEPRECEATE
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <cstring>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <memory.h>
+#include <sstream>
+#include <cassert>
+#include <ctime>
+#include <complex>
+
+#define pb push_back
+#define pll pair<ll, ll>
+#define pii pair<int, int>
+#define piiii pair<pii, pii>
+#define mp make_pair
+#define sq(x) ((x)*(x))
+#define tmin(x,y,z) (min(min((x),(y)),(z)))
+#define getbit(x, mask) (((mask) >> (x)) & 1)
+#define onbit(x, mask) ((mask) | ((unsigned int)(1) << (x)))
+#define offbit(x, mask) ((mask) & (~((unsigned int)(1) << (x))))
+#define INF ((int)(1e9))
+#define LINF ((long long)(1e18))
+#define EPS (1e-8)
+#define PI (3.1415926535897932384626433832795)
+#define y1 asdf_1
+#define y0 asdf_2
+#define j0 jj0
+#define MOD 1000000007
+//#define HMOD 536870911
+#define HMOD ((long long)(1e18) + 3LL)
+#ifdef _MY_DEBUG
+#define HMOD 1000000007
+#endif
+#define MAX 2000000000
+#define HBASE 1009
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef unsigned int uint32;
+typedef long double ldd;
+
+using namespace std;
+
+inline int64 norm(int64 d)
+{
+	while (d >= HMOD)
+	{
+		d -= HMOD;
+	}
+	while (d < 0)
+	{
+		d += HMOD;
+	}
+	return d;
+}
+
+inline int64 mul(int64 a, int64 b)
+{
+	int64 q = (long double)a * (long double)b / (long double)HMOD;
+	int64 res = a * b - q * HMOD;
+	return norm(res);
+}
+
+inline int64 add(int64 a, int64 b)
+{
+	return (a + b) % HMOD;
+}
+
+inline int64 dec(int64 a, int64 b)
+{
+	return (a + HMOD - b) % HMOD;
+}
+
+inline int64 binPow(int64 a, int64 b)
+{
+	if (!b)
+	{
+		return 1LL;
+	}
+	if (b & 1LL)
+	{
+		return mul(binPow(a, b - 1LL), a);
+	}
+	else
+	{
+		int64 res = binPow(a, b >> 1);
+		return mul(res, res);
+	}
+}
+
+inline int64 backElement(int64 a)
+{
+	return binPow(a, HMOD - 2LL);
+}
+
+struct node
+{
+	int digit;
+	int64 hash;
+};
+
+int n, m, k;
+char s[100500];
+node tree[400500];
+int64 pw[100500];
+int64 dv;
+
+void build(int v, int tl, int tr, int l, int r)
+{
+	tree[v].digit = -1;
+	if (tl == tr)
+	{
+		tree[v].hash = s[l - 1] - '0';
+		return;
+	}
+	int tm = (tl + tr) >> 1;
+	build(v << 1, tl, tm, tl, tm);
+	build((v << 1) + 1, tm + 1, tr, tm + 1, tr);
+	tree[v].hash = add(mul(tree[v << 1].hash, pw[tr - tm]), tree[(v << 1) + 1].hash);
+}
+
+void modify(int v, int tl, int tr, int l, int r, int d)
+{
+	if (tl == l && tr == r)
+	{
+		tree[v].hash = mul((int64)d, mul(1LL, mul(dec(1LL, pw[r - l + 1]), dv)));
+		tree[v].digit = d;
+		return;
+	}
+	if (l > r)
+	{
+		return;
+	}
+	int tm = (tl + tr) >> 1;
+	if (tree[v].digit > -1)
+	{
+		modify(v << 1, tl, tm, tl, tm, tree[v].digit);
+		modify((v << 1) + 1, tm + 1, tr, tm + 1, tr, tree[v].digit);
+		//tree[v << 1].digit = tree[v].digit;
+		//tree[(v << 1) + 1].digit = tree[v].digit;
+		tree[v].digit = -1;
+	}
+	modify(v << 1, tl, tm, l, min(r, tm), d);
+	modify((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r, d);
+	tree[v].hash = add(mul(tree[v << 1].hash, pw[tr - tm]), tree[(v << 1) + 1].hash);
+}
+
+int64 getHash(int v, int tl, int tr, int l, int r)
+{
+	if (tl == l && tr == r)
+	{
+		return tree[v].hash;
+	}
+	if (l > r)
+	{
+		return 0LL;
+	}
+	int tm = (tl + tr) >> 1;
+	if (tree[v].digit > -1)
+	{
+		modify(v << 1, tl, tm, tl, tm, tree[v].digit);
+		modify((v << 1) + 1, tm + 1, tr, tm + 1, tr, tree[v].digit);
+		//tree[v << 1].digit = tree[v].digit;
+		//tree[(v << 1) + 1].digit = tree[v].digit;
+		tree[v].digit = -1;
+	}
+	int64 res1 = getHash(v << 1, tl, tm, l, min(r, tm));
+	int64 res2 = getHash((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r);
+	return add(mul(res1, pw[max(0, r - tm)]), res2);
+}
+
+void precalc()
+{
+	pw[0] = 1LL;
+	for (int j = 1; j <= 100000; j++)
+	{
+		pw[j] = mul(pw[j - 1], HBASE);
+	}
+	dv = backElement(dec(1LL, HBASE));
+}
+
+void solve()
+{
+	precalc();
+	scanf ("%d%d%d\n%s", &n, &m, &k, &s);
+	build(1, 1, n, 1, n);
+	for (int j = 1; j <= (m + k); j++)
+	{
+		int type, l, r, c;
+		scanf ("%d%d%d%d", &type, &l, &r, &c);
+		if (type == 1)
+		{
+			modify(1, 1, n, l, r, c);
+		}
+		else
+		{
+			if (r - l + 1 <= c)
+			{
+				printf ("YES\n");
+			}
+			else
+			{
+				int64 res1 = getHash(1, 1, n, l, r - c);
+				int64 res2 = getHash(1, 1, n, l + c, r);
+				if (res1 == res2)
+				{
+					printf ("YES\n");
+				}
+				else
+				{
+					printf ("NO\n");
+				}
+			}
+		}
+	}
+}
+
+#define TASK "independent"
+
+int main()
+{
+	ios_base::sync_with_stdio(false); cin.tie(0);
+#ifdef _MY_DEBUG
+	freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+	//freopen(TASK ".in", "rt", stdin); freopen(TASK ".out", "wt", stdout);
+#endif
+	srand(1337);
+	solve();
+	return 0;
+}

@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef pair<int, int> pii;
+typedef long long ll;
+
+#define pb push_back
+#define mp make_pair
+const int N = 200010;
+const int oo = 1e9;
+ 
+
+int xm,ym,zm,n,m,k,xmn,xmx,ymn,ymx,zmn,zmx;
+struct point{
+	int x ,y , z,idx;
+	bool operator<(const point &rhs) const{
+		return x<rhs.x;
+	}
+	void print(){
+		cout << x << " " << y << " " << z << endl;
+	}
+};
+point pnt[N],q[N],org[N];
+multiset<int> seg[4*N];
+vector< int > f[2];
+
+int l,r,x,y,at,val,ans[N];
+
+void update(int n , int s , int e){
+	if(s > at || e < at)return;
+	seg[n].insert(val);
+	if(s==e)return;
+	update(2*n,s,(s+e)/2);
+	update(2*n+1,(s+e)/2+1,e);
+}
+bool get(int n , int s , int e){
+	if(s > r || e < l)return 0;
+	if(s >=l && e <= r){
+		return seg[n].lower_bound(x) != seg[n].end() && *seg[n].lower_bound(x) <= y;
+	}
+	return get(2*n,s,(s+e)/2)||get(2*n+1,(s+e)/2+1,e);
+}
+void clear(){
+	for(int i = 0 ; i < 4*N;++i)seg[i].clear();
+}
+pair<point,point> nw(int a , int b , int c){
+	point f1,f2;
+	f1.x = xmn,f1.y = ymn,f1.z = zmn;	
+	f2.x = xmx,f2.y = ymx,f2.z = zmx;
+	f1.x = min(f1.x,a),f2.x = max(f2.x,a);
+	f1.y = min(f1.y,b),f2.y = max(f2.y,b);
+	f1.z = min(f1.z,c),f2.z = max(f2.z,c);
+	return mp(f1,f2);
+}
+bool inside(point c){
+	return c.x >= xmn && c.x <= xmx && c.y >= ymn && c.y <= ymx && c.z >= zmn && c.z <= zmx;
+}
+int main() {
+	cin >> xm >> ym >> zm >> n >> m >> k;
+	for (int a,b,c,i = 0; i < n; ++i){
+		scanf("%d%d%d",&a,&b,&c);
+		if(!i)xmn=xmx=a,ymn=ymx=b,zmn=zmx=c;
+		xmn = min(xmn,a),xmx = max(xmx,a);
+		ymn = min(ymn,b),ymx = max(ymx,b);
+		zmn = min(zmn,c),zmx = max(zmx,c);
+	}
+	for (int i = 0; i < m; ++i){
+		scanf("%d%d%d",&pnt[i].x,&pnt[i].y,&pnt[i].z);
+		if(inside(pnt[i])){
+			puts("INCORRECT");
+			return 0;
+		}
+	}
+	puts("CORRECT");
+	sort(pnt,pnt+m);
+	for (int i = 0; i < k; ++i){
+		scanf("%d%d%d",&q[i].x,&q[i].y,&q[i].z);
+		q[i].idx = i;
+		org[i] = q[i];
+	}
+	sort(q,q+k);
+	for (int i = 0; i < k; ++i){
+		if(q[i].x < xmn){
+			f[0].push_back(i);
+		}else{
+			f[1].push_back(i);
+		}
+	}
+	int idx = 0;
+	while(idx < m &&  pnt[idx].x < xmn)++idx;
+	for(int i = 0 ; i < f[1].size();++i){
+		int cur = f[1][i];		
+		pair<point,point> w = nw(q[cur].x,q[cur].y,q[cur].z);
+		l = w.first.y,r = w.second.y;
+		x = w.first.z,y = w.second.z;
+		while(idx < m && pnt[idx].x <= w.second.x){
+			at = pnt[idx].y;
+			val = pnt[idx].z;
+			update(1,1,ym);
+			idx++;
+		}
+		bool res = get(1,1,ym);
+		if(res){
+			ans[q[cur].idx] = 1;
+		}else{
+			ans[q[cur].idx] = 2;;
+		}
+	}
+	clear();
+	idx = m-1;
+	while(idx >= 0 &&  pnt[idx].x > xmx)--idx;
+	for(int i = f[0].size()-1 ;i >= 0 ; --i){
+		int cur = f[0][i];
+		pair<point,point> w = nw(q[cur].x,q[cur].y,q[cur].z);
+		l = w.first.y,r = w.second.y;
+		x = w.first.z,y = w.second.z;
+		while(idx >= 0 && pnt[idx].x >= w.first.x){
+			at = pnt[idx].y;
+			val = pnt[idx].z;
+			update(1,1,ym);
+			idx--;
+		}
+		bool res = get(1,1,ym);
+		if(res){
+			ans[q[cur].idx] = 1;
+		}else{
+			ans[q[cur].idx] = 2;;
+		}
+	}
+	for (int i = 0; i < k; ++i){
+		if(inside(org[i])){
+			puts("OPEN");
+		}else{
+			assert(ans[i]!= 0);
+			if(ans[i]==1){
+				puts("CLOSED");
+			}else{
+				puts("UNKNOWN");
+			}
+		}
+	}
+	
+	return 0;
+}

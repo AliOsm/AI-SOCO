@@ -1,0 +1,277 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+ 
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+typedef pair<int, ii> iii;
+ 
+ll pwr(ll base, ll p, ll mod=MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+
+
+ll gcd(ll a, ll b){
+    if(b == 0)  return a;
+    return gcd(b, a%b);
+}
+
+
+const int N = 300002;
+int n, ticks, par[20][N], lo[N], hi[N], lazy[4*N], depth[N], diameter;
+vector<int> adj[N];
+ii tree[4*N];
+
+
+void dfs(int v, int d){
+	depth[v] = d;
+	lo[v] = ++ticks;
+	for(auto vv : adj[v])
+		dfs(vv, d+1);
+	hi[v] = ticks;
+}
+
+
+int LCA(int a, int b){
+	if(depth[a] < depth[b])	swap(a, b);
+	int diff = depth[a] - depth[b];
+	for(int i=0;i<20;i++)
+		if((diff >> i) & 1)
+			a = par[i][a];
+	if(a == b)	return a;
+	for(int i=19;i>=0;i--)
+		if(par[i][a] != par[i][b]){
+			a = par[i][a];	b = par[i][b];
+		}
+	if(a == b)	return a;
+	return par[0][a];
+}
+
+int kth_ancestor(int v, int k){
+	for(int i=19;i>=0;i--)
+		if((k >> i) & 1)
+			v = par[i][v];
+	return v;
+}
+
+
+int get_distance(int a, int b){
+	return depth[a] + depth[b] - 2*depth[LCA(a, b)];
+}
+
+
+void build(int node, int s, int e){
+	if(s > e)	return;
+	if(s == e){
+		tree[node] = ii(-MOD, 0);
+		return;
+	}
+	int mid = (s + e)/2;
+	build(LEFT(node), s, mid);
+	build(RIGHT(node), mid+1, e);
+	tree[node] = tree[LEFT(node)];
+	if(tree[RIGHT(node)].ff > tree[LEFT(node)].ff)	tree[node] = tree[RIGHT(node)];
+	else if(tree[RIGHT(node)].ff == tree[LEFT(node)].ff)	tree[node].ss += tree[RIGHT(node)].ss;
+}
+
+
+void update(int node, int s, int e, int lo, int hi, int val){
+	if(s > e)	return;
+	if(lazy[node] != 0){
+		tree[node].ff += lazy[node];
+		if(s != e){
+			lazy[LEFT(node)] += lazy[node];
+			lazy[RIGHT(node)] += lazy[node];
+		}
+		lazy[node] = 0;
+	}
+	if(s > hi || lo > e || lo > hi)	return;
+	if(s >= lo && e <= hi){
+		tree[node].ff += val;
+		if(s != e){
+			lazy[LEFT(node)] += val;
+			lazy[RIGHT(node)] += val;
+		}
+		return;
+	}
+	int mid = (s + e)/2;
+	update(LEFT(node), s, mid, lo, hi, val);
+	update(RIGHT(node), mid+1, e, lo, hi, val);
+	tree[node] = tree[LEFT(node)];
+	if(tree[RIGHT(node)].ff > tree[LEFT(node)].ff)	tree[node] = tree[RIGHT(node)];
+	else if(tree[RIGHT(node)].ff == tree[LEFT(node)].ff)	tree[node].ss += tree[RIGHT(node)].ss;
+}
+
+void set_value(int node, int s, int e, int pos, int val){
+	if(s > e)	return;
+	if(lazy[node] != 0){
+		tree[node].ff += lazy[node];
+		if(s != e){
+			lazy[LEFT(node)] += lazy[node];
+			lazy[RIGHT(node)] += lazy[node];
+		}
+		lazy[node] = 0;
+	}
+	if(s > pos || pos > e)	return;
+	if(s == e){
+		tree[node] = ii(val, 1);
+		return;
+	}
+	int mid = (s + e)/2;
+	set_value(LEFT(node), s, mid, pos, val);
+	set_value(RIGHT(node), mid+1, e, pos, val);
+	tree[node] = tree[LEFT(node)];
+	if(tree[RIGHT(node)].ff > tree[LEFT(node)].ff)	tree[node] = tree[RIGHT(node)];
+	else if(tree[RIGHT(node)].ff == tree[LEFT(node)].ff)	tree[node].ss += tree[RIGHT(node)].ss;
+}
+
+
+
+ii query(int node, int s, int e, int lo, int hi){
+	if(s > e)	return ii(-MOD, 0);
+	if(lazy[node] != 0){
+		tree[node].ff += lazy[node];
+		if(s != e){
+			lazy[LEFT(node)] += lazy[node];
+			lazy[RIGHT(node)] += lazy[node];
+		}
+		lazy[node] = 0;
+	}
+	if(s > hi || lo > e)	return ii(-MOD, 0);
+	if(s >= lo && e <= hi)	return tree[node];
+	int mid = (s + e)/2;
+	ii a = query(LEFT(node), s, mid, lo, hi);
+	ii b = query(RIGHT(node), mid+1, e, lo, hi);
+	if(a.ff < b.ff)	swap(a, b);
+	if(a.ff == b.ff)	a.ss += b.ss;
+	return a;
+}
+
+
+ii get_centres(int u, int v){
+
+	int lca = LCA(u, v);
+	if(get_distance(lca, v) > get_distance(lca, u))	swap(u, v);
+
+	if(diameter % 2 == 0){
+		u = kth_ancestor(u, diameter/2);
+		return ii(u, u);
+	}
+	else{
+		u = kth_ancestor(u, diameter/2);
+		return ii(u, par[0][u]);		
+	}
+}
+
+
+
+int main(){
+
+    // ios_base::sync_with_stdio(0);
+    // cin.tie(0);
+
+	scanf("%d", &n);
+	n++;
+// n=2;
+	memset(par, -1, sizeof(par));
+	for(int i=2;i<=n;i++){
+		scanf("%d", &par[0][i]);
+		adj[par[0][i]].pb(i);
+	}
+
+	dfs(1, 0);
+	for(int j=0;j<19;j++)
+		for(int i=1;i<=n;i++)
+			if(par[j][i] != -1)
+				par[j+1][i] = par[j][par[j][i]];
+
+
+// cout<<"depth: ";for(int i=1;i<=n;i++)	cout<<depth[i]<<" ";cout<<endl;
+// cout<<"lo: ";for(int i=1;i<=n;i++)	cout<<lo[i]<<" ";cout<<endl;
+// cout<<"hi: ";for(int i=1;i<=n;i++)	cout<<hi[i]<<" ";cout<<endl;
+// cout<<n<<endl<<endl;
+
+	int centre1 = 1, centre2 = 1;
+	int endpoint1 = 1, endpoint2 = 1;
+
+	build(1, 1, n);
+	set_value(1, 1, n, 1, 0);
+
+// for(int j=1;j<=n;j++)	cout<<query(1, 1, n, j, j).ff<<":"<<query(1, 1, n, j, j).ss<<" ";cout<<endl;
+
+
+	for(int i=2;i<=n;i++){
+
+		if(get_distance(i, endpoint1) < get_distance(i, endpoint2))	swap(endpoint1, endpoint2);
+
+// cout<<i<<" "<<endpoint1<<" "<<endpoint2<<" yolo "<<get_distance(i, endpoint1)<<" "<<diameter<<endl;
+
+		if(get_distance(i, endpoint1) > diameter){
+			
+			diameter++;
+			endpoint2 = i;
+			ii temp = get_centres(endpoint1, endpoint2);
+			
+			if(diameter % 2 == 1){
+				
+				assert(centre1 == centre2);
+				if(temp.ff == centre1)	centre2 = temp.ss;
+				else if(temp.ss == centre1)	centre2 = temp.ff;
+
+// cout<<centre1<<" "<<centre2<<endl;
+
+				if(par[0][centre1] == centre2){
+					update(1, 1, n, lo[centre1], hi[centre1], 1);
+				}
+				else{
+					assert(par[0][centre2] == centre1);
+					update(1, 1, n, 1, lo[centre2]-1, 1);
+					update(1, 1, n, hi[centre2]+1, n, 1);
+				}
+			}
+			else{
+
+				if(par[0][centre1] == centre2)	swap(centre1, centre2);
+				assert(temp.ff == temp.ss);
+
+				if(temp.ff == centre1){
+					update(1, 1, n, 1, lo[centre2]-1, -1);
+					update(1, 1, n, hi[centre2]+1, n, -1);
+				}
+				else{
+					update(1, 1, n, lo[centre2], hi[centre2], -1);
+				}
+			}
+
+			centre1 = temp.ff;	centre2 = temp.ss;
+		}
+
+		set_value(1, 1, n, lo[i], max(get_distance(i, centre1), get_distance(i, centre2)));
+
+// cout<<"centres are "<<centre1<<" "<<centre2<<endl;
+// for(int j=1;j<=n;j++)	cout<<query(1, 1, n, j, j).ff<<":"<<query(1, 1, n, j, j).ss<<" ";cout<<endl;
+
+		ii ans = query(1, 1, n, 1, n);
+		printf("%d\n", ans.ss);
+// break;
+
+	}
+
+    return 0;
+}
+
+
+
+
+
+
+
+ 
+
+

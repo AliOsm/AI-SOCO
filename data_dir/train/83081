@@ -1,0 +1,165 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+
+const int maxN = (int)3e5 + 10;
+const int INF = (int)1e9;
+const int mod = (int)1e9 + 7;
+const ll LLINF = (ll)1e15;
+
+int n, m;
+int x[maxN];
+int y[maxN];
+vector < pair <int, int> > G[maxN];
+vector < pair <int, int> > g[maxN];
+vector <int> gr[maxN];
+vector < pair <int, int> > gbi[maxN];
+
+void addDirectedEdge(int x, int y, int z) {
+    g[x].push_back(make_pair(y, z));
+    gr[y].push_back(x);
+}
+
+bool used[maxN];
+map < pair <int, int>, int> edge;
+
+void dfs(int v) {
+    used[v] = true;
+    for (auto x: G[v]) {
+        if (!edge.count(minmax(v, x.first))) {
+            addDirectedEdge(v, x.first, x.second);
+            edge[minmax(v, x.first)] = true;
+        }
+        if (!used[x.first]) {
+            dfs(x.first);
+        }
+    }
+}
+
+vector <int> order;
+
+void dfs2(int v) {
+    used[v] = true;
+    for (int x: gr[v]) {
+        if(!used[x]) {
+            dfs2(x);
+        }
+    }
+    order.push_back(v);
+}
+
+int compidx[maxN];
+bool have[maxN];
+int compnum = 0;
+
+void dfs3(int v) {
+    compidx[v] = compnum;
+    for (auto x: g[v]) {
+        if (compidx[x.first] == 0) {
+            dfs3(x.first);
+        }
+        if (compidx[x.first] == compidx[v]) {
+            have[compnum] |= x.second;
+        }
+    }
+}
+
+void biconnected() {
+    dfs(0);
+    memset(used, 0, sizeof used);
+    for (int i = 0; i < n; ++i) {
+        if (!used[i]) {
+            dfs2(i);
+        }
+    }
+    reverse(order.begin(), order.end());
+    for (int v: order) {
+        if(compidx[v] == 0) {
+            compnum++;
+            dfs3(v);
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        for (auto x: G[i]) {
+            int a = compidx[i];
+            int b = compidx[x.first];
+            gbi[a].push_back(make_pair(b, x.second));
+        }
+    }
+}
+
+bool was[maxN];
+
+void dfs4(int v, int to) {
+    was[v] = true;
+    if (v == to) {
+        puts(have[to] ? "YES" : "NO");
+        exit(0);
+    }
+    for (auto x: gbi[v]) {
+        have[x.first] |= x.second | have[v];
+    }
+    for (auto x: gbi[v]) {
+        if (!was[x.first]) {
+            dfs4(x.first, to);
+        }
+    }
+}
+
+int main() {
+
+//    freopen(".in", "r", stdin);
+//    freopen(".out", "w", stdout);
+
+    n = nextInt<int>();
+    m = nextInt<int>();
+    for (int i = 0; i < m; ++i) {
+        int x, y, z;
+        x = nextInt<int>() - 1;
+        y = nextInt<int>() - 1;
+        z = nextInt<int>();
+        G[x].push_back(make_pair(y, z));
+        G[y].push_back(make_pair(x, z));
+    }
+
+    int a = nextInt<int>() - 1;
+    int b = nextInt<int>() - 1;
+    biconnected();
+    dfs4(compidx[a], compidx[b]);
+    return 0;
+}

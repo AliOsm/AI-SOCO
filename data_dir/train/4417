@@ -1,0 +1,157 @@
+#include<bits/stdc++.h>
+
+#define SZ(x) ((int(x.size())))
+
+typedef long long ll;
+
+using namespace std;
+
+const int maxn = 200*1000+10, mod = 1000000000;
+int n, m, t, x, y, d, arr[maxn], zero;
+ll sum1[4 * maxn], sum2[4 * maxn], data[4 * maxn], f[maxn], psum[maxn];
+
+struct pack
+{
+    ll jam1, jam2, cnt;
+    pack()
+    {
+        jam1 = jam2 = cnt = 0;
+    }
+};
+
+void bld (int x, int &l, int &r)
+{
+    if (r - l == 1)
+    {
+        sum1[x] = arr[l];
+        return;
+    }
+    int mid = (l + r) / 2;
+    bld (2 * x + 1, l, mid);
+    bld (2 * x + 2, mid, r);
+    sum1[x] = (sum1[2 * x + 1] + ((((sum1[2 * x + 2] * f[mid - l]) % mod) + ((sum2[2 * x + 2] * f[mid - l - 1]) % mod)) % mod)) % mod;
+    sum2[x] = (sum2[2 * x + 1] + ((sum1[2 * x + 2] * f[mid - l - 1]) % mod)) % mod;
+    if (mid - l > 1)
+        sum2[x] = (sum2[x] + ((sum2[2 * x + 2] * f[mid - l - 2]) % mod)) % mod;
+}
+
+void push (int x, int &l, int &r)
+{
+    int mid = (l + r) / 2;
+    data[2 * x + 1] = (data[2 * x + 1] + data[x]) % mod;
+    data[2 * x + 2] = (data[2 * x + 2] + data[x]) % mod;
+    sum1[2 * x + 1] = (sum1[2 * x + 1] + ((data[x] * psum[mid - l]) % mod)) % mod;
+    sum2[2 * x + 1] = (sum2[2 * x + 1] + ((data[x] * psum[mid - l - 1]) % mod)) % mod;
+    sum1[2 * x + 2] = (sum1[2 * x + 2] + ((data[x] * psum[r - mid]) % mod)) % mod;
+    sum2[2 * x + 2] = (sum2[2 * x + 2] + ((data[x] * psum[r - mid - 1]) % mod)) % mod;
+    data[x] = 0;
+}
+
+void add (int x, int &l, int &r, int &ql, int &qr, int &val)
+{
+    if (l >= qr || ql >= r)
+        return;
+    if (ql <= l && r <= qr)
+    {
+        data[x] = (data[x] + val) % mod;
+        sum1[x] = (sum1[x] + ((psum[r - l] * val) % mod)) % mod;
+        sum2[x] = (sum2[x] + ((psum[r - l - 1] * val) % mod)) % mod;
+        return;
+    }
+    int mid = (l + r) / 2;
+    push (x, l, r);
+    add (2 * x + 1, l, mid, ql, qr, val);
+    add (2 * x + 2, mid, r, ql, qr, val);
+    sum1[x] = (sum1[2 * x + 1] + ((((sum1[2 * x + 2] * f[mid - l]) % mod) + ((sum2[2 * x + 2] * f[mid - l - 1]) % mod)) % mod)) % mod;
+    sum2[x] = (sum2[2 * x + 1] + ((sum1[2 * x + 2] * f[mid - l - 1]) % mod)) % mod;
+    if (mid - l > 1)
+        sum2[x] = (sum2[x] + ((sum2[2 * x + 2] * f[mid - l - 2]) % mod)) % mod;
+}
+
+void st (int x, int &l, int &r, int &a, int &v)
+{
+    if (r - l == 1)
+    {
+        sum1[x] = v;
+        return;
+    }
+    int mid = (l + r) / 2;
+    push (x, l, r);
+    if (a < mid)
+        st (2 * x + 1, l, mid, a, v);
+    else
+        st (2 * x + 2, mid, r, a, v);
+    sum1[x] = (sum1[2 * x + 1] + ((((sum1[2 * x + 2] * f[mid - l]) % mod) + ((sum2[2 * x + 2] * f[mid - l - 1]) % mod)) % mod)) % mod;
+    sum2[x] = (sum2[2 * x + 1] + ((sum1[2 * x + 2] * f[mid - l - 1]) % mod)) % mod;
+    if (mid - l > 1)
+        sum2[x] = (sum2[x] + ((sum2[2 * x + 2] * f[mid - l - 2]) % mod)) % mod;
+}
+
+pack req (int x, int &l, int &r, int &ql, int &qr)
+{
+    pack ans;
+    if (l >= qr || ql >= r)
+        return ans;
+    if (ql <= l && r <= qr)
+    {
+        ans.jam1 = sum1[x];
+        ans.jam2 = sum2[x];
+        ans.cnt = r - l;
+        return ans;
+    }
+    int mid = (l + r) / 2;
+    push (x, l, r);
+    if (qr <= mid)
+        return req (2 * x + 1, l, mid, ql, qr);
+    else if (ql >= mid)
+        return req (2 * x + 2, mid, r, ql, qr);
+    else
+    {
+        pack ansl = req (2 * x + 1, l, mid, ql, qr), ansr = req (2 * x + 2, mid, r, ql, qr);
+        ans.cnt = ansl.cnt + ansr.cnt;
+        ans.jam1 = (ansl.jam1 + ((((ansr.jam1 * f[ansl.cnt]) % mod) + ((ansr.jam2 * f[ansl.cnt - 1]) % mod)) % mod)) % mod;
+        ans.jam2 = (ansl.jam2 + ((ansr.jam1 * f[ansl.cnt - 1]) % mod)) % mod;
+        if (ansl.cnt > 1)
+            ans.jam2 = (ans.jam2 + ((ansr.jam2 * f[ansl.cnt - 2]) % mod)) % mod;
+        return ans;
+    }
+}
+
+int main()
+{
+    scanf("%d %d", &n, &m);
+    f[0] = f[1] = psum[1] = 1;
+    psum[2] = 2;
+    for (int i = 2; i + 1 < maxn; i++)
+    {
+        f[i] = (f[i - 1] + f[i - 2]) % mod;
+        psum[i + 1] = (psum[i] + f[i]) % mod;
+    }
+    for (int i = 0; i < n; i++)
+        scanf("%d", &arr[i]);
+    bld (zero, zero, n);
+    for (int i = 0; i < m; i++)
+    {
+        scanf("%d", &t);
+        x--;
+        if (t == 1)
+        {
+            scanf("%d %d", &x, &d);
+            x--;
+            st (zero, zero, n, x, d);
+        }
+        else if (t == 2)
+        {
+            scanf("%d %d", &x, &y);
+            x--;
+            printf("%I64d\n", req (zero, zero, n, x, y).jam1);
+        }
+        else
+        {
+            scanf("%d %d %d", &x, &y, &d);
+            x--;
+            add (zero, zero, n, x, y, d);
+        }
+    }
+	return 0;
+}

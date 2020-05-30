@@ -1,0 +1,134 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 8000;
+int n, m, low[N], idx[N], comp[N], compH[N], dfs = 1, cmp;
+bool vis[N];
+vector<int> s;
+vector<vector<int> > g;
+char A[2000][2001];
+char B[2000][2001];
+void DFS(int u){
+    low[u] = idx[u] = dfs++;
+    vis[u] = true;
+    s.push_back(u);
+    for (int i = 0, v; i < g[u].size(); ++i){
+        v = g[u][i];
+        if (idx[v] == 0)
+            DFS(v);
+        if (vis[v])
+            low[u] = min(low[u], low[v]);
+    }
+    if (low[u] == idx[u]){
+        int v;
+        while (true){
+            v = s.back();
+            s.pop_back();
+            vis[v] = false;
+            comp[v] = cmp;
+            if (u == v)
+                break;
+        }
+        compH[cmp] = u;
+        ++cmp;
+    }
+}
+int Not(int x){
+    if (x < n)
+        return x + n;
+    return x - n;
+}
+void addEdge(int a, int b){
+    g[Not(a)].push_back(b);
+    g[Not(b)].push_back(a);
+}
+void Eq(int a,int b){
+	addEdge(a,Not(b));
+	addEdge(b,Not(a));
+}
+void notEq(int a,int b){
+	addEdge(a,b);
+	addEdge(Not(a),Not(b));
+}
+int main()
+{
+	scanf("%d",&n);
+	for(int i=0;i<n;++i)
+		scanf("%s",A[i]);
+	for(int i=0;i<n;++i)
+		scanf("%s",B[i]);
+	char s[2001];
+	scanf("%s",s);
+	int R=n,C=n;
+	n+=n;
+	g.resize(n*2);
+	for(int i=0;i<R;++i){
+		for(int j=0;j<C;++j){
+			if(A[i][j]==B[i][j]){
+				int x=s[j]=='1',y=s[i]=='1';
+				if(x && y)
+					Eq(i,j+R);
+				else if(x)
+					addEdge(Not(i),Not(i));
+				else if(y)
+					addEdge(Not(j+R),Not(j+R));
+			}else{
+				int x=s[j]=='1',y=s[i]=='1';
+				if(x && y)
+					notEq(i,j+R);
+				else if(x)
+					addEdge(i,i);
+				else if(y)
+					addEdge(j+R,j+R);
+				else{
+					puts("-1");
+					return 0;
+				}
+			}
+		}
+	}
+    for (int i = 0; i < g.size();++i)
+	    if (idx[i] == 0)
+	        DFS(i);
+    for (int i = 0; i < n;++i)
+	    if (comp[i] == comp[i + n]){
+	        puts("-1");
+	        return 0;
+	    }
+    vector<vector<int> > G(cmp);
+    vector<int> in(cmp);
+    for (int i = 0; i < 2*n;++i)
+    for (int j = 0; j < g[i].size();++j)
+    if (comp[i] != comp[g[i][j]]){
+        G[comp[i]].push_back(comp[g[i][j]]);
+        ++in[comp[g[i][j]]];
+    }
+    queue<int> q;
+    for (int i = 0; i < cmp;++i)
+	    if (!in[i])
+	        q.push(i);
+    vector<int> sol(cmp, -1);
+    while (!q.empty()){
+        int u = q.front();
+        q.pop();
+        if (sol[u] == -1){
+            sol[u] = false;
+            sol[comp[Not(compH[u])]] = true;
+        }
+        for (int i = 0; i < G[u].size();++i)
+        if (!--in[G[u][i]])
+            q.push(G[u][i]);
+    }
+    vector<string> res;
+    for (int i = 0; i < n;++i)
+    	if (sol[comp[i]]){
+    		if(i<R)
+    			res.push_back("row "+to_string(i));
+    		else
+    			res.push_back("col "+to_string(i-R));
+    	}
+    cout<<res.size()<<endl;
+    for(auto &s:res)
+    	cout<<s<<endl;
+    return 0;
+}

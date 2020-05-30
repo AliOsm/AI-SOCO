@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define out(x) cerr << #x"=" << x << endl
+
+const int N = 1e5 + 10;
+const int L = 1e7 + 10;
+
+int n, m;
+int a[N], b[N];
+map<int, vector<pair<int, int> > > vp, vp2;
+
+bool check[L];
+vector<int> plist;
+
+void init() {
+  check[0] = 1;
+  check[1] = 1;
+  for (int i = 2; i < L; ++i) {
+    if (!check[i]) {
+      plist.push_back(i);
+    }
+    for (int j = 0; j < plist.size(); ++j) {
+      if (i * plist[j] >= L) break;
+      check[i * plist[j]] = 1;
+    }
+  }
+}
+
+vector<pair<int, int> > primedivisors(int x) {
+  vector<pair<int, int> > res;
+  if (!check[x]) {
+    res.push_back(make_pair(x, 1));
+    return res;
+  }
+  for (int i = 2; i * i <= x; ++i) {
+    if (x % i == 0) {
+      int cnt = 0;
+      while (x % i == 0) {
+        x /= i;
+        ++cnt;
+      }
+      res.push_back(make_pair(i, cnt));
+    }
+  }
+  if (x != 1) {
+    res.push_back(make_pair(x, 1));
+  }
+  return res;
+}
+
+void reduce(int &x, int p, int c) {
+  while (c) {
+    x /= p;
+    --c;
+  }
+}
+
+void go(vector<pair<int, int> > &va, vector<pair<int, int> > &vb, int p) {
+  for (int i = 0, j = 0; i < va.size() && j < vb.size(); ) {
+    if (va[i].first >= vb[j].first) {
+      reduce(a[va[i].second], p, vb[j].first);
+      reduce(b[vb[j].second], p, vb[j].first);
+      va[i].first -= vb[j].first;
+      vb[j].first = 0;
+      ++j;
+    }
+    else {
+      reduce(a[va[i].second], p, va[i].first);
+      reduce(b[vb[j].second], p, va[i].first);
+      vb[j].first -= va[i].first;
+      va[i].first = 0;
+      ++i;
+    }
+  }
+}
+
+int main() {
+  scanf("%d%d", &n, &m);
+  init();
+  for (int i = 0; i < n; ++i) {
+    scanf("%d", a + i);
+  }
+  for (int i = 0; i < m; ++i) {
+    scanf("%d", b + i);
+  }
+  for (int i = 0; i < n; ++i) {
+    vector<pair<int, int> > v = primedivisors(a[i]);
+    for (int j = 0; j < v.size(); ++j) {
+      vp[v[j].first].push_back(make_pair(v[j].second, i));
+    }
+  }
+  for (int i = 0; i < m; ++i) {
+    vector<pair<int, int> > v = primedivisors(b[i]);
+    for (int j = 0; j < v.size(); ++j) {
+      vp2[v[j].first].push_back(make_pair(v[j].second, i));
+    }
+  }
+  for (auto &kv : vp) {
+    vector<pair<int, int> > &va = kv.second;
+    vector<pair<int, int> > &vb = vp2[kv.first];
+    go(va, vb, kv.first);
+  }
+  printf("%d %d\n", n, m);
+  for (int i = 0; i < n; ++i) {
+    printf("%d%c", a[i], " \n"[i == n - 1]);
+  }
+  for (int i = 0; i < m; ++i) {
+    printf("%d%c", b[i], " \n"[i == m - 1]);
+  }
+  return 0;
+}

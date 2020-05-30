@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int maxn = 100009;
+const int SQRT = 400;
+
+int dsu_par[maxn];
+int dsu_find(int v) {
+    if (v == dsu_par[v]) return v;
+    return dsu_par[v] = dsu_find(dsu_par[v]);
+}
+void merge(int u, int v) { // u to v
+    if (v == -1) return;
+    dsu_par[dsu_find(u)] = dsu_find(v);
+}
+
+int val[maxn];
+int n;
+
+int p[maxn], t[maxn];
+int d[maxn];
+
+int max_sum_on_prefix[maxn];
+int sum[maxn];
+
+void upd_bucket(int i)
+{
+    int m = min(n, i + SQRT);
+    sum[i] = 0;
+    max_sum_on_prefix[i] = -1000000;
+
+    for (int j = m - 1; j >= i; j--) {
+        sum[i] += d[j];
+        max_sum_on_prefix[i] = max(max_sum_on_prefix[i], sum[i]);
+    }
+}
+
+int ans[maxn];
+
+int main()
+{
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d", p + i, t + i);
+        p[i]--;
+
+        if (t[i] == 1) {
+            scanf("%d", &val[ p[i] ]);
+            d[ p[i] ] = 1;
+        }
+        else {
+            d[ p[i] ] = -1;
+        }
+
+        dsu_par[i] = i;
+    }
+
+    for (int i = (n-1) - (n-1) % SQRT; i >= 0; i -= SQRT) {
+        upd_bucket(i);
+    }
+
+    for (int q = n - 1; q >= 0; q--) {
+        int debt = 0;
+        int found = -1;
+
+        for (int i = (n-1) - (n-1) % SQRT; i >= 0 && found == -1; i -= SQRT) {
+            if (max_sum_on_prefix[i] + debt >= 1) {
+                for (int j = min(n, i + SQRT) - 1; j >= i; j--) {
+                    debt += d[j];
+                    if (debt >= 1) {
+                        found = j;
+                        break;
+                    }
+                }
+            }
+            else {
+                debt += sum[i];
+            }
+        }
+
+
+        if (found == -1) {
+            ans[q] = -1;
+        }
+        else {
+            found = dsu_find(found);
+            ans[q] = val[found];
+        }
+
+        d[ p[q] ] = 0;
+        merge(p[q], p[q] - 1);
+
+        upd_bucket(p[q] - p[q] % SQRT);
+    }
+
+    for (int i = 0; i < n; i++) printf("%d\n", ans[i]);
+}

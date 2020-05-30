@@ -1,0 +1,165 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll mod = 1e9 + 7;
+const ll N = 2e5 + 1;
+ll n, ans;
+
+ll dp[N][2];
+ll par[N];
+ll dep[N];
+
+bool vis[N];
+bool stk[N];
+
+vec <ll> adj[N];
+
+void input() {
+    cin >> n;
+    for(ll i = 1; i <= n; ++i) {
+        ll u; cin >> u;
+        ll v; cin >> v;
+        adj[v].pb(u);
+        par[u] = v;
+    }
+}
+
+ll dfs(ll u, vec <ll> &comp) {
+    comp.pb(u);
+    vis[u] = 1;
+    ll res = 0;
+    for(ll v: adj[u]) {
+        if(!vis[v]) {
+            res += dfs(v, comp);
+        }
+    }
+    ll v = par[u];
+    if(v && !vis[v]) {
+        res += dfs(v, comp);
+    }
+    return res + len(adj[u]) + !!v;
+}
+
+void topsort(ll u, vec <ll> &ts) {
+    vis[u] = 1;
+    for(ll v: adj[u]) {
+        if(!vis[v]) {
+            dfs(v, ts);
+        }
+    }
+    ts.pb(u);
+}
+
+ll calc(ll u, ll i, ll t) {
+    if(i == len(adj[u])) {
+        return 1;
+    }
+    ll v = adj[u][i];
+    if(dp[v][t] != -1) {
+        return dp[v][t];
+    }
+    if(t) {
+        return dp[v][t] = (calc(u, i + 1, 0) * calc(v, 0, 1) + 
+                           calc(u, i + 1, 1) * calc(v, 0, 0)) % mod;
+    } else {
+        return dp[v][t] = (calc(u, i + 1, 0) * calc(v, 0, 0)) % mod;
+    }
+}
+
+ll dfs_cycle(ll u, ll d) {
+    vis[u] = 1;
+    stk[u] = 1;
+    dep[u] = d;
+    for(ll v: adj[u]) {
+        if(!vis[v]) {
+            ll res = dfs_cycle(v, d + 1);
+            if(res) {
+                return res;
+            }
+        } else if(stk[v]) {
+            return d - dep[v] + 1;
+        }
+    }
+    stk[u] = 0;
+    return 0;
+}
+
+void solve() {
+    ans = 1;
+    memset(dp, -1, sizeof dp);
+    for(ll i = 1; i <= 2 * n; ++i) {
+        if(!vis[i]) {
+            vec <ll> comp;
+            vec <ll> ts;
+            ll m = dfs(i, comp) >> 1;
+            for(ll e: comp) {
+                vis[e] = 0;
+            }
+            for(ll e: comp) {
+                if(!vis[e]) {
+                    topsort(e, ts);
+                }
+            }
+            if(len(comp) == m) {
+                for(ll e: comp) {
+                    vis[e] = 0;
+                }
+                if(dfs_cycle(ts.back(), 0) != 1) {
+                    ans *= 2;
+                    ans %= mod;
+                }
+            } else {
+                assert(len(comp) == m + 1);
+                ans *= calc(ts.back(), 0, 1);
+                ans %= mod;
+            }
+            for(ll e: comp) {
+                vis[e] = 1;
+            }
+        }
+    }
+    cout << ans << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

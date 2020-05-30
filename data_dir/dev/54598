@@ -1,0 +1,144 @@
+#include <stdio.h>
+#include <vector>
+#include <algorithm>
+#include <map>
+#define pb push_back
+#define lli long long int
+#define MAXN 100005
+using namespace std;
+
+vector <pair <lli, int> > order;
+map <int, int> mapa;
+lli h[MAXN];
+int l[MAXN];
+int r[MAXN];
+int next[MAXN];
+int res[MAXN];
+pair <int, int> tree[4 * MAXN];
+
+int lower_search(int low, int high, lli val) {
+    int best = -1;
+    while(low <= high) {
+        int mid = (low + high) / 2;
+        if (order[mid].first >= val) {
+            best = mid;
+            high = mid - 1;
+        } else {
+            low = mid + 1;
+        }
+    }
+    return best;
+}
+
+int upper_search(int low, int high, lli val) {
+    int best = -1;
+    while(low <= high) {
+        int mid = (low + high) / 2;
+        if (order[mid].first <= val) {
+            best = mid;
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return best;
+}
+
+void init(int node, int a, int b) {
+    if (a == b) {
+        tree[node] = make_pair(0, -1);
+        return;
+    }
+    int mid = (a + b) / 2;
+    init(node * 2, a, mid);
+    init(node * 2 + 1, mid + 1, b);
+    tree[node] = make_pair(0, -1);
+    return;
+}
+
+void update(int node, int a, int b, int i, int j, pair <int, int> val) {
+    if (a > b || a > j || b < i) {
+        return;
+    }
+    if (i <= a && b <= j) {
+        tree[node] = val;
+        return;
+    }
+    int mid = (a + b) / 2;
+    update(node * 2, a, mid, i, j, val);
+    update(node * 2 + 1, mid + 1, b, i, j, val);
+    tree[node] = max(tree[node * 2], tree[node * 2 + 1]);
+    return;
+}
+
+pair <int, int> query(int node, int a, int b, int i, int j) {
+    if (a > b || a > j || b < i) {
+        return make_pair(0, -1);
+    }
+    if (i <= a && b <= j) {
+        return tree[node];
+    }
+    int mid = (a + b) / 2;
+    pair <int, int> q1 = query(node * 2, a, mid, i, j);
+    pair <int, int> q2 = query(node * 2 + 1, mid + 1, b, i, j);
+    return max(q1, q2);
+}
+
+
+int main(void) {
+    int n, d;
+
+    scanf(" %d %d", &n, &d);
+    for (int i = 0; i < n; i++) {
+        scanf(" %lld", &h[i]);
+        order.pb(make_pair(h[i], i));
+    }
+
+    sort(order.begin(), order.end());
+    for (int i = 0; i < (int)order.size(); i++) {
+        lli val = order[i].first;
+        int idx = order[i].second;
+        mapa[idx] = i;
+        l[idx] = upper_search(0, (int)order.size() - 1, val - d);
+        r[idx] = lower_search(0, (int)order.size() - 1, val + d);
+    }
+
+    init(1, 0, n - 1);
+    for (int i = n - 1; i >= 0; i--) {
+        pair <int, int> q1;
+        if (l[i] != -1) {
+            q1 = query(1, 0, n - 1, 0, l[i]);
+        } else {
+            q1 = make_pair(0, -1);
+        }
+        pair <int, int> q2;
+        if (r[i] != -1) {
+            q2 = query(1, 0, n - 1, r[i], n - 1);
+        } else {
+            q2 = make_pair(0, -1);
+        }
+        pair <int, int> q = max(q1, q2);
+        res[i] = 1 + q.first;
+        next[i] = q.second;
+        update(1, 0, n - 1, mapa[i], mapa[i], make_pair(res[i], i));
+    }
+
+    int maxi = -1;
+    int idx = -1;
+    for (int i = 0; i < n; i++) {
+        if (res[i] > maxi) {
+            maxi = res[i];
+            idx = i;
+        }
+    }
+    printf("%d\n", maxi);
+    while(idx != -1) {
+        printf("%d", idx + 1);
+        idx = next[idx];
+        if (idx != -1) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+    return 0;
+}

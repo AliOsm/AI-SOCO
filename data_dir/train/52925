@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 5;
+const int M = 21;
+vector<int> adj[N];
+int arr[N], subtree[N];
+bool vis[N];
+int cnt[M][2];
+long long ans;
+int n, root, mn;
+
+void dfs(int u, int par) {
+	subtree[u] = 1;
+	for (int nxt : adj[u]) {
+		if (nxt == par || vis[nxt])
+			continue;
+		dfs(nxt, u);
+		subtree[u] += subtree[nxt];
+	}
+}
+
+int getRoot(int u, int par, int sz) {
+	bool centroid = true;
+	int big = -1;
+	for (int nxt : adj[u]) {
+		if (nxt == par || vis[nxt])
+			continue;
+		if (subtree[nxt] > sz / 2)
+			centroid = false;
+		if (big == -1 || subtree[nxt] > subtree[big])
+			big = nxt;
+	}
+
+	if (centroid && sz - subtree[u] <= sz / 2)
+		return u;
+	return getRoot(big, u, sz);
+}
+
+void add(int u, int par, int x) {
+	for (int j = 0; j < M; j++) {
+		if (x & (1 << j))
+			cnt[j][1]++;
+		else
+			cnt[j][0]++;
+	}
+
+	for (int nxt : adj[u]) {
+		if (nxt == par || vis[nxt])
+			continue;
+		add(nxt, u, x ^ arr[nxt]);
+	}
+
+}
+
+void getanswer(int u, int par, int x) {
+	ans += x;
+	for (int j = 0; j < M; j++) {
+		if (x & (1 << j))
+			ans += 1LL * cnt[j][0] * (1 << j);
+		else
+			ans += 1LL * cnt[j][1] * (1 << j);
+	}
+
+	for (int nxt : adj[u]) {
+		if (nxt == par || vis[nxt])
+			continue;
+		getanswer(nxt, u, x ^ arr[nxt]);
+	}
+}
+
+void solve(int u) {
+	dfs(u, -1);
+	int root = getRoot(u, -1, subtree[u]);
+	vis[root] = true;
+	ans += arr[root];
+	memset(cnt, 0, sizeof cnt);
+
+	for (int nxt : adj[root]) {
+		if (vis[nxt])
+			continue;
+		getanswer(nxt, -1, arr[root] ^ arr[nxt]);
+		add(nxt, -1, arr[nxt]);
+	}
+
+	for (int nxt : adj[root]) {
+		if (vis[nxt])
+			continue;
+		solve(nxt);
+	}
+}
+
+int main() {
+	scanf("%d", &n);
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &arr[i]);
+	}
+
+	int a, b;
+	for (int i = 1; i < n; i++) {
+		scanf("%d%d", &a, &b);
+		--a, --b;
+		adj[a].push_back(b);
+		adj[b].push_back(a);
+	}
+
+	solve(0);
+	printf("%lld\n", ans);
+
+	return 0;
+}

@@ -1,0 +1,67 @@
+#include <cstdio>
+#include <utility>
+#include <vector>
+#include <map>
+#include <algorithm>
+using namespace std;
+typedef pair<int, int> P;
+P b[1 << 18];
+const int N = 1 << 17;
+void update(P x, int pos) {
+	pos += N;
+	b[pos] = x;
+	while (pos > 1) {
+		pos >>= 1;
+		b[pos] = max(b[pos+pos], b[pos+pos+1]);
+	}
+}
+P query(int l, int r, int L, int R, int p) {
+	if (r <= L || R <= l) return P(0, -1);
+	if (l <= L && R <= r) return b[p];
+	int mid = (L + R) / 2;
+	return max(query(l, r, L, mid, p+p), query(l, r, mid, R, p+p+1));
+}
+long long a[100010];
+vector<long long> v;
+P dp[100010];
+int main() {
+	int n, d;
+	scanf("%d%d", &n, &d);
+	for (int i = 0; i < n; i++) {
+		scanf("%I64d", &a[i]);
+		v.push_back(a[i]);
+	}
+	for (int i = 0; i < 2*N; i++) {
+		b[i] = P(0, -1);
+	}
+	sort(v.begin(), v.end());
+	v.resize(unique(v.begin(), v.end()) - v.begin());
+	P mx(-1, -1);
+	int mxi;
+	for (int i = 0; i < n; i++) {
+		long long x = a[i];
+		int l = lower_bound(v.begin(), v.end(), x - d + 1) - v.begin();
+		int r = lower_bound(v.begin(), v.end(), x + d) - v.begin();
+		P t = max(query(0, l, 0, N, 1), query(r, N, 0, N, 1));
+		t.first++;
+		dp[i] = t;
+		int p = lower_bound(v.begin(), v.end(), x) - v.begin();
+		update(P(t.first, i), p);
+		if (mx < t) {
+			mx = t;
+			mxi = i;
+		}
+	}
+	vector<int> ans;
+	ans.push_back(mxi+1);
+	while (mx.second != -1) {
+		ans.push_back(mx.second + 1);
+		mx = dp[mx.second];
+	}
+	reverse(ans.begin(), ans.end());
+	printf("%d\n", ans.size());
+	for (int i = 0; i < ans.size(); i++) {
+		printf("%d ", ans[i]);
+	}
+	return 0;
+}

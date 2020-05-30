@@ -1,0 +1,65 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 2e5+5;
+int n;
+int a[maxn];
+vector<int> basis, vec;
+
+void add(int u) {
+    int orig = u;
+    for (int v: basis) {
+        u = min(u,u^v);
+    }
+    if (u > 0) {
+        basis.push_back(u);
+        vec.push_back(orig);
+        for (int i = basis.size()-1; i > 0; i--) {
+            if (basis[i] > basis[i-1]) {
+                swap(basis[i],basis[i-1]);
+            }
+            else break;
+        }
+    }
+}
+
+void gray_code(int sz) {
+    vector<int> ans = {0};
+    for (int i = 0; i < sz; i++) {
+        for (int j = (1<<i)-1; j >= 0; j--) {
+            ans.push_back(ans[j]^vec[i]);
+        }
+    }
+    for (int v: ans) {
+        cout << v << ' ';
+    }
+    cout << '\n';
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(false); cin.tie(0);
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+    sort(a,a+n);
+    int pt = 0, x = 0;
+    for (int i = 1; i < 20; i++) {
+        for (; pt < n && a[pt] < (1<<i); pt++) {
+            add(a[pt]);
+        }
+        if (basis.size() == i) {
+            x = i;
+        }
+    }
+    basis.clear();
+    vec.clear();
+    for (int i = 0; i < n && a[i] < (1<<x); i++) {
+        add(a[i]);
+    }
+    cout << x << '\n';
+    gray_code(x);
+}
+

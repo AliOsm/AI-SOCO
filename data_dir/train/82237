@@ -1,0 +1,93 @@
+#include<bits/stdc++.h>
+#define x first
+#define y second
+using namespace std;
+const int N = 100005;
+int n, ML, MW, M[N], F[N], sz[N], W[N], H[N];
+long long tot;
+vector < pair < int , int > > A, Adj[N];
+void Pre(int v, int p)
+{
+    sz[v] = 1;
+    for (auto &X : Adj[v])
+        if (!M[X.x] && X.x != p)
+            Pre(X.x, v), sz[v] += sz[X.x];
+}
+inline int GetCentroid(int v, int p, int _n)
+{
+    bool w = 1;
+    while (w)
+    {
+        w = 0;
+        for (auto &X : Adj[v])
+            if (!M[X.x] && X.x != p && sz[X.x] * 2 > _n)
+                {p = v, v = X.x, w = 1; break;}
+    }
+    return (v);
+}
+void DFS(int v, int p)
+{
+    A.push_back({W[v], H[v]});
+    for (auto &X : Adj[v])
+        if (!M[X.x] && X.x != p)
+            H[X.x] = H[v] + 1, W[X.x] = W[v] + X.y, DFS(X.x, v);
+}
+inline void Add(int i, int val)
+{
+    for (i ++; i < N; i += i & -i)
+        F[i] += val;
+}
+inline int Get(int i)
+{
+    int ret = 0;
+    for (i ++; i > 0; i -= i & -i)
+        ret += F[i];
+    return (ret);
+}
+inline long long Query()
+{
+    int r = 0;
+    long long ret = 0;
+    sort(A.begin(), A.end());
+    for (int i = 0; i < A.size(); i++)
+    {
+        while (r < i && A[r].x + A[i].x <= MW)
+            Add(A[r].y, 1), r ++;
+        while (r && A[r - 1].x + A[i].x > MW)
+            r --, Add(A[r].y, -1);
+        ret += Get(ML - A[i].y);
+    }
+    while (r)
+        r --, Add(A[r].y, -1);
+    return (ret);
+}
+inline void Solve(int v)
+{
+    H[v] = 0; W[v] = 0; DFS(v, 0);
+    tot += Query(); A.clear();
+    for (auto &X : Adj[v])
+        if (!M[X.x])
+        {
+            DFS(X.x, v);
+            tot -= Query();
+            A.clear();
+        }
+}
+void Decompose(int v)
+{
+    Pre(v, 0);
+    v = GetCentroid(v, 0, sz[v]);
+    Solve(v); M[v] = 1;
+    for (auto &X : Adj[v])
+        if (!M[X.x])
+            Decompose(X.x);
+}
+int main()
+{
+    scanf("%d%d%d", &n, &ML, &MW);
+    for (int i = 2, p, w; i <= n; i++)
+        scanf("%d%d", &p, &w),
+        Adj[i].push_back({p, w}),
+        Adj[p].push_back({i, w});
+    Decompose(1); return !printf("%lld", tot);
+}

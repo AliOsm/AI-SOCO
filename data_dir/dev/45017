@@ -1,0 +1,152 @@
+
+/*\
+ * ...
+ * ......
+ * In the name of ALLAH
+ * ......
+ * ...
+\*/
+
+#include <bits/stdc++.h>
+
+using namespace std;
+#define Size(x) ((int)(x).size())
+#define pb push_back
+#define LD_OUT setprecision(12) << fixed
+typedef long long ll;
+typedef long double ld;
+typedef pair<int,int>pii;
+const int INF = 1e9 + 10 , SQ = 333 , MN = 1e5 + 10;
+
+int que[MN] , L , R;
+int nxt[26][MN] , f[MN] , ind[MN] , par[MN] , h[MN];
+vector<int>child[MN];
+int sz = 1 , st[MN] , ft[MN] , Time;
+int val[MN] , lz[MN/SQ + 10];
+ll res[MN];
+int Sz[MN] , n , q;
+vector<pii>Q[MN];
+
+void upd(int l,int r)
+{
+	int pl = l/SQ;
+	while(l < r && l/SQ == pl) ++val[l++];
+	if(l >= r) return;
+	for(int i=l/SQ;i<r/SQ;++i)
+		++lz[i];
+	for(int i=r/SQ*SQ;i<r;++i)
+		++val[i];
+}
+
+int Add(string &s)
+{
+	int cur = 0;
+	for(auto x:s){
+		if(!nxt[x-'a'][cur]) nxt[x-'a'][cur] = sz++;
+		h[nxt[x-'a'][cur]] = h[cur]+1;
+		par[nxt[x-'a'][cur]] = cur;
+		cur = nxt[x-'a'][cur];
+	}
+	return cur;
+}
+
+void dfs(int s){
+	st[s] = Time++;
+	for(auto x:child[s]) dfs(x);
+	ft[s] = Time;
+}
+
+void Aho()
+{
+	for(int i=0;i<26;++i) if(nxt[i][0])
+		que[R++] = nxt[i][0];
+	while(L < R){
+		int v = que[L++];
+		for(int i=0;i<26;++i){
+			if(nxt[i][v]){
+				f[nxt[i][v]] = nxt[i][f[v]];
+				que[R++] = nxt[i][v];
+			}else nxt[i][v] = nxt[i][f[v]];
+		}
+		child[f[v]].pb(v);
+	}
+	dfs(0);
+}
+
+struct trip{
+	int L , R;
+	int id;
+	trip(int L_,int R_,int id_){
+		L = L_ , R = R_ , id = id_;
+	}
+};
+vector<trip>qr[MN];
+ll ps[MN];
+
+void dfs2(int s){
+	for(auto x:child[s]){
+		dfs2(x);
+		Sz[s] += Sz[x];
+	}
+}
+void solve(vector<trip>&vec, int v)
+{
+	memset(Sz , 0 , sizeof Sz);
+	memset(ps , 0 , sizeof ps);
+	int cur = v;
+	++Sz[v];
+	do{
+		cur = par[cur];
+		++Sz[cur];	
+	}while(cur);
+	dfs2(0);
+//	for(int i=sz-1;~i;--i) Sz[f[i]] += Sz[i];
+	for(int i=0;i<n;++i) ps[i+1] = ps[i] + Sz[ind[i]]; 
+	for(auto x:vec) res[x.id] = ps[x.R] - ps[x.L];
+}
+
+int main()
+{
+	ios_base :: sync_with_stdio(false) ,cin.tie(0) , cout.tie(0);
+	cin >> n >> q;
+	for(int i=0;i<n;++i){
+		string s;cin>>s;
+		ind[i] = Add(s);
+	}
+	Aho();
+	for(int i=0;i<q;++i){
+		int l , r , k;
+		cin >> l >> r >> k;
+		--k;
+		if(h[ind[k]] >= SQ){
+			qr[k].pb(trip(l-1 , r , i));
+		}else{
+			Q[l-1].pb({-(k+1) , i});
+			Q[r].pb({k+1 , i});
+		}
+	}
+
+	for(int i=0;i<n;++i) if(h[ind[i]] >= SQ)
+		solve(qr[i] , ind[i]);
+	for(int i=0;i<=n;++i){
+		for(auto x:Q[i]){
+			int sign = (x.first<0?-1:1);
+			int t = ind[abs(x.first)-1];
+			
+			bool F = x.second == 1;
+
+			int cur = t;ll V = 0;
+			V += val[st[t]] + lz[st[t]/SQ];
+			do{
+				cur = par[cur];
+				V += val[st[cur]] + lz[st[cur]/SQ];
+			}while(cur);
+
+			res[x.second] += V * sign; 
+		}
+		if(i ^ n) upd(st[ind[i]] , ft[ind[i]]);
+	}	
+	for(int i=0;i<q;++i) cout << res[i] << '\n';
+	return 0;
+}
+

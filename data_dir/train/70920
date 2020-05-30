@@ -1,0 +1,188 @@
+// Why am I so dumb? :c
+// chrono::system_clock::now().time_since_epoch().count()
+
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+
+#define pb push_back
+#define mp make_pair
+
+#define all(x) (x).begin(), (x).end()
+
+#define fi first
+#define se second
+
+using namespace std;
+using namespace __gnu_pbds;
+
+typedef long long ll;   
+typedef pair<int, int> pii;
+template<typename T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+const int MAXN = (int)2e5 + 5;
+
+int timer, tin[MAXN], fup[MAXN];
+
+ll pans[MAXN], arr2[MAXN];
+
+vector<int> adj[MAXN];
+
+bool isbr[MAXN];
+
+bool used[MAXN];
+
+bool cons[MAXN];
+
+bool ree[MAXN];
+                        
+int arr[MAXN];
+
+int col[MAXN];
+
+int csz[MAXN];
+
+pii e[MAXN];
+
+int n, nn, m, st;
+
+ll ans, best;
+
+void dfs(int v, int pr = -1) {
+	tin[v] = fup[v] = ++timer;
+	used[v] = 1;
+
+	for (int id : adj[v]) {
+		if (id == pr) {
+			continue;
+		}
+
+		int to = e[id].fi + e[id].se - v;
+
+		if (!used[to]) {
+			dfs(to, id);
+			fup[v] = min(fup[v], fup[to]);
+
+			if (fup[to] > tin[v]) {
+				isbr[id] = 1;			 	
+			}
+		}
+		else {
+			fup[v] = min(fup[v], tin[to]);		
+		}
+	}
+}
+
+void dfs2(int v) {
+	used[v] = 1;
+	col[v] = nn;
+	arr2[nn] += arr[v];
+	++csz[nn];
+
+	for (int to : adj[v]) {
+		if (!used[to]) {
+			dfs2(to);
+		}
+	}
+}
+
+void dfs3(int v) {
+	used[v] = 1;
+	ree[v] = (csz[v] > 1);
+
+	for (int to : adj[v]) {
+		if (!used[to]) {
+			dfs3(to);
+			ree[v] |= ree[to];            		
+		}
+	}
+
+	if (ree[v]) {
+		ans += arr2[v];
+		arr2[v] = 0;
+	}
+}
+
+void dfs4(int v) {
+	used[v] = 1;
+
+	for (int to : adj[v]) {
+		if (!used[to]) {
+			pans[to] = pans[v] + arr2[to];
+			dfs4(to);
+		}
+	}
+}
+
+void solve() {
+	scanf("%d %d", &n, &m);
+
+	for (int i = 1; i <= n; ++i) {
+		scanf("%d", &arr[i]);
+	}
+
+	for (int i = 1; i <= m; ++i) {
+		int u, v;
+		scanf("%d %d", &u, &v);
+		e[i] = mp(u, v);
+		adj[u].pb(i);
+		adj[v].pb(i);
+	}
+
+	scanf("%d", &st);
+	dfs(st);
+
+	for (int i = 1; i <= n; ++i) {
+		adj[i].clear();
+		used[i] = 0;
+	}
+
+	for (int i = 1; i <= m; ++i) {
+		int u = e[i].fi, v = e[i].se;
+
+		if (!isbr[i]) {
+			adj[u].pb(v);
+			adj[v].pb(u);						
+		}
+	}
+
+	for (int i = 1; i <= n; ++i) {
+		if (!used[i]) {
+			++nn;
+			dfs2(i);
+		}
+	}    
+
+	for (int i = 1; i <= n; ++i) {
+		adj[i].clear();
+		used[i] = 0;
+	}
+
+	for (int i = 1; i <= m; ++i) {
+		int u = e[i].fi, v = e[i].se;
+
+		if (isbr[i]) {
+		 	adj[col[u]].pb(col[v]);
+		 	adj[col[v]].pb(col[u]);
+		}
+	}
+
+	dfs3(col[st]);
+	fill(used + 1, used + nn + 1, 0);
+	pans[col[st]] = arr2[col[st]];
+	dfs4(col[st]);					
+	printf("%lld\n", ans + *max_element(pans + 1, pans + nn + 1));
+}
+
+int main() {
+    int tt = 1;
+
+    while (tt--) {
+        solve();
+    }
+
+    return 0;
+}

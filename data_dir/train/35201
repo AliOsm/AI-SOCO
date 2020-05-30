@@ -1,0 +1,142 @@
+#include <cstdio>
+#include <memory.h>
+#include <cstring>
+#include <vector>
+#include <deque>
+#include <cstdlib>
+#include <queue>
+#include <algorithm>
+#include <cmath>
+#include <cassert>
+#include <functional>
+#include <set>
+#include <list>
+#include <map>
+#include <time.h>
+#include <unordered_map>
+#include <unordered_set>
+#include <bitset>
+#define sz(x) (int)(x).size()
+#define all(x) (x).begin(), (x).end()
+using namespace std;
+
+typedef unsigned long long llu;
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ll, int> pli;
+typedef pair<int, ll> pil;
+const ll MOD = 1e9 + 7;
+
+priority_queue<int, vector<int>, greater<int> > pq;
+vector<int> v;
+
+// 목표 자릿수 / 현재 자릿수 / 0이외 개수
+ll dp[20][19][4];
+
+ll go(int n, int o, int nz) {
+	if (n == o) return 1;
+	if (dp[n][o][nz] != -1) return dp[n][o][nz];
+
+	ll sum = 0;
+	if (nz != 3) sum += go(n, o + 1, nz + 1) * 9;
+	sum += go(n, o + 1, nz);
+
+	return dp[n][o][nz] = sum;
+}
+
+// 현재 자릿수 / 0이외 개수 / tight
+ll dp2[20][4][2];
+char s[20];
+
+ll go2(int n, int o, int nz, int t) {
+	if (n == o) return 1;
+	if (dp2[o][nz][t] != -1) return dp2[o][nz][t];
+
+	ll sum = 0;
+	if (t) {
+		if(s[o] == 0) sum += go2(n, o + 1, nz, 1);
+		else if (s[o] == 1) {
+			sum += go2(n, o + 1, nz, 0);
+			if(nz != 3) sum += go2(n, o + 1, nz + 1, 1);
+		}
+		else {
+			sum += go2(n, o + 1, nz, 0);
+			if (nz != 3) {
+				sum += go2(n, o + 1, nz + 1, 0) * (s[o] - 1);
+				sum += go2(n, o + 1, nz + 1, 1);
+			}
+		}
+	}
+	else {
+		sum += go2(n, o + 1, nz, 0);
+		if(nz != 3) sum += go2(n, o + 1, nz + 1, 0) * 9;
+	}
+
+	return dp2[o][nz][t] = sum;
+}
+
+int main() {
+	int q;
+	scanf("%d", &q);
+	memset(dp, -1, sizeof(dp));
+
+	// *9 값.
+	for (int i = 1; i < 20; i++) {
+		dp[i][1][1] = go(i, 1, 1) * 9;
+	}
+	dp[0][1][1] = 0;
+
+	ll a, b, cta, ctb;
+	while (q--) {
+		cta = 0; ctb = 0;
+		scanf("%lld %lld", &a, &b);
+		memset(dp2, -1, sizeof(dp2));
+		memset(s, 0, sizeof(s));
+		a--;
+
+		int tt = 0;
+		
+		ll bt = b;
+		while (bt) {
+			bt /= 10;
+			tt++;
+		}
+		for (int i = tt - 1; i >= 0; i--) {
+			s[i] = b % 10;
+			b /= 10;
+		}
+
+		for (int i = 1; i < tt; i++)
+			ctb += dp[i][1][1];
+
+		for (int i = 1; i <= s[0]; i++) {
+			if (i == s[0]) ctb += go2(tt, 1, 1, 1);
+			else ctb += go2(tt, 1, 1, 0);
+		}
+
+
+		tt = 0;
+		memset(s, 0, sizeof(s)); 
+		memset(dp2, -1, sizeof(dp2));
+
+		ll at = a;
+		while (at) {
+			at /= 10;
+			tt++;
+		}
+		for (int i = tt - 1; i >= 0; i--) {
+			s[i] = a % 10;
+			a /= 10;
+		}
+
+		for (int i = 1; i < tt; i++)
+			cta += dp[i][1][1];
+
+		for (int i = 1; i <= s[0]; i++) {
+			if (i == s[0]) cta += go2(tt, 1, 1, 1);
+			else cta += go2(tt, 1, 1, 0);
+		}
+		printf("%lld\n", ctb - cta);
+	}
+}

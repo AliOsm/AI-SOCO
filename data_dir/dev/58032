@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+#define FASTIO ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL)
+#define LL long long 
+#define ar32(x) array<int, x> 
+#define ar64(x) array<LL, x>
+// Infinity xP
+const int oo = 1e9 + 5;
+const int MOD = 998244353;
+// const int MOD = 1e9 + 7;
+const LL ooll = 1e18;
+const int N = 2e5 + 5;
+
+
+template<class Node> class StaticSegtree {
+    public:
+    std::vector<Node> Tree;
+    int L, R;
+    std::function<Node(Node, Node)> Merge;
+    template<class RandomIt> void Build (int node, int st, int en, RandomIt v) {
+        if (st == en) {
+            Tree[node] = v[st];
+            return;
+        }
+        int m = (st + en) >> 1;
+        Build(2 * node + 1, st, m, v);
+        Build(2 * node + 2, m+1, en, v);
+        Tree[node] = Merge(Tree[2 * node + 1], Tree[2 * node + 2]);
+        }
+    
+    template<class RandomIt> StaticSegtree(int L, int R, RandomIt v) : L(L), R(R) {
+        Tree.resize(4 * (R - L + 1), Node(0));
+        Build(0, L, R, v);
+        }
+    template<class RandomIt> StaticSegtree(int L, int R, RandomIt v, std::function<Node(Node, Node)> merge) : L(L), R(R), Merge(merge) {
+        Tree.resize(4 * (R - L + 1), Node(0));
+        Build(0, L, R, v);
+        }
+    StaticSegtree(int L, int R) : L(L), R(R) {
+        Tree.resize(4 * (R - L + 1), Node(0));
+        }
+    void Update(int pos, Node val, int node, int st, int en) {
+        if (st == en) {
+            Tree[node] = Merge(Tree[node], val);
+            return;
+        }
+        int m = (st + en) >> 1;
+        if (pos <= m) Update(pos, val, 2 * node + 1, st, m);
+        else Update(pos, val, 2 * node + 2, m+1, en);
+        Tree[node] = Merge(Tree[2 * node + 1], Tree[2 * node + 2]);
+        }
+    void Update(int pos, int val) {Update(pos, val, 0, L, R);}
+
+    Node Query(int l, int r, int node, int st, int en) {
+        /*
+        !!! Zero for the function, change if necessary
+        */
+        if (st > r || en < l) return Node(0);
+        if (st >= l && en <= r) return Tree[node];
+        int m = (st + en) >> 1;
+        return Merge(Query(l, r, 2 * node + 1, st, m),
+                    Query(l, r, 2 * node + 2, m+1, en));
+        }
+    Node Query(int l, int r) {return Query(l, r, 0, L, R);}
+    };
+//
+
+void solve() {
+    int n, m, i, j;
+    cin >> n;
+    vector<ar32(2)> upd(n);
+    vector<int> dist;
+    for (i=0;i<n;i++) {
+        cin >> upd[i][0] >> upd[i][1];
+        dist.push_back(upd[i][0]);
+        dist.push_back(upd[i][1]);
+    }
+    sort(dist.begin(), dist.end());
+    dist.erase(unique(dist.begin(), dist.end()), dist.end());
+    map<int, int> mp, discrete;
+    m = dist.size();
+    for (int i=0;i<m;i++) {
+        discrete[dist[i]] = i;
+        mp[dist[i]] = dist[i];
+    }
+    LL ans = 0;
+    for (auto it : upd) {
+        swap(mp[it[0]], mp[it[1]]);
+    }
+    vector<int> vec;
+    for (auto it : mp) {
+        int mn = min(it.first, it.second), mx = max(it.first, it.second);
+        int x = lower_bound(dist.begin(), dist.end(), mn) - dist.begin();
+        int y = lower_bound(dist.begin(), dist.end(), mx) - dist.begin();
+        // cout << it.first << " has " << it.second << " " << (mx - mn + 1) - (y - x + 1) << " add\n";
+        ans += (mx - mn + 1) - (y - x + 1);
+        vec.push_back(discrete[it.second]);
+    }
+    vector<int> Init(m, 0);
+    StaticSegtree<int> segtree(0, m-1, Init.begin(), [](int a, int b) {
+        return a + b;
+    });
+    for (auto it : vec) {
+        if (it < m - 1)
+            ans += segtree.Query(it + 1, m - 1);
+        segtree.Update(it, 1);
+    }
+    cout << ans << '\n';
+} 
+
+int main() {
+    FASTIO;
+    int t = 1;
+    // cin >> t;
+    for (int tc=1;tc<=t;tc++) {
+        solve();
+    }
+    return 0;
+}

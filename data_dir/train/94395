@@ -1,0 +1,141 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+#define INF (1ll<<60)
+
+int V;
+ll dist[10010];
+ll olddist[10010];
+
+int N;
+ll x[100010];
+int val[100010];
+vector <pair <ll, int> > xs[10010]; // x, id
+int pos[10010];
+
+bool reachable[100010];
+priority_queue <pair <int, int> > reach; // val, -id
+
+bool used[10010];
+priority_queue <pair <ll, int> > q; // -dist, id
+
+void add(int id, ll d){
+    if(d < dist[id]){
+        dist[id] = d;
+        q.push(make_pair(-d, id));
+    }
+}
+
+void dijkstra(ll jump){
+    int i;
+    
+    while(!q.empty()) q.pop();
+    REP(i,V) dist[i] = INF;
+    REP(i,V) used[i] = false;
+    REP(i,V) add(i, olddist[i]);
+    
+    while(!q.empty()){
+        ll d = -q.top().first;
+        int id = q.top().second;
+        q.pop();
+        if(used[id]) continue;
+        used[id] = true;
+        
+        int id2 = (int)((id + jump) % V);
+        add(id2, d + jump);
+    }
+}
+
+void update_dist(ll d){
+    int i;
+    
+    REP(i,V) olddist[i] = dist[i];
+    
+    if(d != 0) dijkstra(d);
+    
+    REP(i,V){
+        while(pos[i] < xs[i].size() && xs[i][pos[i]].first >= dist[i]){
+            int id = xs[i][pos[i]].second;
+            reachable[id] = true;
+            reach.push(make_pair(val[id], -id));
+            pos[i]++;
+        }
+    }
+}
+
+void update_val(int id, int val2){
+    val[id] = val2;
+    if(reachable[id]) reach.push(make_pair(val2, -id));
+}
+
+ll max_query(void){
+    while(!reach.empty()){
+        pair <int, int> p = reach.top(); reach.pop();
+        int val2 = p.first, id = -p.second;
+        if(val[id] != val2 || !reachable[id]) continue;
+        reachable[id] = false;
+        return val2;
+    }
+    
+    return 0;
+}
+
+int main(void){
+    int Q,i,j;
+    ll H;
+    
+    cin >> H >> N >> Q >> V;
+    REP(i,N) cin >> x[i] >> val[i];
+    REP(i,N) x[i]--;
+    
+    REP(i,N) xs[x[i]%V].push_back(make_pair(x[i], i));
+    REP(i,V) sort(xs[i].begin(),xs[i].end());
+    REP(i,V) reverse(xs[i].begin(),xs[i].end());
+    
+    REP(i,V) dist[i] = INF;
+    dist[0] = 0;
+    update_dist(0);
+    
+    REP(i,Q){
+        int type;
+        cin >> type;
+        
+        if(type == 1){
+            ll d;
+            cin >> d;
+            update_dist(d);
+        //  REP(j,V) cout << dist[j] << ' '; cout << endl;
+        } else if(type == 2){
+            int id,tmp;
+            cin >> id >> tmp;
+            update_val(id-1, val[id-1]-tmp);
+        } else {
+            ll ans = max_query();
+            cout << ans << endl;
+        }
+    }
+    
+    return 0;
+}

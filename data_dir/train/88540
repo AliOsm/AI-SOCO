@@ -1,0 +1,120 @@
+#include <stdio.h>
+#include <string.h>
+const int MOD = 12345;
+int cnt,c;
+int ok[200];
+int wei[30],tnum[30],use[100];
+char x[1010],Num[1010],map[1010];
+int total[1010],thash[100];
+int ans[210][210],num[210][210],tans[210],temp[210];
+int tuse[30];
+int hash()
+{
+    int num=0;
+    for (int i=cnt-1;i>=0;i--)
+        num+=tnum[i]*wei[i];
+    return num;
+}
+void antihash(int state)
+{
+    for (int i=cnt-1;i>=0;i--)
+    {
+        tnum[i]=state/wei[i];
+        state-=tnum[i]*wei[i];
+    }
+}
+bool judge()
+{
+    memset(tuse,0,sizeof(tuse));
+    for (int i=0;i<c;i++)
+        if (tnum[thash[x[i]-'A']]%Num[i]==0) tuse[x[i]-'A']=1;
+    for (int i=0;i<cnt;i++)
+        if (tuse[map[i]]!=1) return false;
+    return true;
+}
+int tmp[210][210];
+void multi(int ans[210][210],int num[210][210])
+{
+    memset(tmp,0,sizeof(tmp));
+    for (int i=0;i<wei[cnt];i++)
+        for (int j=0;j<wei[cnt];j++)
+            for (int k=0;k<wei[cnt];k++)
+            {
+                tmp[i][j]+=ans[i][k]*num[k][j];
+                tmp[i][j]%=MOD;
+            }
+    for (int i=0;i<wei[cnt];i++)
+        for (int j=0;j<wei[cnt];j++)
+            ans[i][j]=tmp[i][j];
+}
+int main()
+{
+    long long n;
+    while (scanf("%I64d%d",&n,&c)==2)
+    {
+        memset(use,0,sizeof(use));
+        for (int i=0;i<26;i++)
+            total[i]=1;
+        for (int i=0;i<c;i++)
+        {
+            scanf(" %c%d",&x[i],&Num[i]);
+            use[x[i]-'A']=1;
+            total[x[i]-'A']*=Num[i];
+        }
+        cnt=0;
+        int now=1;
+        for (int i=0;i<26;i++)
+        {
+            if (!use[i]) continue;
+            wei[cnt]=now;
+            map[cnt]=i;
+            thash[i]=cnt;
+            now*=total[i];
+            cnt++;
+        }
+        wei[cnt]=now;
+        memset(ans,0,sizeof(ans));
+        for (int i=0;i<wei[cnt];i++)
+            ans[i][i]=1;
+        memset(num,0,sizeof(num));
+        memset(ok,0,sizeof(ok));
+        for (int i=0;i<wei[cnt];i++)
+        {
+            antihash(i);
+            if (judge()) ok[i]=true;
+            for (int j=0;j<cnt;j++)
+            {
+                int temp=tnum[j];
+                tnum[j]+=total[map[j]]-1;
+                tnum[j]%=total[map[j]];
+                int next=hash();
+                num[next][i]++;
+                tnum[j]=temp;
+            }
+        }
+        while (n!=0)
+        {
+            if (n%2==1) multi(ans,num);
+            multi(num,num);
+            n=n/2;
+        }
+        memset(tans,0,sizeof(tans));
+        tans[0]=1;
+        memset(temp,0,sizeof(temp));
+        for (int j=0;j<wei[cnt];j++)
+            for (int k=0;k<wei[cnt];k++)
+            {
+                temp[j]+=tans[k]*ans[k][j];
+                temp[j]%=MOD;
+            }
+        int ans=0;
+        for (int i=0;i<wei[cnt];i++)
+            if (ok[i])
+            {
+                ans+=temp[i];
+                ans%=MOD;
+            }
+        printf("%d\n",ans);
+    }
+    return 0;
+}

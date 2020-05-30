@@ -1,0 +1,160 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+ 
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+ 
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+ 
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+ 
+template <class T1, class cmp = less <T1>> using Tree = tree <T1, null_type, cmp, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2> using um = unordered_map <T1, T2>;
+template <class T> using us = unordered_set <T>;
+template <class T> using vec = vector <T>;
+ 
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 205;
+int n, m;
+int ans[N];
+
+bool was[N];
+
+vec <int> ts;
+vec <int> res;
+
+struct Graph {
+    int num[N];
+    int low[N];
+    int scc[N];
+    bool vis[N];
+    bool stk[N];
+    vec <int> adj[N];
+} graph;
+
+void input() {
+    cin >> n >> m;
+    for(int i = 0; i < m; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        int w; cin >> w;
+        if(w == 0) {
+            graph.adj[l(u)].pb(r(v));
+            graph.adj[r(u)].pb(l(v));
+            graph.adj[l(v)].pb(r(u));
+            graph.adj[r(v)].pb(l(u));
+        } else {
+            graph.adj[l(u)].pb(l(v));
+            graph.adj[r(u)].pb(r(v));
+            graph.adj[l(v)].pb(l(u));
+            graph.adj[r(v)].pb(r(u));
+        }
+    }
+}
+
+int dfs_scc(int u) {
+    static int t = 0;
+    static int ind = 0;
+    static stack <int> st;
+    st.push(u);
+    graph.vis[u] = 1;
+    graph.stk[u] = 1;
+    graph.low[u] = 
+    graph.num[u] = ++t;
+    for(int v: graph.adj[u]) {
+        if(!graph.vis[v]) {
+            graph.low[u] = min(graph.low[u], dfs_scc(v));
+        } else if(graph.stk[v]) {
+            graph.low[u] = min(graph.low[u], graph.num[v]);
+        }
+    }
+    if(graph.low[u] == graph.num[u]) {
+        while(st.top() != u) {
+            graph.scc[st.top()] = ind;
+            graph.stk[st.top()] = 0;
+            st.pop();
+        }
+        graph.scc[st.top()] = ind++;
+        graph.stk[st.top()] = 0;
+        st.pop();
+    }
+    return graph.low[u];
+}
+
+void topsort(int u) {
+    graph.vis[u] = 1;
+    for(int v: graph.adj[u]) {
+        if(!graph.vis[v]) {
+            topsort(v);
+        }
+    }
+    ts.pb(u);
+}
+
+void construct() {
+    for(int i = 0; i < len(ts); ++i) {
+        int u = ts[i];
+        int p = u - 1 >> 1;
+        if(was[p]) {
+            continue;
+        }
+        ans[p] = u & 1;
+    }
+}
+
+void solve() {
+    for(int i = l(1); i <= r(n); ++i) {
+        if(!graph.vis[i]) {
+            dfs_scc(i);
+        }
+    }
+    for(int i = 1; i <= n; ++i) {
+        if(graph.scc[l(i)] == graph.scc[r(i)]) {
+            cout << "Impossible\n";
+            return;
+        }
+    }
+    fill(graph.vis, graph.vis + N, 0);
+    for(int i = l(1); i <= r(n); ++i) {
+        if(!graph.vis[i]) {
+            topsort(i);
+        }
+    }
+    construct();
+    for(int i = 1; i <= n; ++i) {
+        if(ans[i]) {
+            res.pb(i);
+        }
+    }
+    cout << len(res) << "\n";
+    for(int e: res) {
+        cout << e << " ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

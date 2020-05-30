@@ -1,0 +1,142 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int mod=1000000007;
+inline int add(int a,int b)
+{
+	if((a+=b)>=mod)a-=mod;
+	return a;
+}
+inline int dec(int a,int b)
+{
+	if((a-=b)<0)a+=mod;
+	return a;
+}
+inline void _add(int &a,int b)
+{
+	if((a+=b)>=mod)a-=mod;
+}
+inline void _dec(int &a,int b)
+{
+	if((a-=b)<0)a+=mod;
+}
+inline int mult(int a,int b)
+{
+	long long t=1ll*a*b;
+	if(t>=mod)t%=mod;
+	return t;
+}
+const int L=16;
+char s[510];
+int n,nodecnt=0,f[170][65536],f2[170][65536];
+void fwt_or(int* A,int flag)
+{
+	if(flag==1)
+	for(int i=1;i<65536;i<<=1)
+		for(int j=0;j<65536;j+=(i<<1))
+			for(int k=0;k<i;k++)_add(A[i+j+k],A[j+k]);
+	else
+	for(int i=1;i<65536;i<<=1)
+		for(int j=0;j<65536;j+=(i<<1))
+			for(int k=0;k<i;k++)_dec(A[i+j+k],A[j+k]);
+}
+void fwt_and(int* A,int flag)
+{
+	if(flag==1)
+	for(int i=1;i<65536;i<<=1)
+		for(int j=0;j<65536;j+=(i<<1))
+			for(int k=0;k<i;k++)_add(A[j+k],A[i+j+k]);
+	else
+	for(int i=1;i<65536;i<<=1)
+		for(int j=0;j<65536;j+=(i<<1))
+			for(int k=0;k<i;k++)_dec(A[j+k],A[i+j+k]);
+}
+int dfs(int l,int r)
+{
+	int p=++nodecnt;
+	if(l==r)
+	{
+		if(s[l]=='?')
+		{
+			for(int t=0;t<4;t++)
+			{
+				int S=0;
+				for(int i=0;i<16;i++)
+					if((i>>t)&1)S|=(1<<i);
+				f[p][S]++;
+				f[p][65535^S]++;
+			}
+		}
+		else
+		{
+			if(s[l]>='A'&&s[l]<='D')
+			{
+				int t=s[l]-'A',S=0;
+				for(int i=0;i<16;i++)
+					if((i>>t)&1)S|=(1<<i);
+				f[p][S]=1;
+			}
+			else
+			{
+				int t=s[l]-'a',S=0;
+				for(int i=0;i<16;i++)
+					if((i>>t)&1)S|=(1<<i);
+				f[p][65535^S]=1;
+			}
+		}
+		memcpy(f2[p],f[p],sizeof(f[p]));
+		return p;
+	}
+	int cnt=0,pos=0;
+	for(int i=l;i<=r;i++)
+	{
+		if(s[i]=='(')cnt++;
+		else if(s[i]==')')cnt--;
+		if(!cnt)
+		{
+			pos=i+1;
+			break;
+		}
+	}
+	int lc=dfs(l+1,pos-2),rc=dfs(pos+2,r-1);
+	if(s[pos]!='|')
+	{
+		fwt_and(f[lc],1);
+		fwt_and(f[rc],1);
+		for(int i=0;i<65536;i++)f[p][i]=mult(f[lc][i],f[rc][i]);
+		fwt_and(f[p],-1);
+	}
+	if(s[pos]!='&')
+	{
+		fwt_or(f2[lc],1);
+		fwt_or(f2[rc],1);
+		for(int i=0;i<65536;i++)f2[p][i]=mult(f2[lc][i],f2[rc][i]);
+		fwt_or(f2[p],-1);
+	}
+	for(int i=0;i<65536;i++)_add(f[p][i],f2[p][i]);
+	memcpy(f2[p],f[p],sizeof(f[p]));
+	return p;
+}
+int m,fs[16];
+int main()
+{
+	scanf("%s",s+1);
+	n=strlen(s+1);
+	dfs(1,n);
+	scanf("%d",&m);
+	memset(fs,255,sizeof(fs));
+	for(int i=1,a,b,c,d,e;i<=m;i++)
+	{
+		scanf("%d%d%d%d%d",&a,&b,&c,&d,&e);
+		fs[a|(b<<1)|(c<<2)|(d<<3)]=e;
+	}
+	int ans=0;
+	for(int i=0;i<65536;i++)
+	{
+		bool s=1;
+		for(int j=0;j<16;j++)s&=(fs[j]==-1||fs[j]==((i>>j)&1));
+		if(s)
+			ans=add(ans,f[1][i]);
+	}
+	printf("%d\n",ans);
+	return 0;
+}

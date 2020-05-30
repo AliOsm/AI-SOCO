@@ -1,0 +1,157 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define MAXN (1 << 20)
+
+using namespace std;
+using namespace __gnu_pbds;
+
+template <typename T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+int M, N, k, len;
+
+struct node
+{
+	int first, last, cnt;
+
+	node() {first = -1, last = -1;}
+	node(int s, int c)
+	{
+		first = s;
+		last = s;
+		cnt = c;
+	}
+};	
+
+node temp;
+
+int answer[MAXN];
+
+int bin_search(int h)
+{
+	int l = 0, r = N, mid, ans;
+
+	while(l <= r)
+	{
+		mid = (l + r) >> 1;
+
+		if(mid * len + (mid - 1) <= h)
+		{
+			ans = mid;
+			l = mid + 1;
+		}
+		else
+			r = mid - 1;
+	}
+
+	return ans;
+}
+
+int prec(int l)
+{
+	int ans = l / (len + 1);
+
+	if((l % (len + 1)) == len)
+		ans++;
+
+	return ans;
+}
+
+node merge(node _a, node _b, int l, int r)
+{
+	temp.first = _a.first;
+	temp.last = _b.last;
+	temp.cnt = _a.cnt + _b.cnt;
+
+	if(temp.last == -1)
+		temp.last = _a.last;
+	if(temp.first == -1)
+		temp.first = _b.first;
+
+	if(_b.first != -1 && _a.last != -1) 
+		temp.cnt += prec(max(0, (_b.first - _a.last - 1)));
+
+	//printf("[%d, %d] :   %d   %d , %d\n", l, r, temp.cnt, temp.first, temp.last);
+	
+	return temp;
+}
+
+struct segment_tree
+{
+	node tr[MAXN];
+
+	void init(int l, int r, int idx)
+	{
+		tr[idx].cnt = 0;
+
+		if(l == r)
+		{
+			return;
+		}
+
+		int mid = (l + r) >> 1;
+		init(l, mid, 2 * idx + 1);
+		init(mid + 1, r, 2 * idx + 2);
+	}
+
+	void update(int pos, int l, int r, int idx)
+	{
+		if(l > pos || r < pos)
+			return;
+
+		if(l == r && l == pos)
+		{
+			tr[idx] = node(pos, 0);
+			return;
+		}
+
+		int mid = (l + r) >> 1;
+		update(pos, l, mid, 2 * idx + 1);
+		update(pos, mid + 1, r, 2 * idx + 2);
+
+		tr[idx] = merge(tr[2 * idx + 1], tr[2 * idx + 2], l, r);
+	}	
+};
+
+void read()
+{
+	scanf("%d %d %d", &N, &k, &len);
+	
+	scanf("%d", &M);
+}
+
+segment_tree t;
+
+void solve()
+{
+	for(int l = 0; l <= N; l++)
+		answer[l] = bin_search(l);
+
+
+	t.init(1, N, 0);
+
+	for(int i = 0; i < M; i++)
+	{
+		int pos;
+		scanf("%d", &pos);
+
+		t.update(pos, 1, N, 0);
+		//printf("%d, %d, %d   ->   %d\n", t.tr[0].first, t.tr[0].last, prec(t.tr[0].first - 1), prec(N - t.tr[0].last));
+
+		if(t.tr[0].cnt + prec(t.tr[0].first - 1) + prec(N - t.tr[0].last) < k)
+		{
+			printf("%d\n", i + 1);
+			return;
+		}
+	}	
+
+	printf("%d\n", -1);
+}
+
+int main()
+{
+	read();
+	solve();
+	return 0;
+}

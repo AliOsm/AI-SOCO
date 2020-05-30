@@ -1,0 +1,79 @@
+#include <cstdio>
+#include <vector>
+#include <utility>
+#include <algorithm>
+using namespace std;
+vector<int> e[300010];
+int low[300010], dep[300010], par[300010];
+int c;
+pair<int, int> st[600010];
+int stn;
+vector<vector<int> > bcc;
+void dfs(int v) {
+	low[v] = dep[v] = ++c;
+	for (int i = 0; i < e[v].size(); i++) {
+		int w = e[v][i];
+		if (!dep[w]) {
+			st[stn++] = make_pair(v, w);
+			par[w] = v;
+			dfs(w);
+			if (low[w] >= dep[v]) {
+				vector<int> nc;
+				do {
+					nc.push_back(st[--stn].second);
+				} while (st[stn] != make_pair(v, w));
+				nc.push_back(v);
+				if (nc.size() & 1) {
+					bcc.push_back(nc);
+				}
+			}
+			low[v] = min(low[w], low[v]);
+		} else if (par[v] != w) {
+			low[v] = min(dep[w], low[v]);
+		}
+	}
+}
+int la[300010];
+long long acc[300010];
+int main() {
+	int n, m;
+	scanf("%d%d", &n, &m);
+	for (int i = 0; i < m; i++) {
+		int u, v;
+		scanf("%d%d", &u, &v);
+		--u; --v;
+		e[u].push_back(v);
+		e[v].push_back(u);
+	}
+	for (int i = 0; i < n; i++) {
+		par[i] = -1;
+		la[i] = n;
+	}
+	for (int i = 0; i < n; i++) {
+		if (!dep[i]) {
+			stn = 0;
+			dfs(i);
+		}
+	}
+	for (int i = 0; i < bcc.size(); i++) {
+		sort(bcc[i].begin(), bcc[i].end());
+		la[bcc[i][0]] = min(la[bcc[i][0]], bcc[i].back());
+	}
+	for (int i = n - 1; i > 0; i--) {
+		la[i-1] = min(la[i], la[i-1]);
+	}
+	for (int i = 0; i < n; i++) {
+		acc[i+1] = acc[i] + la[i];
+	}
+	int q;
+	scanf("%d", &q);
+	while (q--) {
+		int l, r;
+		scanf("%d%d", &l, &r);
+		--l;
+		int hi = lower_bound(la + l, la + r, r) - la;
+		long long ans = acc[hi] - acc[l] + 1ll * r * (r - hi) - 1ll * (r - 1 + l) * (r - l) / 2;
+		printf("%I64d\n", ans);
+	}
+	return 0;
+}

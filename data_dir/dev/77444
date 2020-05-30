@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+constexpr int N = 100010;
+constexpr int oo = 2 * N;
+
+struct Node {
+  Node(): sum(oo), maxSuff(-oo) {}
+  bool isDummy() const {
+    return sum == oo;
+  }
+  int sum;
+  int maxSuff;
+};
+
+struct SegmentTree {
+  explicit SegmentTree(int n_): n{n_} {
+    tree.resize(4 * n, Node());
+  }
+
+  Node merge(const Node& lhs, const Node& rhs) const {
+    if (lhs.isDummy()) return rhs;
+    if (rhs.isDummy()) return lhs;
+    Node node;
+    node.sum = lhs.sum + rhs.sum;
+    node.maxSuff = max(rhs.maxSuff, rhs.sum + lhs.maxSuff);
+    return node;
+  }
+
+  Node query(int l, int r) const {
+    return query(1, 0, n - 1, l, r);
+  }
+
+  Node query(int v, int tl, int tr, int l, int r) const {
+    if (l > r) return Node();
+    if (tl == l && tr == r) {
+      return tree[v];
+    }
+    int tm = (tl + tr) / 2;
+    const auto& lhs = query(2 * v, tl, tm, l, min(tm, r));
+    const auto& rhs = query(2 * v + 1, tm + 1, tr, max(l, tm + 1), r);
+    return merge(lhs, rhs);
+  }
+
+  void update(int pos, int d) {
+    return update(1, 0, n - 1, pos, d); 
+  }
+
+  void update(int v, int tl, int tr, int pos, int d) {
+    if (tl == tr) {
+      tree[v].sum = d;
+      tree[v].maxSuff = d;
+      return;
+    }
+    int tm = (tl + tr) / 2;
+    if (pos <= tm) {
+      update(2 * v, tl, tm, pos, d);
+    } else {
+      update(2 * v + 1, tm + 1, tr, pos, d);
+    }
+
+    tree[v] = merge(tree[2 * v], tree[2 * v + 1]);
+  }
+
+  int n;
+  vector<Node> tree;
+};
+
+int a[N];
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(nullptr);
+  cout.tie(nullptr);
+
+  int m;
+  cin >> m;
+
+  SegmentTree tree(m + 1);
+  for(int i = 0; i < m; ++i) {
+    int p, op;
+    cin >> p >> op;
+    --p;
+    if (op == 0) {
+      tree.update(p, -1);
+    } else {
+      cin >> a[p];
+      tree.update(p, 1);
+    }
+
+    // cout << "Binary search:" << endl;
+    int lo = -1, hi = m;
+    while(hi - lo > 1) {
+      int mid = lo + (hi - lo) / 2;
+      const auto& node = tree.query(mid, m - 1);
+      // cout << "maxSuff = " << node.maxSuff << " mid = " << mid << endl;
+      if (node.maxSuff > 0) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    // cout << "lo = " << lo << endl;
+    if (lo == -1) {
+      cout << -1 << endl;
+    } else {
+      cout << a[lo] << endl;
+    }
+  }
+
+  return 0;
+}

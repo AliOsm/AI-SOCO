@@ -1,0 +1,62 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 80;
+const int inf = 1e9;
+
+int cv[N], ck[N], co[N], av[N], ak[N], ao[N];
+char s[N];
+int dp[N][N][N][2];
+
+void upd(int& at, int val) {
+  at = min(at, val);
+}
+
+int main() {
+  int n;
+  scanf("%d %s", &n, s + 1);
+  int nv = 0, nk = 0, no = 0;
+  for (int i = 1; i <= n; i++) {
+    cv[i] = cv[i - 1] + (s[i] == 'V');
+    ck[i] = ck[i - 1] + (s[i] == 'K');
+    co[i] = co[i - 1] + (s[i] != 'V' && s[i] != 'K');
+    nv += s[i] == 'V';
+    nk += s[i] == 'K';
+    no += s[i] != 'V' && s[i] != 'K';
+    
+    if (s[i] == 'V') av[nv] = i;
+    else if (s[i] == 'K') ak[nk] = i;
+    else ao[no] = i;
+  }
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      for (int k = 0; k < N; k++) {
+        dp[i][j][k][0] = dp[i][j][k][1] = inf;
+      }
+    }
+  }
+  dp[0][0][0][0] = 0;
+  for (int i = 0; i <= nv; i++) {
+    for (int j = 0; j <= nk; j++) {
+      for (int k = 0; k <= no; k++) {
+        int score_v = av[i+1]-1 - min(i, cv[av[i+1]-1]) - min(j, ck[av[i+1]-1]) - min(k, co[av[i+1]-1]);
+        int score_k = ak[j+1]-1 - min(i, cv[ak[j+1]-1]) - min(j, ck[ak[j+1]-1]) - min(k, co[ak[j+1]-1]);
+        int score_o = ao[k+1]-1 - min(i, cv[ao[k+1]-1]) - min(j, ck[ao[k+1]-1]) - min(k, co[ao[k+1]-1]);
+        if (i + 1 <= nv) {
+          upd(dp[i+1][j][k][1], dp[i][j][k][0] + score_v);
+          upd(dp[i+1][j][k][1], dp[i][j][k][1] + score_v);
+        }
+        if (j + 1 <= nk) {
+          upd(dp[i][j+1][k][0], dp[i][j][k][0] + score_k);
+        }
+        if (k + 1 <= no) {
+          upd(dp[i][j][k+1][0], dp[i][j][k][0] + score_o);
+          upd(dp[i][j][k+1][0], dp[i][j][k][1] + score_o);
+        }
+      }
+    }
+  }
+  printf("%d\n", min(dp[nv][nk][no][0], dp[nv][nk][no][1]));
+  return 0;
+}

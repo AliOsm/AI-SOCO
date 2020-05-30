@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll  long long
+#define pb  push_back
+#define vi  vector<ll >
+#define vvi vector<vi >
+#define all(x) x.begin(), x.end()
+
+struct stree {
+    ll  inf;
+    int n;
+    vi  t, dt, L, R;
+    stree(vi& a) {
+        inf = (ll)1e18;
+        n = 1;
+        while (n < a.size())
+            n = n + n;
+        L = R = t = vi(n + n, inf);
+        for (int i = 0; i < a.size(); ++i)
+            t[n + i] = a[i];
+        for (int i = 0; i < n; ++i)
+            L[n + i] = R[n + i] = i;
+        for (int i = n - 1; i > 0; --i) {
+            t[i] = min(t[i + i], t[i + i + 1]);
+            L[i] = L[i + i];
+            R[i] = R[i + i + 1];
+        }
+        dt.assign(n + n, 0);
+    }
+    void push(int v) {
+        t[v] += dt[v];
+        dt[v + v]     += dt[v];
+        dt[v + v + 1] += dt[v];
+        dt[v] = 0;
+    }
+    void incr(int v, int l, int r, ll dx) {
+        if (l == L[v] && r == R[v]) {
+            dt[v] += dx;
+            return;
+        }
+        push(v);
+        int mid = (L[v] + R[v]) / 2;
+        if (l <= mid)
+            incr(v + v, l, min(r, mid), dx);
+        if (r > mid)
+            incr(v + v + 1, max(l, mid + 1), r, dx);
+        t[v] = min(t[v + v] + dt[v + v], t[v + v + 1] + dt[v + v + 1]);
+    }
+    ll get_min() { return t[1] + dt[1]; }
+};
+
+int n, m, q;
+vi  a, b, inb, v;
+vvi g, w;
+multiset<ll> se;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin >> n >> m >> q;
+    a.assign(n, 0);
+    b.assign(n, 0);
+    for (int i = 0; i < n - 1; ++i)
+        cin >> a[i] >> b[i];
+    g.resize(n);
+    w.resize(n);
+    inb.assign(n, 0);
+    for (int i = 0; i < m; ++i) {
+        int x, y, z; cin >> x >> y >> z; --x; --y;
+        g[x].pb(y); w[x].pb(z);
+        inb[y] += z;
+    }
+    v.assign(n, accumulate(all(inb), 0ll));
+    for (int i = 1; i < n; ++i)
+        v[i] = v[i - 1] - inb[i - 1];
+    for (int i = 1; i < n; ++i)
+        v[i] += b[i - 1];
+    stree t(v);
+    for (int i = n - 1; i >= 0; --i) {
+        v[i] = t.get_min();
+        for (int j = 0; j < g[i].size(); ++j)
+            t.incr(1, 0, g[i][j], -w[i][j]);
+    }
+    for (int i = 0; i < n; ++i)
+        se.insert(a[i] + v[i]);
+    cout << *se.begin() << "\n";
+    while (q--) {
+        int x, z; cin >> x >> z; --x;
+        se.erase(se.find(a[x] + v[x]));
+        a[x] = z;
+        se.insert(a[x] + v[x]);
+        cout << *se.begin() << "\n";
+    }
+
+    return 0;
+}

@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+#define MOD 1000000007
+using namespace std;
+struct Node{
+    int mat[2][2];
+    Node() {
+        mat[0][0] = mat[0][1] = mat[1][1] = 0;
+        mat[1][0] = 1;
+    }
+};
+
+Node segTree[266666];
+Node lazy[266666];
+bool gotLazy[266666];
+Node arr[100005];
+int vals[100002];
+int n,m;
+Node t,I;
+
+
+
+int add(int a,int b) {
+    a+=b;
+    if(a>MOD)
+        a-= MOD;
+    if(a < 0)
+        a += MOD;
+    return a;
+}
+
+int mul(int a,int b) {
+    a = a *1LL * b % MOD;
+    if(a < 0)
+        a = (a+MOD)%MOD;
+    return a;
+}
+
+void transition(Node & n) {
+    n.mat[0][1] = n.mat[1][1] = 1;
+}
+
+
+Node multiply(Node &a, Node &b) {
+    Node res;
+    res.mat[1][0] = 0;
+    for(int i = 0;i<2;i++)
+        for(int j=0;j<2;j++)
+            for(int k = 0;k<2;k++)
+                res.mat[i][j] = add(res.mat[i][j],mul(a.mat[i][k],b.mat[k][j]));
+    return res;
+}
+
+Node pow(int pos,int p) {
+    if(p == 0)
+        return I;
+    Node ans = pow(pos,p/2);
+    ans = multiply(ans,ans);
+    if(p & 1)
+        ans = multiply(arr[pos],ans);
+    return ans;
+
+}
+
+void unity(Node & v) {
+    for(int i = 0;i<2;i++)
+        for(int j = 0;j<2;j++)
+            v.mat[i][j] = i == j;
+}
+
+void buildTree(int pos,int low,int high) {
+    unity(lazy[pos]);
+    if(low == high) {
+        arr[low] = pow(low,vals[low]-1);
+        segTree[pos] = multiply(arr[low],segTree[pos]);
+        return;
+     }
+     int mid = (low+high)>>1;
+     buildTree(pos<<1,low,mid);
+     buildTree( (pos<<1)+1,mid+1,high);
+     segTree[pos].mat[0][0] = add(segTree[pos<<1].mat[0][0] , segTree[(pos<<1)+1].mat[0][0]);
+     segTree[pos].mat[1][0] = add(segTree[pos<<1].mat[1][0] , segTree[(pos<<1)+1].mat[1][0]);
+}
+
+void propagateLazy(int pos) {
+    lazy[(pos<<1)] = multiply(lazy[pos],lazy[(pos<<1)]);
+    gotLazy[pos<<1] = gotLazy[(pos<<1)+1] = true;
+    lazy[(pos<<1)+1] = multiply(lazy[pos],lazy[(pos<<1)+1]);
+}
+
+void updateThis(int pos,int low,int high) {
+    if(!gotLazy[pos])
+        return;
+    segTree[pos] = multiply(lazy[pos],segTree[pos]);
+    gotLazy[pos] = false;
+    if(low != high)
+        propagateLazy(pos);
+    unity(lazy[pos]);
+}
+
+void updateTree(int pos,int low,int high,int qLow,int qHigh) {
+    updateThis(pos,low,high);
+    if(qLow > high || qHigh < low || low > high)
+        return;
+    if(low >= qLow && high <= qHigh) {
+        segTree[pos] = multiply(arr[n+1],segTree[pos]);
+        if(low != high) {
+            lazy[(pos<<1)] = multiply(arr[n+1],lazy[(pos<<1)]);
+            lazy[(pos<<1)+1] = multiply(arr[n+1],lazy[(pos<<1)+1]);
+            gotLazy[pos<<1] = gotLazy[(pos<<1)+1] = true;
+        }
+        return;
+    }
+    int mid = (low+high)>>1;
+    updateTree((pos<<1),low,mid,qLow,qHigh);
+    updateTree((pos<<1)+1,mid+1,high,qLow,qHigh);
+    segTree[pos].mat[0][0] = add(segTree[(pos<<1)].mat[0][0] , segTree[(pos<<1)+1].mat[0][0]);
+    segTree[pos].mat[1][0] = add(segTree[(pos<<1)].mat[1][0] , segTree[(pos<<1)+1].mat[1][0]);
+}
+
+int query(int pos,int low,int high,int qLow,int qHigh) {
+    updateThis(pos,low,high);
+    if(qLow > high || qHigh < low || low>high)
+        return 0;
+    if(qLow<=low && qHigh >= high)
+        return segTree[pos].mat[1][0];
+    int mid = (low + high)/2;
+    return add(query((pos<<1),low,mid,qLow,qHigh), query((pos<<1)+1,mid+1,high,qLow,qHigh));
+}
+
+int main()
+{
+    scanf("%d %d",&n,&m);
+    transition(t);
+    unity(I);
+    for(int i =0;i<n;i++) {
+        scanf("%d",&vals[i]);
+        transition(arr[i]);
+    }
+    transition(arr[n]);
+    buildTree(1,0,n-1);
+    int x,temp,temp2;
+    for(int i= 0;i<m;i++) {
+        scanf("%d",&x);
+        if(x == 1) {
+            scanf("%d %d %d",&x,&temp,&temp2);
+            x--,temp--;
+            arr[n+1] = pow(n,temp2);
+            updateTree(1,0,n-1,x,temp);
+        } else {
+            scanf("%d %d",&x,&temp);
+            x--,temp--;
+            printf("%d\n",query(1,0,n-1,x,temp));
+        }
+    }
+    return 0;
+}

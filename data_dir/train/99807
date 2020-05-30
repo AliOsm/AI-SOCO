@@ -1,0 +1,79 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 100;
+
+int n, v, q, TIME, s_time[N], f_time[N];
+string s;
+vector<int> child[N];
+struct node {
+	bool lazy;
+	int one;
+} seg[N << 2];
+
+void dfs(int v) {
+	s_time[v] = TIME++;
+	for (int u: child[v])
+		dfs(u);
+	f_time[v] = TIME;
+}
+
+void upd(int v, int lc, int rc, int s, int mid, int e) {
+	if(seg[v].lazy == false)
+		return;
+	seg[lc].one = (mid - s) - seg[lc].one;
+	seg[rc].one = (e - mid) - seg[rc].one;
+	seg[lc].lazy ^= true;
+	seg[rc].lazy ^= true;
+	seg[v].lazy = false;
+}
+
+void change(int l, int r, int v = 1, int s = 0, int e = n) {
+	if(r <= s || e <= l)
+		return;
+	if(l <= s && e <= r) {
+		seg[v].lazy ^= true;
+		seg[v].one = (e - s) - seg[v].one;
+		return;
+	}
+	int mid = (s + e) >> 1, lc = v << 1, rc = lc | 1;
+	upd(v, lc, rc, s, mid, e);
+	change(l, r, lc, s, mid);
+	change(l, r, rc, mid, e);
+	seg[v].one = seg[lc].one + seg[rc].one;
+}
+
+int get(int l, int r, int v = 1, int s = 0, int e = n) {
+	if(r <= s || e <= l)
+		return 0;
+	if(l <= s && e <= r)
+		return seg[v].one;
+	int mid = (s + e) >> 1, lc = v << 1, rc = lc | 1;
+	upd(v, lc, rc, s, mid, e);
+	return get(l, r, lc, s, mid) + get(l, r, rc, mid, e);
+}
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(0);
+	cin >> n;
+	for (int i = 1; i < n; i++) {
+		cin >> v;
+		child[--v].push_back(i);
+	}
+	dfs(0);
+	for (int i = 0; i < n; i++) {
+		cin >> v;
+		if(v)
+			change(s_time[i], s_time[i] + 1);
+	}
+	cin >> q;
+	while(q--) {
+		cin >> s >> v;
+		v--;
+		if(s == "pow")
+			change(s_time[v], f_time[v]);
+		else
+			cout << get(s_time[v], f_time[v]) << '\n';
+	}
+	return 0;
+}

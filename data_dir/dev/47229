@@ -1,0 +1,168 @@
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+using namespace std;
+const int LEN = 19, MOD = 504;
+const int maxNum[] = {3, 2, 1, 1};
+const int pr[] = {2, 3, 5, 7};
+const int pw[] = {1, 4, 12, 24, 48};
+const int no[] = {-1, -1, 0, 1, -1, 2, -1, 3};
+const int h[][4] = {0, 0, 0, 0,
+                    0, 0, 0, 0,
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    2, 0, 0, 0,
+                    0, 0, 1, 0,
+                    1, 1, 0, 0,
+                    0, 0, 0, 1,
+                    3, 0, 0, 0,
+                    0, 2, 0, 0
+                    };
+
+long long f1[48][MOD * 5], f2[48][MOD * 5];
+
+long long calc(long long q) {
+  int w, e, r, a[19], c, v, s[4];
+  int remainder = 0, mMask = 0;
+  for (w = 0; w < LEN; w++) {
+    a[w] = q % 10;
+    q /= 10;
+  }
+  for (w = 0; w < 48; w++) {
+    for (e = 0; e < MOD; e++) {
+      f1[w][e] = 0;
+    }
+  }
+  
+  for (w = LEN - 1; w; w--) {
+    for (e = 0; e < 48; e++) {
+      for (r = 0; r < MOD; r++) {
+        f2[e][r] = 0;
+      }
+    }
+    
+    for (e = 0; e < 48; e++) {
+      for (r = 0; r < 4; r++) {
+        s[r] = (e % pw[r + 1]) / pw[r];
+      }
+      for (r = 0; r < MOD; r++) {
+        if (!f1[e][r]) {
+          continue;
+        }
+        for (c = 0; c < 10; c++) {
+          int mask = 0;
+          for (int v = 0; v < 4; v++) {
+            mask += max(s[v], h[c][v]) * pw[v];
+          }
+          f2[mask][(r * 10 + c) % MOD] += f1[e][r];
+        }
+      }
+    }
+    
+    for (r = 0; r < 4; r++) {
+      s[r] = (mMask % pw[r + 1]) / pw[r];
+    }
+    for (c = 0; c < a[w]; c++) {
+      int mask = 0;
+      for (int v = 0; v < 4; v++) {
+        mask += max(s[v], h[c][v]) * pw[v];
+      }
+      f2[mask][(remainder * 10 + c) % MOD]++;
+    }
+    
+    remainder = (remainder * 10 + a[w]) % MOD;
+    mMask = 0;
+    for (int v = 0; v < 4; v++) {
+      mMask += max(s[v], h[a[w]][v]) * pw[v];
+    }
+    
+    for (e = 0; e < 48; e++) {
+      for (r = 0; r < MOD; r++) {
+        f1[e][r] = f2[e][r];
+      }
+    }
+  }
+  
+  /// ---------------------------------------------
+  
+  w = 0;
+  
+  for (e = 0; e < 48; e++) {
+    for (r = 0; r < MOD * 5; r++) {
+      f2[e][r] = 0;
+    }
+  }
+  
+  for (e = 0; e < 48; e++) {
+    for (r = 0; r < 4; r++) {
+      s[r] = (e % pw[r + 1]) / pw[r];
+    }
+    for (r = 0; r < MOD; r++) {
+      if (!f1[e][r]) {
+        continue;
+      }
+      for (c = 0; c < 10; c++) {
+        int mask = 0;
+        for (int v = 0; v < 4; v++) {
+          mask += max(s[v], h[c][v]) * pw[v];
+        }
+        f2[mask][(r * 10 + c) % (MOD * 5)] += f1[e][r];
+      }
+    }
+  }
+  
+  for (r = 0; r < 4; r++) {
+    s[r] = (mMask % pw[r + 1]) / pw[r];
+  }
+  for (c = 0; c < a[w]; c++) {
+    int mask = 0;
+    for (int v = 0; v < 4; v++) {
+      mask += max(s[v], h[c][v]) * pw[v];
+    }
+    f2[mask][(remainder * 10 + c) % (MOD * 5)]++;
+  }
+  
+  for (e = 0; e < 48; e++) {
+    for (r = 0; r < MOD * 5; r++) {
+      f1[e][r] = f2[e][r];
+    }
+  }
+  
+  long long res = 0;
+  for (e = 0; e < 48; e++) {
+    for (r = 0; r < 4; r++) {
+      c = (e % pw[r + 1]) / pw[r];
+      s[r] = 1;
+      for (; c; c--) {
+        s[r] *= pr[r];
+      }
+    }
+    for (r = 0; r < MOD * 5; r++) {
+      bool b = 1;
+      for (c = 0; c < 4; c++) {
+        if (r % s[c] != 0) {
+          b = 0;
+        }
+      }
+      if (b) {
+        res += f1[e][r];
+      }
+      
+    }
+  }
+  return res;
+}
+int main() {
+  #ifdef Vlad_kv
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+  #endif // Vlad_kv
+  int q, w, t;
+  long long e, r;
+  cin >> q;
+  for (w = 0; w < q; w++) {
+    cin >> e >> r;
+    cout << calc(r + 1) - calc(e) << "\n";
+  }
+  return 0;
+}

@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define mid ((l + r) >> 1)
+#define lson (p << 1)
+#define rson (p << 1 | 1)
+
+const int N = 1e5 + 10;
+
+int n, q;
+map < pair <int, int>, vector <int> > ps;
+vector <int> tr[N * 4];
+int fa[N], sz[N], mod2[N];
+bool ok = 1;
+
+struct node {
+  int x, fax, szx, modx, y, fay, szy, mody;
+  bool ok;
+};
+
+vector <node> stk;
+int x[N], y[N];
+bool ans[N];
+
+void init() {
+  for (int i = 1; i <= n; ++i) fa[i] = i, sz[i] = 1, mod2[i] = 0;
+}
+
+pair <int, int> find(int x) {
+  if (fa[x] == x) {
+    return make_pair(x, 0);
+  }
+  auto p = find(fa[x]);
+  return make_pair(p.first, p.second ^ mod2[x]);
+}
+
+void mrg(int x, int y) {
+  auto p = find(x), q = find(y);
+  x = p.first, y = q.first;
+  stk.push_back({x, fa[x], sz[x], mod2[x], y, fa[y], sz[y], mod2[y], ok});
+  if (x == y) {
+    if (p.second ^ q.second == 0) {
+      ok = 0;
+    }
+    return;
+  }
+  if (sz[x] > sz[y]) {
+    swap(x, y);
+  }
+  mod2[x] = p.second ^ q.second ^ 1;
+  fa[x] = y;
+  sz[y] += sz[x];
+  sz[x] = 0;
+}
+
+void add(int p, int l, int r, int ll, int rr, int x) {
+  if (ll <= l && rr >= r) {
+    tr[p].push_back(x);
+    return;
+  }
+  if (ll <= mid)
+    add(lson, l, mid, ll, rr, x);
+  if (rr >= mid + 1)
+    add(rson, mid + 1, r, ll, rr, x);
+}
+
+void go(vector <int> &v) {
+  for (int i : v) {
+    mrg(x[i], y[i]);
+  }
+}
+
+void rgo(int steps) {
+  while (steps--) {
+    node &a = stk.back();
+    int x = a.x;
+    fa[x] = a.fax;
+    sz[x] = a.szx;
+    mod2[x] = a.modx;
+    int y = a.y;
+    fa[y] = a.fay;
+    sz[y] = a.szy;
+    mod2[y] = a.mody;
+    ok = a.ok;
+    stk.pop_back();
+  }
+}
+
+void solve(int p, int l, int r) {
+  go(tr[p]);
+  if (l == r) {
+    ans[l] = ok;
+  }
+  else {
+    solve(lson, l, mid);
+    solve(rson, mid + 1, r);
+  }
+  rgo(tr[p].size());
+}
+
+int main() {
+  scanf("%d %d", &n, &q);
+  init();
+  for (int i = 1; i <= q; ++i) {
+    scanf("%d %d", x + i, y + i);
+    ps[make_pair(x[i], y[i])].push_back(i);
+  }
+  for (auto &kv : ps) {
+    auto e = kv.first;
+    auto &v = kv.second;
+    for (int i = 0; i < v.size(); i += 2) {
+      int ed = q;
+      if (i + 1 < v.size())
+	ed = v[i + 1] - 1;
+      //cout << "add" << v[i] << " " << ed << " " << v[i] << endl;
+      add(1, 1, q, v[i], ed, v[i]);
+    }
+  }
+  solve(1, 1, q);
+  for (int i = 1; i <= q; ++i) {
+    puts(ans[i] ? "YES" : "NO");
+  }
+  return 0;
+}

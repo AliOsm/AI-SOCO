@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+#define BITS(w) __builtin_popcount(w)
+
+const int MAXN = 200010;
+const int MAXC = 20;
+
+bool FAIL = false;
+
+char buf[MAXN];
+
+int n;
+int msk[MAXN];
+vi fo[MAXN];
+
+ll ans[MAXN];
+
+// Decomposition
+int sub[MAXN];
+
+int InitSubtrees(int vr, int par = -1){
+  sub[vr] = 1;
+  for(int nxt : fo[vr])
+    if(nxt != par)
+      sub[vr] += InitSubtrees(nxt, vr);
+  return sub[vr];
+}
+
+int GetCenter(int vr, int total, int par = -1){
+  int max_sub = total - sub[vr];
+  for(int nxt : fo[vr])
+    if(nxt != par){
+      int cand = GetCenter(nxt, total, vr);
+      if(cand != -1) return cand;
+      relaxMax(max_sub, sub[nxt]);
+    }
+  if(2 * max_sub < total + 10) return vr;
+  else return -1;
+}
+
+// Solution
+
+int by_msk[1 << 20];
+int ops[MAXN], ops_sz;
+
+void Zero(){
+  for(int i = 0;i < ops_sz;++i)
+    by_msk[ops[i]] = 0;
+  ops_sz = 0;
+}
+
+void Inc(int pos){
+  ops[ops_sz++] = pos;
+  ++by_msk[pos];
+}
+
+void Place(int vr, int so_far, int par = -1){
+  so_far ^= msk[vr];
+  Inc(so_far);
+
+  for(int nxt : fo[vr])
+    if(nxt != par)
+      Place(nxt, so_far, vr);
+}
+
+bool add_root;
+ll Update(int vr, int so_far, int root, int par = -1){
+  so_far ^= msk[vr];
+
+  ll delta = 0;
+  if(add_root && BITS(so_far ^ msk[root]) < 2)
+    delta += 1;
+  delta += by_msk[so_far];
+  for(int i = 0;i < MAXC;++i)
+    delta += by_msk[so_far ^ (1 << i)];
+
+  for(int nxt : fo[vr])
+    if(nxt != par)
+      delta += Update(nxt, so_far, root, vr);
+
+  ans[vr] += delta;
+  return delta;
+}
+
+void Solve(int vr){
+  InitSubtrees(vr);
+
+  if(sub[vr] == 1){
+    ++ans[vr];
+    return;
+  }
+
+  vr = GetCenter(vr, sub[vr]);
+  assert(vr != -1);
+  ++ans[vr];
+
+  vi& go = fo[vr];
+  for(int nxt : go)
+    fo[nxt].erase(find(all(fo[nxt]), vr));
+  for(int vr : go) Solve(vr);
+
+  if(!FAIL) {
+    Zero();
+    for(int i = 0;i < sz(go);++i){
+      add_root = true;
+      ans[vr] += Update(go[i], 0, vr);
+      Place(go[i], msk[vr]);
+    }
+
+    Zero();
+    reverse(all(go));
+    for(int i = 0;i < sz(go);++i){
+      add_root = false;
+      Update(go[i], 0, vr);
+      Place(go[i], msk[vr]);
+    }
+  }
+
+  for(int nxt : go) fo[nxt].pb(vr);
+}
+
+int main(){
+  scanf("%d", &n);
+
+  //if(n == 195020) FAIL = true;
+
+  for(int i = 1, x, y;i < n;++i){
+    scanf("%d%d", &x, &y);
+    --x, --y;
+    fo[x].pb(y), fo[y].pb(x);
+  }
+
+  scanf("%s", buf);
+  for(int i = 0;i < n;++i)
+    msk[i] = (1 << (buf[i] - 'a'));
+
+  Solve(0);
+
+  for(int i = 0;i < n;++i)
+    printf("%I64d%c", ans[i], i + 1 == n ? '\n' : ' ');
+
+  return 0;
+}

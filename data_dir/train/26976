@@ -1,0 +1,238 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define sz(a) int(a.size())
+
+typedef long long Long;
+
+template<Long MOD>
+struct ModInt {
+	int n;
+	ModInt(const ModInt<MOD> &v):n(v.n){ }
+	ModInt():n(0){}
+	ModInt(Long nn){
+		if(nn < -MOD || nn >= MOD)nn %= MOD;
+		if(nn < 0)nn += MOD;
+		n = nn;
+	}
+	ModInt<MOD> operator+(const ModInt<MOD> &M)const{
+		int r = (n + M.n);
+		if(r >= MOD)r -= MOD;
+		return ModInt::safe(r);
+	}
+	ModInt<MOD> operator-(const ModInt<MOD> &M)const{
+		int r = (n - M.n);
+		if(r < 0)r += MOD;
+		return ModInt::safe(r);
+	}
+	ModInt<MOD> operator*(const ModInt<MOD> &M)const{
+		return ModInt::safe(((Long)n * M.n) % MOD);
+	}
+	ModInt<MOD> operator+=(const ModInt<MOD> &M){
+		return ModInt::safe(n = ((*this)+(M)).n);
+	}
+	ModInt<MOD> operator-=(const ModInt<MOD> &M){
+		return ModInt::safe(n = ((*this)-(M)).n);
+	}
+	ModInt<MOD> operator/(const ModInt<MOD> &B)const
+	{
+		Long a = B.n, b = MOD;
+		Long r = a , o_r = b;
+		Long s = 0 , o_s = 1;
+		Long t = 1 , o_t = 0;
+		while(r != 0)
+		{
+			Long q = o_r / r;
+			Long tem;
+
+			tem = r;
+			r = o_r - r * q;
+			o_r = tem;
+
+			tem = o_s;
+			o_s = o_s - s * q;
+			o_s = tem;
+
+			tem = t;
+			t = o_t - t * q;
+			o_t = tem;
+		}
+		return (*this) * ModInt(o_t);
+	}
+	ModInt<MOD> power(const ModInt<MOD-1> &B) const{
+		if(B.n == 0)return 1;
+		ModInt<MOD> sq = power(B.n/2);
+		sq = sq * sq;
+		if(B.n & 1)sq = sq * (*this);
+		return sq;
+	}
+
+	static ModInt<MOD> log (const ModInt<MOD> &base, const ModInt<MOD> &x) {
+		if (x.n == 1) return 0;
+		int sq = (int)sqrt(MOD) + 1;
+		ModInt<MOD> pS = base.power(sq);
+
+		unordered_map<int, int> value;
+		for (auto[i, cur] = pair(1, pS); i <= sq; i++) {
+			if (!value.count(cur.n)) value[cur.n] = i;
+			cur = cur*pS;
+		}
+
+		for (auto[i, cur] = pair(0, x); i <= sq; i++) {
+			if (value.count(cur.n)) {
+				int ans = value[cur.n] * sq - i;
+				if (ans < MOD) return ans;
+			}
+			cur = cur*base;
+		}
+		return -1;
+	}
+
+	inline static ModInt<MOD> safe(Long n){
+		ModInt<MOD> m;
+		m.n = n;
+		return m;
+	}
+};
+
+const int MOD = 998'244'353;
+typedef ModInt<MOD> mint;
+
+template<class T>
+struct Matrix
+{
+	struct VirtualVector{
+		vector<T> &R;
+		int off;
+		VirtualVector(vector<T> &R, const int off):R(R),off(off){}
+		T& operator[](int k){
+			return R[off+k];
+		}
+	};
+	vector<T> MAT;
+	int N,M;
+	Matrix(int N,int M) {
+		this->N = N;
+		this->M = M;
+		MAT = vector<T>(N*M);
+	}
+	static Matrix<T> identity(int N) {
+		Matrix<T> A(N,N);
+		for(int i = 0; i < N; ++i)
+			A[i][i] = 1;
+		return A;
+	}
+	Matrix<T> operator+(Matrix<T> &M) {
+		Matrix<T> A(this->rows() , M.cols());
+		for(int i = 0; i < this->rows(); ++i) {
+			for(int j = 0; j < this->cols(); ++j) {
+				A[i][j] = ((*this)[i][j] + M[i][j]);
+			}
+		}
+		return A;
+	}
+	Matrix<T> operator*(Matrix<T> &MA) const {
+		Matrix<T> A(this->rows() , MA.cols());
+		if(this->cols() != MA.rows())return A;
+		for(int i = 0; i < this->rows(); ++i) {
+			for(int j = 0; j < MA.cols(); ++j) {
+				A[i][j] = 0;
+				for(int k = 0; k < this->cols(); ++k) {
+					A[i][j] = (A[i][j] + MAT[i*M + k] * MA[k][j]);
+				}
+			}
+		}
+		return A;
+	}
+	Matrix<T> operator*(int &n) {
+		Matrix<T> A(this->rows() , this->cols());
+		for(int i = 0; i < this->rows(); ++i) {
+			for(int j = 0; j < this->cols(); ++j) {
+				A[i][j] = (1LL * n * (*this)[i][j]);
+			}
+		}
+		return A;
+	}
+	Matrix<T> pow(int n) {
+		Matrix<T> A = identity((*this).rows());
+		for(int b = (1<<30); b >= 1; b>>=1) {
+			A = A * A;
+			if(b & n)A = A * (*this);
+		}
+		return A;
+	}
+	VirtualVector operator[](int i){
+		return VirtualVector(MAT, i*M);
+	}
+	int rows() const {return N;}
+	int cols() const {return M;}
+
+	string toString()
+	{
+		string ans = "{\n";
+		for(int i = 0; i < this->rows(); ++i)
+		{
+			ans += "[";
+			for(int j = 0; j < this->cols(); ++j)
+			{
+				char arr[30];
+				string app = (j==0?"":" ");
+				sprintf(arr,"%d",(*this)[i][j]);
+				app += arr;
+				ans += app;
+			}
+			ans += "]\n";
+		}
+		ans += "}";
+		return ans;
+	}
+};
+
+
+Long discreteLogarithm(Long base, Long x, Long mod) {
+	assert(x > 0);
+	if (x == 1) return 0;
+	Long n = (int) sqrt (mod) + 1;
+	Long an = 1;
+	for (int i = 0; i<n; ++i)
+		an = (an * base) % mod;
+	unordered_map<Long, Long> value;
+	for (Long i = 1, cur = an; i<= n; ++i) {
+		if (!value.count(cur)) value[cur] = i;
+		cur = (cur * an) % mod;
+	}
+	for (Long i = 0, cur = x; i<= n; ++i) {
+		if (value.count(cur)) {
+			Long ans = value[cur] * n - i;
+			if (ans < mod)
+				return ans;
+		}
+		cur = (cur * base) % mod;
+	}
+	return -1;
+}
+
+int main() {
+	int k;
+	cin >> k;
+	Matrix <ModInt<MOD-1>> M (k, k);
+	for (int i = 0; i < k; i++) cin >> M[0][i].n;
+	for (int i = 1; i < k; i++) M[i][i-1] = 1;
+	int n, m;
+	cin >> n >> m;
+
+
+	M = M.pow(n-k);
+
+	mint base = mint(3).power(M[0][0]);
+
+	mint y = mint::log(base, m);
+
+	if (y.n == -1) {
+		puts("-1");
+		return 0;
+	}
+	mint ans = mint(3).power(y.n);
+	cout << (ans.power(M[0][0]).n == m ? ans.n : -1) << endl;
+}

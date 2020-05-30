@@ -1,0 +1,124 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 1005;
+int head[N], nxt[N * N], to[N * N], from[N * N], no = 0;
+
+void link(int a, int b) {
+	nxt[no] = head[a];
+	from[no] = a;
+	to[no] = b;
+	head[a] = no++;
+}
+
+void addxor(int a, int b) {
+	a <<= 1;
+	b <<= 1;
+	link(a, b ^ 1);
+	link(b ^ 1, a);
+	link(b, a ^ 1);
+	link(a ^ 1, b);
+}
+
+int dfsnum[N], low[N], ccnum[N], chead[N], cnum = 0, dfsn = 0;
+bool instack[N];
+stack<int> scc;
+void dfs(int idx) {
+	//cout<<"d\n";
+	dfsnum[idx] = low[idx] = dfsn++;
+	instack[idx] = 1;
+	scc.push(idx);
+	for (int i = head[idx]; ~i; i = nxt[i]) {
+		int nx = to[i];
+		if (dfsnum[nx] == -1)
+			dfs(nx);
+		if (instack[nx])
+			low[idx] = min(low[idx], low[nx]);
+	}
+	if (low[idx] == dfsnum[idx]) {
+		while (scc.top() != idx) {
+			int v = scc.top();
+			scc.pop();
+			instack[v] = 0;
+			ccnum[v] = cnum;
+		}
+		scc.pop();
+		instack[idx] = 0;
+		chead[cnum] = idx;
+		ccnum[idx] = cnum++;
+	}
+}
+
+int cval[N];
+bool vis[N];
+vector<int> ans;
+void topo(int idx) {
+	//cout<<"t\n";
+	vis[idx] = 1;
+	for (int i = head[idx]; ~i; i = nxt[i]) {
+		int nx = to[i];
+		if (!vis[nx])
+			topo(nx);
+	}
+	ans.push_back(idx);
+}
+
+int main() {
+	memset(head, -1, sizeof head);
+	int n, m;
+	cin>>n>>m;
+	vector<pair<int, int> > arr(m);
+	for (int i = 0; i < m; i++) {
+		cin >> arr[i].first >> arr[i].second;
+		if (arr[i].first > arr[i].second)
+			swap(arr[i].first, arr[i].second);
+	}
+	for (int i = 0; i < m; i++) {
+		int a = arr[i].first, b = arr[i].second;
+		for (int j = i + 1; j < m; j++) {
+			int x = arr[j].first, y = arr[j].second;
+			if ((x > a && x < b && y > b) || (y > a && y < b && x < a)) {
+				addxor(i, j);
+			}
+		}
+	}
+	//cout<<"1\n";
+	swap(n, m);
+	n <<= 1;
+	memset(dfsnum, -1, sizeof dfsnum);
+	for (int i = 0; i < n; i++) {
+		if (dfsnum[i] == -1)
+			dfs(i);
+	}
+	for (int i = 0; i < n; i += 2) {
+		if (ccnum[i] == ccnum[i ^ 1]) {
+			cout << "Impossible";
+			return 0;
+		}
+	}
+	int v = no;
+	no = 0;
+	memset(head, -1, sizeof head);
+	for (int i = 0; i < v; i++) {
+		int a = from[i], b = to[i];
+		if (ccnum[a] != ccnum[b]) {
+			link(ccnum[a], ccnum[b]);
+		}
+	}
+	for (int i = 0; i < cnum; i++) {
+		if (!vis[i])
+			topo(i);
+	}
+	memset(cval, -1, sizeof cval);
+	for (int i = 0; i < cnum; i++) {
+		int v = ans[i];
+		if (cval[v] == -1) {
+			cval[v] = 1;
+			v = ccnum[chead[v] ^ 1];
+			cval[v] = 0;
+		}
+	}
+	string w = "io";
+	for (int i = 0; i < n; i += 2) {
+		cout << w[cval[ccnum[i]]];
+	}
+}

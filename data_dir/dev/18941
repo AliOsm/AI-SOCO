@@ -1,0 +1,307 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+#include <queue>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int INF = (int) 1e9 + 1;
+const ld EPS = 1e-9;
+
+void precalc() {
+}
+
+struct Line {
+  int a, b, c;
+  int id;
+
+  int read(int _id) {
+    id = _id;
+    if (scanf("%d%d%d", &a, &b, &c) < 3) {
+      return 0;
+    }
+    return 1;
+  }
+};
+
+long long gcd(long long a, long long b) {
+  for (; b; a %= b, swap(a, b)) ;
+  return a;
+}
+
+struct Ratio {
+  long long a, b;
+
+  Ratio() {}
+  Ratio(long long _a, long long _b) : a(_a), b(_b) {
+    assert(b != 0ll);
+    normalize();
+  }
+
+  void normalize() {
+    long long d = gcd(a, b);
+    a /= d, b /= d;
+    if (b < 0) {
+      a = -a, b = -b;
+    }
+  }
+
+  inline bool operator < (const Ratio &r) const {
+    if (a != r.a) {
+      return a < r.a;
+    }
+    return b < r.b;
+  }
+
+  inline bool operator == (const Ratio &r) const {
+    return a == r.a && b == r.b;
+  }
+};
+
+struct Point {
+  Ratio x, y;
+
+  Point() {}
+  Point(Ratio _x, Ratio _y) : x(_x), y(_y) {}
+
+  inline bool operator < (const Point &p) const {
+    if (x == p.x) {
+      return y < p.y;
+    }
+    return x < p.x;
+  }
+  inline bool operator == (const Point &p) const {
+    return x == p.x && y == p.y;
+  }
+};
+
+bool inter(const Line &l1, const Line &l2, Point &res) {
+  long long D = (long long) l1.a * l2.b - (long long) l1.b * l2.a;
+  if (D == 0ll) {
+    return 0;
+  }
+  long long Dx = (long long) l1.b * l2.c - (long long) l1.c * l2.b;
+  long long Dy = (long long) l1.c * l2.a - (long long) l1.a * l2.c;
+  res = Point(Ratio(Dx, D), Ratio(Dy, D));
+  return 1;
+}
+
+int n, k;
+
+const int maxn = (int) 1e5 + 10;
+Line lines[maxn];
+
+bool read() {
+  if (scanf("%d%d", &n, &k) < 2) {
+    return 0;
+  }
+  for (int i = 0; i < n; ++i) {
+    lines[i].read(i);
+  }
+  return 1;
+}
+
+const int maxk = 5;
+int ans[maxk][2];
+int res;
+
+Line tmp[maxn];
+
+int used[maxn];
+
+bool gen(int pos, int k) {
+  if (pos == n) {
+    return 1;
+  }
+  if (used[pos]) {
+    return gen(pos + 1, k);
+  }
+  if (k == 0) {
+    return 0;
+  }
+  {
+    ans[res][0] = lines[pos].id + 1, ans[res][1] = -1;
+    ++res;
+    if (gen(pos + 1, k - 1)) {
+      return 1;
+    }
+    --res;
+  }
+  int oks[n];
+  Point ps[maxk * maxk + 5];
+  for (int j = pos + 1; j < n; ++j) {
+    oks[j] = 0;
+    if (used[j]) {
+      continue;
+    }
+    Point p;
+    if (!inter(lines[pos], lines[j], p)) {
+      continue;
+    }
+    oks[j] = 1;
+    ps[j] = p;
+  }
+
+  int tmp[n];
+  for (int j = pos + 1; j < n; ++j) {
+    if (!oks[j]) {
+      continue;
+    }
+    ans[res][0] = lines[pos].id + 1, ans[res][1] = lines[j].id + 1;
+    ++res;
+
+    for (int k = pos + 1; k < n; ++k) {
+      tmp[k] = used[k];
+      if (!oks[k]) {
+        continue;
+      }
+      if (ps[j] == ps[k]) {
+        used[k] += 1;
+        oks[k] = 0;
+      }
+    }
+      
+    if (gen(pos + 1, k - 1)) {
+      return 1;
+    }
+    --res;
+    for (int k = pos + 1; k < n; ++k) {
+      used[k] = tmp[k];
+    }
+  }
+  return 0;
+}
+
+bool solveSmall() {
+  random_shuffle(lines, lines + n, rnd);
+  for (int i = 0; i < n; ++i) {
+    used[i] = 0;
+  }
+  return gen(0, k);
+}
+
+void solve() {
+  res = 0;
+  while (n > k * k && k > 0) {
+    const int K = 250;
+    pair<Point, pair<int, int> > ps[K];
+    int cnt = 0;
+    bool ok = 0;
+    for (int iter = 0; iter < K; ++iter) {
+      int x = rnd(n), y = rnd(n);
+      Point p;
+      if (x == y || !inter(lines[x], lines[y], p)) {
+        continue;
+      }
+      ps[cnt++] = mp(p, mp(x, y));
+    }
+    sort(ps, ps + cnt);
+    Point p;
+    int x, y;
+    bool found = 0;
+    for (int i = 0; i < cnt;) {
+      int i0 = i;
+      while (i < cnt && ps[i].first == ps[i0].first) {
+        ++i;
+      }
+      if (i - i0 > k) {
+        found = 1;
+        p = ps[i0].first;
+        x = ps[i0].second.first, y = ps[i0].second.second;
+        break;
+      }
+    }
+    if (!found) {
+      printf("NO\n");
+      return;
+    }
+    {
+      int cnt = 0, cntp = 0;
+      for (int i = 0; i < n; ++i) {
+        Point q;
+        if (!inter(lines[i], lines[i == x ? y : x], q)) {
+          continue;
+        }
+        if (q == p) {
+          ++cntp;
+        } else {
+          tmp[cnt++] = lines[i];
+        }
+      }
+      assert(cntp > k);
+      ans[res][0] = lines[x].id + 1, ans[res][1] = lines[y].id + 1;
+      ++res;
+      for (int i = 0; i < cnt; ++i) {
+        lines[i] = tmp[i];
+      }
+      n = cnt;
+      --k;
+    }
+  }
+  if (solveSmall()) {
+    printf("YES\n");
+    printf("%d\n", res);
+    for (int i = 0; i < res; ++i) {
+      printf("%d %d\n", ans[i][0], ans[i][1]);
+    }
+  } else {
+    printf("NO\n");
+  }
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  precalc();
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

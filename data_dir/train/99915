@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX = 1e5 + 1000;
+int n, m, dp[MAX];
+vector <pair <int, int> > stree[4 * MAX];
+
+struct edge {
+	int a, b, c;
+
+	edge() {}
+
+	edge(int a, int b, int c) : a(a), b(b), c(c) {}
+
+	bool operator < (const edge &e) const {
+		return c < e.c;
+	}
+} a[MAX], ord[MAX];
+
+void build(int x, int st, int nd) {
+	int l = lower_bound(ord + 1, ord + m + 1, edge(0, 0, st)) - ord;
+	int u = upper_bound(ord + 1, ord + m + 1, edge(0, 0, nd)) - ord;
+
+	for(int i = l; i < u; i++)
+		stree[x].push_back({ord[i].b, 0});
+
+	sort(stree[x].begin(), stree[x].end());
+	auto it = unique(stree[x].begin(), stree[x].end());
+	stree[x].erase(it, stree[x].end());
+
+	if(st == nd)
+		return;
+
+	int mid = (st + nd) >> 1;
+
+	build(2 * x, st, mid);
+	build(2 * x + 1, mid + 1, nd);
+}
+
+int query(int x, int st, int nd, int a, int b, int fin_E) {
+	if(a > b || st > b || nd < a)
+		return 0;
+
+	if(st >= a && nd <= b) {
+		auto it = lower_bound(stree[x].begin(), stree[x].end(), make_pair(fin_E, -1));
+
+		if(it == stree[x].end())
+			return 0;
+
+		if(it -> first != fin_E)
+			return 0;
+
+		return it -> second;
+	}
+
+	int mid = (st + nd) >> 1;
+
+	return max(query(2 * x, st, mid, a, b, fin_E), query(2 * x + 1, mid + 1, nd, a, b, fin_E));
+}
+
+void upd(int x, int st, int nd, int p, int fin_E, int v) {
+	if(st > p || nd < p)
+		return;
+
+	int pos = lower_bound(stree[x].begin(), stree[x].end(), make_pair(fin_E, -1)) - stree[x].begin();
+
+	assert(stree[x][pos].first == fin_E);
+	stree[x][pos].second = max(stree[x][pos].second, v);
+
+	if(st == nd)
+		return;
+
+	int mid = (st + nd) >> 1;
+
+	upd(2 * x, st, mid, p, fin_E, v);
+	upd(2 * x + 1, mid + 1, nd, p, fin_E, v);
+}
+
+int main() {
+	scanf("%d%d", &n, &m);
+
+	int M = -1;
+	for(int i = 1; i <= m; i++) {
+		scanf("%d%d%d", &a[i].a, &a[i].b, &a[i].c);
+		ord[i] = a[i];
+		M = max(M, a[i].c);
+	}
+
+	sort(ord + 1, ord + m + 1);
+
+	build(1, 0, M);
+
+	for(int i = 1; i <= m; i++) {
+		int q = query(1, 0, M, 0, a[i].c - 1, a[i].a) + 1;
+		dp[a[i].b] = max(dp[a[i].b], q);
+		upd(1, 0, M, a[i].c, a[i].b, q);
+	}
+
+	printf("%d\n", *max_element(dp + 1, dp + n + 1));
+	return 0;
+}

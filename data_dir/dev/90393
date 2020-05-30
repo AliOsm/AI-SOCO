@@ -1,0 +1,426 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+    AssertsCounter(): counter(0) {}
+    ~AssertsCounter() { std::cout << std::endl << "DIAG: " << (counter == 0 ? "OK" : "!!!") << " Asserts count: " << counter << std::endl; }
+    void Increment() { counter++; }
+    uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cout << "ASSERT FAILED: '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> inline std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+    return ist;
+}
+
+template<typename T> inline std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+    return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+template<typename T>
+struct MinFunc
+{
+    typedef T value_type_t;
+    value_type_t CombineValues(const value_type_t& l, const value_type_t& r) const { return Min(l, r); }
+    value_type_t GetDefaultValue() const { return (value_type_t)std::numeric_limits<value_type_t>::max(); }
+};
+
+template<typename value_type_t, typename combine_function_t>
+class SegmentTree
+{
+public:
+    typedef std::vector<value_type_t> values_t;
+
+    explicit SegmentTree(const values_t& inputData, const combine_function_t& func = combine_function_t())
+        : m_func(func)
+    {
+        Preprocess(inputData);
+    }
+
+    // [idxBegin, idxEnd)
+    value_type_t CalculateForRange(size_t idxBegin, size_t idxEnd) const
+    {
+        if (idxBegin == idxEnd)
+            return m_func.GetDefaultValue();
+
+        const size_t len = m_resultTree[0].size();
+        const size_t curPow = m_resultTree.size()-1;
+        return CalculateForRangeRecPart(0, len, curPow, idxBegin, idxEnd);
+    }
+
+    void UpdateValue(const size_t idx, const value_type_t& val)
+    {
+        UpdateTreeAfterValueUpdate(idx, val);
+    }
+
+private:
+    typedef std::vector<values_t> combined_result_tree_t;
+
+    value_type_t CalculateForRangeRecPart(size_t disp, size_t len, size_t curPow2, size_t idxBegin, size_t idxEnd) const
+    {
+        // "len" is current power of 2
+        const size_t l = disp;
+        const size_t r = disp + len;
+
+        if (curPow2 == 0)
+        {
+            return m_resultTree[curPow2][disp];
+        }
+
+        if (l == idxBegin && r == idxEnd)
+        {
+            return m_resultTree[curPow2][disp / len];
+        }
+
+        const size_t mid = disp + len / 2;
+
+        if (mid <= idxBegin)
+        {
+            return CalculateForRangeRecPart(mid, len / 2, curPow2 - 1, idxBegin, idxEnd);
+        }
+        else if (mid >= idxEnd)
+        {
+            return CalculateForRangeRecPart(disp, len / 2, curPow2 - 1, idxBegin, idxEnd);
+        }
+        else
+        {
+            const value_type_t v1 = CalculateForRangeRecPart(disp, len / 2, curPow2 - 1, idxBegin, mid);
+            const value_type_t v2 = CalculateForRangeRecPart(mid, len / 2, curPow2 - 1, mid, idxEnd);
+            return m_func.CombineValues(v1, v2);
+        }
+    }
+
+    void Preprocess(const values_t& inputData)
+    {
+        const size_t n = inputData.size();
+
+        size_t upperPow2 = 1;
+        while (upperPow2 < n) {upperPow2 *= 2;}
+
+        m_resultTree.push_back(inputData);
+        m_resultTree[0].resize(upperPow2);
+        std::fill(m_resultTree[0].begin() + inputData.size(), m_resultTree[0].end(), m_func.GetDefaultValue());
+
+        size_t pow2 = 1;
+        size_t multiplier = 2;
+
+        while (multiplier <= upperPow2)
+        {
+            const size_t lineSize = upperPow2 / multiplier;
+            const values_t& prevLine = m_resultTree[pow2-1];
+            values_t nextLine(lineSize, m_func.GetDefaultValue());
+
+            for (size_t i = 0; i < lineSize; i++)
+                nextLine[i] = m_func.CombineValues(prevLine[2*i], prevLine[2*i + 1]);
+
+            m_resultTree.push_back(nextLine);
+
+            pow2 += 1;
+            multiplier *= 2;
+        }
+    }
+
+    void UpdateTreeAfterValueUpdate(const size_t updatedValueIdx, const value_type_t updatedValue)
+    {
+        const size_t n = m_resultTree[0].size();
+        // TODO: common assert func
+        if (updatedValueIdx >= n)
+            _CrtDbgBreak();
+
+        m_resultTree[0][updatedValueIdx] = updatedValue;
+
+        size_t pow2 = 1;
+        size_t currentIdx = updatedValueIdx / 2;
+
+        while (pow2 < m_resultTree.size())
+        {
+            m_resultTree[pow2][currentIdx] = m_func.CombineValues(
+                m_resultTree[pow2 - 1][2 * currentIdx], 
+                m_resultTree[pow2 - 1][2 * currentIdx + 1]);
+
+            pow2 += 1;
+            currentIdx /= 2;
+        }
+    }
+
+    const combine_function_t m_func;
+    combined_result_tree_t m_resultTree;
+};
+
+typedef SegmentTree<int32_t, MinFunc<int32_t> > SegmentTreeIntMin;
+
+
+struct point_t
+{
+    point_t(): x(0), y(0) { }
+
+    size_t x;
+    size_t y;
+
+    point_t GetTransposed() const
+    {
+        point_t t;
+        t.y = x;
+        t.x = y;
+        return t;
+    }
+};
+
+struct rect_t
+{
+    rect_t(): x1(0), x2(0), y1(0), y2(0), index(0) { }
+
+    size_t x1;
+    size_t x2;
+    size_t y1;
+    size_t y2;
+    size_t index;
+
+    rect_t GetTransposed() const
+    {
+        rect_t t;
+        t.y1 = x1;
+        t.x1 = y1;
+        t.x2 = y2;
+        t.y2 = x2;
+        t.index = index;
+        return t;
+    }
+
+};
+
+typedef std::vector<point_t> vector_point_t;
+typedef std::vector<rect_t> vector_rect_t;
+typedef std::map<size_t, vector_point_t> map_size_vector_point_t;
+typedef std::map<size_t, vector_rect_t> map_size_vector_rect_t;
+
+template<typename ValueType>
+std::vector<ValueType> GetTransposed(const std::vector<ValueType>& values)
+{
+    std::vector<ValueType> ans;
+    for (size_t i = 0; i < values.size(); i++)
+    {
+        ans.push_back(values[i].GetTransposed());
+    }
+    return ans;
+}
+
+vector_size_t GetAnsH(const size_t n, const size_t m, const vector_point_t& rooks, const vector_rect_t& areas)
+{
+    map_size_vector_point_t arrangedRooks;
+    for (size_t i = 0; i < rooks.size(); i++)
+    {
+        arrangedRooks[rooks[i].y].push_back(rooks[i]);
+    }
+
+    map_size_vector_rect_t arrangedAreas;
+    for (size_t i = 0; i < areas.size(); i++)
+    {
+        const rect_t& area = areas[i];
+        arrangedAreas[area.y2].push_back(area);
+    }
+
+    SegmentTreeIntMin lastRookInRow(vector_int32_t(n, -1));
+
+    vector_size_t isProtected(areas.size());
+
+    for (size_t col = 0; col < m; col++)
+    {
+        if (arrangedRooks.count(col) > 0)
+        {
+            const vector_point_t& rooksInCol = arrangedRooks.find(col)->second;
+            for (size_t i = 0; i < rooksInCol.size(); i++)
+            {
+                const point_t& r = rooksInCol[i];
+                lastRookInRow.UpdateValue(r.x, (int32_t)r.y);
+            }
+        }
+
+        if (arrangedAreas.count(col) > 0)
+        {
+            const vector_rect_t& rectsInCol = arrangedAreas.find(col)->second;
+            for (size_t i = 0; i < rectsInCol.size(); i++)
+            {
+                const rect_t& r = rectsInCol[i];
+                const int32_t leftMostRookPos = lastRookInRow.CalculateForRange(r.x1, r.x2 + 1);
+                if (leftMostRookPos >= (int32_t)r.y1)
+                {
+                    isProtected[r.index] = 1;
+                }
+            }
+        }
+    }
+
+    return isProtected;
+}
+
+vector_size_t GetAnsV(const size_t n, const size_t m, const vector_point_t& rooks, const vector_rect_t& areas)
+{
+    return GetAnsH(m, n, GetTransposed(rooks), GetTransposed(areas));
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; (void)sw;
+
+    // 
+    size_t n, m, k, q;
+    ist >> n >> m >> k >> q;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+#if LOCAL_TEST
+    ost << std::endl << "Next test" << std::endl;
+#endif
+
+    // 
+    vector_point_t rooks(k);
+    for (size_t i = 0; i < k; i++)
+    {
+        ist >> rooks[i].x >> rooks[i].y;
+        --rooks[i].x;
+        --rooks[i].y;
+    }
+
+    vector_rect_t areas(q);
+    for (size_t i = 0; i < q; i++)
+    {
+        ist >> areas[i].x1 >> areas[i].y1 >> areas[i].x2 >> areas[i].y2;
+        --areas[i].x1;
+        --areas[i].y1;
+        --areas[i].x2;
+        --areas[i].y2;
+        areas[i].index = i;
+    }
+
+    const vector_size_t isProtectedH = GetAnsH(n, m, rooks, areas);
+    const vector_size_t isProtectedV = GetAnsV(n, m, rooks, areas);
+    LOCAL_ASSERT(isProtectedH.size() == q);
+    LOCAL_ASSERT(isProtectedV.size() == q);
+
+    for (size_t i = 0; i < q; i++)
+    {
+        if (isProtectedH[i] || isProtectedV[i])
+            ost << "YES";
+        else
+            ost << "NO";
+        ost << "\n";
+    }
+
+    return multipleTestMode;
+}
+
+int main(int argc, const char *argv[])
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

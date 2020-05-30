@@ -1,0 +1,80 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX_N = 100005;
+
+int n;
+vector<int> g[MAX_N];
+int vSize[MAX_N];
+char result[MAX_N];
+
+void findSizes(int u, int prev)
+{
+	vSize[u] = 1;
+	for (int v : g[u])
+		if (v != prev)
+		{
+			findSizes(v, u);
+			vSize[u] += vSize[v];
+		}
+}
+
+int findCentroid(int u, int prev, int start)
+{
+	int maxV = -1;
+	for (int v : g[u])
+		if (v != prev && (maxV == -1 || vSize[v] > vSize[maxV]) && vSize[v] > vSize[start] / 2)
+			maxV = v;
+	if (maxV == -1)
+		return u;
+	return findCentroid(maxV, u, start);
+}
+
+bool solve(int u, char currC)
+{
+	if (currC > 'Z')
+		return false;
+	findSizes(u, -1);
+	int c = findCentroid(u, -1, u);
+	result[c] = currC;
+	for (int v : g[c])
+	{
+		for (int i = 0; i < (int)g[v].size(); i++)
+			if (g[v][i] == c)
+			{
+				g[v].erase(g[v].begin() + i);
+				break;
+			}
+	}
+	vector<int> nextV;
+	swap(g[c], nextV);
+	for (int v : nextV)
+		if (!solve(v, currC + 1))
+			return false;
+	return true;
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin >> n;
+	for (int i = 0; i < n - 1; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		u--; v--;
+		g[u].push_back(v);
+		g[v].push_back(u);
+	}
+	if (solve(0, 'A'))
+	{
+		for (int i = 0; i < n; i++)
+			cout << result[i] << " ";
+		cout << endl;
+	}
+	else
+		cout << "Impossible!" << endl;
+}

@@ -1,0 +1,142 @@
+#include <iostream>
+#include <vector>
+#include <complex>
+
+typedef double ld;
+
+const ld PI = acosl(-1.0);
+
+struct Complex {
+	ld real, imag;
+
+	Complex(ld a = 0, ld b = 0) : real(a), imag(b) {}
+	Complex conj() { return Complex(real, -imag); }
+	Complex operator + (const Complex &o) const { return Complex(real + o.real, imag + o.imag); }
+	Complex operator - (const Complex &o) const { return Complex(real - o.real, imag - o.imag); }
+	Complex operator * (const Complex &o) const { return Complex(real * o.real - imag * o.imag, real * o.imag + imag * o.real); }
+	Complex operator / (ld o) const { return Complex(real / o, imag / o); }
+	void operator *= (Complex o) { *this = *this * o; }
+	void operator /= (ld o) { real /= o, imag /= o; }
+};
+
+typedef std::vector<Complex> CVector;
+
+int bits[1 << 23];
+
+void pre(int n) {
+	int LOG = 0;
+	while(1 << (LOG + 1) < n) {
+		LOG++;
+	}
+	for(int i = 1; i < n; i++) {
+		bits[i] = (bits[i >> 1] >> 1) | ((i & 1) << LOG);
+	}
+}
+
+CVector fft(CVector a, bool inv = false) {
+	int n = a.size();
+	pre(n);
+	for(int i = 0; i < n; i++) {
+		int to = bits[i];
+		if(to > i) {
+			std::swap(a[to], a[i]);
+		}
+	}
+	
+	double angle = inv ? -PI : PI;
+	for(int len = 1; len < n; len *= 2) {
+		Complex delta(cosl(angle / len), sinl(angle / len));
+		for(int i = 0; i < n; i += 2 * len) {
+			Complex cur_root = 1;
+			for(int j = 0; j < len; j++) {
+				Complex u = a[i + j], v = a[i + j + len] * cur_root;
+				a[i + j] = u + v;
+				a[i + j + len] = u - v;
+				cur_root *= delta;
+			}
+		}
+	}
+	if(inv) {
+		for(int i = 0; i < n; i++)
+			a[i] /= n;
+	}
+	return a;
+}
+
+void fft2in1(CVector &a, CVector &b) {
+	int n = (int) a.size();
+	for(int i = 0; i < n; i++) {
+		a[i] = Complex(a[i].real, b[i].real);
+	}
+	auto c = fft(a);
+	for(int i = 0; i < n; i++) {
+		a[i] = (c[i] + c[(n-i) % n].conj()) * Complex(0.5, 0);
+		b[i] = (c[i] - c[(n-i) % n].conj()) * Complex(0, -0.5);
+	}
+}
+
+std::vector<long long> mul(std::vector<long long> a, std::vector<long long> b, long long cut = 1 << 16) {
+	int n = (int) a.size();
+	return a;
+}
+
+
+int main() {
+	std::ios_base::sync_with_stdio(false); std::cin.tie(NULL);
+	int n, x;
+	std::cin >> n >> x;
+	int size = 1;
+	while(size <= 2 * (n + 1)) size *= 2;
+	size = 1 << 19;
+	std::vector<int> freq(size, 0);
+	pre(size);
+	freq[0] = 1;
+	int sum = 0;
+	for(int i = 0; i < n; i++) {
+		int t;
+		std::cin >> t;
+		t = (t < x ? 1 : 0);
+		sum += t;
+		freq[sum]++;
+	}
+	int mid = 440;
+	std::vector<std::vector<CVector>> poly(2, std::vector<CVector>(2, CVector(size, 0)));
+	for(int i = 0; i <= n; i++) {
+		//std::cout << "freq " << i << " is " << freq[i] << std::endl;
+		poly[0][0][i] = freq[i] % mid;
+		poly[0][1][i] = freq[i] / mid;
+		poly[1][0][n - i] = freq[i] % mid;
+		poly[1][1][n - i] = freq[i] / mid;
+	}
+	for(int i = 0; i < 2; i++) {
+		fft2in1(poly[i][0], poly[i][1]);
+	}
+	std::vector<long long> ans(size, 0);
+	CVector v(size, 0);
+	for(int i = 0; i < 2; i++) {
+		for(int j = 0; j < 2; j++) {
+			long long base = 1;
+			int f = i + j;
+			while(f--) {
+				base *= mid;
+			}
+			for(int k = 0; k < size; k++) {
+				v[k] = poly[0][i][k] * poly[1][j][k];
+			}
+			v = fft(v, true);
+			for(int k = 0; k < size; k++) {
+				ans[k] += base * (long long)(v[k].real + 0.5);
+			}
+		}
+	}
+	ans[n] = 0;
+	for(int i = 0; i <= n; i++) {
+		ans[n] += (long long) freq[i] * (freq[i] - 1) / 2;
+	}
+	/*for(int i = 0; i < size; i++) {
+		std::cout << ans[i] << (i + 1 == size ? '\n' : ' ');
+	}*/
+	for(int i = 0; i <= n; i++) {
+		std::cout << ans[n-i] << (i == n ? '\n' : ' ');
+	}
+}

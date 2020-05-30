@@ -1,0 +1,135 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define fRead(x)        freopen(x,"r",stdin)
+#define fWrite(x)       freopen (x,"w",stdout)
+
+#define LL              long long
+#define ULL             unsigned long long
+#define ff              first
+#define ss              second
+#define pb              push_back
+#define INF             2e16
+#define PI              acos(-1.0)
+#define mk              make_pair
+#define pii             pair<int,int>
+#define pll             pair<LL,LL>
+
+
+#define min3(a,b,c)     min(a,min(b,c))
+#define max3(a,b,c)     max(a,max(b,c))
+#define min4(a,b,c,d)   min(a,min(b,min(c,d)))
+#define max4(a,b,c,d)   max(a,max(b,max(c,d)))
+#define SQR(a)          ((a)*(a))
+#define FOR(i,a,b)      for(int i=a;i<=b;i++)
+#define ROF(i,a,b)      for(int i=a;i>=b;i--)
+#define REP(i,b)        for(int i=0;i<b;i++)
+#define MEM(a,x)        memset(a,x,sizeof(a))
+#define ABS(x)          ((x)<0?-(x):(x))
+
+#define SORT(v)         sort(v.begin(),v.end())
+#define REV(v)          reverse(v.begin(),v.end())
+
+#define FastRead        ios_base::sync_with_stdio(0);cin.tie(nullptr);
+
+const int N = 300005;
+const LL MOD = 1e9 + 7;
+LL tree[2][4 * N],lazy[2][4 * N];
+void updateRange(LL id,LL node, LL start, LL end, LL l, LL r, LL val)
+{
+    if(lazy[id][node] != 0)
+    {
+        tree[id][node] += (end - start + 1) * lazy[id][node];tree[id][node] %= MOD;
+
+        if(start != end)
+        {
+            lazy[id][node*2] += lazy[id][node];
+            lazy[id][node*2+1] += lazy[id][node];
+            lazy[id][node * 2] %= MOD;
+            lazy[id][node * 2 + 1] %= MOD;
+        }
+        lazy[id][node] = 0;
+    }
+    if(start > end or start > r or end < l)return;
+
+    if(start >= l and end <= r)
+    {
+        tree[id][node] += (end - start + 1) * val;tree[id][node] %= MOD;
+        if(start != end)
+        {
+            lazy[id][node*2] += val;
+            lazy[id][node*2+1] += val;
+            lazy[id][node * 2] %= MOD;
+            lazy[id][node * 2 + 1] %= MOD;
+        }
+        return;
+    }
+
+    LL mid = (start + end) / 2;
+    updateRange(id,node*2, start, mid, l, r, val);
+    updateRange(id,node*2 + 1, mid + 1, end, l, r, val);
+    tree[id][node] = (tree[id][node*2] + tree[id][node*2+1] ) % MOD;
+}
+
+LL queryRange(LL id,LL node, LL start, LL end, LL l, LL r)
+{
+    if(start > end or start > r or end < l)return 0;
+
+    if(lazy[id][node] != 0)
+    {
+        tree[id][node] += (end - start + 1) * lazy[id][node];tree[id][node] %= MOD;
+        if(start != end)
+        {
+            lazy[id][node*2] += lazy[id][node];
+            lazy[id][node*2+1] += lazy[id][node];
+            lazy[id][node * 2] %= MOD;
+            lazy[id][node * 2 + 1] %= MOD;
+        }
+        lazy[id][node] = 0;
+    }
+
+    if(start >= l and end <= r)             return tree[id][node];
+
+    LL mid = (start + end) / 2;
+    LL p1 = queryRange(id,node*2, start, mid, l, r);
+    LL p2 = queryRange(id, node*2 + 1, mid + 1, end, l, r);
+    return (p1 + p2) % MOD;
+}
+
+LL n,q,level[N],st[N],ed[N];
+vector<LL>g[N];
+LL timer;
+void dfs(LL node,LL d)
+{
+    st[node] = ++timer;
+    level[node] = d;
+    for(LL i : g[node]){
+        dfs(i,d + 1);
+    }
+    ed[node] = timer;
+}
+int main()
+{
+    scanf("%lld",&n);
+    for(LL i = 2;i <= n;i++){
+        LL p;scanf("%lld",&p);
+        g[p].push_back(i);
+    }
+    dfs(1,0);
+
+    scanf("%lld",&q);
+    while(q--){
+        LL tp;scanf("%lld",&tp);
+        if(tp == 1){
+            LL v,x,k;scanf("%lld %lld %lld",&v,&x,&k);
+            updateRange(0,1,1,n,st[v],ed[v],(x + level[v] * k) % MOD);
+            updateRange(1,1,1,n,st[v],ed[v],-k);
+        }else{
+            LL v;scanf("%lld",&v);
+            LL ans = queryRange(0,1,1,n,st[v],st[v]) + level[v] * queryRange(1,1,1,n,st[v],st[v]);
+            ans = (ans%MOD) + MOD;
+            printf("%lld\n",ans % MOD);
+        }
+    }
+}

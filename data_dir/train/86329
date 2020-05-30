@@ -1,0 +1,153 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef pair<int, int> P;
+
+#define ft first
+#define sd second
+
+int n, m;
+int a[155];
+bool is_prime[32055];
+vector<int> prime;
+
+P p[100055];
+
+bool good[155][155];
+
+struct edge {int to; int cap; int rev;};
+
+int level[5055], iter[5055];
+
+vector<edge> g[5055];
+
+inline void add_edge(int from, int to) {
+	g[from].emplace_back((edge){to, 1, (int)g[to].size()});
+	g[to].emplace_back((edge){from, 0, (int)g[from].size() - 1});
+}
+void bfs(int s) {
+	queue<int> que;
+
+	memset(level, -1, sizeof(level));
+
+	que.push(s);
+	level[s] = 0;
+
+	while (!que.empty()) {
+		int u = que.front(); que.pop();
+
+		for (auto e : g[u]) {
+			if (level[e.to] < 0 && e.cap > 0) {
+				level[e.to] = level[u] + 1;
+				que.push(e.to);
+			}
+		}
+	}
+}
+int dfs(int s, int t, int f) {
+	if (s == t) return f;
+
+	for (int &i = iter[s]; i < (int)g[s].size(); i++) {
+		edge &e = g[s][i];
+
+		if (level[e.to] > level[s] && e.cap > 0) {
+			int d = dfs(e.to, t, min(f, e.cap));
+
+			if (d > 0) {
+				e.cap -= d;
+				g[e.to][e.rev].cap += d;
+				return d;
+			}
+		}
+	}
+
+	return 0;
+}
+int max_flow(int s, int t) {
+	int res = 0;
+	for (; ; ) {
+		bfs(s);
+
+		if (level[t] < 0) return res;
+
+		memset(iter, 0, sizeof (iter));
+
+		int f;
+		while ((f = dfs(s, t, INT_MAX)) > 0) res += f;
+	}
+}
+int main() {
+	for (int i = 2; i <= sqrt(32000); i++) is_prime[i] = true;
+
+	for (int i = 2; i <= sqrt(32000); i++) {
+		if (!is_prime[i]) continue;
+		
+		prime.emplace_back(i);
+
+		for (int j = i + i; j <= 32000; j += i) {
+			is_prime[j] = false;
+		}
+	}
+
+	for (int i = sqrt(32000) + 1; i <= 32000; i++) {
+		if (is_prime[i]) {
+			prime.emplace_back(i);
+		}
+	}
+
+	scanf("%d %d", &n, &m);
+
+	int V = 0;
+
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &a[i]);
+
+		vector<int> vec;
+
+		bool built = false;
+
+		for (auto u : prime) {
+			if (a[i] % u == 0) {
+				int temp = a[i];
+				do {
+					built = true;
+					p[V++] = P(u, i);
+					temp /= u;
+				} while (temp % u == 0);
+			}
+		}
+
+		if (!built) p[V++] = P(a[i], i);
+	}
+
+	int s = V, t = s + 1;
+	int x, y;
+
+	while (m--) {
+		scanf("%d %d", &x, &y);
+		x--, y--;
+
+		good[x][y] = good[y][x] = true;
+	}
+
+	for (int i = 0; i < V; i++) {
+		if (p[i].sd % 2 == 1) continue;
+		for (int j = 0; j < V; j++) {
+			if (good[p[i].sd][p[j].sd] && p[i].ft == p[j].ft) {
+				add_edge(i, j);
+			}
+		}
+	}
+
+	for (int i = 0; i < V; i++) {
+		if (p[i].sd % 2 == 0) {
+			add_edge(s, i);
+		} else {
+			add_edge(i, t);
+		}
+	}
+
+	printf("%d\n", max_flow(s, t));
+
+	return 0;
+}

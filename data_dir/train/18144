@@ -1,0 +1,198 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+#include <queue>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int INF = (int) 1.01e9;
+const ld EPS = 1e-9;
+
+const ld PI = acos(-1.0L);
+
+void precalc() {
+}
+
+const int maxn = (int) 1e5 + 10;
+int n;
+
+int xs[maxn], ys[maxn];
+
+bool read() {
+  if (scanf("%d", &n) < 1) {
+    return 0;
+  }
+  for (int i = 0; i < n; ++i) {
+    scanf("%d%d", xs + i, ys + i);
+  }
+  return 1;
+}
+
+int lefts[maxn][2];
+int rights[maxn][2];
+
+pair<int, int> ps[maxn];
+
+long long getValue(int left, int right) {
+  ++right;
+  assert(0 <= left && left <= right && right <= n);
+  //eprintf("[%d..%d)\n", left, right);
+
+  long long res = 0;
+  if (right > left) {
+    long long diff = ps[right - 1].first - ps[left].first;
+    res = max(res, diff * diff);
+  }
+  if (!(0 == left && right == n)) {
+    long long maxy = max(lefts[left][1], rights[right][1]);
+    long long miny = min(lefts[left][0], rights[right][0]);
+    res = max(res, (maxy - miny) * (maxy - miny));
+    if (left < right) {
+      long long absx = max(abs(ps[left].first), abs(ps[right - 1].first));
+      long long absy = max(abs(maxy), abs(miny));
+      res = max(res, absx * absx + absy * absy);
+    }
+  }
+  //eprintf("res = %lld\n", res);
+  return res;
+}
+
+bool solve(long long sqd) {
+  if (getValue(0, -1) <= sqd) {
+    return 1;
+  }
+
+  int d = (int) sqrt(sqd);
+  while ((long long) d * d > sqd) {
+    --d;
+  }
+  while ((long long) (d + 1) * (d + 1) <= sqd) {
+    ++d;
+  }
+
+
+  for (int i = 0, j = 0; i < n; ++i) {
+    while (ps[i].first - ps[j].first > d) {
+      ++j;
+    }
+    if (getValue(j, i) <= sqd) {
+      return 1;
+    }
+  }
+  for (int i = 0, j = 0; i < n; ++i) {
+    while (j + 1 < n && ps[j + 1].first - ps[i].first <= d) {
+      ++j;
+    }
+    //eprintf("[%d..%d]\n", i, j);
+    if (getValue(i, j) <= sqd) {
+      return 1;
+    }
+  }
+  int pos = lower_bound(ps, ps + n, mp(0, -INF)) - ps;
+  for (int i = pos, j = pos - 1; i < n || j >= 0;) {
+    int left = INF, right = INF;
+    if (j >= 0) {
+      left = -ps[j].first;
+    }
+    if (i < n) {
+      right = ps[i].first;
+    }
+    if (left <= right) {
+      --j;
+    } else {
+      ++i;
+    }
+    if (getValue(j + 1, i - 1) <= sqd) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void solve() {
+  for (int i = 0; i < n; ++i) {
+    ps[i] = mp(xs[i], ys[i]);
+  }
+  sort(ps, ps + n);
+  lefts[0][0] = INF;
+  lefts[0][1] = -INF;
+  for (int i = 0; i < n; ++i) {
+    lefts[i + 1][0] = min(lefts[i][0], ps[i].second);
+    lefts[i + 1][1] = max(lefts[i][1], ps[i].second);
+  }
+  rights[n][0] = INF;
+  rights[n][1] = -INF;
+  for (int i = n - 1; i >= 0; --i) {
+    rights[i][0] = min(rights[i + 1][0], ps[i].second);
+    rights[i][1] = max(rights[i + 1][1], ps[i].second);
+  }
+
+  //assert(solve(40));
+  long long l = -1, r = 1e18;
+  while (l + 1 < r) {
+    long long m = l + (r - l) / 2;
+    if (solve(m)) {
+      r = m;
+    } else {
+      l = m;
+    }
+  }
+  printf(LLD "\n", r);
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  precalc();
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time: %.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

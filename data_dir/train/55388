@@ -1,0 +1,228 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <string.h>
+
+#define N	100000
+#define N_	(1 << 17)
+#define M	100000
+#define INF	20000
+
+int n, m;
+int aa[N], tt[M], ll[M], rr[M], xx[M];
+int h_, n_;
+int ii[N_ * 2], max[N_ * 2], lz[N_];
+int sum[N_ * 2]; char lz2[N_];
+
+void upd(int i, int x) {
+	max[i] += x;
+	if (i < n_)
+		lz[i] += x;
+}
+
+void suk(int i) {
+	int l = i << 1, r = l | 1;
+
+	if (max[l] >= max[r])
+		max[i] = max[l], ii[i] = ii[l];
+	else
+		max[i] = max[r], ii[i] = ii[r];
+}
+
+void pull(int i) {
+	while (i > 1) {
+		i >>= 1;
+		if (!lz[i])
+			suk(i);
+	}
+}
+
+void push(int i) {
+	int h;
+
+	for (h = h_; h > 0; h--) {
+		int a = i >> h;
+
+		if (lz[a]) {
+			upd(a << 1, lz[a]);
+			upd(a << 1 | 1, lz[a]);
+			lz[a] = 0;
+		}
+	}
+}
+
+void build(int y) {
+	int i;
+
+	for (i = 0; i < n_; i++) {
+		ii[n_ + i] = i;
+		max[n_ + i] = -INF;
+	}
+	for (i = 0; i < n; i++)
+		if (aa[i] < y)
+			max[n_ + i] = aa[i];
+	for (i = n_ - 1; i > 0; i--)
+		suk(i);
+	memset(lz, 0, n_ * sizeof *lz);
+}
+
+int i_;
+
+int query(int l, int r) {
+	int a_;
+
+	push(l += n_), push(r += n_);
+	a_ = -INF;
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1) {
+			if (a_ < max[l])
+				a_ = max[l], i_ = ii[l];
+			l++;
+		}
+		if ((r & 1) == 0) {
+			if (a_ < max[r])
+				a_ = max[r], i_ = ii[r];
+			r--;
+		}
+	}
+	return a_;
+}
+
+void update(int l, int r, int x) {
+	int l_ = l += n_, r_ = r += n_;
+
+	push(l_), push(r_);
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			upd(l++, x);
+		if ((r & 1) == 0)
+			upd(r--, x);
+	}
+	pull(l_), pull(r_);
+}
+
+void upd2(int i) {
+	sum[i] = 0;
+	if (i < n_)
+		lz2[i] = 1;
+}
+
+void build2(int y) {
+	int i;
+
+	for (i = 0; i < n_; i++)
+		sum[n_ + i] = 0;
+	for (i = 0; i < n; i++)
+		if (aa[i] == y)
+			sum[n_ + i] = 1;
+	for (i = n_ - 1; i > 0; i--)
+		sum[i] = sum[i << 1] + sum[i << 1 | 1];
+	memset(lz2, 0, n_ * sizeof *lz2);
+}
+
+void push2(int i) {
+	int h;
+
+	for (h = h_; h > 0; h--) {
+		int a = i >> h;
+
+		if (lz2[a]) {
+			upd2(a << 1), upd2(a << 1 | 1);
+			lz2[a] = 0;
+		}
+	}
+}
+
+void pull2(int i) {
+	while (i > 1) {
+		i >>= 1;
+		if (!lz2[i])
+			sum[i] = sum[i << 1] + sum[i << 1 | 1];
+	}
+}
+
+void clear2(int l, int r) {
+	int l_ = l += n_, r_ = r += n_;
+
+	push2(l_), push2(r_);
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			upd2(l++);
+		if ((r & 1) == 0)
+			upd2(r--);
+	}
+	pull2(l_), pull2(r_);
+}
+
+void update2(int i) {
+	push2(i += n_);
+	sum[i]++;
+	pull2(i);
+}
+
+int query2(int l, int r) {
+	int x;
+
+	push2(l += n_), push2(r += n_);
+	x = 0;
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			x += sum[l++];
+		if ((r & 1) == 0)
+			x += sum[r--];
+	}
+	return x;
+}
+
+void solve(int y) {
+	int h;
+
+	build(y);
+	build2(y);
+	for (h = 0; h < m; h++) {
+		int l = ll[h], r = rr[h];
+
+		if (tt[h] == 0) {
+			int x = xx[h];
+
+			clear2(l, r);
+			update(l, r, x);
+			while ((x = query(l, r)) >= y) {
+				if (x == y)
+					update2(i_);
+				update(i_, i_, -INF);
+			}
+		} else
+			xx[h] += query2(l, r);
+	}
+}
+
+int main() {
+	int h, i, a, b;
+
+	scanf("%d%d", &n, &m);
+	h_ = 0;
+	while (1 << h_ < n)
+		h_++;
+	n_ = 1 << h_;
+	for (i = 0; i < n; i++)
+		scanf("%d", &aa[i]);
+	for (h = 0; h < m; h++) {
+		static char s[8];
+
+		scanf("%s%d%d", s, &ll[h], &rr[h]), ll[h]--, rr[h]--;
+		tt[h] = s[0] == 'a' ? 0 : 1;
+		if (tt[h] == 0)
+			scanf("%d", &xx[h]);
+	}
+	for (b = 2; b < 32; b++) {
+		int y = 0;
+
+		for (a = b; a > 1; a >>= 1)
+			y = y * 10 + ((a & 1) == 0 ? 4 : 7);
+		solve(y);
+	}
+	for (h = 0; h < m; h++)
+		if (tt[h] == 1)
+			printf("%d\n", xx[h]);
+	return 0;
+}

@@ -1,0 +1,217 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+using namespace std;
+
+typedef long long int ll;
+
+void minimize(pair<int,int> &a,pair<int,int> b)
+{
+  a=min(a,b);
+}
+
+int npos=1;
+
+/*
+const int limit=100005;
+const int LIMIT=4*limit;
+
+pair<int,int> minimumri[LIMIT][20];
+pair<int,int> minimumle[LIMIT][20];
+
+
+void insert(int pos,pair<int,int> val)
+{
+  //cout<<"insert pos "<<pos<<" val ("<<val.first<<","<<val.second<<")"<<endl;
+  minimumri[pos][0]=minimumle[pos][0]=val;
+}
+
+void precompute()
+{
+  for (int i=0;i<LIMIT;i++)
+    for (int b=1;b<20;b++)
+      minimumle[i][b]=min(minimumle[i][b-1],minimumle[max(0,i-(1<<(b-1)))][b-1]);
+  for (int i=npos;i>=0;i--)
+    for (int b=1;b<20;b++)
+      minimumri[i][b]=min(minimumri[i][b-1],minimumri[min(npos,i+(1<<(b-1)))][b-1]);
+}
+
+int minimumbetween(int pos0,int pos1)
+{
+  if (pos0>pos1) swap(pos0,pos1);
+  int b=31-__builtin_clz(pos1-pos0+1);
+  pair<int,int> mini=min(minimumri[pos0][b],minimumle[pos1][b]);
+  return mini.second;
+}
+*/
+
+const int limit=1000000;
+
+int sum[limit];
+int marked[limit];
+
+void mark(int pos,int val)
+{
+  //cout<<"mark pos "<<pos<<" val "<<val<<endl;
+  marked[pos]+=val;
+  for (;pos<limit;pos+=pos&-pos)
+    sum[pos]+=val;
+}
+
+ll sumbefore(int pos)
+{
+  //cout<<"sumbefore pos "<<pos<<endl;
+  ll s=0;
+  for (;pos>0;pos-=pos&-pos)
+    s+=sum[pos];
+  //cout<<"s "<<s<<endl;
+  return s;
+}
+
+ll sumbeforestrict(int pos)
+{
+  //cout<<"sumbeforestrict pos "<<pos<<endl;
+  ll s=0;
+  pos--;
+  for (;pos>0;pos-=pos&-pos)
+    s+=sum[pos];
+  //cout<<"s "<<s<<endl;
+  return s;
+}
+
+const int tope=1<<20;
+const int first=1<<19;
+
+pair<int,int> minimum[tope];
+
+void insert(int pos,pair<int,int> val)
+{
+  pos+=first;
+  minimum[pos]=val;
+  while (pos>1) {
+    pos/=2;
+    minimum[pos]=min(minimum[2*pos],minimum[2*pos+1]);
+  }
+}
+
+int minimumbetween(int pos0,int pos1)
+{
+  pos0+=first;
+  pos1+=first;
+  if (pos0>pos1) swap(pos0,pos1);
+  pair<int,int> mini=min(minimum[pos0],minimum[pos1]);
+  while (pos0+1<pos1) {
+    if (pos0%2==0) minimize(mini,minimum[pos0+1]);
+    pos0/=2;
+    if (pos1%2==1) minimize(mini,minimum[pos1-1]);
+    pos1/=2;
+  }
+  return mini.second;
+}
+
+const ll modulo=1e9+7;
+
+void add(ll &a,ll b)
+{
+  a=(a+b)%modulo;
+}
+
+int n;
+vector<int> g[limit];
+int depth[limit];
+int posle[limit];
+int posri[limit];
+
+void precompute(int u,int p,int d)
+{
+  vector<int> &ar=g[u];
+  depth[u]=d;
+  posle[u]=npos;
+  // We insert twice to prevent posle[u]==posri[u].
+  insert(npos++,pair<int,int> (depth[u],u));
+  insert(npos++,pair<int,int> (depth[u],u));
+  for (int i=0;i<int(ar.size());i++) {
+    int v=ar[i];
+    if (v!=p) {
+      precompute(v,u,d+1);
+      insert(npos++,pair<int,int> (depth[u],u));
+    }
+  }
+  posri[u]=npos-1;
+}
+
+void marku(int u,int val)
+{
+  mark(posle[u],val);
+  mark(posri[u],-val);
+}
+
+int minimumancestor(int u,int v)
+{
+  return minimumbetween(posle[u],posle[v]);
+}
+
+int cases;
+int k,m,r;
+ll ways[305];
+ll nextways[305];
+
+int main()
+{
+  ios::sync_with_stdio(false);
+  cin>>n>>cases;
+  for (int i=0;i<n-1;i++) {
+    int u,v;
+    cin>>u>>v;
+    g[u].push_back(v);
+    g[v].push_back(u);
+  }
+  precompute(1,0,0);
+  for (int cas=0;cas<cases;cas++) {
+    //cout<<"cas "<<cas<<endl;
+    cin>>k>>m>>r;
+    vector<pair<int,int> > list(k);
+    for (int i=0;i<k;i++) {
+      cin>>list[i].second;
+      int u=list[i].second;
+      marku(u,1);
+    }
+    for (int i=0;i<k;i++) {
+      int u=list[i].second;
+      int a=minimumancestor(u,r);
+      list[i].first=sumbefore(posle[u])+sumbefore(posle[r])-2*sumbeforestrict(posle[a])-marked[posle[a]]-1;
+    }
+    for (int i=0;i<k;i++) {
+      int u=list[i].second;
+      marku(u,-1);
+    }
+    sort(list.begin(),list.end());
+    for (int j=2;j<=m;j++)
+      ways[j]=0;
+    ways[1]=1;
+    for (int i=1;i<k;i++) {
+      //int u=list[i].second;
+      int d=list[i].first;
+      for (int j=1;j<=m;j++)
+	if (j<d+1) nextways[j]=0;
+	else nextways[j]=(ways[j]*(j-d)+ways[j-1])%modulo;
+      for (int j=1;j<=m;j++) {
+	ways[j]=nextways[j];
+	nextways[j]=0;
+      }
+      /*
+      cout<<"i "<<i<<" u "<<u<<" d "<<d<<endl;
+      for (int j=0;j<=m;j++)
+	cout<<ways[i][j]<<",";
+      cout<<endl;
+      */
+    }
+    ll sol=0;
+    for (int j=0;j<=m;j++)
+      add(sol,ways[j]);
+    sol=(sol%modulo+modulo)%modulo;
+    cout<<sol<<endl;
+  }
+}

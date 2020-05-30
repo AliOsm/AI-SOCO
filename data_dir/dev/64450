@@ -1,0 +1,85 @@
+#include <bits/stdc++.h>
+#define err(args...) {}
+#ifdef DEBUG
+#include "_debug.cpp"
+#include "callable.hpp/callable.hpp"
+#endif
+#define endl '\n'
+using namespace std;
+using ll = long long;
+#define N 300'000
+using ll = long long;
+struct edge { int u, v, w; };
+vector<edge> adj[N+1];
+void link(int u, int v, int w) {
+    adj[u].push_back({u, v, w});
+    adj[v].push_back({v, u, w});
+}
+bool vis[N+1];
+ll d[N+1], rev_d[N+1];
+void sssp(int s, ll d[], int n = N) {
+    fill(vis, vis + n + 1, false);
+    fill(d, d + n + 1, -1);
+    d[s] = 0;
+    priority_queue<pair<ll, int>> pq;
+    pq.push({-d[s], s});
+    while(not pq.empty()) {
+        int u = pq.top().second; pq.pop();
+        if(not vis[u]) {
+            vis[u] = true;
+            for(const edge& e : adj[u]) {
+                if(not vis[e.v] and (d[e.v] > d[u] + e.w or d[e.v] == -1)) {
+                    d[e.v] = d[u] + e.w;
+                    pq.push({-d[e.v], e.v});
+                }
+            }
+        }
+    }
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    int n, m;
+    cin >> n >> m;
+    for(int i = 1; i < n; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        link(u, v, w);
+    }
+    sssp(1, d);
+    sssp(n, rev_d);
+    vector<int> nodes_by_dist(n);
+    iota(nodes_by_dist.begin(), nodes_by_dist.end(), 1);
+    sort(nodes_by_dist.begin(), nodes_by_dist.end(), [](int u, int v) {
+        return d[u] > d[v] or (d[u] == d[v] and u > v);
+    });
+    static ll sep[N+1];
+    memset(sep, 0, sizeof sep);
+    set<pair<ll, int>> s;
+    for(int u : nodes_by_dist) {
+        for(const edge& e : adj[u]) {
+            int v = e.v;
+            if(d[v] > d[u] or (d[v] == d[u] and v > u)) {
+                s.erase({rev_d[v], v});
+            }
+        }
+        sep[u] = s.empty() ? 0 : d[u] + s.rbegin()->first;
+        for(const edge& e : adj[u]) {
+            int v = e.v;
+            if(d[v] > d[u] or (d[v] == d[u] and v > u)) {
+                s.insert({rev_d[v], v});
+            }
+        }
+        s.insert({rev_d[u], u});
+    }
+    ll max_sep = 0;
+    for(int u = 1; u <= n; u++) {
+        max_sep = max(max_sep, sep[u]);
+    }
+    for(int i = 0; i < m; i++) {
+        int x;
+        cin >> x;
+        cout << min(d[n], max_sep + x) << endl;
+    }
+    return 0;
+}

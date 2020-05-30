@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+using namespace std;
+//#define int long long
+typedef long long ll;
+
+const ll inf = 1e17;
+vector<int> mn, mx, safe, allRows;
+int highestRow = -1;
+vector<map<int, ll>> memo;
+
+ll solve(int row, int col) {
+    assert(row <= highestRow);
+    if(memo[row].count(col)) return memo[row][col];
+    memo[row][col] = inf;
+    ll &res = memo[row][col];
+    if(mx[row] == -1) {
+        int pos = lower_bound(safe.begin(), safe.end(), col) - safe.begin();
+        auto it = lower_bound(allRows.begin(), allRows.end(), row+1);
+        if(pos < (int)safe.size()) res = min(res, safe[pos] - col + solve(*it, safe[pos]));
+        if(pos-1 >= 0) res = min(res, col - safe[pos-1] + solve(*it, safe[pos-1]));
+        return res;
+    }
+    if(row == highestRow) {
+        return res = mx[row]-mn[row] + min(abs(mx[row]-col), abs(col-mn[row]));
+    }
+    if(col <= mn[row]) {
+        int pos = lower_bound(safe.begin(), safe.end(), mx[row]) - safe.begin();
+        if(pos < (int)safe.size()) res = min(res, mx[row] - col + abs(mx[row]-safe[pos]) + solve(row+1, safe[pos]));
+        if(pos-1 >= 0) res = min(res, mx[row] - col + abs(mx[row]-safe[pos-1]) + solve(row+1, safe[pos-1]));
+        return res;
+    }
+    if(col >= mx[row]) {
+        int pos = lower_bound(safe.begin(), safe.end(), mn[row]) - safe.begin();
+        if(pos < (int)safe.size()) res = min(res, col-mn[row] + abs(mn[row]-safe[pos]) + solve(row+1, safe[pos]));
+        if(pos-1 >= 0) res = min(res, col-mn[row] + abs(mn[row]-safe[pos-1]) + solve(row+1, safe[pos-1]));
+        return res;
+    }
+    assert(mn[row] < col && col < mx[row]);
+
+    int pos = lower_bound(safe.begin(), safe.end(), mx[row]) - safe.begin();
+    int dist = col-mn[row] + mx[row]-mn[row];
+    if(pos < (int)safe.size()) res = min(res, dist + abs(mx[row]-safe[pos]) + solve(row+1, safe[pos]));
+    if(pos-1 >= 0) res = min(res, dist + abs(mx[row]-safe[pos-1]) + solve(row+1, safe[pos-1]));
+
+    pos = lower_bound(safe.begin(), safe.end(), mn[row]) - safe.begin();
+    dist = mx[row]-col + mx[row]-mn[row];
+    if(pos < (int)safe.size()) res = min(res, dist + abs(mn[row]-safe[pos]) + solve(row+1, safe[pos]));
+    if(pos-1 >= 0) res = min(res, dist + abs(mn[row]-safe[pos-1]) + solve(row+1, safe[pos-1]));
+    return res;
+}
+
+signed main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n, m, k, q;
+    cin >> n >> m >> k >> q;
+    mn.resize(n+1, m+1);
+    mx.resize(n+1, -1);
+    memo.resize(n+1);
+    for(int i = 0; i < k; ++i) {
+        int row, col;
+        cin >> row >> col;
+        allRows.push_back(row);
+        highestRow = max(highestRow, row);
+        mn[row] = min(mn[row], col);
+        mx[row] = max(mx[row], col);
+    }
+    sort(allRows.begin(), allRows.end());
+    allRows.erase(unique(allRows.begin(), allRows.end()), allRows.end());
+    safe.resize(q);
+    for(int i = 0; i < q; ++i) {
+        cin >> safe[i];
+    }
+    sort(safe.begin(), safe.end());
+    cout << highestRow - 1 + solve(1, 1) << '\n';
+}

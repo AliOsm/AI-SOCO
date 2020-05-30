@@ -1,0 +1,181 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define ll           long long
+#define pii          pair<ll,ll>
+#define bug(a)       cerr << #a << " : " << a << endl;
+#define FastRead     ios_base::sync_with_stdio(false);cin.tie(NULL);
+
+const int MAX = 1e5+10;
+
+vector<int>adj[MAX];
+int T[MAX], dep[MAX], P[MAX][22], M[MAX][22];
+
+void DFS(int src,int par,int lev)
+{
+    T[src] = par;
+    dep[src] = lev;
+
+    for(int i=0; i<adj[src].size(); i++)
+    {
+        int x = adj[src][i];
+
+        if(x == par)
+            continue;
+
+        M[x][0] = 1;
+        DFS(x,src,lev+1);
+    }
+}
+void initLCA(int n)
+{
+    memset(P,-1,sizeof P);
+
+    for(int i=1; i<=n; i++)
+        P[i][0] = T[i];
+
+    for(int j=1; (1<<j)<n; j++)
+    {
+        for(int i=1; i<=n; i++)
+        {
+            if(P[i][j-1] != -1)
+            {
+                P[i][j] = P[P[i][j-1]][j-1];
+                M[i][j] = M[i][j-1] + M[P[i][j-1]][j-1];
+            }
+        }
+    }
+}
+int query(int n,int u,int v)
+{
+    if(u == v)
+        return 0;
+
+    if(dep[u] < dep[v])
+        swap(u,v);
+
+    int log = 1, sum = 0;
+
+    while(1)
+    {
+        int next = log+1;
+
+        if((1<<next) > dep[u])
+            break;
+        log++;
+    }
+
+    for(int i=log; i>=0; i--)
+    {
+        if(dep[u]-(1<<i) >= dep[v])
+            sum += M[u][i], u = P[u][i];
+    }
+    if(u == v)
+        return sum;
+
+    for(int i=log; i>=0; i--)
+    {
+        if(P[u][i] != -1 && P[u][i] != P[v][i])
+        {
+            sum += M[u][i]+M[v][i];
+            u = P[u][i];
+            v = P[v][i];
+        }
+    }
+    sum += M[u][0]+M[v][0];
+    return sum;
+}
+int lca(int n,int u,int v)
+{
+    if(dep[u] < dep[v])
+        swap(u,v);
+
+    int log = 1;
+
+    while(1)
+    {
+        int next = log+1;
+        if((1<<next) > dep[u])
+            break;
+        log++;
+    }
+
+    for(int i=log; i>=0; i--)
+    {
+        if(dep[u]-(1<<i) >= dep[v])
+            u = P[u][i];
+    }
+
+    if(u == v)
+        return u;
+
+    for(int i=log; i>=0; i--)
+    {
+        if(P[u][i] != -1 && P[u][i] != P[v][i])
+        {
+            u = P[u][i];
+            v = P[v][i];
+        }
+    }
+    return T[u];
+}
+int main()
+{
+#ifdef Aaman007
+    freopen("input.txt","r",stdin);
+    // freopen("output.txt","w",stdout);
+#endif // Aaman007
+
+    //FastRead
+
+    int n;
+
+    cin >> n;
+
+    int u,v,x,y,a,b,k,q;
+
+    for(int i=0; i<n-1; i++)
+    {
+        cin >> u >> v;
+
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    DFS(1,-1,0);
+    initLCA(n);
+
+    cin >> q;
+
+    while(q--)
+    {
+        cin >> x >> y >> a >> b >> k;
+
+        int edges = query(n,a,b);
+
+        if(edges%2 == k%2 && edges <= k)
+            cout << "YES\n";
+        else
+        {
+            int ed1 = query(n,a,x);
+            int ed2 = query(n,b,y);
+            edges = ed1+ed2+1;
+            //bug(edges)
+            if(edges%2 == k%2 && edges <= k)
+            {
+                cout << "YES\n";
+                continue;
+            }
+
+            ed1 = query(n,a,y);
+            ed2 = query(n,b,x);
+            edges = ed1+ed2+1;
+            if(edges%2 == k%2 && edges <= k)
+            {
+                cout << "YES\n";
+                continue;
+            }
+            cout << "NO\n";
+        }
+    }
+}

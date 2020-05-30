@@ -1,0 +1,126 @@
+#include<bits/stdc++.h>
+#define int long long 
+#define fast ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define pb push_back
+#define all(a) a.begin(),a.end()
+#define ld long double
+#define ub upper_bound
+#define lb lower_bound
+#define pii pair<int,int>
+using namespace std;
+const int N = 4e5+1;
+vector<int> adj[N];
+int tree[4*N];
+int lazy[4*N];
+int a[N];
+int col[N];
+int tin[N];
+int tout[N];
+int timer;
+void dfs (int src,int par){
+    tin[src] = ++timer;
+    for(auto it:adj[src]){
+        if(it!=par){
+            dfs(it,src);
+        }
+    }
+    tout[src] = timer;
+}
+void build (int node,int start,int end){
+    if(start == end){
+        tree[node] = ((int)1<<a[start]);
+        return ;
+    }
+    int mid = (start + end)/2;
+    build(2*node,start,mid);
+    build(2*node+1,mid+1,end);
+    tree[node] = tree[2*node]|tree[2*node+1];
+}
+void update (int node,int start,int end,int l,int r,int val){
+    if(lazy[node]!=-1){
+        tree[node]=lazy[node];
+        if(start!=end){
+            lazy[2*node] = lazy[node];
+            lazy[2*node+1] = lazy[node];
+        }
+        lazy[node] = -1;
+    }
+    if(start>end || start>r || end<l)
+        return ;
+    if(start>=l && end<=r){
+        tree[node] = (int)1<<val;
+        if(start!=end){
+            lazy[2*node] = tree[node];
+            lazy[2*node+1] = tree[node];
+        }
+        return ;
+    }
+    int mid = (start + end)/2;
+    update(2*node,start,mid,l,r,val);
+    update(2*node+1,mid+1,end,l,r,val);
+    tree[node] = tree[2*node]|tree[2*node+1];
+}
+int query (int node,int start,int end,int l,int r){
+    if(lazy[node]!=-1){
+            tree[node]=lazy[node];
+            if(start!=end){
+                lazy[2*node] = lazy[node];
+                lazy[2*node+1] = lazy[node];
+            }
+            lazy[node] = -1;
+    }
+    if(start>end || start>r || end<l)
+        return 0;
+    if(start>=l && end<=r){
+        return tree[node];
+    }
+    int mid = (start + end)/2;
+    int q1 = query(2*node,start,mid,l,r);
+    int q2 = query(2*node+1,mid+1,end,l,r);
+    return q1|q2;
+}
+signed main(){
+    fast;
+    int n,m;
+    cin>>n>>m;
+    for(int i = 1;i<=n;i++){
+        cin>>col[i];
+    }
+    for(int i = 1;i<=n-1;i++){
+        int u,v;
+        cin>>u>>v;
+        adj[u].pb(v);
+        adj[v].pb(u);
+    }
+    dfs(1,-1);
+    for(int i = 1;i<=n;i++){
+        int l = tin[i];
+        a[l] = col[i];
+    }
+    build(1,1,n);
+    memset(lazy,-1,sizeof(lazy));
+    while(m--){
+        int t;
+        cin>>t;
+        if(t == 1){
+            int v,c;
+            cin>>v>>c;
+            int l = tin[v];
+            int r = tout[v];
+            update(1,1,n,l,r,c);
+        }
+        else{
+            int v;
+            cin>>v;
+            int l = tin[v];
+            int r = tout[v];
+            int mask = query(1,1,n,l,r);
+            int ans = 0;
+            for(int i = 0;i<=60;i++){
+                if(mask&((int)1<<i))
+                    ans++;
+            }
+            cout<<ans<<"\n";
+        }
+    }
+}

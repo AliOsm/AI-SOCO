@@ -1,0 +1,147 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef int64_t lld;
+typedef long double llf;
+const llf EPS = 1e-3;
+#define PB push_back
+#define ALL(x) begin(x), end(x)
+#define SZ(x) ((int)(x).size())
+
+template<typename T>
+struct Point{
+	T x, y;
+	Point(): x(0), y(0){}
+	Point(T _, T __): x(_), y(__){}
+	template<typename T2>
+	Point(const Point<T2>& a): x(a.x), y(a.y){}
+	inline llf theta() const {
+		return atan2((llf)y, (llf)x);
+	}
+	inline llf dis() const {
+		return hypot((llf)x, (llf)y);
+	}
+	inline llf dis(const Point& o) const {
+		return hypot((llf)(x-o.x), (llf)(y-o.y));
+	}
+	Point operator-(const Point& o) const {
+		return Point(x-o.x, y-o.y);
+	}
+	Point operator-=(const Point& o){
+		x-=o.x, y-=o.y;
+		return *this;
+	}
+	Point operator+(const Point& o) const {
+		return Point(x+o.x, y+o.y);
+	}
+	Point operator+=(const Point& o){
+		x+=o.x, y+=o.y;
+		return *this;
+	}
+	Point operator*(const T& k) const {
+		return Point(x*k, y*k);
+	}
+	Point operator*=(const T& k){
+		x*=k, y*=k;
+		return *this;
+	}
+	Point operator/(const T& k) const {
+		return Point(x/k, y/k);
+	}
+	Point operator/=(const T& k){
+		x/=k, y/=k;
+		return *this;
+	}
+	Point operator-() const {
+		return Point(-x, -y);
+	}
+	Point rot90() const {
+		return {-y, x};
+	}
+	bool equal(const Point& o, true_type) const {
+		return fabs(x-o.x) < EPS and fabs(y-o.y) < EPS;
+	}
+	bool equal(const Point& o, false_type) const {
+		return x==o.x and y==o.y;
+	}
+	bool operator==(const Point& o) const {
+		return equal(o, is_floating_point<T>());
+	}
+	bool operator!=(const Point& o) const {
+		return !(*this == o);
+	}
+	bool operator<(const Point& o) const {
+		// sort like what pairs did
+		return fabs(x-o.x)<EPS?y<o.y:x<o.x;
+	}
+	friend inline T cross(const Point& a, const Point& b){
+		return a.x*b.y - b.x*a.y;
+	}
+	friend inline T dot(const Point& a, const Point &b){
+		return a.x*b.x + a.y*b.y;
+	}
+	friend ostream& operator<<(ostream& ss, const Point& o){
+		ss<<"("<<o.x<<", "<<o.y<<")";
+		return ss;
+	}
+};
+
+template<typename T>
+struct Circle{
+	Point<T> o;
+	T r;
+	vector<Point<llf>> operator&(const Circle& aa) const {
+		llf d=o.dis(aa.o);
+		if(d > r+aa.r+EPS or d < fabs(r-aa.r)-EPS) return {};
+		llf dt = (r*r - aa.r*aa.r)/d, d1 = (d+dt)/2;
+		Point<llf> dir = (aa.o-o); dir /= d;
+		Point<llf> pcrs = dir*d1 + o;
+		dt=sqrt(max(0.0L, r*r - d1*d1)), dir=dir.rot90();
+		return {pcrs + dir*dt, pcrs - dir*dt};
+	}
+};
+Circle<lld> arr[3];
+
+class DJS{
+	private:
+		vector<int> arr;
+	public:
+		void init(int n){
+			arr.resize(n);
+			iota(ALL(arr), 0);
+		}
+		int query(int x){
+			if(arr[x]!=x) arr[x]=query(arr[x]);
+			return arr[x];
+		}
+		void merge(int a, int b){
+			arr[query(a)] = arr[query(b)];
+		}
+} djs;
+
+int main(){
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	int n; cin>>n;
+	for(int i=0;i<n;i++) cin >> arr[i].o.x >> arr[i].o.y >> arr[i].r;
+	djs.init(n);
+	vector<Point<llf>> eve;
+	int e = 0;
+	for(int i=0;i<n;i++){
+		vector<Point<llf>> tmp;
+		for(int j=0;j<n;j++) if(i!=j){
+			vector<Point<llf>> jiao = arr[i]&arr[j];
+			if(jiao.empty()) continue;
+			djs.merge(i, j);
+			for(auto p: jiao){tmp.PB(p); eve.PB(p);}
+		}
+		sort(ALL(tmp));
+		tmp.resize(distance(tmp.begin(), unique(ALL(tmp))));
+		e += SZ(tmp);
+	}
+	sort(ALL(eve));
+	eve.resize(distance(eve.begin(), unique(ALL(eve))));
+	int v = SZ(eve);
+	int c = 0;
+	for(int i=0;i<n;i++) c += (djs.query(i)==i);
+	cout << e-v+c+1 << '\n';
+	return 0;
+}

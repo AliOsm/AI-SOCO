@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 100000 + 10;
+const int M = 1000000007;
+const double PI = atan(1) * 4;
+const int oo = 1000000000;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef pair<int, int> ii;
+#define pb push_back 
+#define all(c) (c).begin(),(c).end()
+int n,k,dp[401][401][2],sz[401],nxt[401][401];
+vector<vector<ii> > v;
+vi ans;
+int calc(int u, int p, int t, int lf, bool f){
+	if(lf<0)
+		return oo;
+	if(t==v[u].size()){
+		if(!f)
+			return calc(u,p,0,lf-1,1)+(u>0);
+		return oo*(lf>0);
+	}
+	int d=v[u][t].first;
+	if(d==p)
+		return calc(u,p,t+1,lf,f);
+	int &ret=dp[d][lf][f];
+	if(ret!=-1)
+		return ret;
+	if(!f){
+		ret=min(calc(d,u,0,lf,0),calc(u,p,t+1,lf,0));
+		return ret;
+	}
+	ret=1+calc(u,p,t+1,lf,1);
+	int x=min(lf,sz[d]);
+	for(int i=max(1,lf-nxt[u][t]); i<=x; ++i)
+		ret=min(ret, calc(d,u,0,i-1,1)+calc(u,p,t+1,lf-i,1));
+	return ret;
+}
+void solve(int u, int p, int t, int lf, bool f){
+	if(t==v[u].size()){
+		if(!f){
+			if(u>0){
+				for(int i=0; i<v[u].size(); ++i){
+					if(v[u][i].first==p){
+						ans.pb(v[u][i].second);
+						break;
+					}
+				}
+			}
+			solve(u,p,0,lf-1,1);
+			return;
+		}
+		return;
+	}
+	int d=v[u][t].first;
+	if(d==p){
+		solve(u,p,t+1,lf,f);
+		return;
+	}
+	int &ret=dp[d][lf][f];
+	if(!f){
+		if(calc(d,u,0,lf,0)==ret)
+			solve(d,u,0,lf,0);
+		else
+			solve(u,p,t+1,lf,0);
+		return;
+	}
+	if(ret==1+calc(u,p,t+1,lf,1)){
+		ans.pb(v[u][t].second);
+		solve(u,p,t+1,lf,1);
+		return;
+	}
+	int x=min(lf,sz[d]);
+	for(int i=max(1,lf-nxt[u][t]); i<=x; ++i){
+		if(ret==calc(d,u,0,i-1,1)+calc(u,p,t+1,lf-i,1)){
+			solve(d,u,0,i-1,1);
+			solve(u,p,t+1,lf-i,1);
+			return;
+		}
+	}
+}
+int dfs(int u, int p){
+	sz[u]=1;
+	for(int i=0; i<v[u].size(); ++i){
+		int d=v[u][i].first;
+		if(d==p)continue;
+		sz[u]+=dfs(d,u);
+	}
+	if(v[u].size()>1)
+	for(int i=v[u].size()-2; i>=0; --i){
+		int d=v[u][i+1].first;
+		nxt[u][i]=nxt[u][i+1];
+		if(d!=p)
+			nxt[u][i]+=sz[d];
+	}
+	return sz[u];
+}
+int main(){
+	#ifndef ONLINE_JUDGE
+		freopen("input.txt", "r", stdin);
+	#endif
+	cin>>n>>k;
+	v.resize(n);
+	for(int a,b,i=0; i<n-1; ++i){
+		scanf("%d%d",&a,&b);
+		--a;--b;
+		v[a].pb(ii(b,i+1));
+		v[b].pb(ii(a,i+1));
+	}
+	memset(dp,-1,sizeof(dp));
+	dfs(0,-1);
+	cout<<calc(0,-1,0,k,0)<<endl;
+	solve(0,-1,0,k,0);
+	sort(all(ans));
+	for(int i=0; i<ans.size(); ++i)
+		printf("%d ",ans[i]);
+}
+
+

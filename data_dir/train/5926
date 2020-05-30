@@ -1,0 +1,192 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#ifdef SG
+	#include <debug.h>
+#else
+	#define show(...)
+	#define debug(...)
+	#define deepen(...)
+	#define timer(...)
+#endif
+
+#define ARG4(_1,_2,_3,_4,...) _4
+
+#define forn3(i,l,r) for (int i = int(l); i < int(r); ++i)
+#define forn2(i,n) forn3 (i, 0, n)
+#define forn(...) ARG4(__VA_ARGS__, forn3, forn2) (__VA_ARGS__)
+
+#define ford3(i,l,r) for (int i = int(r) - 1; i >= int(l); --i)
+#define ford2(i,n) ford3 (i, 0, n)
+#define ford(...) ARG4(__VA_ARGS__, ford3, ford2) (__VA_ARGS__)
+
+#define ve vector
+#define pa pair
+#define tu tuple
+#define mp make_pair
+#define mt make_tuple
+#define pb push_back
+#define fs first
+#define sc second
+#define all(a) (a).begin(), (a).end()
+#define sz(a) ((int)(a).size())
+
+typedef long double ld;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef unsigned char uc;
+typedef pa<int, int> pii;
+typedef pa<int, ll> pil;
+typedef pa<ll, int> pli;
+typedef pa<ll, ll> pll;
+typedef ve<int> vi;
+
+const ld pi = 3.1415926535897932384626433832795l;
+
+template<typename T> inline auto sqr (T x) -> decltype(x * x) {return x * x;}
+template<typename T1, typename T2> inline bool umx (T1& a, T2 b) {if (a < b) {a = b; return 1;} return 0;}
+template<typename T1, typename T2> inline bool umn (T1& a, T2 b) {if (b < a) {a = b; return 1;} return 0;}
+
+const int N = 200100;
+
+ve<pair<pii, pii> > e;
+pii pr[N];
+int h[N];
+int idx[N];
+int root[N];
+int sz[N];
+int p[N];
+ve<pii> a[N];
+ve<pii> g[N];
+int cost[N];
+int rnd;
+int cnt;
+int vert[N];
+int ans[N];
+const int INF = 1e9 + 100;
+
+void dfs(int v, int h1, pii pr1) {
+	debug(v);
+	h[v] = h1;
+	pr[v] = pr1;
+	vert[cnt++] = v;
+	forn(i, sz(a[v])) {
+		int to = a[v][i].fs;
+		debug(mp(to, pr1.fs));
+		if (to != pr1.fs) {
+			dfs(to, h1 + 1, mp(v, a[v][i].sc));
+		}	
+	}
+}
+
+int get(int a) {
+	if (a == p[a])
+		return a;
+	return p[a] = get(p[a]);
+}
+
+bool uni(int l, int r) {
+	l = get(l), r = get(r);
+	if (l == r)
+		return false;
+	if (rnd ^= 1)
+		swap(l, r);
+	if (h[root[l]] < h[root[r]]) {
+		root[r] = root[l];
+	}
+	p[l] = r;
+	return true;
+}
+
+bool mst[N];
+int ord[4 * N];
+int szord;
+
+void process(int u, int v, int res) {
+	u = root[get(u)], v = root[get(v)];		
+	szord = 0;
+	while (u != v) {
+		if (h[u] > h[v])
+			swap(u, v);
+		ord[szord++] = v;
+		umn(ans[pr[v].sc], res - 1);
+		v = root[get(pr[v].fs)];
+	}
+	ord[szord++] = v;
+	forn(i, szord - 1)
+		uni(ord[i], ord[i + 1]);
+}
+
+int main () {
+	//std::ios::sync_with_stdio(false);
+	cout.setf(ios::showpoint | ios::fixed);
+	cout.precision(20);
+#ifdef SG
+	freopen((problemname + ".in").c_str(), "r", stdin);
+//	freopen((problemname + ".out").c_str(), "w", stdout);
+#endif
+	int n, m;
+	cin >> n >> m;
+	forn(i, m) {
+		int u, v, c;
+		scanf("%d%d%d", &u, &v, &c);
+		u--, v--;
+		cost[i] = c;
+		g[u].pb(mp(v, i));
+		g[v].pb(mp(u, i));
+		e.pb(mp(mp(c, i), mp(u, v)));
+	}
+	forn(i, n)
+		p[i] = i;
+	forn(i, n)
+		pr[i] = mp(-1, -1);
+	memset(mst, 0, sizeof(mst));
+	forn(i, n) {
+		h[i] = 0;
+		idx[i] = i;
+		root[i] = i;
+		sz[i] = 1;	
+	}
+	sort(all(e));
+	forn(i, m)
+		ans[i] = INF;
+	forn(i, sz(e)) {
+		int u = e[i].sc.fs, v = e[i].sc.sc;
+		if (idx[u] != idx[v]) {
+			debug(e[i].fs.sc);
+			if (sz[idx[u]] < sz[idx[v]])
+				swap(u, v);
+			sz[idx[u]] += sz[idx[v]];
+			cnt = 0;
+			dfs(v, h[u] + 1, mp(u, e[i].fs.sc));
+			forn(j, cnt) {
+				forn(k, sz(g[vert[j]])) {
+					int to = g[vert[j]][k].fs;
+					if (idx[to] == idx[u] && g[vert[j]][k].sc != e[i].fs.sc) {
+						ans[g[vert[j]][k].sc] = e[i].fs.fs - 1;
+					}
+				}
+			}
+			forn(j, cnt) {
+				idx[vert[j]] = idx[u];
+				if (h[vert[j]] < h[root[get(vert[j])]]) {
+					root[get(vert[j])] = vert[j];
+				}
+			}
+			mst[e[i].fs.sc] = 1;
+			a[u].pb(mp(v, e[i].fs.sc));
+			a[v].pb(mp(u, e[i].fs.sc));
+		} else {
+			process(u, v, e[i].fs.fs);
+		}
+	}
+	forn(i, m) {
+		if (ans[i] == INF)
+			ans[i] = -1;
+		printf("%d ", ans[i]);
+	}
+	cout << endl;
+	return 0;
+}

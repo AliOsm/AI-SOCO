@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#ifdef DGC
+#include "debug.h"
+#else
+#define debug(...) 9715
+#endif
+typedef long long ll;
+typedef long double ld;
+typedef complex<ll> point;
+#define F first
+#define S second
+
+template<typename T>
+struct rmq
+{
+	vector<vector<T>> dp;
+
+	rmq(vector<T> &a)
+	{
+		int n = a.size(), lg = __lg(n);
+		dp.resize(n, vector<T>(lg+1));
+
+		for (auto &i : a) dp[&i-&a[0]][0] = i;
+		for (int j = 1; j <= lg; ++j)
+			for (int i = 0; i+(1<<j) <= n; ++i)
+				dp[i][j] = max(dp[i][j-1], dp[i+(1<<(j-1))][j-1]);
+	}
+
+	T query(int a, int b) // [a, b)
+	{
+		int l = __lg(b - a);
+		return max(dp[a][l], dp[b-(1<<l)][l]);
+	}
+};
+
+int main()
+{
+	#ifdef DGC
+		//freopen("a.in", "r", stdin);
+		//freopen("b.out", "w", stdout);
+	#endif
+
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int t;
+	cin >> t;
+	while (t--)
+	{
+		int n;
+		cin >> n;
+		vector<int> a(n);
+		for (auto &i : a) cin >> i;
+
+		int m;
+		cin >> m;
+		vector<pair<int, int>> h(m);
+		for (auto &i : h) cin >> i.F >> i.S;
+
+		sort(h.begin(), h.end());
+		for (int i = m-2; i >= 0; --i)
+			h[i].S = max(h[i].S, h[i+1].S);
+
+		rmq<int> R(a);
+
+		auto f = [&](int i, int j)
+		{
+			int mx = R.query(i, j+1);
+			auto it = lower_bound(h.begin(), h.end(), make_pair(mx, -1));
+			return it != h.end() && it->S >= (j-i+1);
+		};
+
+		int ans = 0, p = 0;
+		while (p < n)
+		{
+			int b = p, e = n-1;
+			while (b < e)
+			{
+				int md = (b+e+1) >> 1;
+				if (f(p, md))
+					b = md;
+				else
+					e = md-1;
+			}
+
+			if (!f(p, b))
+			{
+				ans = -1;
+				break;
+			}
+
+			++ans;
+			p = b+1;
+		}
+
+		cout << ans << '\n';
+	}
+
+	return 0;
+}

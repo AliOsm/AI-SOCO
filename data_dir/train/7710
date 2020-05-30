@@ -1,0 +1,128 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+template<typename T>
+void out(T x) { cout << x << endl; exit(0); }
+#define watch(x) cout << (#x) << " is " << (x) << endl
+
+const int maxn = 1e6 + 5;
+
+const ll mod = 1e9 + 7;
+const ll P = 241;
+const ll PINV = 406639007;
+ll p[maxn], pinv[maxn];
+
+int n,m,x;
+string s,t;
+ll shash[maxn], thash[maxn];
+
+int dp[maxn][35];
+//using first i chars of s and j substrings from s, how much of t can we create?
+
+
+void gen() {
+  p[0] = 1;
+  pinv[0] = 1;
+  for (int i=1; i<maxn; i++) {
+    p[i] = (P * p[i-1])%mod;
+    pinv[i] = (PINV * pinv[i-1])%mod;
+  }
+  for (int i=1; i<=n; i++) {
+    shash[i] = ((s[i]-'a')*p[i])%mod + shash[i-1];
+    shash[i] %= mod;
+  }
+  for (int i=1; i<=m; i++) {
+    thash[i] = ((t[i]-'a')*p[i])%mod + thash[i-1];
+    thash[i] %= mod;
+  }
+}
+
+ll slr(int l, int r) {
+  ll h = (((shash[r] - shash[l-1])*pinv[l-1])+mod)%mod;
+  h%=mod;
+  return (h+mod)%mod;
+}
+
+ll tlr(ll l, ll r) {
+  ll h = (((thash[r] - thash[l-1])*pinv[l-1])+mod)%mod;
+  h%=mod;
+  return (h+mod)%mod;
+}
+
+// starting at s[i] and t[j], how much more of t can we cover?
+int get(int i, int j) {
+  int lo = 1; // inclusive
+  int hi = m - j + 2; // exclusive
+
+  while (hi - lo > 1) {
+    int mid = (lo + hi)/2;
+    if (slr(i,i+mid-1) == tlr(j,j+mid-1)) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
+
+void dbg() {
+  cout<<slr(8,9)<<" "<<tlr(5,6)<<endl;
+  for (int i=0; i<=n; i++) {
+    for (int j=0; j<=x; j++) {
+      cout<<dp[i][j]<<" ";
+    }
+    cout<<endl;
+  }
+}
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0);  cout.tie(0);
+
+  cin>>n;
+  cin>>s;
+  cin>>m;
+  cin>>t;
+  cin>>x;
+  s = "*" + s;
+  t = "*" + t;
+
+  gen();
+
+  for (int i=0; i<=n; i++) {
+    for (int j=0; j<=x; j++) {
+
+      if (i>0) {
+	dp[i][j] = max(dp[i][j], dp[i-1][j]);
+      }
+      if (j>0) {
+	dp[i][j] = max(dp[i][j], dp[i][j-1]);
+      }
+
+      int nxt = dp[i][j]+1;
+
+      if (i==n || j==x) {
+	continue;
+      }
+      
+      if (nxt>m) {
+	continue;
+      }
+
+      if (s[i+1]!=t[nxt]) {
+	continue;
+      }
+      int r = get(i+1, nxt);
+
+      dp[i+r][j+1] = max(dp[i+r][j+1], dp[i][j] + r);
+    }
+  }
+
+
+  //dbg();
+
+  if (dp[n][x] == m) cout<<"YES"<<endl; else cout<<"NO"<<endl;
+  return 0;
+}

@@ -1,0 +1,73 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cstring>
+using namespace std;
+typedef long long ll;
+
+const int MAXN = 105;
+const int MAXK = 22;
+const int MOD = 1000000007;
+int N, K;
+vector<int> adj[MAXN];
+ll dp[MAXN][MAXK][MAXK]; //depth of farthest uncovered white node + 1, depth of closest black node
+ll A[MAXK][MAXK];
+
+void dfs(int cur, int prev)
+{
+    dp[cur][1][K + 1] = dp[cur][0][0] = 1; //set cur to white or black
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i];
+        if (next == prev)
+            continue;
+        
+        dfs(next, cur);
+        memcpy(A, dp[cur], sizeof(dp[cur]));
+        memset(dp[cur], 0, sizeof(dp[cur]));
+
+        for (int a = 0; a <= K + 1; a++)
+            for (int b = 0; b <= K + 1; b++)
+                if (A[a][b] > 0)
+                    for (int c = 0; c <= K; c++)
+                        for (int d = 0; d <= K + 1; d++)
+                        {
+                            int x = max(a, c + 1), y = min(b, d + 1);
+                            dp[cur][x][y] = (dp[cur][x][y] + A[a][b]*dp[next][c][d] % MOD) % MOD;
+                        }
+    }
+
+    memcpy(A, dp[cur], sizeof(dp[cur]));
+    memset(dp[cur], 0, sizeof(dp[cur]));
+    for (int a = 0; a <= K + 1; a++)
+        for (int b = 0; b <= K + 1; b++)
+        {
+            if (a + b <= K + 1)
+                dp[cur][0][b] = (dp[cur][0][b] + A[a][b]) % MOD;
+            else
+                dp[cur][a][b] = (dp[cur][a][b] + A[a][b]) % MOD;
+        }
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);
+
+    cin >> N >> K;
+    for (int i = 0, a, b; i < N - 1; i++)
+    {
+        cin >> a >> b;
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+    }
+
+    dfs(1, 0);
+
+    ll ans = 0;
+    for (int i = 0; i <= K + 1; i++)
+        ans = (ans + dp[1][0][i]) % MOD;
+
+    cout << ans << "\n";
+
+    return 0;
+}

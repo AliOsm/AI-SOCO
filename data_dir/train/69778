@@ -1,0 +1,185 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <cstdio>
+#include <iomanip>
+#include <fstream>
+#include <cassert>
+#include <cstring>
+#include <unordered_set>
+#include <unordered_map>
+#include <numeric>
+#include <ctime>
+#include <bitset>
+#include <complex>
+#include <random>
+ 
+using namespace std;
+
+const int INF = 1e9 + 239;
+
+namespace Flow {
+	const int K = 20;
+
+	struct Edge {
+		int u;
+		int v;
+		int flow;
+		int cap;
+
+		Edge() {}
+
+		Edge(int u_, int v_, int flow_, int cap_) {
+			u = u_;
+			v = v_;
+			flow = flow_;
+			cap = cap_;
+		}
+	};
+
+	int n;
+	int start;
+	int end;
+
+	vector<int> d;
+	vector<int> pnt;
+	vector<Edge> ed;
+	vector<vector<int>> g;
+
+	int dfs(int u, int flow) {
+		if (u == end) {
+			return flow;
+		}
+		if (flow == 0) {
+			return 0;
+		}
+		for (; pnt[u] < (int)g[u].size(); pnt[u]++) {
+			int ind = g[u][pnt[u]];
+			int v = ed[ind].v;
+			if (d[v] < d[u] + 1) {
+				continue;
+			}
+			int pushed = dfs(v, min(flow, ed[ind].cap - ed[ind].flow));
+			if (pushed > 0) {
+				ed[ind].flow += pushed;
+				ed[ind ^ 1].flow -= pushed;
+				return pushed;
+			}
+		}
+		return 0;
+	}
+
+	bool bfs(int lim) {
+		for (int i = 0; i < n; i++) {
+			d[i] = INF;
+		}
+		d[start] = 0;
+		queue<int> q;
+		q.push(start);
+		while (!q.empty()) {
+			int u = q.front();
+			q.pop();
+			for (auto ind : g[u]) {
+				if (d[ed[ind].v] > d[u] + 1 && ed[ind].flow + lim <= ed[ind].cap) {
+					d[ed[ind].v] = d[u] + 1;
+					q.push(ed[ind].v);
+				}
+			}
+		}
+		return d[end] < INF;
+	}
+
+	int run() {
+		int ans = 0;
+		for (int i = K - 1; i >= 0; i--) {
+			while (bfs(1 << i)) {
+				fill(pnt.begin(), pnt.end(), 0);
+				int cur = dfs(start, INF);
+				ans += cur;
+				assert(cur > 0);
+			}
+		}
+		return ans;
+	}
+	
+
+	void init(int n_, int start_, int end_) {
+		n = n_;
+		start = start_;
+		end = end_;
+		d.resize(n);
+		pnt.resize(n);
+		g.resize(n);
+	}
+
+	void add_edge(int u, int v, int cap) {
+		int f = (int)ed.size();
+		ed.push_back(Edge(u, v, 0, cap));
+		ed.push_back(Edge(v, u, 0, 0));
+		g[u].push_back(f);
+		g[v].push_back(f + 1);
+	}
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    
+    int n, m;
+    cin >> n >> m;
+    int start = 2 * n;
+    int end = start + 1;
+    Flow::init(2 * n + 2, start, end);
+    int sa = 0;
+    int sb = 0;
+    for (int i = 0; i < n; i++) {
+    	int x;
+    	cin >> x;
+    	sa += x;
+    	Flow::add_edge(start, i, x);
+    }
+    for (int i = 0; i < n; i++) {
+    	int x;
+    	cin >> x;
+    	sb += x;
+    	Flow::add_edge(i + n, end, x);
+    }
+    for (int i = 0; i < n; i++) {
+    	Flow::add_edge(i, i + n, INF);
+    }
+    while (m--) {
+    	int u, v;
+    	cin >> u >> v;
+    	u--;
+    	v--;
+    	Flow::add_edge(u, v + n, INF);
+    	Flow::add_edge(v, u + n, INF);
+    }
+    int ans = Flow::run();
+    // cout << ans << endl;
+    if (ans != sa || ans != sb) {
+    	cout << "NO\n";
+    	return 0;
+    } else {
+    	cout << "YES\n";
+    	vector<vector<int>> res(n, vector<int> (n));
+    	for (int i = 0; i < (int)Flow::ed.size(); i += 2) {
+    		auto cur = Flow::ed[i];
+    		if (cur.u < n && cur.v >= n) {
+    			res[cur.u][cur.v - n] = cur.flow;
+    		}
+    	}
+    	for (int i = 0; i < n; i++ ){
+    		for (int j = 0; j < n; j++) {
+    			cout << res[i][j] << ' ';
+    		}
+    		cout << '\n';
+    	}
+    }
+
+}

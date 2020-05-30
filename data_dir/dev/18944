@@ -1,0 +1,158 @@
+#pragma GCC optimize ("O3")
+#include <bits/stdc++.h>
+#define ll long long
+#define IO ios_base::sync_with_stdio(0),cin.tie(0),cout.tie(0);
+using namespace std;
+const int N = 2e5 + 5, M = 2 * N + 5;
+
+ll MOD(998244353);
+ll sz(-1);
+struct BIT{
+    int N = 1 << 19;
+    int tree[1 << 19];
+    BIT(){
+        memset(tree, 0, sizeof tree);
+        init();
+    }
+    int getSum(int i){
+        if (i == -1)
+            return -1;
+        int res = 0;
+        for (i++; i; i -= i & (-i))
+            res += tree[i - 1];
+        return res;
+    }
+    void add(int i, int v){
+        ++sz;
+        for (i++; i <= N; i += i &(-i))
+            tree[i-1] += v;
+    }
+    int find(int t){ // lower bound
+        int s = 0;
+        for (int sz = N >> 1; sz; sz >>=1)
+            if (tree[(s + sz) - 1] < t)
+                t -= tree[(s += sz) - 1];
+        return s;
+    }
+    void init(){
+        add(0, -1);
+    }
+    void insert(int x){
+        add(x, 1);
+    }
+    int count(int x){
+        return getSum(x) - getSum(x - 1);
+    }
+    int at(int i){
+        return find(i);
+    }
+    void eraseAll(int x){
+        add(x, -count(x));
+    }
+    void eraseNum(int x,int cnt){
+        add(x, -min(cnt,count(x)));
+    }
+    void eraseOne(int x){
+        if (count(x))
+            add(x, -1);
+    }
+    ll lower_bound(int v){
+        return getSum(v - 1) + 1;
+    }
+    ll upper_bound(int v){
+        return lower_bound(v + 1);
+    }
+    int size(){
+        return getSum(N - 1) + 1;
+    }
+};
+
+ll powr(ll a, ll b){
+    ll x=1,y=a;
+    while(b > 0){
+        if(b%2 == 1)
+        {
+            x=(x*y);
+            if(x>MOD) x%=MOD;
+        }
+        y = (y*y);
+        if(y>MOD) y%=MOD;
+        b /= 2;
+    }
+    return x;
+}
+ll InverseEuler(ll n){
+    return powr(n, MOD - 2LL);
+}
+
+int a[N];
+bool vis[N];
+ll cnt[N], f[N], c[N];
+
+int main(){
+    int n;
+    scanf("%d", &n);
+    for(int i = 0 ; i < n ; ++i){
+        scanf("%d", a + i);
+        if(~a[i])vis[a[i]] = true;
+    }
+    vector<int> mawgod, mshmawgod;
+    for(int i = 1 ; i <= n ; ++i){
+        if(vis[i])mawgod.emplace_back(i);
+        else mshmawgod.emplace_back(i);
+    }
+    ll awl = 0;
+    BIT bt;
+    // cout << "X --> ";
+    for(int i = 0 ; i < n ; ++i){
+        if(a[i] == -1)continue;
+        // cout << a[i] << " ";
+        // cout << sz << " " << bt.lower_bound(x) << endl;
+        awl += (bt.getSum(n) - bt.getSum(a[i] - 1));
+        awl %= MOD;
+        bt.add(a[i], 1);
+    }
+    // cout << endl;
+    // cout << "Awl = " << awl << endl;
+    ll len = mshmawgod.size();
+    
+    /*****************************************/
+    ll hna = ((len * (len - 1)) / 2) % MOD;
+    ll tani = (hna * InverseEuler(2LL));
+    tani %= MOD;
+    /*****************************************/
+    
+    // cout << "Tani = " << tani << endl;
+    for(int i = n - 1 ; ~i ; --i)
+        cnt[i] = cnt[i + 1] + (a[i] == -1);
+    for(int i = 0 ; i < n ; ++i)
+        c[i] = ((i - 1 >= 0) ? c[i - 1] : 0) + (a[i] == -1);
+    
+    f[0] = 1;
+    for(int i = 1 ; i <= n ; ++i)
+        f[i] = (f[i - 1] * i) % MOD;
+    
+    ll talt = 0;
+    for(int i = 0 ; i < n ; ++i){
+        if(a[i] == -1)continue;
+        ll mkan = lower_bound(mshmawgod.begin(), mshmawgod.end(), a[i]) - mshmawgod.begin();
+        // cout << cnt[i] << " " << mkan << endl;
+        /*****************************************/
+        ll kolo = 1;
+        kolo *= cnt[i];
+        kolo %= MOD;
+        kolo *= mkan;
+        kolo %= MOD;
+        talt += kolo;
+        talt %= MOD;
+        kolo = len - mkan;
+        kolo *= c[i];
+        talt += kolo;
+        talt %= MOD;
+        /*****************************************/
+    }
+    
+    // cout << "Talt = " << talt << endl;
+    
+    printf("%lld\n", (awl + tani + talt * InverseEuler(len)) % MOD);
+}

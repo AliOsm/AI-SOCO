@@ -1,0 +1,154 @@
+#pragma GCC optimize("Ofast,unroll-loops,no-stack-protector,fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+using matrix = vector<vector<long long>>;
+
+typedef long long ll;
+typedef long double ld;     
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ld, ld> pld;
+
+template<typename T>
+using kawaii_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+//#define int ll
+
+void FAST_IO() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    #ifndef _offline
+    //freopen("game.in", "r", stdin);
+    //freopen("game.out", "w", stdout);
+    #endif
+}
+
+struct edge {
+    int u, v, w;
+    bool in;
+
+    edge() : u(-1), v(-1), w(0), in(false) {};
+
+    bool operator <(const edge &other) const {
+        return w < other.w;
+    }
+};
+
+const int MAXN = 2e5 + 10;
+const int LOGN = 18;
+vector<pii> g[MAXN];
+int p[MAXN], rnk[MAXN];
+int dep[MAXN], up[LOGN][MAXN], mx[LOGN][MAXN];
+
+int find_set(int u) {
+    return (u == p[u] ? u : p[u] = find_set(p[p[p[u]]]));
+}
+
+bool union_sets(int u, int v) {
+    int a = find_set(u);
+    int b = find_set(v);
+    if (a == b) {
+        return false;
+    }
+    if (rnk[a] < rnk[b]) {
+        swap(a, b);
+    }
+    p[b] = a;
+    if (rnk[a] == rnk[b]) {
+        rnk[a]++;
+    }
+    return true;
+}
+
+void dfs(int u, int par) {
+    for (auto &[to, w] : g[u]) {
+        if (to == par) {
+            continue;
+        }
+        dep[to] = dep[u] + 1;
+        up[0][to] = u;
+        mx[0][to] = w;
+        for (int i = 1; i < LOGN; ++i) {
+            up[i][to] = up[i - 1][up[i - 1][to]];
+            mx[i][to] = max(mx[i - 1][to], mx[i - 1][up[i - 1][to]]);
+        }
+        dfs(to, u);
+    }
+}
+
+int query(int u, int v) {
+    if (dep[u] > dep[v]) {
+        swap(u, v);
+    }
+    int ans = 0;
+    for (int i = LOGN - 1; i >= 0; --i) {
+        if (dep[up[i][v]] >= dep[u]) {
+            ans = max(ans, mx[i][v]);
+            v = up[i][v];
+        }
+    }
+    if (u == v) {
+        return ans;
+    }
+    for (int i = LOGN - 1; i >= 0; --i) {
+        if (up[i][u] != up[i][v]) {
+            ans = max(ans, mx[i][u]);
+            ans = max(ans, mx[i][v]);
+            u = up[i][u];
+            v = up[i][v];
+        }
+    }
+    ans = max(ans, mx[0][u]);
+    ans = max(ans, mx[0][v]);
+    return ans;
+}
+
+signed main() {
+    FAST_IO();
+    int n, m;
+    cin >> n >> m;
+    vector<edge> edges(m);
+    for (int i = 0; i < m; ++i) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+        edges[i].u--;
+        edges[i].v--;
+    }
+    sort(all(edges));
+    iota(p, p + MAXN, 0);
+    for (edge &e : edges) {
+        if (union_sets(e.u, e.v)) {
+            e.in = true;
+            g[e.u].push_back({e.v, e.w});
+            g[e.v].push_back({e.u, e.w});
+        }
+    }
+    dep[0] = 0;
+    for (int i = 0; i < LOGN; ++i) {
+        up[i][0] = 0;
+        mx[i][0] = 0;
+    }
+    dfs(0, -1);
+    int ans = 0;
+    for (edge &e : edges) {
+        if (e.in) {
+            continue;
+        }
+        int mx = query(e.u, e.v);
+        if (mx == e.w) {
+            ans++;
+        }
+    }
+    cout << ans << '\n';
+    return 0;  
+}

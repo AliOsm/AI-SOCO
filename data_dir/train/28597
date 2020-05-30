@@ -1,0 +1,32 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+map <ll, int> dp[61];
+
+int g(int n, ll msk=0) {
+    auto it=dp[n].find(msk);
+    if(it!=dp[n].end())
+        return it->second;
+    ll aprs=0;
+    for(int i=1; i<=n; i++)
+        if(((1LL<<i) & msk)==0)
+            aprs |= (1LL << g(n-i, msk ^ (1LL<<i)));
+    for(int i=0; ; i++)
+        if(((1LL<<i) & aprs)==0)
+            return dp[n][msk] = i;
+    return 0;
+}
+
+int main() {
+    ll ans = 0;
+    int N, w ;
+
+    scanf("%d", &N);
+    for(int i=0; i<N; i++) {
+        scanf("%d", &w);
+        ans ^= g(w);
+    }
+
+    printf("%s\n", ans? "NO" : "YES" );
+}

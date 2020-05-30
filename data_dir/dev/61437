@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using ll = long long;
+
+const int N = 100005;
+
+int n;
+ll A, cf, cm, m;
+ll a[N];
+int id[N];
+ll p[N];
+
+ll sum(int i, int j) {
+	return p[j] - (i > 0 ? p[i - 1] : 0);
+}
+
+ll to_get(int i, int j, ll val) {
+	return val * (j - i + 1) - sum(i, j);
+}
+
+int main() {
+
+	scanf("%d %lld %lld %lld %lld", &n, &A, &cf, &cm, &m);
+
+	for(int i = 1; i <= n; i++) scanf("%lld", a + i), id[i] = i;
+
+	sort(id + 1, id + n + 1, [](int i, int j) {
+		return a[i] < a[j];
+	});
+
+	for(int i = 1; i <= n; i++) p[i] = a[ id[i] ] + p[i - 1];
+	
+	if(to_get(1, n, A) <= m) {
+		printf("%lld\n", n * cf + A * cm);
+		for(int i = 1; i <= n; i++) {
+			printf("%lld%c", A, " \n"[i == n]);
+		}
+		return 0;
+	}
+
+	ll ans = 0;
+	{
+		int j = 1;
+		while(j+1 <= n and to_get(1, j+1, a[ id[j+1] ]) <= m) j++;
+		ll rem = m - to_get(1, j, a[ id[j] ]);
+		ans = max(ans, (rem / j + a[ id[j] ]) * cm);
+	}
+
+	for(int i = 1; i <= n; i++) if(a[i] == A)
+		ans += cf;
+
+	assert(to_get(1, 1, a[ id[1] ]) == 0);
+
+	int opt = 0;
+	for(int k = 1, j = 1; k < n; k++) {
+		ll cost_perf = to_get(n - k + 1, n, A);
+		ll rem = m - cost_perf;
+		if(rem < 0) continue;
+
+		while(j > n - k or to_get(1, j, a[ id[j] ]) > rem) j--;
+		while(j+1 <= n-k and to_get(1,j+1,a[ id[j+1] ]) <= rem) {
+			j++;
+		}
+		rem -= to_get(1, j, a[ id[j] ]);
+		ll value = k * cf;
+		value += (rem / j + a[ id[j] ]) * cm;
+		if(value > ans) {
+			ans = value;
+			opt = k;
+		}
+	}
+
+	if(opt > 0) {
+		m -= to_get(n - opt + 1, n, A);
+		for(int i = n - opt + 1; i <= n; i++) 
+			a[ id[i] ] = A;
+	}
+	int j = 1;
+	while(j+1 <= n-opt and to_get(1,j+1,a[ id[j+1] ]) <= m) {
+		j++;
+	}
+	m -= to_get(1, j, a[ id[j] ]);
+	for(int i = 1; i <= j; i++) {
+		a[ id[i] ] = m / j + a[ id[j] ];
+	}
+
+	printf("%lld\n", ans);
+	for(int i = 1; i <= n; i++) {
+		printf("%lld%c", a[i], " \n"[i == n]);
+	}
+}

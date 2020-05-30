@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define SZ(x) ((int)(x).size())
+#define PB(x) push_back(x)
+#define MEMSET(x,v) memset(x,v,sizeof(x))
+#define REP(i,n) for(int i=0;(i)<(n);++(i))
+#define x first
+#define y second
+#define INF (0x3f3f3f3f)
+
+typedef long long LL;
+typedef pair<int, int> P2;
+template<class A, class B> inline bool mina(A &x, B y) {return (x > y)?(x=y,1):0;}
+template<class A, class B> inline bool maxa(A &x, B y) {return (x < y)?(x=y,1):0;}
+
+const int MAXN = 1005;
+const int MAXS = 55;
+
+int dp[2][MAXS][MAXS];
+string M, S[2];
+int N, len_s[2];
+
+int mem[MAXS][MAXS][MAXS];
+
+// z-functions: return z, z[i] is the length of the longest substring
+//              starting from S[i] which is also a prefix of S
+
+vector<int> get_ZFunction(string s){
+    int len = s.length();
+    vector<int> z(len);
+    int L = 0, R = 0;
+    for(int i = 1; i < len; i++ ){
+        if (i > R){
+            L = R = i;
+            while (R < len && s[R-L] == s[R]) R++;
+            z[i] = R - L; R--;
+        } else {
+            int k = i - L;
+            if(z[k] < R - i + 1) z[i] = z[k];
+            else {
+                L = i;
+                while (R < len && s[R - L] == s[R]) R++;
+                z[i] = R - L; R--;
+            }
+        }
+    }
+    z[0] = len;
+    return z;
+}
+
+int cal(int id, int pos, int nxt_c) {
+    if (mem[id][pos][nxt_c] != -INF)
+        return mem[id][pos][nxt_c];
+    string temp = S[id].substr(0, pos);
+    temp += ('a'+ nxt_c);
+    if (SZ(temp) > len_s[id]) temp = temp.substr(1);
+    vector<int> zf = get_ZFunction(S[id] + "#" + temp);
+
+    int ret = 0;
+    for (int i = len_s[id] + 1; i < SZ(zf); i++) {
+        if (zf[i] + i == SZ(zf)) {
+            ret = zf[i];
+            break;
+        }
+    }
+    return mem[id][pos][nxt_c] = ret;
+}
+
+int main() {
+    cin >> M >> S[0] >> S[1];
+    N = SZ(M);
+    REP(i, 2) len_s[i] = SZ(S[i]);
+
+    REP(i, 2) REP(j, MAXS) REP(k, 26) mem[i][j][k] = -INF;
+    REP(i, 2) REP(j, MAXS) REP(k, MAXS) dp[i][j][k] = -INF;
+    dp[0][0][0] = 0;
+    int nxt = 1;
+    int pre = 0;
+
+    REP(i, N) {
+        REP(j, MAXS) REP(k, MAXS) dp[nxt][j][k] = -INF;
+        REP(j, len_s[0] + 1) {
+            REP(k, len_s[1] + 1) {
+                if (dp[pre][j][k] == -INF) continue;
+                if (M[i] == '*') {
+                    REP(c, 26) {
+                        int nj = cal(0, j, c);
+                        int nk = cal(1, k, c);
+                        int temp = 0;
+                        if (nj == len_s[0]) temp++;
+                        if (nk == len_s[1]) temp--;
+                        maxa(dp[nxt][nj][nk], dp[pre][j][k] + temp);
+                    }
+                } else {
+                    int nj = cal(0, j, M[i] - 'a');
+                    int nk = cal(1, k, M[i] - 'a');
+                    int temp = 0;
+                    if (nj == len_s[0]) temp++;
+                    if (nk == len_s[1]) temp--;
+                    maxa(dp[nxt][nj][nk], dp[pre][j][k] + temp);
+                }
+            }
+        }
+        nxt ^= 1;
+        pre ^= 1;
+    }
+
+    int ans = -INF;
+    REP(j, len_s[0] + 1)
+        REP(k, len_s[1] + 1)
+            maxa(ans, dp[pre][j][k]);
+
+    cout << ans << endl;
+    return 0;
+}

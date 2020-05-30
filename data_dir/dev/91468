@@ -1,0 +1,95 @@
+// Aggressive Play
+
+#include<bits/stdc++.h>
+#define ll long long
+#define F first
+#define S second
+using namespace std;
+
+void __print(int x) {cerr << x;}
+void __print(long x) {cerr << x;}
+void __print(long long x) {cerr << x;}
+void __print(unsigned x) {cerr << x;}
+void __print(unsigned long x) {cerr << x;}
+void __print(unsigned long long x) {cerr << x;}
+void __print(float x) {cerr << x;}
+void __print(double x) {cerr << x;}
+void __print(long double x) {cerr << x;}
+void __print(char x) {cerr << '\'' << x << '\'';}
+void __print(const char *x) {cerr << '\"' << x << '\"';}
+void __print(const string &x) {cerr << '\"' << x << '\"';}
+void __print(bool x) {cerr << (x ? "true" : "false");}
+
+template<typename T, typename V>
+void __print(const pair<T, V> &x) {cerr << '{'; __print(x.first); cerr << ','; __print(x.second); cerr << '}';}
+template<typename T>
+void __print(const T &x) {int f = 0; cerr << '{'; for (auto &i: x) cerr << (f++ ? "," : ""), __print(i); cerr << "}";}
+void _print() {cerr << "]\n";}
+template <typename T, typename... V>
+void _print(T t, V... v) {__print(t); if (sizeof...(v)) cerr << ", "; _print(v...);}
+#ifndef ONLINE_JUDGE
+#define debug(x...) cerr << "[" << #x << "] = ["; _print(x)
+#else
+#define debug(x...)
+#endif
+
+const int N = 15;
+const int T = 255;
+const int MASK = (1 << N) + 5;
+const int M = 1e9 + 7;
+int dp[T][MASK][2][2];
+int total, n, m;
+int a[T][T], b[T][T];
+int solve(int pos, int mask, bool guardAtTop, bool unprotected){
+    //debug(pos, mask, guardAtTop, unprotected);
+    if(pos == total){
+        return 1;   // check later if something breaks
+    }
+    if(dp[pos][mask][guardAtTop][unprotected] != -1)
+        return dp[pos][mask][guardAtTop][unprotected];
+    int row = pos % n, col = pos / n;
+    int ans = 0;
+    if(a[row][col] == 1){   // 'X'  remove the rowth bit if it's set in the protection from left mask
+        ans = solve(pos + 1, mask & (~(1 << row)), false, unprotected);
+    }
+    else{   // '.' empty cell
+        //already protected cell, don't need to do nothing
+        if(guardAtTop || (mask & (1 << row)))
+            ans = solve(pos + 1, mask, row == n - 1 ? 0 : guardAtTop, unprotected);
+
+        // if we have 0 cells unprotected, we have the option to leave this cell without a guard, and it'll be unprotected
+        else if(!unprotected)
+            ans = (ans + solve(pos + 1, mask, row == n - 1 ? 0 : guardAtTop, true)) % M;
+
+        // putting a guard
+        ans = (ans + solve(pos + 1, mask | (1 << row), row == n - 1 ? 0 : true, unprotected)) % M;
+    }
+    //debug(row, col, pos, mask, guardAtTop, unprotected, ans);
+    return dp[pos][mask][guardAtTop][unprotected] = ans;
+}
+int main()
+{
+    ios_base ::sync_with_stdio(false); cin.tie(NULL); cout.tie(NULL);
+    cin >> n >> m;
+    total = n * m;
+    char ch;
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < m; j++){
+            cin >> ch;
+            if(ch == 'x')
+                a[i][j] = 1;
+        }
+    }
+    if(n > m){
+        for(int i = 0; i < n; i++)
+            for(int j = 0; j < m; j++)
+                b[j][i] = a[i][j];
+        swap(n, m);
+        for(int i = 0; i < n; i++)
+            for(int j = 0; j < m; j++)
+                a[i][j] = b[i][j];
+    }
+    memset(dp, -1, sizeof(dp));
+    cout << solve(0, 0, 0, 0);
+return 0;
+}

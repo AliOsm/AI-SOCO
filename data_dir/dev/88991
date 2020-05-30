@@ -1,0 +1,179 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("no-stack-protector")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,popcnt,abm,mmx,tune=native")
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stdio.h>
+#include <cstdio>
+#include <math.h>
+#include <cmath>
+#include <string>
+#include <cstring>
+#include <queue>
+#include <deque>
+#include <random>
+#include <iomanip>
+#include <bitset>
+                    
+using namespace std;
+                    
+template<typename T> void uin(T &a, T b) {
+    if (b < a) {
+        a = b;
+    }
+}
+                    
+template<typename T> void uax(T &a, T b) {
+    if (b > a) {
+        a = b;
+    }
+}
+    
+#define int long long
+#define left left228
+#define right right228
+#define prev prev228
+#define list list228
+#define next next228
+
+const int N = 500 * 1000 + 228;
+const int INF = 1e18 + 228;
+
+int n;
+vector<int> g[N];
+int dp[N], sz[N], deg[N];
+
+struct Line {
+    int k, b;
+    Line() {}
+    Line(int _k, int _b) {
+        k = _k, b = _b;
+    }
+
+    int get(int x) {
+        return k * x + b;
+    }
+};
+
+double intersect(Line fir, Line sec) {
+    return (double)(sec.b - fir.b) / (double)(fir.k - sec.k);
+}
+
+
+struct CHT
+{
+    vector<Line> st;
+    int sz;
+
+    CHT() {
+        sz = 0;
+    }
+
+    bool bad(Line a, Line b, Line c) {
+        if (b.k == c.k) return c.b <= a.b;
+        return intersect(a, c) < intersect(a, b);
+    }
+
+    void add(Line l) {
+        while (sz > 1 && bad(st[sz - 2], st[sz - 1], l)) {
+            st.pop_back();
+            --sz;
+        }
+        while (sz > 0 && l.k == st.back().k && l.b < st.back().b) st.pop_back(), --sz;
+        if (sz && st.back().k == l.k) ;
+        else {
+            st.push_back(l);
+            ++sz;
+        }
+    }
+
+    int res = 0;
+
+    int get(int x) {
+        int l = 0, r = (int)st.size() - 1;
+        while (r - l > 1) {
+            int m = (l + r) >> 1;
+            if (intersect(st[m], st[m + 1]) <= x) l = m;
+            else r = m;
+        }
+        res = st[l].get(x);
+        for (int i = max(0LL, l - 1); i <= min(sz - 1, l + 1); ++i) uin(res, st[i].get(x));
+        return res;
+    }
+};
+
+void jfs(int v, int par = -1) {
+    sz[v] = 1;
+    for (int to : g[v]) {
+        if (to != par) {
+            jfs(to, v);
+            sz[v] += sz[to];
+        }
+    }
+}
+
+int res = INF;
+
+bool cmp(int i, int j) {
+    return sz[i] < sz[j];
+}
+
+void dfs(int v, int par = -1) {
+    vector<int> sons;
+    dp[v] = INF;
+    for (int to : g[v]) {
+        if (to != par) {
+            sons.push_back(to);
+            dfs(to, v);
+            uin(dp[v], dp[to] + (sz[v] - sz[to]) * (sz[v] - sz[to]));
+        }
+    }
+    if (sons.empty()) {
+        dp[v] = 1;
+        return;
+    }
+    sort(sons.begin(), sons.end(), cmp);
+    CHT cht = CHT();
+    for (int i = 0; i < (int)sons.size(); ++i) {
+        int to = sons[i];
+        if (i) {
+            int cur = dp[to];
+            cur += (n - sz[to]) * (n - sz[to]);
+            cur += cht.get(2 * (n - sz[to]));
+            uin(res, cur);
+        }
+        cht.add(Line(-sz[to], dp[to] + sz[to] * sz[to]));
+    }
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cin >> n;
+    for (int i = 0; i < n - 1; ++i) {
+        int u, v;
+        cin >> u >> v;
+        g[u].push_back(v);
+        g[v].push_back(u);
+        ++deg[u], ++deg[v];
+    }
+    if (n == 2) {
+        cout << 2 << '\n';
+        return 0;
+    }
+    int root = 1;
+    for (int i = 1; i <= n; ++i) {
+        if (deg[i] > deg[root]) root = i;
+    }
+    jfs(root);
+    dfs(root);
+    cout << n * (n - 1) / 2 + (n * n - res) / 2 << '\n';
+    return 0;
+} // kek;

@@ -1,0 +1,216 @@
+
+#include<bits/stdc++.h>
+
+
+using namespace std;
+
+using ll   = long long;
+using ii   = pair   < int , int >;
+using i3   = pair   < int , ii  >;
+using li   = pair   < ll  , int >;
+using lii  = pair   < ll  , ii  >;
+using pll  = pair   < ll  , ll  >;
+using vi   = vector < int       >;
+using vl   = vector < ll        >;
+using vii  = vector < ii        >;
+using vli  = vector < li        >;
+using vpll = vector < pll       >;
+using vi3  = vector < i3        >;
+using vlii = vector < lii       >;
+
+
+const int N = 4e5 + 5 , L = 20;
+const ll INF = 1e17 + 7;
+const double eps = 1e-9 , PI = acos(-1);
+
+
+int n , m , q;
+
+vii adj[N];
+vi g[N] , tmp[N];
+
+int low[N] , dfn[N] , timer = 0;
+
+vi edgesStack;
+int cool;
+int color[N];
+ii edges[N];
+bool fucked[N];
+
+void chk(int u , int c){
+    color[u] = c;
+    for(int v : tmp[u]){
+            if(color[v] == 0)chk(v , c == 1 ? 2 : 1);
+            else if(color[u] == color[v])cool = 0;
+    }
+}
+
+void processBlock(int E){
+    if(edgesStack.empty()) return;
+
+    //cout << "new comp:\n";
+    set < int > currEdges;
+    set < int > nodes;
+    while( !edgesStack.empty() ){
+            int E2 = edgesStack.back(); edgesStack.pop_back();
+
+            int u = edges[E2].first;
+            int v = edges[E2].second;
+
+            tmp[u].push_back(v);
+            tmp[v].push_back(u);
+
+            //cout << u << " " << v << endl;
+
+            nodes.insert(u);
+            nodes.insert(v);
+            currEdges.insert(E2);
+
+            if(E2 == E)break;
+    }
+
+    cool = 1;
+    chk(*nodes.begin() , 1);
+
+    //cout << "cool = " << cool << endl << endl;
+
+    if(!cool){
+            for(int E : currEdges)fucked[E] = 1;
+    }
+
+    for(int u : nodes){
+            tmp[u].clear();
+            color[u] = 0;
+    }
+}
+
+void dfs(int u , int p){
+    dfn[u] = low[u] = ++ timer;
+    int retchel = 0;
+
+    for(ii A : adj[u]){
+            int v = A.second;
+            int e = A.first;
+            if(!dfn[v]){
+                    edgesStack.push_back(e);
+                    retchel ++;
+
+                    dfs(v , u);
+
+                    low[u] = min(low[u] , low[v]);
+
+                    if((p == -1 && retchel > 1) || (p != -1 && dfn[u] <= low[v])){
+                            processBlock(e);
+                    }
+            }
+            else if(v != p){
+                    low[u] = min(low[u] , dfn[v]);
+
+                    if(dfn[v] < dfn[u]){
+                            edgesStack.push_back(e);
+                    }
+            }
+    }
+}
+
+int p[N];
+int p2[N];
+
+int get(int x){ return x == p[x] ? x : p[x] = get(p[x]); }
+
+void join(int x , int y){
+    if((x = get(x)) == (y = get(y))) return;
+    if(rand() & 1)swap(x , y); p[x] = y;
+}
+
+int get2(int x){ return x == p2[x] ? x : p2[x] = get2(p2[x]); }
+
+void join2(int x , int y){
+    if((x = get2(x)) == (y = get2(y))) return;
+    if(rand() & 1)swap(x , y); p2[x] = y;
+}
+
+
+void dfsColor(int u , int c){
+    color[u] = c;
+    for(int v : g[u]){
+            if(color[v] == -1)dfsColor(v , 1 - c);
+    }
+}
+
+void solve(int testCase){
+
+    scanf("%d %d" , &n , &m);
+
+    for(int i = 1 ; i <= n ; i ++)p[i] = p2[i] = i;
+
+    for(int i = 0 ; i < m ; i ++){
+            int u , v; scanf("%d %d" , &u , &v);
+
+            join(u , v);
+
+            adj[u].push_back({i , v});
+            adj[v].push_back({i , u});
+            edges[i] = {u , v};
+    }
+
+    for(int i = 1 ; i <= n ; i ++){
+            if(!dfn[i]){
+                    dfs(i , -1);
+                    processBlock(-1);
+            }
+    }
+
+    set < int > currNodes;
+    for(int i = 0 ; i < m ; i ++){
+            if(fucked[i])continue;
+
+            int u = edges[i].first;
+            int v = edges[i].second;
+
+            currNodes.insert(u);
+            currNodes.insert(v);
+
+            //cout << "in: " << u << " " << v << endl;
+
+            g[u].push_back(v);
+            g[v].push_back(u);
+
+            join2(u , v);
+    }
+
+    memset(color , -1 , sizeof color);
+    for(int u : currNodes)if(color[u] == -1)dfsColor(u , 0);
+
+
+    scanf("%d" , &q);
+
+    for(int i = 1 ; i <= q ; i ++){
+            int u , v; scanf("%d %d" , &u , &v);
+
+            if(get(u) != get(v)){
+                    printf("No\n");
+                    continue;
+            }
+
+            if(get2(u) != get2(v)){
+                    printf("Yes\n");
+                    continue;
+            }
+
+            if(color[u] == color[v])printf("No\n");
+            else printf("Yes\n");
+    }
+}
+
+main(){
+
+    int t = 1;
+    // scanf("%d" , &t);
+
+    for(int testCase = 1 ; testCase <= t ; testCase ++){
+            solve(testCase);
+    }
+
+    return 0;
+}

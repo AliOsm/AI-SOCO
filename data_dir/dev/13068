@@ -1,0 +1,101 @@
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+typedef pair<int,int> PII;
+
+pair<PII,PII> e[100000];
+vector<PII> o[5001];
+int r[5001],p[5001],sz[5001];
+
+int root(int x){
+    return p[x]!=x?p[x]=root(p[x]):x;
+}
+
+bool link(int x, int y){
+    x=root(x),y=root(y);
+    if(x==y) return false;
+    if(sz[x]<=sz[y]) sz[p[x]=y]+=sz[x];
+                else sz[p[y]=x]+=sz[y];
+    return true;
+}
+
+void gao(int x, int from){
+    for(size_t t=0;t<o[x].size();t++){
+        int y=o[x][t].first;
+        int i=o[x][t].second;
+        if(from==y) continue;
+        if(from==1 || e[i].first.first>e[r[x]].first.first) r[y]=i; else r[y]=r[x];
+        gao(y,x);
+    }
+}
+
+int main(){
+    int n,m,s;
+    scanf("%d%d%d",&n,&m,&s);
+    for(int i=1;i<=n;i++) sz[p[i]=i]=1;
+    for(int i=0;i<m;i++){
+        scanf("%d",&e[i].second.first);
+        scanf("%d",&e[i].second.second);
+        scanf("%d",&e[i].first.first);
+        if(e[i].second.first>e[i].second.second)
+            swap(e[i].second.first,e[i].second.second);
+        e[i].first.second=i+1;
+    }
+    sort(e,e+m);
+    int tag=n-1;
+    for(int i=0;i<m;i++){
+        int x=e[i].second.first;
+        int y=e[i].second.second;
+        if(x>1 && y>1 && link(x,y)){
+            o[x].push_back({y,i});
+            o[y].push_back({x,i});
+            tag--;
+        }
+    }
+    vector<int> w;
+    int cnt=0,u[5001]={};
+    for(int i=0;i<m;i++){
+        int x=e[i].second.first;
+        int y=e[i].second.second;
+        if(x!=1) continue;
+        if(!u[root(y)]){
+            u[root(y)]=1;
+            o[x].push_back({y,i});
+            o[y].push_back({x,i});
+            cnt++;
+        }else w.push_back(i);
+    }
+    if(cnt<tag || cnt>s) return puts("-1")&0;
+    while(cnt++<s){
+        fill(r+1,r+n+1,-1);
+        for(auto c:o[1]) gao(c.first,1);
+        int sum=1000000007,arc=-1;
+        for(size_t t=0;t<w.size();t++){
+            int i=w[t];
+            int y=e[i].second.second;
+            int len=e[i].first.first-e[r[y]].first.first;
+            if(len<sum){
+                sum=len;
+                arc=t;
+            }
+        }
+        if(arc<0) return puts("-1")&0;
+        int i=w[arc];
+        int x=e[i].second.first;
+        int y=e[i].second.second;
+        int p=e[r[y]].second.first;
+        int q=e[r[y]].second.second;
+        o[p].erase(find(o[p].begin(),o[p].end(),PII(q,r[y])));
+        o[q].erase(find(o[q].begin(),o[q].end(),PII(p,r[y])));
+        o[x].push_back({y,i});
+        o[y].push_back({x,i});
+        swap(w[arc],w.back());
+        w.pop_back();
+    }
+    for(int i=1;i<=n;i++) for(auto c:o[i]) e[c.second].first.first=-1;
+    printf("%d\n",n-1);
+    for(int i=0;i<m;i++)
+        if(e[i].first.first<0) printf("%d ",e[i].first.second);
+}

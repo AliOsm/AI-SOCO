@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+#ifdef BUG
+    #include "debug.hpp"
+#else
+    #define DEBUG(var)
+#endif
+
+using namespace std;
+template< class T1, class T2 > inline istream &
+operator>>( istream & fin, pair< T1, T2 > & pr )
+{ fin >> pr.first >> pr.second; return fin; }
+template< class T0, class T1, class T2 > inline istream &
+operator>>( istream & fin, tuple< T0, T1, T2 > & t )
+{ fin >> get<0>(t) >> get<1>(t) >> get<2>(t); return fin; }
+template< class T > inline istream &
+operator>>( istream & fin, vector< T > & a ) {
+for(auto & u: a) fin >> u; return fin; }
+template<class T, size_t n> inline istream &
+operator>>( istream & fin, array<T, n> & a ) {
+for(auto & u: a) fin >> u; return fin; }
+template<class FwdIter> inline auto
+dump(FwdIter first, FwdIter last, const char * dlm = " ") -> void {
+typedef typename iterator_traits<FwdIter>::value_type value_type;
+copy(first, last, ostream_iterator<value_type>(cout, dlm)); }
+template<typename T> vector<T> & operator--(vector<T> & a)
+{ for(auto & i: a) --i; return a; }
+/* @@@ ----------------------------------- */
+
+typedef struct {
+  size_t head, tail;
+  int32_t cost;
+} edge_t;
+
+inline int32_t
+solve(const size_t k,
+      const size_t i,
+      const size_t l,
+      const size_t r,
+      const vector<vector<size_t>> & adj,
+      const vector<edge_t> & edge,
+      vector<vector<vector<vector<int32_t>>>> & out)
+{
+  const auto inf = numeric_limits<int32_t>::max();
+
+  if(!k) return 0;
+  if(i < l + 1 && r < i + 1) return inf;
+  if(out[k - 1][i][l][r] != -1) return out[k - 1][i][l][r];
+
+  auto val = inf;
+
+  for(const auto iedge: adj[i])
+  {
+    const auto & e = edge[iedge];
+
+    if(l < e.tail + 1 && e.tail < r + 1 && i != e.tail)
+    {
+      const auto l1 = e.tail < i ? l : i + 1;
+      const auto r1 = e.tail < i ? i - 1 : r;
+      const auto inc = solve(k - 1, e.tail, l1, r1, adj, edge, out);
+      if(inc != inf)
+        val = min(val, e.cost + inc);
+    }
+  }
+
+  return out[k - 1][i][l][r] = val;
+}
+
+
+int64_t d793()
+{
+  size_t n, k, m;
+  cin >> n >> k >> m;
+
+  vector<edge_t> edge(m);
+  // const auto inf = numeric_limits<int64_t>::max() >> 4;
+  vector<vector<size_t>> adjm(n, vector<size_t>(n, -1));
+
+  for(size_t i = 0; i < m; ++i)
+  {
+    cin >> edge[i].head >> edge[i].tail >> edge[i].cost;
+    edge[i].head -= 1;
+    edge[i].tail -= 1;
+    const auto j = adjm[edge[i].head][edge[i].tail];
+    if(j == (size_t) -1 || edge[i].cost < edge[j].cost)
+      adjm[edge[i].head][edge[i].tail] = i;
+  }
+
+  vector<vector<size_t>> adj(n);
+  for(size_t i = 0; i < n; ++i)
+    for(size_t j = 0; j < n; ++j)
+      if(adjm[i][j] != (size_t)-1)
+        adj[i].push_back(adjm[i][j]);
+
+  // current k -> i -> [l, i, r]
+  vector<vector<vector<vector<int32_t>>>>
+    a(k - 1, vector<vector<vector<int32_t>>>(n, vector<vector<int32_t>>(n, vector<int32_t>(n, -1))));
+
+  const auto inf = numeric_limits<int32_t>::max();
+  auto out = inf;
+
+  for(size_t i = 0; i < n; ++i)
+    out = min(out, solve(k - 1, i, 0, n - 1, adj, edge, a));
+
+  return out < inf ? out : (int32_t)-1;
+}
+
+int main(const int argc, char * argv [])
+{
+  ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+  cout << d793();
+
+  return EXIT_SUCCESS;
+}
+

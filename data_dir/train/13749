@@ -1,0 +1,201 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define REP(i, n) for (int i = 0; i < int(n); i++)
+#define FOR(i, a, b) for (int i = a; i < int(b); i++)
+#define FOREACH(i, v) for (__typeof((v).begin()) i = (v).begin(); i != (v).end(); i++)
+#define SIZE(v) ((int)(v).size())
+#define pb push_back
+#define mp make_pair
+#define st first
+#define nd second
+#define ll long long
+#define pii pair<int, int>
+
+int N,M,K;
+string s;
+const int MAX = 16001000;
+ll values[MAX];
+pii stp[MAX];
+int mroots[400200];
+	
+int roots[200010];
+int mData[26];
+	
+
+class SegmentTreePersistant {
+public:
+	ll *values;
+	ll zero;
+	pii *stp;
+	int V;
+	int rL, rR;
+	ll (*operation)(ll, ll);
+	ll (*substract)(ll, ll);
+	int *roots;
+	int rootsSize = 0;
+
+	int getNode() {
+		stp[V].st = stp[V].nd = -1;
+		values[V] = zero;
+		return V++;
+	}
+
+	SegmentTreePersistant() {
+
+	}
+	SegmentTreePersistant(ll *_values, 
+						  ll _zero, 
+						  pii *_stp, 
+						  int _rL, 
+						  int _rR, 
+						  ll (*_operation)(ll, ll),
+						  ll (*_substract)(ll, ll),
+						  int *_roots) {
+		values = _values;
+		zero = _zero;
+		stp = _stp;
+		rL = _rL;
+		rR = _rR;
+		operation = _operation;
+		substract = _substract;
+		roots = _roots;
+
+		rootsSize = 0;
+
+		V = 0;
+		roots[rootsSize++] = getNode();
+		stp[0].st = stp[0].nd = 0;		
+	}
+
+	int setVal(int last, int l, int r, int pos, ll val) {
+		int node;
+		if(r < pos || pos < l) node = last;
+		else if(pos <= l && r <= pos) {
+			node = getNode();
+			values[node] = val;
+		}
+		else {
+			node = getNode();
+			int m = ( l + r >= 0 ? (l + r)/2 : (l + r - 1)/2 );
+			stp[node].st = setVal( stp[last].st, l, m, pos, val );
+			stp[node].nd = setVal( stp[last].nd, m + 1, r, pos, val );
+			values[node] = operation( values[stp[node].st], values[stp[node].nd] );
+		}
+		return node;
+	}
+
+	int setVal(int pos, ll val) {
+		int ans = roots[rootsSize] = setVal(roots[rootsSize - 1], rL, rR, pos, val); rootsSize++;
+		return ans;
+	}
+
+	int addVal(int last, int l, int r, int pos, ll val) {
+		int node;
+		if(r < pos || pos < l) node = last;
+		else if(pos <= l && r <= pos) {
+			node = getNode();
+			values[node] = operation(values[last], val);
+		}
+		else {
+			node = getNode();
+			int m = ( l + r >= 0 ? (l + r)/2 : (l + r - 1)/2 );
+			stp[node].st = addVal( stp[last].st, l, m, pos, val );
+			stp[node].nd = addVal( stp[last].nd, m + 1, r, pos, val );
+			values[node] = operation( values[stp[node].st], values[stp[node].nd] );
+		}
+		return node;
+	}
+
+	int addVal(int pos, ll val) {
+		int ans = roots[rootsSize] = addVal(roots[rootsSize - 1], rL, rR, pos, val); rootsSize++;
+		return ans;
+	}
+
+	ll queryI(int nodeL, int nodeR, int l, int r, int L, int R) {
+		if(R < l || r < L) return zero;
+		else if(L <= l && r <= R) return substract( values[nodeR], values[nodeL] );
+		else {
+			int m = ( l + r >= 0 ? (l + r)/2 : (l + r - 1)/2 );
+			ll op1 = queryI( stp[nodeL].st, stp[nodeR].st, l, m, L, R );
+			ll op2 = queryI( stp[nodeL].nd, stp[nodeR].nd, m + 1, r, L, R );
+			return operation(op1, op2);
+		}
+	}
+
+	ll query(int l, int r, int L, int R) {
+		return queryI(roots[l - 1], roots[r], rL, rR, L, R);
+	}
+
+	int kth(int node, int last, int l, int r, int k) {
+		if(l == r) return l;
+		int leftSize = substract(values[ stp[node].st ] , values[stp[last].st] );
+		int m = ( l + r >= 0 ? (l + r)/2 : (l + r - 1)/2 );
+		if( leftSize >= k )
+			return kth( stp[node].st, stp[last].st, l, m, k );
+		return kth( stp[node].nd, stp[last].nd, m + 1, r, k - leftSize );
+	}
+
+	int kth(int L, int R, int k) {
+		return kth( roots[R], roots[L - 1], rL, rR, k );
+	}
+};
+
+ll operation(ll x, ll y) {
+	return x + y;
+}
+
+ll substract(ll x, ll y) {
+	return x - y;
+}
+
+int main () {
+
+
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	cin >> s;
+	N=s.size();
+
+
+	SegmentTreePersistant STP(values, 0, stp, 0, N - 1, &operation, &substract, mroots);
+	for (int i=0;i < 26; i++)
+		mData[i]=-1;
+	int cur;
+	for (int i =0; i <N;i++) {
+		if (mData[s[i]-'a'  ]!=-1) {
+			//cur = update(cur,0,N-1,mData[s[i]-'a'  ],0);
+			cur = STP.setVal( mData[s[i] - 'a'], 0 );
+		}
+		mData[s[i] - 'a']=i;
+		//cur = update(cur,0,N-1,i,1);
+		cur = STP.setVal( i, 1 );
+		roots[i]=cur;
+	
+	}
+	int Q;
+	cin >> Q;
+	int a,b;
+	while (Q--) {
+		cin >> a >> b;
+		a--;b--;
+		if (a==b) {
+			cout << "Yes\n";
+			continue;
+		}
+		if (s[a]!=s[b]) {
+			cout << "Yes\n";
+			continue;
+		}
+	
+		// if (query(roots[b],0,N-1,a,b)>=3) {
+		if(STP.queryI(0, roots[b], 0, N - 1, a, b) >= 3) {
+			cout << "Yes\n";
+			continue;
+		}
+		cout << "No\n";
+	
+	
+	
+	}
+	return 0;
+}
+

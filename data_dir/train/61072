@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define mem(a,b) memset(a,b,sizeof(a))
+#define FOR(i,j,k) for(int i=j;i<=k;i++)
+#define REV(i,j,k) for(int i=j;i>=k;i--)
+#define FORR(i,j,k,l) for(int i=j;i<=k;i+=l)
+#define inf         freopen("in.txt", "r", stdin)
+#define outf        freopen("out.txt", "w", stdout)
+#define pf          printf
+#define sf(n)       scanf("%d", &n)
+#define sff(a,b)    scanf("%d %d", &a, &b)
+#define sfff(a,b,c)    scanf("%d %d %d", &a, &b, &c)
+#define clean(mat,n)   FOR(i,0,n) mat[i].clear()
+#define minn          (long long)-1000000000000000000
+#define maxx          (long long) 1000000000000000000
+#define mod          1000000007
+#define M_PI           3.14159265358979323846  /* pi */
+#define LL           long long
+#define NL '\n'
+#define cnd tree[idx]
+#define lnd (idx<<1)
+#define rnd ((idx<<1)+1)
+#define PB push_back
+#define F first
+#define S second
+#define MAX 200010
+#define MP make_pair
+#define valid(nx,ny)  ((nx >= 0) && (nx < row) && (ny >= 0) && (ny < col))
+typedef pair<int,int> PR;
+
+int tree[MAX*4];
+
+void update(int idx,int b,int e,int p,int v)
+{
+    if(b > p || p > e) return;
+    if(b == e)
+    {
+        tree[idx] = v;
+        return;
+    }
+    int m = (b + e)>>1;
+    update(lnd, b, m, p, v); update(rnd, m + 1, e, p, v);
+    tree[idx] = min(tree[lnd], tree[rnd]);
+}
+
+int query(int idx,int b,int e,int l,int r)
+{
+    if(b > r || e < l) return MAX;
+    if(l <= b && e <= r) return tree[idx];
+
+    int m = (b + e)>>1;
+    return min(query(lnd, b, m, l, r), query(rnd, m + 1, e, l, r));
+}
+
+int n, m, q, per[MAX], ara[MAX], nex[MAX], go[MAX];
+vector<int> mat[MAX];
+int vis[MAX], dfa[MAX], ti, rev[MAX], extraHead[MAX], twoPos[MAX];
+
+int dfs(int p,int col)
+{
+    dfa[ti] = p; vis[p] = col; rev[p] = ti; ti++;
+
+    for(auto x : mat[p])
+    {
+        if(vis[x]) return extraHead[p] = x;
+        extraHead[p] = dfs(x, col);
+    }
+
+    return extraHead[p];
+}
+
+int getDis(int x,int y)
+{
+    if(twoPos[x] < twoPos[y]) return twoPos[y] - twoPos[x];
+    else return n + twoPos[y] - twoPos[x];
+}
+
+int getPos(int p,int jump)
+{
+    int x = rev[p] + jump;
+    if(x < m) x = dfa[x];
+
+    if(rev[p] + jump < m && vis[x] == vis[p]) return x;
+    else if(extraHead[p] != -1)
+    {
+        int myCol = ara[p], hisCol = ara[ extraHead[p] ];
+        int dis = getDis(myCol, hisCol);
+
+        return getPos(extraHead[p], jump - dis);
+    }
+    else return -1;
+}
+
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    //inf;
+    //outf;
+    int u, v;
+
+    cin >> n >> m >> q;
+    FOR(i,0,n-1) cin >> per[i], twoPos[per[i]] = i;
+    FOR(i,0,m-1) cin >> ara[i];
+
+    FOR(i,0,n-1)
+    {
+        if(i != n-1) go[ per[i] ] = per[i + 1];
+        else go[ per[n - 1] ] = per[0];
+    }
+
+    mem(nex, -1); mem(extraHead, -1);
+    REV(i,m-1,0)
+    {
+        int u = ara[i], v = go[ u ];
+        v = nex[v];
+
+        if(v != -1) mat[i].PB( v );
+        nex[u] = i;
+    }
+
+    FOR(i,0,m-1)
+    {
+        if(vis[i]) continue;
+        dfs(i, i + 1);
+    }
+
+    FOR(i,0,m-1)
+    {
+        int v = getPos(i, n - 1);
+        if(v == -1) v = MAX;
+        update(1, 0, MAX, i, v);
+    }
+
+    int l, r;
+    FOR(i,1,q)
+    {
+        cin >> l >> r; l--; r--;
+        if(query(1, 0, MAX, l, r) <= r) cout << 1;
+        else cout << 0;
+    }
+
+    return 0;
+}

@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const long long infll = 1e18 + 1e9;
+
+const int N = 55;
+
+long long dp[N], fact[N];
+long long mul(long long x, long long y) {
+  if (x == 0) return 0;
+  if (infll / x < y) return infll;
+  return min(x * y, infll);
+}
+long long add(long long x, long long y) {
+  return min(x + y, infll);
+}
+
+int p[N];
+
+int find(int x) {
+  return p[x] < 0 ? x : p[x] = find(p[x]);
+}
+
+void merge(int x, int y) {
+  x = find(x);
+  y = find(y);
+  if (x == y) return;
+  p[x] = y;
+}
+
+int main() {
+  fact[0] = 1;
+  for (int i = 1; i < N; ++i) {
+    fact[i] = mul(fact[i-1], i);
+  }
+  dp[0] = 1;
+  for (int i = 1; i < N; ++i) {
+    dp[i] = 0;
+    for (int j = 1; j <= i; ++j) {
+      dp[i] = add(dp[i], mul(fact[max(j-2, 0)], dp[i-j]));
+    }
+  }
+  int tc;
+  scanf("%d", &tc);
+  while (tc--) {
+    int n;
+    long long k;
+    scanf("%d %lld", &n, &k);
+    if (dp[n] < k) {
+      puts("-1");
+      continue;
+    }
+    --k;
+    int offset = 0;
+    vector<int> ans;
+    while (n > 0) {
+      int s = 1;
+      while (k >= mul(fact[max(s-2, 0)], dp[n-s])) {
+        k -= mul(fact[max(s-2, 0)], dp[n-s]);
+        ++s;
+      }
+      assert(s <= n);
+      long long w = k / dp[n-s];
+      k -= mul(w, dp[n-s]);
+      set<int> unused;
+      fill(p, p+s+1, -1);
+      for (int i = 1; i < s; ++i)
+        unused.insert(i);
+      merge(s, 1);
+      ans.push_back(s + offset);
+      for (int i = 2; i < s; ++i) {
+        int select = -1;
+        for (int j : unused) {
+          if (find(j) == find(i)) continue;
+          if (w >= fact[s-i-1]) {
+            w -= fact[s-i-1];
+          }
+          else {
+            select = j;
+            break;
+          }
+        }
+        assert(select >= 0);
+        merge(i, select);
+        ans.push_back(select + offset);
+        unused.erase(select);
+      }
+      if (!unused.empty()) {
+        ans.push_back(*unused.begin() + offset);
+      }
+      offset += s;
+      n -= s;
+    }
+    for (int i = 0; i < (int)ans.size(); ++i) {
+      printf("%d%c", ans[i], i + 1 == (int)ans.size() ? '\n' : ' ');
+    }
+  }
+  return 0;
+}

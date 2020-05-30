@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+#define fr first
+#define sc second
+#define left (i<<1)
+#define right ((i<<1)|1)
+#define mid ((L+R)>>1)
+using namespace std;
+#define ll long long
+ll const N = 2e5 + 10;
+int OO = (int) 2e9;
+int a[N];
+int n,m;
+pair<int,int> seg[4 * N][10];
+pair<int,int> merge(pair<int,int> L,pair<int,int> R){
+    if (R.fr < L.fr) {
+        L.sc = L.fr;
+        L.fr = R.fr;
+    }
+    else if (R.fr < L.sc)
+        L.sc = R.fr;
+    
+    if (R.sc < L.fr) {
+        L.sc = L.fr;
+        L.fr = R.sc;
+    }
+    else if (R.sc < L.sc)
+        L.sc = R.sc;
+    return L;
+}
+void build(int L = 0,int R = n - 1,int i = 1){
+    if(L>R)return;
+    if(L==R){
+        int w = a[L];
+        for(int id = 0 ;id <10;id++){
+            seg[i][id]={OO,OO};
+            if(w%10){
+                seg[i][id].fr = a[L];
+            }
+            w/=10;
+        }
+        return;
+    }
+    build(L,mid,left);
+    build(mid+1,R,right);
+    for(int id=0;id<10;id++){
+        seg[i][id]=merge(seg[left][id],seg[right][id]);
+    }
+}
+void update(int idx,int val,int L = 0,int R = n - 1,int i = 1){
+    if(L > R || L > idx || R < idx)return ;
+    if(L==R){
+        a[L] = val;
+        int w = a[L];
+        for(int id = 0;id<10;id++){
+            seg[i][id] = {OO,OO};
+            if(w%10){
+                seg[i][id].fr = a[L];
+            }
+            w/=10;
+        }
+        return;
+    }
+    update(idx,val,L,mid,left);
+    update(idx,val,mid+1,R,right);
+    for(int id=0;id<10;id++){
+        seg[i][id]=merge(seg[left][id],seg[right][id]);
+    }
+}
+pair<int,int> query(int l,int r,int idx,int L = 0,int R = n - 1,int i = 1){
+    if(L>R || l>r || L>r || l>R)return {OO,OO};
+    if(L>=l && R<=r){
+        return seg[i][idx];
+    }
+    pair<int,int> le = query(l,r,idx,L,mid,left);
+    pair<int,int> re = query(l,r,idx,mid + 1,R,right);
+    return merge(le,re);
+}
+int main() {
+#ifdef LOCAL
+    freopen("in.in", "r", stdin);
+#endif
+    scanf("%d%d",&n,&m);
+    for(int i=0;i<n;i++)scanf("%d",a + i);
+    build();
+    while(m--){
+        int t,a,b;
+        scanf("%d%d%d",&t,&a,&b);
+        if(t==1){
+            update(a - 1,b);
+        }
+        else{
+            int res = OO;
+            for(int i=0;i<10;i++){
+                pair<int,int> cur = query(a - 1, b - 1,i);
+                if(cur.sc == OO)continue;
+                res = min(res, cur.fr + cur.sc);
+            }
+            if(res == OO)res = -1;
+            printf("%d\n",res);
+        }
+    }
+}

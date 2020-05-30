@@ -1,0 +1,164 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+#define A 1000100
+#define N 50050
+#define M 5050
+#define B 20
+
+int n, q;
+int X[A];
+int a[N];
+int ansQ[M];
+int blockStart[N];
+int blockEnd[N];
+int BLK_SIZE;
+int BLK_CNT;
+
+struct Query{
+    int L, R, idx;
+
+    Query(){}
+
+    Query(int L, int R, int idx): L(L), R(R), idx(idx){}
+
+    int operator<(Query& rhs){
+        return this->R < rhs.R;
+    }
+};
+vector<vector<Query> > block;
+Query Q[M];
+
+struct Trie{
+    int mn, mx;
+    Trie* child[2];
+
+    Trie(){
+        child[0] = child[1] = 0;
+        mn = A;
+        mx = -1;
+    }
+
+    void add(int num, int val, int idx = B){
+        mn = min(mn, val);
+        mx = max(mx, val);
+        if(idx == -1) return;
+        int d = num / (1 << idx);
+        num %= (1 << idx);
+        if(child[d] == 0) child[d] = new Trie();
+        child[d]->add(num, val,idx - 1);
+        mn = min(mn, child[d]->mn);
+        mx = max(mx, child[d]->mx);
+    }
+
+    int queryMin(int num, int val, int idx = B){
+        if(idx == -1) return 0;
+        int d = num / (1 << idx);
+        num %= (1 << idx);
+        int ans = 0;
+        if(child[!d] && child[!d]->mn < val) ans = (1 << idx) | child[!d]->queryMin(num, val, idx - 1);
+        else if(child[d] && child[d]->mn < val) ans = child[d]->queryMin(num, val,idx - 1);
+        return ans;
+    }
+
+    int queryMax(int num, int val, int idx = B){
+        if(idx == -1) return 0;
+        int d = num / (1 << idx);
+        num %= (1 << idx);
+        int ans = 0;
+        if(child[!d] && child[!d]->mx > val) ans = (1 << idx) | child[!d]->queryMax(num, val, idx - 1);
+        else if(child[d] && child[d]->mx > val) ans = child[d]->queryMax(num, val, idx - 1);
+        return ans;
+    }
+};
+
+void deleteTrie(Trie* root){
+    if(root->child[0]) deleteTrie(root->child[0]);
+    if(root->child[1]) deleteTrie(root->child[1]);
+    delete root;
+}
+
+int solveBF(int L, int R){
+    int ans = 0;
+    for(int i = L; i <= R; i++){
+        for(int j = i; j <= R; j++){
+            int res = X[a[i]] ^ X[a[j] - 1];
+            if(a[j] > a[i]) res = X[a[j]] ^ X[a[i] - 1];
+            ans = max(ans, res);
+        }
+    }
+    return ans;
+}
+
+void solveBlock(int blockID){
+    int curR = blockEnd[blockID];
+    Trie* mnRoot = new Trie();
+    Trie* mxRoot = new Trie();
+    int ans = 0;
+    for(int i = 0; i < block[blockID].size(); i++){
+        Query qu = block[blockID][i];
+        while(curR < qu.R){
+            curR++;
+            mnRoot->add(X[a[curR] - 1], a[curR] - 1);
+            mxRoot->add(X[a[curR]], a[curR]);
+            int c1 = mnRoot->queryMin(X[a[curR]], a[curR]);
+            int c2 = mxRoot->queryMax(X[a[curR] - 1], a[curR] - 1);
+            ans = max(ans, max(c1, c2));
+        }
+        int res = ans;
+        res = max(res, solveBF(qu.L, blockEnd[blockID]));
+        for(int j = blockEnd[blockID]; j >= qu.L; j--){
+            int c1 = mnRoot->queryMin(X[a[j]], a[j]);
+            int c2 = mxRoot->queryMax(X[a[j] - 1], a[j] - 1);
+            res = max(res, max(c1, c2));
+        }
+        ansQ[qu.idx] = res;
+    }
+    deleteTrie(mnRoot);
+    deleteTrie(mxRoot);
+}
+
+void arrangeQueries(){
+    for(int i = 0; i < q; i++){
+        if(Q[i].R - Q[i].L <= BLK_SIZE){
+            ansQ[Q[i].idx] = solveBF(Q[i].L, Q[i].R);
+            continue;
+        }
+        int blockID = Q[i].L / BLK_SIZE;
+        block[blockID].push_back(Q[i]);
+    }
+    for(int i = 0; i < BLK_CNT; i++) sort(block[i].begin(), block[i].end());
+}
+
+void init(){
+    X[0] = 0;
+    BLK_SIZE = sqrt(n);
+    BLK_CNT = n / BLK_SIZE + (n % BLK_SIZE != 0);
+    X[0] = 0;
+    for(int i = 1; i < A; i++) X[i] = X[i - 1] ^ i;
+    block.resize(BLK_CNT, vector<Query>());
+    for(int i = 0; i < BLK_CNT; i++){
+        blockStart[i] = BLK_SIZE * i;
+        blockEnd[i] = BLK_SIZE * (i + 1) - 1;
+    }
+}
+
+int main(){
+   // freopen("in.in", "r", stdin);
+    ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+    cin >> n >> q;
+    init();
+    for(int i = 0; i < n; i++) cin >> a[i];
+    for(int i = 0; i < q; i++){
+        int L, R; cin >> L >> R;
+        L--, R--;
+        Q[i] = Query(L, R, i);
+    }
+    arrangeQueries();
+    for(int i = 0; i < BLK_CNT; i++) solveBlock(i);
+    for(int i = 0; i < q; i++) cout << ansQ[i] << endl;
+
+    return 0;
+}

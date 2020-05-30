@@ -1,0 +1,143 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef pair<int,int> ii;
+
+struct LCA {
+	vector<int> height, euler, first, segtree, d_to_r;
+	vector<bool> visited;
+	int n;
+
+	LCA(vector<vector<ii>> &adj, int root = 0) {
+		n = adj.size();
+		d_to_r.resize(n);
+		height.resize(n);
+		first.resize(n);
+		euler.reserve(n * 2);
+		visited.assign(n, false);
+		d_to_r[root]=0;
+		dfs(adj, root);
+		int m = euler.size();
+		segtree.resize(m * 4);
+		build(1, 0, m - 1);
+	}
+
+	void dfs(vector<vector<ii>> &adj, int node, int h = 0) {
+		visited[node] = true;
+		height[node] = h;
+		first[node] = euler.size();
+		euler.push_back(node);
+		for (auto to : adj[node]) {
+			if (!visited[to.first]) {
+				d_to_r[to.first]=d_to_r[node]+to.second;
+				dfs(adj, to.first, h + 1);
+				euler.push_back(node);
+			}
+		}
+	}
+
+	void build(int node, int b, int e) {
+		if (b == e) {
+			segtree[node] = euler[b];
+		} else {
+			int mid = (b + e) / 2;
+			build(node << 1, b, mid);
+			build(node << 1 | 1, mid + 1, e);
+			int l = segtree[node << 1], r = segtree[node << 1 | 1];
+			segtree[node] = (height[l] < height[r]) ? l : r;
+		}
+	}
+
+	int query(int node, int b, int e, int L, int R) {
+		if (b > R || e < L)
+			return -1;
+		if (b >= L && e <= R)
+			return segtree[node];
+		int mid = (b + e) >> 1;
+
+		int left = query(node << 1, b, mid, L, R);
+		int right = query(node << 1 | 1, mid + 1, e, L, R);
+		if (left == -1) return right;
+		if (right == -1) return left;
+		return height[left] < height[right] ? left : right;
+	}
+
+	int lca(int u, int v) {
+		int left = first[u], right = first[v];
+		if (left > right)
+			swap(left, right);
+		return query(1, 0, euler.size() - 1, left, right);
+	}
+
+	int dist(int u, int v) {
+		return d_to_r[u]+d_to_r[v]-2*d_to_r[lca(u,v)];
+	}
+
+	int dist_to_lca(int u, int v) {
+		return d_to_r[v]-d_to_r[lca(u,v)];
+	}
+};
+
+void eval(int cur, int par, vector<vector<ii>> &adj, vector<int> &dist, vector<int> &parent, int n) {
+	for (auto nxt : adj[cur]) {
+		if(nxt.first==par)
+			continue;
+		parent[nxt.first]=cur;
+		dist[nxt.first]=dist[cur]+1;
+		eval(nxt.first,cur,adj,dist,parent,n);
+	}
+}
+
+int main() {
+	cin.tie(0); cout.tie(0); ios_base::sync_with_stdio(0);
+	int n,m,u,v; scanf("%d %d",&n,&m);
+	vector<vector<ii>> adj(n);
+	for (int i=0; i<n-1; i++)
+		scanf("%d %d",&u,&v), u--, v--, adj[u].push_back({v,1}), adj[v].push_back({u,1});
+	LCA lca(adj);
+	vector<int> par(n,-1), dist(n,-1);
+	dist[0]=0;
+	eval(0,-1,adj,dist,par,n);
+
+//	cout<<"STAT\n";
+//	for (int i=0; i<n; i++)
+//		cout<<i+1<<" "<<par[i]+1<<" "<<dist[i]<<endl;
+
+	for (int i=0; i<m; i++) {
+		int k; scanf("%d",&k);
+//cout<<"#"<<i+1<<" "<<k<<endl;
+		vector<int> vv(k);
+		for (int i=0; i<k; i++)
+			scanf("%d",&vv[i]), vv[i]--;
+
+//cout<<"POINT:";
+//for (int i=0; i<k; i++)
+//	cout<<vv[i]+1<<" ";
+//cout<<"\n";
+
+		int far=-1, mx=-1;
+		for (int i=0; i<k; i++) {
+//cout<<i<<" "<<vv[i]<<endl;
+			if(mx<dist[vv[i]])
+				mx=dist[vv[i]], far=vv[i];
+		}
+
+//cout<<"FAR="<<cur+1<<"\n";
+
+		
+//		cout<<"PATH\n";
+//		for (auto x : st)
+//			cout<<x+1<<" ";
+//		cout<<endl;
+
+		bool ok=true;
+		for (int i=0; i<k; i++) {
+			if(lca.dist_to_lca(far,vv[i])>1) {
+				ok=false;
+				break;
+			}
+		}
+		printf("%s\n",(ok?"YES":"NO"));
+	}
+	return 0;
+}

@@ -1,0 +1,105 @@
+//ITNOA
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <deque>
+#include <queue>
+#include <fstream>
+#include <cstring>
+#include <cstdlib>
+#include <iomanip>
+#include <cassert>
+
+using namespace std;
+
+#define scan(x) do{while((x=getchar())<'0'); for(x-='0'; '0'<=(_=getchar()); x=(x<<3)+(x<<1)+_-'0');}while(0)
+char _;
+
+
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+#define X first
+#define Y second
+
+typedef long long ll;
+typedef long double ld;
+
+const int maxN = 1000 + 5;
+const int mod = 1000*1000*1000 + 7;
+const int base = 701;
+const int SQ = 500;
+const int maxL = 20;
+
+vector<int> a[10];
+int dp[1 << 8];
+int n;
+
+bool check(int x) {
+	dp[0] = 0;
+	for(int mask = 1; mask < (1 << 8); mask ++) {
+		dp[mask] = mod;
+		for(int i = 0; i < 8; i ++) 
+			if(mask >> i & 1) {
+				int st = dp[mask ^ (1 << i)];
+				int ps = lower_bound(a[i].begin(), a[i].end(), st) - a[i].begin();
+				if(ps + x - 1 >= a[i].size())
+					continue;
+				dp[mask] = min(dp[mask], a[i][ps + x - 1]);
+			}
+	}
+	return (dp[(1 << 8) - 1] <= n);
+}
+
+int go[maxN][1 << 8];
+
+int32_t main()
+{
+	ios::sync_with_stdio(0); cin.tie(0);
+	cin >> n;
+	for(int i = 0; i < n; i ++) {
+		int x; cin >> x; x --;
+		a[x].push_back(i+1);
+	}
+
+	int lo = 0, hi = 1000;
+	while(hi - lo > 1) {
+		int mid = (hi+lo) >> 1;
+		if(check(mid))
+			lo = mid;
+		else
+			hi = mid;
+	}
+
+	for(int i = 0; i < maxN; i ++)
+		for(int j = 0; j < (1 << 8); j ++)
+			go[i][j] = -mod;
+
+	go[0][0] = 0;
+	for(int i = 1; i <= n; i ++) {
+		go[i][0] = 0;
+		for(int mask = 1; mask < (1 << 8); mask ++) {
+			go[i][mask] = go[i-1][mask];
+			
+			for(int j = 0; j < 8; j ++) 
+				if(mask >> j & 1) {
+					if(lo == 0)
+						go[i][mask] = max(go[i][mask], go[i][mask ^ (1 << j)]);
+					
+					int ps = upper_bound(a[j].begin(), a[j].end(), i) - a[j].begin();
+					if(ps < lo)
+						continue;
+					if(ps - lo < a[j].size())
+						go[i][mask] = max(go[i][mask], 
+						go[a[j][ps-lo] - 1][mask ^ (1 << j)] + lo);
+
+					if(ps > lo && ps - lo -  1 < a[j].size())
+						go[i][mask] = max(go[i][mask], 
+						go[a[j][ps-lo-1] - 1][mask ^ (1 << j)] + lo + 1);
+				}
+		}
+	}
+
+	cout << go[n][(1 << 8) - 1] << endl;
+	return 0;
+}

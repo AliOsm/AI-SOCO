@@ -1,0 +1,167 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+string to_string(string s) { return '"' + s + '"'; }
+string to_string(bool b) { return b ? "true" : "false"; }
+template <size_t N> string to_string(bitset<N> bs) {
+  string res;
+  for (size_t i = 0; i < N; ++i) res += '0' + bs[i];
+  return res;
+}
+string to_string(vector<bool> v) {
+  string res = "{";
+  for (bool e : v) res += to_string(e) + ", ";
+  return res += "}";
+}
+template <class T, class U> string to_string(pair<T, U> p);
+template <class C> string to_string(C c) {
+  string res = "{";
+  for (auto e : c) res += to_string(e) + ", ";
+  return res += "}";
+}
+template <class T, class U> string to_string(pair<T, U> p) {
+  return "(" + to_string(p.first) + ", " + to_string(p.second) + ")";
+}
+void debug() { cerr << '\n'; }
+template <class Head, class... Tail> void debug(Head head, Tail... tail) {
+  cerr << ' ' << to_string(head), debug(tail...);
+}
+#ifdef LOCAL
+#define DEBUG(...) cerr << "[" << #__VA_ARGS__ << "]:", debug(__VA_ARGS__)
+#else
+#define DEBUG(...)
+#endif
+
+template <class T, class F = multiplies<T>>
+T power(T a, long long n, F op = multiplies<T>(), T e = {1}) {
+  assert(n >= 0);
+  T res = e;
+  while (n) {
+    if (n & 1) res = op(res, a);
+    if (n >>= 1) a = op(a, a);
+  }
+  return res;
+}
+
+template <unsigned Mod> struct Modular {
+  using M = Modular;
+  unsigned v;
+  Modular(long long a = 0) : v((a %= Mod) < 0 ? a + Mod : a) {}
+  M operator-() const { return M() -= *this; }
+  M& operator+=(M r) { if ((v += r.v) >= Mod) v -= Mod; return *this; }
+  M& operator-=(M r) { if ((v += Mod - r.v) >= Mod) v -= Mod; return *this; }
+  M& operator*=(M r) { v = (uint64_t)v * r.v % Mod; return *this; }
+  M& operator/=(M r) { return *this *= power(r, Mod - 2); }
+  friend M operator+(M l, M r) { return l += r; }
+  friend M operator-(M l, M r) { return l -= r; }
+  friend M operator*(M l, M r) { return l *= r; }
+  friend M operator/(M l, M r) { return l /= r; }
+  friend bool operator==(M l, M r) { return l.v == r.v; }
+};
+
+constexpr long long mod = 998244353;
+using Mint = Modular<mod>;
+
+vector<Mint> fact, inv_fact, minv;
+void prepare(int n) {
+  fact.resize(n + 1), inv_fact.resize(n + 1), minv.resize(n + 1);
+  for (int i = 0; i <= n; ++i) fact[i] = i ? i * fact[i - 1] : 1;
+  inv_fact[n] = 1 / fact[n];
+  for (int i = n; i; --i) inv_fact[i - 1] = i * inv_fact[i];
+  for (int i = 1; i <= n; ++i) minv[i] = inv_fact[i] * fact[i - 1];
+}
+template<> Mint& Mint::operator/=(Mint r) {
+  return *this *= r.v < minv.size() ? minv[r.v] : power(r, mod - 2);
+}
+
+Mint binom(int n, int k) {
+  assert(0 <= k and k <= n);
+  if (k == 0) {
+    return 1;
+  }
+  return binom(n - 1, k - 1) * n / k;
+}
+
+Mint f(int n, int m) {
+  return binom(n + m - 1, n) / power(Mint(m), n);
+}
+
+template <class Z> pair<Z, Z> to_rational(Z a, Z m) {
+  Z num = a, den = 1;
+  for (Z x = 0, u = 1; a; ) {
+    Z q = m / a;
+    swap(m -= q * a, a);
+    swap(x -= q * u, u);
+    if (a + abs(u) < num + abs(den)) num = a, den = u;
+  }
+  if (den < 0) num = -num, den = -den;
+  return {num, den};
+}
+template <unsigned Mod> string to_string(Modular<Mod> a) {
+  auto p = to_rational<long long>(a.v, Mod);
+  auto res = to_string(p.first);
+  if (p.second != 1) res += "/" + to_string(p.second);
+  return res;
+}
+
+int main() {
+  cin.tie(nullptr);
+  ios::sync_with_stdio(false);
+  int n;
+  cin >> n;
+  // prepare(n);
+  vector<int> l(n), r(n), w(n), v;
+  for (int i = 0; i < n; ++i) {
+    cin >> l[i] >> r[i];
+    ++r[i];
+    v.push_back(l[i]);
+    v.push_back(r[i]);
+    w[i] = r[i] - l[i];
+  }
+  sort(begin(v), end(v));
+  v.erase(unique(begin(v), end(v)), end(v));
+  int m = v.size() - 1;
+  v.push_back(v.back() + 1);
+  for_each(begin(l), end(l), [&](int& e) { e = lower_bound(begin(v), end(v), e) - begin(v); });
+  for_each(begin(r), end(r), [&](int& e) { e = lower_bound(begin(v), end(v), e) - begin(v); });
+  DEBUG(v);
+  DEBUG(l);
+  DEBUG(r);
+  vector<vector<Mint>> dp(m + 1, vector<Mint>(n + 1));
+  dp[m][1] = 1;
+  for (int i = 0; i < n; ++i) {
+    vector<Mint> p(m + 1);
+    for (int x = l[i]; x < r[i]; ++x) {
+      p[x] = Mint(v[x + 1] - v[x]) / w[i];
+    }
+    DEBUG(p);
+    vector<vector<Mint>> ndp(m + 1, vector<Mint>(n + 1));
+    for (int x = 0; x <= m; ++x) {
+      for (int y = 1; y <= n; ++y) {
+        if (dp[x][y] == 0) {
+          continue;
+        }
+        for (int nx = 0; nx <= x; ++nx) {
+          if (p[nx] == 0) {
+            continue;
+          }
+          if (nx == x) {
+            ndp[nx][y + 1] += dp[x][y] * p[nx];
+          } else {
+            ndp[nx][1] += dp[x][y] * p[nx] * f(y, v[x + 1] - v[x]);
+          }
+        }
+      }
+    }
+    DEBUG(dp);
+    swap(dp, ndp);
+  }
+  DEBUG(dp);
+  Mint res;
+  for (int x = 0; x < m; ++x) {
+    for (int y = 1; y <= n; ++y) {
+      res += dp[x][y] * f(y, v[x + 1] - v[x]);
+    }
+  }
+  cout << res.v << '\n';
+}

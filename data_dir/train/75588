@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+#define MOD 1000000007
+#define endl "\n"
+typedef long long ll;
+using namespace std;
+
+const int N = 1111111, W = 111111111;
+ll sw[N], tot[N];
+vector<pair<int, ll> > graph[N], graph2[N];
+vector<vector<int> > sccs;
+int times[N], curt, nts[N], indeg[N];
+bool inst[N], seen[N];
+stack<int> st;
+int n, m, s;
+
+int tarjan(int u) {
+    st.push(u);
+    inst[u] = true;
+    times[u] = ++curt;
+    int mini = times[u];
+    for(p : graph[u]) {
+        int v = p.first;
+        if(!times[v]) {
+            mini = min(mini, tarjan(v));
+        } else if(inst[v]) {
+            mini = min(mini, times[v]);
+        }
+    }
+    if(mini == times[u]) {
+        vector<int> scc;
+        while(42) {
+            int x = st.top();
+            st.pop();
+            inst[x] = false;
+            scc.push_back(x);
+            if(x == u) {
+                break;
+            }
+        }
+        sccs.push_back(scc);
+    }
+    return mini;
+}
+
+void dfs(int u) {
+    if(seen[u]) return;
+    seen[u] = true;
+    for(p : graph2[u]) {
+        dfs(p.first);
+    }
+}
+
+ll getMush(ll w) {
+    ll r = round(sqrt(2 * w));
+    return ((6 * w + 1) * r - r * r * r) / 6;
+}
+
+int main() {
+    scanf("%d%d", &n, &m);
+    for(int i = 1; i <= m; i++) {
+        int u, v, w;
+        scanf("%d%d%d", &u, &v, &w);
+        graph[u].push_back(make_pair(v, w));
+    }
+    scanf("%d", &s);
+    for(int i = 1; i <= n; i++) {
+        if(!times[i]) {
+            tarjan(i);
+        }
+    }
+    for(int i = 0; i < sccs.size(); i++) {
+        for(x : sccs[i]) {
+            nts[x] = i + 1;
+        }
+    }
+    for(int i = 1; i <= n; i++) {
+        int u = nts[i];
+        for(p : graph[i]) {
+            int v = nts[p.first];
+            if(u == v) {
+                sw[u] += getMush(p.second);
+            } else {
+                graph2[u].push_back(make_pair(v, p.second));
+            }
+        }
+    }
+    s = nts[s];
+    n = sccs.size();
+    queue<int> q;
+    vector<int> topo;
+    dfs(s);
+    for(int i = 1; i <= n; i++) {
+        if(!seen[i]) continue;
+        for(p : graph2[i]) {
+            if(seen[p.first]) {
+                indeg[p.first]++;
+            }
+        }
+    }
+    for(int i = 1; i <= n; i++) {
+        if(!indeg[i] && seen[i]) {
+            q.push(i);
+        }
+        tot[i] = sw[i];
+    }
+    while(!q.empty()) {
+        int x = q.front();
+        topo.push_back(x);
+        q.pop();
+        for(p : graph2[x]) {
+            int y = p.first;
+            indeg[y]--;
+            if(!indeg[y]) {
+                q.push(y);
+            }
+        }
+    }
+    ll ans = 0;
+    for(int i = 0; i < topo.size(); i++) {
+        int u = topo[i];
+        ans = max(ans, tot[u]);
+        for(p : graph2[u]) {
+            int v = p.first;
+            tot[v] = max(tot[v], sw[v] + tot[u] + p.second);
+        }
+    }
+    printf("%I64d\n", ans);
+    return 0;
+}

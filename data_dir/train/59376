@@ -1,0 +1,63 @@
+// We only fail when we stop trying
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+#define endl '\n'
+#define D(x) cerr << #x << " = " << (x) << '\n'
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 2e5 + 5;
+const int mod = 998244353;
+
+int n, m;
+int fact[N];
+
+int myPow(int a, int b)
+{
+  if(!b) return 1;
+  int r = myPow(a, b >> 1);
+  r = (1LL * r * r) % mod;
+  if(b & 1) r = (1LL * r * a) % mod;
+  return r;
+}
+
+int inv(int a)
+{
+  return myPow(a, mod - 2);
+}
+
+int perm(int n, int r)
+{
+  return (1LL * fact[n] * inv(fact[n - r])) % mod;
+}
+
+int cnk(int n, int k)
+{
+  return (1LL * perm(n, k) * inv(fact[k])) % mod;
+}
+
+int solve(int p)
+{
+  int res = p - 1;
+  res = (1LL * res * cnk(p - 2, n - 3)) % mod;
+  res = (1LL * res * myPow(2, n - 3)) % mod;
+  return res;
+}
+
+int main()
+{
+  fact[0] = 1;
+  for(int i = 1 ; i < N ; i++)
+    fact[i] = (1LL * fact[i - 1] * i) % mod;
+  cin >> n >> m;
+  if(n == 2)
+    return cout << 0 << endl, 0;
+  int ans = 0;
+  for(int p = n - 1 ; p <= m ; p++) {
+    ans = (ans + solve(p)) % mod;
+  }
+  cout << ans << endl;
+  return 0;
+}

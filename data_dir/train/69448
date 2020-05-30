@@ -1,0 +1,206 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <queue>
+#include <map>
+#include <stack>
+#include <complex>
+#include <random>
+#include <bitset>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+
+const int MAXN = 100100;
+const int MAXLOGN = 18;
+int N, Q;
+vector<int> adj[MAXN];
+int jmp[MAXN][MAXLOGN];
+int dep[MAXN];
+int order[MAXN], ind = 0;
+vector<pair<int, pair<int, int> > > nadj[MAXN];
+set<pair<int, int> > E;
+vector<bool> marked;
+int A[3];
+
+void process()
+{
+	for (int j = 1; j < MAXLOGN; j++)
+		for (int i = 0; i < N; i++)
+			jmp[i][j] = jmp[jmp[i][j-1]][j-1];
+}
+
+int query(int a, int b)
+{
+	if (dep[a] > dep[b])
+		swap(a, b);
+
+	for (int i = MAXLOGN - 1; i >= 0; i--)
+		if (dep[jmp[b][i]] >= dep[a])
+			b = jmp[b][i];
+
+	if (a == b)
+		return a;
+
+	for (int i = MAXLOGN - 1; i >= 0; i--)
+		if (jmp[a][i] != jmp[b][i])
+		{
+			a = jmp[a][i];
+			b = jmp[b][i];
+		}
+
+	return jmp[a][0];
+}
+
+void dfs(int cur, int prev)
+{
+    order[cur] = ind++;
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i];
+        if (next == prev)
+            continue;
+        dep[next] = dep[cur] + 1;
+        jmp[next][0] = cur;
+        dfs(next, cur);
+    }
+}
+
+bool dfs2(int cur, int prev, int dest)
+{
+    if (cur == dest)
+        return true;
+    for (int i = 0; i < nadj[cur].size(); i++)
+    {
+        int next = nadj[cur][i].first;
+        if (next == prev)
+            continue;
+        if (dfs2(next, cur, dest))
+        {
+            marked[nadj[cur][i].second.first] = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+int dfs3(int cur, int prev, int dest)
+{
+    if (cur == dest)
+        return 0;
+    for (int i = 0; i < nadj[cur].size(); i++)
+    {
+        int next = nadj[cur][i].first;
+        if (next == prev)
+            continue;
+        int ret = dfs3(next, cur, dest);
+        if (ret != -1)
+            return ret + marked[nadj[cur][i].second.first]*nadj[cur][i].second.second;
+    }
+    return -1;
+}
+
+bool cmp(int a, int b)
+{
+    return order[a] < order[b];
+}
+
+void addEdge(int a, int b)
+{
+    if (a == b)
+        return;
+    if (a > b)
+        swap(a, b);
+    if (E.find(make_pair(a, b)) != E.end())
+        return;
+    E.insert(make_pair(a, b));
+    int len = abs(dep[b] - dep[a]);
+    nadj[a].push_back(make_pair(b, make_pair(marked.size(), len)));
+    nadj[b].push_back(make_pair(a, make_pair(marked.size(), len)));
+    marked.push_back(false);
+}
+
+int go()
+{
+    sort(A, A + 3, cmp);
+    int lca1 = query(A[0], A[1]);
+    addEdge(A[0], lca1); 
+
+    int lca2 = query(A[1], A[2]);
+    if (dep[lca1] < dep[lca2])
+    {
+        addEdge(lca1, lca2);
+        addEdge(lca2, A[1]);
+        addEdge(lca2, A[2]);
+    }
+    else if (dep[lca1] > dep[lca2])
+    {   
+        addEdge(lca1, lca2);
+        addEdge(lca1, A[1]);
+        addEdge(lca2, A[2]);
+    }
+    else
+    {
+        addEdge(lca1, A[1]);
+        addEdge(lca2, A[2]);
+    }
+    
+    int P[3] = {0, 1, 2};
+    int best = 0;
+    do
+    {
+        dfs2(A[P[0]], -1, A[P[1]]);
+        best = max(best, dfs3(A[P[2]], -1, A[P[1]]));
+        //cout << "best: " << best << "\n";
+        //cout << "perm: " << A[P[0]] << " " << A[P[1]] << " " << A[P[2]] << "\n";
+        for (int i = 0; i < marked.size(); i++)
+            marked[i] = false;
+    } while (next_permutation(P, P + 3));
+
+    nadj[A[0]].clear();
+    nadj[A[1]].clear();
+    nadj[A[2]].clear();
+    nadj[lca1].clear();
+    nadj[lca2].clear();
+    E.clear();
+    marked.clear();
+
+    return best + 1;
+}
+
+int main()
+{
+    scanf("%d %d", &N, &Q);
+    for (int i = 1, p; i < N; i++)
+    {
+        scanf("%d", &p);
+        p--;
+        adj[i].push_back(p);
+        adj[p].push_back(i);
+    }
+
+    dfs(0, -1);
+    process();
+
+    for (int i = 0; i < Q; i++)
+    {
+        scanf("%d %d %d", &A[0], &A[1], &A[2]);
+        A[0]--;
+        A[1]--;
+        A[2]--;
+        printf("%d\n", go());
+    }
+
+	return 0;
+}

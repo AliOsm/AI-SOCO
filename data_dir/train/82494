@@ -1,0 +1,197 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+map<string,string> newname;
+vector<vector<string> > lines;
+map<string,int> lineno;
+set<string> allnames,nontempnames;
+int idx = 0;
+vector<int> marklines;
+int ctr = 0;
+string allpermit = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+string nexttemp()
+{
+    string s = "AAAA";
+    do{
+        for(int i=0;i<4;i++)
+            s[i] = allpermit[rand()%allpermit.size()];
+        if(allnames.count(s)) continue;
+        allnames.insert(s);
+        return s;
+    }while(1);
+}
+vector<string> proc(const string &s)
+{
+    //converts to ssa form
+    string lvalue,rvalue1,rvalue2,op;
+    int n = s.size();
+    string ops = "$^#&";
+    int i;
+    for(i=0;i<n;i++)
+    {
+        if(s[i]=='=') break;
+        lvalue.push_back(s[i]);
+    }
+    allnames.insert(lvalue);
+    nontempnames.insert(lvalue);
+    i++;
+    for(;i<n;i++)
+    {
+        if(ops.find(s[i])!=string::npos)
+        {
+            op = s[i];
+            break;
+        }
+        rvalue1.push_back(s[i]);
+    }
+    allnames.insert(rvalue1);
+    nontempnames.insert(rvalue1);
+    i++;
+    for(;i<n;i++)
+    {
+        rvalue2.push_back(s[i]);
+    }
+    if(rvalue2.size())
+    {
+        allnames.insert(rvalue2);
+        nontempnames.insert(rvalue2);
+    }
+    if(op.empty())
+        return {lvalue,rvalue1};
+    return {lvalue,rvalue1,op,rvalue2};
+}
+void proc2()
+{
+    for(auto &i:lines)
+    {
+        string nval;
+        auto it = newname.find(i[1]);
+        if(it!=newname.end())
+        {
+            i[1] = it->second;
+        }
+        if(i.size()>2)
+        {
+            it = newname.find(i[3]);
+            if(it!=newname.end())
+            {
+                i[3] = it->second;
+            }
+        }
+        nval = nexttemp();
+        newname[i[0]] = nval; 
+        newname[nval] = nval; 
+        lineno[nval] = idx++;
+        i[0] = nval;   
+    }
+}
+int getlineno(const string &s)
+{
+    auto it = lineno.find(s);
+    if(it!=lineno.end())
+        return it->second;
+    return -1;
+}
+void dfs(int loc)
+{
+    if(loc==-1)
+        return;
+    if(marklines[loc] == 2)
+        return;
+    marklines[loc] = 2;
+    dfs(getlineno(lines[loc][1]));
+    if(lines[loc].size()==4)
+        dfs(getlineno(lines[loc][3]));
+}
+string get(const map<string,string> &m, const string &s)
+{
+    // cerr<<s<<endl;
+    auto it = m.find(s);
+    if(it!=m.end())
+    {
+        return it->second;
+    }
+    else
+        return s;
+}
+int32_t main() {
+    srand(time(0));
+    ios::sync_with_stdio(false);cin.tie(0);
+    int n;
+    cin>>n;
+    marklines.resize(n);
+    string s;
+    for(int i=0;i<n;i++)
+    {
+        cin>>s;
+        if(s=="res=res")
+        {
+            i--;
+            n--;
+            continue;
+        }
+        lines.push_back(proc(s));
+    }
+    proc2();
+    // for(auto i:lines)
+    // {
+    //     for(auto j:i)    
+    //         cout<<j<<" ";
+    //     cout<<endl;
+    // }
+    stringstream ss;
+    int totlines = 0;
+    auto it = lineno.find(newname["res"]);
+    if(it!=lineno.end())
+    {
+        int blem = it->second;
+        int tmp = getlineno(lines[blem][1]);
+        while(lines[blem].size()==2&&tmp!=-1)
+        {
+            blem = tmp;
+            tmp = getlineno(lines[blem][1]);
+        }
+        dfs(blem);
+        newname.clear();
+        for(int i=0;i<lines.size();i++)
+        {
+            if(marklines[i]==2)
+            {
+                if(lines[i].size()==2)
+                {
+                    newname[lines[i][0]] = get(newname,lines[i][1]);
+                    if(i==blem&&newname[lines[i][0]]!="res")
+                    {
+                        totlines++;
+                        ss<<"res="<<newname[lines[i][0]]<<endl;
+                    }
+                }
+                else
+                {
+                    string tocheck = get(newname,lines[i][1]) + lines[i][2] + get(newname,lines[i][3]);
+                    auto it = newname.find(tocheck);
+                    if(it!=newname.end())
+                    {
+                        newname[lines[i][0]] = get(newname,it->second);
+                    }
+                    else
+                    {
+                        newname[tocheck] = get(newname,lines[i][0]);
+                        totlines++;
+                        if(i==blem)
+                            ss<<"res";
+                        else
+                            ss<<get(newname,lines[i][0]);
+                        ss<<"="<<get(newname,lines[i][1])<<lines[i][2]<<get(newname,lines[i][3])<<endl;
+                    }
+                }
+            }
+        }
+        cout<<totlines<<endl<<ss.str();
+    }
+    else
+    {
+        cout<<0;
+    }
+    return 0;
+}

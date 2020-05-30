@@ -1,0 +1,32 @@
+#include <bits/stdc++.h>
+#define Tree int h,int l,int r
+#define Left 2*h,l,(l+r)/2
+#define Right 2*h+1,(l+r)/2,r
+#define F first
+#define S second
+#define Pb push_back
+using namespace std;
+main () {
+	ios::sync_with_stdio(false);
+	int t;
+	cin>>t;
+	
+	while (t--) {
+		long long n,m,x,K1=0,K2=0,k1=0,k2=0;
+		cin>>n;
+		for (int i=1; i<=n; i++) {
+			cin>>x;
+			if (x%2) K1++;
+				else K2++;
+		}
+		
+		cin>>m;
+		for (int i=1; i<=m; i++) {
+			cin>>x;
+			if (x%2) k1++;
+				else k2++;
+		}
+		
+		cout<<k1*K1+k2*K2<<endl;	
+	}
+}

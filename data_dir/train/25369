@@ -1,0 +1,166 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef tuple<int, int, int, int> query;
+
+const int MAX = 5e5 + 5;
+constexpr int LOGMAX = 31 - __builtin_clz((int) 1e5 + 5) + 5;
+const int INF = 2e9;
+vector<int> all;
+int b[MAX], st[4 * MAX], lazy[4 * MAX], v[MAX], sparse[LOGMAX][(int) 1e5 + 5];
+int n, k, leaves;
+
+void build(int p, int l, int r) {
+	if(l == r) {
+		st[p] = v[l];
+		return;
+	}
+	build(p * 2, l, (l + r) / 2);
+	build(p * 2 + 1, (l + r) / 2 + 1, r);
+	st[p] = min(st[p * 2], st[p * 2 + 1]);
+}
+
+void update(int p, int l, int r, int i, int j, int val) {
+	if(lazy[p]) {
+		st[p] = lazy[p];
+		if(l != r) {
+			lazy[p * 2] = lazy[p];
+			lazy[p * 2 + 1] = lazy[p];
+		}
+		lazy[p] = 0;
+	}
+	if(i > r || l > j) {
+		return;
+	}
+	if(l >= i && j >= r) {
+		st[p] = val;
+		if(l != r) {
+			lazy[p * 2] = val;
+			lazy[p * 2 + 1] = val;
+		}
+		return;
+	}
+	int mid = (l + r) / 2;
+	update(p * 2, l, mid, i, j, val);
+	update(p * 2 + 1, mid + 1, r, i, j, val);
+	st[p] = min(st[p * 2], st[p * 2 + 1]);
+}
+
+int get(int p, int l, int r, int i, int j) {
+	if(lazy[p]) {
+		st[p] = lazy[p];
+		if(l != r) {
+			lazy[p * 2] = lazy[p];
+			lazy[p * 2 + 1] = lazy[p];
+		}
+		lazy[p] = 0;
+	}
+	if(i > r || l > j) {
+		return INF;
+	}
+	if(l >= i && j >= r) {
+		return st[p];
+	}
+	int mid = (l + r) / 2;
+	return min(get(p * 2, l, mid, i, j), get(p * 2 + 1, mid + 1, r, i, j));
+}
+
+int get_min(int l, int r) {
+	int sz = r - l + 1;
+	int lg = 31 - __builtin_clz(sz);
+	return min(sparse[lg][l], sparse[lg][r - (1 << lg) + 1]);
+}
+
+int main() {
+	scanf("%d %d", &n, &k);
+	int minn = 2e9;
+	fori(i, 0, n) {
+		scanf("%d", b + i);
+		minn = min(minn, b[i]);
+		sparse[0][i] = b[i];
+	}
+
+	fori(i, 1, LOGMAX) {
+		for(int j = 0; j + (1 << i) - 1 <= n - 1; j++) {
+			sparse[i][j] = min(sparse[i - 1][j], sparse[i - 1][j + (1 << (i - 1))]);
+		}
+	}
+
+	vector<query> queries;
+	int q;
+	scanf("%d", &q);
+	fori(t, 0, q) {
+		int type, l, r;
+		scanf("%d %d %d", &type, &l, &r);
+		all.push_back(l);
+		all.push_back(r);
+		if(type == 1) {
+			int x;
+			scanf("%d", &x);
+			queries.emplace_back(type, l, r, x);
+		}
+		else {
+			queries.emplace_back(type, l, r, -1);
+		}
+	}
+
+	sort(all.begin(), all.end());
+	all.erase(unique(all.begin(), all.end()), all.end());
+	
+	int node_cnt = 1;
+	vector<ii> ranges;
+	fori(i, 0, all.size() - 1) {
+		int l = all[i], r = all[i + 1];
+		v[node_cnt++] = b[(l - 1) % n];
+		ranges.emplace_back(l, l);
+		l++, r--;
+		if(r >= l) {
+			ranges.emplace_back(l, r);
+			if(r - l + 1 >= n) {
+				v[node_cnt++] = minn;
+			}
+			else {
+				l--, r--;
+				l %= n;
+				r %= n;
+				if(0 > r) {
+					r += n;
+				}
+				if(l <= r) {
+					v[node_cnt++] = get_min(l, r);
+				}
+				else {
+					v[node_cnt++] = min(get_min(0, r), get_min(l, n - 1));
+				}
+			}
+		}
+	}
+	v[node_cnt++] = b[(all.back() - 1) % n];
+	ranges.emplace_back(all.back(), all.back());
+	node_cnt--;
+
+	build(1, 1, node_cnt);
+
+	fori(t, 0, queries.size()) {
+		int type, l, r, x;
+		tie(type, l, r, x) = queries[t];
+		int left = upper_bound(ranges.begin(), ranges.end(), ii(l, l)) - ranges.begin();
+		int right = upper_bound(ranges.begin(), ranges.end(), ii(r, r)) - ranges.begin();
+		if(type == 1) { // update
+			update(1, 1, node_cnt, left, right, x);
+		}
+		else { // query
+			printf("%d\n", get(1, 1, node_cnt, left, right));
+		}
+	}
+
+	return 0;
+}
+

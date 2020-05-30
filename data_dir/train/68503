@@ -1,0 +1,249 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+int Rand(){
+  return (rand() << 15) ^ rand();
+}
+
+// Modular operations
+const int MOD = 1E9 + 7;
+
+int Add(int a, int b, int m = MOD){
+  a += b;
+  if(a >= m) a -= m;
+  return a;
+}
+
+int Sub(int a, int b, int m = MOD){
+  a -= b;
+  if(a < 0) a += m;
+  return a;
+}
+
+int AddTo(int& to, int w, int m = MOD){
+  to += w;
+  if(to >= m) to -= m;
+  return to;
+}
+
+int SubTo(int& to, int w, int m = MOD){
+  to -= w;
+  if(to < 0) to += m;
+  return to;
+}
+
+int Mult(int a, int b, int m = MOD){
+  return (a * 1LL * b) % m;
+}
+
+const int MAXN = 1E5 + 10;
+
+// BIT
+int cnt[MAXN];
+
+void BitAdd(int pos){
+  for(++pos;pos < MAXN;pos += (pos & (-pos)))
+    ++cnt[pos];
+}
+
+int BitSum(int pos){
+  int sum = 0;
+  for(++pos;pos > 0;pos -= (pos & (-pos)))
+    sum += cnt[pos];
+  return sum;
+}
+
+// </end>
+
+
+int n, m;
+int in[MAXN], lval[MAXN], rval[MAXN];
+int cmd[MAXN], pos[MAXN];
+
+struct Node {
+  int pos, h;
+  int sub;
+  int sl, sr, sml, smr;
+
+  Node *l, *r;
+
+  Node(int pos) : pos(pos){
+    h = Rand();
+    sub = 1;
+    sl = sml = lval[pos];
+    sr = smr = rval[pos];
+    l = r = null;
+  }
+
+  Node(){
+    sub = 0;
+    sl = sr = sml = smr = 0;
+  }
+};
+
+Node Get(Node* vr){
+  if(vr == null) return Node();
+  else return *vr;
+}
+
+void Update(Node* vr){
+  if(!vr) return;
+  const Node& le = Get(vr->l);
+  const Node& ri = Get(vr->r);
+
+  vr->sub = Add(1, Add(le.sub, ri.sub));
+
+  vr->sl = Add(lval[vr->pos], Add(le.sl, ri.sl));
+  vr->sr = Add(rval[vr->pos], Add(le.sr, ri.sr));
+
+  vr->sml = Add(le.sml,
+                Add(Add(ri.sml, Mult(ri.sl, Add(1, le.sub))),
+                    Mult(lval[vr->pos], Add(1, le.sub))));
+  vr->smr = Add(ri.smr,
+                Add(Add(le.smr, Mult(le.sr, Add(1, ri.sub))),
+                    Mult(rval[vr->pos], Add(1, ri.sub))));
+}
+
+void Split(Node* vr, int on, Node*&l, Node*& r){
+  if(!vr) return void(l = r = null);
+
+  if(vr->pos < on){
+    Split(vr->r, on, vr->r, r);
+    l = vr, Update(l);
+  } else {
+    Split(vr->l, on, l, vr->l);
+    r = vr, Update(r);
+  }
+}
+
+Node* Merge(Node* l, Node* r){
+  if(!l || !r) return l ? l : r;
+
+  if(l->h < r->h){
+    l->r = Merge(l->r, r);
+    Update(l);
+    return l;
+  } else {
+    r->l = Merge(l, r->l);
+    Update(r);
+    return r;
+  }
+}
+
+Node* Insert(Node* to, int pos){
+  Node *l, *r;
+  Split(to, pos, l, r);
+  return Merge(l, Merge(new Node(pos), r));
+}
+
+Node* Remove(Node* from, int pos){
+  Node *l, *m, *r;
+  Split(from, pos, l, m);
+  Split(m, pos + 1, m, r);
+  delete m;
+  return Merge(l, r);
+}
+
+// Solution
+bool enabled[MAXN];
+int total = 0;
+map<int, Node*> by_in;
+
+void Enable(int pos){
+  enabled[pos] = true;
+  Node* root = by_in[in[pos]];
+
+  Node *l, *r;
+  Split(root, pos, l, r);
+  Node lv = Get(l), rv = Get(r);
+
+  AddTo(total, Mult(lv.sl, rv.sr));
+  AddTo(total, Mult(rval[pos],
+                    Sub(Mult(lv.sub, lv.sl), lv.sml)));
+  AddTo(total, Mult(lval[pos],
+                    Sub(Mult(rv.sub, rv.sr), rv.smr)));
+
+  root = Merge(l, Merge(new Node(pos), r));
+  by_in[in[pos]] = root;
+}
+
+void Disable(int pos){
+  enabled[pos] = false;
+  Node* root = by_in[in[pos]];
+
+  Node *l, *m, *r;
+  Split(root, pos, l, m);
+  Split(m, pos + 1, m, r);
+  Node lv = Get(l), rv = Get(r);
+  delete m;
+
+  SubTo(total, Mult(lv.sl, rv.sr));
+  SubTo(total, Mult(rval[pos],
+                    Sub(Mult(lv.sub, lv.sl), lv.sml)));
+  SubTo(total, Mult(lval[pos],
+                    Sub(Mult(rv.sub, rv.sr), rv.smr)));
+
+  root = Merge(l, r);
+  by_in[in[pos]] = root;
+}
+
+int main(){
+  scanf("%d", &n);
+  for(int i = 0;i < n;++i)
+    scanf("%d", &in[i]);
+
+  scanf("%d", &m);
+  for(int i = 0;i < m;++i)
+    scanf("%d%d", &cmd[i], &pos[i]),
+    --pos[i];
+
+  vi ord(n);
+  for(int i = 0;i < n;++i) ord[i] = i;
+  sort(all(ord), [](int f, int s){
+    return mp(in[f], f) < mp(in[s], s);
+  });
+
+  for(int e : ord){
+    BitAdd(e);
+    lval[e] = BitSum(e) - 1;
+  }
+
+  memset(cnt, 0, sizeof cnt);
+  sort(all(ord), [](int f, int s){
+    return mp(in[f], -f) < mp(in[s], -s);
+  });
+  int placed = 0;
+  for(int e : ord){
+    ++placed;
+    rval[e] = placed - BitSum(e) - 1;
+    BitAdd(e);
+  }
+
+  for(int i = 0;i < n;++i) Enable(i);
+
+  for(int i = 0;i < m;++i){
+    if(cmd[i] == 1){
+      Disable(pos[i]);
+      printf("%d\n", total);
+    } else {
+      Enable(pos[i]);
+      printf("%d\n", total);
+    }
+  }
+
+  return 0;
+}

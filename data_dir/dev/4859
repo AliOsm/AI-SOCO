@@ -1,0 +1,187 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 200005;
+
+int n, vet[N], p[N], lvl[N], bk[N];
+
+vector<int> g[N];
+int start[N], en[N], dfs_time;
+
+void dfs_lvl(int u){
+    start[u] = ++dfs_time;
+    for(int v : g[u]){
+        lvl[v] = lvl[u]+1;
+        dfs_lvl(v);
+    }
+    en[u] = dfs_time;
+}
+
+int dp[N][20];
+
+int up(int u, int j){
+    if(j == 0) return p[u];
+    if(~dp[u][j]) return dp[u][j];
+    return dp[u][j] = up(up(u, j-1), j-1);
+}
+
+int lg(int x){
+    return !x ? 0 : 31 - __builtin_clz(x);
+}
+
+int LCA(int u, int v){
+    if(lvl[u] < lvl[v]) swap(u, v);
+    for(int j = lg(lvl[u]); j >= 0; j--) if(lvl[u] - (1 << j) >= lvl[v])
+        u = up(u, j);
+    if(u == v) return u;
+    for(int j = lg(lvl[u]); j >= 0; j--){
+        if(lvl[u] >= (1 << j) && up(u, j) != up(v, j))
+            u = up(u, j), v = up(v, j);
+    }
+    return p[u];
+}
+
+struct node{
+    bool ok;
+    int u, v;
+    int rr;
+};
+
+bool is_anc(int u, int v){
+    return start[u] <= start[v] && en[v] <= en[u];
+}
+
+bool in_path(int u, int v, int vx){
+    if(!is_anc(vx, u) && !is_anc(vx, v)) return false;
+    return is_anc(LCA(u, v), vx);
+}
+
+node combine(node a, node b){
+    if(!a.ok || !b.ok){
+        a.ok = false;
+        return a;
+    }
+    a.rr = max(a.rr, b.rr);
+
+    if(!in_path(a.u, a.v, b.u)){
+        if(in_path(a.u, b.u, a.v)){
+            a.v = b.u;
+        }
+        else if(in_path(b.u, a.v, a.u)){
+            a.u = b.u;
+        }
+        else{
+            a.ok = false;
+            return a;
+        }
+    }
+    if(!in_path(a.u, a.v, b.v)){
+        if(in_path(a.u, b.v, a.v)){
+            a.v = b.v;
+        }
+        else if(in_path(b.v, a.v, a.u)){
+            a.u = b.v;
+        }
+        else{
+            a.ok = false;
+            return a;
+        }
+    }
+
+    return a;
+}
+
+node st[4*N];
+
+void build(int pt = 1, int L = 0, int R = n-1){
+    if(L == R){
+        st[pt].ok = true;
+        st[pt].u = st[pt].v = bk[L];
+        st[pt].rr = R;
+        return;
+    }
+    int mid = (L+R)/2;
+    build(2*pt, L, mid);
+    build(2*pt+1, mid+1, R);
+    st[pt] = combine(st[2*pt], st[2*pt+1]);
+}
+
+void update(int id, int pt = 1, int L = 0, int R = n-1){
+    if(id > R || id < L) return;
+    if(L == R){
+        st[pt].ok = true;
+        st[pt].u = st[pt].v = bk[L];
+        st[pt].rr = R;
+        return;
+    }
+    int mid = (L+R)/2;
+    update(id, 2*pt, L, mid);
+    update(id, 2*pt+1, mid+1, R);
+    st[pt] = combine(st[2*pt], st[2*pt+1]);
+}
+
+void query(node &ans, int pt = 1, int L = 0, int R = n-1){
+    if(st[pt].ok){
+        node tmp = combine(ans, st[pt]);
+        if(tmp.ok){
+            ans = tmp;
+            return;
+        }
+    }
+    if(L == R) return;
+    int mid = (L+R)/2;
+    query(ans, 2*pt, L, mid);
+    if(ans.rr < mid) return;
+    query(ans, 2*pt+1, mid+1, R);
+}
+
+
+int main(){
+    memset(dp, -1, sizeof dp);
+
+    scanf("%d", &n);
+
+    for(int i = 1; i <= n; i++) scanf("%d", vet+i);
+    for(int i = 1; i <= n; i++) bk[ vet[i] ] = i;
+
+    for(int i = 2; i <= n; i++){
+        scanf("%d", p+i);
+        g[ p[i] ].push_back(i);
+    }
+
+    p[1] = 1;
+
+    dfs_lvl(1);
+    
+    build();
+    // for(int i = 0; i < n; i++) update(i);
+
+    int q;
+
+    scanf("%d", &q);
+
+    int t, u, v;
+    node ans;
+    while(q--){
+        scanf("%d", &t);
+        if(t == 1){
+            scanf("%d %d", &u, &v);
+            swap(vet[u], vet[v]);
+            bk[ vet[u] ] = u;
+            bk[ vet[v] ] = v;
+            update(vet[u]);
+            update(vet[v]);
+        }
+        else{
+
+            ans.ok = true;
+            ans.u = ans.v = bk[0];
+            ans.rr = 0;
+            query(ans);
+
+            printf("%d\n", ans.rr + 1);
+        }
+    }
+
+}

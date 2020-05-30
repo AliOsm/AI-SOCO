@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 300005;
+const long long inf = 1000000000ll * 1000000000;
+
+vector<pair<int,int>> g[N];
+
+set<int> tokens[N];
+int p[N];
+int sz[N];
+
+int get_root (int v) {
+    return p[v] == -1 ? v : p[v]=get_root(p[v]);
+}
+
+long long ans[N];
+
+void unite (int u, int v, long long cur) {
+    u = get_root(u);
+    v = get_root(v);
+    if (u==v) return;
+    if (sz[u] < sz[v]) swap(u,v);
+    p[v] = u;
+    if (sz[u] == sz[v]) sz[u]++;
+    for (int t : tokens[v]) {
+        if (tokens[u].count(t)) {
+            ans[t]=cur;
+            tokens[u].erase(t);
+        } else {
+            tokens[u].insert(t);
+        }
+    }
+}
+
+signed main() {
+    memset(p,255,sizeof(p));
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    int n,m,k,z;
+    cin >> n >> m >> k >> z;
+
+    vector<pair<long long,pair<int,int>>> e;
+    for (int i=0; i<m; i++) {
+        int a,b,c;
+        cin >> a >> b >> c;
+        g[a-1].emplace_back(b-1,c);
+        g[b-1].emplace_back(a-1,c);
+        e.emplace_back(c, make_pair(a-1,b-1));
+    }
+
+    vector<long long> d(n,inf);
+    priority_queue<pair<long long,int>> q;
+    for(int i=0; i<k; i++){
+        d[i]=0;
+        q.emplace(0,i);
+    }
+    while (!q.empty()) {
+        auto [cur_dist,v] = q.top();
+        q.pop();
+        if (-cur_dist > d[v]) continue;
+        for(auto [u,len] : g[v]) {
+            if (d[u] > d[v] + len) {
+                d[u] = d[v] + len;
+                q.emplace(-d[u], u);
+            }
+        }
+    }
+
+    for (auto & [c,p] : e) {
+        c += d[p.first] + d[p.second];
+    }
+
+    for(int i=0; i<z; i++) {
+        int a,b;
+        cin >> a >> b;
+        tokens[a-1].insert(i);
+        tokens[b-1].insert(i);
+    }
+
+    sort(e.begin(), e.end());
+    for(auto [c,p] : e) {
+        unite(p.first, p.second, c);
+    }
+
+    for(int i=0; i<z; i++) cout << ans[i] << "\n";
+}

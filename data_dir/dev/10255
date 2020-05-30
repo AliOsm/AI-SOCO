@@ -1,0 +1,278 @@
+/*
+    Range hashes using Segment trees 
+*/
+#include <bits/stdc++.h> 
+using namespace std;
+#define fl(i,a,b) for(int i=a;i<b;i++)
+#define ll long long
+#define endl '\n'
+#define pb push_back
+#define ff first
+#define ff first
+#define ss second
+#define mod 998244353 
+#define inf 4e18
+#define fast ios_base::sync_with_stdio(0);cin.tie(NULL);cout.tie(NULL);
+#define mx 200005
+inline int add(int x,int y)
+{
+    if(x + y >= mod)
+        return x + y - mod;
+    return x + y;
+}
+inline int sub(int x,int y)
+{
+    if(x - y < 0)
+        return x - y + mod;
+    return x - y;
+}
+inline int mul(int x,int y)
+{
+    return 1LL * x * y % mod;
+}
+ll power(ll x, ll y)
+{
+    ll res = 1;
+    while(y)
+    {
+        if(y&1)
+            res = res * x % mod;
+        y >>= 1;
+        x = x*x%mod;
+    }
+    return res;
+}
+int P = 71;
+int inv = 702988981;
+int n;
+int pwr[mx];
+int arr[mx];
+string s;
+struct daata
+{
+    int f,l,val,len;
+    daata() : f(0),l(0),val(0),len(0) {};
+    daata(int x)
+    {
+        val = f = l = s[x] - '0' + 1;
+        len = 1;
+    }
+    void remove_f()
+    {
+        assert(len > 0);
+        assert(f == 2);
+        --len;
+        val = sub(val,mul(2,pwr[len]));
+        f = 0;
+        
+    }
+    void remove_l()
+    {
+        assert(len > 0);
+        assert(l == 2);
+        val = sub(val,2);
+        val = mul(val,inv);
+        --len;
+        l = 0;      
+    }
+};
+
+struct SegTree
+{
+    int N;
+    vector<daata> st;
+    vector<bool> cLazy;
+    vector<int> lazy;
+
+    void init(int n)
+    {
+        N = n;
+        st.resize(4 * N + 5);
+        cLazy.assign(4 * N + 5, false);
+        lazy.assign(4 * N + 5, 0);
+    }
+
+    //Write reqd merge functions
+    void merge(daata &cur, daata &x, daata &y) 
+    {
+        daata a = x;
+        daata b = y;
+        if(a.len == 0)
+        {
+            cur = b;
+            return ;
+        }
+        else if(b.len == 0)
+        {
+            cur = a;
+            return ;
+        }
+        if(a.l==2 && b.f==2)
+        {
+            a.remove_l();
+            b.remove_f();
+        }
+        if(a.len == 0)
+        {
+            cur = b;
+            return ;
+        }
+        else if(b.len == 0)
+        {
+            cur = a;
+            return ;
+        }
+        cur.val = add(mul(a.val,pwr[b.len]),b.val);
+        cur.f = a.f;
+        cur.l = b.l;
+        cur.len = a.len + b.len;
+    }
+    
+    //Handle lazy propagation appriopriately
+    void propagate(int node, int L, int R)
+    {
+        if(L != R)
+        {
+            cLazy[node*2] = 1;
+            cLazy[node*2 + 1] = 1;
+            lazy[node*2] = lazy[node];
+            lazy[node*2 + 1] = lazy[node]; 
+        }
+        st[node].val = lazy[node];
+        cLazy[node] = 0;
+    }
+
+    void build(int node, int L, int R)
+    {
+        if(L==R)
+        {
+            // isko dekh lena
+            st[node] = daata(L);
+            return;
+        }
+        int M=(L + R)/2;
+        build(node*2, L, M);
+        build(node*2 + 1, M + 1, R);
+        merge(st[node], st[node*2], st[node*2+1]);
+    }
+
+    daata Query(int node, int L, int R, int i, int j)
+    {
+        if(cLazy[node])
+            propagate(node, L, R);
+        if(j<L || i>R)
+            return daata();
+        if(i<=L && R<=j)
+            return st[node];
+        int M = (L + R)/2;
+        daata left=Query(node*2, L, M, i, j);
+        daata right=Query(node*2 + 1, M + 1, R, i, j);
+        daata cur;
+        merge(cur, left, right);
+        return cur;
+    }
+
+    daata pQuery(int node, int L, int R, int pos)
+    {
+        if(cLazy[node])
+            propagate(node, L, R);
+        if(L == R)
+            return st[node];
+        int M = (L + R)/2;
+        if(pos <= M)
+            return pQuery(node*2, L, M, pos);
+        else
+            return pQuery(node*2 + 1, M + 1, R, pos);
+    }   
+
+    void Update(int node, int L, int R, int i, int j, int val)
+    {
+        
+        if(cLazy[node])
+            propagate(node, L, R);
+        if(j<L || i>R)
+            return;
+        if(i<=L && R<=j)
+        {
+            cLazy[node] = 1;
+            lazy[node] = val;
+            propagate(node, L, R);
+            return;
+        }
+        int M = (L + R)/2;
+        Update(node*2, L, M, i, j, val);
+        Update(node*2 + 1, M + 1, R, i, j, val);
+        merge(st[node], st[node*2], st[node*2 + 1]);
+    }
+
+    void pUpdate(int node, int L, int R, int pos, int val)
+    {
+        if(cLazy[node])
+            propagate(node, L, R);
+        if(L == R)
+        {
+            cLazy[node] = 1;
+            lazy[node] = val;
+            propagate(node, L, R);
+            return;
+        }
+        int M = (L + R)/2;
+        if(pos <= M)
+            pUpdate(node*2, L, M, pos, val);
+        else
+            pUpdate(node*2 + 1, M + 1, R, pos, val);
+        merge(st[node], st[node*2], st[node*2 + 1]);
+    }
+
+    daata query(int pos)
+    {
+        return pQuery(1, 1, N, pos);
+    }
+
+    daata query(int l, int r)
+    {
+        return Query(1, 1, N, l, r);
+    }
+
+    void update(int pos, int val)
+    {
+        pUpdate(1, 1, N, pos, val);
+    }
+
+    void update(int l, int r, int val)
+    {
+        Update(1, 1, N, l, r, val);
+    }
+};
+main()
+{
+    fast;
+    cin >> n;
+    pwr[0] = 1;
+    fl(i,1,mx)
+    {
+        pwr[i] = mul(pwr[i-1],P);
+    }
+    inv = power(P,mod - 2);
+    cin >> s;
+    s = '0' + s;
+    SegTree seg;
+    seg.init(n);
+    seg.build(1,1,n);
+    int q;
+    cin >> q;
+    while(q--)
+    {
+        int l1,l2,len;
+        cin >> l1 >> l2 >> len;
+        int r1 = l1 + len - 1;
+        int r2 = l2 + len - 1;
+        
+        if(seg.query(l1,r1).val == seg.query(l2,r2).val)
+        {
+            cout << "Yes" << endl;
+        }
+        else cout  << "No" << endl;
+    }
+    
+}

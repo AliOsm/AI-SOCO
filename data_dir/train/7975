@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ll long long
+#define pii pair<int, int>
+#define pli pair<ll, int>
+#define pb push_back
+#define ff first
+#define ss second
+
+const int N = 1e5 + 5, M = 1e9 + 29, X = 1 << 18;
+
+int n, k, d, a[N], cur = 1, lst[N];
+pii t;
+
+pii slv(int i){
+    if(lst[i] >= i + k)
+        return {i + k, lst[i]};
+    return {-1, -1};
+}
+
+void prep(){
+    multiset<int> s;
+    int p1 = 0;
+    for(int i = 0; i <= n; i++){
+        while(!s.empty() && abs(a[i] - *s.begin()) > d){
+            lst[p1] = i;
+            s.erase(s.find(a[p1++]));
+        }
+        while(!s.empty() && abs(a[i] - *s.rbegin()) > d){
+            lst[p1] = i;
+            s.erase(s.find(a[p1++]));
+        }
+        s.insert(a[i]);
+    }
+}
+
+struct segTree{
+    int mn[X];
+
+    void build(){
+        fill(mn, mn + X, M);
+    }
+
+    int getMn(int x, int from = 0, int to = n, int i = 0){
+        if(from == to)
+            return mn[i];
+        int mid = (from + to) >> 1, l = 2 * i + 1, r = l + 1;
+        if(x <= mid)
+            return min(mn[i], getMn(x, from, mid, l));
+        return min(mn[i], getMn(x, mid + 1, to, r));
+    }
+
+    void update(int x, int y, int v, int from = 0, int to = n, int i = 0){
+        if(from > y || to < x)
+            return ;
+        if(from >= x && to <= y){
+            mn[i] = min(v, mn[i]);
+            return;
+        }
+        int mid = (from + to) >> 1, l = 2 * i + 1, r = l + 1;
+        update(x, y, v, from, mid, l);
+        update(x, y, v, mid + 1, to, r);
+    }
+
+}tree;
+
+int main()
+{
+    cin >> n >> d >> k;
+    for(int i = 0; i < n; i++)
+        cin >> a[i];
+    a[n] = 2 * M;
+    prep();
+
+    tree.build();
+    tree.update(0, 0, 0);
+
+    for(int i = 0; i < n; i++){
+        t = slv(i);
+        if(t.ff == -1)
+            continue;
+        int mn = tree.getMn(i);
+        tree.update(t.ff, t.ss, mn + 1);
+    }
+    int ans = tree.getMn(n);
+    cout << (ans <= n ? ans : -1);
+    return 0;
+}

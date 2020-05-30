@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+template <class T,class U>
+void maximize(T &x,U y){
+    if(x < y)x = y;
+}
+template <class T,class U>
+void minimize(T &x,U y){
+    if(x > y)x = y;
+}
+template <class T>
+T Abs(T x){
+    return (x < (T)0 ? -x : x);
+}
+
+#define ll long long
+#define MASK(i) ((1LL) << (i))
+#define BIT(x,i) (((x) >> (i)) & 1)
+#define all(c) (c).begin(),(c).end()
+#define fn "test"    ///FILE_NAME_HERE
+
+/*----------END_OF_TEMPLATE----------*/
+
+namespace task{
+
+    const int N = 2e5 + 5;
+    const int maxVal = 1e6;
+    const ll inf = 1e18;
+    pair <int,int> a[N],b[N];
+    pair <pair <int,int>,int> c[N];
+    int f[N],g[maxVal + 2];
+    int n,m,p;
+
+    class SegmentTree{
+    public:
+        vector <ll> tree;
+        vector <ll> lazy;
+    public:
+        SegmentTree(int _size){
+            tree.resize((_size << 2),inf);
+            lazy.resize((_size << 2),0);
+        }
+        void updateNode(int pos,int val,int l,int r,int node = 1){
+            if(l > r or r < pos or l > pos){
+                return;
+            }
+            if(l == r){
+                return(void)(tree[node] = val);
+            }
+            int mid = (l + r) >> 1;
+            if(pos <= mid){
+                updateNode(pos,val,l,mid,node << 1);
+            } else {
+                updateNode(pos,val,mid + 1,r,node << 1 | 1);
+            }
+            tree[node] = min(tree[node << 1],tree[node << 1 | 1]);
+        }
+
+        void pushdown(int l,int r,int node){
+            if(!lazy[node]){
+                return ;
+            }
+            tree[node] += lazy[node];
+            if(l ^ r){
+                lazy[node << 1] += lazy[node];
+                lazy[node << 1 | 1] += lazy[node];
+            }
+            lazy[node] = 0;
+        }
+
+        void update(int tl,int tr,int l,int r,int val,int node = 1){
+            pushdown(l,r,node);
+            if(l > r or r < tl or l > tr){
+                return ;
+            }
+            if(tl <= l and r <= tr){
+                tree[node] += 1LL * val;
+                if(l ^ r){
+                    lazy[node << 1] += 1LL * val;
+                    lazy[node << 1 | 1] += 1LL * val;
+                }
+                return ;
+            }
+            int mid = (l + r) >> 1;
+            update(tl,tr,l,mid,val,node << 1);
+            update(tl,tr,mid + 1,r,val,node << 1 | 1);
+            tree[node] = min(tree[node << 1],tree[node << 1 | 1]);
+        }
+
+        ll rmq(int tl,int tr,int l,int r,int node = 1){
+            pushdown(l,r,node);
+            return tree[1];
+        }
+    };
+
+    void solve(){
+        cin>>n>>m>>p;
+        for(int i = 1;i <= n;++i){
+            cin>>a[i].first>>a[i].second;
+        }
+        for(int i = 1;i <= m;++i){
+            cin>>b[i].first>>b[i].second;
+        }
+        for(int i = 1;i <= p;++i){
+            cin>>c[i].first.first>>c[i].first.second>>c[i].second;
+        }
+        sort(a + 1,a + 1 + n);
+        sort(b + 1,b + 1 + m);
+        sort(c + 1,c + 1 + p);
+        int cur = 0;
+        for(int i = 1;i <= n;++i){
+            while(cur <= p and c[cur].first.first < a[i].first){
+                ++cur;
+            }
+            f[i] = cur - 1;
+        }
+        cur = 0;
+        sort(c + 1,c + 1 + p,[&](const pair <pair <int,int>,int> &x,const pair <pair <int,int>,int> &y){
+           return x.first.second < y.first.second;
+        });
+        for(int i = 1;i <= p;++i){
+            while(cur <= m and b[cur].first <= c[i].first.second){
+                ++cur;
+            }
+            g[c[i].first.second] = cur - 1;
+        }
+        sort(c + 1,c + 1 + p);
+        SegmentTree *seg = new SegmentTree(m + 2);
+        for(int i = 1;i <= m;++i){
+            seg -> updateNode(i,b[i].second,1,m);
+        }
+        cur = 1;
+        ll cur_sum = 0;
+        ll ans = -a[1].second - b[1].second;
+        for(int i = 1;i <= n;++i){
+            while(cur <= p and cur <= f[i]){
+                cur_sum += 1LL * c[cur].second;
+                seg -> update(1,g[c[cur].first.second],1,m,c[cur].second);
+                ++cur;
+            }
+            maximize(ans,cur_sum - a[i].second - seg -> rmq(1,m,1,m));
+        }
+        cout<<ans;
+    }
+}
+
+int main(void){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+    #ifndef ONLINE_JUDGE
+    freopen(fn".inp","r",stdin);
+    //freopen(fn".out","w",stdout);
+    #endif // ONLINE_JUDGE
+    task::solve();
+}

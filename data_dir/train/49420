@@ -1,0 +1,87 @@
+// KALAM
+
+# include <bits/stdc++.h>
+using namespace std;
+
+const int N = 100000 + 77;
+int n , m , st[N] , en[N] , tim = 1 , Mn[N << 3] , Cnt[N << 3] , lz[N << 3] , A[N];
+vector < int > a[N];
+vector < pair < int , int > > Q[N];
+void dfs_pre(int v , int prev){
+	st[v] = tim;tim ++;
+	for(int u : a[v]){
+		if(u == prev){continue;}
+		dfs_pre(u , v);
+	}
+	en[v] = tim ;
+}
+void Shift(int id){
+	Mn[id] += lz[id];
+	lz[id << 1] += lz[id];
+	lz[id << 1 ^ 1] += lz[id];
+	lz[id] = 0;
+}
+void build(int l = 1 , int r = n + 1 , int id = 1){
+	Cnt[id] = r - l;
+	if(l + 1 == r){return ;}
+	build(l , (l + r) >> 1 , id << 1);
+	build((l + r) >> 1 , r , id << 1 ^ 1);
+}
+void change(int ql , int qr , int x , int l = 1 , int r = n + 1 , int id = 1){
+	if(qr <= l || r <= ql){return ;}
+	if(ql <= l && r <= qr){lz[id] += x;Shift(id);return ;}
+	change(ql , qr , x , l , (l + r) >> 1 , id << 1);Shift(id << 1);
+	change(ql , qr , x , (l + r) >> 1 , r , id << 1 ^ 1);Shift(id << 1 ^ 1);
+	Mn[id] = min(Mn[id << 1] , Mn[id << 1 ^ 1]);
+	Cnt[id] = 0;
+	if(Mn[id] == Mn[id << 1]){
+		Cnt[id] += Cnt[id << 1];
+	}
+	if(Mn[id] == Mn[id << 1 ^ 1]){
+		Cnt[id] += Cnt[id << 1 ^ 1];
+	}
+}
+inline int get(){
+	Shift(1);
+	if(Mn[1] != 0){return 0;}
+	return Cnt[1];
+}
+void dfs(int v , int prev){
+	for(auto x : Q[v]){
+		int u = x.second;
+		change(st[v] , en[v] , 1);
+		change(st[u] , en[u] , 1);
+	}
+	A[v] = max(0 , n - get() - 1);
+	for(int u : a[v]){
+		if(u == prev){continue;}
+		dfs(u , v);
+	}
+	for(auto x : Q[v]){
+		int u = x.second;
+		change(st[v] , en[v] , - 1);
+		change(st[u] , en[u] , - 1);
+	}
+}
+int main(){
+	ios_base::sync_with_stdio(0);cin.tie(0);
+	cin >> n >> m;
+	for(int i = 1;i < n;i++){
+		int v , u;cin >> v >> u;
+		a[v].push_back(u);
+		a[u].push_back(v);
+	}
+	dfs_pre(1 , 1);
+	for(int i = 1;i <= m;i++){
+		int v , u;cin >> v >> u;
+		Q[v].push_back(make_pair(v , u));
+		Q[u].push_back(make_pair(u , v));
+	}
+	build();
+	
+	dfs(1 , 1);
+	for(int i = 1;i <= n;i++){
+		cout << A[i] << ' ';
+	}
+	return 0;
+}

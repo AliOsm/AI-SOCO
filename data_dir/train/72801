@@ -1,0 +1,238 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <assert.h>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <string>
+#include <sstream>
+#include <memory.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const int N = 2000;
+int n, s;
+vector<int> v;
+vector<int> loc[N], mp;
+int dp[N];
+pair<int, pair<int, int> > sol[N];
+int dist(int a, int b) {
+	return min(abs(a - b), n - abs(a - b));
+}
+int calc(int i) {
+	int &ret = dp[i];
+	if (ret != -1)
+		return ret;
+	ret = 1e9;
+	if (v[i] == mp.size() - 1) {
+		auto &cur = loc[v[i]];
+		int sz = cur.size();
+		if (sz == 1)
+			return ret = 0;
+		int at;
+		for (int j = 0; j < sz; ++j) {
+			if (cur[j] == i) {
+				at = j;
+				break;
+			}
+		}
+		for (int j = 1; j <= sz; ++j) {
+			int diff = cur[(at + j) % sz] - cur[(at + j - 1) % sz];
+			if (diff < 0)
+				diff += n;
+			ret = min(ret, n - diff + min(dist(cur[at], cur[(at + j - 1) % sz]), dist(cur[at], cur[(at + j) % sz])));
+		}
+		return ret;
+	}
+	int mx = -1;
+	pair<int, int> gap;
+	int u = i;
+	int last = i;
+	for (int it = 0; it<n; ++it) {
+		if (v[u] == v[i]) {
+			int cur = u - last;
+			if (cur < 0)
+				cur += n;
+			if (mx < cur) {
+				mx = cur;
+				gap = make_pair(last, u);
+			}
+			last = u;
+		}
+		if (v[u] == v[i] + 1) {
+			int d = u - last;
+			if (d < 0)
+				d += n;
+			int dist = n + it - 2 * max(mx, d);
+			auto GAP = gap;
+			if (d > mx) {
+				GAP.first = last;
+				GAP.second = u;
+			}
+			if (ret > dist + calc(u)) {
+				ret = dist + calc(u);
+				sol[i].first = u + 1;
+				sol[i].second = GAP;
+			}
+		}
+		u = (u + 1) % n;
+	}
+	mx = -1;
+	last = u = i;
+	for (int it = 0; it<n; ++it) {
+		if (v[u] == v[i]) {
+			int cur = last - u;
+			if (cur < 0)
+				cur += n;
+			if (mx < cur) {
+				mx = cur;
+				gap = make_pair(last, u);
+			}
+			last = u;
+		}
+		if (v[u] == v[i] + 1) {
+			int d = last - u;
+			if (d < 0)
+				d += n;
+			int dist = n + it - 2 * max(mx, d);
+			auto GAP = gap;
+			if (d > mx) {
+				GAP.first = last;
+				GAP.second = u;
+			}
+			if (ret > dist + calc(u)) {
+				ret = dist + calc(u);
+				sol[i].first = -(u + 1);
+				sol[i].second = GAP;
+			}
+		}
+		u = (u + n - 1) % n;
+	}
+	return ret;
+}
+bool done[N];
+void print(int i) {
+	if (v[i] == mp.size() - 1) {
+		auto &cur = loc[v[i]];
+		int sz = cur.size();
+		if (sz == 1)
+			return;
+		int mx = -1, at;
+		while (cur[0] != i) {
+			cur.push_back(cur[0]);
+			cur.erase(cur.begin());
+		}
+		for (int j = 0; j < cur.size(); ++j) {
+			int dist = cur[(j + 1) % sz] - cur[j];
+			if (dist < 0)
+				dist += n;
+			if (mx < dist) {
+				mx = dist;
+				at = j;
+			}
+		}
+		if (at == sz - 1) {
+			for (int j = 1; j < cur.size(); ++j) {
+				int d = cur[j] - cur[j - 1];
+				if (d < 0)
+					d += n;
+				printf("+%d\n", d);
+			}
+			return;
+		}
+		int last = i;
+		for (int it = 0; it < 2; ++it) {
+			for (int j = 1; j <= at; ++j) {
+				int d = cur[j] - last;
+				if (it)
+					d = last - cur[j];
+				last = cur[j];
+				if (d < 0)
+					d += n;
+				printf("%c%d\n", it ? '-' : '+', d);
+			}
+			cur.push_back(cur[0]);
+			cur.erase(cur.begin());
+			reverse(cur.begin(), cur.end());
+			at = sz - at - 1;
+		}
+		return;
+	}
+	int nxt = abs(sol[i].first) - 1;
+	int dx = sol[i].first < 0 ? -1 : 1;
+	int u = i;
+	auto gap = sol[i].second;
+	int moved = 0;
+	while (u != gap.first) {
+		++moved;
+		u = (u + n + dx) % n;
+		if (v[u] == v[i] && !done[u]) {
+			done[u] = true;
+			printf("%c%d\n", dx < 0 ? '-' : '+', moved);
+			moved = 0;
+		}
+	}
+	dx = -dx;
+	moved = 0;
+	while (u != gap.second) {
+		++moved;
+		u = (u + n + dx) % n;
+		if (v[u] == v[i] && !done[u]) {
+			done[u] = true;
+			printf("%c%d\n", dx < 0 ? '-' : '+', moved);
+			moved = 0;
+		}
+	}
+	if(u==nxt)
+		printf("%c%d\n", dx < 0 ? '-' : '+', moved);
+	else {
+		dx = -dx;
+		while (u != nxt) {
+			++moved;
+			u = (u + n + dx) % n;
+		}
+		printf("%c%d\n", dx < 0 ? '-' : '+', moved);
+	}
+	done[u] = true;
+	print(nxt);
+}
+int main()
+{
+	cin >> n >> s;
+	--s;
+	v.resize(n);
+	for (int i = 0; i < n; ++i) {
+		cin >> v[i];
+		mp.push_back(v[i]);
+	}
+	sort(mp.begin(), mp.end());
+	mp.resize(unique(mp.begin(), mp.end()) - mp.begin());
+	for (int i = 0; i < n; ++i) {
+		v[i] = lower_bound(mp.begin(), mp.end(), v[i]) - mp.begin();
+		loc[v[i]].push_back(i);
+	}
+	memset(dp, -1, sizeof(dp));
+	int res = 1e9, at;
+	for (int i = 0; i < loc[0].size(); ++i) {
+		int cur = calc(loc[0][i]) + dist(s, loc[0][i]);
+		if (res > cur) {
+			res = cur;
+			at = loc[0][i];
+		}
+	}
+	printf("%d\n", res);
+	int d = dist(s, at);
+	if ((s + d) % n == at)
+		printf("+%d\n", d);
+	else
+		printf("-%d\n", d);
+	done[at] = true;
+	print(at);
+	return 0;
+}

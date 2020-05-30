@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef pair<int, int> pii;
+typedef long long ll;
+const int oo = 1e9;
+const int MOD = 1000000007;
+#define fi first
+#define se second
+#define pb push_back
+#define mp make_pair
+#define cpx complex<double>
+
+const double PI = acos(-1);
+const int SZ = 1 << 21;
+
+
+int rev[SZ + 10];
+
+int last = -1;
+
+;
+
+void fft(cpx A[], int N, bool inv) {
+	if (last != N) {
+		int p = int(log2(N) + 0.5);
+		for (int i = 0; i < N; ++i)
+			rev[i] = rev[i >> 1] >> 1 | (1 & i) << (p - 1);
+		last = N;
+	}
+	for (int i = 0; i < N; ++i) {
+		if (i < rev[i]) {
+			swap(A[i], A[rev[i]]);
+		}
+	}
+	for (int m = 1 ; m < N; m <<= 1) {
+		double ang =  PI / m * (inv ? -1 : 1);
+		cpx w (1, 0),  wn (cos(ang), sin(ang));
+		for (int i = 0; i < N; i += m * 2) {
+			w = cpx(1, 0);
+			for (int j = 0; j < m; ++j) {
+				cpx u = A[i + j];
+				cpx v = A[i + m + j];
+				A[i + j] = u + w * v;
+				A[i + m + j] = u - w * v;
+				w = w * wn;
+			}
+		}
+	}
+	if (inv) for (int i = 0; i < N; ++i) {
+			A[i] /= N;
+		}
+}
+
+void fix(cpx A[], int curLen, int newLen) {
+	for (int i = 0; i < curLen; ++i) {
+		A[i] = cpx(min(((int)(A[i].real() + 0.5)), 1), 0);
+	}
+	for (int i = curLen; i < newLen; ++i) {
+		A[i] = cpx(0, 0);
+	}
+}
+void mul(cpx A[], cpx B[], int &lenA, int &lenB) {
+	int newLen = 1;
+	while (newLen < max(lenA, lenB))newLen *= 2;
+	newLen *= 2;
+	fix(A, lenA, newLen);
+	fix(B, lenB, newLen);
+	fft(A, newLen, 0);
+	fft(B, newLen, 0);
+	for (int i = 0; i < newLen; ++i) {
+		A[i] = A[i] * B[i];
+	}
+	fft(A, newLen, 1);
+	fft(B, newLen, 1);
+	for (int i = 0; i < newLen; ++i) {
+		A[i].real(min((int)(A[i].real() + 0.5), 1));
+	}
+	lenA = newLen;
+}
+void sq(cpx A[], int &lenA) {
+	int newLen = 1;
+	while (newLen < lenA)newLen *= 2;
+	newLen *= 2;
+	fix(A, lenA, newLen);
+	fft(A, newLen, 0);
+	for (int i = 0; i < newLen; ++i) {
+		A[i] = A[i] * A[i];
+	}
+	fft(A, newLen, 1);
+	for (int i = 0; i < newLen; ++i) {
+		A[i].real(min((int)(A[i].real() + 0.5), 1));
+	}
+	lenA = newLen;
+}
+cpx res[SZ + 10];
+void pw(cpx B[], int b) {
+	int lenA = 1024;
+	int lenB = 1024;
+	for (int i = 0; i < lenA; ++i) {
+		res[i] = B[i];
+	}
+	b--;
+	while (b) {
+		if (b & 1) {
+			mul(res, B, lenA, lenB);
+		}
+		b = b >> 1;
+		sq(B, lenB);
+	}
+	for (int i = 0; i < lenA; ++i) {
+		B[i] = res[i];
+	}
+}
+cpx  A[SZ + 10];
+int n , k , freq[SZ], a[SZ];
+
+int main() {
+	scanf("%d%d", &n, &k);
+	int mx = 0;
+	for (int i = 0; i < n; ++i) {
+		scanf("%d", &a[i]);
+		freq[a[i]] = 1;
+		mx = max(mx, a[i]);
+	}
+	for (int i = 0 ; i <= mx ; ++i) {
+		A[i] = cpx(freq[i], 0);
+	}
+	pw(A, k);
+	vector<int> res;
+	for (int i = 0; i <= 1000000; ++i) {
+		if ((int)(A[i].real() + 0.5) > 0) {
+			res.push_back(i);
+		}
+	}
+
+	for (int i = 0; i < res.size(); ++i) {
+		if (i)printf(" ");
+		printf("%d", res[i] );
+	}
+	puts("");
+	return 0;
+}

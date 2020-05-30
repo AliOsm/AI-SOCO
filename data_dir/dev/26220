@@ -1,0 +1,113 @@
+#pragma GCC optimize ("O3")
+#pragma GCC target ("sse4")
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/rope>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+template <class T> using Tree = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+using namespace std;
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+const long long mod = 1000000007;
+
+const int mxN = 200010;
+
+struct PT { 
+	long long x, y;
+	PT() : x(0), y(0) {}
+	PT(long long x, long long y) : x(x), y(y) {}
+	PT(const PT &p) : x(p.x), y(p.y)    {}
+	PT operator + (const PT &p)  const { return PT(x+p.x, y+p.y); }
+	PT operator - (const PT &p)  const { return PT(x-p.x, y-p.y); }
+	PT operator * (long long c)     const { return PT(x*c,   y*c  ); }
+	bool operator<(const PT &p)  const { return make_pair(x,y)<make_pair(p.x,p.y); }
+	bool operator==(const PT &p)  const { return make_pair(x,y)==make_pair(p.x,p.y); }
+};
+long long dot(PT p, PT q)     { return p.x*q.x+p.y*q.y; }
+long long dist2(PT p, PT q)   { return dot(p-q,p-q); }
+long long cross(PT p, PT q)   { return p.x*q.y-p.y*q.x; }
+istream &operator>>(istream &is, PT &p) {return is >> p.x >> p.y; }
+ostream &operator<<(ostream &os, const PT &p) {return os << "(" << p.x << "," << p.y << ")";}
+/*around the origin*/
+PT RotateCCW90(PT p) { return PT(-p.y,p.x); }
+PT RotateCW90(PT p) { return PT(p.y,-p.x); }
+
+bool in[mxN];
+vector<int> g[mxN];
+set<pair<int,int> > rm;
+int deg[mxN];
+int K;
+int cur = 0;
+pair<int,int> ed[mxN];
+
+void bfs(queue<int> & q) {
+	while(!q.empty()) {
+		int u = q.front();
+		q.pop();
+		in[u] = false;
+		cur--;
+		for(auto v : g[u]) if(in[v]) {
+			if(rm.count({min(u,v),max(u,v)})) continue;
+			rm.insert({min(u,v),max(u,v)});
+			deg[v]--;
+			if(deg[v] < K) q.push(v), in[v] = false;
+		}
+	}
+}
+
+int main(int argc,char** argv) {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	int N,M,u,v;
+	cin>>N>>M>>K;
+	cur = N;
+	for(int i = 0;i < M;i++) {
+		cin>>u>>v;
+		u--,v--;
+		if(u > v) swap(u,v);
+		g[u].push_back(v);
+		g[v].push_back(u);
+		ed[i] = {u,v};
+		deg[u]++;
+		deg[v]++;
+	}
+	for(int i = 0;i < N;i++) in[i] = true;
+	{
+		queue<int> q;
+		for(int i = 0;i < N;i++) if(deg[i] < K) q.push(i), in[i] = false;
+		bfs(q);
+	}
+	vector<int> res(M);
+	
+	for(int i = M-1;i >= 0;i--) {
+		res[i] = cur;
+		deg[ed[i].first] -= in[ed[i].second];
+		deg[ed[i].second] -= in[ed[i].first];
+		rm.insert({ed[i].first,ed[i].second});
+		queue<int> q;
+		if(in[ed[i].first] && deg[ed[i].first] < K) q.push(ed[i].first), in[ed[i].first] = false;
+		if(in[ed[i].second] && deg[ed[i].second] < K) q.push(ed[i].second), in[ed[i].second] = false;
+		bfs(q);
+	}
+	assert(cur == 0);
+	for(int i = 0;i < M;i++) cout<<res[i]<<'\n';
+	return 0;
+}

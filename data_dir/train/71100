@@ -1,0 +1,129 @@
+#include "iostream"
+#include "algorithm"
+#include "vector"
+#include "set"
+#include "map"
+#include "cstring"
+#include "string"
+#include "vector"
+#include "cassert"
+#include "queue"
+#include "cstdio"
+#include "cstdlib"
+#include "ctime"
+#include "cmath"
+#include "bitset"
+
+using namespace std;
+
+typedef long long ll;
+typedef pair < int, int > ii;
+
+const int N = 2e5 + 5;
+
+int n;
+int a[N], h[N], pre[N], suf[N];
+vector < int > dv[N];
+
+namespace data{
+    set < pair < ii, int > > s;
+    int ptr = 1;
+    ll sum = 0;
+    void cut(int i) {
+        auto it = s.lower_bound({{i + 1, 0}, 0});
+        if(it == s.begin() or it -> first.first == i + 1)
+            return;
+        it--;
+        auto tmp = *it;
+        s.erase(it);
+        s.insert({{tmp.first.first, i}, tmp.second});
+        s.insert({{i + 1, tmp.first.second}, tmp.second});
+    }
+    void up(int i, int x) {
+        if(i < s.begin() -> first.first)
+            return;
+        cut(i);
+        for(; ;) {
+            auto it = s.lower_bound({{i + 1, 0}, 0});
+            if(it == s.begin())
+                break;
+            it--;
+            if(it -> second > x)
+                break;
+            sum -= (ll) (it -> first.second - it -> first.first + 1) * it -> second;
+            s.erase(it);
+        }
+        auto it = s.lower_bound({{i + 1, 0}, 0});
+        int j = ptr;
+        if(it != s.begin()) {
+            it--;
+            j = it -> first.second + 1;
+        }
+        if(i >= j) {
+            sum += (ll) (i - j + 1) * x;
+            s.insert({{j, i}, x});
+        }
+    }
+    void del() {
+        cut(ptr);
+        sum -= s.begin() -> second;
+        s.erase(s.begin());
+        ptr++;
+    }
+}
+
+int main () {
+    
+    for(int i = 1; i < N; i++)
+        for(int j = i; j < N; j += i)
+            dv[j].push_back(i);
+    
+    scanf("%d", &n);
+    
+    for(int i = 1; i <= n; i++)
+        scanf("%d", a + i);
+    
+    for(int i = 1; i <= n; i++) {
+        pre[i] = pre[i - 1];
+        for(auto x : dv[a[i]]) {
+            if(!h[x])
+                h[x] = i;
+            else
+                pre[i] = max(pre[i], x);
+        }
+    }
+    
+    memset(h, 0, sizeof(h));
+    
+    for(int i = n; i >= 1; i--) {
+        suf[i] = suf[i + 1];
+        for(auto x : dv[a[i]]) {
+            if(!h[x])
+                h[x] = i;
+            else
+                suf[i] = max(suf[i], x);
+        }
+    }
+    
+    data :: s.insert({{1, n}, 0});
+    
+    for(int i = 1; i <= n; i++) {
+        data :: up(i, suf[i + 1]);
+    }
+    
+    ll ans = data :: sum;
+    
+    for(int i = 2; i <= n; i++) {
+        data :: del();
+        data :: up(n, pre[i - 1]);
+        for(auto x : dv[a[i - 1]]) {
+            data :: up(h[x] - 1, x);
+        }
+        ans += data :: sum;
+    }
+    
+    printf("%lld\n", ans);
+    
+    return 0;
+    
+}

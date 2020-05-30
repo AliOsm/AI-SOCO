@@ -1,0 +1,158 @@
+# include <stdio.h>
+# include <bits/stdc++.h>
+using namespace std;
+# define fi cin
+# define fo cout
+# define x first
+# define y second
+# define ll long long
+# define IOS ios_base :: sync_with_stdio(0);cin.tie(0)
+# define p(v) cerr << #v << " = " << v << '\n'
+# define p2(v) cerr << #v << " = " << (complex < int > (v.x,v.y)) << '\n'
+# define vi vector < int >
+# define vll vector < ll >
+# define pii pair < int , int >
+# define mp make_pair
+# define pw (fuck + (1 << 19))
+static int fuck[1 << 20];
+int n,mod;
+struct dsu
+{
+    int a,b;
+    map < int , int > m;
+    dsu(void)
+    {
+        a = b = 0;
+    }
+    int v(int t)
+    {
+        int cnt = 1ll * (t + mod - b) * pw[-a] % mod;
+        if (m.count(cnt)) return m[cnt];
+        return 0;
+    }
+    void upd(int t,int vv)
+    {
+        m[1ll * (t + mod - b) * pw[-a] % mod] += vv;
+    }
+    int r(int t)
+    {
+        return (1ll * pw[a] * t + b) % mod;
+    }
+    int w(int t)
+    {
+        return 1ll * (t + mod - b) * pw[-a] % mod;
+    }
+};
+# define pp pair < dsu , dsu >
+ll ans = 0;
+void Merge(dsu &a,dsu b)
+{
+    if (a.m.size() < b.m.size()) swap(a,b);
+    for (auto it : b.m)
+        a.upd(b.r(it.x),it.y);
+}
+int Ng(int a)
+{
+    return !a ? a : mod - a;
+}
+vector < pair < int , int > > s[1 << 20];
+int W[1 << 20];
+int p[1 << 20];
+void DFS(int node,int prev)
+{
+    W[node] = 1;
+    for (auto it : s[node])
+        if (it.x != prev)
+            DFS(it.x,node),W[node] += W[it.x];
+    sort(s[node].begin(),s[node].end(),[](pii a,pii b)
+         {
+            return W[a.x] > W[b.x];
+         });
+}
+pp dfs(int node,int prev)
+{
+    pp S;
+    for (auto it : s[node])
+        if (it.x != prev)
+        {
+            pp N = dfs(it.x,node);
+            N.x.a ++;
+            N.x.b = (10ll * N.x.b + it.y) % mod;
+            N.y.a --;
+            N.y.b = (1ll * pw[-1] * (N.y.b + it.y)) % mod;
+            N.x.upd(it.y,1);
+            N.y.upd((1ll * it.y * pw[-1]) % mod,1);
+            ans += N.x.v(0);
+            ans += N.y.v(0);
+            if (S.x.m.size() < N.x.m.size())
+                swap(S,N);
+            for (const auto &it : N.x.m)
+                ans += 1ll * it.y * S.y.v(Ng(N.x.r(it.x)));
+            for (const auto &it : N.y.m)
+                ans += 1ll * it.y * S.x.v(Ng(N.y.r(it.x)));
+            for (const auto &it : N.x.m)
+                S.x.upd(N.x.r(it.x),it.y);
+            for (const auto &it : N.y.m)
+                S.y.upd(N.y.r(it.x),it.y);
+            N.x.m.clear();
+            N.y.m.clear();
+        }
+    return S;
+}
+int main(void)
+{
+    #ifdef CF
+    freopen("input","r",stdin);
+    #endif // CF
+    srand(time(0));
+    fo << fixed << setprecision(7);
+    cerr << fixed << setprecision(7);
+    IOS;
+    fi>>n>>mod;
+    for (int i = 1;i <= n;++i)
+        p[i] = i;
+    random_shuffle(p + 1,p + 1 + n);
+    for (int i = 1;i < n;++i)
+    {
+        int a,b,c;
+        fi>>a>>b>>c;
+        ++a;++b;
+        a = p[a];b = p[b];
+        s[a].push_back({b,c});
+        s[b].push_back({a,c});
+    }
+    int phi = mod;
+    int now = mod;
+    for (int i = 2;i * i <= mod;++i)
+        if (!(now % i))
+        {
+            while (!(now % i)) now /= i;
+            phi -= phi / i;
+        }
+    if (now != 1) phi -= phi / now;
+    # define pow rudi
+    auto pow = [&](auto a,auto b)
+    {
+        decltype(a) ans = 1;
+        while (b)
+        {
+            if (b & 1) ans = (1ll * ans * a) % mod;
+            a = (1ll * a * a) % mod;
+            b /= 2;
+        }
+        return ans;
+    };
+    const int inv = pow(10,phi - 1);
+    pw[0] = 1;
+    for (int i = 1;i <= 3e5;++i)
+        pw[i] = (10ll * pw[i - 1]) % mod;
+    for (int i = -1;i >= -3e5;--i)
+        pw[i] = (1ll * inv * pw[i + 1]) % mod;
+    DFS(1,0);
+    dfs(1,0);
+    fo << ans << '\n';
+    cerr << "Time elapsed :" << clock() * 1000.0 / CLOCKS_PER_SEC << " ms" << '\n';
+    return 0;
+}
+
+

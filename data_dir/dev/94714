@@ -1,0 +1,126 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+const int n_=1e5+10,LOG=16;
+int n,m,q;
+vector<int>tree[n_];
+int lvl[n_],parentLog[n_][LOG+1];
+vector<int>residents[n_],resLog[n_][LOG+1];
+void dfs(int node=0,int p=-1){
+	parentLog[node][0]=p;
+	for(int i=0;i<(int)tree[node].size();i++){
+		int child=tree[node][i];
+		if(child!=p){
+			lvl[child]=lvl[node]+1;
+			dfs(child,node);
+		}
+	}
+}
+
+int LCA(int u,int v){
+	if(lvl[u]<lvl[v])
+		swap(u,v);
+	for(int log=LOG;log>=0;log--)
+		if(lvl[u]-(1<<log)>=lvl[v])
+			u=parentLog[u][log];
+	if(u==v)return u;
+	for(int log=LOG;log>=0;log--)
+		if(parentLog[u][log]!=-1&&parentLog[u][log]!=parentLog[v][log])
+			u=parentLog[u][log],v=parentLog[v][log];
+	return parentLog[u][0];
+}
+
+vector<int>query(int u,int lca){
+	vector<int>res;
+	for(int log=LOG;log>=0;log--)
+		if(lvl[u]-(1<<log)>=lvl[lca]){
+			for(int i=0;i<(int)resLog[u][log].size();i++)
+				res.push_back(resLog[u][log][i]);
+			u=parentLog[u][log];
+		}
+	for(int i=0;i<(int)residents[u].size();i++)
+		res.push_back(residents[u][i]);
+	return res;
+}
+int main () {
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	cin>>n>>m>>q;
+	for(int i=0;i<n-1;i++){
+		int u,v;
+		cin>>u>>v;
+		u--,v--;
+		tree[u].push_back(v);
+		tree[v].push_back(u);
+	}
+	memset(parentLog,-1,sizeof parentLog);
+	dfs();
+	for(int log=1;log<=LOG;log++)
+		for(int i=0;i<n;i++)
+			if(parentLog[i][log-1]!=-1)
+				parentLog[i][log]=parentLog[parentLog[i][log-1]][log-1];
+	for(int i=0;i<m;i++){
+		int c;
+		cin>>c;
+		c--;
+		if((int)residents[c].size()<10)residents[c].push_back(i+1);
+	}
+	for(int i=0;i<n;i++)
+		sort(residents[i].begin(),residents[i].end());
+	resLog[0][0]=residents[0];
+	for(int i=1;i<n;i++){
+		int x,y;
+		for(x=0,y=0;x<(int)residents[parentLog[i][0]].size()&&y<(int)residents[i].size()&&x+y<10;)
+			if(residents[parentLog[i][0]][x]<residents[i][y])
+				resLog[i][0].push_back(residents[parentLog[i][0]][x++]);
+			else
+				resLog[i][0].push_back(residents[i][y++]);
+		while(x+y<10&&x<(int)residents[parentLog[i][0]].size())
+			resLog[i][0].push_back(residents[parentLog[i][0]][x++]);
+		while(x+y<10&&y<(int)residents[i].size())
+			resLog[i][0].push_back(residents[i][y++]);
+	}
+
+	for(int log=1;log<=LOG;log++){
+		for(int i=0;i<n;i++){
+			if(parentLog[i][log-1]==-1)continue;
+			int x,y;
+			set<int>taken;
+			for(x=0,y=0;x<(int)resLog[i][log-1].size()&&y<(int)resLog[parentLog[i][log-1]][log-1].size()&&(int)taken.size()<10;)
+				if(resLog[i][log-1][x]<resLog[parentLog[i][log-1]][log-1][y])
+					taken.insert(resLog[i][log-1][x]),resLog[i][log].push_back(resLog[i][log-1][x++]);
+				else
+					taken.insert(resLog[parentLog[i][log-1]][log-1][y]),resLog[i][log].push_back(resLog[parentLog[i][log-1]][log-1][y++]);
+			while((int)taken.size()<10&&x<(int)resLog[i][log-1].size())
+				taken.insert(resLog[i][log-1][x]),resLog[i][log].push_back(resLog[i][log-1][x++]);
+			while((int)taken.size()<10&&y<(int)resLog[parentLog[i][log-1]][log-1].size())
+				taken.insert(resLog[parentLog[i][log-1]][log-1][y]),resLog[i][log].push_back(resLog[parentLog[i][log-1]][log-1][y++]);
+		}
+	}
+
+	while(q--){
+		int u,v,a;
+		cin>>u>>v>>a;
+		u--,v--;
+		int lca=LCA(u,v);
+		vector<int>v1=query(u,lca),v2=query(v,lca);
+		sort(v1.begin(),v1.end());
+		sort(v2.begin(),v2.end());
+		int x,y;
+		set<int>st;
+		for(x=0,y=0;(int)st.size()<a&&x<(int)v1.size()&&y<(int)v2.size();)
+			if(v1[x]<v2[y])
+				st.insert(v1[x++]);
+			else
+				st.insert(v2[y++]);
+		while((int)st.size()<a&&x<(int)v1.size())
+			st.insert(v1[x++]);
+		while((int)st.size()<a&&y<(int)v2.size())
+			st.insert(v2[y++]);
+		cout<<(int)st.size();
+		for(set<int>::iterator it=st.begin();it!=st.end();it++)
+			cout<<" "<<*it;
+		cout<<"\n";
+	}
+}

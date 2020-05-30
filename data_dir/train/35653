@@ -1,0 +1,175 @@
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <bitset>
+#include <algorithm>
+#include <cmath>
+#include <locale>
+using namespace std;
+#define F first
+#define S second
+#define pb push_back
+#define MP make_pair
+#define ALL(x) begin(x), end(x)
+#define SZ(x) (int)(x).size()
+#define rep(i, n) for(int i = 0; i < n; ++i)
+#define rep1(i, a, b) for(int i = a; i < b; ++i)
+#define per1(i, a, b) for(int i = a; i >= b; --i)
+#define IOS ios_base::sync_with_stdio(0); cin.tie(0)
+typedef long long LL;
+typedef long double LDB;
+typedef pair<int, int> PII;
+typedef pair<LL, LL> PLL;
+//////////////////////
+const long double eps = 1e-13;
+const long double PI = acos(-1);
+const int INF = (int)1e9;
+const LL  INFF = (LL)1e18;
+const int mod = (int)1e9 + 7;
+const int MXN = (int)1e5 + 7;
+int n, q; 
+vector<int>edge[MXN];
+int dep[MXN];
+vector<int>st[MXN];
+int in[MXN], out[MXN], cntp;
+int prt[MXN];
+void dfs(int u, int dpt){
+	st[dpt].pb(u);
+	dep[u] = dpt;
+	in[u] = ++cntp;
+	for(int v : edge[u]){
+		dfs(v, dpt + 1);
+	}
+	out[u] = cntp;
+	return ;
+}
+struct Seg{
+#define ls p<<1
+#define rs p<<1|1
+	int ll[MXN<<2], rr[MXN<<2];
+	int lv[MXN<<2], rv[MXN<<2];
+	int lp[MXN<<2], rp[MXN<<2];
+	inline void pushup(int p){
+		if(lv[ls] < lv[rs]){
+			lv[p] = lv[ls];
+			lp[p] = lp[ls];
+		}
+		else{
+			lv[p] = lv[rs];
+			lp[p] = lp[rs];
+		}
+		if(rv[ls] > rv[rs]){
+			rv[p] = rv[ls];
+			rp[p] = rp[ls];
+		}
+		else{
+			rv[p] = rv[rs];
+			rp[p] = rp[rs];
+		}
+	}
+	void bd(int l, int r, int p){
+		ll[p] = l, rr[p] = r;
+		if(l == r){
+			lv[p] = in[l], rv[p] = out[l];
+			lp[p] = rp[p] = l;
+			return ;
+		}
+		int mid = (l + r) >> 1;
+		bd(l, mid, ls);
+		bd(mid+1, r, rs);
+		pushup(p);
+	}
+	PII qy(int l, int r, int p){
+		if(l > r) return MP(INF, 0);
+		if(ll[p] == l && rr[p] == r) return MP(lv[p], rv[p]);
+		int mid = (ll[p] + rr[p]) >> 1;
+		if(r < mid) return qy(l, r, ls);
+		else if(l > mid) return qy(l, r, rs);
+		else{
+			PII v1 = qy(l, mid, ls);
+			PII v2 = qy(mid+1, r, rs);
+			PII res;
+			res.F = min(v1.F, v2.F);
+			res.S = max(v1.S, v2.S);
+			return res;
+		}
+	}
+	PII qy2(int l, int r, int p){
+		if(l > r) return MP(INF, 0);
+		if(ll[p] == l && rr[p] == r) return MP(lv[p], lp[p]);
+		int mid = (ll[p] + rr[p]) >> 1;
+		if(r < mid) return qy2(l, r, ls);
+		else if(l > mid) return qy2(l, r, rs);
+		else{
+			PII v1 = qy2(l, mid, ls);
+			PII v2 = qy2(mid+1, r, rs);
+			return min(v1, v2);
+		}
+	}
+	PII qy3(int l, int r, int p){
+		if(l > r) return MP(0, 0);
+		if(ll[p] == l && rr[p] == r) return MP(rv[p], rp[p]);
+		int mid = (ll[p] + rr[p]) >> 1;
+		if(r < mid) return qy3(l, r, ls);
+		else if(l > mid) return qy3(l, r, rs);
+		else{
+			PII v1 = qy3(l, mid, ls);
+			PII v2 = qy3(mid+1, r, rs);
+			return max(v1, v2);
+		}
+	}
+}seg;
+int sol(int l, int gg, int r){
+	int lb, rb; tie(lb, rb) = seg.qy(l, gg-1, 1);
+	PII tmp = seg.qy(gg+1, r, 1);
+	lb = min(lb, tmp.F);
+	rb = max(rb, tmp.S);
+	int bt = 0, tp = n;
+	int res;
+	while(bt <= tp){
+		int md = (bt + tp) >> 1;
+		int ll = 0, rr = SZ(st[md])-1;
+		int pos = -1;
+		while(ll <= rr){
+			int mid = (ll + rr) >> 1;
+			int p = st[md][mid];
+			if(out[p] < rb) ll = mid + 1;
+			else if(in[p] > lb) rr = mid - 1;
+			else{
+				pos = mid; break;
+			}
+		}
+		if(pos == -1) tp = md - 1;
+		else{
+			bt = md + 1;
+			res = md;
+		}
+	}
+	return res;
+}
+int main(void){
+	scanf("%d %d", &n, &q);
+	rep1(i, 2, n+1){
+		scanf("%d", prt + i);
+		edge[ prt[i] ].pb(i);
+	}
+	dfs(1, 0);
+	seg.bd(1, n, 1);
+	while( q-- ){
+		int l, r; scanf("%d %d", &l, &r);
+		PII v1 = seg.qy2(l, r, 1);
+		PII v2 = seg.qy3(l, r, 1);
+		int res1 = sol(l, v1.S, r);	
+		int res2 = sol(l, v2.S, r);	
+		if(res1 > res2) printf("%d %d\n", v1.S, res1);
+		else printf("%d %d\n", v2.S, res2);
+	}
+	return 0;
+}

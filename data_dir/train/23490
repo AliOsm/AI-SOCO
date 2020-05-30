@@ -1,0 +1,133 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+
+const int INF = 2000000000;
+const int MAX_N = 200005;
+const int LOG_A = 10;
+
+int n, m;
+pair<int, int> t[LOG_A][4 * MAX_N];
+
+pair<int, int> combine(const pair<int, int>& x, const pair<int, int>& y)
+{
+	bool f1 = false, f2 = false;
+	pair<int, int> result;
+	if (x.first <= y.first)
+	{
+		result.first = x.first;
+		f1 = true;
+	}
+	else
+	{
+		result.first = y.first;
+		f2 = true;
+	}
+
+	result.second = min(f1 ? x.second : x.first, f2 ? y.second : y.first);
+	return result;
+}
+
+void build(int ind, int i, int l, int r)
+{
+	if (l == r)
+		t[ind][i] = { INF, INF };
+	else
+	{
+		int mid = (l + r) / 2;
+		build(ind, 2 * i + 1, l, mid);
+		build(ind, 2 * i + 2, mid + 1, r);
+		t[ind][i] = combine(t[ind][2 * i + 1], t[ind][2 * i + 2]);
+	}
+}
+
+void change(int ind, int i, int l, int r, int pos, int val)
+{
+	if (l == r)
+		t[ind][i] = { val, INF };
+	else
+	{
+		int mid = (l + r) / 2;
+		if (pos <= mid)
+			change(ind, 2 * i + 1, l, mid, pos, val);
+		else
+			change(ind, 2 * i + 2, mid + 1, r, pos, val);
+		t[ind][i] = combine(t[ind][2 * i + 1], t[ind][2 * i + 2]);
+	}
+}
+
+pair<int, int> rmq(int ind, int i, int l, int r, int lx, int rx)
+{
+	if (l == lx && r == rx)
+		return t[ind][i];
+	else
+	{
+		int mid = (l + r) / 2;
+		pair<int, int> res = { INF, INF };
+		if (lx <= mid)
+			res = rmq(ind, 2 * i + 1, l, mid, lx, min(rx, mid));
+		if (rx > mid)
+			res = combine(res, rmq(ind, 2 * i + 2, mid + 1, r, max(lx, mid + 1), rx));
+		return res;
+	}
+}
+
+int32_t main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	cin >> n >> m;
+	for (int i = 0; i < LOG_A; i++)
+		build(i, 0, 0, n - 1);
+	for (int i = 0; i < n; i++)
+	{
+		int a; cin >> a;
+		int tmp = a;
+		for (int j = 0; j < LOG_A; j++)
+		{
+			if (tmp % 10)
+				change(j, 0, 0, n - 1, i, a);
+			tmp /= 10;
+		}
+	}
+
+	for (int i = 0; i < m; i++)
+	{
+		int type; cin >> type;
+		if (type == 1)
+		{
+			int pos, val;
+			cin >> pos >> val;
+			pos--;
+
+			int tmp = val;
+			for (int j = 0; j < LOG_A; j++)
+			{
+				change(j, 0, 0, n - 1, pos, (tmp % 10 == 0) ? INF : val);
+				tmp /= 10;
+			}
+		}
+		else
+		{
+			int l, r;
+			cin >> l >> r;
+			l--; r--;
+
+			int result = INF;
+			for (int j = 0; j < LOG_A; j++)
+			{
+				auto res = rmq(j, 0, 0, n - 1, l, r);
+				if (res.first != INF && res.second != INF)
+					result = min(result, res.first + res.second);
+			}
+			cout << (result == INF ? -1 : result) << '\n';
+		}
+	}
+	return 0;
+}

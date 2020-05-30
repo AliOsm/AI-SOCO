@@ -1,0 +1,93 @@
+/*
+    Problem: 999E. Reachability from the Capital
+    
+    Solution: graphs, dfs, condensation, greedy, O(m + n)
+    
+    Author: Dmitry Kozyrev, github: dmkz, e-mail: dmkozyrev@rambler.ru
+*/
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <queue>
+#include <cassert>
+
+typedef std::vector<int> vi;
+typedef std::vector<vi> vvi;
+
+int main() {
+    // Input edges and reversed edges:
+    int nVert, nEdges, s;
+    std::cin >> nVert >> nEdges >> s; --s;
+    vvi edges(nVert), redges(nVert);
+    for (int i = 0; i < nEdges; ++i) {
+        int u, v; std::cin >> u >> v; --u, --v;
+        edges[u].push_back(v);
+        redges[v].push_back(u);
+    }
+    // Run topsort:
+    vi order;
+    {
+        vi visited(nVert);
+        std::function<void(int)> topsort = [&](const int curr) {
+            for (int next : edges[curr]) {
+                if (!visited[next]) {
+                    visited[next] = true;
+                    topsort(next);
+                }
+            }
+            order.push_back(curr);
+        };
+        for (int u = 0; u < nVert; ++u) {
+            if (!visited[u]) {
+                visited[u] = true;
+                topsort(u);
+            }
+        }
+    }
+    // Graph's condensation:
+    std::reverse(order.begin(), order.end());
+    vi part(nVert, -1);
+    int nParts = 0;
+    for (int u : order) {
+        if (part[u] == -1) {
+            std::function<void(int)> visit = [&](const int curr) {
+                for (int next : redges[curr]) {
+                    if (part[next] == -1) {
+                        part[next] = part[curr];
+                        visit(next);
+                    }
+                }
+            };
+            part[u] = nParts++;
+            visit(u);
+        }
+    }
+    // DFS on strongly connected components:
+    vi from(nParts, -1); vi visited(nVert);
+    for (int u : order) {
+        if (!visited[u]) {
+            std::function<void(int)> visit = [&](const int curr) {
+                for (int next : edges[curr]) {
+                    if (!visited[next]) {
+                        visited[next] = true;
+                        if (part[next] != part[curr]) {
+                            from[part[next]] = part[curr];
+                        }
+                        visit(next);
+                    }
+                }
+            };
+            visited[u] = true;
+            visit(u);
+        }
+    }
+    // Calculate answer:
+    int answ = 0;
+    for (int p = 0; p < nParts; ++p) {
+        answ += (from[p] == -1 && part[s] != p);
+    }
+    std::cout << answ;
+    return 0;
+}

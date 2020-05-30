@@ -1,0 +1,136 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct tree {
+    vector <int> t;
+    vector <int> tpos;
+
+    void init(int v, int l, int r) {
+        if (l == r) {
+            tpos[v] = l;
+            return;
+        }
+        init(v * 2, l, (l + r) / 2);
+        init(v * 2 + 1, (l + r) / 2 + 1, r);
+        tpos[v] = tpos[v * 2];
+    }
+
+    tree(int n) : t(4 * n), tpos(4 * n) {init(1, 0, n - 1);}
+
+    void update(int v, int l, int r, int pos, int value) {
+        if (l == r) {
+            t[v] = value;
+            return;
+        }
+        if (pos <= (l + r) / 2) {
+            update(v * 2, l, (l + r) / 2, pos, value);
+        } else {
+            update(v * 2 + 1, (l + r) / 2 + 1, r, pos, value);
+        }
+        t[v] = max(t[v * 2], t[v * 2 + 1]);
+        tpos[v] = (t[v * 2] >= t[v * 2 + 1] ? tpos[v * 2] : tpos[v * 2 + 1]);
+    }
+
+    pair <int, int> get(int v, int l, int r, int tl, int tr) {
+        if (l < tl) {
+            l = tl;
+        }
+        if (r > tr) {
+            r = tr;
+        }
+        if (l > r) {
+            return {0, -1};
+        }
+        if (l == tl && r == tr) {
+            return {t[v], tpos[v]};
+        }
+        return max(get(v * 2, l, r, tl, (tl + tr) / 2), get(v * 2 + 1, l, r, (tl + tr) / 2 + 1, tr));
+    }
+};
+
+int main() {
+    //freopen("input.txt", "r", stdin);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    int n, m;
+    cin >> n >> m;
+    int N = n, M = m;
+    vector <pair <pair <int, int>, int> >r(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> r[i].first.first >> r[i].first.second;
+        r[i].second = i + 1;
+    }
+    sort(r.begin(), r.end(), [](pair <pair <int, int>, int> a, pair <pair <int, int>, int> b) {
+        return a.first.first < b.first.first || a.first.first == b.first.first && a.first.second > b.first.second;
+    });
+    vector <pair <pair <int, int>, int> > r2;
+    for (int i = 0; i < n; ++i) {
+        if (i != 0 && r[i].first.second <= r2.back().first.second) {
+            continue;
+        } else {
+            r2.push_back(r[i]);
+        }
+    }
+    r = r2;
+    n = r.size();
+    tree t(n);
+    for (int i = 0; i < n; ++i) {
+        t.update(1, 0, n - 1, i, r[i].first.second - r[i].first.first);
+    }
+    vector <int> L(n), R(n);
+    for (int i = 0; i < n; ++i) {
+        L[i] = r[i].first.first;
+        R[i] = r[i].first.second;
+    }
+    vector <int> a(m), b(m), c(m);
+    for (int i = 0; i < m; ++i) {
+        cin >> a[i] >> b[i] >> c[i];
+    }
+    long long ans = 0;
+    int ansx = -1, ansy = -1;
+    for (int i = 0; i < m; ++i) {
+        int maxlen = 0, position = -1;
+        //a clip is inside the window
+        int pos1 = distance(L.begin(), lower_bound(L.begin(), L.end(), a[i]));
+        int pos2 = distance(R.begin(), upper_bound(R.begin(), R.end(), b[i])) - 1;
+        auto res = t.get(1, pos1, pos2, 0, n - 1);
+        /*if (i + 1 == 4621) {
+            cout << pos1 << ' ' << pos2 << ' ' << res.second << endl;
+        }*/
+        if (res.second >= 0 && maxlen < res.first) {
+            maxlen = res.first;
+            position = r[res.second].second;
+        }
+        //a clip contains the window
+        pos1 = distance(L.begin(), upper_bound(L.begin(), L.end(), a[i])) - 1;
+        if (0 <= pos1 && pos1 < n && R[pos1] >= b[i]) {
+            maxlen = b[i] - a[i];
+            position = r[pos1].second;
+        }
+        //a clip intersects the window on the right
+        int pos = distance(R.begin(), lower_bound(R.begin(), R.end(), b[i]));
+        if (0 <= pos && pos < n && maxlen < b[i] - L[pos]) {
+            maxlen = b[i] - L[pos];
+            position = r[pos].second;
+        }
+        //a clip intersects the window on the right
+        pos = distance(L.begin(), upper_bound(L.begin(), L.end(), a[i])) - 1;
+        if (0 <= pos && pos < n && maxlen < R[pos] - a[i]) {
+            maxlen = R[pos] - a[i];
+            position = r[pos].second;
+        }
+        maxlen = min(maxlen, b[i] - a[i]);
+        if (ans < (long long)maxlen * (long long)c[i]) {
+            ans = (long long)maxlen * (long long)c[i];
+            ansx = i + 1;
+            ansy = position;
+        }
+    }
+    if (ans == 0) {
+        cout << ans;
+        return 0;
+    }
+    cout << ans << endl;
+    cout << ansy << ' ' << ansx << endl;
+    return 0;
+}

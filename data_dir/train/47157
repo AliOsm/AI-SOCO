@@ -1,0 +1,170 @@
+/////////////////////////   _LeMur_
+#define _CRT_SECURE_NO_WARNINGS
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <chrono>
+#include <random>
+#include <bitset>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <list>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 500005;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 998244353;
+
+int n , m;
+vector < pair<int,int> > g[N];
+vector < pair< int,pair<int,int> > > E;
+
+bool used[N] , mark[N];
+
+vector <int> gcycle[N];
+vector < vector< pair<int,int> > > G;
+
+int parent[N] , ind[N];
+
+void dfs(int v,int p){
+    used[v] = true;
+
+    for(int i=0;i<(int)g[v].size();i++){
+        int to = g[v][i].first;
+        int id = g[v][i].second;
+
+        if(to == p || mark[id])continue;
+
+        if(used[to]){
+            int gag = v;
+            vector < pair<int,int> > cycle;
+
+            while(gag != to){
+                cycle.push_back(make_pair(gag , ind[gag]));
+                mark[ ind[gag] ] = true;
+                gag = parent[gag];
+            }
+            mark[id] = true;
+            cycle.push_back(make_pair(to , id));
+
+            gcycle[to].push_back((int)G.size());
+            G.push_back(cycle);
+            continue;
+        }
+
+        parent[to] = v;
+        ind[to] = id;
+
+        dfs(to , v);
+    }
+}
+
+int answ[N] , pat[N];
+int sub[N];
+
+bool check(vector <int> &mas){
+    for(int i=1;i<(int)mas.size();i++){
+        if(mas[i] > mas[i - 1])
+            return false;
+    }
+    return true;
+}
+
+void upd(int id){
+    int mn , mx;
+    int id1 , id2;
+
+    for(int i=0;i<(int)G[id].size();i++){
+        if(i == 0 || G[id][i].second < mn){
+            mn = G[id][i].second;
+            id1 = i;
+        }
+        if(i == 0 || G[id][i].second > mx){
+            mx = G[id][i].second;
+            id2 = i;
+        }
+    }
+
+    vector <int> mas1 , mas2;
+    if(id2 > id1){
+        for(int i=id2;i>id1;i--){
+            mas1.push_back(G[id][i].second);
+        }
+        for(int i=id2;i<(int)G[id].size();i++){
+            mas2.push_back(G[id][i].second);
+        }
+        for(int i=0;i<id1;i++){
+            mas2.push_back(G[id][i].second);
+        }
+    }
+    else{
+        for(int i=id2;i<id1;i++){
+            mas1.push_back(G[id][i].second);
+        }
+        for(int i=id2;i>=0;i--){
+            mas2.push_back(G[id][i].second);
+        }
+        for(int i=(int)G[id].size()-1;i>id1;i--){
+            mas2.push_back(G[id][i].second);
+        }
+    }
+
+    if(check(mas1) && check(mas2)){
+        sub[mn] = mx;
+    }
+}
+
+int main(){
+    cin >> n >> m;
+
+    for(int i=1;i<=m;i++){
+        int a , b;
+        scanf("%d%d",&a,&b);
+
+        g[a].push_back(make_pair(b , i));
+        g[b].push_back(make_pair(a , i));
+
+        E.push_back(make_pair(i , make_pair(a , b)));
+    }
+
+    sort(E.begin() , E.end());
+    reverse(E.begin() , E.end());
+
+    dfs(1 , -1);
+
+    for(int i=0;i<(int)G.size();i++){
+        upd(i);
+    }
+
+    for(int i=1;i<=n;i++){
+        answ[i] = 1;
+    }
+
+    for(int i=0;i<(int)E.size();i++){
+        int a = E[i].second.first;
+        int b = E[i].second.second;
+
+        pat[m - i] = answ[a] + answ[b] - pat[ sub[m - i] ];
+        answ[a] = answ[b] = pat[m - i];
+    }
+
+    for(int i=1;i<=n;i++){
+        --answ[i];
+        printf("%d ",answ[i]);
+    }
+    cout << endl;
+    return 0;
+}

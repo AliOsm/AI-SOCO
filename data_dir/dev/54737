@@ -1,0 +1,104 @@
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <algorithm>
+#include <queue>
+using namespace std;
+const int INF=1e9+10;
+const int maxn=1e3+10;
+int n,m,s,e,x1[maxn],y1[maxn],x2[maxn],y2[maxn];
+int linumx,linumy,vx[maxn],vy[maxn],cntx,cnty,tox[maxn],toy[maxn];
+map<int,int>lcx,lcy;
+bool v[maxn][maxn];
+struct Edge{
+    int v, w, nxt;
+};
+Edge edge[2000010];
+int pre[2000010], tot, dis[2000010], cur[2000010];
+
+void init() {
+    tot = 0;
+    memset(edge, 0, sizeof(edge));
+    memset(pre, -1, sizeof(pre));
+}
+
+void add(int s, int e, int w) {
+    edge[tot].v = e;
+    edge[tot].w = w;
+    edge[tot].nxt = pre[s];
+    pre[s] = tot ++;
+
+    edge[tot].v = s;
+    edge[tot].w = 0;
+    edge[tot].nxt = pre[e];
+    pre[e] = tot ++;
+}
+
+int bfs() {
+    memset(dis, -1, sizeof(dis));
+    dis[e] = 0;
+    queue<int> que;
+    que.push(e);
+    while(!que.empty()) {
+        int u = que.front(); que.pop();
+        for (int i = pre[u]; i + 1; i = edge[i].nxt) {
+            if(dis[edge[i].v] == -1 && edge[i ^ 1].w > 0) {
+                dis[edge[i].v] = dis[u] + 1;
+                que.push(edge[i].v);
+            }
+        }
+    }
+    return dis[s] != -1;
+}
+
+int dfs(int u, int flow) {
+    if(u == e) return flow;
+    int belta = flow;
+    for (int &i = cur[u]; i + 1; i = edge[i].nxt) {
+        if(dis[u] == dis[edge[i].v] + 1 && edge[i].w > 0) {
+            int d = dfs(edge[i].v, min(belta, edge[i].w));
+            edge[i].w -= d; edge[i ^ 1].w += d;
+            belta -= d;
+            if(belta == 0) break;
+        }
+    }
+    return flow - belta;
+}
+
+int dinic() {
+    int ans = 0;
+    while(bfs()) {
+       for (int i = 1; i <= e; i ++) 
+           cur[i] = pre[i];
+         ans += dfs(s, INF);
+    }
+    return ans;
+}
+int main()
+{
+	scanf("%d%d",&n,&m); init();
+	for (int i=1;i<=m;i++)
+	{
+		scanf("%d%d%d%d",&x1[i],&y1[i],&x2[i],&y2[i]);
+		vx[++cntx]=x1[i]; vx[++cntx]=x2[i]+1;
+		vy[++cnty]=y1[i]; vy[++cnty]=y2[i]+1;
+	}
+	sort(vx+1,vx+cntx+1); sort(vy+1,vy+cnty+1);
+	for (int i=1;i<=cntx;i++) if (!lcx.count(vx[i])) lcx[vx[i]]=++linumx,tox[linumx]=vx[i];
+	for (int i=1;i<=cnty;i++) if (!lcy.count(vy[i])) lcy[vy[i]]=++linumy,toy[linumy]=vy[i];
+	s=linumx+linumy+10; e=linumx+linumy+11;
+	for (int i=1;i<linumx;i++) add(s,i,tox[i+1]-tox[i]);
+	for (int j=1;j<linumy;j++) add(linumx+j,e,toy[j+1]-toy[j]);
+	for (int k=1;k<=m;k++)
+	{
+		int llx=lcx[x2[k]+1],lly=lcy[y2[k]+1];
+		for (int i=lcx[x1[k]];i<llx;i++)
+		 for (int j=lcy[y1[k]];j<lly;j++) v[i][j]=1;
+	}
+	for (int i=1;i<=linumx;i++)
+	 for (int j=1;j<=linumy;j++) if (v[i][j]) add(i,linumx+j,INF);
+	printf("%d\n",dinic());
+return 0;
+}

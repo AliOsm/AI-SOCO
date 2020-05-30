@@ -1,0 +1,95 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 100 * 1000 + 10, LOG = 20;
+int par[N][LOG], n, timee, u[N], v[N], ans[N], h[N], m, l[N], r[N];
+vector<int> adj[N], seg[N << 2], vec[N];
+
+void build(int id = 1, int st = 0, int en = n) {
+    if (en - st == 1) {
+        for (auto i: vec[st])
+            seg[id].push_back(i);
+        sort(seg[id].begin(), seg[id].end());
+        return;
+    }
+    int mid = st + en >> 1;
+    build(id << 1, st, mid);
+    build(id << 1 | 1, mid, en);
+    merge(seg[id << 1].begin(), seg[id << 1].end(), seg[id << 1 | 1].begin(), seg[id << 1 | 1].end(), back_inserter(seg[id]));
+}
+
+int get(int l, int r, int val, int id = 1, int st = 0, int en = n) {
+    if (r <= st || en <= l)
+        return 0;
+    if (l <= st && en <= r)
+        return lower_bound(seg[id].begin(), seg[id].end(), val) - seg[id].begin();
+    int mid = st + en >> 1;
+    return get(l, r, val, id << 1, st, mid) + get(l, r, val, id << 1 | 1, mid, en);
+}
+
+void dfs(int v, int par = -1) {
+    l[v] = timee++;
+    for (auto u: adj[v])
+        if (u ^ par)
+            dfs(u, v);
+    r[v] = timee;
+}
+
+void dfs_lca(int v, int parent = -1) {
+    par[v][0] = parent;
+    for (int i = 1; i < LOG; i++)
+        par[v][i] = (par[v][i - 1] == -1? -1: par[par[v][i - 1]][i - 1]);
+    for (auto u: adj[v])
+        if (u ^ parent) {
+            h[u] = h[v] + 1;
+            par[u][0] = v;
+            dfs_lca(u, v);
+        }
+}
+
+int get_par(int v, int k) {
+    for (int i = 0; i < LOG; i++)
+        if (k & (1 << i))
+            v = par[v][i];
+    return v;
+}
+
+int lca(int u, int v) {
+    if (h[u] < h[v])
+        swap(u, v);
+    u = get_par(u, h[u] - h[v]);
+    if (u == v)
+        return u;
+    for (int i = LOG - 1; ~i; i--)
+        if (par[u][i] != par[v][i]) {
+            u = par[u][i];
+            v = par[v][i];
+        }
+    return par[u][0];
+}
+
+int main() {
+    ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+    cin >> n;
+    for (int i = 1; i < n; i++) {
+        cin >> u[i] >> v[i];
+        adj[--u[i]].push_back(--v[i]);
+        adj[v[i]].push_back(u[i]);
+    }
+    dfs_lca(0);
+    dfs(0);
+    cin >> m;
+    for (int i = 0; i < m; i++) {
+        int x, y, z;
+        cin >> x >> y;
+        z = lca(--x, --y);
+        vec[l[x]].push_back(h[z]);
+        vec[l[y]].push_back(h[z]);
+    }
+    build();
+    for (int i = 1; i < n; i++)
+        ans[i] = get(l[i], r[i], h[i]);
+    for (int i = 1; i < n; i++)
+        cout << (par[u[i]][0] == v[i]? ans[u[i]]: ans[v[i]]) << " ";
+    return cout << "\n", 0;
+}

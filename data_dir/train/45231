@@ -1,0 +1,137 @@
+//ITNOA
+#include<bits/stdc++.h> 
+
+using namespace std;
+ 
+#define scan(x) do{while((x=getchar())<'0'); for(x-='0'; '0'<=(_=getchar()); x=(x<<3)+(x<<1)+_-'0');}while(0)
+char _;
+
+//#define int long long
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+#define X first
+#define Y second
+
+typedef long long ll;
+typedef long double ld;
+
+const int maxN = 100*1000 + 5;
+const int maxM = 5000 + 5;
+const int mod = 1000*1000*1000 + 7;
+const int base = 701;
+const int SQ = 500;
+const int maxL = 20;
+
+bitset<1000> seg[4*maxN];
+int ad[4*maxN];
+int n, m;
+int val[maxN];
+void build(int s, int e, int id)
+{
+    if(e - s == 1)
+    {
+	seg[id][val[s]%m] = 1;
+	return;
+    }
+    int mid = (s+e) >> 1;
+    build(s,mid,2*id);
+    build(mid,e,2*id+1);
+    seg[id] = seg[2*id] | seg[2*id+1];
+}
+
+bitset<1000> tot;
+void sss(int id, int x)
+{
+    seg[id] = ((seg[id] << x) & tot) | (seg[id] >> (m-x)); 
+}
+
+void shift(int id)
+{
+    if(ad[id] == 0) return;
+    ad[2*id] = (ad[2*id] + ad[id]) % m;
+    ad[2*id+1] = (ad[2*id+1] + ad[id]) % m;
+
+    sss(2*id, ad[id]);
+    sss(2*id+1,ad[id]);
+    ad[id] = 0;
+}
+void add(int l, int r, int x, int s, int e, int id)
+{
+    if(l >= e || r <= s) return;
+    if(l <= s && e <= r)
+    {
+	ad[id] = (ad[id] + x) % m;
+	sss(id,x);
+	return;
+    }
+    shift(id);
+    int mid = (s+e) >> 1;
+    add(l,r,x,s,mid,2*id);
+    add(l,r,x,mid,e,2*id+1);
+    seg[id] = seg[2*id] | seg[2*id+1];
+}
+bitset<1000> get(int l, int r, int s, int e, int id)
+{
+    if(l >= e || r <= s) return bitset<1000>();
+    if(l <= s && e <= r) return seg[id];
+    shift(id);
+    int mid = (s+e) >> 1;
+    return get(l,r,s,mid,2*id) | get(l,r,mid,e,2*id+1);
+}
+
+
+vector<int> g[maxN];
+int st[maxN], en[maxN], cnt;
+void dfs(int v, int par = -1)
+{
+    st[v] = cnt++;
+    for(auto u : g[v])
+	if(u - par)
+	    dfs(u,v);
+    en[v] = cnt;
+}
+int a[maxN];
+bitset<1000> pri;
+
+int32_t main()
+{
+//    ios::sync_with_stdio(0); cin.tie(0);
+    scanf("%d%d", &n, &m);
+    rep(i,0,n)
+	scanf("%d", &a[i]);
+
+    rep(i,0,m) tot[i] = 1;
+    rep(i,2,m) pri[i] = 1;
+    rep(i,2,m)
+	for(int j = 2*i; j < m; j += i)
+	    pri[j] = 0;
+    
+    rep(i,1,n)
+    {
+	int v, u; scanf("%d%d", &v, &u);
+	v --; u --;
+	g[v].push_back(u);
+	g[u].push_back(v);
+    }
+    
+    dfs(0);
+    rep(i,0,n)
+	val[st[i]] = a[i];  
+    build(0,n,1);
+    
+    int q; scanf("%d", &q);
+    rep(i,0,q)
+    {
+	int t, v; scanf("%d%d", &t, &v);
+	v --;
+	if(t == 1)
+	{
+	    int x; scanf("%d", &x);
+	    x %= m;
+	    if(x == 0) continue;
+	    add(st[v], en[v], x, 0, n, 1);
+	}
+	else
+	    printf("%d\n", (int)(get(st[v],en[v],0,n,1) & pri).count());	
+    }
+    return 0;
+}

@@ -1,0 +1,39 @@
+// In the name of Allah the Lord of the Worlds.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAX = 2e5+9;
+int L[MAX] , R[MAX];
+string s , t;
+
+int main(void)
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);cout.tie(0);
+
+    cin >> s >> t;
+    int now = 0;
+    for(int i=0;i<s.size()&&now<t.size();i++){
+        if(s[i]==t[now]){
+            L[now] = i;
+            now++;
+        }
+    }
+    now--;
+    for(int i=s.size()-1;i>=0&&now>=0;i--){
+        if(s[i]==t[now]){
+            R[now] = i;
+            now--;
+        }
+    }
+    int ans = max((int)s.size()-L[t.size()-1]-1 , R[0]);
+    for(int i=0;i<t.size()-1;i++){
+        ans = max(ans , R[i+1]-L[i]-1);
+    }
+    cout << ans << endl;
+
+    return 0;
+}

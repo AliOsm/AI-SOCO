@@ -1,0 +1,143 @@
+#include <iostream>
+#include <cstdio>
+#include <cassert>
+using namespace std;
+
+typedef long long ll;
+ll base[3],MOD[3]={1000000007,1000000009};
+ll key[3][27];
+//char S[1000001],T[100001];
+string S,T;
+ll h[3][1000001];
+ll powers[3][1000001];
+string A,B;
+
+ll fastexp(ll b, ll exp, ll m){
+  if (exp==0)
+    return 1;
+  ll temp=fastexp(b,exp/2,m);
+  temp=(temp*temp)%m;
+  if (exp%2==1)
+    temp*=b;
+  return temp%m;
+}
+
+void precompute_powers()
+{
+  for (ll i=0;i<2;i++)
+    for (ll j=1;j<S.length();j++){
+      if (j==1)
+	powers[i][j]=fastexp(fastexp(base[i],j,MOD[i]),MOD[i]-2,MOD[i]);
+      else
+	powers[i][j]=(powers[i][j-1]*powers[i][1])%MOD[i];
+    }
+}
+
+void compute_hashes()
+{
+  ll b;
+  for (ll i=0;i<2;i++){
+    b=1;
+    for (ll j=0;j<S.length();j++){
+      h[i][j]=key[i][S[j]-'a']*b;
+      if (j!=0)
+	h[i][j]+=h[i][j-1];
+      h[i][j]%=MOD[i];
+      b*=base[i];
+      b%=MOD[i];
+    }
+  }
+}
+
+ll get_hash(ll start, ll end, ll mode){
+  if (start==0)
+    return h[mode][end];
+  ll temp=(h[mode][end]+MOD[mode]-h[mode][start-1])*powers[mode][start];
+  return temp%MOD[mode];
+}
+
+void generate()
+{
+  base[0]=43;
+  base[1]=67;
+  for (ll i=0;i<2;i++)
+    for (ll j=0;j<26;j++)
+      key[i][j]=rand()%100;
+}
+ll ans=0;
+int main()
+{
+  cin>>T>>S;
+  generate();
+  precompute_powers();
+  compute_hashes();
+  ll zeroes=0,ones=0;
+  ll dif;
+  for (ll i=1;i<T.length();i++)
+    if (T[i]!=T[0]){
+      dif=i;
+      break;
+    }
+  for (ll i=0;i<T.length();i++){
+    if (T[i]=='0')
+      zeroes++;
+    else
+      ones++;
+  }
+  for (ll i=1;i*zeroes<=S.length();i++){
+    ll jlen=(ll)(S.length()-i*zeroes)/ones;
+    if (jlen<=0)
+      continue;
+    if (i*zeroes+jlen*ones!=(ll)S.length())
+      continue;
+    ll Abeg,Aend,Bbeg,Bend;
+    if ((ll)(S.length()-i*zeroes)%ones==0){
+      A="";
+      B="";
+      if (T[0]=='0'){
+	Abeg=0;
+	Aend=i-1;
+	Bbeg=dif*i;
+	Bend=dif*i+jlen-1;
+      }
+      else{
+	Bbeg=0;
+	Bend=jlen-1;
+	Abeg=dif*jlen;
+	Aend=dif*jlen+i-1;
+      }
+    }
+    else
+      continue;
+    if (Aend>=S.length() || Bend>=S.length() || Abeg<0 || Bbeg<0)
+      continue;
+    if (get_hash(Abeg,Aend,0)==get_hash(Bbeg,Bend,0) && get_hash(Abeg,Aend,1)==get_hash(Bbeg,Bend,1))
+      continue;
+    //cout<<A<<' '<<B<<endl;
+    ll cur=0;
+    bool flag=true;
+    for (ll j=0;j<T.length();j++){
+      if (T[j]=='0'){
+	assert(cur+i-1<(ll)S.length());
+	if (!(get_hash(cur,cur+i-1,0)==get_hash(Abeg,Aend,0) && get_hash(cur,cur+i-1,1)==get_hash(Abeg,Aend,1))){
+	  flag=false;
+	  break;
+	}
+	cur+=i;
+      }
+      else{
+	assert(cur+jlen-1<(ll)(S.length()));
+	if (!(get_hash(cur,cur+jlen-1,0)==get_hash(Bbeg,Bend,0) && get_hash(cur,cur+jlen-1,1)==get_hash(Bbeg,Bend,1))){
+	  flag=false;
+	  break;
+	}
+	cur+=jlen;
+      }
+    }
+    if (flag)
+      ans++;
+  }
+  cout<<ans<<endl;
+  return 0;
+}
+    

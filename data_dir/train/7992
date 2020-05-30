@@ -1,0 +1,83 @@
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#include <set>
+#include <algorithm>
+using namespace std;
+
+const double g = 9.8, pi = acos(-1), eps = 1e-8;
+
+bool lt(double a, double b){return a+eps<=b;}
+bool gt(double a, double b){return lt(b,a);}
+bool le(double a, double b){return a<b+eps;}
+bool ge(double a, double b){return le(b,a);}
+bool eq(double a, double b){return a+eps>b && b+eps>a;}
+
+pair<double,int> a[10005];
+pair<double,double> w[100005],ans[10005];
+
+int main(){
+    int n,m,v;
+    scanf("%d%d",&n,&v);
+    for(int i=0;i<n;i++){
+        scanf("%lf",&a[i].first);
+        a[i].second=i;
+    }
+    sort(a,a+n);
+    scanf("%d",&m);
+    for(int i=0;i<m;i++) scanf("%lf%lf",&w[i].first,&w[i].second);
+    sort(w,w+m);
+    vector<pair<double,int>> u;
+    for(int i=0;i<m;i++){
+        double x=w[i].first,y=w[i].second;
+        double c=x*g/v/v,lo=eq(c,1)?pi/4:asin(c)/2;
+        if(isnan(lo)) continue;
+        double t=x/v/cos(pi/4);
+        double p=v*t*sin(pi/4)-g*t*t/2;
+        if(p<=y){
+            double hi=pi/4;
+            if(eq(lo,hi)) lo=hi=(lo+hi)/2;
+            u.push_back({lo,~i});
+            u.push_back({hi,i});
+        }else{
+            double A=y*y/x/x+1;
+            double B=g*y-v*v;
+            double C=g*g*x*x/4;
+            double D=B*B-4*A*C;
+            if(eq(D,0)) D=0;
+            if(D<0) throw 0;
+            double u1=(-B+sqrt(D))/(2*A);
+            double u2=(-B-sqrt(D))/(2*A);
+            u1=eq(u1,pi/4)?pi/4:eq(u1,0)?0:u1;
+            u2=eq(u2,pi/4)?pi/4:eq(u2,0)?0:u2;
+            double vx=sqrt(max(u1,u2)),hi=acos(vx/v);
+            if(eq(lo,hi)) lo=hi=(lo+hi)/2;
+            u.push_back({lo,~i});
+            u.push_back({hi,i});
+        }
+    }
+    sort(u.begin(),u.end());
+    set<int> s;
+    size_t t=0;
+    for(int i=0;i<n;i++){
+        double vx=v*cos(a[i].first);
+        double vy=v*sin(a[i].first);
+        while(t<u.size()){
+            if((ge(a[i].first,u[t].first) && u[t].second< 0)
+            || (gt(a[i].first,u[t].first) && u[t].second>=0)){
+                int x=u[t++].second;
+                if(x>=0) s.erase(x); else s.insert(~x);
+            }else break;
+        }
+        if(s.empty()){
+            ans[a[i].second]={2*vx*vy/g,0};
+        }else{
+            double x=w[*s.begin()].first;
+            double t=x/vx;
+            double y=vy*t-g*t*t/2;
+            ans[a[i].second]={x,y};
+        }
+    }
+    for(int i=0;i<n;i++)
+        printf("%.16f %.16f\n",ans[i].first,ans[i].second);
+}

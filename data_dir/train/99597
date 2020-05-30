@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define rep(i, a) for (int i = 0; i < (a); i++)
+#define rep2(i, a, b) for (int i = (a); i < (b); i++)
+#define repr(i, a) for (int i = (a) - 1; i >= 0; i--)
+#define repr2(i, a, b) for (int i = (b) - 1; i >= (a); i--)
+template<class T1, class T2> bool chmin(T1 &a, T2 b) { return b < a && (a = b, true); }
+template<class T1, class T2> bool chmax(T1 &a, T2 b) { return a < b && (a = b, true); }
+typedef long long ll;
+
+struct SCC {
+	vector<vector<int>> G, rG, H, cc;
+	vector<int> cid, ord, vis;
+	int n;
+	SCC(int n) : n(n), G(n), rG(n), vis(n), cid(n, -1) {}
+	void add(int u, int v) {
+		G[u].push_back(v);
+		rG[v].push_back(u);
+	}
+	void buildLight() {
+		for (int i = 0; i < n; i++) if (!vis[i]) dfs(i);
+		int k = 0;
+		for (int i = n - 1; i >= 0; i--) if (cid[ord[i]] == -1) dfs2(ord[i], k++);
+		cc.resize(k);
+		for (int i = 0; i < n; i++) cc[cid[i]].push_back(i);
+	}
+	void build() {
+		buildLight();
+		set<pair<int, int>> es;
+		for (int i = 0; i < n; i++) for (int j : G[i]) if (cid[i] != cid[j]) es.emplace(cid[i], cid[j]);
+		H.resize(cc.size());
+		for (auto e : es) H[e.first].push_back(e.second);
+	}
+	void dfs(int curr) {
+		vis[curr] = true;
+		for (int next : G[curr]) if (!vis[next]) dfs(next);
+		ord.push_back(curr);
+	}
+	void dfs2(int curr, int k) {
+		cid[curr] = k;
+		for (int next : rG[curr]) if (cid[next] == -1) dfs2(next, k);
+	}
+	int size() { return H.size(); }
+	vector<int> &operator[](int k) { return H[k]; }
+};
+
+int main() {
+	int h, w;
+	cin >> h >> w;
+	vector<vector<int>> a(h, vector<int>(w));
+	rep(i, h) rep(j, w) scanf("%d", &a[i][j]);
+
+	SCC scc(h * w);
+	
+	rep(i, h) {
+		vector<pair<int, int>> row;
+		rep(j, w) row.emplace_back(a[i][j], j);
+		sort(row.begin(), row.end());
+		rep(j, w - 1) {
+			scc.add(i * w + row[j].second, i * w + row[j + 1].second);
+			if (row[j].first == row[j + 1].first) {
+				scc.add(i * w + row[j + 1].second, i * w + row[j].second);
+			}
+		}
+	}
+
+	rep(j, w) {
+		vector<pair<int, int>> col;
+		rep(i, h) col.emplace_back(a[i][j], i);
+		sort(col.begin(), col.end());
+		rep(i, h - 1) {
+			scc.add(col[i].second * w + j, col[i + 1].second * w + j);
+			if (col[i].first == col[i + 1].first) {
+				scc.add(col[i + 1].second * w + j, col[i].second * w + j);
+			}
+		}
+	}
+
+	scc.build();
+
+	vector<int> dp(scc.size());
+	rep(i, scc.size()) {
+		for (int next : scc[i]) chmax(dp[next], dp[i] + 1);
+	}
+
+	vector<vector<int>> ans(h, vector<int>(w));
+
+	rep(i, h) rep(j, w) ans[i][j] = dp[scc.cid[i * w + j]] + 1;
+
+	rep(i, h) {
+		rep(j, w) {
+			printf("%d ", ans[i][j]);
+		}
+		printf("\n");
+	}
+
+	return 0;
+}

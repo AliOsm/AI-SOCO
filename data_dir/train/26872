@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct segtree {
+  struct node {
+    int mn, mx, sum;
+  };
+
+  const int inf = 1e9 + 10;
+
+  int n;
+  vector<node> st;
+  vector<int> lazy;
+
+  segtree(int _n) {
+    this->n = _n;
+    st = vector<node>(4 * n, {0, 0, 0});
+    lazy = vector<int>(4 * n, 0);
+  }
+
+  void apply(int sl, int sr, int at, int val) {
+    st[at].sum += (sr - sl + 1) * val;
+    st[at].mn += val;
+    st[at].mx += val;
+    if (sl != sr) {
+      lazy[at + at + 1] += val;
+      lazy[at + at + 2] += val;
+    }
+  }
+
+  void modify_recur(int sl, int sr, int ql, int qr, int at, int delta) {
+    apply(sl, sr, at, lazy[at]);
+    lazy[at] = 0;
+    if (qr < sl || ql > sr)
+      return;
+    if (ql <= sl && qr >= sr) {
+      apply(sl, sr, at, delta);
+      return;
+    }
+    int mid = (sl + sr) / 2;
+    int le = at + at + 1, ri = at + at + 2;
+    modify_recur(sl, mid, ql, qr, le, delta);
+    modify_recur(mid + 1, sr, ql, qr, ri, delta);
+    st[at].sum = st[le].sum + st[ri].sum;
+    st[at].mn = min(st[le].mn, st[ri].mn);
+    st[at].mx = max(st[le].mx, st[ri].mx);
+  }
+
+  void modify(int ql, int qr, int delta) {
+    modify_recur(0, n - 1, ql, qr, 0, delta);
+  }
+
+  node get_recur(int sl, int sr, int ql, int qr, int at) {
+    apply(sl, sr, at, lazy[at]);
+    lazy[at] = 0;
+    if (qr < sl || ql > sr)
+      return {inf, -inf, 0};
+    if (ql <= sl && qr >= sr)
+      return st[at];
+    int mid = (sl + sr) / 2;
+    node left_ans = get_recur(sl, mid, ql, qr, at + at + 1);
+    node right_ans = get_recur(mid + 1, sr, ql, qr, at + at + 2);
+    return {min(left_ans.mn, right_ans.mn), max(left_ans.mx, right_ans.mx), left_ans.sum + right_ans.sum};
+  }
+
+  node get(int l, int r) {
+    return get_recur(0, n - 1, l, r, 0);
+  }
+};
+
+const int N = 2e5 + 10;
+const int inf = 1e9;
+ 
+int n, m;
+int a[N], suff[N];
+pair<int, int> heroes[N];
+segtree *st;
+
+bool can(int l, int r) {
+  int mx = st->get(l, r).mx;
+  int days = r - l + 1;
+  if (mx > heroes[m - 1].first)
+    return false;
+  int at = lower_bound(heroes, heroes + m, make_pair(mx, -1)) - heroes;
+  int max_days = suff[at];
+  return (max_days >= days);
+}
+ 
+void solve() {
+  scanf("%d", &n);
+  for (int i = 0; i < n; ++i)
+    scanf("%d", &a[i]);
+  scanf("%d", &m);
+  for (int i = 0; i < m; ++i)
+    scanf("%d %d", &heroes[i].first, &heroes[i].second);
+  sort(heroes, heroes + m);
+  suff[m - 1] = heroes[m - 1].second;
+  for (int i = m - 2; i >= 0; --i)
+    suff[i] = max(suff[i + 1], heroes[i].second);
+  st = new segtree(n);
+  for (int i = 0; i < n; ++i)
+    st->modify(i, i, a[i]);
+  int cur = 0, ans = 0;
+  while (cur < n) {
+    int low = cur - 1, high = n;
+    while (low + 1 < high) {
+      int mid = (low + high) / 2;
+      if (can(cur, mid))
+        low = mid;
+      else
+        high = mid;
+    }
+    if (low == cur - 1) {
+      puts("-1");
+      return;
+    }
+    cur = low + 1;
+    ++ans;
+  }
+  printf("%d\n", ans);
+}
+ 
+int main() {
+  int qq;
+  scanf("%d", &qq);
+  while (qq--)
+    solve();
+  return 0;
+}

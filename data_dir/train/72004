@@ -1,0 +1,96 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int inf = 1e9;
+template<int N, typename T>
+struct MinCost {
+	int l[N], tot, p[N], u, v, src, sink;
+	T d[N];
+	queue<int> Q;
+	bool inq[N];
+
+	struct Edge {
+		int v, x, cap;
+		T w;
+	}E[555555];
+
+	void addedge(int u, int v, int cap, T w) {
+		E[tot] = (Edge) {v, l[u], cap, w};
+		l[u] = tot ++;
+		E[tot] = (Edge) {u, l[v], 0, -w};
+		l[v] = tot ++;
+	}
+
+	void init() {
+		memset(l, -1, sizeof l);
+		tot = 0;
+	}
+
+	void mcmf(int _src, int _sink, int& flow, T& cost, int k) {
+		src = _src, sink = _sink;
+		flow = cost = 0;
+		while(true) {
+			fill(d, d + _sink + 1, inf);
+			d[src] = 0;
+			Q.push(src);
+			while(!Q.empty()) {
+				u = Q.front();
+				Q.pop();
+				inq[u] = false;
+				for(int i = l[u]; ~i; i = E[i].x) {
+					int v = E[i].v;
+					if(E[i].cap && d[v] > d[u] + E[i].w) {
+						d[v] = d[u] + E[i].w;
+						p[v] = i;
+						if(!inq[v]) {
+							inq[v] = true;
+							Q.push(v);
+						}
+					}
+				}
+			}
+			if(d[sink] == inf)	break;
+			T c = inf;
+			for(int v = sink; v != src; v = E[p[v]^1].v) {
+				c = min(c, E[p[v]].cap);
+			}
+			if(cost + c*1LL*d[sink] > k) {
+				c = (k-cost)/d[sink];
+				flow += c;
+				break;
+			}
+			flow += c;
+			cost += c*d[sink];
+			for(int v = sink; v != src; v = E[p[v]^1].v) {
+				E[p[v]].cap -= c;
+				E[p[v]^1].cap += c;
+			}
+		}
+	}
+};
+
+const int N = 50;
+MinCost<N, int> F;
+int main() {
+	int n, k;
+	scanf("%d%d", &n, &k);
+	int src = 0, sink = n - 1;
+	F.init();
+	rep(i, n) {
+		rep(j, n) {
+			int x;
+			scanf("%d", &x);
+			if(x) {
+				F.addedge(i, j, x, 0);
+				F.addedge(i, j, inf, 1);
+			}
+		}
+	}
+	int cost, flow;
+	F.mcmf(src, sink, flow, cost, k);
+	printf("%d\n", flow);
+	return 0;
+}
+

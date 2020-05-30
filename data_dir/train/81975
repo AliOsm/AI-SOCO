@@ -1,0 +1,170 @@
+#include <algorithm>
+#include <bitset>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <deque>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <set>
+#include <stack>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <string.h>
+#include <time.h>
+#include <vector>
+
+#if LOCAL
+	#define DO_NOT_SEND
+#endif
+
+typedef long long LL;
+
+int IntMaxVal = (int) 1e20;
+int IntMinVal = (int) -1e20;
+LL LongMaxVal = (LL) 1e20;
+LL LongMinVal = (LL) -1e20;
+
+#define FOR(i, a, b) for(int i = a; i < b ; ++i)
+#define FORD(i, a, b) for(int i = a; i >= b; --i)
+
+template<typename T> inline void minimize(T &a, T b) { a = std::min(a, b); }
+template<typename T> inline void maximize(T &a, T b) { a = std::max(a, b); }
+
+#define all(v) v.begin(),v.end()
+
+using namespace std;
+
+#define endl '\n'
+template<typename T> struct argument_type;
+template<typename T, typename U> struct argument_type<T(U)> { typedef U type; };
+#define next(t, i) argument_type<void(t)>::type i; cin >> i;
+#define nextVector(t, v, size) vector< argument_type<void(t)>::type > v(size); { for (int i = 0 ; i < size ; i++) cin >> v[i]; }
+
+#define range(name, start, count) vector<int> name(count); { for (int i = 0 ; i < count ; i++) name[i] = i + start; }
+
+template <typename T1, typename T2> istream& operator >>(istream& is, pair<T1, T2>& s) { is >> s.first >> s.second; return is; }
+template <typename T> ostream& operator << (ostream& os, const vector<T> &v) { for (int i = 0 ; i < v.size() ; i++) os << v[i] << ' '; os << endl; return os; }
+template <typename T1, typename T2> ostream& operator <<(ostream& s, pair<T1, T2>& t) { s << t.first << ' ' << t.second; return s; }
+template <typename T> vector<T> readVector(int n) { vector<T> res(n); for (int i = 0 ; i < n ; i++) cin >> res[i]; return res; }
+
+class student {
+	public:
+	int ability;
+	int cost;
+	int id;
+};
+
+class bug {
+	public:
+	int id;
+	int complexity;
+};
+
+bool byComplexity(const bug &b1, const bug &b2) {
+	return b1.complexity < b2.complexity;
+}
+
+bool byAbility(const student &s1, const student &s2) {
+	return s1.ability < s2.ability;
+}
+
+int main() {
+	srand (time(NULL));
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+	
+	next(int, nStud);
+	next(int, nProb);
+	next(int, s);
+	
+	vector<bug> bugs(nProb);
+	FOR (i, 0, nProb) {
+		bugs[i].id = i;
+		cin >> bugs[i].complexity;
+	}
+	auto abilities = readVector<int>(nStud);
+	auto costs = readVector<int>(nStud);
+	
+	vector<student> students(nStud);
+	FOR (i, 0, nStud) {
+		students[i].id = i + 1;
+		students[i].ability = abilities[i];
+		students[i].cost = costs[i];
+	}
+	
+	sort(all(bugs), byComplexity);
+	sort(all(students), byAbility);
+	
+	auto bestStud = 0;
+	FOR (i, 0, nStud) if (costs[i] <= s) maximize(bestStud, abilities[i]);
+	
+	if (bugs.back().complexity > bestStud) {
+		cout << "NO" << endl;
+		return 0;
+	}
+	
+	cout << "YES" << endl;
+	
+	auto check = [&] (int t) {
+		vector<int> cheapestStudents;
+		auto nextStud = nStud - 1;
+		int rem = s;
+		FORD (r, nProb - 1, 0) {
+			int l = max(0, r - t + 1);
+			int problem = bugs[r].complexity;
+			while (nextStud >= 0 && students[nextStud].ability >= problem) {
+				cheapestStudents.push_back(-students[nextStud].cost);
+				push_heap(all(cheapestStudents));
+				nextStud--;
+			}
+			if (cheapestStudents.size() == 0) return false;
+			pop_heap(all(cheapestStudents));
+			rem += cheapestStudents.back();
+			cheapestStudents.pop_back();
+			if (rem < 0) return false;
+			
+			r = l;
+		}
+		return true;
+	};
+
+	int l = 0;
+	int r = nProb;
+	
+	while (l + 1 < r) {
+		int mid = (l + r) / 2;
+		if (check(mid)) r = mid;
+		else l = mid;
+	}
+	
+	vector<int> result(nProb);
+	vector<pair<int, int>> cheapestStudents;
+	int res = r;
+	
+	{
+		auto nextStud = nStud - 1;
+		int rem = s;
+		FORD (r, nProb - 1, 0) {
+			int l = max(0, r - res + 1);
+			int problem = bugs[r].complexity;
+			while (nextStud >= 0 && students[nextStud].ability >= problem) {
+				cheapestStudents.push_back(make_pair(-students[nextStud].cost, students[nextStud].id));
+				push_heap(all(cheapestStudents));
+				nextStud--;
+			}
+			if (cheapestStudents.size() == 0) return false;
+			pop_heap(all(cheapestStudents));
+			int student = cheapestStudents.back().second;
+			FOR (i, l, r + 1) result[bugs[i].id] = student;
+			rem += cheapestStudents.back().first;
+			cheapestStudents.pop_back();
+			if (rem < 0) return false;
+			
+			r = l;
+		}
+	}
+	cout << result; 
+}

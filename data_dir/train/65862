@@ -1,0 +1,253 @@
+#include <bits/stdc++.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
+#endif // M_PI
+#define endl "\n"
+#define S struct
+#define X first
+#define Y second
+#define V vector
+#ifndef __linux__
+#define LLD "%I64d"
+#else
+#define LLD "%ll""d"
+#endif
+#define FOR(x, y, z) for (int x = (y); x < (z); ++x)
+#define FORR(x, y, z) for (int x = (y); x > (z); --x)
+#define GET(a, n) for (int __i = 0; __i < (n); ++__i) cin >> a[__i];
+#define GETM(a, n, m) for (int __i = 0; __i < (n); ++__i) for (int __j = 0; __j < m; ++__j) cin >> a[__i][__j];
+#define PRINTM(a, n, m) for (int __i = 0; __i < (n); ++__i) { for (int __j = 0; __j < m; ++__j) cout << a[__i][__j] << " ";  cout << endl; };
+#define PRINT(a, n) for (int __i = 0; __i < (n); ++__i) cout << a[__i] << " ";
+#define IT(a) a.begin(), a.end()
+#define SQR(x) (x) * (x)
+#define CASE(a, s) cout << "Case #" << a << ": " << s << endl;
+#define DEB(a) cout << #a << " = " << (a) << endl; cout.flush();
+#define DEBA(a) for (auto __i: a) cout << __i << " "; cout << endl; cout.flush();
+#define IFDEB(b, a) if (b) { cout << #a << " = " << (a) << endl; cout.flush(); }
+#define YESNO(cond) cout << ((cond) ? "Yes" : "No") << endl;
+#define UMAX(left, right) left = max(left, right);
+#define UMIN(left, right) left = min(left, right);
+using namespace std;
+typedef long long LL;
+typedef long double LD;
+typedef unsigned long long ULL;
+typedef pair <int, int> PII;
+typedef pair <LL, LL> PLL;
+const int MOD = 1000000007;
+void yes() { cout << "Yes" << endl;}
+void no() { cout << "No" << endl;}
+S Sync_stdio { Sync_stdio() { cin.tie(NULL); ios_base::sync_with_stdio(false); } } _sync_stdio;
+S FAIL { FAIL () { cout << "CHANGE!!!" << endl;}};
+
+S Z
+{
+    int value;
+    int version;
+    int operator<(const Z &other) const {
+        return value != other.value;
+    }
+};
+
+template <class T>
+class BaseUpdater
+{
+  public:
+    virtual T current_update(T current, T value) const { return std::numeric_limits<T>::min();}
+};
+
+template <class T>
+class AddUpdater: public BaseUpdater<T>
+{
+  public:
+    T current_update(T current, T value) const override {
+        return current + value;
+    }
+};
+
+template <class T>
+class AssignUpdater: public BaseUpdater<T>
+{
+  public:
+    T current_update(T current, T value) const override {
+        return value;
+    }
+};
+
+template <class T>
+class BaseCombiner
+{
+  public:
+    virtual T combine(T left, T right) const { return std::numeric_limits<T>::min();}
+    virtual T default_value() const { return std::numeric_limits<T>::min();}
+};
+
+template <class T>
+class SumCombiner: public BaseCombiner<T>
+{
+  public:
+    T combine(T left, T right) const override {
+        return left + right;
+    }
+    T default_value() const override {
+        return 0;
+    }
+};
+
+template <class T>
+class MaxCombiner: public BaseCombiner<T>
+{
+  public:
+    T combine(T left, T right) const override {
+        return max(left, right);
+    }
+    T default_value() const override {
+        return std::numeric_limits<T>::min();
+    }
+};
+
+template <class T>
+class MinCombiner: public BaseCombiner<T>
+{
+  public:
+    T combine(T left, T right) const override {
+        return min(left, right);
+    }
+    T default_value() const override {
+        return std::numeric_limits<T>::max();
+    }
+};
+
+LL trunc_log(LL x)
+{
+    return 63 - __builtin_clzll(x);
+}
+
+template <class T, class Combiner, class Updater> class SegmentTreeDown
+{
+    Combiner combiner;
+    Updater updater;
+    int n;
+    int maxn = 1000000;
+    int start_pos;
+    vector<T> t;
+    void build(const vector<T> &a) {
+        copy(a.begin(), a.end(), t.begin() + start_pos);
+        for (int i = maxn - 1; i > 0; --i) {
+            t[i] = combiner.combine(t[i << 1], t[i << 1 | 1]);
+        }
+    }
+
+    T query_impl(int l, int r) {
+         T res = combiner.default_value();
+         if (l > r) {
+            return res;
+         }
+         ++r;
+         for (l += start_pos, r += start_pos; l < r; l >>= 1, r >>= 1) {
+             if (l & 1) {
+                 res = combiner.combine(res, t[l++]);
+             }
+             if (r & 1) {
+                 res = combiner.combine(res, t[--r]);
+             }
+         }
+         return res;
+    }
+
+    void update_impl(int pos, T value) {
+        pos += start_pos;
+        t[pos] = updater.current_update(t[pos], value);
+        for (; pos > 1; pos >>= 1) {
+            t[pos >> 1] = combiner.combine(t[pos], t[pos ^ 1]);
+        }
+    }
+public:
+    SegmentTreeDown(){}
+    SegmentTreeDown(int n)
+       : n(n),
+         maxn((1 << (trunc_log(n - 1) + 1))),
+         start_pos(maxn),
+         t(2 * maxn, combiner.default_value())
+    {
+    }
+    SegmentTreeDown(const vector<T> &a): n(a.size()), maxn((1 << (trunc_log(n - 1) + 1))), start_pos(maxn)
+    { // copy-paste!
+        t.resize(2 * maxn, combiner.default_value());
+        build(a);
+    }
+    void update(int pos, T value)
+    {
+        update_impl(pos, value);
+    }
+    T query(int l, int r)
+    {
+        return query_impl(l, r);
+    }
+    int size() const
+    {
+        return n;
+    }
+};
+
+int calc(const vector<int> &value, int mask)
+{
+    int k = value.size();
+    int res = 0;
+    FOR (i, 0, k) {
+        if (mask & (1 << i)) {
+            res += value[i];
+        } else {
+            res -= value[i];
+        }
+    }
+    return res;
+}
+
+int main()
+{
+    int n, k;
+    cin >> n >> k;
+    vector<SegmentTreeDown<int, MinCombiner<int>, AssignUpdater<int>>> tmin;
+    tmin.reserve(1 << (k - 1));
+    vector<SegmentTreeDown<int, MaxCombiner<int>, AssignUpdater<int>>> tmax;
+    tmax.reserve(1 << (k - 1));
+    vector<vector<int>> v(n, vector<int>(k));
+    GETM(v, n, k);
+    vector<vector<int>> t(1 << (k - 1), vector<int>(n));
+    FOR (i, 0, n) {
+        FOR (j, 0, 1 << (k - 1)) {
+            t[j][i] = calc(v[i], j);
+        }
+    }
+    FOR (i, 0, 1 << (k - 1)) {
+        tmin.emplace_back(t[i]);
+        tmax.emplace_back(t[i]);
+    }
+    int q;
+    cin >> q;
+    FOR (i, 0, q) {
+        int type;
+        cin >> type;
+        if (type == 1) {
+            int pos;
+            cin >> pos;
+            --pos;
+            vector<int> b(k);
+            GET(b, k);
+            FOR (j, 0, 1 << (k - 1)) {
+                int value = calc(b, j);
+                tmin[j].update(pos, value);
+                tmax[j].update(pos, value);
+            }
+        } else {
+            int l, r;
+            cin >> l >> r;
+            --l, --r;
+            int res = 0;
+            FOR (j, 0, 1 << (k - 1)) {
+                res = max(res, tmax[j].query(l, r) - tmin[j].query(l, r));
+            }
+            cout << res << endl;
+        }
+    }
+}

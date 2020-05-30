@@ -1,0 +1,124 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+const int maxN = 51;
+const int maxM = 2e4+10;
+const int inf = 1e9;
+const int sz = 1<<16;
+int a[maxN][maxM];
+int n, m, k;
+int tree[maxN][2*sz];
+int lazy[maxN][2*sz];
+int sum[maxN][maxM];
+int dp[maxN][maxM];
+
+void set_val(int val, int idx, int t)
+{
+    idx+=sz-1;
+
+    tree[t][idx] = val;
+    idx/=2;
+
+    while(idx)
+    {
+        tree[t][idx] = max(tree[t][2*idx], tree[t][2*idx+1]);
+        idx/=2;
+    }
+}
+
+void change(int node, int t)
+{
+      tree[t][node] = max(tree[t][2*node] + lazy[t][2*node], tree[t][2*node+1]+ lazy[t][2*node+1]);
+}
+
+void push(int node, int t)
+{
+    if (node>=sz)  tree[t][node]+=lazy[t][node]; else
+    {
+        lazy[t][2*node]+=lazy[t][node];
+        lazy[t][2*node+1]+=lazy[t][node];
+        change(node, t);
+    }
+
+    lazy[t][node] = 0;
+
+}
+
+void update(int node, int t, int tl, int tr, int l, int r, int val)
+{
+     push(node, t);
+
+     if (tl>r || tr<l) return;
+
+     if (tl>=l && tr<=r)
+     {
+         lazy[t][node] +=val;
+         push(node, t);
+         return;
+     }
+
+     int mid = tl + tr>>1;
+
+     update(2*node, t, tl, mid, l, r, val);
+     update(2*node+1, t, mid+1, tr, l ,r ,val);
+     change(node, t);
+}
+
+int get(int node, int t, int tl, int tr, int l, int r)
+{
+    push(node, t);
+
+
+    if (tl >r || tr < l) return -inf;
+
+    if (tl>=l && tr<=r) return tree[t][node];
+
+    int mid = (tl + tr)/2;
+
+    int val1 = get(2*node, t, tl, mid, l, r);
+    int val2 = get(2*node+1, t, mid+1, tr, l, r);
+
+   // cout<<"VRATIO "<<tl<<" "<<tr<<" "<<val1<<" "<<val2<<endl;
+    return max(val1, val2);
+}
+
+int main()
+{
+    cin>>n>>m>>k;
+
+    for (int i =1;i<=n;i++)
+        for(int j=1;j<=m;j++)
+          scanf("%d",&a[i][j]);
+
+    for (int i =1;i<=n;i++)
+        for (int j = 1;j<=m;j++)
+        sum[i][j] = sum[i][j-1] + a[i][j];
+
+    for (int i = 1;i<=m;i++){
+        dp[1][i] = sum[1][i] - sum[1][max(i-k, 0)] + sum[2][i] - sum[2][max(i-k, 0)];
+        set_val(dp[1][i], i , 1);
+    }
+
+    for (int i =2;i<=n;i++)
+   {
+
+       for (int j =1;j<=m;j++)
+       {
+           update(1, i-1, 1, sz, j, min(j+k-1, m), - a[i][j]);
+
+           if (j-k>0)
+             update(1, i-1, 1, sz, max(j-k, 1), j-1, a[i][j-k]);
+           dp[i][j] = sum[i][j] - sum[i][max(j-k, 0)] + sum[i+1][j] - sum[i+1][max(j-k, 0)] + get(1,i-1, 1, sz, 1, m);
+
+       }
+       for (int j = 1;j<=m;j++)
+        set_val(dp[i][j], j, i);
+   }
+    int ans = 0;
+    for (int i = 1;i<=m;i++)
+        ans = max(ans, dp[n][i]);
+
+    cout<<ans<<endl;
+    return 0;
+}

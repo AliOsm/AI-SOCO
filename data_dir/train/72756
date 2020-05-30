@@ -1,0 +1,123 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <map>
+#include <queue>
+#include <set>
+#include <iomanip>
+#include <deque>
+#include <cassert>
+#include <ctime>
+#include <cstring>
+#include <cstdlib>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+#define INF 2001001001
+#define MOD 1000000007
+int tab[500001][21];
+int tree[1000005];
+
+int N,M;
+
+void update(int pos, int val){
+  pos+=500001;
+  tree[pos]=val;
+  for (pos/=2;pos>=1;pos/=2){
+    tree[pos]=max(tree[pos*2],tree[pos*2+1]);
+  }
+}
+
+int query(int l, int r){
+  l+=500001;
+  r+=500001;
+  int mx=0;
+  while (l<=r){
+    if (l%2==1)//right node
+      mx=max(mx,tree[l++]);
+    if (r%2==0)//left node
+      mx=max(mx,tree[r--]);
+    l/=2;
+    r/=2;
+  }
+  return mx;
+}
+
+int mx[500001];
+
+int main()
+{
+  ios_base::sync_with_stdio(0);cin.tie(0);
+  cin>>N>>M;
+  for (int i=0;i<=500000;i++)
+    tab[i][0]=i;
+  for (int i=0;i<=500000;i++)
+    mx[i]=INF;
+  for (int i=0;i<N;i++){
+    int L,R;
+    cin>>L>>R;
+    mx[R]=min(mx[R],L);
+    tab[L][0]=max(tab[L][0],R);
+  }
+  for (int i=0;i<=500000;i++)
+    update(i,tab[i][0]);
+  
+  for (int i=1;i<=20;i++){
+    for (int j=0;j<=500000;j++){
+      tab[j][i]=query(j,tab[j][i-1]);
+    }
+    for (int j=0;j<=500000;j++)
+      update(j,tab[j][i]);
+  }
+  for (int i=0;i<=500000;i++)
+    update(i,tab[i][0]);
+  
+  for (int i=0;i<M;i++){
+    int X,Y;
+    cin>>X>>Y;
+    int endp=query(0,X);
+    int startp=mx[endp];
+    if (startp==INF){
+      cout<<-1<<endl;
+      continue;
+    }
+    assert(startp<=X);
+    //cout<<"PRINT: "<<startp<<' '<<endp<<endl;
+    int ans=0;
+    int cur=startp;
+    while (cur<Y){
+      int prev=cur;
+      for (int i=20;i>=0;i--){
+	if (i>0 && tab[cur][i-1]==tab[cur][i])
+	  continue;
+	if (tab[cur][i]==cur)
+	  break;
+	if (tab[cur][i]<Y){
+	  cur=tab[cur][i];
+	  ans+=(1<<i);
+	  break;
+	}
+      }
+      //cout<<prev<<' '<<cur<<endl;
+      if (prev==cur)
+	break;
+      if (cur==INF){
+	cur=-1;
+	break;
+      }
+      endp=query(prev,cur);
+      if (mx[endp]==prev)
+	break;
+      assert(mx[endp]<=cur);
+      cur=mx[endp];
+    }
+    //cout<<"CUR: "<<cur<<endl;
+    if (cur!=-1 && tab[cur][0]>=Y)
+      cout<<ans+1<<endl;
+    else
+      cout<<-1<<endl;
+  }
+  return 0;
+}

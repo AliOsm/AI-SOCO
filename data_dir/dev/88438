@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+const long long mod = 1000000007;
+
+const int mxN = 100010;
+
+bitset<1010> np;
+vector<int> ps;
+
+void sieve() {
+	np[0] = np[1] = 1;
+	for(int i = 0;i <= 1000;i++) {
+		if(np[i]) continue;
+		ps.push_back(i);
+		for(int j = i * i;j <= 1000;j += i) np[j] = 1;
+	}
+}
+
+int N,M;
+
+vector<int> tree[mxN];
+int init[mxN];
+int st[mxN],rev[mxN],en[mxN];
+int T;
+
+void dfs(int v = 0,int p = -1) {
+	st[v] = T++;
+	rev[T-1] = v;
+	for(auto u : tree[v]) if(u != p) dfs(u,v);
+	en[v] = T-1;
+}
+
+bitset<1000> with[1001],notw[1001];
+bitset<1000> pb,tmp;
+bitset<1000> seg[mxN<<2];
+int lz[mxN<<2];
+
+void build(int n = 1,int l = 0,int r = N-1) {
+	if(l == r) {
+		seg[n][init[rev[l]]] = 1;
+		return;
+	}
+	int md = (l+r)>>1;
+	build(n<<1,l,md);
+	build(n<<1|1,md+1,r);
+	seg[n] = seg[n<<1] | seg[n<<1|1];
+}
+
+void push(int n,int l,int r) {
+	if(l == r || !lz[n]) return;
+	
+	lz[n<<1] += lz[n];
+	if(lz[n<<1] >= M) lz[n<<1] -= M;
+	
+	lz[n<<1|1] += lz[n];
+	if(lz[n<<1|1] >= M) lz[n<<1|1] -= M;
+	
+	seg[n<<1] = ((seg[n<<1]&notw[M-lz[n]-1])<<lz[n]) | ((seg[n<<1]&with[M-lz[n]])>>(M-lz[n]));
+	
+	seg[n<<1|1] = ((seg[n<<1|1]&notw[M-lz[n]-1])<<lz[n]) | ((seg[n<<1|1]&with[M-lz[n]])>>(M-lz[n]));
+	
+	lz[n] = 0;
+}
+
+void upd(int a,int b,int x,int n = 1,int l = 0,int r = N-1) {
+	push(n,l,r);
+	if(l == a && b == r) {
+		seg[n] = ((seg[n]&notw[M-x-1])<<x) | ((seg[n]&with[M-x])>>(M-x));
+		lz[n] += x;
+		if(lz[n] >= M) lz[n] -= M;
+		return;
+	}
+	int md = (l+r)>>1;
+	if(a <= md) upd(a,min(b,md),x,n<<1,l,md);
+	if(b > md) upd(max(a,md+1),b,x,n<<1|1,md+1,r);
+	seg[n] = seg[n<<1] | seg[n<<1|1];
+}
+
+bitset<1000> get(int a,int b,int n = 1,int l = 0,int r = N-1) {
+	push(n,l,r);
+	if(l == a && b == r) {
+		return seg[n];
+	}
+	int md = (l+r)>>1;
+	bitset<1000> res;
+	if(a <= md) res = get(a,min(b,md),n<<1,l,md);
+	if(b > md) res |= get(max(a,md+1),b,n<<1|1,md+1,r);
+	return res;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	sieve();
+	for(int i = 1000-1;i >= 0;i--) {
+		with[i] = with[i+1];
+		with[i][i] = 1;
+	}
+	notw[0][0] = 1;
+	for(int i = 1;i < 1000;i++) {
+		notw[i] = notw[i-1];
+		notw[i][i] = 1;
+	}
+	for(auto p : ps) pb[p] = 1;
+
+	int u,v,Q,t;
+	cin>>N>>M;
+	for(int i = 0;i < N;i++) cin>>init[i],init[i] %= M;
+	for(int i = 1;i < N;i++) {
+		cin>>u>>v;
+		u--,v--;
+		tree[u].push_back(v);
+		tree[v].push_back(u);
+	}
+	dfs();
+	build();
+	cin>>Q;
+	for(int i = 0;i < Q;i++) {
+		cin>>t>>v;
+		v--;
+		if(t == 1) {
+			cin>>u;
+			u %= M;
+			if(!u) continue;
+			upd(st[v],en[v],u);
+		} else {
+			cout<<(get(st[v],en[v])&pb).count()<<'\n';
+		}
+	}
+	return 0;
+}

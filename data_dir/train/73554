@@ -1,0 +1,153 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <queue>
+#include <map>
+#include <stack>
+#include <complex>
+#include <random>
+#include <bitset>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+
+const int INFTY = 1000000;
+const int MAXSEG = 1<<21;
+const ld EPS = 1E-8;
+int N, S;
+vector<pair<int, int> > L, R;
+bool seg[MAXSEG];
+bool lazy[MAXSEG];
+
+void down(int node)
+{
+    if (lazy[node])
+    {
+        seg[2*node] = seg[2*node + 1] = true;
+        lazy[2*node] = lazy[2*node + 1] = true;
+        lazy[node] = false;
+    }
+}
+
+void update(int node, int left, int right, int ql, int qr)
+{
+    if (left > right || ql > qr || qr < left || right < ql)
+        return;
+
+    if (ql <= left && right <= qr)
+    {
+        seg[node] = lazy[node] = true;
+        return;
+    }
+
+    down(node);
+
+    int mid = (left + right)/2;
+    update(2*node, left, mid, ql, qr);
+    update(2*node + 1, mid + 1, right, ql, qr);
+    seg[node] = seg[2*node] | seg[2*node + 1];
+}
+
+bool query(int node, int left, int right, int ql, int qr)
+{
+    if (left > right || ql > qr || qr < left || right < ql)
+        return 0;
+
+    if (ql <= left && right <= qr)
+        return seg[node];
+
+    down(node);
+
+    int mid = (left + right)/2;
+    return query(2*node, left, mid, ql, qr) | query(2*node + 1, mid + 1, right, ql, qr);
+}
+
+bool check(ld T)
+{
+    memset(seg, 0, sizeof(seg));
+    memset(lazy, 0, sizeof(lazy));
+
+    for (int i = 0; i < R.size(); i++)
+    {
+        int x = R[i].first, v = R[i].second;
+        int lo = 0, hi = x;
+        if (x + (v + S)*T < INFTY)
+            continue;
+        if (x + v*T >= INFTY)
+        {
+            update(1, 1, INFTY + 1, 1, INFTY + 1);
+            break;
+        }
+        while (lo < hi)
+        {
+            int mid = lo + (hi - lo)/2;
+            ld dist = x + 1.0*v*(x - mid)/(S - v) + 1.0*(v + S)*(T - 1.0*(x - mid)/(S - v));
+            if (dist >= INFTY)
+                hi = mid;
+            else
+                lo = mid + 1;
+        }
+        //cout << "right " << i << ": " << lo << " to " << x << "\n";
+        update(1, 1, INFTY + 1, lo + 1, x + 1);
+    }
+    for (int i = 0; i < L.size(); i++)
+    {
+        int x = L[i].first, v = L[i].second;
+        int lo = x, hi = INFTY;
+        if (x - (v + S)*T > 0)
+            continue;
+        if (x - v*T <= 0)
+            return query(1, 1, INFTY + 1, 1, INFTY + 1);
+        while (lo < hi)
+        {
+            int mid = lo + (hi - lo + 1)/2;
+            ld dist = x - 1.0*v*(mid - x)/(S - v) - 1.0*(v + S)*(T - 1.0*(mid - x)/(S - v));
+            if (dist <= 0)
+                lo = mid;
+            else
+                hi = mid - 1;
+        }
+        //cout << "left " << i << ": " << x << " to " << lo << "\n";
+        if (query(1, 1, INFTY + 1, x + 1, lo + 1))
+            return true;
+    }
+    return false;
+}
+
+int main()
+{
+    scanf("%d %d", &N, &S);
+    for (int i = 0, x, v, t; i < N; i++)
+    {
+        scanf("%d %d %d", &x, &v, &t);
+        if (t == 1)
+            L.push_back(make_pair(x, v));
+        else
+            R.push_back(make_pair(x, v));
+    }
+
+    ld lo = 0, hi = INFTY + 2;
+    while (hi - lo > EPS)
+    {
+        ld mid = (lo + hi)/2;
+        if (check(mid))
+            hi = mid;
+        else
+            lo = mid;
+    }
+
+    printf("%.10f\n", (double)lo);
+
+    return 0;
+}

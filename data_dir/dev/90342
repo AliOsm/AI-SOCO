@@ -1,0 +1,74 @@
+#include <bits/stdc++.h>
+
+const int INF = 0x3f3f3f3f;
+const int N = 1000 + 5;
+char str[N][N];
+int n,m;
+int dis[3][N][N];
+int dir[4][2] = {1,0,0,1,-1,0,0,-1};
+
+struct Node {
+    int d,x,y;
+
+    bool operator < (const Node &rhs) const {
+        return d > rhs.d;
+    }
+};
+
+void dijkstra(char c,int dis[N][N]) {
+    std::priority_queue<Node> que;
+    for (int i = 0; i < n; ++ i) {
+        for (int j = 0; j < m; ++ j) {
+            if (str[i][j] == c) {
+                dis[i][j] = 0;
+                que.push({0,i,j});
+            }
+        }
+    }
+    while (!que.empty()) {
+        Node f = que.top(); que.pop();
+        if (f.d != dis[f.x][f.y]) continue;
+        for (int i = 0; i < 4; ++ i) {
+            int ex = f.x + dir[i][0];
+            int ey = f.y + dir[i][1];
+            if (ex < 0 || ex >= n || ey < 0 || ey >= m) continue;
+            if (str[ex][ey] == '#') continue;
+            int tmp = f.d + (str[ex][ey] == '.');
+            if (tmp < dis[ex][ey]) {
+                dis[ex][ey] = tmp;
+                que.push({tmp,ex,ey});
+            }
+        }
+    }
+}
+
+int work() {
+    memset(dis,INF,sizeof(dis));
+    dijkstra('1',dis[0]);
+    dijkstra('2',dis[1]);
+    dijkstra('3',dis[2]);
+    int ret = INF;
+    for (int i = 0; i < n; ++ i) {
+        for (int j = 0; j < m; ++ j) {
+            if (str[i][j] == '#') continue;
+            if (dis[0][i][j] == INF || dis[1][i][j] == INF
+                    || dis[2][i][j] == INF)
+                continue;
+            int tmp = dis[0][i][j] + dis[1][i][j] + dis[2][i][j];
+            if (str[i][j] == '.')
+                tmp -= 2;
+            if (ret > tmp)
+                ret = tmp;
+        }
+    }
+    if (ret == INF) ret = -1;
+    return ret;
+}
+
+int main() {
+    scanf("%d%d",&n,&m);
+    for (int i = 0; i < n; ++ i) {
+        scanf("%s",str[i]);
+    }
+    printf("%d\n",work());
+}

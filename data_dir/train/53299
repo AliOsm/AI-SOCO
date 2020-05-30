@@ -1,0 +1,128 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <map>
+#include <queue>
+#include <set>
+#include <iomanip>
+#include <deque>
+#include <cassert>
+#include <ctime>
+#include <cstring>
+#include <cstdlib>
+#include <chrono>
+#include <ctime>
+#include <random>
+#include <stack>
+#include <unordered_set>
+#include <unordered_map>
+using namespace std;
+
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+typedef long long ll;
+typedef long double ld;
+#define INF 2001001001
+#define MOD 1000000007
+
+struct SegmentTree{
+  int siz;
+  vector<ll>tree_min;
+  vector<ll>tree_max;
+  SegmentTree(int temp){
+    siz=temp;
+    for (int i=0;i<siz*2;i++){
+      tree_min.push_back(INF);
+      tree_max.push_back(-INF);
+    }
+  }
+  SegmentTree(){}
+  void update(int pos, ll val){
+    pos+=siz;
+    tree_min[pos]=val;
+    tree_max[pos]=val;
+    for (pos/=2;pos>=1;pos/=2){
+      tree_min[pos]=min(tree_min[pos*2],tree_min[pos*2+1]);
+      tree_max[pos]=max(tree_max[pos*2],tree_max[pos*2+1]);
+    }
+  }
+  ll query_min(int L, int R){
+    L+=siz;
+    R+=siz;
+    ll s=INF;
+    while (L<=R){
+      if (L%2==1)//Right node
+	s=min(s,tree_min[L++]);
+      if (R%2==0)//Left node
+	s=min(s,tree_min[R--]);
+      L/=2;
+      R/=2;
+    }
+    return s;
+  }
+  ll query_max(int L, int R){
+    L+=siz;
+    R+=siz;
+    ll s=-INF;
+    while (L<=R){
+      if (L%2==1)//Right node
+	s=max(s,tree_max[L++]);
+      if (R%2==0)//Left node
+	s=max(s,tree_max[R--]);
+      L/=2;
+      R/=2;
+    }
+    return s;
+  }
+};
+
+int N,arr[100001];
+
+int main()
+{
+  //ios_base::sync_with_stdio(0);cin.tie(0);
+  //freopen (".in","r",stdin);
+  //freopen (".out","w",stdout);
+  cin>>N;
+  for (int i=0;i<N;i++)
+    cin>>arr[i];
+  SegmentTree st=SegmentTree(N*3),st2=SegmentTree(N*3);
+  for (int i=0;i<N;i++){
+    st.update(i,arr[i]);
+    st.update(i+N,arr[i]);
+    st.update(i+N*2,arr[i]);
+  }
+  for (int i=0;i<N*3;i++){
+    int low=-1,high=i,mid;
+    while (low+1<high){
+      mid=(low+high)/2;
+      if (arr[i%N]*2<st.query_max(mid,i-1))
+	low=mid;
+      else
+	high=mid;
+    }
+    int fail=low;
+    if (arr[i%N]*2>=st.query_max(low,i-1))
+      fail=-1;
+    //cout<<fail<<' ';
+    st2.update(i,fail);
+  }
+  //cout<<endl;
+  for (int i=0;i<N;i++){
+    int low=i,high=N*3,mid;
+    while (low+1<high){
+      mid=(low+high)/2;
+      if (st2.query_max(i+1,mid)>=i)
+	high=mid;
+      else
+	low=mid;
+    }
+    if (high==N*3)
+      cout<<-1<<' ';
+    else
+      cout<<high-i<<' ';
+  }
+  cout<<endl;
+  return 0;
+}

@@ -1,0 +1,161 @@
+/////////////////////////   _LeMur_
+#define _CRT_SECURE_NO_WARNINGS
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <chrono>
+#include <random>
+#include <bitset>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <list>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 200005;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 1000 * 1000 * 1000 + 7;
+
+int n;
+
+int mx, gag;
+int parent[N];
+vector <int> g[N];
+
+int mx1[N] , mx2[N] , mx3[N];
+int v1[N] , v2[N] , v3[N];
+
+void dfs(int v,int p) {
+    mx1[v] = mx2[v] = mx3[v] = 0;
+    v1[v] = v2[v] = v3[v] = v;
+    for (int i = 0; i < (int)g[v].size(); i++) {
+        int to = g[v][i];
+        if (to == p) {
+            continue;
+        }
+        dfs(to , v);
+        if (mx1[to] + 1 > mx1[v]) {
+            mx3[v] = mx2[v];
+            v3[v] = v2[v];
+            mx2[v] = mx1[v];
+            v2[v] = v1[v];
+            mx1[v] = mx1[to] + 1;
+            v1[v] = v1[to];
+            continue;
+        }
+        if (mx1[to] + 1 > mx2[v]) {
+            mx3[v] = mx2[v];
+            v3[v] = v2[v];
+            mx2[v] = mx1[to] + 1;
+            v2[v] = v1[to];
+            continue;
+        }
+        if (mx1[to] + 1 > mx3[v]) {
+            mx3[v] = mx1[to] + 1;
+            v3[v] = v1[to];
+        }
+    }
+}
+
+int dp[N];
+int vv[N];
+
+void dfsup(int v,int p) {
+    if (p != -1) {
+        if (dp[p] + 1 > dp[v]) {
+            dp[v] = dp[p] + 1;
+            vv[v] = vv[p];
+        }
+    }
+    for (int i = 0; i < (int)g[v].size(); i++) {
+        int to = g[v][i];
+        if (to == p) {
+            continue;
+        }
+        if (mx1[v] == mx1[to] + 1) {
+            if (mx2[v] + 1 > dp[to]) {
+                dp[to] = mx2[v] + 1;
+                vv[to] = v2[v];
+            }
+        } else {
+            if (mx1[v] + 1 > dp[to]) {
+                dp[to] = mx1[v] + 1;
+                vv[to] = v1[v];
+            }
+        }
+        dfsup(to, v);
+    }
+}
+
+int main() {
+    cin >> n;
+    for (int i = 1; i < n; i++) {
+        int a, b;
+        scanf("%d%d",&a,&b);
+        g[a].push_back(b);
+        g[b].push_back(a);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        dp[i] = 0;
+        vv[i] = i;
+    }
+
+    dfs(1, -1);
+    dfsup(1, -1);
+
+    int sum = 0, gag;
+    set <int> A;
+
+    for (int i = 1; i <= n; i++) {
+        vector < pair<int,int> > mas;
+        mas.push_back(make_pair(mx1[i] , v1[i]));
+        mas.push_back(make_pair(mx2[i] , v2[i]));
+        mas.push_back(make_pair(mx3[i] , v3[i]));
+        mas.push_back(make_pair(dp[i] , vv[i]));
+
+        sort(mas.begin(), mas.end());
+
+        set <int> B;
+        B.insert(mas[1].second);
+        B.insert(mas[2].second);
+        B.insert(mas[3].second);
+
+        int S = 0;
+        for (int j = 1; j < 4; j++) {
+            S += mas[j].first;
+        }
+
+        if (S > sum) {
+            gag = i;
+            sum = S;
+            A = B;
+            continue;
+        }
+        if (S == sum) {
+            if ((int)B.size() > (int)A.size()) {
+                A = B;
+            }
+        }
+    }
+
+    cout << sum << endl;
+    while (!A.empty()) {
+        cout << (*A.begin()) << " ";
+        A.erase(A.begin());
+    }
+    cout << endl;
+    return 0;
+}

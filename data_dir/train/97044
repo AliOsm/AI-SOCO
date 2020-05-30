@@ -1,0 +1,191 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <cmath>
+#include <climits>
+#include <memory.h>
+
+#if !defined(__GNUC__)
+
+#include <hash_set>
+#include <hash_map>
+
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+
+#else // !defined(__GNUC__)
+
+#include <ext/hash_set>
+#include <ext/hash_map>
+
+namespace stdext = __gnu_cxx;
+
+#define _CrtDbgBreak()
+
+#endif // !defined(__GNUC__)
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<uint8_t> vector_uint8_t;
+typedef std::vector<vector_uint8_t> vector_2d_uint8_t;
+typedef std::set<size_t> set_size_t;
+typedef std::multiset<size_t> multiset_size_t;
+
+typedef std::vector<string8_t> vector_string8_t;
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+typedef std::map<string8_t, set_string8_t> map_string8_t;
+typedef stdext::hash_set<size_t> hash_set_size_t;
+typedef stdext::hash_map<size_t, size_t> hash_map_size_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE) || defined(__GNUC__)
+template<size_t id> class StopWatch { };
+#else //defined(ONLINE_JUDGE)
+#include <library/lib_stopwatch.h>
+#endif //defined(ONLINE_JUDGE)
+
+uint64_t GetFreeCount(const uint64_t t)
+{
+    return t * (t + 1) / 2;
+}
+
+uint64_t GetFillCountInRect(const uint64_t n, const uint64_t m, const uint64_t t)
+{
+    if (n == 0)
+        return 0;
+    if (m == 0)
+        return 0;
+
+    const uint64_t maxTime = n - 1 + m - 1 + 1;
+    if (t >= maxTime)
+        return n * m;
+
+    const uint64_t freeCount = GetFreeCount(t);
+    uint64_t ans = freeCount;
+    if (t > n)
+        ans -= GetFreeCount(t - n);
+    if (t > m)
+        ans -= GetFreeCount(t - m);
+    
+    return ans;
+}
+
+struct GetCount
+{
+    GetCount(const uint64_t n_, const uint64_t x_, const uint64_t y_): n(n_), x(x_), y(y_) {}
+
+    uint64_t operator()(const uint64_t t) const
+    {
+        if (t > 0)
+        {
+            const uint64_t ans1 = GetFillCountInRect(x - 1, y, t);
+            const uint64_t ans2 = GetFillCountInRect(x, n - y, t);
+            const uint64_t ans3 = GetFillCountInRect(n - x, n - y + 1, t);
+            const uint64_t ans4 = GetFillCountInRect(n - x + 1, y - 1, t);
+            return ans1 + ans2 + ans3 + ans4 + 1;
+        }
+
+        return 1;
+    }
+
+    const uint64_t n;
+    const uint64_t x;
+    const uint64_t y;
+};
+
+template<typename ArgType, typename ResultType, typename Func>
+ArgType LowerBound(const ArgType& firstX, const ArgType& lastX, const ResultType& y, const Func& func)
+{
+    ArgType l = firstX;
+    ArgType r = lastX;
+
+    while (l < r)
+    {
+        const ArgType m = l + (r - l) / 2;
+        if (func(m) < y)
+        {
+            l = m + 1;
+        }
+        else
+        {
+            r = m;
+        }
+    }
+
+    return l;
+}
+
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw;
+
+    // first input value
+    uint64_t n, x, y, c;
+    ist >> n >> x >> y >> c;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    // remain input & solve
+    GetCount func(n, x, y);
+
+#if !defined(ONLINE_JUDGE)
+    for (uint64_t t = 0; t < 10; t++)
+    {
+        std::cout << "t = " << t << "; fill = " << func(t) << std::endl;
+    }
+#endif
+
+    const uint64_t maxC = 1000000000ULL + 1;
+    const uint64_t ans = LowerBound(0ULL, maxC, c, func);
+    
+    ost << ans << std::endl;
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

@@ -1,0 +1,142 @@
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+using namespace std;
+
+const int MAXN=200001;
+const int INF=1000000000;
+
+
+char str[MAXN];
+
+int ds;
+
+int getds(int n)
+{
+	n--;
+	n|=n>>1;
+	n|=n>>2;
+	n|=n>>4;
+	n|=n>>8;
+	n|=n>>16;
+	return n+1;
+}
+
+struct Node
+{
+	int tr[5][5];
+};
+
+vector<Node> tree;
+
+Node merge(const Node& a, const Node& b)
+{
+	Node res;
+	for(int i=0;i<5;i++)
+		for(int j=0;j<5;j++)
+			res.tr[i][j]=INF;
+	for(int i=0;i<5;i++)
+		for(int j=i;j<5;j++)
+		{
+			for(int k=i;k<=j;k++)
+			{
+				res.tr[i][j]=min(res.tr[i][j],a.tr[i][k] + b.tr[k][j]);
+			}
+		}
+	return res;
+}
+
+Node sample[10];
+char good[5]="2017";
+char banned[5]="2016";
+
+int get_len(const char* s, const char* x)
+{
+	int i=0;
+	for(int j=0;s[j];j++)
+		if(s[j]==x[i])
+			i++;
+	return i;
+}
+
+int get_res(int l, int r)
+{
+	l+=ds;
+	r+=ds;
+	vector<int> lres, rres;
+	while(l<=r)
+	{
+		if(l&1)
+			lres.push_back(l++);
+		if(~r&1)
+			rres.push_back(r--);
+		l>>=1;
+		r>>=1;
+	}
+	reverse(rres.begin(), rres.end());
+	lres.insert(lres.end(), rres.begin(), rres.end());
+	int cost[5], tmp[5];
+	for(int i=0;i<5;i++)
+		cost[i]=INF;
+	cost[0]=0;
+	for(int i=0;i<lres.size();i++)
+	{
+		for(int j=0;j<5;j++)
+		{
+			tmp[j]=INF;
+			for(int k=0;k<=j;k++)
+			{
+				tmp[j]=min(tmp[j], cost[k]+tree[lres[i]].tr[k][j]);
+			}
+		}
+		for(int j=0;j<5;j++)
+			cost[j]=tmp[j];
+	}
+	return cost[4];
+}
+
+int main()
+{
+	int n,q;
+	scanf("%d%d",&n,&q);
+	scanf("%s",str);
+	ds=getds(n);
+	tree.resize(2*ds);
+	for(int D=0;D<10;D++)
+	{
+		char d=D+'0';
+		for(int i=0;i<5;i++)
+			for(int j=0;j<5;j++)
+				sample[D].tr[i][j]=INF;
+		for(int i=0;i<5;i++)
+			sample[D].tr[i][i]=1;
+		for(int i=0;i<5;i++)
+		{
+			string x(good, good+i);
+			x+=d;
+			int l1=get_len(x.c_str(), good);
+			int l2=get_len(x.c_str(), banned);
+			if(l2==4) continue;
+			sample[D].tr[i][l1]=0;
+		}
+	}
+	for(int i=0;i<n;i++)
+		tree[i+ds]=sample[str[i]-'0'];
+	for(int i=ds-1;i>=0;i--)
+		tree[i]=merge(tree[2*i], tree[2*i+1]);
+	while(q--)
+	{
+		int l,r;
+		scanf("%d%d",&l,&r);
+		l--;
+		r--;
+		int res=get_res(l,r);
+		if(res>n)
+			puts("-1");
+		else
+			printf("%d\n",res);
+	}
+	return 0;
+}

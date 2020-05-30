@@ -1,0 +1,115 @@
+/*
+ * Code be weshen zyk :'(
+ */
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma comment(linker, "/STACK:1024000000,1024000000")
+
+#include <bits/stdc++.h>
+
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/rope>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+template<class T> using orderd_set = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+
+#define S second
+#define F first
+#define pb push_back
+
+using ii = pair<int, int>;
+using ll = long long;
+using db = long double;
+
+const int N = 1e5 + 5, K = 20, MOD = 1e9 + 7;
+const ll MX = 1e15;
+const int blkSz = 320;
+int nxt[N][K];
+int n, p;
+int mat[K][K];
+string str;
+bool forbid[1<<K];
+int cnt[K];
+void bt(int bit, int mask, int dontCare){
+	if(bit == p){
+		forbid[mask] = true;
+		return;
+	}
+	bt(bit + 1, mask, dontCare);
+	if(dontCare >> bit & 1){
+		bt(bit + 1, mask ^ (1 << bit), dontCare);
+	}
+}
+int dp[1<<K];
+int solve(int mask){
+	if(forbid[mask])
+		return -N;
+	int &ret = dp[mask];
+	if(~ret)
+		return ret;
+	ret = 0;
+	for(int m = 0; m < p; m++)
+		if(mask >> m & 1 ^ 1){
+			ret = max(ret, cnt[m] + solve(mask ^ (1 << m)));
+		}
+	return ret;
+}
+int main(int argc, char** argv) {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+#endif
+
+	cin >> n >> p;
+
+	cin >> str;
+
+	for(auto & c : str){
+		c -= 'a';
+		cnt[c]++;
+	}
+
+	for(int i = 0; i < p; i++)
+		for(int j = 0; j < p; j++)
+			cin >> mat[i][j];
+	fill(nxt[n-1], nxt[n-1] + p, n);
+
+	vector<pair<int, int>> masks; ///1 masks and 0 masks
+
+	for(int i = n - 1; i >= 1; --i){
+		for(int j = 0; j < p; j++)
+			nxt[i-1][j] = nxt[i][j];
+		nxt[i-1][str[i]] = i;
+		vector<int> v;
+		for(int j = 0; j < p; j++)
+			v.pb(nxt[i][j]);
+		sort(v.begin(), v.end());
+		int mask = 0;
+		for(int j = 0; (mask >> str[i] & 1 ^ 1) && v[j] < n; j++){
+			///all the mask is deleted and these two shouldn't be deleted
+			if(mat[str[i]][str[v[j]]] == 0){
+				masks.pb(ii(mask,(1 << str[i]) | (1 << str[v[j]])));
+			}
+			mask |= (1 << str[v[j]]);
+		}
+	}
+
+	sort(masks.begin(), masks.end());
+	masks.resize(unique(masks.begin(), masks.end()) - masks.begin());
+
+	for(auto x : masks){
+		int maskFree = ((1 << p) - 1) ^ x.F ^ x.S;
+		int curMask = x.F;
+		bt(0,curMask,maskFree);
+	}
+	memset(dp, -1, sizeof dp);
+
+	cout << n - solve(0) << '\n';
+
+	return 0;
+}

@@ -1,0 +1,194 @@
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <ctype.h>
+#include <string>
+#include <numeric>
+#include <set>
+#include <cstdio>
+#include <cassert>
+#include <cstring>
+#include <cstdlib>
+#include <queue>
+#include <cmath>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(n);i++)
+
+vector<vector<int> > v;
+
+void simplify(int cur,int p)
+{
+	vector<int>::iterator it=find(v[cur].begin(), v[cur].end(),p);
+	if(it!=v[cur].end())
+		v[cur].erase(it);
+	for(int i=0;i<v[cur].size();i++)
+		simplify(v[cur][i],cur);
+
+}
+
+bool solve_halfline(int cur);
+bool solve_line(int cur);
+bool solve_halfplane(int cur);
+bool solve_plane(int cur);
+vector<int> res_halfline,res_line, res_halfplane, res_plane, res_partplane;
+
+bool solve_halfline(int cur)
+{
+	if(res_halfline[cur]==-1)
+	{
+		res_halfline[cur]=v[cur].size()<=1;
+		if(!v[cur].empty())
+			res_halfline[cur]&=solve_halfline(v[cur][0]);
+	}
+	return res_halfline[cur];
+}
+
+bool solve_line(int cur)
+{
+	if(res_line[cur]==-1)
+	{
+		res_line[cur]=v[cur].size()<=2;
+		REP(i,v[cur].size())
+			res_line[cur]&=solve_halfline(v[cur][i]);
+	}
+	return res_line[cur];
+}
+
+bool solve_halfplane(int cur)
+{
+	if(res_halfplane[cur]==-1)
+	{
+		res_halfplane[cur]=true;
+		int halfplane_cnt=0;
+		for(int i=0;i<v[cur].size();i++)
+		{
+			int to=v[cur][i];
+			if(solve_line(to)) continue;
+			if(solve_halfplane(to))
+				halfplane_cnt++;
+			else
+				halfplane_cnt+=100;
+		}
+		res_halfplane[cur]=halfplane_cnt<=1;
+	}
+	return res_halfplane[cur];
+}
+
+bool solve_partplane(int cur)
+{
+	if(res_partplane[cur]==-1)
+	{
+		res_partplane[cur]=true;
+		int cnt=0;
+		cnt=0;
+		for(int i=0;i<v[cur].size();i++)
+		{
+			int to=v[cur][i];
+			if(solve_line(to)) continue;
+			if(solve_halfplane(to))
+				cnt++;
+			else
+				cnt+=100;
+		}
+		if(cnt>2)
+			res_partplane[cur]=false;
+	}
+	return res_partplane[cur];
+}
+
+bool solve_plane(int cur)
+{
+	if(res_plane[cur]==-1)
+	{
+		res_plane[cur]=true;
+		int cnt=0;
+		int halfcnt=0;
+
+		for(int i=0;i<v[cur].size();i++)
+		{
+			int to=v[cur][i];
+			if(solve_halfline(to))
+			{
+				halfcnt++;
+				continue;
+			}
+			if(solve_plane(to))
+				cnt++;
+			else
+				cnt+=100;
+		}
+		if(halfcnt>1 || cnt>1)
+		{
+			cnt=0;
+			halfcnt=0;
+			for(int i=0;i<v[cur].size();i++)
+			{
+				int to=v[cur][i];
+				if(solve_halfline(to))
+				{
+					halfcnt++;
+					continue;
+				}
+				if(solve_partplane(to))
+					cnt++;
+				else
+					cnt+=100;
+			}
+			if(halfcnt>2 || cnt>1)
+			{
+				cnt=0;
+				for(int i=0;i<v[cur].size();i++)
+				{
+					int to=v[cur][i];
+					if(solve_line(to)) continue;
+					if(solve_halfplane(to))
+						cnt++;
+					else
+						cnt+=100;
+				}
+				if(cnt>2)
+					res_plane[cur]=false;
+			}
+		}
+
+	}
+	return res_plane[cur];
+}
+
+void print(int cur, int depth)
+{
+	REP(i,depth) putchar(' ');
+	if(v[cur].empty()) putchar('*');
+	else putchar('+');
+	printf("%d\n",cur+1);
+	REP(i,v[cur].size())
+		print(v[cur][i],depth+1);
+	REP(i,depth) putchar(' ');
+	printf("-\n");
+}
+
+int main()
+{
+	int n;
+	scanf("%d",&n);
+	v.resize(n);
+	REP(i,n-1)
+	{
+		int a,b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+	int t=0;//rand()%n;
+	simplify(t,-1);
+//	print(t,0);
+	res_plane.resize(n,-1);
+	res_partplane.resize(n,-1);
+	res_halfplane.resize(n,-1);
+	res_line.resize(n,-1);
+	res_halfline.resize(n,-1);
+	puts(solve_plane(t)?"Yes":"No");
+	return 0;
+}

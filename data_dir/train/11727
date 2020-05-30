@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+struct Range
+{
+    int L, R;
+
+    Range(int L = 0, int R = 0) : L(L), R(R) {}
+
+    Range operator & (const Range& Other)
+    {
+        return Range(max(L, Other.L), min(R, Other.R));
+    }
+
+    int Len()
+    {
+        return max(0, R - L + 1);
+    }
+};
+
+const int N = 200200;
+const int Mod = 1e9 + 7;
+
+Range a[N];
+int EqualNext[N];
+int NotEqualNext[N];
+int Pref[N];
+
+void add_self(int& x, int y)
+{
+    if((x += y) >= Mod) x -= Mod;
+}
+
+void sub_self(int& x, int y)
+{
+    if((x -= y) < 0)    x += Mod;
+}
+
+int add(int x, int y)
+{
+    return add_self(x, y), x;
+}
+
+int sub(int x, int y)
+{
+    return sub_self(x, y), x;
+}
+
+int mul(int x, int y)
+{
+    return (ll) x * y % Mod;
+}
+
+int fp(int x, int y)
+{
+    if(!y)      return 1;
+    if(y & 1)   return mul(x, fp(x, y - 1));
+    return fp(mul(x, x), y >> 1);
+}
+
+int inv(int x)
+{
+    return fp(x, Mod - 2);
+}
+
+int ProbEqual(vector <Range> A)
+{
+    Range B = A[0];
+    for(int i = 1; i < A.size(); i++)   B = B & A[i];
+
+    int Res = B.Len();
+    for(int i = 0; i < A.size(); i++)   Res = mul(Res, inv(A[i].Len()));
+    return Res;
+}
+
+int main()
+{
+    int n;  cin >> n;
+
+    for(int i = 1; i <= n; i++) scanf("%d", &a[i].L);
+    for(int i = 1; i <= n; i++) scanf("%d", &a[i].R);
+
+    for(int i = 1; i < n; i++)
+    {
+        EqualNext[i] = ProbEqual({a[i], a[i + 1]});
+        NotEqualNext[i] = sub(1, EqualNext[i]);
+
+        Pref[i] = add(NotEqualNext[i], Pref[i - 1]);
+    }
+
+    int Ans = add(mul(2, Pref[n - 1]), 1);
+
+    for(int i = 1; i < n; i++)
+    {
+        add_self(Ans, NotEqualNext[i]);
+
+        if(i >= 2)
+        {
+            int staff = 1;
+
+            sub_self(staff, ProbEqual({a[i - 1], a[i]}));
+            sub_self(staff, ProbEqual({a[i], a[i + 1]}));
+            add_self(staff, ProbEqual({a[i - 1], a[i], a[i + 1]}));
+
+            add_self(Ans, staff);
+            add_self(Ans, staff);
+        }
+
+        if(i >= 3)
+        {
+            add_self(Ans, mul(NotEqualNext[i], Pref[i - 2]));
+            add_self(Ans, mul(NotEqualNext[i], Pref[i - 2]));
+        }
+    }
+
+    cout << Ans << endl;
+}

@@ -1,0 +1,108 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+
+#define N	1000
+#define M	1000
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_(int n) {
+	return (rand() * 76543LL + rand()) % n;
+}
+
+int aa[N][M], n, m;
+
+int compare(const void *a, const void *b) {
+	int u = *(int *) a;
+	int v = *(int *) b;
+
+	return aa[v / m][v % m] - aa[u / m][u % m];
+}
+
+int dsu[N * M];
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+void join(int i, int j) {
+	int tmp;
+
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return;
+	if (dsu[i] > dsu[j])
+		tmp = i, i = j, j = tmp;
+	dsu[i] += dsu[j];
+	dsu[j] = i;
+}
+
+long long cnt;
+
+void dfs(int i, int j, int a) {
+	if (cnt == 0)
+		return;
+	if (i < 0 || i >= n || j < 0 || j >= m || aa[i][j] < a)
+		return;
+	aa[i][j] = -a;
+	cnt--;
+	dfs(i - 1, j, a);
+	dfs(i + 1, j, a);
+	dfs(i, j - 1, a);
+	dfs(i, j + 1, a);
+}
+
+int main() {
+	static int ii[N * M];
+	static char used[N][M];
+	int h, i, j, tmp, r, a;
+	long long k;
+
+	srand_();
+	scanf("%d%d%lld", &n, &m, &k);
+	for (i = 0; i < n; i++)
+		for (j = 0; j < m; j++)
+			scanf("%d", &aa[i][j]);
+	for (h = 0; h < n * m; h++)
+		ii[h] = h;
+	for (i = 0; i < n * m; i++) {
+		j = rand_(i + 1);
+		tmp = ii[i], ii[i] = ii[j], ii[j] = tmp;
+	}
+	qsort(ii, n * m, sizeof *ii, compare);
+	memset(dsu, -1, n * m * sizeof *dsu);
+	for (h = 0; h < n * m; h++) {
+		i = ii[h] / m, j = ii[h] % m;
+		used[i][j] = 1;
+		if (i > 0 && used[i - 1][j])
+			join((i - 1) * m + j, ii[h]);
+		if (i + 1 < n && used[i + 1][j])
+			join((i + 1) * m + j, ii[h]);
+		if (j > 0 && used[i][j - 1])
+			join(i * m + j - 1, ii[h]);
+		if (j + 1 < m && used[i][j + 1])
+			join(i * m + j + 1, ii[h]);
+		r = find(ii[h]), a = aa[i][j];
+		if (k % a == 0 && (cnt = k / a) <= -dsu[r]) {
+			dfs(i, j, aa[i][j]);
+			printf("YES\n");
+			for (i = 0; i < n; i++) {
+				for (j = 0; j < m; j++)
+					printf("%d ", aa[i][j] < 0 ? a : 0);
+				printf("\n");
+			}
+			return 0;
+		}
+	}
+	printf("NO\n");
+	return 0;
+}

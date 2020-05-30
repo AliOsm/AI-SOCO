@@ -1,0 +1,167 @@
+#include <stdio.h>
+#include <string.h>
+
+#define N	400000
+#define M	1000
+#define L	1000
+#define N_	(2 + L)
+#define A	14
+#define K	(A + 2)
+#define INF	0x3f3f3f3f3f3f3f3f
+
+long long max(long long a, long long b) { return a > b ? a : b; }
+
+int tt[N_][A], delta[N_][A], yy[N_];
+
+int build(char **ss, int *xx, int m) {
+	static int qu[N_], ff[N_];
+	int n_, h, head, cnt;
+
+	n_ = 2;
+	for (h = 0; h < m; h++) {
+		int l = strlen(ss[h]), k, s;
+
+		s = 1;
+		for (k = 0; k < l; k++) {
+			int a = ss[h][k] - 'a';
+
+			if (!tt[s][a])
+				tt[s][a] = n_++;
+			s = tt[s][a];
+		}
+		yy[s] += xx[h];
+	}
+	head = cnt = 0;
+	qu[head + cnt++] = 1;
+	while (cnt) {
+		int s = qu[cnt--, head++], e = ff[s], a;
+
+		if (e)
+			yy[s] += yy[e];
+		for (a = 0; a < A; a++) {
+			int t = tt[s][a], f = e == 0 ? 1 : delta[e][a];
+
+			if (t) {
+				delta[s][a] = t;
+				ff[t] = f, qu[head + cnt++] = t;
+			} else
+				delta[s][a] = f;
+		}
+	}
+	return n_;
+}
+
+char cc[N + 1];
+int next[N_]; long long zz[N_];
+
+void init(int n_, int l, int r) {
+	int s, i;
+
+	if (r - l + 1 <= L)
+		for (s = 1; s < n_; s++) {
+			int t;
+			long long z;
+
+			t = s, z = 0;
+			for (i = l; i <= r; i++) {
+				int a = cc[i] - 'a';
+
+				t = delta[t][a];
+				z += yy[t];
+			}
+			next[s] = t;
+			zz[s] = z;
+		}
+	else {
+		int t;
+		long long z;
+
+		for (s = 1; s < n_; s++) {
+			t = s, z = 0;
+			for (i = l; i < l + L; i++) {
+				int a = cc[i] - 'a';
+
+				t = delta[t][a];
+				z += yy[t];
+			}
+			zz[s] = z;
+		}
+		t = 1, z = 0;
+		for (i = l; i <= r; i++) {
+			int a = cc[i] - 'a';
+
+			t = delta[t][a];
+			if (i >= l + L)
+				z += yy[t];
+		}
+		for (s = 1; s < n_; s++) {
+			next[s] = t;
+			zz[s] += z;
+		}
+	}
+}
+
+int main() {
+	static char *ss[M];
+	static int xx[M], ii[A + 1];
+	static long long dp[N_][1 << A], dq[N_][1 << A];
+	int n, n_, m, k, h, i, s, b, a;
+	long long ans;
+
+	scanf("%d", &m);
+	for (h = 0; h < m; h++) {
+		static char s[L + 1];
+
+		scanf("%s%d", s, &xx[h]);
+		ss[h] = strdup(s);
+	}
+	n_ = build(ss, xx, m);
+	scanf("%s", cc), n = strlen(cc);
+	k = 0;
+	ii[k++] = -1;
+	for (i = 0; i < n; i++)
+		if (cc[i] == '?')
+			ii[k++] = i;
+	for (s = 1; s < n_; s++)
+		for (b = 0; b < 1 << A; b++)
+			dp[s][b] = -INF;
+	dp[1][0] = 0;
+	for (h = 0; h + 1 < k; h++) {
+		init(n_, ii[h] + 1, ii[h + 1] - 1);
+		for (s = 1; s < n_; s++)
+			for (b = 0; b < 1 << A; b++)
+				dq[s][b] = -INF;
+		for (s = 1; s < n_; s++) {
+			int t = next[s];
+			long long z = zz[s];
+
+			for (b = 0; b < 1 << A; b++) {
+				long long x;
+
+				if (dp[s][b] == -INF)
+					continue;
+				x = dp[s][b] + z;
+				for (a = 0; a < A; a++)
+					if (!(b & 1 << a)) {
+						int s_ = delta[t][a], b_ = b | 1 << a;
+
+						dq[s_][b_] = max(dq[s_][b_], x + yy[s_]);
+					}
+			}
+		}
+		for (s = 1; s < n_; s++)
+			for (b = 0; b < 1 << A; b++)
+				dp[s][b] = dq[s][b];
+	}
+	init(n_, ii[k - 1] + 1, n - 1);
+	ans = -INF;
+	for (s = 1; s < n_; s++) {
+		long long z = zz[s];
+
+		for (b = 0; b < 1 << A; b++)
+			if (dp[s][b] != -INF)
+				ans = max(ans, dp[s][b] + z);
+	}
+	printf("%lld\n", ans);
+	return 0;
+}

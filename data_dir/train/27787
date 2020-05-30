@@ -1,0 +1,45 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef pair<long long,int> pii;
+#define f first
+#define s second
+const int limN = 2e5 + 5;
+
+vector <pii> adj[limN];
+long long minP[limN];
+priority_queue < pii > Q ;
+bool usd[limN];
+
+int main() {
+    int N, E;    
+
+    scanf("%d%d", &N, &E);
+    for(int i=0; i<E; i++) {
+        int a, b;
+        long long c;
+        scanf("%d%d%lld", &a, &b, &c);
+        a--, b--;
+        c *= 2;
+        adj[a].push_back({c, b});
+        adj[b].push_back({c, a});
+    }
+    for(int i=0; i<N; i++) {
+        scanf("%lld", &minP[i]);
+        Q.push({-minP[i], i});
+    }
+
+    while(!Q.empty()) {
+        int pos = Q.top().s; Q.pop();
+        if(usd[pos]) continue;
+        usd[pos] = true;        
+        for(pii &sig:adj[pos]) {
+            if(minP[sig.s] <= minP[pos] + sig.f) continue;
+            minP[sig.s] = minP[pos] + sig.f;
+            Q.push({-minP[sig.s], sig.s});
+        }
+    }
+
+    for(int i=0; i<N; i++)
+        printf("%lld ", minP[i]);
+    printf("\n");
+}

@@ -1,0 +1,199 @@
+#include<iostream>
+#include<cstdio>
+#include<vector>
+#include<algorithm>
+#include<queue>
+#include<string>
+#include<cstring>
+#include<map>
+#include<cmath>
+#include<bitset>
+#include<set>
+#include<cstdlib>
+#include<complex>
+#include<list>
+#include<cassert>
+#include<iomanip>
+#include<limits>
+#include<fstream>
+#include<unordered_map>
+
+using namespace std;
+
+//#define double long double
+
+typedef pair<int,int> ii;
+typedef pair<int,long long> il;
+typedef pair<long long,long long> ll;
+typedef pair<ll,int> lli;
+typedef pair<long long,int> li;
+typedef pair<double,double> dd;
+typedef pair<ii,int> iii;
+typedef pair<double,int> di;
+typedef pair<int,ii> iii2;
+typedef pair<ii,ii> iiii;
+long long mod = 1000000007;
+long long large = 2000000000000000000LL;
+
+
+struct Edge {
+	int from,to,cap,flow;
+};
+
+struct Dinic {
+	int n,m,s,t;
+	vector<Edge> edges;
+	vector<vector<int> > G;
+	vector<bool> vis;
+	vector<int> dis;
+	vector<int> cur;
+	void init(int maxn){
+		edges.clear();
+		G.assign(maxn+10,vector<int>(0));
+		vis.assign(maxn+10,false);
+		dis.assign(maxn+10,0);
+		cur.assign(maxn+10,0);
+		n=maxn;
+	}
+	void addEdge(int from,int to,int cap){
+		edges.push_back((Edge){from,to,cap,0});
+		edges.push_back((Edge){to,from,0,0});
+		m=edges.size();
+		G[from].push_back(m-2);
+		G[to].push_back(m-1);
+	}
+	bool BFS() {
+		vis.assign(n+10,false);
+		queue<int> q;
+		q.push(s);
+		dis[s]=0;
+		vis[s]=true;
+		while(!q.empty()){
+			int u=q.front();
+			q.pop();
+			for(int i=0;i<(int)G[u].size();i++){
+				Edge& e=edges[G[u][i]];
+				if(!vis[e.to]&&e.cap>e.flow){
+					vis[e.to]=1;
+					dis[e.to]=dis[u]+1;
+					q.push(e.to);
+				}
+			}
+		}
+		return vis[t];
+	}
+	int DFS(int x,int a){
+		if(x==t||a==0) return a;
+		int flow=0,f;
+		for(int& i=cur[x];i<(int)G[x].size();i++){
+			Edge& e=edges[G[x][i]];
+			if(dis[x]+1==dis[e.to]&&(f=DFS(e.to,min(a,e.cap-e.flow)))>0){
+				e.flow+=f;
+				edges[G[x][i]^1].flow-=f;
+				flow+=f;
+				a-=f;
+				if(a==0) break;
+			}
+		}
+		return flow;
+	}
+	int maxflow(int s,int t){
+		this->s=s;
+		this->t=t;
+		int flow=0;
+		while(BFS()){
+			cur.assign(n+10,0);
+			flow+=DFS(s,1000000000);
+		}
+		return flow;
+	}
+	void clearflow(){
+		vis.assign(n+10,false);
+		dis.assign(n+10,0);
+		cur.assign(n+10,0);
+		for(int i=0;i<(int)edges.size();i++){
+			edges[i].flow=0;
+		}
+	}
+};
+
+
+int main(){
+
+	int testcase;
+	cin>>testcase;
+	while(testcase--){
+		int n,m,k;
+		cin>>n>>m>>k;
+
+		Dinic d;
+		d.init(n+m+10);
+		int st = n+m;
+		int en = n+m+1;
+		vector<ii> e;
+		vector<int> deg(n,0);
+		for(int i=0;i<m;i++){
+			int x,y;
+			scanf("%d%d",&x,&y);
+			x--;y--;
+			deg[x]++;
+			deg[y]++;
+			e.push_back(ii(x,y));
+		}
+		for(int i=0;i<m;i++){
+			d.addEdge(st,i,1);
+		}
+		int sum = 0;
+		for(int i=0;i<n;i++){
+			if(deg[i]>k){
+				d.addEdge(m+i,en,2*(deg[i]-k));
+				sum+=2*(deg[i]-k);
+			}
+		}
+
+		for(int i=0;i<m;i++){
+			d.addEdge(i,e[i].first+m,1);
+			d.addEdge(i,e[i].second+m,1);
+		}
+
+		int re = d.maxflow(st,en);
+		if(re<sum){
+			for(int i=0;i<m;i++) cout<<"0 ";
+			cout<<endl;
+			continue;
+		}
+
+		vector<int> bel(m,-1);
+		for(int i=0;i<(int)d.edges.size();i++){
+			Edge e = d.edges[i];
+			if(e.flow==1){
+				if(e.from>=0&&e.from<m){
+					bel[e.from] = e.to-m;
+				}
+			}
+		}
+
+		for(int i=0;i<m;i++) if(bel[i]==-1) bel[i] = e[i].first;
+
+		int it = 0;
+		vector<int> color(n,-1);
+		for(int i=0;i<m;i++){
+			int c = -1;
+			if(color[bel[i]]==-1){
+				color[bel[i]] = it++;
+				c = color[bel[i]];
+			}else{
+				c = color[bel[i]];
+				color[bel[i]] = -1;
+			}
+			cout<<c+1<<" ";
+		}
+		cout<<endl;
+
+
+
+	}
+
+
+    return 0;
+}

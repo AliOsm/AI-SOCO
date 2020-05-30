@@ -1,0 +1,104 @@
+#pragma comment(linker, "/stack:100000000")
+
+#include <cstdio>
+#include <iostream>
+#include <vector>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <cstring>
+#include <string>
+#include <cmath>
+#include <ctime>
+#include <cassert>
+#include <queue>
+
+using namespace std;
+
+#define REP(i, n) for (int (i) = 0; (i) < (n); (i)++)
+#define sz(v) (int)(v).size()
+#define all(v) (v).begin(), (v).end()
+
+const int N = 200010;
+
+int a[N];
+long long t[4 * N];
+long long p[4 * N];
+
+void build(int v, int tl, int tr) {
+	if (tl == tr) {
+		p[v] = a[tl];
+	} else {
+		int tm = (tl + tr) / 2;
+		build(2 * v, tl, tm);
+		build(2 * v + 1, tm + 1, tr);
+		t[v] = min(p[2 * v] + t[2 * v], p[2 * v + 1] + t[2 * v + 1]);
+	}
+}
+
+void push(int v) {
+	if (p[v] != 0) {
+		p[2 * v] += p[v];
+		p[2 * v + 1] += p[v];
+		t[v] += p[v];
+		p[v] = 0;
+	}
+}
+
+void add(int v, int tl, int tr, int l, int r, int x) {
+	if (l > r) {
+		return;
+	}
+	if (l == tl && r == tr) {	
+		p[v] += x;
+	} else {
+		push(v);
+		int tm = (tl + tr) / 2;
+		add(2 * v, tl, tm, l, min(r, tm), x);
+		add(2 * v + 1, tm + 1, tr, max(tm + 1, l), r, x);
+		t[v] = min(p[2 * v] + t[2 * v], p[2 * v + 1] + t[2 * v + 1]);
+	}
+}
+
+long long rmq(int v, int tl, int tr, int l, int r) {
+	if (l > r) {
+		return 1LL << 60;
+	}
+	if (l == tl && r == tr) {
+		return p[v] + t[v];
+	}
+	push(v);
+	int tm = (tl + tr) / 2;
+	return min(rmq(2 * v, tl, tm, l, min(r, tm)), rmq(2 * v + 1, tm + 1, tr, max(tm + 1, l), r));
+}
+
+int main() {
+#ifdef LOCAL
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	memset(p, 0, sizeof(p));
+	memset(t, 0, sizeof(t));
+	int n;
+	scanf("%d", &n);
+	REP(i, n) scanf("%d", &a[i]);
+	build(1, 0, n - 1);
+	int q, l, r, v;
+	char c;
+	scanf("%d", &q);
+	REP(_, q) {
+		scanf("%d %d%c", &l, &r, &c);
+		if (c == ' ') {
+			scanf("%d", &v);
+			if (l <= r) {
+				add(1, 0, n - 1, l, r, v);
+			} else {
+				add(1, 0, n - 1, l, n - 1, v);
+				add(1, 0, n - 1, 0, r, v);
+			}
+		} else {
+			printf("%I64d\n", l <= r? rmq(1, 0, n - 1, l, r): min(rmq(1, 0, n - 1, l, n - 1), rmq(1, 0, n - 1, 0, r)));
+		}
+	}
+	return 0;
+}

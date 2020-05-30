@@ -1,0 +1,162 @@
+//  Copyright © 2018 Diego Garcia Rodriguez del Campo. All rights reserved.
+#include<bits/stdc++.h>
+#define MAX 100005
+#define LOG 17
+#define mid (l+r)/2
+#define optimiza_io cin.tie(0); ios_base::sync_with_stdio(0);
+using namespace std;
+typedef long long i64;
+
+int N, Q, idx;
+vector < int > ady[MAX];
+int niv[MAX];
+int papa[MAX][LOG+2];
+int num[MAX];
+int tlca[MAX*4];
+pair < int , int > tmax[MAX*4];
+pair < int , int > tmin[MAX*4];
+
+int lca( int a , int b )
+{
+    if( a == -1 ) return b;
+    if( b == -1 ) return a;
+    
+    if( niv[a] < niv[b] )
+        swap( a , b );
+    for( int j = LOG; j >= 0; j -- )
+        if( niv[ papa[a][j] ] >= niv[b] )
+            a = papa[a][j];
+    
+    if( a == b )
+        return a;
+    
+    for( int j = LOG; j >= 0; j -- )
+        if( papa[a][j] != papa[b][j] )
+        {
+            a = papa[a][j];
+            b = papa[b][j];
+        }
+        
+    return papa[a][0];
+}
+
+void initTrees( int x , int l , int r )
+{
+    if( l == r )
+    {
+        tmin[x] = { num[l] , l };
+        tmax[x] = { num[l] , l };
+        tlca[x] = l;
+        return ;
+    }
+    
+    initTrees( 2*x+1 , l , mid );
+    initTrees( 2*x+2 , mid+1 , r );
+    
+    if( tmin[2*x+1].first < tmin[2*x+2].first )
+        tmin[x] = tmin[2*x+1];
+    else
+        tmin[x] = tmin[2*x+2];
+        
+    if( tmax[2*x+1].first > tmax[2*x+2].first )
+        tmax[x] = tmax[2*x+1];
+    else
+        tmax[x] = tmax[2*x+2];
+        
+    tlca[x] = lca( tlca[2*x+1] , tlca[2*x+2] );
+}
+
+
+void dfs( int x , int n )
+{
+    niv[x] = n;
+    for( auto v : ady[x] )
+    {
+        papa[v][0] = x;
+        dfs( v , n + 1 );
+    }
+    num[x] = ++idx;
+}
+
+pair < int , int > qryp( int x , int l , int r , int lq , int rq , int t )
+{
+    if( l > rq or r < lq )
+    {
+        if( t == 1 )
+            return { -1 , -1 };
+        return { 2*N , 2*N };
+    }
+    if( l >= lq && r <= rq )
+    {
+        if( t == 1 )
+            return tmax[x];
+        return tmin[x];
+    }
+    if( t == 1 )
+        return max( qryp( 2*x+1 , l , mid , lq , rq , t ) , qryp( 2*x+2 , mid+1 , r , lq, rq , t ) );
+    return min( qryp( 2*x+1 , l , mid , lq , rq , t ) , qryp( 2*x+2 , mid+1 , r , lq, rq , t ) );
+}
+
+int qrylc( int x , int l , int r , int lq , int rq )
+{
+    if( l >= lq && r <= rq )
+        return tlca[x];
+    if( l > rq or r < lq )
+        return -1;
+    return lca( qrylc( 2*x+1 , l , mid , lq , rq ) , qrylc( 2*x+2 , mid+1 , r , lq , rq ) );
+}
+
+int solve( int l , int r , int h )
+{
+    if( h == l )
+    {
+        int a = qrylc( 0 , 1 , N , h + 1 , r );
+        return niv[a];
+    }
+    else if( h == r )
+    {
+        int b = qrylc( 0 , 1 , N , l , h - 1 );
+        return niv[b];
+    }
+    int a = qrylc( 0 , 1 , N , h + 1 , r );
+    int b = qrylc( 0 , 1 , N , l , h - 1 );
+    int c = lca( a , b );
+    return niv[c];
+}
+
+
+
+int main()
+{
+    optimiza_io
+    cin >> N >> Q;
+    for( int i = 2; i <= N; i ++ )
+    {
+        int x; 
+        cin >> x;
+        ady[x].push_back( i );
+    }
+    
+    dfs( 1 , 0 );
+    
+    for( int j = 1; j <= LOG; j ++ )
+        for( int i = 1; i <= N; i ++ )
+            papa[i][j] = papa[ papa[i][j - 1 ] ][j - 1];
+    
+    initTrees( 0 , 1 , N );
+    while( Q -- )
+    {
+        int l, r;
+        cin >> l >> r;
+        pair < int , int > n1 = qryp( 0 , 1 , N , l , r , 1 );
+        pair < int , int > n2 = qryp( 0 , 1 , N , l , r , -1 );
+        int ans = solve( l , r , n1.second );
+        int ans2 = solve( l , r , n2.second );
+        if( ans >= ans2 )
+            cout << n1.second << " " << ans << "\n";
+        else
+            cout << n2.second << " " << ans2 << "\n";
+    }
+    
+    return 0;
+}

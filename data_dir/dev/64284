@@ -1,0 +1,42 @@
+// WTF this problem is easy but I attempted it in a difficult way
+// asu
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 5e6 + 5;
+
+vector<int> edge[N], st;
+
+void dfs(int now, int bef, int h) {
+  bool leaf = 1;
+  for(auto it : edge[now]) {
+    if(it == bef) continue;
+    leaf = 0;
+    dfs(it, now, h + 1);
+  }
+  if(leaf) st.push_back(h);
+}
+
+int solve(int now) {
+  st.clear();
+  dfs(now, 1, 1);
+  sort(st.begin(), st.end());
+  for(int i = 1; i < st.size(); i++) st[i] = max(st[i - 1] + 1, st[i]);
+  return st.back();
+}
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  for(int i = 0; i < n - 1; i++) {
+    int u, v;
+    scanf("%d %d", &u, &v);
+    edge[u].push_back(v);
+    edge[v].push_back(u);
+  }
+  int ans = 0;
+  for(auto it : edge[1]) ans = max(ans, solve(it));
+  cout << ans << endl;
+  return 0;
+}

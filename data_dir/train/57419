@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+const int mmod = 1e9+7;
+int add(int a, int b) {
+	return a + b >= mmod ? a + b - mmod : a + b;
+}
+void add_self(int &a, int b) {
+	a = add(a, b);
+}
+
+const int N = 2002;
+
+int m, d;
+
+char a[N], b[N];
+
+int dp[N][N][2][3];
+int n;
+
+int f(int i, int mod, int less, int j) {
+	if(i == n) return mod == 0;
+	int &ans = dp[i][mod][less][j];
+	if(~ans) return ans;
+	ans = 0;
+	if(less) {
+		if(j == 0) {
+			assert(mod == 0);
+			add_self(ans, f(i+1, mod, less, j));
+			for(int dig = 1; dig < 10; dig++) {
+				if(dig == d) continue;
+				add_self(ans, f(i+1, dig % m, less, (i+1)%2+1));
+			}
+		}
+		else {
+			for(int dig = 0; dig < 10; dig++) {
+				if(i % 2 + 1 == j and dig != d) continue;
+				if(i % 2 + 1 != j and dig == d) continue;
+				add_self(ans, f(i+1, (10*mod+dig)%m,less,j));
+			}
+		}
+	}
+	else {
+		for(int dig = 0; dig <= int(a[i] - '0'); dig++) {
+			if(i % 2 + 1 == j and dig != d) continue;
+			if((dig or j) and i % 2 + 1 != j and dig == d) continue;
+			int nmod = (10 * mod + dig) % m;
+			int nless = dig < int(a[i] - '0');
+			int nj = j == 0 ? (i + 1) % 2 + 1 : j;
+			if(j == 0 and dig == 0) nj = 0;
+			add_self(ans, f(i + 1, nmod, nless, nj));
+		}
+	}
+	return ans;
+}
+
+int main() {
+
+	scanf("%d %d %s %s", &m, &d, a, b);
+
+	n = (int)strlen(a);
+
+	memset(dp, -1, sizeof dp);
+
+	int ans = f(0, 0, 0, 0);
+
+	bool ok = true;
+	int mod = 0;
+	for(int i = 0; i < n; i++) {
+		mod = (10 * mod + int(a[i] - '0')) % m;
+		if(i % 2 == 1) ok &= int(a[i] - '0') == d;
+		else ok &= int(a[i] - '0') != d;
+	}
+	if(mod) ok = false;
+	if(ok) ans--;
+	if(ans < 0) ans += mmod;
+
+	memset(dp, -1, sizeof dp);
+	strcpy(a, b);
+	ans = f(0, 0, 0, 0) - ans;
+	if(ans < 0) ans += mmod;
+
+	printf("%d\n", ans);
+}

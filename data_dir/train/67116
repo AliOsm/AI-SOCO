@@ -1,0 +1,56 @@
+#include "bits/stdc++.h"
+using namespace std;
+#define  F  first
+#define  S  second
+#define  pb push_back
+#define  mp make_pair
+typedef long long int ll;
+const int N=1e6+2,inf=1e9+7;
+void _run();
+void _exit(){cout<< "-1\n",exit(0);}
+int main()
+{
+    ios_base::sync_with_stdio(0);cin.tie(0);
+    _run();
+    return 0;
+}
+void _run()
+{
+    int tc;cin>>tc;
+    while(tc--)
+    {
+        int n;cin>>n;ll Arr[n+2];
+        for(int i=1;i<=n;i++)cin>>Arr[i];
+        sort(Arr+1,Arr+n+1);
+        set<ll>st;ll a=0;
+        for(int i=1;i<=n/2;i++)
+            st.insert(Arr[i]*Arr[n-i+1]);
+        if(n&1)st.insert(Arr[n/2 + 1]*Arr[n/2 +1]);
+        if(st.size()!=1)cout<< "-1\n";
+        else
+        {
+            ll rs=*st.begin();st.clear();bool f=1;
+            for(int i=1;i<=n;i++)st.insert(Arr[i]);
+            for(int i=1;i<=n;i++)
+            {
+                for(int j=2;j*j<=Arr[i];j++)
+                {
+                    if(Arr[i]%j==0&&st.find(j)==st.end())
+                    {
+                        f=0;break;
+                    }
+                    if(Arr[i]%j==0)
+                    {
+                        ll nw=Arr[i]/j;
+                        if(st.find(nw)==st.end())
+                        {
+                            f=0;break;
+                        }
+                    }
+                }
+            }
+            if(f==0)cout<< "-1\n";
+            else cout<<rs<< "\n";
+        }
+    }
+}

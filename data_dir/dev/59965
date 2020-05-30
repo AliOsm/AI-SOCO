@@ -1,0 +1,157 @@
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <iostream>
+#include <utility>
+#include <vector>
+#include <string>
+#include <map>
+#include <queue>
+#include <set>
+#include <stack>
+
+using namespace std;
+
+#define long long long
+#define fi first
+#define se second
+typedef pair<int,int> ii;
+
+//state : {1, 0, 5, -5}
+//op	: {1, -1, 99};
+
+int A[800003];
+int tree[800003];
+int lazy[800003];
+
+void cek_lazy(int pos, int kir, int kan)
+{
+	if(lazy[pos] == -5)
+	{
+		tree[pos] = -5;
+		if(kir != kan)
+		{
+			lazy[pos*2] = lazy[pos];
+			lazy[pos*2+1] = lazy[pos];
+		}
+	}
+	else if(lazy[pos] == 5)
+	{
+
+		tree[pos] = 5;
+		if(kir != kan)
+		{
+			lazy[pos*2] = lazy[pos];
+			lazy[pos*2+1] = lazy[pos];
+		}
+	}
+	else if(lazy[pos])
+	{
+		if(abs(tree[pos]) == 5) tree[pos] *= -1;
+		else tree[pos] ^= 1;
+
+		if(kir != kan)
+		{
+			if(abs(lazy[pos*2]) == 5) lazy[pos*2] *= -1;
+			else lazy[pos*2] ^= 1;
+			if(abs(lazy[pos*2+1]) == 5) lazy[pos*2+1] *= -1;
+			else lazy[pos*2+1] ^= 1;
+		}
+	}
+	lazy[pos] = 0;
+
+}
+
+void update(int pos, int kir, int kan, int qkir, int qkan, int operation)
+{
+	// cout << pos << " " << kir << " " << kan << " " << qkir << " " << qkan << " " << operation << "\n";
+	cek_lazy(pos, kir, kan);
+	if(qkan < kir || kan < qkir) return;
+	else if(qkir <= kir && kan <= qkan)
+	{
+		lazy[pos] = operation;
+		cek_lazy(pos, kir, kan);
+	}
+	else
+	{
+		int mid = (kir+kan)/2;
+		update(pos*2, kir, mid, qkir, qkan, operation);
+		update(pos*2+1, mid+1, kan, qkir, qkan, operation);
+	}
+}
+
+int query(int pos, int kir, int kan, int idx)
+{
+	cek_lazy(pos, kir, kan);
+	if(kir == idx && kan == idx) return tree[pos];
+	else
+	{
+		int mid = (kir+kan)/2;
+		if(idx <= mid) return query(pos*2, kir, mid, idx);
+		else return query(pos*2+1, mid+1, kan, idx);
+	}
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+	// freopen("input.in", "r", stdin);
+
+	int n, q; cin >> n >> q;
+	for(int i = 1; i <= n; i++)
+		cin >> A[i];
+
+	while(q--)
+	{
+		char c; cin >> c;
+		int x; cin >> x;
+		if(c == '>')
+		{
+			if(x >= 0)
+			{
+				update(1, 0, 150000, x+1, 150000, -5);
+			}
+			else
+			{
+				x = -x;
+				update(1, 0, 150000, 0, x-1, 1);
+				update(1, 0, 150000, x, 150000, -5);	
+			}
+		}
+		else
+		{
+			if(x <= 0)
+			{
+				x = -x;
+				update(1, 0, 150000, x+1, 150000, 5);
+			}
+			else
+			{
+				update(1, 0, 150000, 0, x-1, 1);
+				update(1, 0, 150000, x, 150000, 5);	
+			}
+		}
+	}
+
+	for(int i = 1; i <= n; i++)
+	{
+		int x = query(1, 0, 150000, abs(A[i]));
+
+		if(x == -5)
+			cout << min(A[i],-A[i]);
+		else if(x == 5)
+			cout << max(A[i],-A[i]);
+		else if(x == 1)
+			cout << -A[i];
+		else 
+			cout << A[i];
+		
+		if(i == n)
+			cout << "\n";
+		else
+			cout << " ";
+	}
+}

@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int MAXV = 20010;
+const int INFf = 1000000;
+const int INFc = 1000000000;
+
+struct MinCostMaxFlow{
+  struct Edge{
+    int v, cap;
+    int w;
+    int rev;
+    Edge(){}
+    Edge(int t2, int t3, int t4, int t5)
+    : v(t2), cap(t3), w(t4), rev(t5) {}
+  };
+  int V, s, t;
+  vector<Edge> g[MAXV];
+  void init(int n){
+    V = n+2;
+    s = n+1, t = n+2;
+    for(int i = 0; i <= V; i++) g[i].clear();
+  }
+  void addEdge(int a, int b, int cap, int w){
+    //cerr << a << " ";
+    //cerr << b << " ";
+    //cerr << cap << " ";
+    //cerr << w << "\n";
+    g[a].push_back(Edge(b, cap, w, (int)g[b].size()));
+    g[b].push_back(Edge(a, 0, -w, (int)g[a].size()-1));
+  }
+  int d[MAXV];
+  int id[MAXV], mom[MAXV];
+  bool inqu[MAXV];
+  queue<int> q;
+  pair<int,int> solve(int ssink,int tt){
+    s=ssink;
+    t = tt;
+    int mxf = 0; int mnc = 0;
+    while(1){
+      fill(d, d+1+V, INFc);
+      fill(inqu, inqu+1+V, 0);
+      fill(mom, mom+1+V, -1);
+      mom[s] = s;
+      d[s] = 0;
+      q.push(s); inqu[s] = 1;
+      while(q.size()){
+        int u = q.front(); q.pop();
+        inqu[u] = 0;
+        for(int i = 0; i < (int) g[u].size(); i++){
+          Edge &e = g[u][i];
+          int v = e.v;
+          if(e.cap > 0 && d[v] > d[u]+e.w){
+            d[v] = d[u]+e.w;
+            mom[v] = u;
+            id[v] = i;
+            if(!inqu[v]) q.push(v), inqu[v] = 1;
+          }
+        }
+      }
+      if(mom[t] == -1) break ;
+      int df = INFf;
+      for(int u = t; u != s; u = mom[u])
+        df = min(df, g[mom[u]][id[u]].cap);
+      for(int u = t; u != s; u = mom[u]){
+        Edge &e = g[mom[u]][id[u]];
+        e.cap             -= df;
+        g[e.v][e.rev].cap += df;
+      }
+      mxf += df;
+      mnc += df*d[t];
+    }
+    return {mxf,mnc};
+  }
+} G;
+
+const int N = 123;
+char s[N];
+int b[N] , n ;
+int f[33];
+
+int main(){
+
+scanf("%d",&n);
+scanf("%s",s);
+for(int i=0;i<n;i++)scanf("%d",b+i);
+
+
+for(int i=0;i<n;i++)
+    f[ s[i]-'a' ]++;
+
+G.init(100*N);
+int mid = N;
+int ch = 100* N-30;
+int src = 100*N -2 , sink = 100*N -1;
+
+for(int c=0;c<26;c++){
+
+    G.addEdge( src , ch , f[c] , 0 );
+
+    for(int i=0;i<n-1-i;i++){
+
+        G.addEdge( ch , mid , 1 , 0 );
+        G.addEdge( mid,  i  , 1 ,((c==(s[  i  ]-'a'))?(-b[  i  ]):(0)));
+        G.addEdge( mid,n-i-1, 1 ,((c==(s[n-i-1]-'a'))?(-b[n-i-1]):(0)));
+
+        mid++;
+    }
+    ch++;
+}
+
+for(int i=0;i<n;i++)
+    G.addEdge( i , sink , 1 , 0 );
+
+pair<int,int>ans = G.solve(src,sink);
+printf("%d\n",-ans.second);
+
+	return 0;
+}

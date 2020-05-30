@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+//const long long mod = 1000000007;
+const long long mod = 998244353;
+#define ll long long
+#undef ll
+
+const int mxN = 100010;
+const int lg = 19;
+int bounds[2][mxN << 2];
+int lTree[lg][mxN << 4], rTree[lg][mxN << 4];
+int A[mxN << 2];
+
+int sz, N;
+int cur;
+void build(int n = 1, int l = 0, int r = sz - 1) {
+	if (l == r) {
+		lTree[cur][n] = bounds[0][l];
+		rTree[cur][n] = bounds[1][l];
+		return;
+	}
+	int md = (l + r) >> 1;
+	build(n << 1, l, md);
+	build(n << 1 | 1, md + 1, r);
+	lTree[cur][n] = min(lTree[cur][n << 1], lTree[cur][n << 1 | 1]);
+	rTree[cur][n] = max(rTree[cur][n << 1], rTree[cur][n << 1 | 1]);
+}
+
+pair<int,int> get(int _lg, int a, int b, int n = 1, int l = 0, int r = sz - 1) {
+	if (l == a && r == b)
+		return {lTree[_lg][n], -rTree[_lg][n]};
+	int md = (l + r) >> 1;
+	pair<int,int> res = {INT_MAX , INT_MAX};
+	if (a <= md)
+		res = get(_lg, a, min(b, md), n << 1, l, md);
+	if (b > md) {
+		auto other = get(_lg, max(a, md + 1), b, n << 1 | 1, md + 1, r);
+		res.first = min(res.first,other.first);
+		res.second = min(res.second,other.second);
+	}
+	return res;
+}
+
+int hat(int u) {
+	int a = u, b = u;
+	int res = 0;
+	for (int j = lg - 1; j >= 0; j--) {
+		pair<int,int> to = get(j, a, b);
+		if(to.first >= 0 && -to.second < sz && -to.second - to.first + 1 < N) {
+			a = to.first;
+			b = -to.second;
+			res += (1<<j);
+		}
+	}
+//	if(u == 8) cerr<<b<<' '<<a<<' '<<res<<'\n';
+	if(b - a + 1 < N) res++;
+	return res;
+}
+
+int main(int argc, char** argv) {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#endif
+
+	cin >> N;
+	if (N == 1) {
+		cout << "0\n";
+		return 0;
+	}
+	for (int i = 0; i < N; i++)
+		cin >> A[i], bounds[0][i] = i - A[i], bounds[1][i] = i + A[i];
+	for (int i = N; i < (N << 2); i++)
+		A[i] = A[i % N], bounds[0][i] = i - A[i], bounds[1][i] = i + A[i];
+	sz = N * 3;
+	build();
+	for (cur = 1; cur < lg; cur++) {
+		for (int i = 0; i < sz; i++) {
+			pair<int,int> to = get(cur - 1, max(0, bounds[0][i]),
+					min(sz - 1, bounds[1][i]));
+			bounds[0][i] = to.first;
+			bounds[1][i] = -to.second;
+			//			if(i == 8) cerr<<i<<' '<<bounds[0][i]<<' '<<bounds[1][i]<<'\n';
+		}
+		build();
+	}
+	for (int i = 0; i < N; i++) {
+		cout << hat(i + N) << " \n"[i + 1 == N];
+	}
+	return 0;
+}

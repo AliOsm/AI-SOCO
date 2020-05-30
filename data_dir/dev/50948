@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <string.h>
+
+#define N	300
+#define M	300
+#define Q	2000000
+#define A	2000000
+
+int di[] = { -1, 1, 0, 0 };
+int dj[] = { 0, 0, -1, 1 };
+
+int oo[1 + Q + N * M], oi[1 + Q + N * M], oj[1 + Q + N * M], oh[1 + Q + N * M];
+
+int link(int o, int i, int j, int h) {
+	static int _ = 1;
+
+	oo[_] = o, oi[_] = i, oj[_] = j, oh[_] = h;
+	return _++;
+}
+
+int dsu[N * M];
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+int join(int i, int j) {
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return 0;
+	if (dsu[i] > dsu[j])
+		dsu[i] = j;
+	else {
+		if (dsu[i] == dsu[j])
+			dsu[i]--;
+		dsu[j] = i;
+	}
+	return 1;
+}
+
+int main() {
+	static char used[N][M];
+	static int ii[Q], jj[Q], aa_[Q], aa[N][M], ae[A + 1], dd[Q + 1];
+	int n, m, q, f, g, h, h_, i, j, a, ans;
+
+	scanf("%d%d%d", &n, &m, &q);
+	for (h = 0; h < q; h++)
+		scanf("%d%d%d", &ii[h], &jj[h], &aa_[h]), ii[h]--, jj[h]--;
+	memset(dsu, -1, n * m * sizeof *dsu);
+	for (h = 0; h < q; h = h_) {
+		h_ = h + 1;
+		while (h_ < q && aa_[h_] == aa_[h])
+			h_++;
+		for (g = h; g < h_; g++) {
+			i = ii[g], j = jj[g];
+			used[i][j] = 1;
+			dd[g]++;
+			for (f = 0; f < 4; f++) {
+				int i_ = i + di[f], j_ = j + dj[f];
+
+				if (i_ >= 0 && i_ < n && j_ >= 0 && j_ < m && used[i_][j_] && join(i * m + j, i_ * m + j_))
+					dd[g]--;
+			}
+		}
+		for (g = h; g < h_; g++) {
+			i = ii[g], j = jj[g];
+			dsu[i * m + j] = -1, used[i][j] = 0;
+		}
+	}
+	for (h = 0; h < q; h++) {
+		i = ii[h], j = jj[h], a = aa_[h];
+		ae[aa[i][j]] = link(ae[aa[i][j]], i, j, h);
+		aa[i][j] = a;
+	}
+	for (i = 0; i < n; i++)
+		for (j = 0; j < m; j++)
+			ae[aa[i][j]] = link(ae[aa[i][j]], i, j, q);
+	for (a = 0; a <= A; a++) {
+		int o;
+
+		for (o = ae[a]; o; o = oo[o]) {
+			i = oi[o], j = oj[o], h = oh[o];
+			used[i][j] = 1;
+			dd[h]--;
+			for (f = 0; f < 4; f++) {
+				int i_ = i + di[f], j_ = j + dj[f];
+
+				if (i_ >= 0 && i_ < n && j_ >= 0 && j_ < m && used[i_][j_] && join(i * m + j, i_ * m + j_)) {
+					dd[h]++;
+				}
+			}
+		}
+		for (o = ae[a]; o; o = oo[o]) {
+			i = oi[o], j = oj[o];
+			dsu[i * m + j] = -1, used[i][j] = 0;
+		}
+	}
+	ans = 1;
+	for (h = 0; h < q; h++)
+		printf("%d\n", ans += dd[h]);
+	return 0;
+}

@@ -1,0 +1,31 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define debug(X) cout << #X << " = " << X << endl
+#define fori(i,b,e) for (int i = (b); i < (e); ++i)
+
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef pair<int, int> ii;
+
+const int oo = 1e9;
+
+int main() {
+	ios_base::sync_with_stdio(false); cin.tie(0);
+	int n; cin >> n;
+	vi m(n);
+	fori(i, 0, n)
+		cin >> m[i];
+	vi t(n);
+	t[n - 1] = m[n - 1] + 1;
+	for (int i = n - 2; i >= 0; i--)
+		t[i] = max(m[i] + 1, t[i + 1] - 1);
+	fori(i, 1, n)
+		t[i] = max(t[i - 1], t[i]);
+	ll ans = 0;
+	fori(i, 0, n)
+		ans += t[i] - m[i] - 1;
+	cout << ans << endl;
+	return 0;
+}

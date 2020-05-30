@@ -1,0 +1,105 @@
+#include <cstdio>
+#include <vector>
+#include <map>
+#include <stack>
+#include <utility>
+#include <algorithm>
+using namespace std;
+int l[100010], r[100010], a[100010];
+double p[100010];
+vector<int> st[100010], nd[100010];
+vector<int> ch[10010], chx[10010];
+int sts(int i, int j) {
+	return r[i] < r[j];
+}
+int nds(int i, int j) {
+	return l[i] > l[j];
+}
+typedef pair<int, double> P;
+typedef vector<P> V;
+V dp[10010];
+int val[10010], in[100010];
+V merge(V v1, V v2) {
+	V res;
+	int i = 0, j = 0;
+	double acp1 = 1.0, acp2 = 1.0;
+	while (i < v1.size() && j < v2.size()) {
+		if (v1[i].first > v2[j].first) {
+			res.push_back(P(v1[i].first, v1[i].second * acp2));
+			acp1 -= v1[i++].second;
+		} else if (v1[i].first < v2[j].first) {
+			res.push_back(P(v2[j].first, v2[j].second * acp1));
+			acp2 -= v2[j++].second;
+		} else {
+			res.push_back(P(v1[i].first, acp1 * acp2 - (acp1 - v1[i].second) * (acp2 - v2[j].second)));
+			acp1 -= v1[i++].second;
+			acp2 -= v2[j++].second;
+		}
+	}
+	return res;
+}
+void go(int v) {
+	dp[v].push_back(P(val[v], 1.0));
+	for (int i = 0; i < ch[v].size(); i++) {
+		go(ch[v][i]);
+		V w, &u = dp[ch[v][i]];
+		double k = p[chx[v][i]];
+		w.push_back(P(u[0].first+1, u[0].second*k));
+		w.push_back(P(u[0].first, u[0].second*(1-k)));
+		for (int j = 1; j < u.size(); j++) {
+			if (u[j].first+1 == w.back().first) {
+				w.back().second += u[j].second * k;
+			} else {
+				w.push_back(P(u[j].first+1, u[j].second*k));
+			}
+			w.push_back(P(u[j].first, u[j].second*(1-k)));
+		}
+		dp[v] = merge(dp[v], w);
+	}
+}
+
+int main() {
+	int n, q;
+	scanf("%d%d", &n, &q);
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &a[i]);
+	}
+	for (int i = 0; i < q; i++) {
+		scanf("%d%d%lf", &l[i], &r[i], &p[i]);
+		--l[i];
+		st[l[i]].push_back(i);
+		nd[r[i]].push_back(i);
+	}
+	int stt = 0;
+	stack<int> stp;
+	stp.push(0);
+	for (int i = 0; i <= n; i++) {
+		if (nd[i].size()) {
+			sort(nd[i].begin(), nd[i].end(), nds);
+		}
+		if (st[i].size()) {
+			sort(st[i].begin(), st[i].end(), sts);
+		}
+		for (int j = 0; j < nd[i].size(); j++) {
+			int x = stp.top();
+			stp.pop();
+			ch[stp.top()].push_back(x);
+			chx[stp.top()].push_back(nd[i][j]);
+		}
+		for (int j = 0; j < st[i].size(); j++) {
+			++stt;
+			stp.push(stt);
+		}
+		in[i] = stp.top();
+	}
+	for (int i = 0; i < n; i++) {
+		val[in[i]] = max(a[i], val[in[i]]);
+	}
+	go(0);
+	double ans = 0;
+	for (int i = 0; i < dp[0].size(); i++) {
+		ans += dp[0][i].first * dp[0][i].second;
+	}
+	printf("%.12f\n", ans);
+	return 0;
+}

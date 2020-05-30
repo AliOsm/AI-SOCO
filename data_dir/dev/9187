@@ -1,0 +1,122 @@
+#include <cstdio>
+#include <vector>
+#include <utility>
+#include <algorithm>
+using namespace std;
+int sa[100010], ea[100010], sb[100010], eb[100010];
+int f[100010];
+pair<int, int> p[100010];
+vector<int> qx[100010];
+const int N = 1 << 18;
+int b[N+N], lz[N+N];
+void push(int pos) {
+	if (lz[pos]) {
+		int v = lz[pos];
+		b[pos+pos] += v;
+		lz[pos+pos] += v;
+		b[pos+pos+1] += v;
+		lz[pos+pos+1] += v;
+		lz[pos] = 0;
+	}
+}
+void build(int pos) {
+	b[pos] = max(b[pos+pos], b[pos+pos+1]);
+}
+void add(int l, int r, int x, int L = 0, int R = N, int pos = 1) {
+	if (r <= L || R <= l) return;
+	if (l <= L && R <= r) {
+		b[pos] += x;
+		lz[pos] += x;
+		return;
+	}
+	push(pos);
+	add(l, r, x, L, (L + R) / 2, pos + pos);
+	add(l, r, x, (L + R) / 2, R, pos + pos + 1);
+	build(pos);
+}
+int query(int l, int r, int L = 0, int R = N, int pos = 1) {
+	if (r <= L || R <= l) return 0;
+	if (l <= L && R <= r) {
+		return b[pos];
+	}
+	push(pos);
+	int xl = query(l, r, L, (L + R) / 2, pos + pos);
+	int xr = query(l, r, (L + R) / 2, R, pos + pos + 1);
+	build(pos);
+	return max(xl, xr);
+}
+void go(int *x, int *y, int *rx, int *ry, int n) {
+	vector<int> sx, sy;
+	for (int i = 0; i < n; i++) {
+		sx.push_back(x[i]);
+		sy.push_back(y[i]);
+		sy.push_back(ry[i]);
+	}
+	sort(sx.begin(), sx.end());
+	sx.resize(unique(sx.begin(), sx.end()) - sx.begin());
+	sort(sy.begin(), sy.end());
+	sy.resize(unique(sy.begin(), sy.end()) - sy.begin());
+	for (int i = 0; i < sx.size(); i++) {
+		qx[i].clear();
+	}
+	for (int i = 0; i < n; i++) {
+		int px = lower_bound(sx.begin(), sx.end(), x[i]) - sx.begin();
+		qx[px].push_back(i);
+	}
+	for (int i = 0; i < N + N; i++) {
+		b[i] = 0;
+		lz[i] = 0;
+	}
+	for (int i = 0; i < n; i++) {
+		p[i] = make_pair(rx[i], i);
+	}
+	sort(p, p + n);
+	int j = 0;
+	for (int i = 0; i < n; i++) {
+		while (j < sx.size() && sx[j] < p[i].first) {
+			for (int k = 0; k < qx[j].size(); k++) {
+				int t = qx[j][k];
+				int st = lower_bound(sy.begin(), sy.end(), ry[t]) - sy.begin();
+				int nd = lower_bound(sy.begin(), sy.end(), y[t]) - sy.begin();
+				add(st, nd + 1, 1);
+			}
+			j++;
+		}
+		int t = p[i].second;
+		int st = lower_bound(sy.begin(), sy.end(), ry[t]) - sy.begin();
+		int nd = lower_bound(sy.begin(), sy.end(), y[t]) - sy.begin();
+		f[t] += query(st, nd + 1);
+	}
+}
+int main() {
+	int n;
+	scanf("%d", &n);
+	for (int i = 0; i < n; i++) {
+		scanf("%d%d%d%d", &sa[i], &ea[i], &sb[i], &eb[i]);
+	}
+	for (int z = 0; z < 2; z++) {
+		for (int y = 0; y < 2; y++) {
+			go(ea, eb, sa, sb, n);
+			for (int i = 0; i < n; i++) {
+				sa[i] = -sa[i];
+				ea[i] = -ea[i];
+				swap(sa[i], ea[i]);
+				sb[i] = -sb[i];
+				eb[i] = -eb[i];
+				swap(sb[i], eb[i]);
+			}
+		}
+		for (int i = 0; i < n; i++) {
+			swap(sa[i], sb[i]);
+			swap(ea[i], eb[i]);
+		}
+	}
+	for (int i = 0; i < n; i++) {
+		if (f[i]) {
+			puts("NO");
+			return 0;
+		}
+	}
+	puts("YES");
+	return 0;
+}

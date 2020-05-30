@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define pb push_back
+#define forq(i , a , b) for (int i = (a); i <= (b); ++i)
+#define forr(i , b) forq( i , 0 , b - 1 )
+#define carr( n , array ) forr(i , n) read(array[i])
+#define coutarr(n , array ) cout << "\n" ; forr (i , n) printf("%lld " , array[i]) ; cout << "\n" ;
+#define F first
+#define S second
+#define IF ->first
+#define IS ->second
+#define qqmemset(array , val) memset (array , val , sizeof(array))
+#define ALLV(vect) vect.begin() , vect.end()
+#define sizee(vec) (ll)vec.size()
+ll R = 7 + 1e9 , NUMTESTCASE ;
+const int NN = 10 + 2e6 ;
+const double pi = acos(-1.0) ;
+int di [4] = {1 , 0 , -1 , 0} , dj [4] = {0 , 1 , 0 , -1} , DI [8] = {1 , 1 , 0 , -1 , -1 , -1 , 0 , 1} , DJ [8] = {0 , 1 , 1 , 1 , 0 , -1 , -1 , -1} ;
+using namespace std ;
+template<typename T>
+inline void read(T &x){
+	int ch = getchar(); x = 0;
+	bool f = false;
+	while((ch < '0' || ch > '9') && ch != '-') ch = getchar();
+	if(ch == '-'){f = true; ch = getchar();}
+	while(ch >= '0' && ch <= '9'){x = x * 10 + ch - '0'; ch = getchar();}
+	if(f) x = -x;
+}
+int n , ti = 1 , timein [NN] , timeout[NN] , lev [NN] , parn [NN] , Hash[NN] , m , segtree[NN] ;
+vector <int> G[NN] ;
+void DFS (int ver , int par , int cnt ) {
+    int in = ti ++ ;
+    for (int u : G[ver]) if (u != par) DFS(u , ver , cnt + 1 ) ;
+    Hash[ver] = ++ m ;
+    lev [Hash[ver]] = cnt ;
+    parn [Hash[ver]] = par ;
+    timein[Hash[ver]] = in ;
+    timeout[Hash[ver]] = ti ++ ;
+}
+bool isgra (int ver , int par) {
+    return (timein[par] <= timein[ver] && timeout[par] >= timeout[ver]) ;
+}
+unordered_map <int , unordered_map <int , int> > memo ;
+int com_par (int u , int v) {
+    if (v < u) swap(u , v) ;
+    if ( isgra (v , u) ) return u ;
+    if ( isgra (u , v) ) return v ;
+    auto it1 = memo.find(u) ;
+    if (it1 != memo.end()) {
+        auto it2 = it1 IS.find(v) ;
+        if (it2 != it1 IS.end())
+            return it2 IS ;
+    }
+    return memo[u][v] = com_par(u , parn [v]) ;
+}
+void build (int pos , int st , int en) {
+    if (st == en) {
+        segtree[pos] = st ;
+        return ;
+    }
+    build(2 * pos , st , (st + en) / 2) ;
+    build(2 * pos + 1 , (st + en) / 2 + 1 , en ) ;
+    segtree[pos] = com_par(segtree[2 * pos] , segtree[2 * pos + 1]) ;
+}
+int seg_com_par (int pos , int st , int en , int u , int v) {
+    if (en < u || st > v) return -1 ;
+    if (st >= u && en <= v) return segtree[pos] ;
+    int flag1 = seg_com_par(2 * pos , st , (st + en) / 2 , u , v) ;
+    int flag2 = seg_com_par(2 * pos + 1 , (st + en) / 2 + 1 , en , u , v) ;
+    int res ;
+    if (flag1 != -1 && flag2 != -1) res = com_par(flag1 , flag2) ;
+    else if (flag1 != -1) res = flag1 ;
+    else res = flag2 ;
+    return res ;
+}
+int dis (int v , int u) {
+    if (u > v) swap(u , v) ;
+    return lev[v] + lev[u] - 2 * lev[seg_com_par(1 , 1 , m , u , v)] ;
+}
+int main()
+{
+    read(n) ;
+    int u , v ;
+    forq (i , 1 ,n - 1) {
+        read(u) ; read(v) ;
+        //scanf("%d%d" , &u , &v) ;
+        G[u].pb(v) ;
+        G[v].pb(u) ;
+    }
+    DFS(1 , -1 , 0) ;
+    parn[Hash[1]] = 1 ;
+    forq (i , 1 , n) parn[i] = Hash[parn[i]] ;
+    build(1 , 1 , m) ;
+    int x , y , a , b , k , q ; read(q) ;
+    while (q --) {
+        read(x) ; read(y) ; read(a) ; read(b) ; read(k) ;
+        //scanf("%d%d%d%d%d" , &x , &y , &a , &b , &k) ;
+        x = Hash[x] ; y = Hash[y] ; a = Hash[a] ; b = Hash[b] ;
+        int flag = 0 , ab = dis(a , b) , axyb = 1 + dis(a , x) + dis(y , b) , ayxb = 1 + dis(a , y) + dis(x , b) ;
+        if (ab % 2 == k % 2 && ab <= k) flag = 1 ;
+        if (axyb % 2 == k % 2 && axyb <= k) flag = 1 ;
+        if (ayxb % 2 == k % 2 && ayxb <= k) flag = 1 ;
+        printf( flag ? "YES\n" : "NO\n" ) ;
+    }
+    return 0;
+}

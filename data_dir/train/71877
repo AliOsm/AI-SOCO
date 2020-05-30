@@ -1,0 +1,220 @@
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <map>
+#include <iostream>
+#include <vector>
+#include <set>
+#include <functional>
+#include <map>
+#include <string> 
+#include <stack>
+
+using namespace std;
+
+typedef struct Dot {int x, y;} dot;
+typedef struct Line {dot l, r;} line;
+
+typedef struct DDot {long double x, y;} ddot;
+typedef struct DLine {ddot l, r;} dline;
+
+line boy, mir, wal;
+
+class intgeom {
+public:
+	
+	int sign(int var) {
+		if (var < 0) return -1;
+		if (var > 0) return 1;
+		return 0;
+	}
+
+	int vect(int x1, int y1, int x2, int y2) {
+		return x1 * y2 - x2 * y1;
+	}
+
+	int dotsidelin(line lin, dot d) {
+		return vect(lin.r.x - lin.l.x, lin.r.y - lin.l.y, d.x - lin.l.x, d.y - lin.l.y);	
+	}
+
+	bool donlin(dot d, line lin) {
+		return dotsidelin(lin, d) == 0;
+	}
+
+	bool bboxnisctlt(line a , line b) {
+		if (a.l.x == a.r.x) {
+			return min(b.l.y, b.r.y) > max(a.l.y, a.r.y);
+		} else {
+			return min(b.l.x, b.r.x) > max(a.l.x, a.r.x);		
+		}
+	}
+
+	bool bboxnisct(line a, line b) {
+		return bboxnisctlt(a, b) || bboxnisctlt(b, a); 
+	}
+
+	bool oneside(line a, line b) {//b otnositelno a
+		return sign(dotsidelin(a, b.l)) == sign(dotsidelin(a, b.r));
+	}
+
+	bool paral(line a, line b) {
+		return donlin(a.l, b) && donlin(a.r, b);
+	}
+
+	bool paralinter(line a, line b) {
+		return !bboxnisct(a, b);
+	}
+
+	bool inters(line a, line b) {
+		if (paral(a, b)) {
+			return paralinter(a, b);	
+		} else {
+			return !(oneside(a, b) || oneside(b, a));
+		}
+	}
+};
+
+const long double eps = 1e-14;
+
+class dgeom {
+public:
+	ddot reflect(dline line, ddot d) {
+		ddot ans;
+		d.x -= line.l.x, d.y -= line.l.y;
+		long double phi = -atan2(line.r.y - line.l.y, line.r.x - line.l.x);
+		long double cs = cos(phi), sn = sin(phi);
+		ans.x = d.x * cs - d.y * sn, ans.y = d.x * sn + d.y * cs;
+		ans.y = -ans.y;
+		cs = cos(-phi), sn = sin(-phi);
+		d = ans;
+		ans.x = d.x * cs - d.y * sn, ans.y = d.x * sn + d.y * cs;
+		ans.x += line.l.x, ans.y += line.l.y;
+		return ans;
+	}
+
+	bool zero(long double a) {
+		return abs(a) < eps;
+	}
+
+	long double vect(long double x1, long double y1, long double x2, long double y2) {
+		return x1 * y2 - x2 * y1;
+	}
+
+	long double scal(long double x1, long double y1, long double x2, long double y2) {
+		return x1 * x2 + y1 * y2;
+	}
+
+	//bool online(dline line, ddot d) {
+	//	return zero(vect(line.r.x - line.l.x, line.r.y - line.l.y, d.x - line.l.x, d.y - line.l.y));
+	//}
+
+	bool inseg(dline line, ddot d) {
+		return scal(line.l.x - d.x, line.l.y - d.y, line.r.x - d.x, line.r.y - d.y) <= 0;
+	}
+
+	void v2line(dline lin, long double& a, long double& b, long double& c) {
+		long double pa = lin.r.x - lin.l.x, pb = lin.r.y - lin.l.y;
+		a = pb, b = -pa;
+		c = pa * lin.l.y - pb * lin.l.x;
+	}
+
+	ddot interdot(dline a, dline b) {
+		long double a1, b1, c1, a2, b2, c2;
+		v2line(a, a1, b1, c1);
+		v2line(b, a2, b2, c2);
+		c1 = -c1, c2 = -c2;
+		long double delta, dx, dy;
+		ddot ans;
+		delta = a1 * b2 - a2 * b1;
+		dx = c1 * b2 - c2 * b1;
+		dy = a1 * c2 - a2 * c1;
+		ans.x = dx / delta;
+		ans.y = dy / delta;
+		return ans;
+	}
+
+	bool parall(dline a, dline b) {
+		return zero(vect(a.r.x - a.l.x, a.r.y - a.l.y, b.r.x - b.l.x, b.r.y - b.l.y));
+	}
+
+	bool parallinter(dline a, dline b) {
+		return inseg(a, b.l) || inseg(a, b.r) || inseg(b, a.l) || inseg(b, a.r);
+	}
+
+	bool inter(dline a, dline b) {
+		if (parall(a, b)) return parallinter(a, b);
+		ddot d = interdot(a, b);
+		return inseg(a, d) && inseg(b, d);
+	}
+
+};
+
+void yes() {
+	cout << "YES";
+}
+
+void no() {
+	cout << "NO";
+}
+
+int main() {
+
+#ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+
+	cin >> boy.l.x >> boy.l.y >> boy.r.x >> boy.r.y;
+	cin >> wal.l.x >> wal.l.y >> wal.r.x >> wal.r.y;
+	cin >> mir.l.x >> mir.l.y >> mir.r.x >> mir.r.y;
+
+	intgeom geom;
+
+	if (!geom.inters(boy, wal)) {
+		if (!geom.inters(boy, mir)) {
+			yes();
+		} else {
+			if (geom.paral(boy, mir)) {//&& not need
+				yes();
+			} else {
+				no();
+			}
+		}
+		return 0;
+	}
+
+	if (!((geom.dotsidelin(mir, boy.l) > 0 && geom.dotsidelin(mir, boy.r) > 0) || (geom.dotsidelin(mir, boy.l) < 0 && geom.dotsidelin(mir, boy.r) < 0))) {
+		no();
+		return 0;
+	}
+
+	dgeom g;
+
+	dline dboy, dwal, dmir;
+	dboy.l.x = boy.l.x, dboy.l.y = boy.l.y, dboy.r.x = boy.r.x, dboy.r.y = boy.r.y;
+	dwal.l.x = wal.l.x, dwal.l.y = wal.l.y, dwal.r.x = wal.r.x, dwal.r.y = wal.r.y;
+	dmir.l.x = mir.l.x, dmir.l.y = mir.l.y, dmir.r.x = mir.r.x, dmir.r.y = mir.r.y;
+
+	dline bline = dboy;
+	bline.l = g.reflect(dmir, dboy.l);
+	ddot donmir = g.interdot(bline, dmir);
+
+	if (!g.inseg(dmir, donmir)) {
+		no();
+		return 0;
+	}
+
+	dline b1, b2;
+	b1.l = dboy.l, b1.r = donmir;
+	b2.l = dboy.r, b2.r = donmir;
+
+	if (g.inter(dwal, b1) || g.inter(dwal, b2)) {
+		no();
+		return 0;
+	}
+
+	yes();
+
+	return 0; 
+}

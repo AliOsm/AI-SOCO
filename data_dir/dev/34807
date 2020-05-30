@@ -1,0 +1,138 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#define N	500000
+#define M	500000
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_(int n) {
+	return (rand() * 76543LL + rand()) % n;
+}
+
+int next[1 + N - 1], jj[1 + N - 1];
+
+int link(int l, int j) {
+	static int _ = 1;
+
+	next[_] = l;
+	jj[_] = j;
+	return _++;
+}
+
+int ao[N], dd[N], bb[N], ll[N], rr[N];
+
+void dfs(int i, int d) {
+	static int time = 0;
+	int l;
+
+	dd[i] = d;
+	ll[i] = time++;
+	for (l = ao[i]; l; l = next[l]) {
+		int j = jj[l];
+
+		dfs(j, d + 1);
+	}
+	rr[i] = time;
+}
+
+void sort(int *aa, int n, int (*compare)(const void *, const void *)) {
+	int i;
+
+	for (i = 0; i < n; i++) {
+		int j = rand_(i + 1), tmp;
+
+		tmp = aa[i], aa[i] = aa[j], aa[j] = tmp;
+	}
+	qsort(aa, n, sizeof *aa, compare);
+}
+
+int vv[M], hh[M];
+
+int compare_d(const void *a, const void *b) {
+	int i = *(int *) a;
+	int j = *(int *) b;
+
+	return dd[i] - dd[j];
+}
+
+int compare_h(const void *a, const void *b) {
+	int i = *(int *) a;
+	int j = *(int *) b;
+
+	return hh[i] - hh[j];
+}
+
+int tr[N];
+
+void update(int i, int n, int x) {
+	while (i < n) {
+		tr[i] ^= x;
+		i |= i + 1;
+	}
+}
+
+int query(int i) {
+	int x = 0;
+
+	while (i >= 0) {
+		x ^= tr[i];
+		i &= i + 1, i--;
+	}
+	return x;
+}
+
+int main() {
+	static char cc[N + 1];
+	static int xx[N], yy[M], aa[M];
+	int n, m, h, i, d;
+
+	srand_();
+	scanf("%d%d", &n, &m);
+	for (i = 1; i < n; i++) {
+		int p;
+
+		scanf("%d", &p), p--;
+		ao[p] = link(ao[p], i);
+	}
+	dfs(0, 0);
+	scanf("%s", cc);
+	for (i = 0; i < n; i++)
+		bb[i] = 1 << cc[i] - 'a';
+	for (h = 0; h < m; h++)
+		scanf("%d%d", &vv[h], &hh[h]), vv[h]--, hh[h]--;
+	for (i = 0; i < n; i++)
+		xx[i] = i;
+	for (h = 0; h < m; h++)
+		yy[h] = h;
+	sort(xx, n, compare_d);
+	sort(yy, m, compare_h);
+	for (d = 0, i = 0, h = 0; d < n; d++) {
+		int j, i_, h_;
+
+		j = i;
+		while (j < n && dd[i_ = xx[j]] == d) {
+			update(ll[i_], n, bb[i_]);
+			j++;
+		}
+		while (h < m && hh[h_ = yy[h]] == d) {
+			aa[h_] = query(rr[vv[h_]] - 1) ^ query(ll[vv[h_]] - 1);
+			h++;
+		}
+		while (i < j) {
+			i_ = xx[i];
+			update(ll[i_], n, bb[i_]);
+			i++;
+		}
+	}
+	for (h = 0; h < m; h++)
+		printf((aa[h] & aa[h] - 1) == 0 ? "Yes\n" : "No\n");
+	return 0;
+}

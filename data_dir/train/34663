@@ -1,0 +1,202 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cassert>
+
+const int INF = (int)1e9+1;
+
+struct BridgesSearcher {
+    
+    struct Edge {
+        int u, v;
+    };
+    
+    const int nV;
+    
+    std::vector<Edge> edges;
+    
+    std::vector<std::vector<int>> next;
+    
+    BridgesSearcher(int nV_) : nV(nV_) {
+        next.resize(1+nV);
+    }
+    
+    void add_edge(int u, int v) {
+        edges.push_back(Edge{u,v});
+        next[u].push_back((int)edges.size()-1);
+        next[v].push_back((int)edges.size()-1);
+    }
+    
+    std::vector<int> tin, fup, bridges; int timer;
+    
+    void visit(int u, int p) {
+        assert(tin[u] == INF);
+        tin[u] = timer++;
+        fup[u] = tin[u];
+        for (int id : next[u]) {
+            const auto& e = edges[id];
+            int v = e.u + e.v - u;
+            if (v == p) {
+                continue;
+            }
+            if (tin[v] == INF) {
+                visit(v,u);
+            }
+            fup[u] = std::min(fup[u], fup[v]);
+            if (tin[u] < fup[v]) {
+                bridges.push_back(id);
+            }
+        }
+    }
+    
+    std::vector<int> get_bridges() {
+        bridges.clear();
+        timer = 0;
+        tin.assign(1+nV, INF);
+        fup.assign(1+nV, INF);
+        for (int u = 1; u <= nV; ++u) {
+            if (tin[u] == INF) {
+                visit(u,0);
+            }
+        }
+        std::sort(bridges.begin(), bridges.end());
+        bridges.erase(std::unique(bridges.begin(), bridges.end()), bridges.end());
+        return bridges;
+    }
+    
+};
+
+struct DSU {
+    
+    std::vector<int> parent, size;
+    
+    DSU(const int nV) : parent(1+nV), size(1+nV, 1) { 
+        for (int i = 1; i <= nV; ++i) {
+            parent[i] = i;
+        }
+    }
+    
+    int get_parent(int u) {
+        return u == parent[u] ? u : parent[u] = get_parent(parent[u]);
+    }
+    
+    void union_sets(int u, int v) {
+        u = get_parent(u), v = get_parent(v);
+        if (u != v) {
+            if (size[u] < size[v]) std::swap(u, v);
+            size[u] += size[v];
+            parent[v] = u;
+        }
+    }
+};
+
+struct Edge {
+    int u, v, cost, id;
+};
+
+struct Triple {
+    int u, v, id;
+};
+
+bool operator<(const Triple& a,  const Triple &b) {
+    return a.u < b.u || (a.u == b.u && (a.v < b.v || (a.v == b.v && a.id < b.id)));
+}
+
+std::vector<std::string> solve(const int nV, const std::vector<Edge>& input) {
+    const int WMAX = (int)1e6;
+    DSU dsu(nV);
+    std::vector<std::vector<Edge>> edges(1+WMAX);
+    for (const auto &e : input) {
+        edges[e.cost].push_back(e);
+    }
+    std::vector<std::string> answ(input.size());
+    std::vector<Triple> triples;
+    for (int cost = 1; cost <= WMAX; ++cost) {
+        if (edges[cost].empty()) continue;
+        triples.clear();
+        std::vector<int> coordinates;
+        for (const auto &e : edges[cost]) {
+            int pu = dsu.get_parent(e.u), pv = dsu.get_parent(e.v);
+            if (pu == pv) {
+                answ[e.id] = "none";
+                continue;
+            }
+            if (pu > pv) std::swap(pu, pv);
+            triples.push_back(Triple{pu,pv,e.id});
+            coordinates.push_back(pu);
+            coordinates.push_back(pv);
+        }
+        #define all(x) (x).begin(), (x).end()
+        std::sort(all(coordinates));
+        coordinates.erase(std::unique(all(coordinates)), coordinates.end());
+        std::sort(all(triples));
+        BridgesSearcher bs(coordinates.size());
+        #define binpos(x,y) int(std::lower_bound(all(x), y) - (x).begin())
+        {
+            auto old_triples = triples;
+            old_triples.push_back(Triple{0,0,-1});
+            triples.clear();
+            int pos = 0, pu = old_triples.front().u, pv = old_triples.front().v;
+            std::vector<int> ids;
+            while (pos < (int)old_triples.size()) {
+                const auto &t = old_triples[pos];
+                if (t.u == pu && t.v == pv) {
+                    ids.push_back(t.id);
+                } else {
+                    if (ids.size() > 1u) {
+                        for (int id : ids) {
+                            assert(answ[id].empty());
+                            answ[id] = "at least one";
+                        }
+                    }
+                    triples.push_back(Triple{pu, pv, ids.front()});
+                    ids.clear();
+                    pu = t.u, pv = t.v;
+                    ids.push_back(t.id);
+                }
+                ++pos;
+            }
+        }
+        for (auto &t : triples) {
+            int u = binpos(coordinates, t.u)+1;
+            int v = binpos(coordinates, t.v)+1;
+            assert(u < v);
+            bs.add_edge(u, v);
+        }
+        for (const auto& id : bs.get_bridges()) {
+            const auto &t = triples[id];
+            int k = t.id;
+            if (answ[k].empty()) {
+                answ[k] = "any";
+            }
+            dsu.union_sets(t.u, t.v);
+        }
+        for (const auto& t : triples) {
+            if (answ[t.id].empty()) {
+                answ[t.id] = "at least one";
+            }
+            dsu.union_sets(t.u, t.v);
+        }
+    }
+    return answ;
+}
+
+
+int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(0); std::cout.tie(0); std::cerr.tie(0);
+    int nV, nE;
+    while (std::cin >> nV >> nE) {
+        std::vector<Edge> edges(nE);
+        for (int i = 0; i < nE; ++i) {
+            auto& e = edges[i]; e.id = i;
+            std::cin >> e.u >> e.v >> e.cost;
+        }
+        auto answ = solve(nV, edges);
+        for (const auto &it : answ) {
+            std::cout << it << "\n";
+        }
+        std::cout << std::endl;
+    }
+    return 0;
+}

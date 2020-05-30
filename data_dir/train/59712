@@ -1,0 +1,148 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int NMAX = 100010;
+const int MMAX = 1000010;
+const int LG = 20;
+
+int from[MMAX], to[MMAX], cost[MMAX];
+bool used[MMAX];
+int ans[MMAX];
+int n, m;
+
+namespace UF {
+	int tata[NMAX], g[NMAX];
+
+	void init(int n) {
+		fill(g, g + n + 1, 1);
+		iota(tata, tata + n + 1, 0);
+	}
+
+	int find(int x) {
+		if (tata[tata[x]] != tata[x])
+			tata[x] = find(tata[x]);
+		return tata[x];
+	}
+
+	bool unite(int a, int b) {
+		a = find(a);
+		b = find(b);
+
+		if (a == b)
+			return 0;
+		if (g[a] < g[b])
+			swap(a, b);
+		g[a] += g[b], tata[b] = a;
+		return 1;
+	}
+}
+
+namespace Tree {
+	vector <pair <int, int>> adia[NMAX];
+	int h[NMAX], idtata[NMAX];
+	int stramos[LG][NMAX];
+	int vmax[LG][NMAX];
+	int lazy[LG][NMAX];
+
+	void dfs(int nod, int tata, int id) {
+		idtata[nod] = id;
+		h[nod] = 1 + h[tata];
+		stramos[0][nod] = tata;
+		vmax[0][nod] = cost[id];
+		lazy[0][nod] = 1000000000;
+		for (int i = 1; i < LG; i++) {
+			stramos[i][nod] = stramos[i - 1][stramos[i - 1][nod]];
+			vmax[i][nod] = max(vmax[i - 1][nod], vmax[i - 1][stramos[i - 1][nod]]);
+			lazy[i][nod] = 2e9;
+		}
+
+		for (auto i : adia[nod])
+			if (i.first != tata)
+				dfs(i.first, nod, i.second);
+	}
+
+	int check(int a, int b, int c) {
+		/// am o muchie transversala de la a la b cu cost c
+		int ans = 0;
+
+		auto up = [&](int & nod, int p) {
+			ans = max(ans, vmax[p][nod]);
+			lazy[p][nod] = min(lazy[p][nod], c);
+			nod = stramos[p][nod];
+		};
+
+		if (h[a] < h[b])
+			swap(a, b);
+		for (int i = LG - 1; i >= 0; i--)
+			if (h[a] - (1 << i) >= h[b])
+				up(a, i);
+		if (a == b)
+			return ans;
+		for (int i = LG - 1; i >= 0; i--)
+			if (stramos[i][a] != stramos[i][b])
+				up(a, i), up(b, i);
+
+		up(a, 0);
+		up(b, 0);
+		return ans;
+	}
+
+	void get_ans() {
+		for (int i = LG - 1; i >= 1; i--) {
+			for (int j = 1; j <= n; j++) {
+				lazy[i - 1][j] = min(lazy[i - 1][j], lazy[i][j]);
+				lazy[i - 1][stramos[i - 1][j]] = min(lazy[i - 1][stramos[i - 1][j]], lazy[i][j]);
+			}
+		}
+		for (int i = 1; i <= n; i++)
+			ans[idtata[i]] = lazy[0][i];
+	}
+}
+
+void make_apm()
+{
+	vector <int> v(m);
+	iota(v.begin(), v.end(), 1);
+	sort(v.begin(), v.end(), [](int a, int b) { return cost[a] < cost[b]; });
+	UF::init(n);
+
+	for (auto i : v) {
+		if (UF::unite(from[i], to[i])) {
+			Tree::adia[from[i]].push_back({ to[i], i });
+			Tree::adia[to[i]].push_back({ from[i], i });
+			used[i] = 1;
+		}
+	}
+}
+
+int main()
+{
+	scanf("%d%d", &n, &m);
+
+	for (int i = 1; i <= m; i++)
+		scanf("%d%d%d", &from[i], &to[i], &cost[i]);
+
+	make_apm();
+
+	Tree::dfs(1, 0, 0);
+
+	for (int i = 1; i <= m; i++)
+		if (!used[i])
+			ans[i] = Tree::check(from[i], to[i], cost[i]);
+
+	Tree::get_ans();
+
+	for (int i = 1; i <= m; i++)
+		cout << ans[i] << '\n';
+
+	return 0;
+}
+
+
+
+
+
+
+
+
+

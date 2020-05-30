@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n;
+int tot[255];
+int cur[255];
+int belong[255];
+bool del[255];
+
+vector<int> g[255];
+
+vector<int> solve(vector<vector<int>> &vec, int tail, int head) {
+    int choose = tail;
+    memset(cur, 0, sizeof(cur));
+    memset(del, false, sizeof(del));
+
+    for (int i = 0; i + 1 < n; i++) {
+        for (auto p: vec[i]) {
+            cur[p]++;
+        }
+    }
+
+    vector<int> res;
+
+    for (int i = n; i > 2; i--) {
+        int nxt = -1;
+
+        for (int j = 0; j + 1 < n; j++) {
+            if (del[j]) continue;
+
+            for (auto p: vec[j]) {
+                if (p == choose) {
+                    del[j] = true;
+                    belong[i] = j;
+                    break;
+                }
+            }
+
+            if (del[j]) {
+                if (vec[j].size() > i) return {};
+
+                for (auto p: vec[j]) {
+                    cur[p]--;
+
+                    if (cur[p] == 1 && p != head) {
+                        if (i > 3 && nxt >= 0) return {};
+                        nxt = p;   
+                    }
+                }
+            }
+        }
+
+        if (nxt == -1) return {};
+        
+        res.push_back(choose);
+
+        choose = nxt;
+    }
+
+    set<int> fuck;
+
+    for (int i = 3; i <= n; i++) {
+        if (vec[belong[i]].size() == i - 1) {
+            for (auto p: vec[belong[i]]) if (cur[p] == 1) {
+                fuck.insert(p);
+            }
+        }
+    }
+
+    if (head >= 0) {
+        for (int i = 1; i <= n; i++) if (i != head && cur[i] > 0) {
+            fuck.insert(i);
+        }
+    }
+
+    if (fuck.size() > 1) return {};
+    if (fuck.size() == 0) {
+        for (int i = 1; i <= n; i++) if (cur[i] > 0) {
+            fuck.insert(i);
+            break;
+        }
+    }
+
+    res.push_back(*fuck.begin());
+
+    cur[*fuck.begin()]--;
+
+    for (int i = 1; i <= n; i++) if (cur[i] > 0) res.push_back(i);
+    
+    reverse(res.begin(), res.end());
+
+    for (int i = 1; i <= n; i++) {
+        if (i > 2) {
+            for (int j = i; j >= i - vec[belong[i]].size() + 1; j--) {
+                if (!binary_search(vec[belong[i]].begin(), vec[belong[i]].end(), res[j - 1])) {
+                    return {};
+                }
+            }
+        }
+    }
+
+    return res;
+}
+int main() {
+    int _t;
+    scanf("%d", &_t);
+
+    for (int _ = 0; _ < _t; _++) {
+        scanf("%d", &n);
+
+        vector<vector<int>> vec(n - 1);
+
+        memset(tot, 0, sizeof(tot));
+
+        for (int i = 0; i + 1 < n; i++) {
+            int k;
+            scanf("%d", &k);
+
+            vec[i].resize(k);
+
+            for (int j = 0; j < k; j++) {
+                scanf("%d", &vec[i][j]);
+                tot[vec[i][j]]++;
+            }
+        }
+
+        vector<int> res;
+        vector<int> cand;
+
+        for (int i = 1; i <= n; i++) if (tot[i] == 1) {
+            cand.push_back(i);
+        }
+
+        for (int i = 1; i <= n; i++) {
+            if (tot[i] == 1) {
+                for (int j = 1; j <= n; j++) if (i != j) {
+                    vector<int> ans = solve(vec, i, j);
+                    if (!ans.empty()) {
+                        res = ans;
+                    }
+                }
+            }
+        }
+
+        assert(!res.empty());
+        for (auto p: res) printf("%d ", p);
+        puts("");
+    }
+
+	return 0;
+}
+

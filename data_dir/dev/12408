@@ -1,0 +1,73 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 100010;
+const int mod = 1e9 + 7;
+int A[N], inv[N];
+int pow_mod(LL x, int bit) {
+	LL ret = 1;
+	while(bit) {
+		if(bit & 1)
+			ret = ret * x % mod;
+		x = x * x % mod;
+		bit >>= 1;
+	}
+	return ret;
+}
+void prepare() {
+	A[0] = 1;
+	for(int i = 1; i < N; i ++)
+		A[i] = (LL)A[i - 1] * i % mod;
+	inv[N - 1] = pow_mod(A[N - 1], mod - 2);
+	for(int i = N - 2; ~i; i --)
+		inv[i] = (LL)inv[i + 1] * (i + 1) % mod;
+}
+int C(int n, int m) {
+	if(m < 0 || n < m)	return 0;
+	return (LL)A[n] * inv[m] % mod * inv[n - m] % mod;
+}
+
+int num[N], suf_num[N];
+LL pre[N], suf[N];
+void Go(int n, int k) {
+	LL ans = 0;
+	for(int i = 1; i <= n; i ++)
+		pre[i] = ((LL)pre[i - 1] * 10 % mod + num[i]) % mod;
+	for(int i = n, base = 1; i; i --) {
+		suf[i] = ((LL)num[i] * base % mod + suf[i + 1]) % mod;
+		base = (LL)base * 10 % mod;
+		suf_num[i] = suf_num[i + 1] + num[i];
+	}
+	if(k == 0) {
+		ans = pre[n];
+	} else {
+		LL sum = 0;
+		for(int i = 1; i <= n; i ++)	sum = sum + num[i];
+		for(int len = 1; len <= n - 2; len ++) {
+			LL t = sum - pre[len] - suf[n - len + 1];
+			t = (t % mod + mod) % mod;
+			ans = (ans + t * C(n - 2 - len, k - 2) % mod) % mod;
+			sum = (sum - suf[n - len + 1] + mod) % mod;
+			sum = sum * 10 % mod + suf_num[len + 1];
+			sum = sum % mod;
+		}
+		for(int i = 1; i <= n; i ++) {
+			if(i != n)
+				ans = (ans + (LL)pre[i] * C(n - i - 1, k - 1) % mod) % mod;
+			if(i != 1)
+				ans = (ans + (LL)suf[i] * C(i - 1 - 1, k - 1) % mod) % mod;
+		}
+	}
+	printf("%I64d\n", ans);
+}
+int main() {
+	int n, k;
+	prepare();
+	scanf("%d%d", &n, &k);
+	for(int i = 1; i <= n; i ++)
+		scanf("%1d", num + i);
+	Go(n, k);
+	return 0;
+}
+

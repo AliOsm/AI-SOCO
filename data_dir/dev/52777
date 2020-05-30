@@ -1,0 +1,147 @@
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <vector>
+using namespace std;
+
+typedef long long i64;
+const int NMAX = 600010;
+bool is_lin[NMAX];
+
+namespace UF {
+    i64 ans;
+    int lin[NMAX], col[NMAX], g[NMAX], tata[NMAX];
+    vector <int> op;
+
+    int find(int x) {
+        while (tata[x] != x)
+            x = tata[x];
+        return x;
+    }
+
+    void proc(int x, int add = 1) {
+        ans += 1LL * add * lin[x] * col[x];
+    }
+
+    void unite(int a, int b) {
+        a = find(a);
+        b = find(b);
+
+        if (a == b) {
+            op.push_back(0);
+            return;
+        }
+
+        if (g[a] < g[b])
+            swap(a, b);
+
+        proc(a, -1);
+        proc(b, -1);
+        lin[a] += lin[b], col[a] += col[b];
+        g[a] += g[b], tata[b] = a;
+        proc(a, 1);
+        op.push_back(b);
+    }
+
+    void undo(int pasi = 1) {
+        while (pasi--) {
+            int nod = op.back();
+            op.pop_back();
+            if (!nod)
+                continue;
+            proc(tata[nod], -1);
+            g[tata[nod]] -= g[nod];
+            lin[tata[nod]] -= lin[nod];
+            col[tata[nod]] -= col[nod];
+            proc(tata[nod], 1);
+            proc(nod, 1);
+            tata[nod] = nod;
+        }
+    }
+}
+
+namespace Aint {
+    i64 ans[NMAX];
+    vector <pair <int, int>> edges[2 * NMAX];
+    int from, to;
+    pair <int, int> e;
+
+    void update(int nod, int st, int dr) {
+        if (st > to || dr < from)
+            return;
+        if (from <= st && to >= dr) {
+            edges[nod].push_back(e);
+            return;
+        }
+        update(2 * nod, st, (st + dr) / 2);
+        update(2 * nod + 1, (st + dr) / 2 + 1, dr);
+    }
+
+    void dfs(int nod, int st, int dr) {
+        for (auto i : edges[nod])
+            UF::unite(i.first, i.second);
+        if (st == dr)
+            ans[st] = UF::ans;
+        else {
+            dfs(2 * nod, st, (st + dr) / 2);
+            dfs(2 * nod + 1, (st + dr) / 2 + 1, dr);
+        }
+        UF::undo(edges[nod].size());
+    }
+}
+
+namespace Normalize {
+    map <int, int> lin, col;
+    int cnt;
+
+    pair <int, int> nrm(pair <int, int> v) {
+        if (lin[v.first] == 0)
+            lin[v.first] = ++cnt, UF::lin[cnt] = 1;
+        if (col[v.second] == 0)
+            col[v.second] = ++cnt, UF::col[cnt] = 1;
+        return { lin[v.first], col[v.second] };
+    }
+}
+
+map <pair <int, int>, int> nodes;
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    int q, a, b;
+    cin >> q;
+
+    fill(UF::g, UF::g + 2 * q + 1, 1);
+    iota(UF::tata, UF::tata + 2 * q + 1, 0);
+
+    for (int i = 1; i <= q; i++) {
+        cin >> a >> b;
+        tie(a, b) = Normalize::nrm({ a, b });
+
+        if (nodes.find({ a, b }) != nodes.end()) {
+            Aint::e = { a, b };
+            Aint::to = i - 1;
+            Aint::from = nodes[{ a, b }];
+            Aint::update(1, 1, q);
+            nodes.erase({ a, b });
+        }
+        else
+            nodes[{ a, b }] = i;
+    }
+
+    for (auto i : nodes) {
+        Aint::e = i.first;
+        Aint::from = i.second;
+        Aint::to = q;
+        Aint::update(1, 1, q);
+    }
+
+    Aint::dfs(1, 1, q);
+
+    for (int i = 1; i <= q; i++)
+        cout << Aint::ans[i] << ' ';
+
+    return 0;
+}

@@ -1,0 +1,119 @@
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <bitset>
+#include <algorithm>
+#include <cmath>
+#include <locale>
+#include <random>
+#include <cassert>
+#include <sstream>
+using namespace std;
+#define F first
+#define S second
+#define pb push_back
+#define MP make_pair
+#define ALL(x) begin(x), end(x)
+#define SZ(x) (int)(x).size()
+#define IOS ios_base::sync_with_stdio(0); cin.tie(0)
+#define ln(i, n) " \n"[i == n]
+typedef long long LL;
+typedef long double LDB;
+typedef pair<int, int> PII;
+typedef pair<LL, LL> PLL;
+//////////////////////
+const long double eps = 1e-13;
+const long double PI = acos(-1);
+const int INF = (int)1e9 + 7;
+const LL  INFF = (LL)2e18;
+const int mod = (int)1e9 + 7;
+const int MXN = (int)3e5 + 7;
+struct Seg{
+	static Seg mem[30*MXN], *pmem;
+	Seg *ls, *rs;
+	int v;
+	Seg() {};
+	Seg(int l, int r) {
+		v = INF;
+		if (l == r) return ;
+		int mid = (l + r) >> 1;
+		ls = new (pmem++) Seg(l, mid);
+		rs = new (pmem++) Seg(mid+1, r);
+	}
+	Seg *ins(int l, int r, int val, int pp) {
+		Seg *t = new (pmem++) Seg(*this);
+		t->v = val;
+		if (l == r) return t;
+		int mid = (l + r) >> 1;
+		if (pp <= mid) t->ls = t->ls->ins(l, mid, val, pp);
+		else t->rs = t->rs->ins(mid+1, r, val, pp);
+		t->v = max(t->ls->v, t->rs->v);
+		return t;
+	}
+	int qy(int L, int R, int ll, int rr) {
+		if (L > rr || ll > R) return 0;
+		if (ll <= L && R <= rr) return v;
+		int mid = (L + R) >> 1;
+		return max(ls->qy(L, mid, ll, rr), rs->qy(mid+1, R, ll, rr));
+	}
+} Seg::mem[30*MXN], *Seg::pmem = mem;
+Seg *seg[2*MXN];
+vector<PII> st[MXN];
+vector<int> al;
+vector<PII> st2[2*MXN];
+int main(){
+	int n, m, k; scanf("%d %d %d", &n, &m, &k);
+	for (int i = 1; i <= k; i++) {
+		int l, r, p; scanf("%d %d %d", &l, &r, &p);		
+		st[p].pb( {l, r} );
+	}
+	for (int i = 1; i <= n; i++) {
+		vector<PII> buf;
+		sort( ALL(st[i]) );
+		for (int j = 0; j < SZ(st[i]); j++) {
+			while (!buf.empty() && st[i][j].S <= buf.back().S) 
+				buf.pop_back();
+			buf.pb(st[i][j]);
+		}
+		swap(st[i], buf);
+		for (int j = 0; j < SZ(st[i]); j++) {
+			al.pb(st[i][j].F);
+			al.pb(st[i][j].S);
+		}
+	}
+	sort( ALL(al) );
+	al.resize( unique(ALL(al)) - al.begin() );
+	seg[SZ(al)] = new (Seg::pmem++) Seg(1, n);
+	for (int i = 1; i <= n; i++) {
+		for (int j = 0; j < SZ(st[i]); j++) {
+			int ll = lower_bound(ALL(al), st[i][j].F) - al.begin();
+			int rr = lower_bound(ALL(al), st[i][j].S) - al.begin();
+			st2[ll].pb( MP(i, rr) );
+		}
+	}
+	for (int i = SZ(al)-1; i >= 0; i--) {
+		seg[i] = seg[i+1];
+		for (PII x : st2[i]) {
+			seg[i] = seg[i]->ins(1, n, x.S, x.F);
+		}
+	}
+	while (m--) {
+		int a, b, x, y; scanf("%d %d %d %d", &a, &b, &x, &y);
+		int ll = lower_bound(ALL(al), x) - al.begin();
+		int rr = --upper_bound(ALL(al), y) - al.begin();
+		if (ll > rr){ puts("no"); fflush(stdout); continue; }
+		int v = seg[ll]->qy(1, n, a, b);
+		if (v > rr) puts("no");
+		else puts("yes");
+		fflush(stdout);
+	}
+	return 0;
+}

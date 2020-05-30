@@ -1,0 +1,123 @@
+#include <iostream>
+#include <set>
+#include <algorithm>
+#include <unordered_map>
+#include <vector>
+#include <cstring>
+#include <map>
+#include <ctime>
+#include <assert.h>
+
+#define N (1<<22)
+#define lgN 22
+#define LL long long int
+using namespace std;
+
+vector<int> g[N];
+int cross[N],tick[N],star[N],root[N],p[N],sub[N];
+bool vis[N];
+vector<int> dep[lgN+1];
+
+int ones(int x) {
+  if (x==0) return 0;
+  return ones(x^(x&(-x)))+1;
+}
+int getroot(int u) {
+  while(p[u]!=u) {
+    p[u]=p[p[u]];
+    u=p[u];
+  }
+  return u;
+}
+void addedge(int u,int v) {
+  int uu=getroot(u),vv=getroot(v);
+  if (uu==vv) return;
+  if (sub[uu]<sub[vv]) swap(uu,vv);
+  p[vv]=uu;
+  sub[uu]+=sub[vv];
+  //cout << u << "," << v << " added\n";
+}
+
+int main() {
+  //clock_t t = clock();
+  int n,m,x,i,j;
+  scanf("%d %d",&n,&m);
+  memset(cross,0,sizeof(cross));
+  memset(tick,0,sizeof(tick));
+  memset(star,0,sizeof(star));
+  memset(vis,0,sizeof(vis));
+  int nodes=(1<<n);
+  for (i=0;i<nodes;i++) {
+    p[i]=i;
+    sub[i]=1;
+  }
+  for (i=0;i<m;i++) {
+    scanf("%d",&x);
+    tick[x]=1;
+    cross[x^(nodes-1)]=1;
+    star[x^(nodes-1)]=1;
+  }
+  for (i=0;i<nodes;i++) {
+    dep[n-ones(i)].push_back(i);
+  }
+
+  for (i=0;i<=n;i++) {
+    for (auto it:dep[i]) {
+      for (j=1;j<nodes;j<<=1) {
+        if (it&j) {
+          if (star[it]) star[it^j]=1;
+        }
+      }
+    }
+  }
+
+  for (auto it:dep[n]) {
+    if (star[it] && tick[it]) root[it]=it;
+    else root[it]=-1;
+  }
+  /*
+  cout << "Cross : ";
+  for (i=0;i<nodes;i++) if (cross[i]) cout << i << ',' << (i^(nodes-1)) << ' ';
+  cout << '\n';
+  cout << "Star : ";
+  for (i=0;i<nodes;i++) if (star[i]) cout << i << ' ';
+  cout << '\n';*/
+
+  for (int d=n-1;d>=0;d--) {
+    for (auto it:dep[d]) {
+      if (!star[it]) {
+        root[it]=-1;
+        continue;
+      }
+      int prev=-1;
+      for (j=1;j<nodes;j<<=1) {
+        if (it&j) {
+          auto jt=it^j;
+          if (root[jt]==-1) continue;
+          if (prev!=-1) addedge(prev,root[jt]);
+          prev=root[jt];
+        }
+      }
+      if (tick[it]) {
+        if (prev!=-1) addedge(prev,it);
+        prev=it;
+      }
+      if (cross[it]) {
+        if (prev!=-1) addedge(prev,it^(nodes-1));
+        if (prev!=-1) prev=it^(nodes-1);
+      }
+      root[it]=prev;
+    }
+  }
+
+  int cnt=0;
+  for (i=0;i<nodes;i++) {
+    if (!tick[i]) continue;
+    if (p[i]==i) cnt++;
+  }
+  printf("%d\n",cnt);
+  //t = clock()-t;
+  //cerr << t/((double) CLOCKS_PER_SEC) << '\n';
+
+  return 0;
+}

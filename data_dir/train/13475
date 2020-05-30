@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 55, M = 20005;
+
+int inf = 2e9;
+int tr[4*M], lz[4*M];
+
+void propagate(int u, int st, int en) {
+    if (!lz[u]) return;
+    tr[u] += lz[u];
+    if (st!=en) {
+        lz[2*u] += lz[u];
+        lz[2*u+1] += lz[u];
+    }
+    lz[u] = 0;
+}
+
+void update(int u, int st, int en, int l, int r, int x) {
+    propagate(u, st, en);
+    if (r<st || en<l)  return;
+    else if (l<=st && en<=r) {
+        lz[u] += x;
+        propagate(u, st, en);
+    }
+    else {
+        int mid = (st+en)/2;
+        update(2*u, st, mid, l, r, x);
+        update(2*u+1, mid+1, en, l, r, x);
+        tr[u] = max(tr[2*u], tr[2*u+1]);
+    }
+}
+
+int query(int u, int st, int en, int l, int r) {
+    propagate(u, st, en);
+    if (r<st || en<l)  return -inf;
+    else if (l<=st && en<=r) return tr[u];
+    else {
+        int mid = (st+en)/2;
+        return max(query(2*u, st, mid, l, r), query(2*u+1, mid+1, en, l, r));
+    }
+}
+
+int cost[N][M];
+int dp[N][M];
+
+int main() {
+//    freopen("in.txt", "r", stdin);
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n, m, k;
+    cin >> n >> m >> k;
+    for(int i = 1; i <= n; i++) {
+        for(int j = 1; j <= m; j++) {
+            cin >> cost[i][j];
+            cost[i][j] += cost[i][j-1];
+        }
+    }
+    int res = 0;
+    for(int i = 1; i <= n; i++) {
+        memset(tr, 0, sizeof tr);
+        memset(lz, 0, sizeof lz);
+        for(int j = 1; j <= m-k+1; j++) {
+            int v = dp[i-1][j];
+            if(j <= k) v += cost[i][j-1];
+            update(1,1,m,j,j,v);
+        }
+        for(int a = 1; a <= m-k+1; a++) {
+            int b = a+k-1;
+            int ans = 0;
+            if(a-k>0) ans = max(ans, query(1,1,m,1,a-k));
+            if(a>1) ans = max(ans, query(1,1,m,max(1,a-k+1),a-1)+cost[i][a-1]);
+            ans = max(ans, query(1,1,m,a,b)-cost[i][b]);
+            if(b!=m) ans = max(ans, query(1,1,m,b+1,m));
+            dp[i][a] = ans+cost[i][b]-cost[i][a-1]+cost[i+1][b]-cost[i+1][a-1];
+            res = max(res, dp[i][a]);
+            if(b != m) {
+                if(a-k+1 >= 1) update(1,1,m,a-k+1,a-k+1,+cost[i][a]);
+                update(1,1,m,a,a,-cost[i][a-1]-cost[i][a+k-1]);
+                update(1,1,m,b+1,b+1,+cost[i][b]);
+            }
+        }
+    }
+
+    cout << res << endl;
+
+    return 0;
+}
+

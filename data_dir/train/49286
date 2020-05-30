@@ -1,0 +1,191 @@
+#include<bits/stdc++.h>
+
+//one more
+
+#define x first
+#define y second
+#define y0 hi1
+#define y1 hi2
+#define ll long long
+#define mp make_pair
+#define pb push_back
+#define sqr(a) (a)*(a)
+#define ld long double
+#define all(a) (a).begin(), (a).end()
+
+using namespace std;
+
+const int intinf = 1e9;
+const ll inf = 1e18;
+
+const int N = 1e5 + 5;
+const int M = 1e6 + 5;
+
+int alpha;
+int n;
+vector<pair<int, int>> out[N], in[N];
+vector<int> suf[N], pref[N];
+vector<pair<int, int>> q[M];
+
+int getbest(int i, int l, int r){
+    int res1;
+    int l1 = 0;
+    int r1 = in[i].size() - 1;
+    if(r1 == -1){
+        return intinf;
+    }
+    while(r1 - l1 > 1){
+        int m = (l1 + r1) / 2;
+        if(in[i][m].x > l){
+            r1 = m - 1;
+        } else {
+            l1 = m;
+        }
+    }
+    if(in[i][r1].x <= l){
+        res1 = pref[i][r1];
+    } else
+    if(in[i][l1].x <= l){
+        res1 = pref[i][l1];
+    } else {
+        return intinf;
+    }
+
+    int l2 = 0;
+    int r2 = out[i].size() - 1;
+    if(r2 == -1){
+        return intinf;
+    }
+    while(r2 - l2 > 1){
+        int m = (l2 + r2) / 2;
+        if(out[i][m].x < r){
+            l2 = m + 1;
+        } else {
+            r2 = m;
+        }
+    }
+    if(out[i][l2].x >= r){
+        return res1 + suf[i][l2];
+    } else
+    if(out[i][r2].x >= r){
+        return res1 + suf[i][r2];
+    } else {
+        return intinf;
+    }
+}
+
+ll sum = 0;
+map<int, int> can;
+
+void upd(int p, int l, int r){
+    for(int i = 0; i < q[p].size(); i++){
+        int f = q[p][i].x;
+        int t = q[p][i].y;
+        if(f == 0){
+            if(can.count(t)){
+                sum -= can[t];
+            }
+            can[t] = getbest(t, l, r);
+            if(can[t] == intinf){
+                can.erase(t);
+            } else {
+                sum += can[t];
+            }
+        } else
+        if(t == 0){
+            if(can.count(f)){
+                sum -= can[f];
+            }
+            can[f] = getbest(f, l, r);
+            if(can[f] == intinf){
+                can.erase(f);
+            } else {
+                sum += can[f];
+            }
+        }
+    }
+}
+
+ll get(int l, int r){
+    upd(l, l, r);
+    upd(r - 1, l, r);
+
+    if(can.size() == n){
+        return sum;
+    } else {
+        return inf;
+    }
+}
+
+ll brute(int l, int r){
+    bool ok = true;
+    for(int i = 1; i <= n; i++){
+        int x = getbest(i, l, r);
+        if(x == intinf){
+            ok = 0;
+        } else {
+            can[i] = x;
+            sum += x;
+        }
+    }
+
+    if(!ok){
+        return inf;
+    } else {
+        return sum;
+    }
+}
+
+int main(){
+    cin.tie(0);
+    ios_base::sync_with_stdio(0);
+
+    //freopen("1.txt", "r", stdin);
+
+    int m, k;
+    cin >> n >> m >> k;
+
+    int mx = 0;
+    for(int i = 0; i < m; i++){
+        int d, f, t, c;
+        cin >> d >> f >> t >> c;
+
+        mx = max(mx, d);
+
+        if(f == 0){
+            out[t].pb({d, c});
+        } else
+        if(t == 0){
+            in[f].pb({d, c});
+        }
+
+        q[d].pb({f, t});
+    }
+
+    for(int i = 1; i <= n; i++){
+        sort(all(in[i]));
+        pref[i].resize(in[i].size());
+        for(int j = 0; j < pref[i].size(); j++){
+            pref[i][j] = min(j == 0 ? intinf : pref[i][j - 1], in[i][j].y);
+        }
+
+        sort(all(out[i]));
+        suf[i].resize(out[i].size());
+        for(int j = suf[i].size() - 1; j >= 0; j--){
+            suf[i][j] = min(j == suf[i].size() - 1 ? intinf : suf[i][j + 1], out[i][j].y);
+        }
+    }
+
+    ll ans = inf;
+    for(int l = 2; l <= mx - k; l++){
+        if(l == 2){
+            ans = brute(l - 1, l + k);
+        } else {
+            ans = min(ans, get(l - 1, l + k));
+        }
+    }
+    if(ans == inf){
+        ans = -1;
+    }
+    cout << ans;
+}

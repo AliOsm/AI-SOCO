@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct UnionFind {
+	vector<int> uf;
+	UnionFind(int n) : uf(n, -1) {}
+	int operator[](int x) { return uf[x] < 0 ? x : (uf[x] = operator[](uf[x])); }
+	int size(int x) { return -uf[operator[](x)]; }
+	bool merge(int x, int y) {
+		if ((x = operator[](x)) == (y = operator[](y))) return false;
+		if (uf[x] > uf[y]) swap(x, y); uf[x] += uf[y]; uf[y] = x;
+		return true;
+	}
+};
+
+struct Edge {
+	int next;
+	int color;
+};
+
+int n, m;
+vector<Edge> g[101010];
+int color[101010];
+vector<int> visited;
+
+bool dfs(int curr) {
+	visited.push_back(curr);
+	for (auto e : g[curr]) {
+		if (e.color == 0) {
+			if (color[e.next] == -1) {
+				color[e.next] = color[curr];
+				if (!dfs(e.next)) return false;
+			} else {
+				if (color[e.next] != color[curr]) return false;
+			}
+		} else {
+			if (color[e.next] == -1) {
+				color[e.next] = 1 - color[curr];
+				if (!dfs(e.next)) return false;
+			} else {
+				if (color[e.next] == color[curr]) return false;
+			}
+		}
+	}
+	return true;
+}
+
+pair<int, vector<int>> solve() {
+	memset(color, -1, sizeof(color));
+
+	vector<int> result;
+	for (int i = 0; i < n; i++) {
+		if (color[i] != -1) continue;
+
+		visited.clear();
+
+		color[i] = 0;
+		if (!dfs(i)) return{ 1e9, {} };
+
+		int white = 0;
+		int black = 0;
+		for (int v : visited) {
+			if (color[v] == 0) white++;
+			if (color[v] == 1) black++;
+		}
+
+		if (white < black) {
+			for (int v : visited) {
+				if (color[v] == 0) {
+					result.push_back(v + 1);
+				}
+			}
+		} else {
+			for (int v : visited) {
+				if (color[v] == 1) {
+					result.push_back(v + 1);
+				}
+			}
+		}
+	}
+
+	return{ result.size(), result };
+}
+
+int main() {
+	cin >> n >> m;
+		
+	for (int i = 0; i < m; i++) {
+		int u, v;
+		char c[3];
+		scanf("%d %d %s", &u, &v, c);
+		u--; v--;
+
+		g[u].push_back({ v, c[0] == 'R' });
+		g[v].push_back({ u, c[0] == 'R' });
+	}
+
+	auto a1 = solve();
+	for (int i = 0; i < n; i++) {
+		for (auto &e : g[i]) {
+			e.color = 1 - e.color;
+		}
+	}
+	auto a2 = solve();
+
+	auto ans = min(a1, a2);
+
+	if (ans.first == 1e9) {
+		cout << -1 << endl;
+	} else {
+		cout << ans.second.size() << endl;
+		for (auto x : ans.second) {
+			printf("%d ", x);
+		}
+		printf("\n");
+	}
+}

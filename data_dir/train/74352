@@ -1,0 +1,153 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <map>
+#include <queue>
+#include <cstring>
+#include <cstdlib>
+#include <set>
+using namespace std;
+#define INF 2001001001
+#define MOD 1000000007
+#define endl '\n'
+typedef long long ll;
+
+int N,Q;
+int anc[21][100001];
+int intime[100001],outtime[100001];
+int whereat[200001];
+int depth[100001];
+int cur=1;
+int tree1[200001],tree2[200001];
+vector<int>adj[100001];
+
+void update_min(int pos, int val){
+  pos+=N;
+  tree1[pos]=val;
+  for (pos/=2;pos>=1;pos/=2){
+    tree1[pos]=min(tree1[pos*2],tree1[pos*2+1]);
+  }
+}
+
+int query_min(int l, int r){
+  l+=N;
+  r+=N;
+  int mn=INF;
+  while (l<=r){
+    if (l%2==1)//right node
+      mn=min(mn,tree1[l++]);
+    if (r%2==0)//left node
+      mn=min(mn,tree1[r--]);
+    l/=2;
+    r/=2;
+  }
+  return mn;
+}
+void update_max(int pos, int val){
+  pos+=N;
+  tree2[pos]=val;
+  for (pos/=2;pos>=1;pos/=2){
+    tree2[pos]=max(tree2[pos*2],tree2[pos*2+1]);
+  }
+}
+
+int query_max(int l, int r){
+  l+=N;
+  r+=N;
+  int mx=0;
+  while (l<=r){
+    if (l%2==1)//right node
+      mx=max(mx,tree2[l++]);
+    if (r%2==0)//left node
+      mx=max(mx,tree2[r--]);
+    l/=2;
+    r/=2;
+  }
+  return mx;
+}
+
+int lca(int u, int v){
+  if (depth[u]<depth[v])
+    swap(u,v);
+  int diff=depth[u]-depth[v];
+  for (int k=20;k>=0;k--){
+    if (((1<<k)&diff)!=0)
+      u=anc[k][u];
+  }
+  if (u==v)
+    return u;
+  for (int k=20;k>=0;k--){
+    if (anc[k][u]!=anc[k][v]){
+      u=anc[k][u];
+      v=anc[k][v];
+    }
+  }
+  return anc[0][u];
+}
+
+void dfs(int node, int d){
+  depth[node]=d;
+  intime[node]=cur;
+  whereat[cur]=node;
+  cur++;
+  for (int i:adj[node])
+    dfs(i,d+1);
+  outtime[node]=cur;
+  whereat[cur]=node;
+  cur++;
+}
+
+int main()
+{
+  scanf("%d%d",&N,&Q);
+  for (int i=2;i<=N;i++){
+    scanf("%d",&anc[0][i]);
+    adj[anc[0][i]].push_back(i);
+  }
+  dfs(1,0);
+  anc[0][1]=1;
+  for (int i=1;i<=N;i++)
+    tree1[i]=INF;
+  for (int i=1;i<=20;i++)
+    for (int j=1;j<=N;j++)
+      anc[i][j]=anc[i-1][anc[i-1][j]];
+  for (int i=0;i<N;i++){
+    //cout<<"PRINT: "<<intime[i+1]<<' '<<outtime[i+1]<<endl;
+    update_min(i,intime[i+1]);
+    update_max(i,outtime[i+1]);
+  }
+  for (int i=0;i<Q;i++){
+    int L,R;
+    scanf("%d%d",&L,&R);
+    L--; R--;
+    int u,v;
+    //removing u
+    u=whereat[query_min(L,R)];
+    //cout<<"UV "<<u<<' '<<v<<endl;
+    update_min(u-1,INF);
+    update_max(u-1,0);
+    v=whereat[query_max(L,R)];
+    int u2=whereat[query_min(L,R)];
+    //cout<<"U2 "<<u2<<endl;
+    update_min(u-1,intime[u]);
+    update_max(u-1,outtime[u]);
+    int ans1=lca(u2,v);
+    //removing v
+    v=whereat[query_max(L,R)];
+    update_min(v-1,INF);
+    update_max(v-1,0);
+    u=whereat[query_min(L,R)];
+    int v2=whereat[query_max(L,R)];
+    update_min(v-1,intime[v]);
+    update_max(v-1,outtime[v]);
+    int ans2=lca(u,v2);
+    //cout<<"ANSWERS "<<ans1<<' '<<ans2<<endl;
+    if (depth[ans1]>depth[ans2])
+      printf("%d %d\n",u,depth[ans1]);
+    else
+      printf("%d %d\n",v,depth[ans2]);
+  }
+  return 0;
+}

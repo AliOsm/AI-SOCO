@@ -1,0 +1,444 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <unordered_set>
+#include <unordered_map>
+#include <map>
+#include <set>
+#include <bitset>
+#include <ctime>
+#include <queue>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+typedef vector<int> vi;
+typedef vector<size_t> vsz;
+
+typedef vector<ll> vll;
+
+typedef vector<ii> vii;
+
+typedef vector<vi> vvi;
+
+template <class T>
+T read() {
+	T value;
+	cin >> value;
+	return value;
+}
+
+int read_int() {
+	return read<int>();
+}
+
+size_t read_size() {
+	return read<size_t>();
+}
+
+ll read_ll() {
+	return read<ll>();
+}
+
+string read_string() {
+	return read<string>();
+}
+
+template <class T>
+void read_vector(vector<T> & a, size_t size) {
+	a.resize(size);
+	for (T & value : a) cin >> value;
+}
+
+void read_pairs(vii & a, size_t size) {
+	a.resize(size);
+	for (ii & value : a) cin >> value.first >> value.second;
+}
+
+const char SPACE = ' ', ENDL = '\n';
+
+template <class T>
+void print(vector<T> & a, char sep = SPACE) {
+	for (T & value : a) cout << value << sep;
+	cout << '\n';
+}
+
+template <class T>
+vector<int> compress(vector<T> values) {
+	vector<T> sorted = values; // copying
+	sort(sorted.begin(), sorted.end());
+	sorted.resize(unique(sorted.begin(), sorted.end()) - sorted.begin());
+
+	vector<int> result(values.size());
+	for (int i = 0; i < values.size(); ++i) {
+		result[i] = lower_bound(sorted.begin(), sorted.end(), values[i]) - sorted.begin();
+	}
+
+	return result;
+}
+
+int get_bit(ll mask, int bit) {
+	return (int)((mask >> bit) & 1);
+}
+
+string reverse(string s) {
+	reverse(s.begin(), s.end());
+	return s;
+}
+
+vi reverse(vi a) {
+	reverse(a.begin(), a.end());
+	return a;
+}
+
+vector<int> concat_separated(vi & a, vi & b, int sep = -1) {
+	size_t n = a.size(), m = b.size();
+	vi s(n + 1 + m);
+	for (int i = 0; i < n; ++i) s[i] = a[i];
+	s[n] = sep;
+	for (int j = 0; j < m; ++j) s[n + 1 + j] = b[j];
+	return s;
+}
+
+const int BASE = 1000 * 1000 * 1000 + 7;
+const int MODULO = 1000 * 1000 * 1000 + 31; //998244353
+
+template <int modulo>
+inline int add(int a, int b) {
+	return (a + b) % modulo;
+}
+
+template <int modulo>
+inline int subtract(int a, int b) {
+	return add<modulo>(a, modulo - b);
+}
+
+template <int modulo>
+inline int multiply(ll a, ll b) {
+	return (int)((a * b) % modulo);
+}
+
+struct DSU {
+	vi parents;
+	vi sizes;
+	vi ranks;
+
+	DSU(size_t n = 1) {
+		resize(n);
+	}
+
+	void resize(size_t n) {
+		parents.resize(n);
+		for (int v = 0; v < n; ++v) {
+			parents[v] = v;
+		}
+
+		ranks.resize(n, 1);
+		sizes.resize(n, 0);
+	}
+
+	int get(int v) {
+		int parent = parents[v];
+		if (parent == v) return v;
+
+		return parents[v] = get(parent);
+	}
+
+	bool merge(int f, int t, int weight = 1, bool multiple_edges = false) {
+		int a = get(f);
+		int b = get(t);
+
+		if (multiple_edges) {
+			sizes[a] += weight;
+		}
+
+		if (a == b) return false;
+
+		if (ranks[a] < ranks[b]) {
+			swap(a, b);
+		}
+
+		parents[b] = a;
+		if (ranks[a] == ranks[b]) ++ranks[a];
+		sizes[a] += sizes[b];
+		if (!multiple_edges) sizes[a] += weight;
+
+		return true;
+	}
+
+	bool connected(int f, int t) {
+		return get(f) == get(t);
+	}
+
+	int get_size(int v) {
+		return sizes[get(v)];
+	}
+};
+
+class SegmentTree {
+
+public:
+	int size;
+	vll t;
+
+	SegmentTree(int n)
+		: size(n)
+		, t(size << 2, 0) {
+
+	}
+
+	void update_vertex(int v, int vL, int vR) {
+		t[v] = t[vL] + t[vR];
+	}
+
+	int index;
+	ll value;
+
+	void update_value(int _index, ll _value) {
+		index = _index;
+		value = _value;
+
+		update_tree_index(1, 0, size);
+	}
+
+	void update_tree_index(int v, int left, int right) {
+		if (left + 1 == right) {
+			t[v] = value;
+		}
+		else {
+			int mid = (left + right) >> 1;
+			int vL = (v << 1), vR = (vL + 1);
+
+			if (index < mid) update_tree_index(vL, left, mid);
+			else update_tree_index(vR, mid, right);
+
+			update_vertex(v, vL, vR);
+		}
+	}
+
+	int get_prefix(ll _value) {
+		value = _value;
+		return get_tree_prefix(1, 0, size);
+	}
+
+	int get_tree_prefix(int v, int left, int right) {
+		if (left + 1 == right) {
+			return left;
+		}
+		else {
+			int mid = (left + right) >> 1;
+			int vL = (v << 1), vR = (vL + 1);
+
+			ll left_value = t[vL];
+			if (left_value < value) {
+				value -= left_value;
+				return get_tree_prefix(vR, mid, right);
+			}
+			else {
+				return get_tree_prefix(vL, left, mid);
+			}
+		}
+	}
+};
+
+class FenwickTree {
+
+	int size;
+	vll t;
+	vll values;
+
+public:
+	FenwickTree(int n)
+		: size(n + 1)
+		, t(size, 0LL)
+		, values(size, 0LL)
+	{ }
+
+	void update_tree_index(int index, ll delta) {
+		for (; index < size; index += index & -index) {
+			t[index] += delta;
+		}
+	}
+
+	void update_value(int index, ll value) {
+		++index;
+		ll delta = value - values[index];
+		values[index] = value;
+
+		update_tree_index(index, delta);
+	}
+
+	ll _sum;
+	int get_prefix(ll value) {
+		int result = 0;
+		_sum = 0;
+
+		for (int bit = 20; bit >= 0; --bit) {
+			int next = result | (1 << bit);
+			if (next < size && _sum + t[next] < value) {
+				result = next;
+				_sum += t[next];
+			}
+		}
+
+		return result;
+	}
+};
+
+template <int block_size>
+class SqrtDecomposition {
+	int size;
+	vll blocks;
+	vll values;
+
+public:
+	SqrtDecomposition(int n)
+		: size(n)
+		, blocks(size, 0LL)
+		, values(size, 0LL)
+	{ }
+
+	void update_index(int index, ll delta) {
+		int block = index / block_size;
+		blocks[block] += delta;
+	}
+
+	void update_value(int index, ll value) {
+		ll delta = value - values[index];
+		values[index] = value;
+
+		update_index(index, delta);
+	}
+
+	ll sum;
+	int get_prefix(ll value) {
+		int result = 0;
+		sum = 0;
+
+		for (int block = 0; block * block_size < size; ++block) {
+			ll next_sum = sum + blocks[block];
+			if (next_sum < value) {
+				sum = next_sum;
+			}
+			else {
+				result = block * block_size;
+				break;
+			}
+		}
+		
+		while (result < size && sum + values[result] < value) {
+			sum += values[result];
+			++result;
+		}
+			
+		return result;
+	}
+};
+
+vi get_answer(int n, vi & a) {
+	vi changes(n, 0);
+	for (int i = 0; i < n; ++i) {
+		if (a[i] % 2 == 0) {
+			changes[i] = a[i] / 2;
+		}
+		else {
+			if (a[i] < 0) changes[i] = a[i] / 2;
+			else changes[i] = a[i] / 2 + 1;
+		}
+	}
+
+	int sum = 0;
+	for (int change : changes) sum += change;
+
+	for (int i = 0; i < n; ++i) {
+		if (a[i] % 2 == 0) continue;
+
+		if (sum > 0) {
+			changes[i]--;
+			--sum;
+		}
+	}
+
+	return changes;
+}
+
+void get_brute_answers() {
+	
+}
+
+#include <random>
+
+typedef std::uniform_int_distribution<> uid;
+
+FILE * print_file;
+
+int print_test(int n, int m, int & expected, int & actual, int bad_index) {
+	fprintf(print_file, "%d %d\n", n, m);
+
+	fprintf(print_file, "===\n");
+
+	fprintf(print_file, "%d\n%d\n", expected, actual);
+
+	fprintf(print_file, "===\n\n");
+
+	// n,m + heroes + monsters + sep + expected + actual + sep + empty
+	return 1 + 1 + 1 + 1 + 1;
+}
+
+void set_print_file(const char *file_name) {
+	print_file = fopen(file_name, "a");
+}
+
+void stress(int first_new_line = 1) {
+	std::mt19937 rnd(time(0));
+
+	uid nGen(1, 10);
+	uid mGen(1, 10);
+
+	uid aGen(1, 10);
+	uid bGen(1, 100);
+
+	uid cGen(1, 10);
+	uid dGen(1, 10);
+
+	int first_line = first_new_line;
+	for (int it = 0; it < 10; ++it) {
+		int n = nGen(rnd);
+		int m = mGen(rnd);
+
+		int expected = 0; // get_brute_answers(n, heroes, m, monsters);
+		int actual = 0; // get_answers(n, heroes, m, monsters);
+
+		if (expected != actual) {
+			std::cout << "Gotcha!" << SPACE << first_line << ENDL;
+			//first_line += print_test(n, heroes, m, monsters, expected, actual, bad_index);
+		}
+	}
+
+	fclose(print_file);
+}
+
+#define ONLINE_JUDGE
+
+int main() {
+#ifdef ONLINE_JUDGE
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.tie(nullptr);
+
+	size_t n = read_size();
+
+	vi a;
+	read_vector(a, n);
+
+	vi answer = get_answer(n, a);
+	print(answer, ENDL);
+#elif _DEBUG
+	set_print_file("tests.txt");
+	stress();
+#endif
+	return 0;
+}

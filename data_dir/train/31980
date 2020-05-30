@@ -1,0 +1,115 @@
+#define _USE_MATH_DEFINES
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef complex<double> point;
+
+void fastInOut();
+
+const int MOD = 998244353;
+const int g = 3, LOGN = 25;
+
+int mul(int a, int b) {
+	return (a * 1LL * b) % MOD;
+}
+
+int norm(int a) {
+	return (a % MOD + MOD) % MOD;
+}
+
+int fastPow(int base, int pwr) {
+	int ret = 1;
+	for (int i = 0; i < 32; ++i) {
+		if ((pwr >> i) & 1)
+			ret = mul(ret, base) % MOD;
+		base = mul(base, base) % MOD;
+	}
+	return ret;
+}
+
+int pwk[LOGN], pwki[LOGN], pwsi[LOGN];
+void init() {
+	for (int i = 0; i < LOGN; ++i) {
+		pwk[i] = fastPow(g, (MOD - 1) / (1 << i));
+		pwki[i] = fastPow(pwk[i], MOD - 2);
+		pwsi[i] = fastPow((1 << i), MOD - 2);
+	}
+}
+
+int mx = 0;
+void ntt_fft(vector<int> &a, bool inv) {
+	int step = ceil(log(a.size()) / log(2));
+	int n = (1 << step);
+	bool cur = 0;
+	a.resize(n);
+	vector<int> vec[2];
+	vec[0] = vec[1] = a;
+	for (int i = (n >> 1), s = 1; i >= 1; i >>= 1, ++s) {
+		int w = 1;
+		int wn = (inv ? pwki[s] : pwk[s]);
+		for (int k = 0; k < (n >> 1); k += i) {
+			for (int j = 0; j < i; ++j) {
+				int &ce = vec[!cur][j + 2 * k], &co = vec[!cur][j + i + 2 * k];
+				vec[cur][j + k] = norm(ce + mul(w, co));
+				vec[cur][j + k + (n >> 1)] = norm(ce - mul(w, co));
+			}
+			w = mul(w, wn);
+		}
+		cur = !cur;
+	}
+	a = vec[!cur];
+	if (inv)
+		for (int i = 0; i < int(a.size()); ++i)
+			a[i] = mul(a[i], pwsi[step]);
+}
+
+vector<int> mul(vector<int> a, vector<int> b) {
+	int sc = a.size() + b.size();
+	a.resize(sc), b.resize(sc);
+	ntt_fft(a, 0), ntt_fft(b, 0);
+	vector<int> c(a.size());
+	for (int i = 0; i < int(a.size()); i++)
+		c[i] = mul(a[i], b[i]);
+	ntt_fft(c, 1);
+	return c;
+}
+
+int solve(int n, vector<int> f) {
+	n >>= 1;
+	vector<int> ret;
+	while (n) {
+		if (n % 2) {
+			if (int(ret.size()))
+				ret = mul(ret, f);
+			else
+				ret = f;
+		}
+		f = mul(f, f), n >>= 1;
+	}
+	int tot = 0;
+	for (auto it : ret)
+		tot = (tot + mul(it, it)) % MOD;
+	return tot;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+#endif
+	fastInOut();
+	int n, k, idx;
+	vector<int> f(10);
+	cin >> n >> k;
+	while (k--)
+		cin >> idx, f[idx] = 1;
+	init(), cout << solve(n, f);
+	return 0;
+}
+
+void fastInOut() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(NULL), cout.tie(NULL);
+}

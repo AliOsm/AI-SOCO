@@ -1,0 +1,376 @@
+/**
+ * @author khokharnikunj8
+ */
+
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include <bits/stdc++.h>
+#ifndef JCOMPE_BST_HPP
+#define JCOMPE_BST_HPP
+
+
+
+template<class T, class T1>
+class BST {
+private:
+    class Node {
+    public :
+        T data;
+        Node *leftChild;
+        Node *rightChild;
+        T1 leftCount, rightCount, height, totalCount;
+
+        Node(T data) {
+            this->data = data;
+            this->leftChild = NULL;
+            this->rightChild = NULL;
+            this->leftCount = 0;
+            this->rightCount = 0;
+            this->height = 1;
+            this->totalCount = 1;
+        }
+
+        Node(T data, T1 totalCount) {
+            this->data = data;
+            this->leftChild = NULL;
+            this->rightChild = NULL;
+            this->leftCount = 0;
+            this->rightCount = 0;
+            this->height = 1;
+            this->totalCount = totalCount;
+        }
+    };
+
+    Node *rootNode;
+    Node *temporaryNode1;
+    Node *temporaryNode2;
+    T1 treeSize;
+    bool multiCount;
+
+
+    T1 getDiff(Node *temp) {
+        if (temp == NULL) return 0;
+        return getheight(temp->leftChild) - getheight(temp->rightChild);
+    }
+
+
+    T1 getheight(Node *temp) {
+        if (temp == NULL) return 0;
+        return temp->height;
+    }
+
+    Node *rightRotate(Node *temp) {
+        temporaryNode1 = temp->leftChild;
+        temporaryNode2 = temporaryNode1->rightChild;
+        temporaryNode1->rightChild = temp;
+        temp->leftChild = temporaryNode2;
+        //height updation
+        temp->height = std::max(getheight(temp->leftChild), getheight(temp->rightChild)) + 1;
+        temporaryNode1->height = std::max(getheight(temporaryNode1->leftChild), getheight(temporaryNode1->rightChild)) + 1;
+        //totalCount updation
+        if (temp->leftChild != NULL)
+            temp->leftCount = temp->leftChild->leftCount + temp->leftChild->rightCount + temp->leftChild->totalCount;
+        else temp->leftCount = 0;
+        if (temp->rightChild != NULL)
+            temp->rightCount =
+                    temp->rightChild->leftCount + temp->rightChild->rightCount + temp->rightChild->totalCount;
+        else temp->rightCount = 0;
+        if (temporaryNode1->leftChild != NULL)
+            temporaryNode1->leftCount =
+                    temporaryNode1->leftChild->leftCount + temporaryNode1->leftChild->rightCount +
+                    temporaryNode1->leftChild->totalCount;
+        else temporaryNode1->leftCount = 0;
+        if (temporaryNode1->rightChild != NULL)
+            temporaryNode1->rightCount =
+                    temporaryNode1->rightChild->leftCount + temporaryNode1->rightChild->rightCount +
+                    temporaryNode1->rightChild->totalCount;
+        else temporaryNode1->rightCount = 0;
+        return temporaryNode1;
+    }
+
+
+    Node *leftRotate(Node *temp) {
+        temporaryNode1 = temp->rightChild;
+        temporaryNode2 = temporaryNode1->leftChild;
+        temporaryNode1->leftChild = temp;
+        temp->rightChild = temporaryNode2;
+        //height updation
+        temp->height = std::max(getheight(temp->leftChild), getheight(temp->rightChild)) + 1;
+        temporaryNode1->height = std::max(getheight(temporaryNode1->leftChild), getheight(temporaryNode1->rightChild)) + 1;
+        //totalCount updation
+        if (temp->leftChild != NULL)
+            temp->leftCount = temp->leftChild->leftCount + temp->leftChild->rightCount + temp->leftChild->totalCount;
+        else temp->leftCount = 0;
+        if (temp->rightChild != NULL)
+            temp->rightCount =
+                    temp->rightChild->leftCount + temp->rightChild->rightCount + temp->rightChild->totalCount;
+        else temp->rightCount = 0;
+        if (temporaryNode1->leftChild != NULL)
+            temporaryNode1->leftCount =
+                    temporaryNode1->leftChild->leftCount + temporaryNode1->leftChild->rightCount +
+                    temporaryNode1->leftChild->totalCount;
+        else temporaryNode1->leftCount = 0;
+        if (temporaryNode1->rightChild != NULL)
+            temporaryNode1->rightCount =
+                    temporaryNode1->rightChild->leftCount + temporaryNode1->rightChild->rightCount +
+                    temporaryNode1->rightChild->totalCount;
+        else temporaryNode1->rightCount = 0;
+        return temporaryNode1;
+    }
+
+    Node *remove(Node *temp, T &data, T1 totalCount) {
+        if (temp == NULL) return temp;
+        if (data < temp->data) temp->leftChild = remove(temp->leftChild, data, totalCount);
+        else if (data > temp->data) temp->rightChild = remove(temp->rightChild, data, totalCount);
+        else {
+            if (multiCount && totalCount < temp->totalCount && temp->totalCount > 1) {
+                treeSize -= totalCount;
+                temp->totalCount -= totalCount;
+            } else {
+                treeSize -= temp->totalCount;
+                if (temp->leftChild == NULL && temp->rightChild == NULL) return NULL;
+                else if (temp->leftChild == NULL) return temp->rightChild;
+                else if (temp->rightChild == NULL) return temp->leftChild;
+                else {
+                    temporaryNode1 = minValue(temp->rightChild);
+                    temp->data = temporaryNode1->data;
+                    temp->totalCount = temporaryNode1->totalCount;
+                    temp->rightChild = remove(temp->rightChild, temporaryNode1->data, temporaryNode1->totalCount);
+                    treeSize += temp->totalCount;
+                }
+            }
+        }
+        // for leftside and rightside count
+        if (temp->leftChild != NULL)
+            temp->leftCount = temp->leftChild->leftCount + temp->leftChild->rightCount + temp->leftChild->totalCount;
+        else temp->leftCount = 0;
+        if (temp->rightChild != NULL)
+            temp->rightCount =
+                    temp->rightChild->leftCount + temp->rightChild->rightCount + temp->rightChild->totalCount;
+        else temp->rightCount = 0;
+
+        temp->height = std::max(getheight(temp->leftChild), getheight(temp->rightChild)) + 1;
+        //Balancing
+        T1 diff = getDiff(temp);
+        if (diff > 1) {
+            if (getDiff(temp->leftChild) >= 0) {
+                temp = rightRotate(temp);
+            } else {
+                temp->leftChild = leftRotate(temp->leftChild);
+                temp = rightRotate(temp);
+            }
+        } else if (diff < -1) {
+            if (getDiff(temp->rightChild) <= 0) {
+                temp = leftRotate(temp);
+            } else {
+                temp->rightChild = rightRotate(temp->rightChild);
+                temp = leftRotate(temp);
+            }
+        }
+        return temp;
+    }
+
+    Node *minValue(Node *temp) {
+        temporaryNode1 = temp;
+        while (temporaryNode1->leftChild != NULL) temporaryNode1 = temporaryNode1->leftChild;
+        return temporaryNode1;
+    }
+
+
+    Node *insert(Node *temp, T &data, T1 totalCount) {
+        if (temp == NULL) {
+            if (multiCount) {
+                treeSize += totalCount;
+                return new Node(data, totalCount);
+            } else {
+                treeSize++;
+                return new Node(data);
+            }
+        }
+        if (data < temp->data) temp->leftChild = insert(temp->leftChild, data, totalCount);
+        else if (data > temp->data) temp->rightChild = insert(temp->rightChild, data, totalCount);
+        else if (multiCount) {
+            treeSize += totalCount;
+            temp->totalCount += totalCount;
+        }
+        // for __leftside and rightCount totalCount
+        if (temp->leftChild != NULL)
+            temp->leftCount = temp->leftChild->leftCount + temp->leftChild->rightCount + temp->leftChild->totalCount;
+        else temp->leftCount = 0;
+        if (temp->rightChild != NULL)
+            temp->rightCount =
+                    temp->rightChild->leftCount + temp->rightChild->rightCount + temp->rightChild->totalCount;
+        else temp->rightCount = 0;
+        temp->height = std::max(getheight(temp->leftChild), getheight(temp->rightChild)) + 1;
+        //Balancing
+        T1 diff = getDiff(temp);
+        if (diff > 1) {
+            if (data < temp->leftChild->data) {
+                temp = rightRotate(temp);
+            } else if (data > temp->leftChild->data) {
+                temp->leftChild = leftRotate(temp->leftChild);
+                temp = rightRotate(temp);
+            }
+        } else if (diff < -1) {
+            if (data > (temp->rightChild->data)) {
+                temp = leftRotate(temp);
+            } else if (data < temp->rightChild->data) {
+                temp->rightChild = rightRotate(temp->rightChild);
+                temp = leftRotate(temp);
+            }
+        }
+        return temp;
+    }
+
+public :
+
+    BST() {
+        rootNode = NULL;
+        treeSize = 0;
+        multiCount = false;
+    }
+
+
+    BST(bool multiCount) {
+        rootNode = NULL;
+        treeSize = 0;
+        this->multiCount = multiCount;
+    }
+
+
+    T1 lower_bound(T data) {
+        temporaryNode1 = rootNode;
+        T1 index = 0;
+        while (temporaryNode1 != NULL) {
+            if (data < temporaryNode1->data) {
+                temporaryNode1 = temporaryNode1->leftChild;
+            } else if (data > temporaryNode1->data) {
+                index += (temporaryNode1->totalCount + temporaryNode1->leftCount);
+                temporaryNode1 = temporaryNode1->rightChild;
+            } else {
+                index += (temporaryNode1->leftCount);
+                break;
+            }
+        }
+        return index;
+    }
+
+    T get(T1 index) {
+        temporaryNode1 = rootNode;
+        T1 current = 0;
+        while (temporaryNode1 != NULL) {
+            if (temporaryNode1->leftChild == NULL) {
+                if (temporaryNode1->totalCount + current > index) return temporaryNode1->data;
+                else {
+                    current += temporaryNode1->totalCount;
+                    temporaryNode1 = temporaryNode1->rightChild;
+                }
+            } else {
+                if (current + temporaryNode1->leftCount > index) temporaryNode1 = temporaryNode1->leftChild;
+                else if (current + temporaryNode1->leftCount + temporaryNode1->totalCount > index)
+                    return temporaryNode1->data;
+                else {
+                    current += temporaryNode1->totalCount + temporaryNode1->leftCount;
+                    temporaryNode1 = temporaryNode1->rightChild;
+                }
+            }
+        }
+        return NULL;
+    }
+
+
+    void insert(T data, T1 totalCount = 1) {
+        if (totalCount > 0) rootNode = insert(rootNode, data, totalCount);
+    }
+
+    void remove(T data, T1 totalCount = 1) {
+        if (totalCount > 0) rootNode = remove(rootNode, data, totalCount);
+    }
+
+    T1 getCount(T data) {
+        temporaryNode1 = rootNode;
+        while (temporaryNode1 != NULL) {
+            if (data < temporaryNode1->data) temporaryNode1 = temporaryNode1->leftChild;
+            else if (data > temporaryNode1->data) temporaryNode1 = temporaryNode1->rightChild;
+            else return temporaryNode1->totalCount;
+        }
+        return 0;
+    }
+
+    bool contains(T data) {
+        temporaryNode1 = rootNode;
+        while (temporaryNode1 != NULL) {
+            if (data == temporaryNode1->data) return true;
+            else if (data < temporaryNode1->data) temporaryNode1 = temporaryNode1->leftChild;
+            else temporaryNode1 = temporaryNode1->rightChild;
+        }
+        return false;
+    }
+
+    T1 size() {
+        return this->treeSize;
+    }
+};
+
+#endif //JCOMPE_BST_HPP
+
+
+using namespace std;
+
+class EXenonsAttackOnTheGangs {
+public:
+    vector<vector<int>> size;
+    vector<vector<int>> parent;
+    vector<vector<long long >> dp;
+
+    int dfs(vector<vector<int>> &G, int nd, int pt, int root) {
+        parent[root][nd] = pt;
+        size[root][nd] = 1;
+        for (int i : G[nd]) {
+            if (i == pt) continue;
+            size[root][nd] += dfs(G, i, nd, root);
+        }
+        return size[root][nd];
+    }
+
+    long long findIt(int i, int j) {
+        if (i == j) return 0;
+        if (dp[i][j] != -1) return dp[i][j];
+        return dp[i][j] = (long long) size[i][j] * size[j][i] + max(findIt(parent[j][i], j), findIt(i, parent[i][j]));
+    }
+
+    void solve(std::istream &in, std::ostream &out) {
+        int n;
+        in >> n;
+        vector<vector<int>> G(n, vector<int>());
+        for (int i = 0; i < n - 1; i++) {
+            int x, y;
+            in >> x >> y;
+            x--;
+            y--;
+            G[x].push_back(y);
+            G[y].push_back(x);
+        }
+        parent.resize(n, vector<int>(n, -1));
+        size.resize(n, vector<int>(n, 0));
+        dp.resize(n, vector<long long>(n, -1));
+        for (int i = 0; i < n; i++) dfs(G, i, -1, i);
+        long long ans = 0;
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < n; j++) ans = max(ans, findIt(i, j));
+        out << ans << "\n";
+    }
+};
+
+
+int main() {
+	EXenonsAttackOnTheGangs solver;
+	std::ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	std::istream& in(std::cin);
+	std::ostream& out(std::cout);
+	solver.solve(in, out);
+	return 0;
+}

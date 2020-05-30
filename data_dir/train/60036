@@ -1,0 +1,120 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <deque>
+#include <stack>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cstring>
+#include <string>
+
+#define oo 1e9
+#define pi 3.1415926536
+#define all(x) x.begin(),x.end()
+#define sorta(x) sort(all(x))
+#define sortam(x,comp) sort(all(x),comp)
+#define sortd(x) sort(x.rbegin(),x.rend())
+#define sf(x) scanf("%d", &x);
+#define sf2(x, y) scanf("%d %d", &x, &y);
+#define sf3(x, y, z) scanf("%d %d %d", &x, &y, &z);
+#define sfll(x) scanf("%I64d", &x);
+#define sfll2(x, y) scanf("%I64d %I64d", &x, &y);
+#define sfll3(x, y, z) scanf("%I64d %I64d %I64d", &x, &y, &z);
+#define sfd(x) scanf("%f", &x);
+#define pr(x) printf("%d ", x);
+
+typedef long long ll;
+using namespace std;
+
+ll tr[(1 << 22)];
+void update(int i, int l, int r, int a, int b, int v) {
+    if(l > b || r < a) return;
+    if(l >= a && r <= b) {
+        tr[i] = v;
+        return;
+    }
+
+    update(i * 2, l, (l + r) / 2, a, b, v);
+    update(i * 2 + 1, (l + r) / 2 + 1, r, a, b, v);
+    tr[i] = tr[i * 2] + tr[i * 2 + 1];
+}
+
+ll get(int i, int l, int r, int a, int b) {
+    if(l > b || r < a) return 0;
+    if(l >= a && r <= b) return tr[i];
+    return get(i * 2, l, (l + r) / 2, a, b) + get(i * 2 + 1, (l + r) / 2 + 1, r, a, b);
+}
+
+int main() {
+    int n;
+    while(cin >> n) {
+        memset(tr, 0, sizeof tr);
+        map<int, vector<pair<int, int> > >seg[2];
+        set<int>tx, ty;
+        for(int i = 0; i < n; i++) {
+            int x1, y1, x2, y2;
+            sf2(x1, y1); sf2(x2, y2);
+            tx.insert(x1);
+            tx.insert(x2);
+            ty.insert(y1);
+            ty.insert(y2);
+            if(x1 == x2) seg[0][x1].push_back({min(y1, y2), max(y1, y2)});
+            else seg[1][y1].push_back({min(x1, x2), max(x1, x2)});
+        }
+
+        map<int, int>x, y, revx, revy;
+        int tmp = 0;
+        for(set<int>::iterator it = tx.begin(); it != tx.end(); it++) x[*it] = tmp, revx[tmp] = *it, tmp++;
+        tmp = 0;
+        for(set<int>::iterator it = ty.begin(); it != ty.end(); it++) y[*it] = tmp, revy[tmp] = *it, tmp++;
+
+        ll res = 0;
+        vector<pair<int, pair<int, int> > >ev;
+        for(int k = 0; k < 2; k++) {
+            for(map<int, vector<pair<int, int> > >::iterator it = seg[k].begin(); it != seg[k].end(); it++) {
+                sorta(it->second);
+                int beg = it->second[0].first, nd = it->second[0].second;
+                vector<pair<int, int> >tmp;
+                if(k) ev.push_back({x[beg], {y[it->first], 1}});
+                for(int i = 1; i < it->second.size(); i++) {
+                    if(it->second[i].first>nd) {
+                        res += ll(nd - beg + 1);
+                        tmp.push_back({beg, nd});
+                        if(k) ev.push_back({x[nd] + 1, {y[it->first], 0}});
+                        beg = it->second[i].first;
+                        nd = it->second[i].second;
+                        if(k) ev.push_back({x[beg], {y[it->first], 1}});
+                    }
+                    nd = max(nd, it->second[i].second);
+
+                }
+
+                tmp.push_back({beg, nd});
+                if(k) ev.push_back({x[nd] + 1, {y[it->first], 0}});
+                res += ll(nd - beg + 1);
+                it->second = tmp;
+            }
+        }
+
+        sorta(ev);
+        int ind = 0;
+        for(int i = 0; i < x.size(); i++) {
+            while(ind < ev.size() && ev[ind].first == i) {
+                update(1, 0, (1 << 20), ev[ind].second.first, ev[ind].second.first, ev[ind].second.second);
+                ind++;
+            }
+
+            for(vector<pair<int, int> >::iterator it = seg[0][revx[i]].begin(); it != seg[0][revx[i]].end(); it++)
+                res -= get(1, 0, (1 << 20), y[it->first], y[it->second]);
+        }
+
+        cout << res << endl;
+    }
+    return 0;
+}

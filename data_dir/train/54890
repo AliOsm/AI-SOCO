@@ -1,0 +1,126 @@
+/* practice with Dukkha */
+#include <stdio.h>
+
+#define N1	2000
+#define N2	2000
+#define M	2000
+#define N_	(1 + N1 + N2 + 1)
+#define M_	(N1 + M + N2)
+
+int min(int a, int b) { return a < b ? a : b; }
+
+int oo[1 + M_ * 2], oh[1 + M_ * 2];
+
+int link(int o, int h) {
+	static int _ = 1;
+
+	oo[_] = o, oh[_] = h;
+	return _++;
+}
+
+int ij[M_], cc[M_ * 2];
+int ae[N_], dd[N_], n_, m_;
+
+void link_(int i, int j, int c) {
+	int h = m_++;
+
+	ij[h] = i ^ j;
+	cc[h << 1] = c;
+	ae[i] = link(ae[i], h << 1);
+	ae[j] = link(ae[j], h << 1 | 1);
+}
+
+int bfs() {
+	static int qu[N_];
+	int head, cnt, i;
+
+	for (i = 0; i < n_; i++)
+		dd[i] = n_;
+	head = cnt = 0;
+	dd[0] = 0, qu[head + cnt++] = 0;
+	while (cnt) {
+		int d, o;
+
+		i = qu[cnt--, head++];
+		d = dd[i] + 1;
+		for (o = ae[i]; o; o = oo[o]) {
+			int h_ = oh[o];
+
+			if (cc[h_]) {
+				int h = h_ >> 1, j = i ^ ij[h];
+
+				if (dd[j] > d) {
+					dd[j] = d;
+					if (j == n_ - 1)
+						return 1;
+					qu[head + cnt++] = j;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+int dfs(int i) {
+	int d, o;
+
+	if (i == n_ - 1)
+		return 1;
+	d = dd[i] + 1;
+	for (o = ae[i]; o; o = oo[o]) {
+		int h_ = oh[o];
+
+		if (cc[h_]) {
+			int h = h_ >> 1, j = i ^ ij[h];
+
+			if (dd[j] == d && dfs(j)) {
+				cc[h_]--, cc[h_ ^ 1]++;
+				return 1;
+			}
+		}
+	}
+	dd[i] = n_;
+	return 0;
+}
+
+void dinic() {
+	while (bfs())
+		while (dfs(0))
+			;
+}
+
+int main() {
+	static int d1[N1 + 1], d2[N2 + 1], ee[M + 1][M], cnt[M + 1];
+	int n1, n2, m, h, i, j, k, d;
+
+	scanf("%d%d%d", &n1, &n2, &m), n_ = 1 + n1 + n2 + 1;
+	for (h = 0; h < m; h++) {
+		scanf("%d%d", &i, &j);
+		link_(i, n1 + j, 1);
+		d1[i]++, d2[j]++;
+	}
+	d = m;
+	for (i = 1; i <= n1; i++)
+		d = min(d, d1[i]);
+	for (i = 1; i <= n2; i++)
+		d = min(d, d2[i]);
+	for (i = 1; i <= n1; i++)
+		link_(0, i, d1[i] - d);
+	for (i = 1; i <= n2; i++)
+		link_(n1 + i, n_ - 1, d2[i] - d);
+	for (k = d; k >= 0; k--) {
+		dinic();
+		for (h = 0; h < m; h++)
+			if (cc[h << 1] == 1)
+				ee[k][cnt[k]++] = h + 1;
+		for (h = m; h < m + n1 + n2; h++)
+			cc[h << 1]++;
+	}
+	for (k = 0; k <= d; k++) {
+		printf("%d", cnt[k]);
+		for (h = 0; h < cnt[k]; h++)
+			printf(" %d", ee[k][h]);
+		printf("\n");
+	}
+	return 0;
+}

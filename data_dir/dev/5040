@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+#define MAXN 400005
+using namespace std;
+
+long long tree[4 * MAXN];
+int lazy[4 * MAXN];
+
+void propagate(int node, int left, int right) {
+	if (lazy[node] == 0)
+		return;
+	tree[node] = 1LL << (lazy[node] - 1);
+
+	if (left != right)
+		lazy[node << 1] = lazy[(node << 1) + 1] = lazy[node];
+
+	lazy[node] = 0;
+}
+
+void update(int x, int y, int val, int node, int left, int right) {
+	propagate(node, left, right);
+	if (y < left || right < x)
+		return;
+	if (x <= left && right <= y) {
+		lazy[node] = val;
+		propagate(node, left, right);
+		return;
+	}
+	int mid = (left + right) >> 1;
+	update(x, y, val, node << 1, left, mid);
+	update(x, y, val, (node << 1) + 1, mid + 1, right);
+	tree[node] = (tree[node << 1] | tree[(node << 1) + 1]);
+}
+
+long long get(int x, int y, int node, int left, int right) {
+	if (y < left || right < x)
+		return 0;
+	propagate(node, left, right);
+	if (x <= left && right <= y)
+		return tree[node];
+	int mid = (left + right) >> 1;
+	return get(x, y, node << 1, left, mid)
+			| get(x, y, (node << 1) + 1, mid + 1, right);
+}
+
+vector<int> g[MAXN];
+int low[MAXN], high[MAXN], ind;
+
+void setTree(int node, int parent) {
+	low[node] = ind;
+	for (int i = 0; i < int(g[node].size()); i++) {
+		int child = g[node][i];
+		if (child == parent)
+			continue;
+		setTree(child, node);
+	}
+	high[node] = ind++;
+}
+int c[MAXN];
+
+int main() {
+	ios::sync_with_stdio(false);
+
+	int n, q;
+	scanf("%d%d", &n, &q);
+	for (int i = 0; i < n; i++)
+		scanf("%d", &c[i]);
+
+	for (int i = 0; i < n - 1; i++) {
+		int u, v;
+		scanf("%d%d", &u, &v);
+		--u;
+		--v;
+		g[u].push_back(v);
+		g[v].push_back(u);
+	}
+	setTree(0, -1);
+	for (int i = 0; i < n; i++)
+		update(high[i], high[i], c[i], 1, 0, n - 1);
+
+
+	while (q--) {
+		int type, node;
+		scanf("%d%d", &type, &node);
+		node--;
+		if (type == 1) {
+			int c; scanf("%d", &c);
+			update(low[node], high[node], c, 1, 0, n - 1);
+		} else {
+			int ans = __builtin_popcountll(get(low[node], high[node], 1, 0, n - 1));
+			printf("%d\n", ans);
+		}
+	}
+
+	return 0;
+}

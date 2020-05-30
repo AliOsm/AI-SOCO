@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1005;
+
+bool is[N][N];
+int n;
+int par[N], done[N];
+
+void reverse() {
+  for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+      is[i][j] ^= 1;
+      is[j][i] ^= 1;
+    }
+  }
+}
+
+int find(int u) {
+  return par[u] = (par[u] == u? u : find(par[u]));
+}
+
+void merge(int u, int v) {
+  par[find(u)] = find(v);
+}
+
+int find() {
+  for (int i = 0; i < n; i++) {
+    par[i] = i;
+    done[i] = 0;
+  }
+  for (int i = 0; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+      if (is[i][j]) {
+        merge(i, j);
+      }
+    }
+  }
+  int comp = 0;
+  for (int i = 0; i < n; i++) {
+    int root = find(i);
+    if (!done[root]) {
+      done[root] = 1;
+      comp++;
+    }
+  }
+  return comp;
+}
+
+void print() {
+  puts("YES");
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      printf("%d", is[i][j]);
+    }
+    printf("\n");
+  }
+  return;
+}
+
+int main() {
+  int a, b;
+  scanf("%d %d %d", &n, &a, &b);
+  if (a == 1 && b == 1) {
+    if (n == 1) {
+      puts("YES");
+      puts("0");
+    } else if (n <= 3) {
+      puts("NO");
+    } else {
+      for (int i = 0; i + 1 < n; i++) {
+        is[i][i + 1] = 1;
+        is[i + 1][i] = 1;
+      }
+      print();
+    }
+    return 0;
+  }
+  if (a > 1 && b > 1) {
+    puts("NO");
+    return 0;
+  }
+  
+  bool reversed = 0;
+  if (a == 1) {
+    swap(a, b);
+    reversed = 1;
+  }
+  
+  for (int i = a - 1; i < n; i++) {
+    for (int j = i + 1; j < n; j++) {
+      is[i][j] = is[j][i] = 1;
+    }
+  }
+  
+  if (reversed) {
+    reverse();
+    swap(a, b);
+  }
+  
+  int num_a = find();
+  if (num_a != a) {
+    puts("NO");
+    return 0;
+  }
+  
+  reverse();
+  int num_b = find();
+  if (num_b != b) {
+    puts("NO");
+    return 0;
+  }
+  reverse();
+  
+  print();
+  
+  return 0;
+}

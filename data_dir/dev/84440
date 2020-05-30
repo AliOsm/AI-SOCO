@@ -1,0 +1,113 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+#define X first
+#define Y second
+typedef pair<int, int> Info;
+void operator+=(Info &a, Info b) {
+	a.X += b.X;
+	a.Y += b.Y;
+}
+
+const int N = 3e5 + 5;
+int q, x[N], y[N], prv[N], par[N << 2];
+stack<pair<Info, Info>> change;
+vector<Info> seg[N << 2];
+long long cur, ans[N];
+Info cnt[N << 2];
+
+void add(int u, int t) {
+	cur += 1LL * t * cnt[u].X * cnt[u].Y;
+}
+
+int get_par(int u) {
+	return par[u] < 0? u: get_par(par[u]);
+}
+
+void merge(int u, int v) {
+	u = get_par(u);
+	v = get_par(v);
+	if (u == v)
+		return;
+	if (par[u] > par[v])
+		swap(u, v);
+	add(u, -1), add(v, -1);
+	change.push({{u, par[u]}, cnt[u]});
+	change.push({{v, par[v]}, cnt[v]});
+	par[u] += par[v], cnt[u] += cnt[v];
+	cnt[v] = {}, add(par[v] = u, 1);
+}
+
+void undo() {
+	int u = change.top().X.X;
+	add(u, -1), par[u] = change.top().X.Y;
+	cnt[u] = change.top().Y, change.pop(), add(u, 1);
+}
+
+void update(int l, int r, int x, int y, int id = 1, int st = 0, int en = q) {
+	if (r <= st || en <= l)
+		return;
+	if (l <= st && en <= r) {
+		seg[id].push_back({x, y});
+		return;
+	}
+	int mid = st + en >> 1;
+	update(l, r, x, y, id << 1, st, mid);
+	update(l, r, x, y, id << 1 | 1, mid, en);
+}
+
+void calc(int id = 1, int st = 0, int en = q) {
+	int sz = change.size();
+	for (auto x: seg[id])
+		merge(x.first, N + x.second);
+	if (en - st > 1) {
+		int mid = st + en >> 1;
+		calc(id << 1, st, mid);
+		calc(id << 1 | 1, mid, en);
+	}
+	else
+		ans[st] = cur;
+	while (change.size() > sz)
+		undo();
+}
+
+void prepare() {
+	vector<Info> vec;
+	for (int i = 0; i < q; i++)
+		vec.push_back({x[i], y[i]});
+	sort(vec.begin(), vec.end());
+	vec.resize(unique(vec.begin(), vec.end()) - vec.begin());
+	memset(prv, -1, sizeof prv), memset(par, -1, sizeof par);
+	for (int i = 0; i < q; i++) {
+		int id = lower_bound(vec.begin(), vec.end(), make_pair(x[i], y[i])) - vec.begin();
+		~prv[id]? update(prv[id], i, x[i], y[i]), prv[id] = -1: prv[id] = i;
+	}
+	for (int i = 0; i < N << 1; i++)
+		cnt[i] = {i < N, i >= N};
+	for (int i = 0; i < vec.size(); i++)
+		if (~prv[i])
+			update(prv[i], q, vec[i].first, vec[i].second);
+}
+
+void read_input() {
+	cin >> q;
+	for (int i = 0; i < q; i++)
+		cin >> x[i] >> y[i];
+}
+
+void solve() {
+	prepare();
+	calc();
+}
+
+void write_output() {
+	for (int i = 0; i < q; i++)
+		cout << ans[i] << ' ';
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	read_input(), solve(), write_output();
+	return 0;
+}

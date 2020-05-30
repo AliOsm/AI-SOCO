@@ -1,0 +1,139 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#include <ctime>
+#include <queue>
+#include <cstring>
+#include <set>
+#include <map>
+#include <algorithm>
+
+using namespace std;
+
+template<class T> T nextInt() {
+    T x = 0, p = 1;
+    char c;
+    do {
+        c = getchar();
+    } while (c <= 32);
+    if (c == '-') {
+        p = -1;
+        c = getchar();
+    }
+    while (c >= '0' && c <= '9') {
+        x = x * 10 + c - '0';
+        c = getchar();
+    }
+    return x * p;
+}
+
+const long long P = (long long)1e9 + 7;
+
+const int maxn = 3 * 100500;
+
+int n, q, root;
+vector<int> g[maxn];
+int d[maxn], sz[maxn], pos[maxn], epos;
+
+void dfs(int v, int depth) {
+    pos[v] = ++epos;
+    sz[v] = 1;
+    d[v] = depth;
+    for (size_t i = 0; i < g[v].size(); i++) {
+        dfs(g[v][i], depth + 1);
+        sz[v] += sz[g[v][i]];
+    }
+}
+
+struct segTree {
+    long long * t;
+    int n;
+    void init(int _n) {
+        n = _n;
+        t = new long long[n * 4];
+        memset(t, 0, sizeof(t[0]) * n * 4);
+    }
+    void addT(int v, int tl, int tr, int l, int r, long long x) {
+        if (tl == l && tr == r) {
+            t[v] = (t[v] + x) % P;
+            return;
+        }
+        int tm = (tl + tr) >> 1;
+        if (r <= tm)
+            addT((v << 1) + 1, tl, tm, l, r, x);
+        else if (l > tm)
+            addT((v << 1) + 2, tm + 1, tr, l, r, x);
+        else
+            addT((v << 1) + 1, tl, tm, l, tm, x), addT((v << 1) + 2, tm + 1, tr, tm + 1, r, x);
+    }
+    void add(int l, int r, long long x) {
+        addT(0, 1, n, l, r, x);
+    }
+    long long getT(int v, int tl, int tr, int pos) {
+        if (tl == tr) return t[v];
+        int tm = (tl + tr) >> 1;
+        if (pos <= tm)
+            return getT((v << 1) + 1, tl, tm, pos) + t[v];
+        else
+            return getT((v << 1) + 2, tm + 1, tr, pos) + t[v];
+    }
+    long long get(int pos) {
+        return getT(0, 1, n, pos) % P;
+    }
+};
+
+segTree T1, T2;
+
+void precalc() {
+    dfs(root, 1);
+    T1.init(n);
+    T2.init(n);
+}
+
+void queryAdding(int v, long long x, long long k) {
+    x += k * d[v];
+    x %= P;
+    T1.add(pos[v], pos[v] + sz[v] - 1, x);
+    T2.add(pos[v], pos[v] + sz[v] - 1, k);
+}
+
+int querySum(int v) {
+    long long res = T1.get(pos[v]) - T2.get(pos[v]) * d[v];
+    res %= P;
+    if (res < 0) res += P;
+    return res;
+}
+
+int main() {
+    //freopen("input.txt", "r", stdin);
+    n = nextInt<int>();
+
+    root = 1;
+
+    for (int i = 2; i <= n; i++) {
+        int p = nextInt<int>();
+        g[p].push_back(i);
+    }
+
+    precalc();
+
+    q = nextInt<int>();
+
+    while (q--) {
+        int tp = nextInt<int>();
+        if (tp == 1) {
+            int v, x, k;
+            v = nextInt<int>();
+            x = nextInt<int>();
+            k = nextInt<int>();
+            queryAdding(v, x, k);
+        }
+        else {
+            int v = nextInt<int>();
+            printf("%d\n", querySum(v));
+        }
+    }
+
+    return 0;
+}

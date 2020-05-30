@@ -1,0 +1,176 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int mod = 1000000007;
+
+typedef pair<long long, bool> ED;
+
+vector<vector<ED> > mul(vector<vector<ED> > & a, vector<vector<ED> > & b)
+{
+	int n = a.size();
+	vector<vector<ED> > C(n, vector<ED> (n));
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < n; j++)
+		{
+			C[i][j].second = false;
+			C[i][j].first = 0;
+			for (int k = 0; k < n; k++)
+			{
+				if (a[i][k].second && b[k][j].second)
+				{
+					C[i][j].second = true;
+					C[i][j].first = max(C[i][j].first, a[i][k].first + b[k][j].first);
+				}
+			}
+		}
+
+	return C;
+}
+
+vector<vector<ED> > pw(vector<vector<ED> > a, long long p)
+{
+	int n = a.size();
+	if (p == 1)
+	{
+		return a;
+	}
+	vector<vector<ED> > res = pw(a, p/2);
+	res = mul(res, res);
+	if (p%2==1)
+		res = mul(res, a);
+	return res;
+}
+
+const int NMAX = 300;
+const int K = 26;
+struct vertex {
+	int next[K];
+	int val;
+	int p;
+	char pch;
+	int link;
+	int go[K];
+};
+ 
+vertex t[NMAX+1];
+int val[NMAX+1];
+int sz;
+ 
+void init() {
+	t[0].p = t[0].link = -1;
+	memset (t[0].next, -1, sizeof t[0].next);
+	memset (t[0].go, -1, sizeof t[0].go);
+	sz = 1;
+}
+
+int go (int v, char c);
+ 
+int get_link (int v) {
+	if (t[v].link == -1)
+		if (v == 0 || t[v].p == 0)
+			t[v].link = 0;
+		else
+			t[v].link = go (get_link (t[v].p), t[v].pch);
+	return t[v].link;
+}
+ 
+int go (int v, char c) {
+	if (t[v].go[c] == -1)
+		if (t[v].next[c] != -1)
+			t[v].go[c] = t[v].next[c];
+		else
+			t[v].go[c] = v==0 ? 0 : go (get_link (v), c);
+	return t[v].go[c];
+}
+
+void add_string (const string & s, int value) {
+	int v = 0;
+	for (size_t i=0; i<s.length(); ++i) {
+		char c = s[i]-'a';
+		if (t[v].next[c] == -1) {
+			memset (t[sz].next, -1, sizeof t[sz].next);
+			memset (t[sz].go, -1, sizeof t[sz].go);
+			t[sz].link = -1;
+			t[sz].p = v;
+			t[sz].pch = c;
+			t[v].next[c] = sz++;
+		}
+		v = t[v].next[c];
+	}
+	t[v].val += value;
+}
+
+int n;
+int ind[205];
+string words[205];
+int v[205];
+
+bool cmp(const int &a, const int &b)
+{
+	return words[a].size() < words[b].size();
+}
+
+void buildAho()
+{
+	init();
+	for (int i = 0; i < n; i++)
+		ind[i] = i;
+	sort(ind, ind + n, cmp);
+	for (int i = 0; i < n; i++)
+		add_string(words[ind[i]], v[ind[i]]);
+	queue<int> q;
+	q.push(0);
+	while (!q.empty())
+	{
+		int cur = q.front();
+		q.pop();
+		t[cur].val += t[get_link(cur)].val;
+		for (int i = 0; i < 26; i++)
+			if (t[cur].next[i] != -1)
+				q.push(t[cur].next[i]);
+	}
+}
+
+vector<vector<ED> > buildMatrix()
+{
+	vector<vector<ED> > mat(sz, vector<ED> (sz, make_pair(0, false)));
+	for (int i = 0; i < sz; i++)
+	{
+		for (int j = 0; j < 26; j++)
+		{
+			mat[i][go(i, j)].first = t[go(i, j)].val;
+			mat[i][go(i, j)].second = true;
+		}
+	}
+	return mat;
+}
+
+long long solve(long long l)
+{
+	buildAho();
+	vector<vector<ED> > mat = buildMatrix();
+	mat = pw(mat, l);
+	long long mx = 0;
+	for (int i = 0; i < sz; i++)
+	{
+	//	cout<<i<<" "<<mat[0][i].first<<endl;
+		mx = max(mx, mat[0][i].first);
+	}
+	return mx;
+}
+
+char s[505];
+int main()
+{
+	long long L;
+	scanf("%d %lld", &n, &L);
+	for (int i = 0; i < n; i++)
+		scanf("%d", v+i);
+	for (int i = 0; i < n; i++)
+	{
+		scanf("%s", s);
+		words[i] = string(s);		
+	}
+	long long res = solve(L);
+	printf("%lld\n", res);
+}

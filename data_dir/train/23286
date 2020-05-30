@@ -1,0 +1,148 @@
+#include <bits/stdc++.h>
+
+#define ll long long
+#define pb push_back
+#define pii pair<int,int>
+#define pll pair<ll,ll>
+#define ff first
+#define ss second
+
+using namespace std;
+
+const double pi = acos(-1);
+const int N = 1e6 + 6, mod = 998244353, M = 1e7 + 7;
+const ll MAX = 5e18;
+
+int q, n, a[N], mx[N], f[N], l, r, ans;
+vector<int> d, v[N];
+
+struct node{
+    int mn, mx;
+};
+
+struct segTree{
+    node s[1 << 20];
+
+    void build(int from = 0, int to = n - 1, int i = 0){
+        if(from == to){
+            s[i].mn = s[i].mx = -1;
+            return ;
+        }
+        int mid = (from + to) >> 1, l = 2 * i + 1, r = l + 1;
+        build(from, mid, l);
+        build(mid + 1, to, r);
+        s[i].mn = s[i].mx = -1;
+    }
+
+    node mrg(node x, node y){
+        if(x.mn == -1)
+            return y;
+        if(y.mn == -1)
+            return x;
+        return {min(x.mn, y.mn), max(x.mx, y.mx)};
+    }
+
+    node get(int x, int y, int from = 0, int to = n - 1, int i = 0){
+        if(y < from || x > to)
+            return {-1, -1};
+        if(x <= from && to <= y)
+            return s[i];
+        int mid = (from + to) >> 1, l = 2 * i + 1, r = l + 1;
+        if(y <= mid)
+            return get(x, y, from, mid, l);
+        if(x > mid)
+            return get(x, y, mid + 1, to, r);
+        return mrg(get(x, y, from, mid, l), get(x, y, mid + 1, to, r));
+    }
+
+    bool canAdd(int x, int v){
+        node tl = get(0, x);
+        node tr = get(x, n - 1);
+        if(tr.mx == -1)
+            tr.mx = M;
+        if(v < tl.mn || v > tr.mx)
+            return 0;
+        return 1;
+    }
+
+    void add(int x, int v, int from = 0, int to = n - 1, int i = 0){
+        if(from == to){
+            s[i] = {v, v};
+            return;
+        }
+        int mid = (from + to) >> 1, l = 2 * i + 1, r = l + 1;
+        if(x <= mid)
+            add(x, v, from, mid, l);
+        else
+            add(x, v, mid + 1, to, r);
+        s[i] = mrg(s[l], s[r]);
+    }
+
+    void addAll(int x, bool b = 0){
+        int t = x;
+        if(b)
+            t = -1;
+        for(int j : v[x])
+            add(j, t);
+    }
+
+    bool canAddAll(int x){
+        for(int j : v[x])
+            if(!canAdd(j, x))
+                return 0;
+        return 1;
+    }
+
+}tree;
+
+
+int slv(){
+    sort(d.begin(), d.end());
+    for(int i : d){
+        if(!tree.canAddAll(i))
+            break;
+        tree.addAll(i);
+        r++;
+    }
+    ans = r;
+    while(r < d.size()){
+        tree.addAll(d[l], 1);
+        l++;
+        while(r < d.size() && tree.canAddAll(d[r])){
+            tree.addAll(d[r]);
+            r++;
+        }
+        ans = max(ans, r - l);
+    }
+    return d.size() - ans;
+}
+
+void init(){
+    l = 0, r = 0;
+    tree.build();
+    d.clear();
+    ans = 0;
+}
+
+int main()
+{
+    scanf("%d", &q);
+    for(int t = 1; t <= q; t++){
+        scanf("%d", &n);
+        init();
+        for(int i = 0; i < n; i++){
+            scanf("%d", a + i);
+            if(f[a[i]] != t){
+                f[a[i]] = t;
+                v[a[i]].clear();
+                d.pb(a[i]);
+            }
+            v[a[i]].pb(i);
+        }
+        printf("%d\n", slv());
+    }
+    
+    return 0;
+
+
+}

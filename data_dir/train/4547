@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 3e5+5;
+
+struct DFSTree
+{
+    struct Edge {
+        int to, id, z;
+    };
+    int n, m;
+    vector<vector<Edge>> adj;
+    vector<int> disc, escape;
+    vector<bool> is_bridge;
+    vector<bool> vis;
+    vector<int> score;
+
+    //bridge tree
+    vector<int> v_to_tree;
+    vector<vector<Edge>> tree;
+
+    DFSTree(int _n, int _m) {
+        n = _n;
+        m = _m;
+        adj.resize(n+1);
+        disc.resize(n+1,0);
+        escape.resize(n+1);
+        is_bridge.resize(m,false);
+        vis.resize(n+1);
+        v_to_tree.resize(n+1);
+    }
+    void dfs(int i, int p, int& t) {
+        disc[i] = escape[i] = ++t;
+        for (auto e: adj[i]) {
+            int j = e.to;
+            int id = e.id;
+            int z = e.z;
+            if (j == p) continue;
+            if (!disc[j]) {
+                dfs(j,i,t);
+                escape[i] = min(escape[i],escape[j]);
+                if (escape[j] > disc[i]) {
+                    is_bridge[id] = true;
+                    //cout << "found bridge " << i << ' ' << j << endl;
+                }
+            }
+            else {
+                escape[i] = min(escape[i],disc[j]);
+            }
+        }
+    }
+
+    void init() {
+        int t = 0;
+        dfs(1,1,t);
+        int comp = 0;
+        for (int i = 1; i <= n; i++) {
+            if (!vis[i]) {
+                score.push_back(0);
+                queue<int> q;
+                q.push(i);
+                vis[i] = true;
+                //cout << "comp " << comp << endl;
+                while (!q.empty()) {
+                    int f = q.front(); q.pop();
+                    v_to_tree[f] = comp;
+                    for (Edge e: adj[f]) {
+                        if (is_bridge[e.id]) continue;
+                        score.back() += e.z;
+                        if (!vis[e.to]) {
+                            vis[e.to] = true;
+                            q.push(e.to);
+                            score[score.size()-1] += e.z;
+                        }
+                    }
+                }
+                comp++;
+            }
+        }
+        tree.resize(comp);
+        for (int i = 1; i <= n; i++) {
+            for (Edge e: adj[i]) if (is_bridge[e.id]) {
+                tree[v_to_tree[i]].push_back({v_to_tree[e.to],e.id,e.z});
+            }
+        }
+        /*
+        for (int i = 1; i <= n; i++) {
+            cout << i << ": " << v_to_tree[i] << endl;
+        }
+        for (int i = 0; i < comp; i++) {
+            cout << i << " score: " << score[i] << endl;
+        }
+        */
+    }
+
+    bool solve(int a, int b) {
+        //determine if there is a path a--b in the bridge tree
+        //such that there is a nonzero path in one of the 
+        //components or in the bridges connecting them
+        a = v_to_tree[a];
+        b = v_to_tree[b];
+        if (a == b) {
+            return score[a] > 0;
+        }
+        else {
+            struct Path {
+                int i, p, sum;
+            };
+            queue<Path> q;
+            for (Edge e: tree[a]) {
+                q.push({e.to,a,score[a]+e.z+score[e.to]});
+            }
+            while (!q.empty()) {
+                auto f = q.front(); q.pop();
+                if (f.i == b) {
+                    return f.sum > 0;
+                }
+                for (Edge e: tree[f.i]) {
+                    if (e.to == f.p) continue;
+                    q.push({e.to,f.i,f.sum+e.z+score[e.to]});
+                }
+            }
+            assert(false);
+        }
+    }
+};
+
+int main() 
+{
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int n, m; cin >> n >> m;
+    DFSTree tr(n,m);
+    for (int i = 0; i < m; i++) {
+        int u, v, z; cin >> u >> v >> z;
+        tr.adj[u].push_back({v,i,z});
+        tr.adj[v].push_back({u,i,z});
+    }
+    tr.init();
+    int a, b; cin >> a >> b;
+    auto x = tr.solve(a,b);
+    cout << (x?"YES":"NO") << '\n';
+}

@@ -1,0 +1,159 @@
+/*
+ * temp.cpp
+ *
+ *  Created on: 2012-7-18
+ *      Author: BSBandme
+ */
+#include <iostream>
+#include <fstream>
+#include <string.h>
+#include <cstdio>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <queue>
+#include <cassert>
+#include <iomanip>
+#include <math.h>
+#include <deque>
+#include <utility>
+#include <map>
+#include <set>
+#include <bitset>
+#include <numeric>
+#include <climits>
+#include <cctype>
+#include <cmath>
+#include <cstdlib>
+
+using namespace std;
+
+typedef unsigned long long ull;
+typedef long long ll;
+typedef pair<int, int> pll;
+const double pi = acos(0) * 2;
+template <class T> inline T abs1(T a) {return a < 0 ? -a : a;}
+template <class T> inline T max1(T a, T b) {return a > b ? a : b;}
+template <class T> inline T min1(T a, T b) {return a < b ? a : b;}
+template <class T> inline T gcd1(T a, T b) {
+	if(a < b) swap(a, b);
+	if(a % b == 0) return b;
+	return gcd1(b, a % b);
+}
+template <class T> inline T lb(T num) {return num & (-num); }
+template <class T> inline int bitnum(T num){
+	int ans = 0;
+	while(num){
+		num -= lb(num);
+		ans++;
+	}
+	return ans;
+}
+long long pow(long long n, long long m, long long mod = 0){
+	long long ans = 1;
+	long long k = n;
+	while(m){
+		if(m & 1) {
+			ans *= k;
+			if(mod) ans %= mod;
+		}
+		k *= k;
+		if(mod) k %= mod;
+		m >>= 1;
+	}
+	return ans;
+}
+#define typef int // type of flow
+#define typec int // type of dis
+const typef inff = 0x3f3f3f3f; // max of flow
+const typec infc = 0x3f3f3f3f;
+const int N = 30000;
+const int E = 1100000;
+struct network
+{
+int nv, ne, pnt[E], nxt[E];
+int vis[N], que[N], head[N], pv[N], pe[N];
+typef flow, cap[E]; typec cost, dis[E], d[N];
+void addedge(int u, int v, typef c, typec w) {
+pnt[ne] = v; cap[ne] = c;
+dis[ne] = +w; nxt[ne] = head[u]; head[u] = (ne++);
+pnt[ne] = u; cap[ne] = 0;
+dis[ne] = -w; nxt[ne] = head[v]; head[v] = (ne++);
+}
+int mincost(int src, int sink) {
+int i, k, f, r; typef mxf;
+for (flow = 0, cost = 0; ; ) {
+memset(pv, -1, sizeof(pv));
+memset(vis, 0, sizeof(vis));
+for (i = 0; i < nv; ++i) d[i] = infc;
+d[src] = 0; pv[src] = src; vis[src] = 1;
+for (f = 0, r = 1, que[0] = src; r != f; ) {
+i = que[f++]; vis[i] = 0;
+if (N == f) f = 0;
+for (k = head[i]; k != -1; k = nxt[k])
+if(cap[k] && dis[k]+d[i] < d[pnt[k]])
+{
+d[pnt[k]] = dis[k] + d[i];
+if (0 == vis[pnt[k]]) {
+vis[pnt[k]] = 1;
+que[r++] = pnt[k];
+if (N == r) r = 0;
+}
+pv[pnt[k]]=i; pe[pnt[k]]=k;
+}
+}
+if (-1 == pv[sink]) break;
+for (k = sink, mxf = inff; k != src; k = pv[k])
+if (cap[pe[k]] < mxf) mxf = cap[pe[k]];
+flow += mxf; cost += d[sink] * mxf;
+for (k = sink; k != src; k = pv[k]) {
+cap[pe[k]] -= mxf; cap[pe[k] ^ 1] += mxf;
+}
+}
+return cost;
+}
+} g;
+
+char str[110000];
+int n, lstr;
+char dic[110][110];
+int can[110];
+int ladd[110];
+
+int main(){
+//	freopen("input.txt","r", stdin);
+//	ifstream cin("input.txt");
+	scanf("%s", str);
+	lstr = strlen(str);
+	if(lstr > 10100) {
+		cout << -1 << endl;
+		return 0;
+	}
+	scanf("%d", &n);
+	memset(g.head, -1, sizeof(g.head));
+	g.ne = 0;
+	for(int i = 0; i < lstr; i++) g.addedge(0, i + 1, 1, 0);
+	for(int i = 0; i < n; i++) scanf("%s%d", dic[i], &can[i]);
+	ladd[0] = 0;
+	for(int i = 1; i < n; i++) ladd[i] = ladd[i - 1] + strlen(dic[i - 1]);
+	ladd[n] = ladd[n - 1] + strlen(dic[n - 1]);
+	for(int i = 0; i < n; i++){
+		int ldic = strlen(dic[i]);
+		for(int j = 0; j < lstr; j++) for(int k = 0; k < ldic; k++){
+			if(str[j] == dic[i][k]){
+				g.addedge(j + 1, k + ladd[i] + lstr + 1, 1, i + 1);
+			}
+		}
+		for(int k = 0; k < ldic; k++) g.addedge(k + ladd[i] + lstr + 1, ladd[n] + lstr + 1 + i, 1, 0);
+		g.addedge(ladd[n] + lstr + 1 + i, n + lstr + 1 + ladd[n], can[i], 0);
+	}
+	g.nv = n + lstr + 2 + ladd[n];
+	int ans = g.mincost(0, n + lstr + 1 + ladd[n]);
+	if(g.flow < lstr){
+		cout << -1 << endl;
+		return 0;
+	}
+	cout << ans << endl;
+
+	return 0;
+}

@@ -1,0 +1,210 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+map<vector<int>, int> memo;
+
+int query(vector<int> &arr) {
+    sort(arr.begin(), arr.end());
+    arr.erase(unique(arr.begin(), arr.end()), arr.end());
+    if(arr.size() <= 1) return 0;
+    if(memo.count(arr)) return memo[arr];
+    cout << "? " << arr.size() << '\n';
+    for(int &node : arr) cout << node << ' ';
+    cout << endl;
+    fflush(stdout);
+    int edges;
+    cin >> edges;
+    if(edges == -1) exit(0);
+    return memo[arr] = edges;
+}
+
+int edgesBetweenSets(vector<int> &setA, vector<int> &setB) {
+    vector<int> Union;
+    for(int &x : setA) Union.push_back(x);
+    for(int &x : setB) Union.push_back(x);
+    return query(Union) - query(setA) - query(setB);
+}
+
+pair<int, int> findEdge(vector<int> &setA, vector<int> &setB) {
+    if(setA.size() == 1 && setB.size() == 1) {
+        return {setA[0], setB[0]};
+    }
+    if(setA.size() > 1) {
+        int mid = setA.size()/2;
+        vector<int> temp;
+        vector<int> temp2;
+        for(int i = 0; i < mid; ++i) {
+            temp.push_back(setA[i]);
+        }
+        for(int i = mid; i < setA.size(); ++i) {
+            temp2.push_back(setA[i]);
+        }
+        int edges = edgesBetweenSets(temp, setB);
+        if(edges == 0) {
+            return findEdge(temp2, setB);
+        }
+        return findEdge(temp, setB);
+    }
+    int mid = setB.size()/2;
+    vector<int> temp;
+    vector<int> temp2;
+    for(int i = 0; i < mid; ++i) {
+        temp.push_back(setB[i]);
+    }
+    for(int i = mid; i < setB.size(); ++i) {
+        temp2.push_back(setB[i]);
+    }
+    int edges = edgesBetweenSets(setA, temp);
+    if(edges == 0) {
+        return findEdge(setA, temp2);
+    }
+    return findEdge(setA, temp);
+}
+
+vector<int> adj[606];
+vector<int> black, white;
+int parent[606];
+
+void dfs(int node, int par, bool White = true) {
+    if(White) {
+        white.push_back(node);
+    } else {
+        black.push_back(node);
+    }
+    for(int to : adj[node]) {
+        if(to == par) continue;
+        dfs(to, node, !White);
+    }
+}
+
+void dfs1(int node, int par) {
+    parent[node] = par;
+    for(int to : adj[node]) {
+        if(to == par) continue;
+        dfs1(to, node);
+    }
+}
+
+int main() {
+    //ios::sync_with_stdio(false);
+    //cin.tie(0);
+    //cout.tie(0);
+    int n;
+    cin >> n;
+    vector<int> setA;
+    setA.push_back(1);
+    vector<pair<int, int> > mst;
+    while(setA.size() < n) {
+        sort(setA.begin(), setA.end());
+        vector<int> setB;
+        for(int i = 1; i <= n; ++i) {
+            auto it = lower_bound(setA.begin(), setA.end(), i);
+            if(it == setA.end() || *it != i) {
+                setB.push_back(i);
+            }
+        }
+        pair<int, int> edge = findEdge(setA, setB);
+        //cout << "found edge: " << edge.first << ' ' << edge.second << '\n';
+        mst.push_back(edge);
+        auto it = lower_bound(setA.begin(), setA.end(), edge.first);
+        if(it == setA.end() || *it != edge.first) {
+            setA.push_back(edge.first);
+        } else {
+            setA.push_back(edge.second);
+        }
+    }
+    for(auto &p : mst) {
+        adj[p.first].push_back(p.second);
+        adj[p.second].push_back(p.first);
+    }
+    dfs(1,1);
+    /*
+    cout << "black:\n";
+    for(int x : black) cout << x << ' ';cout << '\n';
+    cout << "white:\n";
+    for(int x : white) cout << x << ' ';cout << '\n';*/
+    int edges1 = query(black);
+    int edges2 = query(white);
+    if(edges1 == 0 && edges2 == 0) {
+        cout << "Y " << black.size() << '\n';
+        for(int x : black) cout << x << ' ';
+        cout << endl;
+        fflush(stdout);
+        return 0;
+    }
+    pair<int, int> oddEdge;
+    if(edges1 > 0) {
+        for(int x : black) {
+            vector<int> temp1;
+            vector<int> temp2;
+            temp1.push_back(x);
+            for(int y : black) {
+                if(y == x) continue;
+                temp2.push_back(y);
+            }
+            oddEdge = findEdge(temp1, temp2);
+            temp1.clear();
+            temp1.push_back(oddEdge.first);
+            temp1.push_back(oddEdge.second);
+            if(query(temp1) > 0) {
+                break;
+            }
+        }
+    } else {
+        for(int x : white) {
+            vector<int> temp1;
+            vector<int> temp2;
+            temp1.push_back(x);
+            for(int y : white) {
+                if(y == x) continue;
+                temp2.push_back(y);
+            }
+            oddEdge = findEdge(temp1, temp2);
+            temp1.clear();
+            temp1.push_back(oddEdge.first);
+            temp1.push_back(oddEdge.second);
+            if(query(temp1) > 0) {
+                break;
+            }
+        }
+    }
+    //cout << "extra edge: " << oddEdge.first << ' ' << oddEdge.second << '\n';
+    dfs1(oddEdge.first, oddEdge.first);
+    vector<int> res;
+    int curr = oddEdge.second;
+    res.push_back(curr);
+    while(curr != oddEdge.first) {
+        curr = parent[curr];
+        res.push_back(curr);
+    }
+    cout << "N " << res.size() << '\n';
+    for(int x : res) cout << x << ' ';
+    cout << endl;
+    fflush(stdout);
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

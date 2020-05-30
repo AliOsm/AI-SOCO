@@ -1,0 +1,171 @@
+#define _CRT_SECURE_NO_DEPRECATE
+#include <ctime>
+#include <float.h>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <queue>
+#include <iostream>
+#include <cmath>
+#include <sstream>
+#include <map>
+#include <set>
+#include <cstring>
+#include <cstdio>
+#include <iomanip>
+using namespace std;
+#define pb push_back
+#define inf 1000000000
+#define L(s) (int)(s).size()
+#define rp(i,n) for(int (i)=0;(i)<(n);++(i))
+#define C(a) memset((a),0,sizeof(a))
+#define ll long long
+#define all(c) (c).begin(), (c).end()
+#define VI vector<int>
+#define mp make_pair
+#define pii pair<int,int>
+#define x first
+#define y second
+#define uint unsigned int
+#define ull unsigned ll
+#define eps 1e-12
+#define pdd pair<double, double>
+#define b(x) (1<<(x))
+int f[1 << 7][111][111];
+pii how[1<< 7][111][111];
+int sho[222][222];
+int via[222][222];
+int val[111][111];
+int n, m, k;
+pii spec[7];
+int dx[] = {-1, 0, 1, 0};
+int dy[] = {0, 1, 0, -1};
+inline bool ok(int i,int j) {
+  return i >= 0 && i < n && j >= 0 && j < m;
+}
+char grid[111][111];
+void mark_path(int si, int sj, int fi, int fj) {
+  grid[si][sj] = grid[fi][fj] = 'X';
+  if (abs(si - fi) + abs(sj - fj) == 1) return;
+  int mi = via[si * m + sj][fi * m + fj] / m;
+  int mj = via[si * m + sj][fi * m + fj] % m;
+  mark_path(si, sj, mi, mj);
+  mark_path(mi, mj, fi, fj);
+}
+void print(int mask, int i,int j) {
+  grid[i][j] = 'X';
+  int bits = 0; for(int b = 0; b < k; ++b) if (mask & (1 << b)) ++bits;
+  if (bits == 1) {
+	  int who = 0; while (!(mask & (1 << who))) ++who;
+	  if (mp(i, j) == spec[who]) return;
+  }
+  if (how[mask][i][j].x == 0) {
+    print(how[mask][i][j].y, i, j);
+    print(mask - how[mask][i][j].y, i, j);
+  } else {
+    int ni = how[mask][i][j].y / m;
+    int nj = how[mask][i][j].y % m;
+    mark_path(i, j, ni, nj);
+    print(mask, ni, nj);
+  }
+}
+int main() {
+  cin >> n >> m >> k;
+  for(int i = 0; i < n; ++i) {
+    for(int j = 0; j < m; ++j) {
+      cin >> val[i][j];
+    }
+  }
+  memset(sho, 63, sizeof(sho));
+  for(int i = 0; i < n; ++i) {
+    for(int j = 0; j < m; ++j) {
+      for(int dir = 0; dir < 4; ++dir) {
+        int ni = i + dx[dir], nj = j + dy[dir];
+        if (ok(ni, nj)) sho[i * m + j][ni * m + nj] = val[ni][nj];
+      }
+      sho[i * m + j][i * m + j] = 0;
+    }
+  }
+  for(int mid = 0; mid < n * m; ++mid) {
+    for(int low = 0; low < n * m; ++low) {
+      for(int high = 0; high < n * m; ++high) {
+        if (sho[low][high] > sho[low][mid] + sho[mid][high]) {
+          sho[low][high] = sho[low][mid] + sho[mid][high];
+          via[low][high] = mid;
+        }
+      }
+    }
+  }
+//  for(int i = 0; i < n; ++i) {
+//	  for(int j = 0; j < m ;++j) {
+//		  for(int ai = 0; ai < n; ++ai) {
+//			  for(int aj = 0; aj < m; ++aj) {
+//				  cout << i << " " << j << " " << ai << " " << aj << " " <<sho[i * m + j][ai * m + aj] << endl;
+//			  }
+//		  }
+//	  }
+//  }
+  for(int i = 0; i < k; ++i) {
+	  cin >> spec[i].x >> spec[i].y;
+	  --spec[i].x; --spec[i].y;
+  }
+  memset(f, 63, sizeof(f));
+  for(int mask = 1; mask < (1 << k); ++mask) {
+    int bits = 0; for(int i = 0; i < k; ++i) if (mask & (1 << i)) ++bits;
+    if (bits == 1) {
+      int who = 0; while(!(mask & (1 << who))) ++who;
+      f[mask][spec[who].x][spec[who].y] = val[spec[who].x][spec[who].y];
+    } else {
+      for(int i = 0; i < n; ++i) {
+        for(int j = 0; j < m; ++j) {
+          for(int sub = (mask - 1) & mask ; sub; sub = (sub - 1) & mask) {
+            if (f[mask][i][j] > f[sub][i][j] + f[mask - sub][i][j] - val[i][j]) {
+              f[mask][i][j] = f[sub][i][j] + f[mask - sub][i][j] - val[i][j];
+              how[mask][i][j] = mp(0, sub);
+            }
+          }
+        }
+      }
+    }
+    for(int i = 0; i < n; ++i) {
+      for(int j = 0; j < m; ++j) {
+        for(int ni = 0; ni < n; ++ni) {
+          for(int nj = 0; nj < m; ++nj) {
+            if (f[mask][ni][nj] > f[mask][i][j] + sho[i * m + j][ni * m + nj]) {
+              f[mask][ni][nj] = f[mask][i][j] + sho[i * m + j][ni * m + nj];
+              how[mask][ni][nj] = mp(1, i * m + j);
+            }
+          }
+        }
+      }
+    }
+  }
+//  cerr << how[14][0][0].x << " " << how[14][0][0].y << endl;
+//  cerr << f[1][0][0] << endl;
+//  exit(0);
+//  cerr << f[2][0][0] << endl;
+//  cerr << f[1][0][0] << endl;
+//  cerr << sho[0][2 * m + 2] << endl;
+//  exit(0);
+  int bi = 0, bj = 0;
+  for(int i = 0; i < n; ++i) {
+    for(int j = 0; j < m; ++j) {
+      if (f[(1 << k) - 1][i][j] < f[(1 << k) - 1][bi][bj]) {
+        bi = i; bj = j;
+      }
+      grid[i][j] ='.';
+    }
+  }
+  cout << f[(1 << k) - 1][bi][bj] << endl;
+//  cerr << how[(1 << k) - 1][bi][bj].x << " " << how[(1 << k) - 1][bi][bj].y << endl;
+//  exit(0);
+  int mask = (1 << k) - 1;
+  print(mask, bi, bj);
+  for(int i = 0; i < n; ++i) {
+    for(int j = 0; j < m; ++j) {
+      cout << grid[i][j];
+    }
+    cout << endl;
+  }
+  return 0;
+}

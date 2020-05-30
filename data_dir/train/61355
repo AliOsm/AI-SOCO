@@ -1,0 +1,105 @@
+#include <algorithm>
+#include <set>
+#include <numeric>
+
+using namespace std;
+
+const int N = static_cast<int>(2e5) + 123;
+
+set<int> a[N];
+
+struct treenode {
+	int id;
+	int value;
+	int max2 = -1;
+	treenode() {}
+	treenode(int a, int b, int c) : id(a), value(b), max2(c) {}
+};
+
+treenode tree[N * 4];
+
+pair<int, int> getMax() {
+	return{ tree[1].id, tree[1].max2 };
+}
+
+void build(int v, int tl, int tr) {
+	if (tl == tr) {
+		auto val = 0;
+		if (a[tl].size() > 0)
+			val = *--a[tl].end();
+		tree[v] = treenode(tl, val, 0);
+	}
+	else {
+		auto tm = (tl + tr) / 2;
+		build(v + v, tl, tm);
+		build(v + v + 1, tm + 1, tr);
+		tree[v] = tree[v + v + 1];
+		tree[v].max2 = max(tree[v].max2, tree[v + v].value);
+		if (tree[v + v].value > tree[v].value) {
+			tree[v] = tree[v + v];
+			tree[v].max2 = max(tree[v].max2, tree[v + v + 1].value);
+		}
+	}
+}
+
+void updateTree(int v, int tl, int tr, int at, int value) {
+	if (tl == tr) {
+		tree[v] = treenode(tl, value, 0);
+		return;
+	}
+
+	auto tm = (tl + tr) / 2;
+	if (at <= tm)
+		updateTree(v + v, tl, tm, at, value);
+	else
+		updateTree(v + v + 1, tm + 1, tr, at, value);
+	tree[v] = tree[v + v + 1];
+	tree[v].max2 = max(tree[v].max2, tree[v + v].value);
+	if (tree[v + v].value > tree[v].value) {
+		tree[v] = tree[2 * v];
+		tree[v].max2 = max(tree[v].max2, tree[2 * v + 1].value);
+	}
+}
+
+int query[N];
+
+int main() {
+	int n;
+	scanf("%d", &n);
+	for (auto i = 0; i < n; ++i) {
+		int guy, moneyUse;
+		scanf("%d %d", &guy, &moneyUse);
+		a[guy - 1].insert(moneyUse);
+	}
+	build(1, 0, n - 1);
+	int queries;
+	scanf("%d", &queries);
+	for (auto i = 0; i < queries; ++i) {
+		int k;
+		scanf("%d", &k);
+		for (auto j = 0; j < k; ++j) {
+			scanf("%d", &query[j]);
+			query[j]--;
+			updateTree(1, 0, n - 1, query[j], 0);
+		}
+		if (tree[1].value == 0) {
+			printf("0 0\n");
+			for (auto j = 0; j < k; ++j) {
+				auto value = 0;
+				if (a[query[j]].size() > 0)
+					value = *--a[query[j]].end();
+				updateTree(1, 0, n - 1, query[j], value);
+			}
+			continue;
+		}
+		auto answer = getMax();
+		printf("%d %d\n", answer.first + 1, *a[answer.first].lower_bound(answer.second));
+		for (auto j = 0; j < k; ++j) {
+			auto value = 0;
+			if (a[query[j]].size() > 0)
+				value = *--a[query[j]].end();
+			updateTree(1, 0, n - 1, query[j], value);
+		}
+	}
+	return 0;
+}

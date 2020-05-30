@@ -1,0 +1,121 @@
+#include<bits/stdc++.h>
+#define lc (id << 1)
+#define rc (id << 1 ^ 1)
+#define md ((l + r) >> 1)
+using namespace std;
+const int N = 100005, LG = 17;
+int n, k, ts, ch, sz[N], st[N];
+int hd[N], C[N], H[N], P[N][LG];
+int mn[N * 4], lz[N * 4], cnt[N * 4], lca[N * 2];
+vector < int > Adj[N];
+void DFS(int v, int p)
+{
+    sz[v] = 1;
+    for (int i = 1; i < LG; i++)
+        P[v][i] = P[P[v][i - 1]][i - 1];
+    for (int i = 0; i < (int)Adj[v].size(); i++)
+        if (Adj[v][i] == p)
+            swap(Adj[v][i], Adj[v].back()), Adj[v].pop_back();
+    for (int i = 0; i < (int)Adj[v].size(); i++)
+    {
+        int u = Adj[v][i];
+        P[u][0] = v;
+        H[u] = H[v] + 1;
+        DFS(u, v);
+        sz[v] += sz[u];
+        if (sz[Adj[v][i]] > sz[Adj[v][0]])
+            swap(Adj[v][i], Adj[v][0]);
+    }
+}
+void DFS2(int v, int p)
+{
+    st[v] = ts ++;
+    if (Adj[v].size())
+        C[Adj[v][0]] = C[v], DFS2(Adj[v][0], v);
+    for (int u : Adj[v])
+        if (u != Adj[v][0])
+            C[u] = ch, hd[ch ++] = u, DFS2(u, v);
+}
+inline int LCA(int v, int u)
+{
+    if (H[v] < H[u])
+        swap(v, u);
+    for (int i = 0; i < LG; i++)
+        if ((H[v] - H[u]) & (1 << i))
+            v = P[v][i];
+    if (v == u)
+        return (v);
+    for (int i = LG - 1; ~i; i--)
+        if (P[v][i] != P[u][i])
+            v = P[v][i], u = P[u][i];
+    return (P[v][0]);
+}
+inline GetLca(int l, int r)
+{
+    int _lca = l;
+    for (l += n - 1, r += n; l < r; l >>= 1, r >>= 1)
+    {
+        if (l & 1) _lca = LCA(_lca, lca[l]), l ++;
+        if (r & 1) r --, _lca = LCA(_lca, lca[r]);
+    }
+    return (_lca);
+}
+void Init(int id = 1, int l = 0, int r = n)
+{
+    cnt[id] = r - l;
+    if (r - l > 1)
+        Init(lc, l, md), Init(rc, md, r);
+}
+void Add(int le, int ri, int val, int id = 1, int l = 0, int r = n)
+{
+    if (ri <= l || r <= le)
+        return ;
+    if (le <= l && r <= ri)
+    {
+        lz[id] += val;
+        mn[id] += val;
+        return ;
+    }
+    Add(le, ri, val, lc, l, md);
+    Add(le, ri, val, rc, md, r);
+    mn[id] = min(mn[lc], mn[rc]);
+    cnt[id] = 0;
+    if (mn[id] == mn[lc])
+        cnt[id] += cnt[lc];
+    if (mn[id] == mn[rc])
+        cnt[id] += cnt[rc];
+    mn[id] += lz[id];
+}
+inline void AddHld(int v, int val)
+{
+    while (v)
+        Add(st[hd[C[v]]], st[v] + 1, val), v = P[hd[C[v]]][0];
+}
+int main()
+{
+    scanf("%d%d", &n, &k);
+    for (int i = 1; i < n; i++)
+    {
+        int v, u;
+        scanf("%d%d", &v, &u);
+        Adj[v].push_back(u);
+        Adj[u].push_back(v);
+    }
+    DFS(1, 0);
+    hd[ch ++] = 1;
+    DFS2(1, 0);
+    Init();
+    for (int i = 1; i <= n; i++)
+        lca[n + i - 1] = i;
+    for (int i = n - 1; i; i--)
+        lca[i] = LCA(lca[i << 1], lca[i << 1 ^ 1]);
+    int le = 1, Mx = 0;
+    for (int i = 1; i <= n; i++)
+    {
+        AddHld(i, 1);
+        while (n - (mn[1] == 0) * cnt[1] - H[GetLca(le, i)] > k)
+            AddHld(le, -1), le ++;
+        Mx = max(Mx, i - le + 1);
+    }
+    return !printf("%d", Mx);
+}

@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 7;
+
+struct dst{
+    int a, b, c, d;
+};
+
+struct cmp{
+    bool operator() (const dst &a, const dst &b){
+        return a.c < b.c;
+    }
+};
+
+int parent[N], size[N];
+
+int fset(int v){
+    if(v == parent[v]){
+        return v;
+    }
+    else{
+        return parent[v] = fset(parent[v]);
+    }
+}
+
+bool usets(int x, int y){
+    x = fset(x);
+    y = fset(y);
+    if(x != y){
+        if(size[x] > size[y]){
+            swap(x, y);
+        }
+        size[y] += size[x];
+        parent[x] = y;
+        return true;
+    }
+    return false;
+};
+
+vector < pair < int, int > > g[N];
+
+int T = 0, in[N], out[N];
+
+const int P = 25;
+
+int p[N][P], mx[N][P];
+
+void dfs(int v, int pr = -1, int now = 0){
+    in[v] = T++;
+    p[v][0] = pr;
+    mx[v][0] = now;
+    for(int i = 1; i < P; ++i){
+        if(p[v][i - 1] == -1){
+            p[v][i] = -1;
+        }
+        else{
+            p[v][i] = p[p[v][i - 1]][i - 1];
+            mx[v][i] = max(mx[v][i - 1], mx[p[v][i - 1]][i - 1]);
+        }
+    }
+    for(int i = 0; i < g[v].size(); ++i){
+        int to = g[v][i].first;
+        int w = g[v][i].second;
+        if(to == pr) continue;
+        dfs(to, v, w);
+    }
+    out[v] = T++;
+}
+
+bool is(int x, int y){
+    return in[x] <= in[y] && out[x] >= out[y];
+}
+
+int findAns(int x, int y){
+    if(is(x, y)){
+        return 0;
+    }
+    int ans = 0;
+    for(int i = P - 1; i >= 0; --i){
+        if(p[x][i] == -1) continue;
+        if(!is(p[x][i], y)){
+            ans = max(ans, mx[x][i]);
+            x = p[x][i];
+        }
+    }
+    return max(ans, mx[x][0]);
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, m;
+    cin >> n >> m;
+
+    dst us[m];
+
+    multiset < dst, cmp > s;
+
+    for(int i = 0; i < m; ++i){
+        int a, b, c; cin >> a >> b >> c;
+        --a; --b;
+        s.insert({a, b, c, i});
+        us[i] = {a, b, c, i};
+    }
+
+    for(int i = 0; i < N; ++i){
+        parent[i] = i;
+        size[i] = 1;
+    }
+
+    long long cnt = 0;
+
+    vector < dst > gr;
+
+    for(auto to : s){
+        if(usets(to.a, to.b)){
+            cnt += to.c;
+            g[to.a].push_back({to.b, to.c});
+            g[to.b].push_back({to.a, to.c});
+            gr.push_back({to.a, to.b, to.c, to.d});
+        }
+    }
+
+    dfs(0);
+
+    vector < long long > ans(m);
+
+    for(dst to : gr){
+        ans[to.d] = cnt;
+    }
+
+    for(int i = 0; i < m; ++i){
+        if(ans[i]) continue;
+        dst to = us[i];
+        ans[to.d] = cnt - max(findAns(to.a, to.b), findAns(to.b, to.a)) + to.c;
+    }
+
+    for(long long to : ans){
+        cout << to << endl;
+    }
+}

@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+#define LL long long
+using namespace std;
+#define PII pair<int, int>
+const int N=5e5+7, INF = 1e9+7;
+
+PII tr[4*N];
+int a[N];
+int n, q;
+
+void build(int u, int st, int en)
+{
+    if (st==en) {
+        tr[u] = PII(st, st);
+    }
+    else {
+        int mid = (st+en)/2;
+        build(2*u, st, mid);
+        build(2*u+1, mid+1, en);
+        tr[u] = max(tr[2*u], tr[2*u+1]);
+    }
+}
+
+void update(int u, int st, int en, int id, int val)
+{
+    if (st==en)    tr[u].first = val;
+    else {
+        int mid = (st+en)/2;
+        if (id<=mid) update(2*u, st, mid, id, val);
+        else update(2*u+1, mid+1, en, id, val);
+        tr[u] = max(tr[2*u], tr[2*u+1]);
+    }
+}
+
+PII query(int u, int st, int en, int l, int r)
+{
+    if (r<st || en<l)  return PII(-1, -1);
+    else if (l<=st && en<=r)    return tr[u];
+    else {
+        int mid = (st+en)/2;
+        return max(query(2*u, st, mid, l, r), query(2*u+1, mid+1, en, l, r));
+    }
+}
+
+void debug(int u, int st, int en)
+{
+    cout<<"--->"<<u<<" "<<st<<" "<<en<<" "<<tr[u].first<<" "<<tr[u].second<<endl;
+    if (st==en) return;
+    int mid = (st+en)/2;
+    debug(2*u, st, mid);
+    debug(2*u+1, mid+1, en);
+}
+
+int last[N], nxt[N];
+
+struct qq
+{
+    int l, r, id;
+};
+
+qq queries[N];
+int ans[N];
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin>>n;
+    for (int i=1; i<=n; i++)
+        cin>>a[i];
+
+    for (int i=n; i>0; i--)
+    {
+        if (last[a[i]] == 0)    nxt[i] = INF;
+        else                    nxt[i] = last[a[i]];
+        last[a[i]] = i;
+    }
+
+//    for (int i=1; i<=n; i++)
+//        cout<<i<<" "<<a[i]<<" "<<nxt[i]<<" "<<last[a[i]]<<endl;
+
+    build(1,1,n);
+   // debug(1,1,n);
+    for (int i=1; i<=n; i++)
+        if (last[a[i]] == i)
+    //        cout<<i<<" "<<nxt[i]<<" "<<endl,
+            update(1, 1, n, i, nxt[i]);
+
+    //debug(1,1,n);
+
+    cin>>q;
+    for (int i=0; i<q; i++)
+    {
+        cin>>queries[i].l>>queries[i].r;
+        queries[i].id = i;
+    }
+
+    sort(queries, queries+q, [](qq a, qq b){return a.l < b.l;});
+
+    int cur = 1;
+
+    for (int i=0; i<q; i++)
+    {
+        while (cur < queries[i].l) {
+            if (nxt[cur]!=INF)
+                update(1,1,n, nxt[cur], nxt[nxt[cur]]);
+            cur++;
+        }
+
+        PII pr = query(1,1,n,queries[i].l, queries[i].r);
+        if (pr.first<=queries[i].r) ans[queries[i].id] = 0;
+        else                ans[queries[i].id] = a[pr.second];
+    }
+
+    for (int i=0; i<q; i++)
+        cout<<ans[i]<<"\n";
+
+}

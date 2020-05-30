@@ -1,0 +1,114 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> pii;
+const int maxn=100010;
+struct Segment{
+	int x,y,x2,y2;
+	Segment(int _x=0,int _y=0,int _x2=0,int _y2=0):x(_x),y(_y),x2(_x2),y2(_y2){}
+} seg[maxn];
+int bit[maxn*2];
+vector<int> xs,ys,upd_x[maxn*2];
+vector<Segment> seg_x[maxn*2],seg_y[maxn*2];
+inline int lowbit(int x){
+	return x&-x;
+}
+inline void modify(int pos,int add){
+	for(int i=pos;i<=(int)xs.size();i+=lowbit(i))
+		bit[i]+=add;
+}
+inline int query(int pos){
+	int res=0;
+	for(int i=pos;i>0;i-=lowbit(i))
+		res+=bit[i];
+	return res;
+}
+inline bool cmp_by_x(const Segment& lhs,const Segment& rhs){
+	return lhs.x!=rhs.x?lhs.x<rhs.x:lhs.x2<rhs.x2;
+}
+inline bool cmp_by_y(const Segment& lhs,const Segment& rhs){
+	return lhs.y!=rhs.y?lhs.y<rhs.y:lhs.y2<rhs.y2;
+}
+inline int get_sum(int l,int r){
+	if(l>r) return 0;
+	return query(r)-query(l-1);
+}
+int main(){
+	int n,x,y,x2,y2;
+	scanf("%d",&n);
+	for(int i=1;i<=n;i++){
+		scanf("%d%d%d%d",&x,&y,&x2,&y2);
+		if(x>x2) swap(x,x2);
+		if(y>y2) swap(y,y2);
+		xs.push_back(x);
+		xs.push_back(x2);
+		ys.push_back(y);
+		ys.push_back(y2);
+		seg[i]=Segment(x,y,x2,y2);
+	}
+	sort(xs.begin(),xs.end());
+	xs.erase(unique(xs.begin(),xs.end()),xs.end());
+	sort(ys.begin(),ys.end());
+	ys.erase(unique(ys.begin(),ys.end()),ys.end());
+	for(int i=1;i<=n;i++){
+		int x=lower_bound(xs.begin(),xs.end(),seg[i].x)-xs.begin()+1;
+		int y=lower_bound(ys.begin(),ys.end(),seg[i].y)-ys.begin()+1;
+		int x2=lower_bound(xs.begin(),xs.end(),seg[i].x2)-xs.begin()+1;
+		int y2=lower_bound(ys.begin(),ys.end(),seg[i].y2)-ys.begin()+1;
+		if(x==x2) seg_x[x].push_back(seg[i]);
+		else seg_y[y].push_back(seg[i]);
+	}
+	ll ans=0;
+	for(int x=1;x<=(int)xs.size();x++){
+		if(seg_x[x].size()==0) continue;
+		sort(seg_x[x].begin(),seg_x[x].end(),cmp_by_y);
+		int yl=seg_x[x][0].y,yr=seg_x[x][0].y2;
+		ans+=yr-yl+1;
+		for(int i=1;i<(int)seg_x[x].size();i++){
+			int cur_yl=seg_x[x][i].y,cur_yr=seg_x[x][i].y2;
+			if(yr+1<cur_yl){
+				int yl_pos=lower_bound(ys.begin(),ys.end(),yl)-ys.begin()+1;
+				int yr_pos=lower_bound(ys.begin(),ys.end(),yr)-ys.begin()+1;
+				upd_x[yl_pos].push_back(x);
+				upd_x[yr_pos+1].push_back(-x);
+				yl=cur_yl,yr=cur_yr;
+				ans+=yr-yl+1;
+			}else if(yr<cur_yr){
+				ans+=cur_yr-yr;
+				yr=cur_yr;
+			}
+		}
+		int yl_pos=lower_bound(ys.begin(),ys.end(),yl)-ys.begin()+1;
+		int yr_pos=lower_bound(ys.begin(),ys.end(),yr)-ys.begin()+1;
+		upd_x[yl_pos].push_back(x);
+		upd_x[yr_pos+1].push_back(-x);
+	}
+	for(int y=1;y<=(int)ys.size();y++){
+		for(int i=0;i<(int)upd_x[y].size();i++){
+			if(upd_x[y][i]<0) modify(-upd_x[y][i],-1);
+			else modify(upd_x[y][i],1);
+		}
+		if(seg_y[y].size()==0) continue;
+		sort(seg_y[y].begin(),seg_y[y].end(),cmp_by_x);
+		int xl=seg_y[y][0].x,xr=seg_y[y][0].x2;
+		int xl_pos=lower_bound(xs.begin(),xs.end(),xl)-xs.begin()+1;
+		int xr_pos=lower_bound(xs.begin(),xs.end(),xr)-xs.begin()+1;
+		ans+=xr-xl+1-get_sum(xl_pos,xr_pos);
+		for(int i=1;i<(int)seg_y[y].size();i++){
+			int cur_xl=seg_y[y][i].x,cur_xr=seg_y[y][i].x2;
+			if(xr+1<cur_xl){
+				xl=cur_xl,xr=cur_xr;
+				int xl_pos=lower_bound(xs.begin(),xs.end(),xl)-xs.begin()+1;
+				int xr_pos=lower_bound(xs.begin(),xs.end(),xr)-xs.begin()+1;
+				ans+=xr-xl+1-get_sum(xl_pos,xr_pos);
+			}else if(xr<cur_xr){
+				int xr_pos=lower_bound(xs.begin(),xs.end(),xr)-xs.begin()+1;
+				int cur_xr_pos=lower_bound(xs.begin(),xs.end(),cur_xr)-xs.begin()+1;
+				ans+=cur_xr-xr-get_sum(xr_pos+1,cur_xr_pos);
+				xr=cur_xr;
+			}
+		}
+	}
+	printf("%lld\n",ans);
+	return 0;
+}

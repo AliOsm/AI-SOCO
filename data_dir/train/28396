@@ -1,0 +1,149 @@
+#include <bits/stdc++.h>
+#include <ext/hash_map>
+
+using namespace std;
+using namespace __gnu_cxx;
+
+#define FOR(i,a,b) for(int i=(a);i<(b);i++)
+#define REV(i,b,a) for(int i=(a);i>=(b);i--)
+#define mp make_pair
+#define pb push_back
+#define oo (1<<30)
+#define sz(v) (int)v.size()
+#define all(c) (c).begin(),(c).end()
+#define rall(c) (c).rbegin(),(c).rend()
+#define mem(s,v) memset(s,v,sizeof(s))
+#define ppc(x) __builtin_popcount((x))
+#define iter(it,s) for(__typeof(s.begin())it = s.begin();it!=s.end();it++)
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<double> vd;
+typedef vector<string> vs;
+typedef pair<int, int> pi;
+typedef vector<pi> vpi;
+
+int dx[] = { 0, 0, 1, -1 };
+int dy[] = { 1, -1, 0, 0 };
+
+string s;
+int n;
+const int siz = (1 << 18), md = 1e9 + 7;
+struct node {
+    int hval, lazy, len;
+} tree[siz];
+
+int vals[siz][10], pws[siz];
+
+void update(const int &qs, const int &qe, const int &val, int ni = 0,
+    int ns = 0, int ne = n - 1) {
+  if (ns > qe || ne < qs)
+    return;
+  node &n = tree[ni];
+  if (ns >= qs && ne <= qe) {
+    n.hval = vals[ne - ns + 1][val];
+    n.lazy = val;
+    return;
+  }
+  int lf = 2 * ni + 1, rt = lf + 1, mid = ns + ((ne - ns) >> 1);
+  node &L = tree[lf], &R = tree[rt];
+  if (n.lazy != -1) {
+    L.lazy = n.lazy, L.hval = vals[mid - ns + 1][n.lazy];
+    R.lazy = n.lazy, R.hval = vals[ne - mid][n.lazy];
+    n.lazy = -1;
+  }
+  update(qs, qe, val, lf, ns, mid);
+  update(qs, qe, val, rt, mid + 1, ne);
+  n.hval = (1LL * L.hval * pws[ne - mid]) % md + R.hval;
+  n.hval %= md;
+}
+node query(const int &qs, const int &qe, int ni = 0, int ns = 0,
+    int ne = n - 1) {
+  if (ns > qe || ne < qs) {
+    node t = { 0, -1, 0 };
+    return t;
+  }
+  node &n = tree[ni];
+  if (ns >= qs && ne <= qe) {
+    n.len = ne - ns + 1;
+    return n;
+  }
+  int lf = 2 * ni + 1, rt = lf + 1, mid = ns + ((ne - ns) >> 1);
+  node &L = tree[lf], &R = tree[rt];
+  if (n.lazy != -1) {
+    L.lazy = n.lazy, L.hval = vals[mid - ns + 1][n.lazy];
+    R.lazy = n.lazy, R.hval = vals[ne - mid][n.lazy];
+    n.lazy = -1;
+  }
+  node a = query(qs, qe, lf, ns, mid);
+  node b = query(qs, qe, rt, mid + 1, ne);
+  n.hval = (1LL * L.hval * pws[ne - mid]) % md + R.hval;
+  n.hval %= md;
+  node res;
+  res.hval = (1LL * a.hval * pws[b.len]) % md + b.hval;
+  res.hval %= md;
+  res.len = a.len + b.len;
+  return res;
+}
+
+char ss[100005];
+
+int main() {
+//  ios::sync_with_stdio(0);
+//  cin.tie(NULL);
+//  cout.tie(NULL);
+#ifndef ONLINE_JUDGE
+  freopen("test.in", "rt", stdin);
+//	freopen("o.txt", "wt", stdout);
+#endif
+  int m, k;
+  scanf ("%d%d%d%s", &n, &m, &k, ss);
+  s = ss;
+  ll ten = 1;
+  pws[0] = 1;
+  FOR (j , 0 , 10)
+  {
+    ll r = 0;
+    FOR (i , 1 , n + 1)
+      r *= 10, r += j, r %= md, vals[i][j] = r;
+  }
+  FOR (i , 1 , n + 1)
+    ten *= 10, ten %= md, pws[i] = ten;
+  FOR (i , 0 , n)
+    update(i, i, s[i] - '0');
+  FOR (q , 0 , m + k)
+  {
+    int t, l, r, d;
+    scanf ("%d%d%d%d", &t, &l, &r, &d);
+    l--, r--;
+    if (t == 1)
+      update(l, r, d);
+    else {
+      int len = r - l + 1;
+      int prv = query(l, l + d - 1).hval;
+      while (d * 2 <= len) {
+        int cur = query(l + d, l + 2 * d - 1).hval;
+        if (cur != prv) {
+          printf ("NO\n");
+          goto no;
+        }
+        prv = (1LL * prv * pws[d]) % md + prv;
+        prv %= md;
+        d *= 2;
+      }
+      if (d < len) {
+        len = len - d;
+        int a = query(l, l + len - 1).hval;
+        int b = query(l + d, r).hval;
+        if (a != b) {
+          printf ("NO\n");
+          goto no;
+        }
+      }
+      printf ("YES\n");
+      no: ;
+    }
+  }
+  return 0;
+}

@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define finish(x) return cout << x << endl, 0
+#define ll long long
+
+const int N = 1000020;
+const int sz = 1000005;
+
+struct segment{
+    int tree[4 * N], mx[4 * N], lazy[4 * N];
+    int n;
+    void resize(int _n){
+        n = _n;
+    }
+    void shift(int l, int r, int node){
+        if(r < l) return;
+        if(!lazy[node]) return;
+        tree[node] += (r - l + 1) * lazy[node];
+        mx[node] += lazy[node];
+        if(l != r){
+            lazy[node << 1] += lazy[node];
+            lazy[node << 1 | 1] += lazy[node];
+        }
+        lazy[node] = 0;
+    }
+    void update(int l, int r, int node, int left, int right, ll val){
+        if(l > r) return;
+        shift(l, r, node);
+        if(l > right || r < left) return;
+        if(l >= left && r <= right){
+            tree[node] += (r - l + 1) * val;
+            mx[node] += val;
+            if(l != r){
+                lazy[node << 1] += val;
+                lazy[node << 1 | 1] += val;
+            }
+            return;
+        }
+        int mid = (l + r) >> 1;
+        update(l, mid, node << 1, left, right, val);
+        update(mid + 1, r, node << 1 | 1, left, right, val);
+        tree[node] = tree[node << 1] + tree[node << 1 | 1];
+        mx[node] = max(mx[node << 1], mx[node << 1 | 1]);
+    }
+    int query(int l, int r, int node, int ind){
+        shift(l, r, node);
+        if(l == r) return l;
+        int mid = (l + r) / 2;
+        if(ind <= mid) return query(l, mid, 2 * node, ind);
+        return query(mid + 1, r, 2 * node + 1, ind);
+    }
+    int query(int l, int r, int node){
+        shift(l, r, node);
+        if(l == r) return l;
+        int mid = (l + r) / 2;
+        shift(l, mid, 2 * node);
+        shift(mid + 1, r, 2 * node + 1);
+        if(mx[2 * node + 1] > 0) return query(mid + 1, r, 2 * node + 1);
+        return query(l, mid, 2 * node);
+    }
+};
+
+int n, m, q;
+vector <int> a, b;
+segment tree;
+
+void update(int ind, int x){
+    tree.update(1, sz, 1, 1, ind, x);
+}
+int query(){
+    if(tree.mx[1] <= 0) return -1;
+    return tree.query(1, sz, 1);
+}
+int main(){
+    tree.resize(sz);
+    scanf("%d %d", &n, &m);
+    a.resize(n);
+    for(auto &i : a) scanf("%d", &i);
+    b.resize(m);
+    for(auto &i : b) scanf("%d", &i);
+    for(auto &i : a) update(i, 1);
+    for(auto &i : b) update(i, -1);
+    scanf("%d", &q);
+    while(q--){
+        int x, y, z;
+        scanf("%d%d%d", &x, &y, &z);
+        y--;
+        if(x == 1){
+            update(a[y], -1);
+            a[y] = z;
+            update(a[y], 1);
+        }
+        else{
+            update(b[y], 1);
+            b[y] = z;
+            update(b[y], -1);
+        }
+        printf("%d\n", query());
+    }
+}

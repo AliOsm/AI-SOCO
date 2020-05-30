@@ -1,0 +1,142 @@
+#include<bits/stdc++.h>
+
+#define x first
+#define y second
+#define y0 hi1
+#define y1 hi2
+#define ll long long
+#define mp make_pair
+#define pb push_back
+#define sqr(a) (a)*(a)
+#define ld long double
+#define all(a) (a).begin(), (a).end()
+
+using namespace std;
+
+const int inf = 2000000000;
+
+int gcd(int x, int y){
+    if(x > y)swap(x, y);
+    while(x){
+        y %= x;
+        swap(x, y);
+    }
+    return y;
+}
+int lcm(int x, int y){
+    if(y == 0)return x;
+    return x * y / gcd(x, y);
+}
+
+const int f = 2520;
+const int M = 48;
+
+int nxt[M][10];
+ll dp[20][f][M][2];
+
+int getnum(int x){
+    int two, three, five, seven;
+    seven = x % 2;
+    x /= 2;
+    five = x % 2;
+    x /= 2;
+    three = x % 3;
+    x /= 3;
+    two = x % 4;
+    x /= 4;
+    int r = 1;
+    for(int i = 0; i < two; i++){
+        r *= 2;
+    }
+    for(int i = 0; i < three; i++){
+        r *= 3;
+    }
+    for(int i = 0; i < five; i++){
+        r *= 5;
+    }
+    for(int i = 0; i < seven; i++){
+        r *= 7;
+    }
+    return r;
+}
+int getcode(int x){
+    for(int i = 0; i < M; i++){
+        if(getnum(i) == x){
+            return i;
+        }
+    }
+    return 0;
+}
+
+void precalc(){
+    for(int s = 0; s < M; s++){
+        int q = getnum(s);
+        for(int x = 0; x < 10; x++){
+            int f = getcode(lcm(q, x));
+            nxt[s][x] = f;
+        }
+    }
+}
+
+ll get(ll x){
+    if(x == 0)return 0;
+
+    int n = 0;
+    int a[20];
+    memset(a, 0, sizeof(a));
+    while(x > 0){
+        a[++n] = x % 10;
+        x /= 10;
+    }
+    reverse(a + 1, a + n + 1);
+
+    memset(dp, 0, sizeof(dp));
+    dp[0][0][0][0] = 1;
+
+    for(int i = 1; i <= n; i++){
+        for(int ost = 0; ost < f; ost++){
+            for(int mask = 0; mask < M; mask++){
+                if(dp[i - 1][ost][mask][0] + dp[i - 1][ost][mask][1] == 0)continue;
+                for(int x = 0; x < 10; x++){
+                    int nost = (ost * 10 + x) % f;
+                    int nmask = nxt[mask][x];
+                    if(x > a[i]){
+                        dp[i][nost][nmask][1] += dp[i - 1][ost][mask][1];
+                    } else
+                    if(x == a[i]){
+                        dp[i][nost][nmask][1] += dp[i - 1][ost][mask][1];
+                        dp[i][nost][nmask][0] += dp[i - 1][ost][mask][0];
+                    } else
+                    if(x < a[i]){
+                        dp[i][nost][nmask][1] += dp[i - 1][ost][mask][1] + dp[i - 1][ost][mask][0];
+                    }
+                }
+            }
+        }
+    }
+
+    ll ans = 0;
+    for(int ost = 0; ost < f; ost++){
+        for(int mask = 0; mask < M; mask++){
+            int v = getnum(mask);
+            if(ost % v == 0){
+                ans += dp[n][ost][mask][0] + dp[n][ost][mask][1];
+            }
+        }
+    }
+    return ans - 1;
+}
+
+int main(){
+    precalc();
+    cin.tie(0);
+    ios_base::sync_with_stdio(0);
+
+    int T;
+    cin >> T;
+    while(T--){
+        ll l, r;
+        cin >> l >> r;
+        cout << get(r) - get(l - 1) << "\n";
+    }
+}

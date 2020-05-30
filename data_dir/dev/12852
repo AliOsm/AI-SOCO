@@ -1,0 +1,74 @@
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <cstring>
+
+struct Query {
+	int from, to, index;
+};
+
+int cnt[1100100];
+int K;
+long long ANS;
+
+long long get(int val) {
+	return K > 0 ? (long long) cnt[val] * cnt[val ^ K] : (long long) cnt[val] * (cnt[val] - 1) / 2;
+}
+
+void add(int val, int diff) {
+	ANS -= get(val);
+	cnt[val] += diff;
+	ANS += get(val);
+}
+
+int const N = 100100;
+
+int a[N];
+int pref[N];
+
+int const LEN = 333;
+
+std::vector<Query> qcnt[LEN];
+long long ans[N];
+
+int main() {
+	int n, m;
+	scanf("%d%d%d", &n, &m, &K);
+	pref[0] = 0;
+	for (int i = 0; i < n; ++i) {
+		scanf("%d", a + i);
+		pref[i + 1] = pref[i] ^ a[i];
+	}
+	for (int i = 0; i < m; ++i) {
+		Query q;
+		scanf("%d%d", &q.from, &q.to);
+		--q.from;
+		q.index = i;
+		qcnt[q.from / LEN].push_back(q);
+	}
+	for (int block = 0; block * LEN < n; ++block) {
+		int L = block * LEN;
+		int R = block * LEN;
+		memset(cnt, 0, sizeof cnt);
+		ANS = 0;
+		add(pref[L], 1);
+		std::sort(qcnt[block].begin(), qcnt[block].end(), [](Query const& a, Query const& b) {
+			return a.to < b.to;
+		});
+		for (Query& q : qcnt[block]) {
+			while (R < q.to) {
+				add(pref[++R], 1);
+			}
+			while (L < q.from) {
+				add(pref[L++], -1);
+			}
+			while (L > q.from) {
+				add(pref[--L], 1);
+			}
+			ans[q.index] = ANS;
+		}
+	}
+	for (int i = 0; i < m; ++i) {
+		printf("%I64d\n", ans[i]);
+	}
+}

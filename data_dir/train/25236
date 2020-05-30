@@ -1,0 +1,191 @@
+//The best is yet to come...
+ #include <iostream>
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long int
+#define inf 1000000000000
+#define mod 1000000007
+#define pb push_back
+#define mp make_pair
+#define all(v) v.begin(),v.end()
+#define S second
+#define F first
+#define boost1 ios::sync_with_stdio(false);
+#define boost2 cin.tie(0);
+#define mem(a,val) memset(a,val,sizeof a)
+#define endl "\n"
+#define maxn 100001
+
+class Matrix 
+{
+	public:
+	int N;
+    int M[2][2];
+	Matrix() {}
+
+    Matrix(int _N) 
+    {
+  	    N = _N;
+	    memset(M, 0, sizeof M);
+    }
+};
+Matrix EMP(2),ID(2), FIB(2);
+void gen() 
+{
+  	ID.M[0][0] = ID.M[1][1] = 1;
+  	FIB.M[1][1] = FIB.M[0][1] = FIB.M[1][0] = 1;
+}
+
+Matrix operator*(const Matrix &X, const Matrix &Y) 
+{
+  	int N = X.N;
+    Matrix Z(N);
+    for (int i = 0; i < N; i++) 
+    {
+    	for (int j = 0; j < N; j++) 
+    	{
+        	for (int k = 0; k < N; k++) 
+        	{
+     	  		 Z.M[i][j] += (X.M[i][k] * 1LL * Y.M[k][j]) % mod;
+       			 if (Z.M[i][j] >= mod)
+       			  Z.M[i][j] -= mod;
+      		}
+   	    }
+    }
+  return Z;
+}
+Matrix operator^(Matrix X, ll power)
+{
+  	Matrix res = ID;
+    while (power)
+    {
+   		 if (power & 1) 
+      	 res = res * X;
+  	     X = X * X;
+         power >>= 1;
+    }
+     return res;
+}
+Matrix operator+(Matrix X, const Matrix &Y) 
+{
+  	for (int i = 0; i < X.N; i++) 
+  	{
+    	for (int j = 0; j < X.N; j++) 
+    	{
+     		 X.M[i][j] = (X.M[i][j] + Y.M[i][j]);
+      		 if (X.M[i][j] >= mod) X.M[i][j] -= mod;
+    	}
+  	}
+  	return X;
+}
+// fib(0)=0 fib(1)=1
+// to calculate fib(n) take mat^(n
+ll arr[maxn];
+Matrix tree[4*maxn],lazy[4*maxn];
+
+int check(Matrix t)
+{
+	for(int i=0;i<2;i++)
+	{
+		for(int j=0;j<2;j++)
+		{
+			if(t.M[i][j]!=ID.M[i][j])
+			return 1;
+		}
+	}
+	return 0;
+}
+void build(ll node,ll a,ll b)
+{
+	lazy[node]=ID;
+	if(a==b)
+	{
+		tree[node]=FIB^(arr[a]);
+		return;
+	}
+	ll mid=(a+b)/2;
+	build(2*node,a,mid);
+	build(2*node+1,mid+1,b);
+	tree[node]=tree[2*node]+tree[2*node+1];
+}
+void update(ll node,ll a,ll b,ll l,ll r,Matrix val)
+{
+	if(check(lazy[node]))
+	{
+		tree[node]=tree[node]*lazy[node];
+		if(a!=b)
+		{
+			lazy[2*node]=lazy[2*node]*lazy[node];
+			lazy[2*node+1]=lazy[2*node+1]*lazy[node];
+		}	
+		lazy[node]=ID;
+	}
+
+	if(a>b || a>r || b<l)
+	return;
+	if(a>=l && b<=r)
+	{
+		tree[node]=tree[node]*val;
+		if(a!=b)
+		{
+			lazy[2*node]=lazy[2*node]*val;
+			lazy[2*node+1]=lazy[2*node+1]*val;
+		}
+		return;
+	}
+	ll mid=(a+b)/2;
+	update(2*node,a,mid,l,r,val);
+	update(2*node+1,mid+1,b,l,r,val);
+
+	tree[node]=tree[2*node]+tree[2*node+1];
+}
+void query(ll node,ll a,ll b,ll l,ll r,Matrix &res)
+{
+	if(check(lazy[node]))
+	{
+		tree[node]=tree[node]*lazy[node];
+		if(a!=b)
+		{
+			lazy[2*node]=lazy[2*node]*lazy[node];
+			lazy[2*node+1]=lazy[2*node+1]*lazy[node];
+		}	
+		lazy[node]=ID;
+	}
+	if(a>b || a>r || b<l)
+	return ;
+	if(a>=l && b<=r)
+	{
+		res=res+tree[node];
+		return;
+	}
+	ll mid=(a+b)/2;
+	query(2*node,a,mid,l,r,res);
+	query(2*node+1,mid+1,b,l,r,res);
+}
+int main()
+{
+	gen();
+	boost1;boost2;	
+	ll i,j,n,q,l,r,val,type;
+	cin>>n>>q;
+	for(i=1;i<=n;i++)
+	cin>>arr[i];
+	build(1,1,n);
+	while(q--)
+	{
+		cin>>type;
+		if(type==1)
+		{
+			cin>>l>>r>>val;
+			update(1,1,n,l,r,FIB^val);
+		}
+		else
+		{
+			cin>>l>>r;
+			Matrix temp=EMP;
+			query(1,1,n,l,r,temp);
+			cout<<temp.M[0][1]<<endl;
+		}
+	}
+	return 0;
+}

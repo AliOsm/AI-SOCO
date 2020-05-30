@@ -1,0 +1,108 @@
+// In the name of Allah.
+// We're nothing and you're everything.
+// Ya Ali!
+ 
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+ 
+const int maxn = 1e3 + 14, mod = 998244353, lg = 60, bs = 1e5 + 3;
+struct Seg{
+	ll l, r;
+	bool operator <(const Seg &od) const{
+		return l != od.l ? l < od.l : r > od.r;
+	}
+	int k(){
+		return __builtin_ctzll(r - l);
+	}
+	int sum(ll x){
+		ll y = x - 1;
+		if(x % 2)
+			y /= 2;
+		else
+			x /= 2;
+		x %= mod, y %= mod;
+		return x * y % mod;
+	}
+	int sum(){
+		return (sum(r) - sum(l) + mod) % mod;
+	}
+};
+ll comb(ll l, ll l2, int k){
+	l2 &= (1ll << lg) - 1 ^ (1ll << k) - 1;
+	return l ^ l2;
+}
+vector<ll> cont[2][lg];
+struct HM{
+	vector<ll> bu[bs];
+	void insert(ll x){
+		int y = x % bs;
+		if(find(bu[y].begin(), bu[y].end(), x) == bu[y].end())
+			bu[y].push_back(x);
+	}
+}  hm;
+int main(){
+	ios::sync_with_stdio(0), cin.tie(0);
+	for(int i = 0; i < 2; i++){
+		int n;
+		cin >> n;
+		vector<Seg> v;
+		while(n--){
+			ll l, r;
+			cin >> l >> r;
+			r++;
+			v.push_back({l, r});
+		}
+		sort(v.begin(), v.end());
+		vector<Seg> nw({v[0]});
+		for(int j = 1; j < v.size(); j++){
+			if(nw.back().r < v[j].l)
+				nw.push_back(v[j]);
+			nw.back().r = max(nw.back().r, v[j].r);
+		}
+		for(auto [l, r] : nw){
+			while(l + (l & -l) <= r){
+				cont[i][Seg({l, l + (l & -l)}).k()].push_back(l);
+				//cerr << l << ' ' << (l + (l & -l)) << '\n';
+				l += l & -l;
+			}
+			while(l != r){
+				cont[i][Seg({r ^ (r & -r), r}).k()].push_back(r ^ (r & -r));
+				//cerr << (r ^ (r & -r)) << ' ' << r << '\n';
+				r ^= r & -r;
+			}
+		}
+	}
+	list<Seg> s;
+	ll ans = 0;
+
+	for(int k = lg - 1; k >= 0; k--){
+		for(auto l : cont[0][k])
+			for(int k2 = k; k2 >= 0; k2--)
+				for(auto l2 : cont[1][k2])
+					hm.insert(comb(l, l2, k));
+		for(auto l : cont[1][k])
+			for(int k2 = k - 1; k2 >= 0; k2--)
+				for(auto l2 : cont[0][k2])
+					hm.insert(comb(l, l2, k));
+		vector<ll> todo;
+		for(int i = 0; i < bs; i++){
+			todo.insert(todo.end(), hm.bu[i].begin(), hm.bu[i].end());
+			hm.bu[i].clear();
+		}
+		sort(todo.begin(), todo.end());
+		todo.erase(unique(todo.begin(), todo.end()), todo.end());
+		auto it = s.begin();
+		for(auto &l : todo){
+			while(it != s.end() && it -> l <= l)
+				it++;
+			if(it == s.begin() || prev(it) -> r <= l){
+				Seg me = {l, l + (1ll << k)};
+				s.insert(it, me);
+				//cerr << me.l << ' ' << me.r << ' ' << me.sum() << '\n';
+				ans = (ans + me.sum()) % mod;
+			}
+		}
+	}
+	cout << ans << '\n';
+}

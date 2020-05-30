@@ -1,0 +1,127 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define trace(x) cerr << #x << ": " << x << " ";
+#define trnl cerr << "\n"
+
+typedef long long lolo;
+typedef unsigned long long ulolo;
+typedef pair<int, int> pii;
+#define fi first
+#define se second
+#define M_PI           3.14159265358979323846
+
+const int INF = 1e9 + 23;
+const int MOD = 1e9 + 9;
+const int ARRS = 2e5 + 100;
+const int MXLOG = 25;
+
+typedef tuple<int, int, int> tt;
+
+vector<int> G[ARRS];
+tt edges[ARRS];
+bool ine[ARRS];
+bool inv[ARRS];
+int parent[ARRS];
+int lev[ARRS];
+int P[ARRS][MXLOG];
+int heavy[ARRS][MXLOG];
+
+lolo prim(int s) {
+  lolo sum = 0;
+  priority_queue<pii, vector<pii >, greater<pii > > q;
+  inv[s] = true;
+  for (auto i : G[s]) {
+    q.push({get<0>(edges[i]), i});
+  }
+  while (!q.empty()) {
+    int w, nr, u, v;
+    tie(w, nr) = q.top(); q.pop();
+    tie(ignore, u, v) = edges[nr];
+    if (inv[v]) swap(u, v);
+    if (inv[v]) continue;
+    inv[v] = true;
+    ine[nr] = true;
+    parent[v] = u;
+    lev[v] = lev[u] + 1;
+    heavy[v][0] = w;
+    sum += w;
+    for (auto i : G[v]) {
+      q.push({get<0>(edges[i]), i});
+    }
+  }
+  return sum;
+}
+
+void lcainit(int n) {
+  for (int i = 1; i <= n; ++i) {
+    for (int j = 0; j < MXLOG; ++j) {     
+      P[i][j] = -1;
+    }
+  }
+  
+  for (int i = 1; i <= n; ++i) {
+    P[i][0] = parent[i];
+  }
+
+  for (int j = 1; j < MXLOG; ++j) {
+    for (int i = 1; i <= n; ++i) {
+      if (P[i][j - 1] != -1) {
+        P[i][j] = P[P[i][j - 1]][j - 1];
+        heavy[i][j] = max(heavy[P[i][j - 1]][j - 1], heavy[i][j - 1]);
+      }
+    } 
+  }
+}
+
+int lcaw(int p, int q) {
+  int ret = 0;
+  if (lev[p] < lev[q]) swap(p, q);
+  for (int i = MXLOG - 1; i >= 0; --i) {
+    if (lev[p] - (1 << i) >= lev[q]) {
+      ret = max(ret, heavy[p][i]);
+      p = P[p][i];
+    }
+  }
+  if (p == q) {
+    return ret;
+  }
+  for (int i = MXLOG - 1; i >= 0; --i) {
+    if (P[p][i] != -1 && P[p][i] != P[q][i]) {
+      ret = max(ret, heavy[p][i]);
+      ret = max(ret, heavy[q][i]);
+      p = P[p][i], q = P[q][i];
+    }
+  }
+  ret = max(ret, heavy[p][0]);
+  ret = max(ret, heavy[q][0]);
+  return ret;
+}
+
+int main()
+{
+  ios_base::sync_with_stdio(0);
+  int n, m;
+  cin >> n >> m;
+  for (int i = 0; i < m; ++i) {
+    int a, b, w;
+    cin >> a >> b >> w;
+    G[a].emplace_back(i);
+    G[b].emplace_back(i);
+    edges[i] = make_tuple(w, a, b);
+  }
+  lolo weight = prim(1);
+  lcainit(n);
+  for (int i = 0; i < m; ++i) {
+    if (ine[i]) cout << weight;
+    else {
+      int u = get<1>(edges[i]);
+      int v = get<2>(edges[i]);
+      int lcares = lcaw(u, v);
+      cout << (weight + get<0>(edges[i]) - lcares);
+    }
+    cout << "\n";
+  }
+  return 0;
+}
+// g++ -W -Wall -Wextra -pedantic -std=c++0x -o p main.cpp

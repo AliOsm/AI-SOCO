@@ -1,0 +1,45 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int n, len, v1, v2, k;
+
+double f(double antar, double& ans) {
+  double s = 0, t = 0;
+  ans = 0;
+  int group = n / k + (n % k? 1 : 0);
+  bool done = 0;
+  for (int i = 0; i < group; i++) {
+    if (s + antar > len) done = 1;
+    double at = min(s + antar, (double) len);
+    double t1 = (double) (at - s) / v2;
+    double cur = t + t1 + (s + antar < len? (double) (len - s - antar) / v1 : 0);
+    ans = max(ans, cur);
+    s += t1 * v1;
+    t += t1;
+    double p = (double) v1 * (at - s) / (v1 + v2);
+    double t2 = p / v1;
+    s += p;
+    t += t2;
+  }
+  return done;
+}
+
+int main() {
+  scanf("%d %d %d %d %d", &n, &len, &v1, &v2, &k);
+  double ans = (double) len / v1;
+  double l = 0, r = len;
+  for (int i = 0; i < 100; i++) {
+    //printf("%.15f %.15f\n", l, r);
+    double mid = (l + r) / 2;
+    if (f(mid, ans)) {
+      r = mid;
+    } else {
+      l = mid;
+    }
+  }
+  f(r, ans);
+  printf("%.15f\n", ans);
+  
+  return 0;
+}

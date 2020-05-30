@@ -1,0 +1,206 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+ 
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+ 
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+ 
+using namespace std;
+using namespace __gnu_pbds;
+typedef struct Treap *ptreap;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+ 
+template <class T1, class cmp = less <T1>> using Tree = tree <T1, null_type, cmp, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2> using um = unordered_map <T1, T2>;
+template <class T> using us = unordered_set <T>;
+template <class T> using vec = vector <T>;
+ 
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 3e5 + 1;
+ll n, w;
+ll cur;
+
+ll val[N];
+pii ans;
+
+vec <pii> rem;
+
+struct Item {
+    ll a, b, i;
+} item[N];
+
+struct Treap {
+    ll key;
+    ll pri;
+    ll cnt;
+    ll sum;
+
+    ptreap l = NULL;
+    ptreap r = NULL;
+
+    Treap() {}
+    Treap(ll key, ll pri): key(key), pri(pri) {}
+} *root;
+
+void input() {
+    cin >> n >> w;
+    for(ll i = 0; i < n; ++i) {
+        cin >> item[i].a;
+        cin >> item[i].b;
+        item[i].i = i;
+    }
+    sort(item, item + n, [](Item x, Item y) {
+        return x.b < y.b;
+    });
+}
+
+ll cnt(ptreap t) {
+    return t? t->cnt: 0;
+}
+
+ll sum(ptreap t) {
+    return t? t->sum: 0;
+}
+
+void upd(ptreap t) {
+    if(!t) {
+        return;
+    }
+    t->cnt = cnt(t->l) + cnt(t->r) + 1;
+    t->sum = sum(t->l) + sum(t->r) + t->key;
+}
+
+void split(ptreap t, ptreap &l, ptreap &r, ll key) {
+    if(!t) {
+        l = r = NULL;
+    } else if(key <= t->key) {
+        split(t->l, l, t->l, key), r = t;
+    } else {
+        split(t->r, t->r, r, key), l = t;
+    }
+    upd(t);
+}
+
+void split_cnt(ptreap t, ptreap &l, ptreap &r, ll key, ll add = 0) {
+    if(!t) {
+        l = r = NULL;
+        return;
+    }
+    ll cur = cnt(t->l) + add;
+    if(key <= cur) {
+        split_cnt(t->l, l, t->l, key, add), r = t;
+    } else {
+        split_cnt(t->r, t->r, r, key, cur + 1), l = t;
+    }
+    upd(t);
+}
+
+void merge(ptreap &t, ptreap l, ptreap r) {
+    if(!l || !r) {
+        t = l? l: r;
+    } else if(l->pri > r->pri) {
+        merge(l->r, l->r, r), t = l;
+    } else {
+        merge(r->l, l, r->l), t = r;
+    }
+    upd(t);
+}
+
+void insert(ptreap &t, ptreap it) {
+    ptreap t1;
+    ptreap t2;
+    split(t, t1, t2, it->key);
+    merge(t1, t1, it);
+    merge(t, t1, t2);
+    upd(t);
+}
+
+void erase(ptreap &t, ll key) {
+    if(t->key == key) {
+        merge(t, t->l, t->r);
+    } else {
+        erase(key <= t->key? t->l: t->r, key);
+    }
+    upd(t);
+}
+
+void insert(ll key) {
+    ptreap it = new Treap(key, rand());
+    insert(root, it);
+}
+
+void inorder(ptreap &t) {
+    if(!t) {
+        return;
+    }
+    inorder(t->l);
+    cout << t->key << " ";
+    inorder(t->r);
+}
+
+ll query(ptreap &t, ll x) {
+    if(x > n) {
+        return inf;
+    }
+    ptreap t1;
+    ptreap t2;
+    split_cnt(t, t1, t2, x);
+    ll res = sum(t1);
+    merge(t, t1, t2);
+    return res;
+}
+
+void solve() {
+    ans = {inf, inf};
+    for(ll i = 0; i < n; ++i) {
+        insert(item[i].a);
+    }
+    ans = min(ans, {query(root, w), 0});
+    for(ll i = 0; i < n; ++i) {
+        cur += item[i].a;
+        erase(root, item[i].a);
+        insert(item[i].b - item[i].a);
+        ans = min(ans, mp(cur + query(root, w - i - 1), i + 1));
+    }
+    cout << ans.xx << "\n";
+    for(ll i = 0; i < ans.yy; ++i) {
+        val[item[i].i] = 1;
+        rem.pb({item[i].b - item[i].a, item[i].i});
+    }
+    for(ll i = ans.yy; i < n; ++i) {
+        rem.pb({item[i].a, item[i].i});
+    }
+    sort(all(rem));
+    for(ll i = 0; i < w - ans.yy; ++i) {
+        val[rem[i].yy]++;
+    }
+    for(ll i = 0; i < n; ++i) {
+        cout << val[i];
+    }
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

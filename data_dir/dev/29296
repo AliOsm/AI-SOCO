@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using namespace placeholders;
+
+template <class T> void mini(T &l, T r) {l = min(l, r);}
+template <class T> void maxi(T &l, T r) {l = max(l, r);}
+
+template <class TH> void _dbg(const char *sdbg, TH h) {
+  cerr << sdbg << "=" << h << "\n";
+}
+template <class TH, class ...TA> void _dbg(const char *sdbg, TH h, TA ...a) {
+  while (*sdbg != ',') cerr << *sdbg++; cerr << "=" << h << ","; _dbg(sdbg + 1, a...);
+}
+template <class T> ostream &operator<<(ostream &os, vector <T> v) {
+  os << "[";
+  for (auto vv : v) os << vv << ",";
+  return os << "]";
+}
+template <class L, class R> ostream &operator<<(ostream &os, pair <L, R> p) {
+  return os << "(" << p.first << "," << p.second << ")";
+}
+
+#define eput(...) _dbg(#__VA_ARGS__, __VA_ARGS__)
+
+#define mid ((l + r) >> 1)
+#define lson (p << 1)
+#define rson (p << 1 | 1)
+
+using llint = long long;
+
+const int N = 2e5 + 10;
+
+struct Segtree {
+  struct Node {
+    llint lz;
+    llint mx;
+  } tr[N * 4];
+
+  void add(Node &a, llint v) {
+    a.lz += v;
+    a.mx += v;
+  }
+
+  void push_down(int p, int l, int r) {
+    if (tr[p].lz) {
+      add(tr[lson], tr[p].lz);
+      add(tr[rson], tr[p].lz);
+      tr[p].lz = 0;
+    }
+  }
+
+  void push_up(int p, int l, int r) {
+    tr[p].lz = 0;
+    tr[p].mx = max(tr[lson].mx, tr[rson].mx);
+  }
+  
+  void update(int p, int l, int r, int ll, int rr, llint v) {
+    if (ll <= l && rr >= r) {
+      add(tr[p], v);
+      return;
+    }
+    push_down(p, l, r);
+    if (ll <= mid) update(lson, l, mid, ll, rr, v);
+    if (rr >= mid + 1) update(rson, mid + 1, r, ll, rr, v);
+    push_up(p, l, r);
+  }
+
+  llint query(int p, int l, int r, int ll, int rr) {
+    if (ll <= l && rr >= r) return tr[p].mx;
+    push_down(p, l, r);
+    llint ret = 0;
+    if (ll <= mid) ret = max(ret, query(lson, l, mid, ll, rr));
+    if (rr >= mid + 1) ret = max(ret, query(rson, mid + 1, r, ll, rr));
+    return ret;
+  }
+
+} seg;
+
+int n, m;
+int a[N];
+vector < pair <int, int> > e[N];
+llint dp[N];
+
+void run() {
+  scanf("%d%d", &n, &m);
+  for (int i = 1; i <= n; ++i) scanf("%d", a + i);
+  for (int i = 1; i <= m; ++i) {
+    int x, y, c;
+    scanf("%d%d%d", &x, &y, &c);
+    e[y].push_back({x, c});
+  }
+
+  for (int i = 1; i <= n; ++i) {
+    seg.update(1, 0, n, 0, i - 1, -a[i]);
+    for (auto c : e[i]) seg.update(1, 0, n, 0, c.first - 1, c.second);
+    dp[i] = max(dp[i - 1], seg.query(1, 0, n, 0, i - 1));
+    seg.update(1, 0, n, i, i, dp[i]);
+  }
+  
+  printf("%lld\n", dp[n]);
+}
+
+int main() {
+  run();
+  return 0;
+}

@@ -1,0 +1,98 @@
+#include <iostream>
+#include <queue>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <vector>
+#include <string>
+#include <memory.h>
+#include <queue>
+#include <random>
+using namespace std;
+const int N = 2e5 + 10;
+const int inf = 1e18 + 5;
+const int mod = 1e9 + 7;
+#define fast ios_base::sync_with_stdio(false)
+typedef long long ll;
+int n;
+int tin[N], tout[N];
+vector< vector <int> > g;
+int on[N];
+int t[8 * N];
+int p[8 * N];
+int timer;
+void dfs(int v){
+    tin[v] = timer++;
+    for(auto to : g[v]){
+        dfs(to);
+    }
+    tout[v] = timer++;
+}
+void push(int v, int tl, int tm, int tr){
+    if(p[v]){
+        p[v] = 0;
+        p[v + v] ^= 1;
+        p[v + v + 1] ^= 1;
+        t[v + v] = tm - tl + 1 - t[v + v];
+        t[v + v + 1] = tr - tm - t[v + v + 1];
+    }
+}
+void upd(int v, int tl, int tr, int l, int r, int val){
+    if(!val) return;
+    if(l > r) return;
+    if(tl == l && tr == r){
+        t[v] = tr - tl + 1 - t[v];
+        p[v] ^= 1;
+    }
+    else{
+        int tm = (tl + tr) / 2;
+        push(v, tl, tm, tr);
+        upd(v + v, tl, tm, l, min(r, tm), val);
+        upd(v + v + 1, tm + 1, tr, max(l, tm + 1), r, val);
+        t[v] = t[v + v] + t[v + v + 1];
+    }
+}
+int gt(int v, int tl, int tr, int l, int r){
+    if(l > r) return 0;
+    if(tl == l && tr == r){
+        return t[v];
+    }
+    int tm = (tl + tr) / 2;
+    push(v, tl, tm, tr);
+    return gt(v + v, tl, tm, l, min(r, tm)) + gt(v + v + 1, tm + 1, tr, max(l, tm + 1), r);
+}
+int main(){
+    fast;
+    cin >> n;
+    g.resize(n);
+    for(int i = 0; i < n - 1; ++i){
+        int x;
+        cin >> x;
+        --x;
+        g[x].push_back(i + 1);
+    }
+    dfs(0);
+    for(int i = 0; i < n; ++i){
+        int x;
+        cin >> x;
+        upd(1, 0, timer - 1, tin[i], tin[i], x);
+        upd(1, 0, timer - 1, tout[i], tout[i], x);
+    }
+    //cout << tin[0] << " " << tout[0] << endl;
+    //cout << timer << endl;
+    int q;
+    cin >> q;
+    for( ; q--; ){
+        string s;
+        int x;
+        cin >> s >> x;
+        x--;
+        if(s == "get"){
+            cout << gt(1, 0, timer - 1, tin[x], tout[x]) / 2 << "\n";
+        }
+        else{
+            upd(1, 0, timer - 1, tin[x], tout[x], 1);
+        }
+    }
+    return 0;
+}

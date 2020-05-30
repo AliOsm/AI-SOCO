@@ -1,0 +1,69 @@
+#include <bits/stdc++.h>
+#define pb(a)           push_back(a)
+#define ll              long long int
+#define ull             unsigned long long
+#define scd(a)          scanf("%d",&a)
+#define mp(a,b)         make_pair(a,b)
+#define scl(w)          scanf("%I64d",&w)
+#define scdd(a,b)       scanf("%d %d",&a,&b)
+#define srt(a)          sort(a.begin(),a.end())
+#define rsrt(a)         sort(a.rbegin(),a.rend())
+#define scll(a,b)       scanf("%I64d %I64d",&a,&b)
+///4direction ->        int del_x[]={-1,0,1,0},del_y[]={0,1,0,-1};
+#define input(v,n)      for (int i=0;i<n;i++){int a;cin >> a;v.push_back(a);}
+#define inputll(v,n)    for (ll i=0;i<n;i++){ll a;cin >> a;v.push_back(a);}
+#define vii             vector < int >
+#define vll             vector < ll >
+#define pii             pair < int , int >
+#define mk              make_pair
+
+using namespace std;
+
+int A[100005],B[100005],x[100005],y[100005];
+vii ansv;
+
+int main()
+{
+    int n,m;
+    cin >> n >> m;
+    for (int i=1;i<=n;i++)cin  >> A[i];
+    for (int i=1;i<=m;i++){
+        cin >> x[i] >> y[i];
+        B[x[i]]--;
+        B[y[i]+1]++;
+    }
+    for (int i=1;i<=n;i++)B[i]+=B[i-1];
+    for (int i=1;i<=n;i++)A[i]+=B[i];
+    int ans=0;
+
+    for (int j=1;j<=n;j++){
+        vii v;
+        for (int i=0;i<=n+1;i++)B[i]=0;
+        for (int i=1;i<=m;i++){
+            if (j>=x[i] && j<=y[i]){
+                B[x[i]]++;
+                B[y[i]+1]--;
+                v.pb(i);
+            }
+        }
+        int mx = -10000007, mn = 10000007;
+        for (int i=1;i<=n;i++)B[i]+=B[i-1];
+        for (int i=1;i<=n;i++){
+            B[i]+=A[i];
+            mx = max(B[i],mx);
+            mn = min(B[i],mn);
+        }
+        if (mx-mn>ans){
+            ans = mx - mn;
+            ansv = v;
+        }
+    }
+    cout << ans << endl;
+    cout << m-ansv.size() << endl;
+    map < int , int > mp;
+    for (int i=0;i<ansv.size();i++)mp[ansv[i]]++;
+    for (int i=1;i<=m;i++)if (!mp[i])cout << i << " ";
+    cout << endl;
+
+    return 0;
+}

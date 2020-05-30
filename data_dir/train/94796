@@ -1,0 +1,137 @@
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <utility>
+#include <vector>
+#include <string>
+#include <map>
+
+using namespace std;
+
+typedef vector<string> vstring;
+typedef vector<vstring> vvstring;
+
+typedef pair<char, vstring> mapkey;
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	size_t n, m;
+	cin >> n >> m;
+
+	vstring table(n);
+	for (size_t i = 0; i < n; ++i)
+		cin >> table[i];
+
+	vvstring pairs = {{"AC", "GT"}, {"AG", "CT"}, {"AT", "CG"}, {"CG", "AT"}, {"CT", "AG"}, {"GT", "AC"}};
+
+	map<mapkey, int> d;
+
+	for (auto pair: pairs) {
+		int diff = 0;
+		for (size_t i = 0; i < n; ++i) {
+			string _pair = pair[i % 2];
+
+			int diff_1 = 0;
+			for (size_t j = 0; j < m; ++j)
+				if (table[i][j] != _pair[j % 2])
+					++diff_1;
+
+			int diff_2 = 0;
+			for (size_t j = 0; j < m; ++j)
+				if (table[i][j] != _pair[1 ^ (j % 2)])
+					++diff_2;
+
+			diff += min(diff_1, diff_2);
+		}
+
+		d[mapkey('h', pair)] = diff;
+	}
+
+	for (auto pair: pairs) {
+		int diff = 0;
+		for (size_t j = 0; j < m; ++j) {
+			string _pair = pair[j % 2];
+
+			int diff_1 = 0;
+			for (size_t i = 0; i < n; ++i)
+				if (table[i][j] != _pair[i % 2])
+					++diff_1;
+
+			int diff_2 = 0;
+			for (size_t i = 0; i < n; ++i)
+				if (table[i][j] != _pair[1 ^ (i % 2)])
+					++diff_2;
+
+			diff += min(diff_1, diff_2);
+		}
+
+		d[mapkey('v', pair)] = diff;
+	}
+
+	char h_v; vstring PAIR;
+
+	int min_el = 1e9;
+
+	for (auto [k, v]: d)
+		min_el = min(min_el, v);
+
+	for (auto [k, v]: d) {
+		if (v == min_el) {
+			h_v = k.first; PAIR = k.second;
+			break;
+		}
+	}
+
+	if (h_v == 'h') {
+		for (size_t i = 0; i < n; ++i) {
+			string pair = PAIR[i % 2];
+
+			int diff_1 = 0;
+			for (size_t j = 0; j < m; ++j)
+				if (table[i][j] != pair[j % 2])
+					++diff_1;
+
+			int diff_2 = 0;
+			for (size_t j = 0; j < m; ++j)
+				if (table[i][j] != pair[1 ^ (j % 2)])
+					++diff_2;
+
+			if (diff_1 < diff_2)
+				for (size_t j = 0; j < m; ++j)
+					table[i][j] = pair[j % 2];
+			else
+				for (size_t j = 0; j < m; ++j)
+					table[i][j] = pair[1 ^ (j % 2)];
+		}
+	}
+
+	if (h_v == 'v') {
+		for (size_t j = 0; j < m; ++j) {
+			string pair = PAIR[j % 2];
+
+			int diff_1 = 0;
+			for (size_t i = 0; i < n; ++i)
+				if (table[i][j] != pair[i % 2])
+					++diff_1;
+
+			int diff_2 = 0;
+			for (size_t i = 0; i < n; ++i)
+				if (table[i][j] != pair[1 ^ (i % 2)])
+					++diff_2;
+
+			if (diff_1 < diff_2)
+				for (size_t i = 0; i < n; ++i)
+					table[i][j] = pair[i % 2];
+			else
+				for (size_t i = 0; i < n; ++i)
+					table[i][j] = pair[1 ^ (i % 2)];
+		}
+	}
+
+	for (size_t i = 0; i < n; ++i)
+		cout << table[i] << "\n";
+        
+    return 0;
+}

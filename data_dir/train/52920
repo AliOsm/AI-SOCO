@@ -1,0 +1,155 @@
+// Faster!
+
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int maxn=1e5+10,mod=1e9+7,magic=12;
+const ll inf=8e18;
+
+int n;
+ll a[maxn],lz[4*maxn],nxt[4*maxn],ads[4*maxn],pw[magic];
+
+inline void tag(int id,ll x){
+    lz[id]=x;
+    int num=0;
+    while(lz[id]>pw[num]) ++num;
+    nxt[id]=pw[num]-lz[id];
+    ads[id]=0;
+}
+inline void merge(int id){
+    nxt[id]=min(nxt[2*id]-ads[2*id],nxt[2*id+1]-ads[2*id+1]);
+}
+inline void shift(int l,int r,int id){
+    nxt[id]-=ads[id];
+    if(lz[id]==-1){
+	ads[2*id]+=ads[id];
+	ads[2*id+1]+=ads[id]; 
+    }
+    else{
+	lz[id]+=ads[id];
+    }
+    if(r-l>1 && lz[id]!=-1){
+	lz[2*id]=lz[2*id+1]=lz[id];
+	nxt[2*id]=nxt[2*id+1]=nxt[id];
+	ads[2*id]=ads[2*id+1]=0;
+	lz[id]=-1;
+    }
+    ads[id]=0;
+}
+void build(int l=0,int r=n,int id=1){
+    if(r-l==1){
+	tag(id,a[l]);
+	return;
+    }
+    int mid=(l+r)>>1;
+    build(l,mid,2*id);
+    build(mid,r,2*id+1);
+    nxt[id]=min(nxt[2*id],nxt[2*id+1]);
+    lz[id]=-1;
+}
+ll fnd(int pos,int l=0,int r=n,int id=1){
+    shift(l,r,id);
+    if(lz[id]!=-1) return lz[id]+ads[id];
+    int mid=(l+r)>>1;
+    if(pos<mid) return fnd(pos,l,mid,2*id);
+    return fnd(pos,mid,r,2*id+1);
+}
+void put(int f,int s,ll x,int l=0,int r=n,int id=1){
+    if(f>=s || l>=r) return;
+    shift(l,r,id);
+    if(s<=l || r<=f) return;
+    if(f<=l && r<=s) { tag(id,x); return; }
+    int mid=(l+r)>>1;
+    put(f,s,x,l,mid,2*id),put(f,s,x,mid,r,2*id+1);
+    merge(id);
+}
+
+vector< pair<pii,pii> >vec;// l,r // id done
+
+void down(int f,int s,int l=0,int r=n,int id=1){
+    if(f>=s || l>=r) return;
+    shift(l,r,id);
+    if(s<=l || r<=f) return;
+    if(f<=l && r<=s) { vec.PB({{l,r},{id,0}}); return; }
+    int mid=(l+r)>>1;
+    down(f,s,l,mid,2*id),down(f,s,mid,r,2*id+1);
+}
+void up(int f,int s,int l=0,int r=n,int id=1){
+    if(f>=s || l>=r || s<=l || r<=f) return;
+    if(f<=l && r<=s) return;
+    int mid=(l+r)>>1;
+    up(f,s,l,mid,2*id),up(f,s,mid,r,2*id+1);
+    merge(id);
+}
+void relax(ll x,int l,int r,int id){// bia hame ro +x kon va nxt ha ro update kon
+    if(lz[id]!=-1) { tag(id,ads[id]+x+lz[id]); return; }
+    shift(l,r,id);
+    if(nxt[id]>x){ ads[id]+=x; shift(l,r,id); return; }
+    int mid=(l+r)>>1;
+    relax(x,l,mid,2*id),relax(x,mid,r,2*id+1);
+    merge(id);
+}
+void add(int f,int s,ll x){// in ticke ordero kharab nemikone? // ye log foghesh mizane
+    vec.clear();
+    down(f,s);
+    int tdo=1,bef=-1;
+    do{
+	bef=tdo;
+	for(auto &it:vec){
+	    while(it.S.S<tdo){
+		relax(x,it.F.F,it.F.S,it.S.F);
+		it.S.S++;
+	    }
+	    while(nxt[it.S.F]==0){
+		relax(x,it.F.F,it.F.S,it.S.F);
+		it.S.S++;
+		tdo++;
+	    }
+	}
+    }while(tdo!=bef);
+    up(f,s);
+}
+
+int main(){
+    ios_base::sync_with_stdio(false);cin.tie(0);
+    pw[0]=1;
+    for(int i=1;i<magic;i++){
+	pw[i]=42ll*pw[i-1];
+    } 
+    int q;cin>>n>>q;
+    for(int i=0;i<n;i++){
+	cin>>a[i];
+    }
+    build();
+    while(q--){
+	int task;cin>>task;
+	if(task==1){
+	    int pos;cin>>pos;
+	    cout<<fnd(--pos)<<"\n";
+	}
+	if(task==2){
+	    int l,r,x;cin>>l>>r>>x;
+	    put(--l,r,x);
+	}
+	if(task==3){
+	    int l,r,x;cin>>l>>r>>x;
+	    add(--l,r,x);
+	}
+    }
+    return 0;
+}
+// Deathly mistakes:
+//  * Read the problem curfully.
+//  * Check maxn.
+//  * Overflows.

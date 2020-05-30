@@ -1,0 +1,192 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cassert>
+#include <cstring>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <algorithm>
+#include <map>
+#include <cmath>
+#include <numeric>
+#include <functional>
+#include <ctime>
+#include <unordered_map>
+#include <sstream>
+
+using namespace std;
+typedef long long Long;
+typedef long double Double;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+typedef pair<Long,Long> PLL;
+
+int read(int &x) { return scanf("%d", &x); }
+int read(int &x, int &y) { return scanf("%d%d", &x, &y); }
+int read(int &x, int &y, int &z) { return scanf("%d%d%d", &x, &y, &z); }
+int read(Long &x) { return scanf("%lld", &x); }
+int read(Long &x, Long &y) { return scanf("%lld%lld", &x, &y); }
+int read(double &x) { return scanf("%lf", &x); }
+char buff[2000010];
+int read(string &s) { int r = scanf("%s", buff); s = buff; return r; }
+
+#define dlog2(n) ((n) == -1 ? 0 : (31-__builtin_clz(n)))
+
+#define INF 1000000000
+
+template<class T, class U>
+struct SegmentTree {
+	struct Node {
+		bool hasCarry = 0;
+		int b = 0,e = 0;
+		U carry = U(); T val = T();
+		Node(){ }
+		void join(const Node &l, const Node &r){
+			val = l.val + r.val;
+			b = l.b;
+			e = r.e;
+		}
+		void update(const U &u){
+			carry += u;
+			u(val);
+			hasCarry = 1;
+		}
+		void pushDown(Node &l, Node &r){
+			if(!hasCarry)return;
+			l.update(carry.trim(0,r.e-r.b+1));
+			r.update(carry.trim(l.e-l.b+1,0));
+			carry = U();
+			hasCarry = 0;
+		}
+	};
+	vector<Node> V;
+#define idx(b, e) (((b)+(e))|((b)!=(e))) // memory optimized index
+	int N;
+	SegmentTree(int N) : V(2*N), N(N){ }
+	template<class I>
+	void create(const vector<I> &VEC, int b = 0, int e = -1) {
+		if(e == -1) e = N-1;
+		int n = idx(b, e);
+		if (b == e) {
+			V[n].val = T(VEC[b]), V[n].b = b, V[n].e = e;
+		} else {
+			int m = (b + e) / 2;
+			create(VEC, b, m);
+			create(VEC, m + 1, e);
+			V[n].join(V[idx(b, m)], V[idx(m+1, e)]);
+		}
+	}
+	T query(int i, int j, int b = 0, int e = -1) {
+		if(e == -1) e = N-1;
+		int n = idx(b, e);
+		if (i <= b && e <= j){
+			return V[n].val;
+		} else {
+			int m = (b + e) / 2;
+			V[n].pushDown(V[idx(b, m)], V[idx(m+1, e)]);
+			if (i >  m) return query(i, j, m+1, e);
+			if (j <= m) return query(i, j, b, m);
+			return query(i, j, b, m) + query(i, j, m+1, e);
+		}
+	}
+	int findOkPrefix(int i, const function<bool(T)> &isOk){
+		static int stk[50];
+		int ssz = 0;
+		stk[ssz++] = (idx(0, N-1));
+		T acum; int sz = 0;
+		while(ssz > 0) {
+			int t = stk[--ssz];
+			Node &n = V[t];
+			int m = (n.b + n.e) / 2;
+			if(n.e < i) continue;
+			T newAcum = sz == 0 ? n.val : (acum + n.val);
+			if (i <= n.b) {
+				if (isOk(newAcum)) {
+					sz += n.e - n.b + 1;
+					acum = newAcum;
+				} else {
+					if(n.b == n.e) return sz;
+					n.pushDown(V[idx(n.b, m)], V[idx(m+1, n.e)]);
+					stk[ssz++] = (idx(m+1, n.e));
+					stk[ssz++] = (idx(n.b, m));
+				}
+			} else {
+				if(n.b == n.e) continue;
+				n.pushDown(V[idx(n.b, m)], V[idx(m+1, n.e)]);
+				stk[ssz++] = (idx(m+1, n.e));
+				stk[ssz++] = (idx(n.b, m));
+			}
+		}
+		return sz;
+	}
+	void update(int i, int j, const U &v, int b = 0, int e = -1) {
+		if(e == -1) e = N-1;
+		int n = idx(b, e);
+		if (i <= b && e <= j) {
+			V[n].update(v.trim(max(b-i,0), max(j-e,0)));
+		} else if (i > e || j < b)
+			return;
+		else {
+			int m = (b + e) / 2;
+			int l = idx(b, m), r = idx(m+1, e);
+			V[n].pushDown(V[l], V[r]);
+			update(i, j, v, b, m);
+			update(i, j, v, m + 1, e);
+			V[n].join(V[l], V[r]);
+		}
+	}
+};
+typedef long long Long;
+struct Min {
+	int v;
+	Min(int v=0) :v(v) { }
+	Min operator+(const Min &a)const{
+		return Min(min(v, a.v));
+	}
+};
+struct Add {
+	int v;
+	Add(int v = 0) : v(v) { }
+	Add trim(int l, int r)const{ return *this; }
+	void operator+=(const Add &a){
+		v += a.v;
+	}
+	void operator()(Min &a)const{
+		a.v += v;
+	}
+};
+
+int main()  {
+
+	string S;
+	read(S);
+	SegmentTree<Min, Add> ST(S.size());
+	VI V(S.size());
+	for (int i = 0, sm = 0; i < S.size(); ++i) {
+		if (S[i] == '0') sm--;
+		else             sm++;
+		V[i] = sm;
+	}
+	ST.create(V);
+	for (int i = 0; i < S.size(); ++i) {
+		char o = S[i];
+		if (ST.query(i, S.size() - 1).v > 0) {
+			S[i] = '0';
+		}
+		ST.update(i, S.size() - 1, (o == '0') ? +1 : -1);
+	}
+	cout << S << endl;
+
+	return 0;
+}
+
+/*
+
+x1 = 2*(x0 - a)
+x2 = 2*(x1 - b) = 4x0 - 2a - b
+x3 = 2*(x2 - c) = 8x0 - 4a - 2b - c
+
+ */

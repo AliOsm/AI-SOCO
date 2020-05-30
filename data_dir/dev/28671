@@ -1,0 +1,155 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+// Tree
+int CLOCK = 0;
+typedef pair<ll, int> pli;
+const int INF = 1E9;
+
+struct node{
+  pli val;
+  ll add;
+  int H, sub;
+  node *L , *R;
+  node(pli _val = pli(0,0)){
+   val = _val;
+   H = rand();
+   L = R = null;
+   sub = 1;
+   add = 0;
+                           }
+  void Reset(){
+    L = R = null;
+    sub = 1;
+    add = 0;
+  }
+};
+int get(node* vr){
+  return vr ? vr->sub : 0;
+}
+void update(node* vr){
+  if(vr)
+   vr->sub = 1 + get(vr->L) + get(vr->R);
+}
+void Push(node* vr){
+  if(!vr || !vr->add) return;
+  if(vr->L) vr->L->add += vr->add;
+  if(vr->R) vr->R->add += vr->add;
+  vr->val.fi += vr->add;
+  vr->add = 0;
+}
+void split(node* vr , const pli& on , node*& l , node*& r){
+  Push(vr);
+  if(!vr){
+   l = r = null;
+   return;
+         }
+  if(vr->val >= on){
+   split(vr->L , on , l , vr->L);
+   r = vr;
+   update(r);
+                   }
+  else{
+   split(vr->R , on , vr->R , r);
+   l = vr;
+   update(l);
+      }
+}
+node* merge(node* l , node* r){
+  Push(l), Push(r);
+  if(!l || !r)return l ? l : r;
+  if(l->H < r->H){
+   l->R = merge(l->R , r);
+   update(l);
+   return l;
+                 }
+  else{
+   r->L = merge(l , r->L);
+   update(r);
+   return r;
+      }
+}
+node* insert(node* tree , ll val){
+  node *L , *R , *cur;
+  split(tree , mp(val , INF) , L , R);
+  cur = new node(mp(val , CLOCK++));
+  return merge(merge(L , cur) , R);
+}
+node* insert(node* tree , node* val){
+  node *L , *R , *cur;
+  split(tree , mp(val->val.fi , INF) , L , R);
+  return merge(merge(L , val) , R);
+}
+int Count(node*& tree, ll val){
+  node *L , *R , *cur;
+  split(tree , mp(val , INF) , L , R);
+  int res = get(L);
+  merge(merge(L , cur) , R);
+  return res;
+}
+void Add(node* root, ll how){
+  if(root) root->add += how;
+}
+
+void AsList(node* vr, vector<node*>& elem){
+  if(!vr) return;
+  Push(vr);
+  elem.pb(vr);
+  if(vr->L) AsList(vr->L, elem);
+  if(vr->R) AsList(vr->R, elem);
+}
+
+// Solution
+const int MAXN = 200010;
+int n;
+int dist[MAXN], ans[MAXN];
+vector<pii> fo[MAXN];
+
+node* Dfs(int vr){
+  node* tree = insert(null, (ll)0);
+  Add(tree, dist[vr]);
+  for(const auto& nxt : fo[vr]){
+    node* sub = Dfs(nxt.fi);
+    Add(sub, -nxt.se);
+    if(get(tree) < get(sub)) swap(tree, sub);
+    vector<node*> neo;
+    AsList(sub, neo);
+    for(node* add : neo){
+      add->Reset();
+      tree = insert(tree, add);
+    }
+  }
+  ans[vr] = get(tree) - Count(tree, -1);
+  return tree;
+}
+
+int main(){
+  scanf("%d", &n);
+  for(int i = 0;i < n;++i) scanf("%d", &dist[i]);
+  for(int i = 1;i < n;++i){
+    int p, w;
+    scanf("%d%d", &p, &w);
+    fo[p - 1].pb(mp(i, w));
+  }
+
+  Dfs(0);
+
+  for(int i = 0;i < n;++i)
+    printf("%d%c", ans[i] - 1, i + 1 == n ? '\n' : ' ');
+
+  return 0;
+}

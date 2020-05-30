@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+using namespace std;
+//CompressTree , 0-rooted with specific nodes
+#define maxn 200000
+int level[maxn];
+int par[maxn][25];
+vector<int>adj[maxn];
+int st[maxn],_time;
+int n;
+int lca(int u,int v) {
+    if(level[u]< level[v])swap(u,v);
+    int tmp=1;
+    for(; (1<<tmp)<=level[u]; ++tmp);
+    --tmp;
+    for(int i=tmp; i>=0; --i) {
+        if(level[u]-(1<<i)>=level[v])u=par[u][i];
+    }
+    if(u==v)return u ;
+    for(int i = tmp ; i >= 0 ; --i) if(par[u][i]!=par[v][i])u=par[u][i],v=par[v][i] ;
+    return par[u][0];
+}
+void dfs(int u,int p) {
+    par[u][0]=p;
+    st[u]=++_time;
+    level[u]=level[p]+1;
+    for(int i=1; i<=20; i++)par[u][i]=par[par[u][i-1]][i-1];
+    for(int v:adj[u]) {
+        if(v==p)continue;
+        dfs(v,u);
+    }
+}
+typedef vector<int> vi;
+typedef vector<pair<int,int> > vpi;
+vpi compressTree(const vector<int>& subset) {
+    vi rev(n+1);
+    vi li = subset;
+    auto cmp = [&](int a, int b) {
+        return st[a] < st[b];
+    };
+    sort(li.begin(),li.end(), cmp);
+    int m = li.size()-1;
+    for(int i=0; i<m; i++) {
+        int a = li[i], b = li[i+1];
+        li.push_back(lca(a, b));
+    }
+    sort(li.begin(),li.end(), cmp);
+    li.erase(unique(li.begin(),li.end()), li.end());
+    for(int i=0; i<li.size(); i++)rev[li[i]] = i;
+    vpi ret = {pair<int,int>(0, li[0])};
+    for(int i=0; i<li.size()-1; i++) {
+        int a = li[i], b = li[i+1];
+        ret.emplace_back(rev[lca(a, b)],b);
+    }
+    return ret;
+}
+bool mark[100005];
+vector<int>tree[100005];
+int dp[100005][2];
+
+void go(int u) {
+    if(mark[u]) {
+        int ret=0;
+        for(int v:tree[u]) {
+            go(v);
+            if(mark[v])dp[v][0]=min(dp[v][0],1+dp[v][1]);
+            ret += dp[v][0];
+            if(ret>n+7)ret=n+7;
+        }
+        dp[u][1]=ret,dp[u][0]=n+7;
+    } else {
+        int ret=0,ret2=0;
+        vector<int>dpvo;
+        for(int v:tree[u]) {
+            go(v);
+            ret+=dp[v][0];
+            ret2+=min(dp[v][0],dp[v][1]);
+            dpvo.push_back(dp[v][1]-dp[v][0]);
+        }
+        sort(dpvo.begin(),dpvo.end());
+        if(tree[u].size()==0)dp[u][1]=n+7,dp[u][0]=0;
+        else dp[u][0]=min(ret,1+ret2),dp[u][1]=ret+dpvo[0];
+    }
+}
+int main() {
+    memset(dp,-1,sizeof dp);
+    cin>>n;
+    for(int i=1; i<n; i++) {
+        int u,v;
+        scanf("%d %d",&u,&v);
+        u--;
+        v--;
+        if(u>v)swap(u,v);
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    dfs(0,0);
+    vector<int>se;
+    int q;
+    scanf("%d",&q);
+    while(q--) {
+        se.clear();
+        int m;
+        scanf("%d",&m);
+        for(int i=0; i<m; i++) {
+            int x;
+            scanf("%d",&x);
+            x--;
+            se.push_back(x);
+            mark[x]=1;
+        }
+        bool flag=false;
+        for(int u:se) {
+            if(u==0)continue;
+            if(mark[u]&&mark[par[u][0]])flag=true;
+        }
+        if(flag) {
+            printf("-1\n");
+        } else {
+
+            auto ret = compressTree(se);
+            int root = ret[0].second;
+            for(auto e:ret) {
+                int u = e.second;
+                int p = ret[e.first].second;
+                if(p!=u)tree[p].push_back(u);
+            }
+            go(root);
+            int ans=min(dp[root][0],dp[root][1]);
+            if(ans>n)ans=-1;
+            printf("%d\n",ans);
+            for(auto e:ret) {
+                int u=e.second;
+                tree[u].clear();
+                dp[u][0]=dp[u][1]=-1;
+            }
+        }
+        for(auto x:se)mark[x]=0;
+    }
+}
+/*
+
+8
+0 1
+1 2
+1 3
+3 4
+0 5
+5 7
+5 6
+
+
+*/

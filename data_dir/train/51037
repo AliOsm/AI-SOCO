@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+#define N 100'000
+using namespace std;
+typedef long long ll;
+typedef vector<int> ans_type;
+int n;
+int lg[N+1];
+vector<int> adj[N+1];
+vector<int> par[N+1];
+int depth[N+1];
+int root = 1;
+vector<ans_type> st[N+1];
+ans_type zero;
+void init() {
+    lg[0] = -1, lg[1] = 0;
+    for(int i = 2; i <= N; i++) {
+        lg[i] = lg[i >> 1] + 1;
+    }
+    depth[root] = 0;
+}
+auto combine(auto x, auto y) {
+    x.insert(x.end(), y.begin(), y.end());
+    sort(x.begin(), x.end());
+    while(x.size() > 10) {
+        x.pop_back();
+    }
+    return x;
+}
+void build_ancestors(int u) {
+    for(int pow2 = 1; pow2 <= lg[depth[u]]; pow2++) {
+        par[u].push_back(par[par[u][pow2-1]][pow2-1]);
+        st[u].push_back(combine(st[u][pow2-1], st[par[u][pow2-1]][pow2-1]));
+    }
+}
+void dfs(int u, int from=-1) {
+    for(int v : adj[u]) {
+        if(v != from) {
+            par[v].push_back(u);
+            depth[v] = depth[u] + 1;
+            build_ancestors(v);
+            dfs(v, u);
+        }
+    }
+}
+int kth_ancestor(int u, int k) {
+    if(k > depth[u]) {
+        return -1;
+    } else {
+        for(int pow2 = 0; k > 0; k >>= 1, pow2++) {
+            u = k & 1 ? par[u][pow2] : u;
+        }
+        return u;
+    }
+}
+int lca(int u, int v) {
+    if(depth[u] > depth[v]) swap(u, v);
+    v = kth_ancestor(v, depth[v] - depth[u]);
+    for(int k = lg[depth[u]]; k >= 0; k--) {
+        if((1 << k) <= depth[u] && par[u][k] != par[v][k]) {
+            u = par[u][k], v = par[v][k];
+        }
+    }
+    return u == v ? u : par[u][0];
+}
+auto level_query(int u, int k, bool idempotent=true) {
+    if(k == 0) {
+        return zero;
+    } else {
+        assert(k <= depth[u]);
+        ans_type ans = zero;
+        for(int pow2 = 0; k > 0; k >>= 1, pow2++) {
+            if(k & 1) {
+                ans = combine(ans, st[u][pow2]);
+                u = par[u][pow2];
+            }
+        }
+        return ans;
+    }
+}
+auto path_query(int u, int v, bool with_lca=false, bool idempotent=true) {
+    int l = lca(u, v);
+    auto ans = combine(level_query(u, depth[u] - depth[l], idempotent),
+                       level_query(v, depth[v] - depth[l], idempotent));
+    return with_lca ? combine(ans, st[l][0]) : ans;
+}
+int main() {
+    init();
+    int n, m, q;
+    cin >> n >> m >> q;
+    for(int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    for(int u = 1; u <= n; u++) {
+        st[u].push_back(vector<int>());
+    }
+    for(int i = 1; i <= m; i++) {
+        int ci;
+        cin >> ci;
+        st[ci][0].push_back(i);
+    }
+    for(int u = 1; u <= n; u++) {
+        sort(st[u][0].begin(), st[u][0].end());
+        while(st[u][0].size() > 10) {
+            st[u][0].pop_back();
+        }
+    }
+    dfs(1);
+    while(q--) {
+        int u, v, a;
+        cin >> u >> v >> a;
+        ans_type ans = path_query(u, v, true);
+        while(ans.size() > a) {
+            ans.pop_back();
+        }
+        cout << ans.size();
+        for(int x : ans) {
+            cout << " " << x;
+        }
+        cout << endl;
+    }
+    return 0;
+}

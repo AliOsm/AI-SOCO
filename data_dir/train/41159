@@ -1,0 +1,185 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for (int i = x; i < (int)(n); ++i)
+
+namespace MF {
+	int const N = 100000, M = 6000000, inf = 1e9;
+	int E, sr, sn, dis[N], vis[N], vs, ce[N];
+	vector<int> g[N];
+	pair<int, int> ed[M];
+	queue<int> q;
+	
+	bool path(){
+		++vs;
+		q.push(sr);
+		vis[sr] = vs;
+		dis[sr] = 0;
+		dis[sn] = inf;
+		while (!q.empty()){
+			int v = q.front();
+			q.pop();
+			if (v != sn && dis[v] >= dis[sn]) { dis[v] = inf; continue; }
+			ce[v] = g[v].size() - 1;
+			for (int &t: g[v]){
+				int u = ed[t].first, c = ed[t].second;
+				if (c && vis[u] != vs){
+					vis[u] = vs;
+					dis[u] = dis[v] + 1;
+					q.push(u);
+				}
+			}
+		}
+		return vis[sn] == vs;
+	}
+	
+	int go(int v = sr, int s = inf){
+		if (v == sn)return s;
+		int an = 0;
+		for (; ~ce[v]; --ce[v]){
+			int t = g[v][ce[v]], u = ed[t].first, &c = ed[t].second, a;
+			if (c && dis[u] == dis[v] + 1 && vis[u] == vs && (a = go(u, min(s, c)))){
+				c -= a;
+				ed[t ^ 1].second += a;
+				an += a;
+				s -= a;
+				if (s == 0)return an;
+			}
+		}
+		dis[v] = inf;
+		return an;
+	}
+	
+	inline int MF(int a, int b){
+		sr = a, sn = b;
+		int an = 0, old = 0;
+		while (path()){
+			assert(dis[sn] > old);
+			old = dis[sn];
+			an += go();
+		}
+		return an;
+	}
+	
+	inline void aded(int a, int b, int w1 = 1, int w2 = 0){
+		ed[E] = make_pair(b, w1);
+		ed[E + 1] = make_pair(a, w2);
+		g[a].push_back(E++);
+		g[b].push_back(E++);
+	}
+}
+
+int const N = 10000, inf = 1e9;
+int ID, n, idl[N << 2], idr[N << 2];
+vector<pair<bool, pair<int, int> > > ev[N + 2];
+
+void pl(int idv[], int l = 1, int r = n, int id = 1){
+	idv[id] = ID++;
+	if (l == r)return;
+	int m = l + r >> 1, a = id << 1, b = a | 1;
+	pl(idv, l, m, a);
+	pl(idv, m + 1, r, b);
+}
+
+vector<int> sg[2];
+void flsg(int idv[], vector<int> &sg, int x, int y, int l = 1, int r = n, int id = 1){
+	if (y < l || x > r)return;
+	if (l >= x && r <= y) { sg.push_back(idv[id]); return; }
+	int m = l + r >> 1, a = id << 1, b = a | 1;
+	flsg(idv, sg, x, y, l, m, a);
+	flsg(idv, sg, x, y, m + 1, r, b);
+}
+
+inline void aded(int l1, int r1, int l2, int r2){
+	if (l1 > r1)return;
+	f(i, 0, 2)sg[i].clear();
+	flsg(idl, sg[0], l1, r1);
+	flsg(idr, sg[1], l2, r2);
+	int t = ID++;
+	f(i, 0, sg[0].size())MF::aded(sg[0][i], t, inf);
+	f(i, 0, sg[1].size())MF::aded(t, sg[1][i], inf);
+}
+
+struct S{
+	int l;
+	int mutable r, x;
+	S(int a):l(a) {}
+	S(int a, int b, int c):l(a), r(b), x(c) {}
+	bool operator <(S const &o)const { return l < o.l; }
+};
+
+inline void ads(set<S> &st, int x, int l, int r){
+	auto it = --st.lower_bound(l);
+	if (it->r >= l){
+		if (it->r <= r){
+			aded(it->x, x - 1, l, it->r);
+			it->r = l - 1;
+		}else {
+			aded(it->x, x - 1, l, r);
+			st.insert(S(r + 1, it->r, it->x));
+			it->r = l - 1;
+			return;
+		}
+	}
+	++it;
+	while (true){
+		if (it->l > r)break;
+		if (it->r <= r){
+			aded(it->x, x - 1, it->l, it->r);
+			st.erase(it++);
+		}else {
+			aded(it->x, x - 1, it->l, r);
+			st.insert(S(r + 1, it->r, it->x));
+			st.erase(it);
+			break;
+		}
+	}
+}
+
+void allsg(int idv[], vector<int> &sg, int i, int l = 1, int r = n, int id = 1){
+	sg.push_back(idv[id]);
+	if (l == r)return;
+	int m = l + r >> 1, a = id << 1, b = a | 1;
+	if (i <= m)allsg(idv, sg, i, l, m, a);
+	else allsg(idv, sg, i, m + 1, r, b);
+}
+
+int main(){
+	int q;
+	scanf("%d%d", &n, &q);
+	pl(idl);
+	pl(idr);
+	set<S> st;
+	st.insert(S(0, 0, 1));
+	st.insert(S(1, n, 1));
+	st.insert(S(n + 1, n + 1, 1));
+	f(i, 0, q){
+		int x[2], y[2];
+		f(i, 0, 2)scanf("%d%d", x + i, y + i);
+		pair<int, int> s(y[0], y[1]);
+		ev[x[0]].push_back(make_pair(1, s));
+		ev[x[1] + 1].push_back(make_pair(0, s));
+	}
+	ev[n + 1].push_back(make_pair(1, make_pair(1, n)));
+	f(i, 1, n + 2){
+		sort(ev[i].begin(), ev[i].end());
+		for (auto &t: ev[i])if (t.first == 0)st.insert(S(t.second.first, t.second.second, i));
+		else ads(st, i, t.second.first, t.second.second);
+	}
+	int sr = ID++, sn = ID++;
+	f(i, 1, n + 1){
+		sg[0].clear();
+		allsg(idl, sg[0], i);
+		int x = ID++;
+		MF::aded(sr, x);
+		for (int &v: sg[0])MF::aded(x, v, inf);
+	}
+	f(i, 1, n + 1){
+		sg[1].clear();
+		allsg(idr, sg[1], i);
+		int x = ID++;
+		MF::aded(x, sn);
+		for (int &v: sg[1])MF::aded(v, x, inf);
+	}
+	printf("%d\n", MF::MF(sr, sn));
+}

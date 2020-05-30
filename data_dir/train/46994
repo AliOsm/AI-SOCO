@@ -1,0 +1,108 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 5 , L = 20;
+
+map < pair < int , int > , int > mp;
+int to[N][L];
+int dep[N];
+
+vector < int > adj[N];
+
+void dfs(int u , int p){
+    to[u][0] = p;
+    dep[u] = dep[p] + 1;
+
+    for(auto v : adj[u])
+        if(v != p)
+            dfs(v , u);
+}
+
+int jump(int u , int k){
+    for(int i = 0 ; i < L ; i ++)
+        if(k & (1 << i))u = to[u][i];
+
+    return u;
+}
+
+int LCA(int u , int v){
+    if(u == v)return u;
+
+    if(dep[u] < dep[v])swap(u , v);
+
+    u = jump(u , dep[u] - dep[v]);
+    if(u == v)return u;
+
+    for(int i = L - 1 ; i >= 0 ; i --){
+        if(to[u][i] != to[v][i]){
+            u = to[u][i];
+            v = to[v][i];
+        }
+    }
+
+    return to[u][0];
+}
+
+int ans[N];
+int ans_edge[N];
+
+int dfs_ans(int u , int p){
+
+    for(auto v : adj[u])
+    if(v != p){
+        int E = mp[ {u , v} ];
+        ans_edge[E] += dfs_ans(v , u);
+        ans[u] += ans_edge[E];
+    }
+
+    return ans[u];
+}
+
+main(){
+    int n;
+    scanf("%d" , &n);
+
+    int u , v;
+    for(int i = 1 ; i < n ; i ++){
+        scanf("%d %d" , &u , &v);
+
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+
+        mp[ {u , v} ] = mp[ {v , u} ] = i;
+    }
+
+    dfs(1 , 0);
+
+    for(int j = 1 ; j < L ; j ++)
+        for(int i = 1 ; i <= n ; i ++)
+            to[i][j] = to[ to[i][j-1] ][j-1];
+
+    int q;
+    scanf("%d" , &q);
+
+    while( q -- ){
+        scanf("%d %d" , &u , &v);
+
+        if(dep[u] > dep[v])swap(u , v);
+
+        int lca = LCA(u , v);
+
+        if(u == lca){
+            ans[v] ++;
+            ans[u] --;
+        }
+        else {
+            ans[v] ++;
+            ans[u] ++;
+            ans[lca] -= 2;
+        }
+    }
+
+    dfs_ans(1 , 0);
+
+    for(int i = 1 ; i < n ; i ++){
+        printf("%d " , ans_edge[i]);
+    }
+}
+

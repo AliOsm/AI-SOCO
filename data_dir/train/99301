@@ -1,0 +1,305 @@
+/*
+ * Code be weshen zyk :'(
+ */
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include "bits/stdc++.h"
+
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/rope>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+template<class T> using Tree = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+
+#define F first
+#define S second
+
+using ll = long long;
+using ii = pair<int, int>;
+using db = long double;
+
+#ifdef ONLINE_JUDGE
+#define cerr if(0)cerr
+#endif
+
+template<class C> void amin(C &a4, C b4) {
+	a4 = min(a4, b4);
+}
+template<class C> void amax(C &a4, C b4) {
+	a4 = max(a4, b4);
+}
+
+template<class T> ostream &operator<<(ostream& os, vector<T> V) {
+	os << "[";
+	for (auto vv : V)
+		os << vv << ",";
+	return os << "]";
+}
+template<class L, class R> ostream &operator<<(ostream &os, pair<L, R> P) {
+	return os << "(" << P.first << "," << P.second << ")";
+}
+
+const int N = 1e5 + 5;
+/*
+ * for i (0,N)
+ * 	 for(k,0,N)
+ * 		ret[i] = a[i] & b[k]
+ */
+struct Rule {
+	int par;
+	vector<ii> childern;
+	int cost;
+	Rule() {
+	}
+	Rule(int p, vector<ii> c, int w) :
+			par(p), childern(c), cost(w) {
+	}
+};
+vector<Rule> rules;
+vector<int> childToRule[N];
+vector<int> parToRule[N];
+int dpMax[N+N], dpMin[N+N];
+int n, m;
+bool tAbleRules[N];
+bool tAbleNodes[N];
+map<pair<int, int>, int> mp;
+int getHash(int node, int rule) {
+	return mp[ { node, rule }];
+}
+bool inRule(vector<ii> v, int x) {
+	for (auto k : v)
+		if (x == k.first)
+			return true;
+	return false;
+}
+int solveMax(int node, int rule) {
+	int &ret = dpMax[getHash(node, rule)];
+	if (~ret)
+		return ret;
+	ret = 0;
+	for (auto v : parToRule[node])
+		if (tAbleRules[v]
+				&& (rule == m || !inRule(rules[v].childern, rules[rule].par))) {
+			ll tmp = rules[v].cost;
+			for (auto x : rules[v].childern) {
+				tmp += solveMax(x.first, v) * 1ll * x.second;
+				tmp = min(tmp, 314000000ll);
+			}
+			ret = max((ll) ret, tmp);
+		}
+	return ret;
+}
+int solveMin(int node, int rule) {
+	int &ret = dpMin[getHash(node, rule)];
+	if (~ret)
+		return ret;
+	ret = 314000000;
+	for (auto v : parToRule[node])
+		if (tAbleRules[v]
+				&& (rule == m || !inRule(rules[v].childern, rules[rule].par))) {
+			ll tmp = rules[v].cost;
+			for (auto x : rules[v].childern) {
+				tmp += solveMin(x.first, v) * 1ll * x.second;
+				tmp = min(tmp, 314000000ll);
+			}
+			ret = min((ll) ret, tmp);
+		}
+	return ret;
+}
+bool inStack[N];
+bool vis[N];
+bool inCycle[N];
+stack<int> stk;
+vector<int> g[N];
+vector<int> rg[N];
+vector<int> go[N];
+int SCC[N];
+void add_edge(int u, int v) {
+//	cout << u << ' ' << v << '\n';
+	g[u].push_back(v);
+	rg[v].push_back(u);
+}
+void dfs(int u) {
+	vis[u] = 1;
+	for (auto v : g[u])
+		if (!vis[v])
+			dfs(v);
+	stk.push(u);
+}
+void rdfs(int u, int c) {
+	vis[u] = 1;
+	SCC[u] = c;
+	go[c].push_back(u);
+//	cout << u << ' ' << c << '\n';
+	for (auto v : rg[u])
+		if (!vis[v])
+			rdfs(v, c);
+}
+bool isTerminatable(vector<ii> v) {
+	for (auto x : v) {
+		if (!tAbleNodes[x.first])
+			return false;
+	}
+	return true;
+}
+void solveCycles() {
+	memset(vis, 0, sizeof vis);
+	for (int i = 0; i < n; i++)
+		if (!vis[i])
+			dfs(i);
+	memset(vis, 0, sizeof vis);
+	int c = 0;
+	while (stk.size()) {
+		auto cur = stk.top();
+		stk.pop();
+		if (!vis[cur])
+			rdfs(cur, c++);
+	}
+	vector<vector<int>> adj(c);
+	queue<int> q;
+	for (int i = 0; i < c; i++) {
+		if (go[i].size() == 1) {
+			bool wtf = false;
+//			cout << go[i][0] << '\n';
+//			cout << g[go[i][0]][0] << '\n';
+			for (auto x : g[go[i][0]])
+				wtf |= (x == go[i][0]);
+			if (wtf) {
+				q.push(i);
+				inCycle[i] = true;
+			}
+			continue;
+		}
+		q.push(i);
+		inCycle[i] = true;
+	}
+	for (int i = 0; i < n; i++) {
+		for (auto v : rg[i]) {
+			adj[SCC[i]].push_back(SCC[v]);
+		}
+	}
+	while (q.size()) {
+		auto cur = q.front();
+		q.pop();
+
+		for (auto v : adj[cur])
+			if (!inCycle[v]) {
+				inCycle[v] = true;
+				q.push(v);
+			}
+	}
+}
+void solveTerminator() {
+	queue<int> q;
+	vector<int> degree(m);
+	for (int i = 0; i < m; i++) {
+		degree[i] = rules[i].childern.size();
+	}
+	for (auto x : childToRule[n]) {
+		if (!tAbleNodes[rules[x].par]) {
+			q.push(rules[x].par);
+			tAbleNodes[rules[x].par] = true;
+		}
+		tAbleRules[x] = 1;
+	}
+	while (q.size()) {
+		auto cur = q.front();
+		q.pop();
+		for (auto x : childToRule[cur])
+			if (rules[x].par != cur) {
+				degree[x]--;
+//				cout << cur << ' ' << x << '\n';
+				if (degree[x] == 0) {
+					tAbleRules[x] = true;
+					if (!tAbleNodes[rules[x].par]) {
+						q.push(rules[x].par);
+						tAbleNodes[rules[x].par] = true;
+					}
+				}
+			}
+	}
+//	for(int i = 0; i < m; i++)
+//		cout << tAbleRules[i] << ' ';
+//	cout << "-----------\n";
+}
+int main() {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#endif
+
+	cin >> m >> n;
+
+	for (int i = 0; i < m; i++) {
+		int mID, sz;
+		cin >> mID >> sz;
+		--mID;
+		int gems = 0;
+		vector<int> x;
+		for (int j = 0; j < sz; j++) {
+			int v;
+			cin >> v;
+			if (~v) {
+				--v;
+//				add_edge(mID, v);
+				x.push_back(v);
+			} else
+				gems++;
+		}
+		sort(x.begin(), x.end());
+		parToRule[mID].push_back(i);
+		if (x.empty()) {
+			rules.push_back(Rule(mID, vector<ii>(), gems));
+			childToRule[n].push_back(i);
+		} else {
+			vector<ii> children;
+			children.push_back( { x[0], 1 });
+			for (int j = 1; j < x.size(); j++) {
+				if (x[j] != x[j - 1])
+					children.push_back( { x[j], 1 });
+				else
+					children.back().second++;
+			}
+			rules.push_back(Rule(mID, children, gems));
+			for (auto x : children) {
+				childToRule[x.first].push_back(i);
+			}
+		}
+	}
+
+	solveTerminator();
+	int cnt = 0;
+	for (int i = 0; i < rules.size(); i++) {
+		if (isTerminatable(rules[i].childern)) {
+			for (auto x : rules[i].childern) {
+				mp[ { x.first, i }] = cnt++;
+				add_edge(rules[i].par, x.first);
+			}
+		}
+	}
+	for(int i = 0; i < n; i++){
+		mp[{i,m}] = cnt++;
+	}
+	solveCycles();
+	memset(dpMin, -1, sizeof dpMin);
+	memset(dpMax, -1, sizeof dpMax);
+	for (int i = 0; i < n; i++) {
+		if (!tAbleNodes[i]) {
+			cout << "-1 -1\n";
+		} else {
+			cout << solveMin(i,m) << ' ';
+			if (inCycle[SCC[i]])
+				cout << "-2\n";
+			else {
+				cout << solveMax(i,m) << '\n';
+			}
+		}
+	}
+
+	return 0;
+}

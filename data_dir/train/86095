@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const int MX = 5005;
+const int MOD = 1000000007;
+
+void add(int& a, int b) {
+	a += b;
+	if (a >= MOD) a -= MOD;
+}
+void relax(int& a, int b) {
+	a = min(a, b);
+}
+
+string s;
+
+int lcp[MX][MX];
+inline bool ok(int l1, int r1, int l2, int r2)
+{
+	if (r2-l2 != r1-l1) return r2-l2 > r1-l1;
+	if (lcp[l1][l2] >= r1-l1+1) return true;
+	int x = lcp[l1][l2];
+	return s[l1+x] <= s[l2+x];
+}
+
+int dp[MX][MX];
+int mn[MX][MX];
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0), cout.tie(0);
+
+	cin >> s;
+	int n = s.size();
+
+	for (int i = n - 1; i >= 0; i--) {
+		for (int j = n - 1; j >= 0; j--) {
+			if (s[i] == s[j]) lcp[i][j] = lcp[i + 1][j + 1] + 1;
+			
+			mn[i][j] = 10000;
+		}
+	}
+	
+	for (int r = 0; r < n; r++) {
+		dp[0][r] = 1;
+		mn[0][r] = 1;
+	}
+	for (int r = 0; r < n - 1; r++) {
+		if (s[r + 1] == '0') continue;
+		for (int l = 0; l <= r; l++) {
+			if (s[l] == '0') continue;
+
+			int L = r + 1, R = n - 1;
+			int B = n;
+			while (L <= R) {
+				int M = (L+R)/2;
+				if (ok(l, r, r + 1, M)) {
+					B = M;
+					R = M - 1;
+				}
+				else {
+					L = M + 1;
+				}
+			}
+
+			add(dp[r+1][B], dp[l][r]);
+			relax(mn[r+1][B], mn[l][r] + 1);
+		}
+
+		for (int i = r + 2; i < n; i++) {
+			add(dp[r + 1][i], dp[r + 1][i - 1]);
+			relax(mn[r + 1][i], mn[r + 1][i -1]);
+		}
+	}
+
+	int ans1 = 0;
+	for (int r = 0; r < n; r++) {
+		add(ans1, dp[r][n - 1]);
+	}
+	
+	cout << ans1 << "\n";
+	
+	int ans2 = MOD + 100000;
+	
+	bool found = false;
+	int v = 0;
+	int x = 1;
+	
+	for (int l = n - 1; l >= 0 && (!found || n-l < 15); l--) {
+		if (s[l] != '0') add(v, x);
+		add(x, x);
+		
+		if (mn[l][n - 1] != 10000) {
+			relax(ans2, v + mn[l][n - 1]);
+			found = true;
+		}
+	}
+	
+	cout << ans2 << "\n";
+}

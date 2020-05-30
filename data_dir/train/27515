@@ -1,0 +1,240 @@
+#include <bits/stdc++.h>
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define sf scanf
+#define pf printf
+#define pb push_back
+#define mp make_pair
+#define PI ( acos(-1.0) )
+#define mod 1000000007LL
+#define IN freopen("C.in","r",stdin)
+#define OUT freopen("output.txt","w",stdout)
+#define FOR(i,a,b) for(i=a ; i<=b ; i++)
+#define DBG pf("Hi\n")
+#define INF 1000000000
+#define SZ(g) ((int)g.size())
+#define i64 long long int
+#define eps (1e-8)
+#define xx first
+#define yy second
+#define ln 17
+#define off 2
+
+using namespace __gnu_pbds;
+using namespace std ;
+
+typedef tree< i64, null_type, less<i64>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+typedef pair<i64, i64> pii;
+
+#define maxn 100005
+
+#define MAX 100010
+#define LOG 18
+namespace LCA{
+    i64 sum[MAX] ;
+    int st[MAX] , en[MAX] , lg[MAX] , par[MAX] , a[MAX] , id[MAX] , dp[LOG][MAX] ;
+    vector <int> weight[MAX] , g[MAX] ;
+    int n , r , Time , cur ;
+
+    void init(int nodes, int root){
+        n = nodes, r = root, lg[0] = lg[1] = 0;
+        for (int i = 2; i <= n; i++) lg[i] = lg[i >> 1] + 1;
+        for (int i = 0; i <= n; i++) g[i].clear(), weight[i].clear();
+    }
+
+    void addEdge(int u, int v, int w){
+        g[u].push_back(v), weight[u].push_back(w);
+        g[v].push_back(u), weight[v].push_back(w);
+    }
+
+    int lca(int u, int v)
+    {
+        if( en[u] > en[v] )swap(u,v) ;
+        if( st[v] <= st[u] && en[u] <= en[v] ) return v ;
+        int l = lg[id[v] - id[u] + 1] ;
+        int p1 = id[u] , p2 = id[v] - (1<<l) + 1 ;
+        if( sum[ dp[l][p1] ] < sum[ dp[l][p2] ] ) return par[ dp[l][p1] ] ;
+        else return par[ dp[l][p2] ] ;
+    }
+
+    i64 dis( int u ,int v )
+    {
+        int l = lca(u,v) ;
+        return (sum[u] + sum[v] - ( sum[l]<<1LL )) ;
+    }
+
+    void dfs(int u, int p , i64 curSum){
+        st[u] = ++Time ; par[u] = p ; sum[u] = curSum ;
+        for(int i=0 ; i<g[u].size() ; i++)
+        {
+            if( g[u][i]==p ) continue ;
+            dfs( g[u][i] ,u,curSum+weight[u][i]) ;
+        }
+        en[u] = ++Time ;
+        a[++cur] = u ;
+        id[u] = cur ;
+    }
+
+    void build(){
+        cur = Time = 0 ;
+        dfs( r , r , 0 );
+        for(int i=1 ; i<=n ; i++) dp[0][i] = a[i] ;
+        for(int l=0 ; l<LOG-1 ; l++)
+        {
+            for(int i=1 ; i<=n ; i++)
+            {
+                dp[l+1][i] = dp[l][i] ;
+                if( (1<<l)+i <= n && sum[dp[l][i+(1<<l)]] < sum[dp[l][i]]) dp[l+1][i] = dp[l][ i+(1<<l)] ;
+            }
+        }
+    }
+}
+
+vector <int> g[maxn] ;
+vector <int> involved[maxn] ;
+vector <int> pos[maxn] ;
+struct Query
+{
+    int u , v , a, id ;
+}q[maxn];
+int c[maxn] ;
+
+set <int> ans[maxn] ;
+set<int> cur ;
+
+void dfs(int u,int par,int node)
+{
+    for(int i=0 ; i<pos[u].size() ; i++) cur.insert( pos[u][i] ) ;
+
+    for(int i=0 ; i<involved[u].size() ; i++)
+    {
+        int v = q[ involved[u][i] ].u + q[ involved[u][i] ].v - u , id = q[ involved[u][i] ].id ;
+
+        if( LCA::dis(node,u)+ LCA::dis(node,v) !=  LCA::dis(u,v) ) continue ;
+
+        int cnt = 1 ;
+        auto it = cur.begin() ;
+        while( cnt <= 10 && it!=cur.end() )
+        {
+            ans[ id ].insert( *it ) ;
+            it++ ;
+            cnt++ ;
+        }
+    }
+
+    for(int i=0 ; i<g[u].size() ; i++)
+    {
+        int v= g[u][i];
+        if(v==par) continue ;
+        dfs(v,u,node) ;
+    }
+    for(int i=0 ; i<pos[u].size() ; i++) cur.erase( cur.find( pos[u][i] ) ) ;
+}
+
+void solve(int node)
+{
+    dfs(node,0,node) ;
+
+    return ;
+}
+
+//centroid decomposition starts
+int child[maxn] ;
+void dfsSize(int u, int par)
+{
+    child[u] = 1 ;
+    for(int i=0 ; i<SZ(g[u]) ; i++)
+    {
+        int v = g[u][i] ;
+        if( v!=par ){
+            dfsSize(v,u) ;
+            child[u] += child[v] ;
+        }
+    }
+}
+int dfsFC(int u,int par, int sz)
+{
+    for( int i=0 ; i<SZ(g[u]) ; i++ )
+    {
+        int v = g[u][i] ;
+        if(v==par) continue ;
+        if( child[v] > sz ) return dfsFC(v,u,sz) ;
+    }
+    return u ;
+}
+void dfsCD(int u)
+{
+    dfsSize(u,0) ;
+    int centroid = dfsFC(u,0,child[u]/2) ;
+    solve(centroid) ;
+    for(int i=0 ; i<SZ(g[centroid]) ; i++)
+    {
+        int v= g[centroid][i] ;
+        for(int j=0 ; j<SZ(g[v]) ; j++)
+        {
+            if( g[v][j]==centroid ){
+                g[v].erase( g[v].begin() + j ) ;
+                break ;
+            }
+        }
+        dfsCD(v) ;
+    }
+    g[u].clear() ;
+}
+//centroid decomposition ends
+
+int main()
+{
+    int n , m , query ;
+    scanf("%d %d %d",&n,&m,&query) ;
+
+    LCA::init(n,1) ;
+
+    for(int i=1 ; i<n; i++)
+    {
+        int u , v ;
+        scanf("%d %d",&u,&v) ;
+        LCA::addEdge(u,v,1) ;
+        g[u].pb(v) ; g[v].pb(u) ;
+    }
+
+    LCA::build() ;
+
+    for(int i=1 ; i<=m ; i++) scanf("%d",&c[i]) ;
+
+    for(int i=1 ; i<=m ; i++) pos[ c[i] ].pb(i) ;
+
+    for(int i=1 ; i<=query ; i++)
+    {
+        int u , v , a ;
+        scanf("%d %d %d",&u,&v,&a) ;
+
+        q[i] = {u,v,a,i}  ;
+        involved[u].pb(i) ; involved[v].pb(i) ;
+
+     //   printf("--- %d\n",lc) ;
+    }
+
+    dfsCD(1) ;
+
+    for(int i=1 ; i<=query ; i++)
+    {
+        int sz = min((int)ans[i].size(),q[i].a) ;
+        printf("%d",sz ) ;
+
+        int j=1 ;
+        auto it = ans[i].begin() ;
+
+        while( j<=sz )
+        {
+            printf(" %d",*it) ;
+            it++ ;
+            j++ ;
+        }
+        printf("\n") ;
+    }
+
+    return 0 ;
+}

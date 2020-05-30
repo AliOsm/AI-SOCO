@@ -1,0 +1,139 @@
+#include <stdio.h>
+#include <stack>
+#include <map>
+#include <string.h>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <math.h>
+#include <vector>
+#include <set>
+#include <queue>
+#include <functional>
+using namespace std;
+#define ll long long
+#define mp make_pair
+#define pb push_back
+//#define ld long double
+const double sn = 1e-6;
+struct tnode {
+	int li, ld, ri, rd, mh;
+	ll l, r;
+};
+int n, m;
+const int siz = 300005;
+tnode tree[siz*4];
+ll lazy[siz * 4];
+int arr[siz];
+void merge(int node, int s, int e) {
+	int lch = 2 * node, rch = 2 * node + 1;
+	tree[node].l = tree[lch].l;
+	tree[node].r = tree[rch].r;
+	int th = 0;
+	if (tree[lch].r != tree[rch].l) {
+		th = max(th, tree[lch].ri + tree[rch].ld);
+		if (tree[lch].r > tree[rch].l) {
+			th = max(th, tree[lch].rd + tree[rch].ld);
+		}
+		if (tree[lch].r < tree[rch].l) {
+			th = max(th, tree[lch].ri + tree[rch].li);
+		}
+	}
+	int mid = (s + e) / 2;
+	int c1 = mid - s + 1, c2 = e - mid;
+	tree[node].ld = tree[lch].ld;
+	tree[node].li = tree[lch].li;
+	tree[node].rd = tree[rch].rd;
+	tree[node].ri = tree[rch].ri;
+	if (tree[lch].r != tree[rch].l) {
+		if (tree[node].ld == c1 && tree[lch].rd == c1 && tree[rch].l < tree[lch].r) {
+			tree[node].ld += tree[rch].ld;
+		}
+		if (tree[node].li == c1) {
+			if (tree[lch].ri == c1) {
+				int ma = tree[rch].ld;
+				if (tree[rch].l > tree[lch].r) {
+					ma = max(ma, tree[rch].li);
+				}
+				tree[node].li += ma;
+			}
+			else if (tree[lch].rd == c1 && tree[rch].l < tree[lch].r) {
+				tree[node].li += tree[rch].ld;
+			}
+		}
+		if (tree[node].ri == c2 && tree[rch].li == c2 && tree[lch].r < tree[rch].l) {
+			tree[node].ri += tree[lch].ri;
+		}
+		if (tree[node].rd == c2) {
+			if (tree[rch].ld == c2) {
+				int ma = tree[lch].ri;
+				if (tree[lch].r > tree[rch].l) {
+					ma = max(ma, tree[lch].rd);
+				}
+				tree[node].rd += ma;
+			}
+			else if (tree[rch].li == c2 && tree[lch].r < tree[rch].l) {
+				tree[node].rd += tree[lch].ri;
+			}
+		}
+	}
+	tree[node].mh = max(max(max(tree[lch].mh, tree[rch].mh),th), max(max(tree[node].li, tree[node].ld), max(tree[node].ri, tree[node].rd)));
+}
+void la(int node, int s, int e) {
+	tree[node].l += lazy[node];
+	tree[node].r += lazy[node];
+	if (s != e) {
+		lazy[node * 2] += lazy[node];
+		lazy[node * 2 + 1] += lazy[node];
+	}
+	lazy[node] = 0;
+}
+void build(int node, int s, int e) {
+	if (s == e) {
+		tree[node].l = tree[node].r = arr[s];
+		tree[node].ld = tree[node].li = tree[node].rd = tree[node].ri = tree[node].mh = 1;
+		return;
+	}
+	int mid = (s + e) / 2;
+	build(2*node, s, mid);
+	build(2 * node+1, mid+1, e);
+	merge(node, s, e);
+}
+void update(int node, int s, int e, int l, int r, int val) {
+	if (lazy[node] != 0) {
+		la(node, s, e);
+	}
+	if (s > r || e < l)
+		return;
+	if (s >= l && e <= r) {
+		tree[node].l += val;
+		tree[node].r += val;
+		if (s != e) {
+			lazy[node * 2] += val;
+			lazy[node * 2 + 1] += val;
+		}
+		return;
+	}
+	int mid = (s + e) / 2;
+	update(2*node, s, mid, l, r, val);
+	update(2*node+1, mid+1, e, l, r, val);
+	merge(node, s , e);
+}
+int main() {
+	scanf("%d", &n);
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &arr[i]);
+	}
+	build(1,0, n-1);
+	scanf("%d", &m);
+	for (int i = 0; i < m; i++) {
+		int l, r, val;
+		scanf("%d%d%d", &l, &r, &val);
+		l--;
+		r--;
+		update(1,0,n-1,l,r,val);
+		printf("%d\n", tree[1].mh);
+	}
+	return 0;
+}

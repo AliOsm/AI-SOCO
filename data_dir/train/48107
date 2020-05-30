@@ -1,0 +1,127 @@
+// Daniel Grzegorzewski
+// while (clock()<=69*CLOCKS_PER_SEC)
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+// #pragma GCC target ("avx2")
+// #pragma GCC optimization ("O3")
+// #pragma GCC optimization ("unroll-loops")
+
+#define MP make_pair
+#define PB push_back
+#define ST first
+#define ND second
+
+using namespace __gnu_pbds;
+using namespace std;
+
+template <typename T>
+using ordered_set =
+    tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+//X.find_by_order(k); - zwraca iterator na k-ty element (numeracja od zerowego)
+//X.order_of_key(k); - zwraca liczbę elementów ostro mniejszych niż k
+
+typedef pair<int, int> PII;
+typedef vector<int> VI;
+typedef vector<PII> VII;
+typedef long long LL;
+
+void init_ios() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+}
+
+const int N = (1<<15);
+
+int n, m, k, res, a[55][N], dp[2][N], pref[N], drz[2*N], lazy[2*N];
+
+void push(int v) {
+  drz[2*v] += lazy[v];
+  lazy[2*v] += lazy[v];
+  drz[2*v+1] += lazy[v];
+  lazy[2*v+1] += lazy[v];
+  lazy[v] = 0;
+}
+
+void add(int v, int l, int r, int le, int ri, int val) {
+  if (r < le || l > ri)
+    return;
+  if (le <= l && r <= ri) {
+    drz[v] += val;
+    lazy[v] += val;
+    return;
+  }
+  if (lazy[v])
+    push(v);
+  int mid = (l+r)/2;
+  add(2*v, l, mid, le, ri, val);
+  add(2*v+1, mid+1, r, le, ri, val);
+  drz[v] = max(drz[2*v], drz[2*v+1]);
+}
+
+void add(int l, int r, int val) {
+  add(1, 0, N-1, l, r, val);
+}
+
+int get(int v, int l, int r, int le, int ri) {
+  if (r < le || l > ri)
+    return 0;
+  if (le <= l && r <= ri)
+    return drz[v];
+  if (lazy[v])
+    push(v);
+  int mid = (l+r)/2;
+  return max(get(2*v, l, mid, le, ri), get(2*v+1, mid+1, r, le, ri));
+}
+
+int get(int l, int r) {
+  return get(1, 0, N-1, l, r);
+}
+
+int sum(int l, int r) {
+  if (l > r)
+    return 0;
+  return pref[r]-pref[l-1];
+}
+
+int main() {
+  init_ios();
+  cin >> n >> m >> k;
+  for (int i = 1; i <= n; ++i)
+    for (int j = 1; j <= m; ++j) {
+      cin >> a[i][j];
+      if (i == 1)
+        pref[j] = pref[j-1]+a[i][j];
+    }
+  for (int j = 1; j <= m; ++j)
+    dp[0][j] = sum(j, min(m, j+k-1));
+  for (int i = 2; i <= n; ++i) {
+    for (int j = 1; j <= m; ++j)
+      pref[j] = pref[j-1] + a[i][j];
+    for (int j = 1; j <= m; ++j)
+      dp[0][j] += sum(j, min(m, j+k-1));
+    for (int j = 1; j <= m; ++j) {
+      int co = dp[0][j]+sum(1, min(k, j-1));
+      add(j, j, dp[0][j]+sum(1, min(k, j-1)));
+    }
+    dp[1][1] = get(1, m);
+    int rozn = 0;
+    for (int j = 2; j <= m; ++j) {
+      rozn -= a[i][j-1];
+      if (j+k-1 <= m)
+        rozn += a[i][j+k-1];
+      add(max(1, j-k), j-1, a[i][j-1]);
+      if (j+k-1 <= m)
+        add(j, j+k-1, -a[i][j+k-1]);
+      dp[1][j] = get(1, m)+rozn;
+    }
+    for (int j = 1; j <= m; ++j)
+      dp[0][j] = dp[1][j];
+    for (int j = 0; j < 2*N; ++j)
+      drz[j] = lazy[j] = 0;
+  }
+  for (int j = 1; j <= m; ++j)
+    res = max(res, dp[0][j]);
+  cout<<res<<"\n";
+}

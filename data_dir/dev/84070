@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+const int MAX = 300010;
+
+vector<pii> data;
+
+struct Node {
+  int sum, mini;
+  int lo, hi;
+  Node *l, *r;
+
+  Node(int lo, int hi)
+    : sum(0), mini(0), lo(lo), hi(hi){
+    l = r = null;
+  }
+
+  void Add(int pos, int val){
+    //cout << '@' << pos << ' ' << data[pos].fi << ' ' << data[pos].se << ':' << val << endl;
+    Add_(pos, val);
+  }
+
+  void Add_(int pos, int val){
+    if(pos < lo || pos > hi) return;
+    sum += val;
+    if(l) l->Add_(pos, val),
+          r->Add_(pos, val);
+    mini = sum;
+    if(l){
+      relaxMin(mini, r->mini);
+      relaxMin(mini, r->sum + l->mini);
+    }
+  }
+
+  int GetFirst(int add = 0){
+    //cout << lo << ' ' << hi << ' ' << add << ' ' << mini << endl;
+    if(add + mini >= 0) return -1;
+    if(lo == hi) return lo;
+    if(r->mini + add < 0) return r->GetFirst(add);
+    return l->GetFirst(add + r->sum);
+  }
+};
+
+Node* Build(int lo, int hi){
+  Node* res = new Node(lo, hi);
+
+  if(lo < hi){
+    int mid = (lo + hi) / 2;
+    res->l = Build(lo, mid);
+    res->r = Build(mid + 1, hi);
+  }
+
+  return res;
+}
+
+Node* root;
+
+int n, m, q;
+int a[MAX], b[MAX];
+int type[MAX], idx[MAX], val[MAX];
+
+int GetPos(const pii& e){
+  return lower_bound(all(data), e) - data.begin();
+}
+
+int main(){
+  scanf("%d%d", &n, &m);
+
+  for(int i = 0;i < n;++i) scanf("%d", &a[i]);
+  for(int i = 0;i < m;++i) scanf("%d", &b[i]);
+
+  scanf("%d", &q);
+  for(int i = 0;i < q;++i){
+    scanf("%d%d%d", &type[i], &idx[i], &val[i]);
+    --idx[i];
+  }
+
+  for(int i = 0;i < n;++i)
+    data.pb(mp(a[i], -1));
+  for(int i = 0;i < m;++i)
+    data.pb(mp(b[i], +1));
+  for(int i = 0;i < q;++i){
+    if(type[i] == 1){
+      data.pb(mp(val[i], -1));
+    }
+    if(type[i] == 2){
+      data.pb(mp(val[i], +1));
+    }
+  }
+
+  sort(all(data));
+  data.erase(unique(all(data)), data.end());
+
+  //cout << "%" << 0 << ' ' << sz(data) - 1 << endl;
+
+  root = Build(0, sz(data) - 1);
+  for(int i = 0;i < n;++i)
+    root->Add(GetPos(mp(a[i], -1)), -1);
+  for(int i = 0;i < m;++i)
+    root->Add(GetPos(mp(b[i], +1)), +1);
+
+  for(int i = 0;i < q;++i){
+    int p = idx[i];
+    if(type[i] == 1){
+      root->Add(GetPos(mp(a[p], -1)), +1);
+      a[p] = val[i];
+      root->Add(GetPos(mp(a[p], -1)), -1);
+    }
+    if(type[i] == 2){
+      root->Add(GetPos(mp(b[p], +1)), -1);
+      b[p] = val[i];
+      root->Add(GetPos(mp(b[p], +1)), +1);
+    }
+    //cout << "*" << root->mini << endl;
+    int ans = root->GetFirst();
+    if(ans == -1) printf("-1\n");
+    else printf("%d\n", data[ans].fi);
+  }
+
+  return 0;
+}

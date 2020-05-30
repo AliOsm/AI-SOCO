@@ -1,0 +1,163 @@
+/* https://codeforces.com/blog/entry/75793?#comment-600648 (YangDavid) */
+/* https://codeforces.com/contest/1334/submission/76191944 (jiangly) */
+#include <stdio.h>
+#include <string.h>
+
+#define N	200000
+#define M	200000
+#define H_	19	/* H_ = ceil(log2(N + M - 1)) */
+#define N_	(1 << H_)
+#define A	26
+
+int MM[2] = { (56 << 23) + 1, (71 << 23) + 1 };
+
+long long power(int a, int k, int md) {
+	long long p;
+
+	if (k == 0)
+		return 1;
+	p = power(a, k >> 1, md);
+	p = p * p % md;
+	if (k & 1)
+		p = p * a % md;
+	return p;
+}
+
+int ww[2][H_ + 1], ww_[2][H_ + 1];
+
+void init() {
+	int g, h;
+
+	for (g = 0; g < 2; g++) {
+		int md = MM[g];
+
+		for (h = 0; h <= H_; h++)
+			ww_[g][h] = power(ww[g][h] = power(3, md - 1 >> h, md), md - 2, md);
+	}
+}
+
+void ntt(int *aa, int n, int g, int inverse) {
+	int md = MM[g], h, i, j, a, b;
+
+	for (i = 1, j = 0; i < n; i++) {
+		int tmp;
+
+		b = n;
+		do
+			j ^= b >>= 1;
+		while ((j & b) == 0);
+		if (i < j)
+			tmp = aa[i], aa[i] = aa[j], aa[j] = tmp;
+	}
+	for (h = 0; (b = 1 << h) < n; h++) {
+		int w = inverse ? ww_[g][h + 1] : ww[g][h + 1];
+		long long w_ = 1;
+
+		for (a = 0; a < b; a++) {
+			for (i = a; (j = i + b) < n; i += b * 2) {
+				int u = aa[i], v = aa[j] * w_ % md;
+
+				if ((aa[i] = u + v) >= md)
+					aa[i] -= md;
+				if ((aa[j] = u - v) < 0)
+					aa[j] += md;
+			}
+			w_ = w_ * w % md;
+		}
+	}
+}
+
+void deposit(int *aa, int *bb, int *cc, int n, int g) {
+	int md = MM[g], i;
+
+	ntt(aa, n, g, 0);
+	ntt(bb, n, g, 0);
+	for (i = 0; i < n; i++)
+		cc[i] = (cc[i] + (long long) aa[i] * bb[i]) % md;
+}
+
+int main() {
+	static char ss[N + 1], tt[M + 1], ans[M + 1];
+	static int pp[A], pr[M + 1], dd[2][M], aa[N_], bb[N_], cc[N_];
+	int n, m, n_, h_, g, i, j, a;
+	long long v;
+
+	init();
+	for (a = 0; a < A; a++)
+		scanf("%d", &pp[a]), pp[a]--;
+	scanf("%s%s", ss, tt), n = strlen(ss), m = strlen(tt);
+	for (i = 0; i < n; i++)
+		ss[i] -= 'a';
+	for (j = 0; j < m; j++)
+		tt[j] -= 'a';
+	/* d_j = sum_{i=0}^{n-1} ((t_{j+i} - s_i)^2 (t_{j+i} - p(s_i))^2)
+	 *     = sum_{i=0}^{n-1} ((t_{j+i}^2 - 2 s_i t_{j+i} + s_i^2) (t_{j+i} - 2 p(s_i) t_{j+i} + p(s_i)^2))
+	 *     = sum_{i=0}^{n-1} (t_{j+i}^4
+	 *     - 2 (s_i + p(s_i)) t_{j+i}^3
+	 *     + (s_i^2 + p(s_i)^2 + 4 s_i p(s_i)) t_{j+i}^2
+	 *     - 2 (s_i^2 + p(s_i)^2) t_{j+i}
+	 *     + s_i^2 p(s_i)^2)
+	 */
+	h_ = 0;
+	while (1 << h_ < n + m - 1)
+		h_++;
+	n_ = 1 << h_;
+	for (g = 0; g < 2; g++) {
+		int md = MM[g], p;
+
+		memset(cc, 0, n_ * sizeof *cc);
+		memset(aa, 0, n_ * sizeof *aa);
+		memset(bb, 0, n_ * sizeof *bb);
+		for (i = 0; i < n; i++) {
+			int a = ss[i], b = pp[a];
+
+			aa[n - 1 - i] = (md - (a + b) * 2) % md;
+		}
+		for (j = 0; j < m; j++)
+			bb[j] = tt[j] * tt[j] * tt[j];
+		deposit(aa, bb, cc, n_, g);
+
+		memset(aa, 0, n_ * sizeof *aa);
+		memset(bb, 0, n_ * sizeof *bb);
+		for (i = 0; i < n; i++)  {
+			int a = ss[i], b = pp[a];
+
+			aa[n - 1 - i] = a * a + b * b + 4 * a * b;
+		}
+		for (j = 0; j < m; j++)
+			bb[j] = tt[j] * tt[j];
+		deposit(aa, bb, cc, n_, g);
+
+		memset(aa, 0, n_ * sizeof *aa);
+		memset(bb, 0, n_ * sizeof *bb);
+		for (i = 0; i < n; i++) {
+			int a = ss[i], b = pp[a];
+
+			aa[n - 1 - i] = (md - (a * a * b + b * b * a) * 2) % md;
+		}
+		for (j = 0; j < m; j++)
+			bb[j] = tt[j];
+		deposit(aa, bb, cc, n_, g);
+
+		ntt(cc, n_, g, 1);
+		v = power(n_, md - 2, md);
+		for (i = 0; i < n_; i++)
+			cc[i] = cc[i] * v % md;
+
+		p = 0;
+		for (j = 0; j < m; j++)
+			pr[j + 1] = p = (p + tt[j] * tt[j] * tt[j] * tt[j]) % md;
+		p = 0;
+		for (i = 0; i < n; i++) {
+			int a = ss[i], b = pp[a];
+
+			p = (p + a * a * b * b) % md;
+		}
+		for (j = 0; j + n <= m; j++)
+			dd[g][j] = ((long long) pr[j + n] - pr[j] + cc[n - 1 + j] + p + md) % md;
+	}
+	for (j = 0; j + n <= m; j++)
+		ans[j] = dd[0][j] == 0 && dd[1][j] == 0 ? '1' : '0';
+	printf("%s\n", ans);
+	return 0;
+}

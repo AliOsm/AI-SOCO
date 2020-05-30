@@ -1,0 +1,173 @@
+#include <cstdio>
+
+#include <cstring>
+
+#include <string>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+typedef long long llong;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+/*
+ * Segment Tree with lazy propagation
+ */
+struct SegmentTreeNode {
+   int val;
+   bool flip;
+   SegmentTreeNode(int _val = 0) : val(_val), flip(false) { }
+   SegmentTreeNode operator+(const SegmentTreeNode& R) const {
+      SegmentTreeNode res;
+      res.val = this->val + R.val;
+      res.flip = false;
+      return res;
+   }
+   void update(int L, int R) {
+      flip = !flip;
+      val = (R-L+1) - val;
+   }
+   void propagate(SegmentTreeNode& pL,
+                  SegmentTreeNode& pR,
+                  int L, int R)
+   {
+      if (flip) {
+         // push sum to children
+         pL.update(L, (L+R)/2);
+         pR.update((L+R)/2+1, R);
+         flip = false;
+      }
+   }
+};
+
+class SegmentTreeLazyProp {
+   int N;
+   vector<SegmentTreeNode> tree;
+
+   void _build(const vector<int>& A, int node, int L, int R);
+   void _update(int p, int q, int node, int L, int R);
+   SegmentTreeNode _query(int p, int q, int node, int L, int R);
+public:
+   SegmentTreeLazyProp(const vector<int>& A) {
+      N = A.size();
+      int NUM_NODES = 4*N;
+      tree = vector<SegmentTreeNode>(NUM_NODES);
+      _build(A, 1, 0, N-1);
+   }
+   void update(int p, int q) {
+      _update(p, q, 1, 0, N-1);
+   }
+   SegmentTreeNode query(int p, int q) {
+      return _query(p, q, 1, 0, N-1);
+   }
+};
+
+void SegmentTreeLazyProp::_build(const vector<int>& A, int node, int L, int R) {
+   if (L == R) {
+   // tree[node] = SegmentTreeNode();
+      tree[node].val = A[L];
+      return;
+   }
+
+   //compute the values in the left and right subtrees
+   _build(A, 2*node, L, (L+R)/2);
+   _build(A, 2*node+1, (L+R)/2+1, R);
+
+   const SegmentTreeNode& pL = tree[2*node];
+   const SegmentTreeNode& pR = tree[2*node+1];
+
+   // merge the first and second half of the interval
+   tree[node] = pL + pR;
+}
+
+void SegmentTreeLazyProp::_update(int p, int q, 
+                                  int node, int L, int R) {
+   if (q < L || p > R) return;
+   if (p <= L && R <= q) {
+      tree[node].update(L, R);
+      return;
+   }
+   tree[node].propagate(tree[2*node], tree[2*node+1], L, R);
+   _update(p, q, 2*node, L, (L+R)/2);
+   _update(p, q, 2*node+1, (L+R)/2+1, R);
+   tree[node] = tree[2*node] + tree[2*node+1];
+}
+
+SegmentTreeNode SegmentTreeLazyProp::_query(
+   int p, int q, int node, int L, int R)
+{
+   if (q < L || p > R) return SegmentTreeNode();
+   if (p <= L && R <= q) return tree[node];
+   tree[node].propagate(tree[2*node], tree[2*node+1], L, R);
+   SegmentTreeNode resL = _query(p, q, 2*node, L, (L+R)/2);
+   SegmentTreeNode resR = _query(p, q, 2*node+1, (L+R)/2+1, R);
+   return resL + resR;
+}
+
+
+#define MAXN 200004
+int N;
+VI adj[MAXN];
+int ON[MAXN];
+
+int dfs_time = -1;
+int dfs_start[MAXN], dfs_end[MAXN];
+void dfs(int u) {
+   dfs_start[u] = ++dfs_time;
+   for (int v : adj[u]) {
+      dfs(v);
+   }
+   dfs_end[u] = dfs_time;
+}
+
+int main(int argc, char* argv[]) {
+   scanf("%d", &N);
+   FOR(u, 1, N-1) {
+      int p;
+      scanf("%d", &p);
+      --p;
+      adj[p].push_back(u);
+   // fprintf(stderr, "add edge %d -> %d\n", p+1, u+1);
+   }
+
+   REP(u, N)
+      scanf("%d", ON+u);
+
+   dfs(0);
+
+   VI A(N);
+   REP(u, N) {
+   // fprintf(stderr, "%d: %d %d\n", u+1, dfs_start[u], dfs_end[u]);
+      int i = dfs_start[u];
+      A[i] = ON[u];
+   }
+
+   SegmentTreeLazyProp st(A);
+
+   int Q;
+   scanf("%d", &Q);
+
+   FOR(q, 1, Q) {
+      char oper[8];
+      int u;
+      scanf("%s %d", oper, &u);
+      //fprintf(stderr, "Query %d: %s %d\n", q, oper, u);
+      --u;
+      int L = dfs_start[u], R = dfs_end[u];
+      if (*oper == 'g') {
+         int res = st.query(L, R).val;
+         printf("%d\n", res);
+      }
+      else {
+         st.update(L, R);
+      }
+   }
+
+   return 0;
+}

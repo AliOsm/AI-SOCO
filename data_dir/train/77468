@@ -1,0 +1,120 @@
+//#pragma GCC optimise("Ofast,unroll-loops,no-stack-protector,fast-math");
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,abm,mmx,popcnt,avx,avx2,tune=native")
+          
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+          
+using namespace std;
+using namespace __gnu_pbds;
+          
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ld, ld> pld;
+          
+using matrix = vector<vector<ll>>;
+template<typename T>
+using kawaii_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+          
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+//#define int long long
+ 
+void FAST_IO() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    #ifndef _offline
+    //freopen("highways.in", "r", stdin);
+    //freopen("highways.out", "w", stdout);
+    #endif
+}
+
+const ll INF = 1e18;
+const int MAXN = 505;
+ll cost[MAXN][MAXN], dp[MAXN][MAXN];
+vector<pii> row[MAXN][MAXN], col[MAXN][MAXN];
+vector<ll> srow[MAXN][MAXN], scol[MAXN][MAXN];
+
+signed main() {
+    FAST_IO();
+    int n, m, kek;
+    cin >> n >> m >> kek;
+    for (int i = 0; i < kek; ++i) {
+        int x, y, d, t, e;
+        cin >> x >> y >> d >> t >> e;
+        if (x + y >= t && ((x + y - t) % 4 == 0)) {
+            cost[x][y] += e;
+            if (d % 4 == 3) {
+                row[x][y].push_back({y + d, e});
+            }
+            if (d % 4 == 2) {
+                col[x][y].push_back({x + d, e});
+            }
+        }
+        if (x + d + y - d >= t + 1 && ((x + d + y - d - (t + 1)) % 4 == 0)) {
+            cost[x + d][y - d] += e;
+            if (d % 4 == 1) {
+                row[x + d][y - d].push_back({y, e});
+            }
+        }
+        if (x + d + y >= t + 2 && ((x + d + y - (t + 2)) % 4 == 0)) {
+            cost[x + d][y] += e;
+        }
+        if (x + y + d >= t + 3 && ((x + y + d - (t + 3)) % 4 == 0)) {
+            cost[x][y + d] += e;
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            sort(all(row[i][j]));
+            srow[i][j].resize(row[i][j].size());
+            for (int k = 0; k < (int)row[i][j].size(); ++k) {
+                srow[i][j][k] = row[i][j][k].second;
+                if (k != 0) {
+                    srow[i][j][k] += srow[i][j][k - 1];
+                }
+            }
+            sort(all(col[i][j]));
+            scol[i][j].resize(col[i][j].size());
+            for (int k = 0; k < (int)col[i][j].size(); ++k) {
+                scol[i][j][k] = col[i][j][k].second;
+                if (k != 0) {
+                    scol[i][j][k] += scol[i][j][k - 1];
+                }
+            }
+        }
+    }
+    dp[0][0] = cost[0][0];
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (i == 0 && j == 0) {
+                continue;
+            }
+            dp[i][j] = INF;
+            ll cur = cost[i][j];
+            for (int i1 = i - 1; i1 >= 0; --i1) {
+                int pos = lower_bound(all(col[i1][j]), (pii){i + 1, -1}) - col[i1][j].begin() - 1;
+                if (pos != -1) {
+                    cur -= scol[i1][j][pos];
+                }
+                dp[i][j] = min(dp[i][j], dp[i1][j] + cur);
+                cur += cost[i1][j];
+            }
+            cur = cost[i][j];
+            for (int j1 = j - 1; j1 >= 0; --j1) {
+                int pos = lower_bound(all(row[i][j1]), (pii){j + 1, -1}) - row[i][j1].begin() - 1;
+                if (pos != -1) {
+                    cur -= srow[i][j1][pos];
+                }
+                dp[i][j] = min(dp[i][j], dp[i][j1] + cur);
+                cur += cost[i][j1];
+            }
+        }
+    }
+    cout << dp[n - 1][m - 1] << '\n';
+}

@@ -1,0 +1,161 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <random>
+#include <chrono>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+#define endl '\n'
+
+typedef long long ll;
+typedef pair<int, int> pii;
+//typedef tree<int,null_type,less<int>,rb_tree_tag, tree_order_statistics_node_update> indexed_set;
+
+//mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+const int maxn = 5000 + 5;
+const int maxp = 20;
+
+int A[maxn][maxp], dst[maxn];
+vector<int> g[maxn];
+int id[maxn][maxn], n, val[maxn];
+
+void dfs(int u, int p){
+	A[u][0] = p;
+	for(auto &v : g[u]){
+		if(v != p){
+			dst[v] = dst[u] + 1;
+			dfs(v, u);
+		}
+	}
+}
+
+void compute(){
+	for(int k = 1; k < maxp; k++)
+		for(int i = 1; i <= n; i++)
+			if(A[i][k - 1] != -1)
+				A[i][k] = A[A[i][k - 1]][k - 1];
+}
+
+int query(int u, int v){
+    if(dst[u] < dst[v])
+        swap(u, v);
+    
+    int d = dst[u] - dst[v];
+
+    for(int i = 0; i <= 19; i++){
+        if(d & (1 << i)){
+            u = A[u][i];
+            d ^= (1 << i);
+        }
+    }
+
+    if(u == v)
+        return u;
+    
+    for(int i = 19; i >= 0; i--){
+        if(A[u][i] != A[v][i]){
+            u = A[u][i];
+            v = A[v][i];
+        }
+    }
+
+    return A[u][0];
+}
+
+int solve(int a, int b){
+	int l = query(a, b);
+	int ans = 1000000;
+	
+	int cur = a;
+	while(cur != l){
+		int pp = id[cur][A[cur][0]];
+		ans = min(ans, val[pp]);
+		cur = A[cur][0];
+	}
+	
+	cur = b;
+	while(cur != l){
+		int pp = id[cur][A[cur][0]];
+		ans = min(ans, val[pp]);
+		cur = A[cur][0];
+	}
+	
+	return ans;
+}
+
+void update(int a, int b, int x){
+	int l = query(a, b);
+	
+	int cur = a;
+	while(cur != l){
+		int pp = id[cur][A[cur][0]];
+		val[pp] = max(val[pp], x);
+		cur = A[cur][0];
+	}
+	
+	cur = b;
+	while(cur != l){
+		int pp = id[cur][A[cur][0]];
+		val[pp] = max(val[pp], x);
+		cur = A[cur][0];
+	}
+}
+
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	
+	cin >> n;
+	for(int i = 0; i + 1 < n; i++){
+		int a, b;
+		cin >> a >> b;
+		g[a].push_back(b);
+		g[b].push_back(a);
+		id[a][b] = id[b][a] = i;
+	}
+	
+	memset(A, -1, sizeof(A));
+	dfs(1, -1);
+	compute();
+	
+	for(int i = 0; i + 1 < n; i++)
+		val[i] = 1;
+		
+	int q;
+	cin >> q;
+	
+	int m = q;
+	
+	vector<pair<pii, int>> v(m);
+	int pos = 0;
+	while(q--){
+		int a, b, c;
+		cin >> a >> b >> c;
+		v[pos++] = {{a, b}, c};
+		update(a, b, c);
+	}
+	
+	bool ok = true;
+	for(int i = 0; i < m && ok; i++){
+		int a = v[i].first.first;
+		int b = v[i].first.second;
+		int x = solve(a, b);
+		if(x != v[i].second)
+			ok = false;
+	}
+	
+	if(!ok)
+		cout << -1 << endl;
+	else{
+		for(int i = 0; i + 1 < n; i++)
+			cout << val[i] << " \n"[i + 2 == n];
+	}
+
+	return 0;
+}

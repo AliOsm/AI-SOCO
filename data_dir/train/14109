@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <random>
+#include <chrono>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+#define endl '\n'
+
+typedef long long ll;
+typedef pair<int, int> pii;
+//typedef tree<int,null_type,less<int>,rb_tree_tag, tree_order_statistics_node_update> indexed_set;
+//mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+struct node{
+    node *l, *r;
+    int value;
+};
+
+node* clone(node *u){
+	if(!u)
+		return new node({0, 0, 0});
+    node *ans = new node();
+    ans->l = u->l, ans->r = u->r, ans->value = u->value;
+    return ans;
+}
+
+inline int sum(node *u){
+	return (u ? u->value : 0);
+}
+
+node* update(node *root, int b, int e, int x, int v){
+    root = clone(root);
+
+    if (b + 1 == e){
+        root->value = v;
+    }
+    else{
+        int m = (b + e) >> 1;
+        
+        if (x < m) root->l = update(root->l, b, m, x, v);
+        else root->r = update(root->r, m, e, x, v);
+        
+        root->value = sum(root->l) + sum(root->r);
+    }
+
+    return root;
+}
+
+int query(node *root, int b, int e, int k){
+    if (b + 1 == e) return b;
+
+    int m = (b + e) >> 1;
+    if ( sum(root->l) >= k) return query(root->l, b, m, k);
+    else return query(root->r, m, e, k - sum(root->l));
+}
+
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	
+	int n;
+	cin >> n;
+	
+	vector<int> a(n);
+	for(int i = 0; i < n; i++)
+		cin >> a[i];
+	
+	vector<int> last(n + 1, -1);
+	vector<node*> roots(n);
+	for(int i = 0; i < n; i++){
+		
+		if(last[a[i]] != -1)
+			roots[i] = update(roots[i - 1], 0, n, last[a[i]], 0);
+		else if(i)
+			roots[i] = roots[i - 1];
+		
+		roots[i] = update(roots[i], 0, n, i, 1);
+		last[a[i]] = i;
+	}
+	
+	for(int k = 1; k <= n; k++){
+		int ans = 0;
+		for(int i = n - 1; i >= 0;){
+			++ans;
+			if(k >= sum(roots[i]))
+				break;
+			i = query(roots[i], 0, n, sum(roots[i]) - k);
+		}
+		
+		cout << ans << " \n"[k == n];
+	}
+	
+	return 0;
+}

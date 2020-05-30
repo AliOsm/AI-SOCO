@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define endl '\n'
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n,m,t;
+    cin >> n >> m >> t;
+    int flat, up, down;
+    cin >> flat >> up >> down;
+    vector<vector<int>> grid(n,vector<int>(m));
+    for(int i = 0; i < n; ++i) {
+        for(int j = 0; j < m; ++j) {
+            cin >> grid[i][j];
+        }
+    }
+    int mnDiff = 1e9;
+    pair<int,int> upLeft, downRight;
+    vector<int> prefix(m);
+    for(int i1 = 0; i1 < n; ++i1) {
+        vector<int> costUp(m,0);//going up
+        vector<int> costDown(m,0);//going down
+        for(int i2 = i1+1; i2 < n; ++i2) {
+
+            for(int j = 0; j < m; ++j) {
+                if(grid[i2-1][j] < grid[i2][j]) {
+                    costUp[j] += down;
+                    costDown[j] += up;
+                } else if(grid[i2-1][j] == grid[i2][j]) {
+                    costUp[j] += flat;
+                    costDown[j] += flat;
+                } else {
+                    costUp[j] += up;
+                    costDown[j] += down;
+                }
+            }
+            if(i1 + 1 == i2) continue;
+
+            prefix[0] = 0;
+            for(int j = 1; j < m; ++j) {
+
+                int cost = 0;
+
+                if(grid[i1][j-1] < grid[i1][j]) cost += up;
+                else if(grid[i1][j-1] == grid[i1][j]) cost += flat;
+                else cost += down;
+
+                if(grid[i2][j-1] < grid[i2][j]) cost += down;
+                else if(grid[i2][j-1] == grid[i2][j]) cost += flat;
+                else cost += up;
+
+                prefix[j] = cost + prefix[j-1];
+            }
+
+            set<pair<int,int>> st;
+            for(int j = m-1; j >= 0; --j) {
+
+                auto it = st.lower_bound({t - costUp[j] + prefix[j], -3});
+                if(it != st.end()) {
+                    const int curr = it->first + costUp[j] - prefix[j];
+                    if(mnDiff > abs(curr - t)) {
+                        mnDiff = abs(curr - t);
+                        upLeft = {i1,j};
+                        downRight = {i2,it->second};
+                    }
+                }
+
+                if(it != st.begin()) {
+                    --it;
+                    const int curr = it->first + costUp[j] - prefix[j];
+                    if(mnDiff > abs(curr - t)) {
+                        mnDiff = abs(curr - t);
+                        upLeft = {i1,j};
+                        downRight = {i2,it->second};
+                    }
+                }
+
+                if(j+1 < m) {
+                    st.insert({prefix[j+1] + costDown[j+1],j+1});
+                }
+            }
+        }
+    }
+    cout << upLeft.first+1 << " " << upLeft.second+1 << " " << downRight.first+1 << " " << downRight.second+1 << endl;
+}

@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+int n;
+bool a[MAXN];
+bool npr[MAXN];
+vector<int> primeFactors[MAXN];
+vector<int> multiples;
+int fmsk[MAXN];
+void updFmsk(int x, int val) {
+	for (int j = 1; j < (1 << (int)primeFactors[x].size()); j++) {
+		int msk = 1;
+		for (int k = 0; k < primeFactors[x].size(); k++)
+			if (j & (1 << k)) {
+				msk *= primeFactors[x][k];
+			}
+		fmsk[msk] += val;
+	}
+}
+
+int getNotCoprime(int x) {
+	int ans = 0;
+	for (int j = 1; j < (1 << (int)primeFactors[x].size()); j++) {
+		int msk = 1;
+		int cnt = 0;
+		for (int k = 0; k < primeFactors[x].size(); k++)
+			if (j & (1 << k)) {
+				msk *= primeFactors[x][k];
+				cnt++;
+			}
+		if (cnt%2) ans += fmsk[msk];
+		else ans -= fmsk[msk];
+	}
+	return ans;
+}
+
+long long getMax() {
+	if (multiples.empty()) return 0;
+	for (int i = 0; i < multiples.size(); i++) {
+		int x = multiples[i];
+		updFmsk(x, 1);
+	}
+	long long mx = 0;
+	int i = 0;
+	int other = multiples.size() - 1;
+	for (; i < other; i++) {
+		int x = multiples[i];
+		while (i < other) {
+			int coprime = other - i + 1 - getNotCoprime(x);
+			if (coprime > 1) {
+				updFmsk(multiples[other], -1);
+				other--;
+				continue;
+			}
+			if (coprime == 1 && __gcd(x, multiples[other]) > 1) {
+				updFmsk(multiples[other], -1);
+				other--;
+				continue;
+			}
+			if (coprime == 1) {
+				mx = max(mx, x * 1ll * multiples[other]);
+				break;
+			}
+			break;
+		}
+		if (i < other) updFmsk(x, -1);
+	}
+	for (; i <= other; i++) updFmsk(multiples[i], -1);
+	return mx;
+}
+int main() {
+	scanf("%d", &n);
+	long long mx = 1;
+	for (int i = 0; i < n; i++) {
+		int x;
+		scanf("%d", &x);
+		a[x] = true;
+		mx = max(mx, 1ll*x);
+	}
+	npr[1] = 1;
+	for (int i = 2; i < MAXN; i++) {
+		if (npr[i]) continue;
+		for (int j = i; j < MAXN; j+= i) {
+			npr[j] = true;
+			primeFactors[j].push_back(i);
+		}
+	}
+
+	for (int i = 1; i < MAXN; i++) {
+		multiples.clear();
+		for (int j = i; j < MAXN; j+= i) {
+			if (a[j]) multiples.push_back(j/i);
+		}
+		reverse(multiples.begin(), multiples.end());
+		mx = max(mx, i*getMax());
+	}
+	printf("%lld\n", mx);
+}

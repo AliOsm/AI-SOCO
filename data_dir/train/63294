@@ -1,0 +1,170 @@
+#include <bitset>
+#include <ctime>
+#include <iostream>
+#include <vector>
+#include <cstdio>
+#include <string>
+#include <cmath>
+#include <algorithm>
+#include <cstdlib>
+#include <map>
+#include <set>
+#include <assert.h>
+using namespace std;
+#define FOR(i,a,b) for (int i = a; i < b; ++i)
+#define RFOR(i,a,b) for(int i = a; i >= b;--i)
+#define REP(i, n) FOR(i, 0, n)
+#define rep(i,n) REP(i,n)
+#define forn(i,a,b) FOR(i,a,b)
+#define rfor(i,a,b) RFOR(i,a,b)
+#define x first
+#define y second
+#define fmin asjfklasjflkjaskfl
+#define fmax asklfklsfksofoisfio
+#define ll long long
+#define pb push_back
+#define mp make_pair
+#define pii pair<int,int>
+#define sz(f) (int)f.size()
+#define vi vector < int > 
+#define db(x) cerr << #x << " = " << x << endl
+#define db2(x, y) cerr << "(" << #x << ", " << #y << ") = (" << x << ", " << y << ")\n"; 
+#define y1 jaksflkajsf
+#define pii pair<int,int>
+#define pli pair<ll,int>
+#define ld long double
+const ll INF = 1e18;
+const int inf = 1e9;
+const double PI = acos(-1.0);
+const int MOD = 1000000000+7;
+const int N = 5e5+5;
+const int M = 1000;
+bitset < M > primes;
+bitset < M > full;
+bitset < M > res;
+bitset < M > tree[N * 4];
+int timer, n, m;
+int f[N];
+int tin[N], tout[N];
+vi g[N];
+int sh[N];
+int a[N];
+bool prime(int n) {
+	for (int i = 2; i * i <= n; ++i)
+		if (n % i == 0) {
+			return false;
+		}
+	return true;
+}
+void dfs(int v, int p = -1) {
+	tin[v] = timer++;
+	rep(i, sz(g[v])) {
+		int to = g[v][i];
+		if (to == p)
+			continue;
+		dfs(to, v);
+	}
+	tout[v] = timer - 1;
+}
+
+void build(int v, int l, int r) {
+	if (l == r) {
+		tree[v].set(a[f[l]]);
+		return;
+	}
+	int m = (l + r) >> 1;
+	build(v + v, l, m);
+	build(v + v + 1, m + 1, r);
+	tree[v] = tree[v + v] | tree[v + v + 1];
+}
+void shift(bitset < M > &cur, int sh) {
+	cur = (cur << sh) | (cur >> (m - sh)) & full;
+}
+void push(int v, int l, int r) {
+	if (sh[v] >= m)
+		sh[v] %= m;
+	if (sh[v] == 0)
+		return;
+	if (l != r) {
+		sh[v + v] += sh[v];
+		sh[v + v + 1] += sh[v];
+		shift(tree[v + v], sh[v]);
+		shift(tree[v + v + 1], sh[v]);
+	}
+	sh[v] = 0;
+}
+void get(int v, int l, int r, int left, int right) {
+	push(v, l, r);
+	if (l == left && r == right) {
+		res |= tree[v];
+		return;
+	}
+	int m = (l + r) >> 1;
+	if (m >= right) get(v + v, l, m, left, right);
+	else if (m < left) get(v + v + 1, m + 1, r, left, right);
+	else {
+		get(v + v, l, m, left, m);
+		get(v + v + 1, m + 1, r, m + 1, right);
+	}
+	tree[v] = tree[v + v] | tree[v + v + 1];
+}
+void update(int v, int l, int r, int left, int right, int value) {
+	push(v, l, r);
+	if (l == left && r == right) {
+		shift(tree[v], value);
+		sh[v] += value;
+		if (sh[v] >= m)
+			sh[v] %= m;
+		return;
+	}
+	int m = (l + r) >> 1;
+	if (m >= right) update(v + v, l, m, left, right, value);
+	else if (m < left) update(v + v + 1, m + 1, r, left, right, value);
+	else {
+		update(v + v, l, m, left, m, value);
+		update(v + v + 1, m + 1, r, m + 1, right, value);
+	}
+	tree[v] = tree[v + v] | tree[v + v + 1];
+}
+int main() {
+//	freopen("input.txt","r",stdin);
+//	freopen("output.txt","w",stdout);
+	scanf("%d%d", &n, &m);
+	REP(i, m) full.set(i);
+	forn(i, 2, m) {
+		if (prime(i)) 
+			primes.set(i);
+	}
+	rep(i, n) {
+		scanf("%d", &a[i]);
+		a[i] %= m;
+	}
+	rep(i, n - 1) {
+		int x, y;
+		scanf("%d%d", &x, &y); x--; y--;
+		g[x].pb(y); g[y].pb(x);
+	}
+	dfs(0);
+	rep(i, n) f[tin[i]] = i;
+	build(1, 0, n - 1);
+	int Q;
+	scanf("%d", &Q);
+	rep(i, Q) {
+		int t, v, x;
+		scanf("%d", &t);
+		if (t == 1) {
+			scanf("%d%d", &v, &x);
+			x %= m;
+			if (x == 0)
+				continue;
+			v--;
+			update(1, 0, n - 1, tin[v], tout[v], x);
+		} else {
+			scanf("%d", &v); v--;
+			res.reset();
+			get(1, 0, n - 1, tin[v], tout[v]);
+			printf("%d\n", (res & primes).count());
+		}
+	}
+	return 0;	
+}

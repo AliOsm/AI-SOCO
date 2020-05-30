@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define oo 1000000010
+#define mod 1000000007
+const int N = 200010;
+const int SQ = 450;
+char s[N];
+int n , q;
+int sum[N] , mx[SQ] , mn[SQ] , best[SQ] , add[SQ];
+int mx2[SQ] , mn2[SQ] , best2[SQ] , add2[SQ] , sum2[N];
+
+int sq;
+
+int tmp1 , cur;
+
+int a,b;
+
+void build(int l,int r){
+	cur = l / sq;
+	for(int i = l ; i <= r;i++){
+		sum[i] += add[cur];
+		sum2[i] += add2[cur];
+	}
+	add[cur] = add2[cur] = 0;
+	best[cur] = best2[cur] = -oo;
+	mn[cur] = mx[cur] = sum[l];
+	mn2[cur] = mx2[cur] = sum2[l];
+	tmp1 = oo;
+	for(int i = l ;i <= r;i++){
+		tmp1 = min(tmp1 , sum[i]);
+		best[cur] = max(best[cur] , sum[i] - 2 * tmp1);
+		mn[cur] = min(mn[cur] , sum[i]);
+		mx[cur] = max(mx[cur] , sum[i]);
+	}
+	tmp1 = oo;
+	for(int i = r ; i >= l ;i--){
+		tmp1 = min(tmp1 , sum2[i]);
+		best2[cur] = max(best2[cur] , sum2[i] - 2 * tmp1);
+		mn2[cur] = min(mn2[cur] , sum2[i]);
+		mx2[cur] = max(mx2[cur] , sum2[i]);
+	}
+}
+
+int tmp2 , idx , ans = 0;
+
+void getans(){
+	tmp2 = 0 , ans = 0;
+	for(int i = 0 ;i < n;i+=sq){
+		if(mx[i / sq] + add[i / sq] > tmp2){
+			tmp2 = mx[i / sq] + add[i / sq];
+			idx = i / sq;
+		}
+	}
+	ans = tmp2;
+	for(int i = idx * sq ;i < min(n , (idx + 1) * sq);i++){
+		if(add[idx] + sum[i] == tmp2){
+			idx = i;
+			break;
+		}
+	}
+	tmp2 = oo;
+	for(int i = idx + 1;i < n && i / sq == idx / sq;i++){
+		tmp2 = min(tmp2 , sum[i] + add[i / sq]);
+		ans = max(ans , sum[i] + add[i / sq] + sum[idx] + add[idx / sq] - tmp2 - tmp2);
+	}
+	for(int i = idx / sq + 1; i * sq < n;i++){
+		ans = max(ans , best[i] - add[i] + sum[idx] + add[idx / sq]);
+		ans = max(ans , sum[idx] + add[idx / sq] + mx[i] + add[i] - tmp2 - tmp2);
+		tmp2 = min(tmp2 , mn[i] + add[i]);
+	}
+	idx++;
+	tmp2 = oo;
+	for(int i = idx - 1;i >= 0 && i / sq == idx / sq;i--){
+		tmp2 = min(tmp2 , sum2[i] + add2[i / sq]);
+		ans = max(ans , sum2[i] + add2[i / sq] + sum2[idx] + add2[idx / sq] - tmp2 - tmp2);
+	}
+	for(int i = idx / sq - 1; i >= 0;i--){
+		ans = max(ans , best2[i] - add2[i] + sum2[idx] + add2[idx / sq]);
+		ans = max(ans , sum2[idx] + add2[idx / sq] + mx2[i] + add2[i] - tmp2 - tmp2);
+		tmp2 = min(tmp2 , mn2[i] + add2[i]);
+	}
+	printf("%d\n",ans);
+}
+
+int tmp3, tmp4;
+
+inline void update(int l, int r,int val){
+	tmp3 = l / sq , tmp4 = r / sq;
+	if(tmp3 == tmp4){
+		for(int i = l ;i <= r;i++){
+			if(i != l) sum2[i] += val;
+			if(i != r) sum[i] += val;
+		}
+		build(tmp3 * sq , min((tmp3 + 1) * sq -1 , n));
+		return ;
+	}
+	for(int i = l;i < n && i / sq == tmp3;i++) sum[i] += val;
+	for(int i = l + 1;i<n&&i/sq == tmp3;i++) sum2[i] += val;
+	for(int i = r - 1;i >= 0 && i / sq == tmp4;i--) sum[i] += val;
+	for(int i = r ; i >= 0 && i / sq == tmp4;i--) sum2[i] += val;
+	build(tmp3 * sq , min((tmp3 + 1) * sq -1 , n));
+	build(tmp4 * sq , min((tmp4 + 1) * sq -1 , n));
+	tmp3++;
+	while(tmp3 < tmp4){
+		add2[tmp3] += val;
+		add[tmp3++] += val;
+	}
+}
+
+
+
+int main(){
+	scanf("%d%d",&n,&q);
+	scanf("%s",s);
+	n = 2 * (n - 1);
+	sq = sqrt(n + 1);
+	for(int i = 0 ;i < n;i++){
+		if(i) sum[i] = sum[i - 1];
+		if(s[i] == '(') sum[i]++; else sum[i]--;
+	}
+	for(int i = n - 1;i>=0;i--){
+		sum2[i] = sum2[i + 1];
+		if(s[i] == '(') sum2[i]--; else sum2[i]++;
+	}
+	for(int i = 0 ;i < n;i+=sq){
+		build(i , min(n - 1, i + sq - 1));
+	}
+	getans();
+	while(q--){
+		scanf("%d%d",&a,&b);
+		a--,b--;
+		if(a > b) swap(a,b);
+		if(s[a] == s[b]){
+			getans();
+			continue;
+		}
+		if(s[a] == '(')
+			update(a , b , -2);
+		else
+			update(a , b , 2);
+		swap(s[a] , s[b]);
+		getans();
+	}
+	return 0;
+}

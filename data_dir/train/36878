@@ -1,0 +1,118 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+
+const int N = int(2e5 + 5);
+const int M = int(1e5);
+
+struct rr {
+	int ans;
+	rr *l, *r;
+	rr() : ans(0), l(NULL), r(NULL) { }
+};
+
+typedef rr * prr;
+
+prr root = new rr();
+
+void build(prr v, int tl, int tr) {
+	if(tl == tr) {
+		return;
+	} else {
+		int tm = (tl + tr) >> 1;
+		v -> l = new rr();
+		build(v -> l, tl, tm);
+		v -> r = new rr();
+		build(v -> r, tm + 1, tr);
+	}
+}
+
+void update(prr v, int tl, int tr, int l, int r, int q) {
+	if(l > r) {
+		return;
+	}
+	if(tl == l && tr == r) {
+		v -> ans = max(v -> ans, q);
+	} else {
+		int tm = (tl + tr) >> 1;
+		update(v -> l, tl, tm, l, min(tm, r), q);
+		update(v -> r, tm + 1, tr, max(tm + 1, l), r, q);
+		v -> ans = max(v -> ans, max(v -> l -> ans, v -> r -> ans));
+	}
+}
+
+int get(prr v, int tl, int tr, int l, int r) {
+	if(l > r) {
+		return 0;
+	}
+	if(tl == l && tr == r) {
+		return v -> ans;
+	} else {
+		int tm = (tl + tr) >> 1;
+		return max(get(v -> l, tl, tm, l, min(tm, r)), get(v -> r, tm + 1, tr, max(tm + 1, l), r));
+	}
+}
+
+int n;
+vector<pair<int, int> > g[N], ans;
+int it[N];
+
+bool cmp(const pair<int, int> &a, const pair<int, int> &b) {
+	if(a.first != b.first) {
+		return a.first < b.first;
+	}
+	return a.second < b.second;
+}
+
+int main (int argc, char *argv[])
+{
+	build(root, 0, M);
+	scanf("%d", &n);	
+	ans.resize(n);
+	memset(it, 0, sizeof(it));
+	for(int i = 0; i < n; ++i) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		int s = y - x + M;
+		g[s].push_back(make_pair(x, y));
+	}
+	for(int i = 0; i < N; ++i) {
+		if(g[i].size()) {
+			sort(g[i].begin(), g[i].end(), cmp);
+		}
+	}
+	for(int i = 0; i < n; ++i) {
+		int w;
+		scanf("%d", &w);
+		w += M;
+		if(it[w] != g[w].size()) {
+			ans[i].first = g[w][it[w]].first;
+			ans[i].second = g[w][it[w]].second;
+			it[w]++;
+		} else {
+			printf("NO");
+			return 0;
+		}
+	}
+	int mx = 0;
+	for(int i = 0; i < n; ++i) {
+		int q = get(root, 0, M, ans[i].first, M);
+		if(q > ans[i].second) {
+			printf("NO");
+			return 0;
+		}
+		if(mx > ans[i].first && ans[i].second <= q) {
+			printf("NO");
+			return 0;
+		}
+		mx = max(mx, ans[i].first);
+		update(root, 0, M, 0, ans[i].first, ans[i].second);
+	}
+
+	printf("YES\n");
+	for(int i = 0; i < n; ++i) {
+		printf("%d %d\n", ans[i].first, ans[i].second);
+	}
+
+	return 0;
+}
+

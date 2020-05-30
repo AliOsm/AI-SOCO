@@ -1,0 +1,111 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <bits/stdc++.h>
+#include <unordered_map>
+#include <unordered_set>
+
+#define oo 1e9
+#define pi 3.1415926536
+#define all(x) x.begin(),x.end()
+#define sorta(x) sort(all(x))
+#define sortam(x,comp) sort(all(x),comp)
+#define sortd(x) sort(x.rbegin(),x.rend())
+#define sf(x) scanf("%d", &x);
+#define sf2(x, y) scanf("%d %d", &x, &y);
+#define sf3(x, y, z) scanf("%d %d %d", &x, &y, &z);
+#define sfll(x) scanf("%I64d", &x);
+#define sfll2(x, y) scanf("%I64d %I64d", &x, &y);
+#define sfll3(x, y, z) scanf("%I64d %I64d %I64d", &x, &y, &z);
+#define sfd(x) scanf("%f", &x);
+
+typedef long long ll;
+using namespace std;
+
+const int MAXLEN = 5010;
+struct node {
+	int len, link, nxt[26];
+	void clear() {
+		len = 0;
+		link = 0;
+		memset(nxt, -1, sizeof nxt);
+	}
+}st1[2 * MAXLEN], st2[2 * MAXLEN];
+
+int sz, last;
+vector<int>cnt1, cnt2;
+set<pair<int, int> >base;
+
+void init(node st[], vector<int>&cnt) {
+	for(int i = 0; i < 2 * MAXLEN; i++) st[i].clear();
+	sz = 1;
+	last = 0;
+	st[0].len = 0;
+	st[0].link = -1;
+	base.clear();
+	cnt.clear();
+	cnt.resize(2 * MAXLEN, 0);
+}
+
+void extend(int c, node st[], vector<int>&cnt) {
+	c -= 'a';
+	int cur = sz++;
+	st[cur].len = st[last].len + 1;
+	cnt[cur] = 1;
+	base.insert(make_pair(-st[cur].len, cur));
+	int p;
+	for(p = last; p != -1 && st[p].nxt[c] == -1; p = st[p].link)
+		st[p].nxt[c] = cur;
+
+	if(p == -1)
+		st[cur].link = 0;
+	else {
+		int q = st[p].nxt[c];
+		if(st[q].len == st[p].len + 1)
+			st[cur].link = q;
+		else {
+			int clone = sz++;
+			cnt[clone] = 0;
+			st[clone] = st[q];
+			st[clone].len = st[p].len + 1;
+			base.insert(make_pair(-st[clone].len, clone));
+			for(; p != -1 && st[p].nxt[c] == q; p = st[p].link)
+				st[p].nxt[c] = clone;
+			st[q].link = st[cur].link = clone;
+		}
+	}
+
+	last = cur;
+}
+
+void occ(node st[], vector<int>&cnt) {
+	for(set<pair<int, int> >::iterator it = base.begin(); it != base.end(); it++)
+		cnt[st[it->second].link] += cnt[it->second];
+}
+
+int fnd(int ver1, int ver2) {
+	if(ver1 &&& ver2 && cnt1[ver1] == 1 && cnt2[ver2] == 1) return 0;
+	int ret = oo;
+	for(int i = 0; i < 26; i++) {
+		if(st1[ver1].nxt[i] != -1 && st2[ver2].nxt[i] != -1) {
+			ret = min(ret, fnd(st1[ver1].nxt[i], st2[ver2].nxt[i]) + 1);
+		}
+	}
+	return ret;
+}
+
+int main() {
+	string s1, s2;
+	while(cin >> s1 >> s2) {
+		init(st1, cnt1);
+		for(int i = 0; i < s1.size(); i++) {
+			extend(s1[i], st1, cnt1);
+		}
+		occ(st1, cnt1);
+		init(st2, cnt2);
+		for(int i = 0; i < s2.size(); i++) extend(s2[i], st2, cnt2);
+		occ(st2, cnt2);
+		int res = fnd(0, 0);
+		if(res == oo) cout << -1 << endl;
+		else cout << res << endl;
+	}
+	return 0;
+}

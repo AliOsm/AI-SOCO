@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define FR(i, a, b) for(int i = a; i < b; i++)
+#define ROF(i, a, b) for(int i = a; i >= b; i--)
+#define PB push_back
+#define F first
+#define S second
+#define all(x) x.begin(), x.end()
+#define size(x) (int)x.size()
+#define fast ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+#define debug(x) cerr<< #x << ": " << x << endl;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+typedef pair <ll, ll> pll;
+
+//const int INF = 1000 * 1000 * 1000 + 1;
+const int N = 300 * 1000 + 10;
+int arr[N];
+vector <int> vec[N];
+vector <int> seg[6][N * 4];
+vector <int> temp;
+
+bool ok(int x, int l, int r, int k, int ty = 1)
+{
+	int ind1 = lower_bound(all(vec[x]), l) - vec[x].begin();
+	int ind2 = lower_bound(all(vec[x]), r) - vec[x].begin();
+	int t = ind2 - ind1;
+	if(ty == 0)
+		return (r - l - 5) < t * k;
+	return ((r - l) < t * k);
+}
+
+void merge(int v, int s, int e,int k)
+{
+	int a = v * 2, b = a + 1;
+	int i = 0, j = 0;
+	while(i < size(seg[k][a]) || j < size(seg[k][b]))
+		if(j >= size(seg[k][b]) || (i < size(seg[k][a]) && seg[k][a][i] < seg[k][b][j]))
+			temp.PB(seg[k][a][i]), i++;
+		else if(i >= size(seg[k][a]) || seg[k][a][i] > seg[k][b][j])
+			temp.PB(seg[k][b][j]), j++;
+		else
+			i++;
+	for(auto u: temp)
+		if(ok(u, s, e, k, 0))
+			seg[k][v].PB(u);
+	temp.clear();
+}
+
+void build(int k, int v, int s, int e)
+{
+	if(e - s <= 1)
+	{
+		seg[k][v].PB(arr[s]);
+		return;
+	}
+	int m = (s + e) / 2;
+	build(k, v * 2, s, m);
+	build(k, v * 2 + 1, m, e);
+	merge(v, s, e, k);
+}
+
+int ans = N + 10;
+void chck(int l, int r, int k, int v, int s, int e)
+{
+	if(r <= s || e <= l)
+		return;
+	if(l <= s && e <= r)
+	{
+		for(auto u: seg[k][v])
+			if(ok(u, l, r, k))
+			{
+				ans = min(ans, u);
+				return;
+			}
+		return;
+	}
+	int m = (s + e) / 2;
+	chck(l, r, k, v * 2, s, m);
+	chck(l, r, k, v * 2 + 1, m, e);
+}
+
+int main()
+{
+	int n, q;
+	scanf("%d %d", &n, &q);
+	FR(i, 0, n)
+	{
+		scanf("%d", arr + i);
+		vec[arr[i]].PB(i);
+	}
+
+	FR(i, 2, 6)
+		build(i, 1, 0, n);
+
+	while(q--)
+	{
+		int l, r, k;
+		scanf("%d %d %d", &l, &r, &k);
+		ans = N + 10;
+		chck(l - 1, r, k, 1, 0, n);
+		if(ans > n) ans = -1;
+		printf("%d\n", ans);
+	}
+	return 0;
+}

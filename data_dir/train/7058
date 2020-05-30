@@ -1,0 +1,45 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define rep(i, a, b) for(int i=(a); i<(b); i++)
+#define per(i, a, b) for(int i=(b)-1; i>=(a); i--)
+#define sz(a) (int)a.size()
+#define de(a) cout << #a << " = " << a << endl
+#define dd(a) cout << #a << " = " << a << " "
+#define all(a) a.begin(), a.end()
+#define pw(x) (1ll<<(x))
+#define endl "\n"
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef vector<int> vi;
+typedef double db;
+
+void file_put() {
+    freopen("filename.in", "r", stdin);
+    freopen("filename.out", "w", stdout);
+}
+
+const int N=1e5+5;
+char s[N]; int n,c; ll ret=0,f[N][11];
+
+int nxt(int x,int c) {
+	return ((x*(x-1)>>1)+c+10)%11;
+}
+
+int main() {
+	//file_put();
+	
+	scanf("%s",s+1),n=strlen(s+1);
+	per(i,1,n+1) {
+		c=s[i]-'0';
+		rep(j,c+1,11) f[i][j]=f[i+1][nxt(j,c)]+1;
+		if (c) ret+=f[i+1][c]+1;
+	}
+	printf("%lld\n",ret);
+	
+	return 0;
+}
+

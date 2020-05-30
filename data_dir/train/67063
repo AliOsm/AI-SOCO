@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+enum GRAPH { DIRECTED, UNDIRECTED };
+
+template <GRAPH type> 
+vector<int> euler_path(const vector<vector<pair<int, int>>> &G)
+{
+	int n = G.size(), m = 0;
+	for (int i = 0; i < n; ++i)
+		m += G[i].size();
+
+	bool can = false;
+	int s = 0;
+
+	if (type == UNDIRECTED) {
+		m /= 2;
+
+		int odd = 0;
+		for (int i = 0; i < n; i++) {
+			if (G[i].size() & 1)
+				s = i, odd++;
+		}
+
+		can = odd == 0 || odd == 2;
+	}
+
+	else {
+		vector <int> deg(n); //saves out - in degree
+		for (int i = 0; i < n; i++) {
+			for (auto o : G[i])
+				deg[o.first]--;
+
+			deg[i] += G[i].size();
+		}
+
+		int odd = n - count(deg.begin(), deg.end(), 0);
+		int st = 0, nd = 0;
+
+		for (int i = 0; i < n; i++) {
+			if (deg[i] == 1)
+				s = i, st++;
+
+			else if (deg[i] == -1)
+				nd++;
+		}
+
+		can = odd == 0 || (odd == 2 && st == 1 && nd == 1);
+	}
+
+	if(!can) return {};
+
+	vector<int> path;
+	vector<int> pos(n);
+	vector<bool> mark(m);
+
+	function<void(int)> visit = [&](int u)
+	{
+		for (int v, id; pos[u] < G[u].size(); )
+		{
+			tie(v, id) = G[u][pos[u]++];
+			if (!mark[id])
+			{
+				mark[id] = true;
+				visit(v);
+			}
+		}
+		path.push_back(u);
+	};
+
+	visit(s);
+	reverse(path.begin(), path.end());
+	if (path.size() != m + 1) path.clear();
+
+	return path;
+}
+
+int main() {
+	int n; scanf("%d", &n);
+
+	vector <int> a(n + 1), b(n + 1), ord;
+	for(int i = 1; i < n; i++) {
+		scanf("%d", &a[i]);
+		ord.push_back(a[i]);
+	}
+
+	for(int i = 1; i < n; i++) {
+		scanf("%d", &b[i]);
+		ord.push_back(b[i]);
+	}
+
+	sort(ord.begin(), ord.end());
+	auto it = unique(ord.begin(), ord.end());
+	ord.erase(it, ord.end());
+
+	function <int(int)> sch = [&] (int x) {
+		return (int) (lower_bound(ord.begin(), ord.end(), x) - ord.begin()) + 1;
+	};
+
+	vector <vector <pair <int, int> > > g(ord.size(), vector <pair <int, int> > ());
+	for(int i = 1; i < n; i++) {
+		if(a[i] > b[i]) {
+			printf("-1\n");
+			return 0;
+		}
+
+		int x = sch(a[i]), y = sch(b[i]);
+		x--, y--;
+		g[x].push_back({y, i - 1});
+		g[y].push_back({x, i - 1});
+	}
+
+	auto path = euler_path<UNDIRECTED>(g);
+
+	if(path.empty()) {
+		printf("-1\n");
+		return 0;
+	}
+
+	for(int o : path)
+		printf("%d ", ord[o]);
+	printf("\n");
+
+	return 0;
+}

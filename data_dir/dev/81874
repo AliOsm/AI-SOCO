@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+class TwoSat{
+	private:
+		int n;
+		vector< vector< int > > rG, G, sccs;
+		vector< int > ord, idx;
+		vector< bool > vis, result;
+		void dfs( int u ) {
+			vis[ u ] = true;
+			for ( int v : G[ u ] )
+				if ( not vis[ v ] )
+					dfs( v );
+			ord.push_back( u );
+		}
+		void rdfs( int u ) {
+			vis[ u ] = false;
+			idx[ u ] = ( ( int ) sccs.size() ) - 1;
+			sccs.back().push_back( u );
+			for ( int v : rG[ u ] )
+				if ( vis[ v ] )
+					rdfs( v );
+		}
+	public:
+		void init( int n_ ) {
+			n = n_;
+			G.clear();
+			G.resize( n );
+			rG.clear();
+			rG.resize( n );
+			sccs.clear();
+			ord.clear();
+			idx.resize( n );
+			result.resize( n );
+		}
+		void add_edge( int u, int v ) {
+			G[ u ].push_back( v );
+			rG[ v ].push_back( u );
+		}
+		void orr( int x, int y ) {
+			if ( ( x ^ y ) == 1 ) return;
+			add_edge( x ^ 1, y );
+			add_edge( y ^ 1, x );
+		}
+		bool solve() {
+			vis.clear();
+			vis.resize( n );
+			for ( int i = 0 ; i < n ; ++ i )
+				if ( not vis[ i ] )
+					dfs( i );
+			for ( int u : ord ) {
+				if ( not vis[ u ] )
+					continue;
+				sccs.push_back( vector< int >() );
+				rdfs( u );
+			}
+			for ( int i = 0 ; i < n ; i += 2 )
+				if ( idx[ i ] == idx[ i + 1 ] )
+					return false;
+			vector< bool > c( sccs.size() );
+			for ( size_t i = 0 ; i < sccs.size() ; ++ i ) {
+				for ( size_t j = 0 ; j < sccs[ i ].size() ; ++ j ) {
+					result[ sccs[ i ][ j ] ] = c[ i ];
+					c[ idx[ sccs[ i ][ j ] ^ 1 ] ] = not c[ i ];
+				}
+			}
+			return true;
+		}
+		bool get( int x ) { return result[ x ]; }
+} sat2;
+
+int main() {
+	ios_base::sync_with_stdio( false );
+	cin.tie( nullptr );
+	int n, m; cin >> n >> m;
+	sat2.init( n + n );
+	for ( int i = 0 ; i < m ; ++ i ) {
+		int u, v, x; cin >> u >> v >> x;
+		-- u, -- v;
+		if ( x ) {
+			sat2.orr( u << 1, v << 1 | 1 );
+			sat2.orr( u << 1 | 1, v << 1 );
+		} else {
+			sat2.orr( u << 1, v << 1 );
+			sat2.orr( u << 1 | 1, v << 1 | 1 );
+		}
+	}
+	if ( not sat2.solve() ) {
+		cout << "Impossible\n";
+		return 0;
+	}
+	vector< int > need;
+	for ( int i = 0 ; i < n ; ++ i )
+		if ( sat2.get( i + i ) )
+			need.push_back( i );
+	cout << need.size() << '\n';
+	for ( size_t i = 0 ; i < need.size() ; ++ i )
+		cout << need[ i ] + 1 << " \n"[ i + 1 == need.size() ];
+	return 0;
+}

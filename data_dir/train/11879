@@ -1,0 +1,135 @@
+/*
+ * Code be weshen zyk :'(
+ */
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma comment(linker, "/STACK:1024000000,1024000000")
+#include <bits/stdc++.h>
+
+//#include <ext/pb_ds/tree_policy.hpp>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/rope>
+
+using namespace std;
+//using namespace __gnu_pbds;
+//using namespace __gnu_cxx;
+
+//template<class T> using orderd_set = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+/*
+ * dp[nodeIndex][whiteNodes][whiteNodesWithParity1][blackNodeswithParity1]
+ */
+
+#define S second
+#define F first
+#define pb push_back
+
+using ii = pair<int, int>;
+using ll = long long;
+using db = long double;
+
+const int N = 50 + 5, M = 1e7 + 5, K = 20, MOD = 1e9 + 7, MOD2 = 998244353;
+const ll MX = 1e15;
+const int blkSz = 320;
+int c[N], n, p;
+int dp[N][N][N][N];
+int C[N][N], pwr[N];
+inline void fix(int & x) {
+	if (x >= MOD)
+		x -= MOD;
+	if (x < 0)
+		x += MOD;
+}
+int main() {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#endif
+
+	cin >> n >> p;
+
+	for (int i = 0; i < n; i++)
+		cin >> c[i];
+	pwr[0] = 1;
+	for (int i = 1; i < N; i++) {
+		pwr[i] = (pwr[i - 1] * 2) % MOD;
+	}
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j <= i; j++) {
+			if (i == j || j == 0)
+				C[i][j] = 1;
+			else
+				C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % MOD;
+		}
+	}
+
+	dp[0][0][0][0] = 1;
+
+	for (int node = 0; node < n; node++) {
+		for (int white = 0; white <= node; white++) {
+			int black = (node - white);
+			for (int whiteP1 = 0; whiteP1 <= white; whiteP1++) {
+				int whiteP0 = white - whiteP1;
+				for (int blackP1 = 0; blackP1 <= black; blackP1++) {
+					int blackP0 = black - blackP1;
+					int val = dp[node][white][whiteP1][blackP1];
+					if (!val)
+						continue;
+					if (c[node] != 1) {
+						///insert black
+						///it doesnt matter how many do i connect with the whites
+						///also doesn't matter how much of the parity 0 you put as it doesn't affect the parity
+						int mul = 1ll * pwr[black] * pwr[whiteP0] % MOD;
+						for (int k = 0; k <= whiteP1; k++) {
+							if (k & 1) {
+								dp[node + 1][white][whiteP1][blackP1] += 1ll
+										* mul * C[whiteP1][k] % MOD * val % MOD;
+								fix(dp[node + 1][white][whiteP1][blackP1]);
+							} else {
+								dp[node + 1][white][whiteP1][blackP1 + 1] += 1ll
+										* mul * C[whiteP1][k] % MOD * val % MOD;
+								fix(dp[node + 1][white][whiteP1][blackP1 + 1]);
+							}
+						}
+					}
+					if (c[node] != 0) {
+						//insert white
+						int mul = 1ll * pwr[white] * pwr[blackP0] % MOD;
+						for (int k = 0; k <= blackP1; k++) {
+							if (k & 1) {
+								dp[node + 1][white + 1][whiteP1][blackP1] += 1ll
+										* mul * C[blackP1][k] % MOD * val % MOD;
+								fix(dp[node + 1][white + 1][whiteP1][blackP1]);
+							} else {
+								dp[node + 1][white + 1][whiteP1 + 1][blackP1] +=
+										1ll * mul * C[blackP1][k] % MOD * val
+												% MOD;
+								fix(
+										dp[node + 1][white + 1][whiteP1 + 1][blackP1]);
+							}
+						}
+					}
+				}
+
+			}
+
+		}
+	}
+	int ans = 0;
+	for (int white = 0; white <= n; white++) {
+		int black = (n - white);
+		for (int whiteP1 = 0; whiteP1 <= white; whiteP1++) {
+			int whiteP0 = white - whiteP1;
+			for (int blackP1 = 0; blackP1 <= black; blackP1++) {
+				int blackP0 = black - blackP1;
+				if (((blackP1 + whiteP1) & 1) == p) {
+					ans += dp[n][white][whiteP1][blackP1];
+					fix(ans);
+				}
+			}
+		}
+	}
+
+	cout << ans << '\n';
+
+}

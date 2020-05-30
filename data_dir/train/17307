@@ -1,0 +1,240 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define fr first
+#define sc second
+#define ii pair<int,int>
+#define mp make_pair
+using namespace std;
+struct MaximumFlow {
+	typedef int Index;
+	typedef int Flow;
+	static const Flow InfCapacity = 1e9;
+	struct Edge {
+		Index to;
+		Flow capacity;
+		Index rev;
+	};
+	vector<vector<Edge> > g;
+	void init(Index n) { g.assign(n, vector<Edge>()); }
+	void add(Index i, Index j, Flow capacity) {
+		Edge e, f; e.to = j, f.to = i; e.capacity = capacity, f.capacity = 0;
+		g[i].push_back(e); g[j].push_back(f);
+		g[i].back().rev = (Index)g[j].size() - 1; g[j].back().rev = (Index)g[i].size() - 1;
+	}
+	void addB(Index i, Index j, Flow capacity) {
+		Edge e, f; e.to = j, f.to = i; e.capacity = capacity, f.capacity = capacity;
+		g[i].push_back(e); g[j].push_back(f);
+		g[i].back().rev = (Index)g[j].size() - 1; g[j].back().rev = (Index)g[i].size() - 1;
+	}
+	Flow maximumFlow(int s, int t) {
+		int n = g.size();
+		vector<Index> level(n);
+		Flow total = 0; bool update;
+		do {
+			update = false;
+			fill(level.begin(), level.end(), -1); level[s] = 0;
+			queue<Index> q; q.push(s);
+			for(Index d = n; !q.empty() && level[q.front()] < d; ) {
+				int u = q.front(); q.pop();
+				if(u == t) d = level[u];
+				for(int kk = 0; kk < (int)g[u].size(); kk++) {
+					Edge *e = &g[u][kk];
+					if(e->capacity > 0 && level[e->to] == -1)
+						q.push(e->to), level[e->to] = level[u] + 1;
+				}
+			}
+			vector<Index> iter(n);
+			for(Index i = 0; i < n; i ++) iter[i] = (int)g[i].size() - 1;
+			while(1) {
+				Flow f = augment(level, iter, s, t, InfCapacity);
+				if(f == 0) break;
+				total += f; update = true;
+			}
+		} while(update);
+		return total;
+	}
+	Flow augment(vector<Index> &level, vector<Index> &iter, Index u, Index t, Flow f) {
+		if(u == t || f == 0) return f;
+		Index lv = level[u];
+		if(lv == -1) return 0;
+		level[u] = -1;
+		for(; iter[u] >= 0; -- iter[u]) {
+			Edge &e = g[u][iter[u]];
+			if(level[e.to] <= lv) continue;
+			Flow l = augment(level, iter, e.to, t, min(f, e.capacity));
+			if(l == 0) continue;
+			e.capacity -= l; g[e.to][e.rev].capacity += l;
+			level[u] = lv;
+			return l;
+		}
+		return 0;
+	}
+};
+int n,k;
+int a[200] , A[200];
+int b[200] , B[200];
+int c[200];
+int ok[200005];
+void cal()
+{
+    for(int i=1; i<=n; i++)
+    {
+        if(A[i] != -1)
+        {
+            for(int j=1; j<i; j++)
+            {
+                if(B[i] == B[j])
+                {
+                    if(B[i] == 1)
+                    {
+                        A[j] = max(A[i],A[j]);
+                        A[i] = -1;
+                        B[i] = -1;
+                    }
+                    else
+                    {
+                        A[j]+=A[i];
+                        A[i] = -1;
+                        B[i] = -1;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+int take[200];
+int solve(int mid)
+{
+    memset(take,0,sizeof(take));
+    int sz = n + n*n  + 10 ;
+    int st = sz-3;
+    int En = sz-2;
+    MaximumFlow My;
+    My.init(sz);
+    for(int i=1; i<=n; i++)
+    {
+        if(c[i] <= mid)
+        {
+            A[i] = a[i];
+            B[i] = b[i];
+        }
+        else
+        {
+            A[i] = -1;
+            B[i] = -1;
+        }
+    }
+    cal();
+    vector < ii > v;
+    for(int i=1;i<=n;i++)
+    {
+        if(A[i] != -1)
+        {
+            v.push_back(mp(A[i],B[i]));
+        }
+    }
+    for(int i=0;i<v.size();i++)
+    {
+        for(int j=0;j<v.size();j++)
+        {
+            int s = v[i].sc+v[j].sc;
+            if(!ok[s])
+            {
+                take[v[i].sc] = 1;
+                take[v[j].sc] = 1;
+            }
+        }
+    }
+    ll res = 0;
+    int cnt = 1;
+    ll temp = 0;
+    for(int i=0;i<v.size();i++)
+    {
+        int node = v[i].sc;
+        int cost = v[i].fr;
+        if(!take[node])
+        {
+            res+=cost;
+        }
+        else
+        {
+            if(v[i].sc %2 == 0)
+                My.add(st,i+1,cost);
+            else
+            {
+                My.add(i+1,En,cost);
+            }
+            temp+=cost;
+            cnt++;
+        }
+    }
+    if(cnt > 1)
+    {
+     for(int i=0;i<v.size();i++)
+     {
+         for(int j=i+1;j<v.size();j++)
+         {
+             int x = v[i].sc+v[j].sc;
+             if(!ok[x])
+             {
+                 if(v[i].sc % 2 == 0)
+                    {
+                        My.add(i+1,j+1,1e9);
+                    }
+                 else
+                 {
+                        My.add(j+1,i+1,1e9);
+                 }
+                 cnt++;
+             }
+         }
+     }
+     ll f = My.maximumFlow(st,En);
+     res+=(temp-f);
+    }
+   if(res >= k)
+    return 1;
+   return 0;
+}
+int main()
+{
+    ok[0] = 1;
+    ok[1] = 1;
+    for(int i=2; i<200005; i++)
+    {
+        if(!ok[i])
+        {
+            for(int j=i*2; j<200005; j+=i)
+                ok[j] = 1;
+        }
+    }
+    cin>>n>>k;
+    for(int i=1; i<=n; i++)
+    {
+        cin>>a[i]>>b[i]>>c[i];
+    }
+    int st = 1 , En = 200000;
+    int ans = En;
+    bool ok = 0;
+    while(st <= En)
+    {
+        int mid = (st+En)/2;
+        if(solve(mid))
+        {
+            En = mid-1;
+            ans = mid;
+            ok = 1;
+        }
+        else
+        {
+            st = mid+1;
+        }
+    }
+    if(!ok)
+    {
+        ans = -1;
+    }
+    cout<<ans<<endl;
+    return 0;
+}

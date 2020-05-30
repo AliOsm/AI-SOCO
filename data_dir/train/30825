@@ -1,0 +1,155 @@
+#include<iostream>
+#include<vector>
+#include<sstream>
+#include<algorithm>
+#include<numeric>
+#include<cstdio>
+#include<cstdlib>
+#include<cstring>
+#include<cmath>
+#include<complex>
+#include<set>
+#include<map>
+#include<queue>
+#include<cassert>
+
+using namespace std;
+
+#define rep(i,n) for(int i=0;i<(int)n;i++)
+#define rp(i,c) rep(i,(c).size())
+#define fr(i,c) for(__typeof((c).begin()) i=(c).begin();i!=(c).end();i++)
+#define pb push_back
+#define mp make_pair
+#define all(c) (c).begin(),(c).end()
+#define dbg(x) cerr<<#x<<" = "<<(x)<<endl
+
+typedef vector<int> vi;
+typedef vector<string> vs;
+typedef pair<int,int> pi;
+typedef long long ll;
+
+const int inf=1<<28;
+const double INF=1e12,EPS=1e-9;
+
+typedef complex<double> P;
+namespace std {
+  bool operator < (const P& a, const P& b) {
+    return real(a) != real(b) ? real(a) < real(b) : imag(a) < imag(b);
+  }
+}
+inline double cross(const P& a, const P& b) {
+  return imag(conj(a)*b);
+}
+inline double dot(const P& a, const P& b) {
+  return real(conj(a)*b);
+}
+
+typedef pair<P, P> L;
+#define F first
+#define S second
+
+typedef vector<P> G;
+struct C {
+  P p; double r;
+  C(const P &p, double r) : p(p), r(r) { }
+};
+inline int ccw(P a, P b, P c) {
+  b -= a; c -= a;
+  if (cross(b, c) > 0)   return +1;       // counter clockwise
+  if (cross(b, c) < 0)   return -1;       // clockwise
+  if (dot(b, c) <= 0)     return +2;       // c--a--b on line
+  if (norm(b) < norm(c)) return -2;       // a--b--c on line
+  return 0;
+}
+inline P projection(const L &l, const P &p) {
+	/*
+	if(norm(l.F-l.S) < EPS){
+		dbg(l.F); dbg(l.S); dbg(p);
+	}
+	assert(norm(l.F-l.S) > EPS);
+	*/
+  double t = dot(p-l.F, l.F-l.S) / norm(l.F-l.S);
+  return l.F + t*(l.F-l.S);
+}
+inline bool intersectSS(const L &s, const L &t) {
+  return ccw(s.F,s.S,t.F)*ccw(s.F,s.S,t.S) <= 0 &&
+         ccw(t.F,t.S,s.F)*ccw(t.F,t.S,s.S) <= 0;
+}
+inline bool intersectSP(const L &s, const P &p) {
+	return ccw(p, s.S, s.F) == 2;
+}
+inline double distanceSP(const L &s, const P &p) {
+  const P r = projection(s, p);
+  if (intersectSP(s, r)) return abs(r - p);
+  return min(abs(s.F - p), abs(s.S - p));
+}
+inline double distanceSS(const L &s, const L &t) {
+  if (intersectSS(s, t)) return 0;
+  return min(min(distanceSP(s, t.F), distanceSP(s, t.S)),
+             min(distanceSP(t, s.F), distanceSP(t, s.S)));
+}
+
+bool v[1010];
+L ss[1010];
+
+void run()
+{
+	int n, a, b, ax, ay, bx, by;
+	scanf("%d%d%d%d%d%d%d", &a, &b, &ax, &ay, &bx, &by, &n);
+	
+	rep(i, n){
+		int sx, sy, tx, ty;
+		scanf("%lf%lf%lf%lf", &ss[i].F.real(), &ss[i].F.imag(),
+			&ss[i].S.real(), &ss[i].S.imag());
+	}
+	
+	ss[n].F.real() = ss[n].S.real() = ax;
+	ss[n].F.imag() = ss[n].S.imag() = ay; n++;
+	ss[n].F.real() = ss[n].S.real() = bx;
+	ss[n].F.imag() = ss[n].S.imag() = by; n++;
+	
+	vector<vi> e(n);
+	
+	rep(i, n) rep(j, i){
+		double dist;
+		if(i >= n-2 && j >= n-2) dist = abs(ss[i].F - ss[j].F);
+		else if(i >= n-2) dist = distanceSP(ss[j], ss[i].F);
+		else if(j >= n-2) dist = distanceSP(ss[i], ss[j].F);
+		else dist = distanceSS(ss[i], ss[j]);
+		
+		if(dist < a + EPS){
+			e[i].pb(j);
+			e[j].pb(i);
+		}
+	}
+	rep(i, n) v[i] = 0;
+	
+	queue<pi> q;
+	q.push(mp(0, n-2));
+	v[n-2] = 1;
+	double ans = 1e9;
+	
+	while(!q.empty()){
+		int c = q.front().second;
+		int turn = q.front().first; q.pop();
+		
+		rep(i, e[c].size()) {
+			if(!v[e[c][i]]) q.push(mp(turn + 1, e[c][i]));
+			if(e[c][i] == n-1){
+				ans = min(ans, 1.0 * (a + b) * turn + distanceSP(ss[c], ss[n-1].F));
+			}
+			v[e[c][i]] = 1;
+		}
+	}
+	
+	if(ans == 1e9) puts("-1");
+	else printf("%.20f\n", ans);
+}
+
+int main()
+{
+#ifndef ONLINE_JUDGE
+	int cs=3;rep(i,cs)
+#endif
+	run();
+}

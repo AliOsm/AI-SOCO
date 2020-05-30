@@ -1,0 +1,104 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+#define MOD 1000000007ll
+
+int A,B; // A 50, B 100
+int id[60][60][2]; // 50, 100, boat
+ll graph[1400][1400];
+ll C[60][60];
+
+#define INF (1<<29)
+queue <int> q;
+vector <pair <int, int> > p; // dist, id
+int dist[1400];
+ll dp[1400];
+
+int main(void){
+    int N,W,x,i,j,k,i2,j2;
+    
+    REP(i,60) REP(j,i+1){
+        if(j == 0 || j == i) C[i][j] = 1;
+        else C[i][j] = (C[i-1][j-1] + C[i-1][j]) % MOD;
+    }
+    
+    cin >> N >> W;
+    REP(i,N){
+        cin >> x;
+        if(x == 50) A++; else B++;
+    }
+    
+    int V = 0;
+    REP(i,A+1) REP(j,B+1) REP(k,2){
+        id[i][j][k] = V;
+        V++;
+    }
+    
+    // 0 -> 1
+    REP(i,A+1) REP(j,B+1) REP(i2,A+1) REP(j2,B+1) if(i2*50 + j2*100 <= W && i2 + j2 > 0 && i+i2 <= A && j+j2 <= B){
+        ll tmp = C[A-i][i2] * C[B-j][j2] % MOD;
+        int s = id[i][j][0], t = id[i+i2][j+j2][1];
+        graph[s][t] = (graph[s][t] + tmp) % MOD;
+    }
+    
+    // 1 -> 0
+    REP(i,A+1) REP(j,B+1) REP(i2,A+1) REP(j2,B+1) if(i2*50 + j2*100 <= W && i2 + j2 > 0 && i-i2 >= 0 && j-j2 >= 0){
+        ll tmp = C[i][i2] * C[j][j2] % MOD;
+        int s = id[i][j][1], t = id[i-i2][j-j2][0];
+        graph[s][t] = (graph[s][t] + tmp) % MOD;
+    }
+    
+    int start = id[0][0][0];
+    int goal = id[A][B][1];
+    
+    REP(i,V) dist[i] = INF;
+    dist[start] = 0;
+    q.push(start);
+    
+    while(!q.empty()){
+        int x = q.front(); q.pop();
+        REP(i,V) if(graph[x][i] > 0 && dist[i] == INF){
+            dist[i] = dist[x] + 1;
+            q.push(i);
+        }
+    }
+    
+    REP(i,V) p.push_back(make_pair(dist[i], i));
+    sort(p.begin(), p.end());
+    
+    dp[start] = 1;
+    REP(i,p.size()) REP(j,i){
+        int x = p[i].second, y = p[j].second;
+        if(dist[x] == dist[y] + 1) dp[x] = (dp[x] + dp[y] * graph[y][x]) % MOD;
+    }
+    
+    if(dist[goal] == INF){
+        cout << -1 << endl << 0 << endl;
+    } else {
+        cout << dist[goal] << endl << dp[goal] << endl;
+    }
+    
+    return 0;
+}

@@ -1,0 +1,71 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 2e5 + 5;
+
+int n, q;
+int par[N], cnt[N];
+vector<pair<int, pair<int, int>>> edges;
+pair<int, int> qs[N];
+long long ans[N];
+
+void init()
+{
+  for(int i = 0 ; i < n ; i++)
+    par[i] = i, cnt[i] = 1;
+}
+
+int fs(int x)
+{
+  return par[x] == x ? x : par[x] = fs(par[x]);
+}
+
+long long get_sz(int node)
+{
+  return 1LL * cnt[node] * (cnt[node] - 1) / 2;
+}
+
+void add_edge(int idx, long long& cur)
+{
+  int u = edges[idx].second.first;
+  int v = edges[idx].second.second;
+  u = fs(u);
+  v = fs(v);
+  if(u != v){
+    cur -= get_sz(u);
+    cur -= get_sz(v);
+    par[u] = v;
+    cnt[v] += cnt[u];
+    cur += get_sz(v);
+  }
+}
+
+int main()
+{
+  scanf("%d%d", &n, &q);
+  init();
+  for(int i = 1 ; i < n ; i++){
+    int u, v, w;
+    scanf("%d%d%d", &u, &v, &w);
+    edges.pb({w, {--u, --v}});
+  }
+  sort(all(edges));
+  for(int i = 0 ; i < q ; i++){
+    scanf("%d", &qs[i].first);
+    qs[i].second = i;
+  }
+  sort(qs, qs + q);
+  int e = 0;
+  long long cur = 0;
+  for(int i = 0 ; i < q ; i++){
+    while(e < sz(edges) && edges[e].first <= qs[i].first)
+      add_edge(e++, cur);
+    ans[qs[i].second] = cur;
+  }
+  for(int i = 0 ; i < q ; i++)
+    printf("%I64d ", ans[i]);
+  return 0;
+}

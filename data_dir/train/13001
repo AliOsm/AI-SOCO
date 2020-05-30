@@ -1,0 +1,171 @@
+#ifdef DEBUG
+#define _GLIBCXX_DEBUG
+#endif
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+mt19937 mrand(random_device{} ()); 
+
+int rnd(int x) {
+  return mrand() % x;
+}
+
+typedef long double ld;
+typedef long long ll;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf(stderr, __VA_ARGS__), fflush(stderr)
+#else
+#define eprintf(...) ;
+#endif
+
+#define pb push_back
+#define mp make_pair
+#define sz(x) ((int) (x).size())
+#define TASK "text"
+
+const int inf = (int) 1.01e9;
+const ld eps = 1e-9;
+const ld pi = acos((ld) -1.0);
+
+void precalc() {
+}
+
+const int maxn = (int) 1e5 + 10;
+
+int n, m, k;
+
+int ps[maxn][2];
+
+int read() {
+  if (scanf("%d%d%d", &n, &m, &k) < 3) {
+    return 0;
+  }
+  for (int i = 0; i < k; ++i) {
+    scanf("%d%d", ps[i], ps[i] + 1);
+  }
+  return 1;
+}
+
+const int maxv = maxn * 5;
+int qs[maxv][2];
+int cnt;
+
+set<pair<int, pair<int, int> > > diffs, sums;
+
+void addp(int x, int y) {
+  diffs.insert(mp(x - y, mp(x + y, cnt)));
+  sums.insert(mp(x + y, mp(x - y, cnt)));
+  qs[cnt][0] = x, qs[cnt][1] = y, ++cnt;
+}
+
+int used[maxv];
+
+const int gox[4] = {1, 1, -1, -1}, goy[4] = {1, -1, -1, 1};
+
+long long ans[maxn];
+
+void solve() {
+  diffs.clear(), sums.clear();
+  cnt = 0;
+
+  for (int i = 0; i <= m; ++i) {
+    addp(0, i);
+    addp(n, i);
+  }
+  for (int i = 1; i < n; ++i) {
+    addp(i, 0);
+    addp(i, m);
+  }
+  for (int i = 0; i < k; ++i) {
+    addp(ps[i][0], ps[i][1]);
+    ans[i] = -1;
+  }
+
+
+  for (int i = 0; i < cnt; ++i) {
+    used[i] = 0;
+  }
+
+  assert(qs[0][0] == 0 && qs[0][1] == 0);
+
+  int v = 0, dir = 0;
+  long long t = 0;
+
+  while (1) {
+    auto &tree = (dir & 1) ? sums : diffs;
+    int x = qs[v][0], y = qs[v][1];
+    //eprintf("(%d,%d) with dir = (%d,%d)  %d\n", x, y, gox[dir], goy[dir], dir);
+    int cx = x - y, cy = x + y;
+    if (dir & 1) {
+      swap(cx, cy);
+    }
+
+    auto iter = tree.lower_bound(mp(cx, mp(cy, v)));
+    if ((!(dir & 1) ? gox[dir] + goy[dir] : (gox[dir] - goy[dir])) < 0) {
+      --iter;
+    } else {
+      ++iter;
+    }
+    int nv = iter->second.second;
+    //eprintf("got to (%d,%d)\n", qs[nv][0], qs[nv][1]);
+    if ((qs[nv][0] == 0 || qs[nv][0] == n) && (qs[nv][1] == 0 || qs[nv][1] == m)) {
+      break;
+    }
+    t += abs(qs[v][0] - qs[nv][0]);
+    if (nv >= cnt - k) {
+      auto &cur = ans[nv - (cnt - k)];
+      if (cur == -1) {
+        cur = t;
+      }
+    } else {
+      if (used[nv]) {
+        break;
+      }
+      used[nv] = 1;
+    }
+    if (qs[nv][0] == 0 || qs[nv][0] == n) {
+      for (int it = -1; it <= 1; it += 2) {
+        int ndir = ((dir + it) & 3);
+        if (gox[ndir] != gox[dir]) {
+          dir = ndir;
+          break;
+        }
+      }
+    }
+    if (qs[nv][1] == 0 || qs[nv][1] == m) {
+      for (int it = -1; it <= 1; it += 2) {
+        int ndir = ((dir + it) & 3);
+        if (goy[ndir] != goy[dir]) {
+          dir = ndir;
+          break;
+        }
+      }
+    }
+    v = nv;
+  }
+  for (int i = 0; i < k; ++i) {
+    printf("%lld\n", ans[i]);
+  }
+}
+
+int main() {
+  precalc();
+#ifdef LOCAL
+  freopen(TASK ".out", "w", stdout);
+  assert(freopen(TASK ".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time %.2f\n", (double) clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

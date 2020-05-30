@@ -1,0 +1,49 @@
+// In the name of Allah the Lord of the Worlds.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+int main(void)
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);cout.tie(0);
+
+    int n , m;
+    deque<pair<int , int> >dq;
+    vector<pair<int , int> >v;
+    vector<int>input;
+    cin >> n >> m;
+    for(int i=0;i<n;i++){
+        int in;
+        cin >> in;
+        v.push_back({in%m , i});
+        input.push_back(in);
+    }
+    sort(v.begin(), v.end());
+    for(auto it:v)dq.push_back(it);
+    ll ans = 0 , now = 0 , cnt = 0;
+    for(int i=0;i<n;i++){
+        if(now==dq.front().first)dq.pop_front();
+        else if(now>dq.front().first){
+            ans+=now-dq.front().first;
+            input[dq.front().second] += now-dq.front().first;
+            dq.pop_front();
+        }
+        else{
+            ans+=(m-dq.back().first+now);
+            input[dq.back().second] += (m-dq.back().first+now);
+            dq.pop_back();
+        }
+        cnt++;
+        if(cnt==n/m){
+            cnt = 0;
+            now++;
+        }
+    }
+    cout << ans << endl;
+    for(auto it:input)cout << it << " ";
+
+    return 0;
+}

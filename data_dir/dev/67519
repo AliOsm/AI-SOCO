@@ -1,0 +1,256 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef int ll;
+typedef long double ld;
+typedef pair<int,int> pi;
+typedef pair<ll,ll> pll;
+
+#define endl '\n'
+#define ff first
+#define ss second
+#define pb push_back
+#define f(i,l,r) for(ll i=l;i<=r;i++)
+#define rf(i,r,l) for(ll i=r;i>=l;i--)
+#define Max 5000001
+#define inf 2147483647
+#define llinf 9223372036854775807
+#define all(v) v.begin(),v.end()
+#define bp(n) __builtin_popcountll(n)
+#define fast ios_base::sync_with_stdio(false),cin.tie(NULL),cout.tie(NULL)
+
+#define d0(a) cout<<a<<' ';
+#define d1(a) cout<<a<<endl;
+#define d2(a,b) cout<<a<<' '<<b<<endl;
+#define d3(a,b,c) cout<<a<<' '<<b<<' '<<c<<endl;
+#define d4(a,b,c,d) cout<<a<<' '<<b<<' '<<c<<' '<<d<<endl;
+#define d5(a,b,c,d,e) cout<<a<<' '<<b<<' '<<c<<' '<<d<<' '<<e<<endl;
+#define d6(a,b,c,d,e,f) cout<<a<<' '<<b<<' '<<c<<' '<<d<<' '<<e<<' '<<f<<endl;
+
+const ll N=3e5+5,mod=1e9+7,bit=61;
+
+
+class BCC
+{
+    public:
+
+        int n,m,tim=0,grp=0;
+        vector<int> u,v,w,tin,minAnc,store,from;
+        vector<vector<pair<int,int>>> adj;
+        vector<vector<int>> tree;
+        vector<bool> vis,isBridge;
+
+        BCC() {}
+
+        BCC(int _n,int _m)   // Indexing starts from 1
+        {
+            n=_n;
+            m=_m;
+            u=vector<int> (m+1);
+            v=vector<int> (m+1);
+            w=vector<int> (m+1);
+            minAnc=vector<int> (n+1);
+            tin=vector<int> (n+1);
+            vis=vector<bool> (n+1);
+            isBridge=vector<bool> (m+1);
+            adj=vector<vector<pair<int,int>>> (n+1);
+            tree=vector<vector<int>> (n+1);
+        }
+
+        // Clears the graph and already available bridge tree
+        void reset()
+        {
+            for(int i=1;i<=n;i++)
+            {
+                adj[i].clear();
+                tree[i].clear();
+                vis[i]=0;
+            }
+        }
+
+        // Adds an edge with id and weight
+        void addedge(int _u,int _v,int _w,int _id)
+        {
+            int id=_id;
+            u[id]=_u;
+            v[id]=_v;
+            w[id]=_w;
+            adj[u[id]].push_back({v[id],id});
+            adj[v[id]].push_back({u[id],id});
+        }
+
+        // Tells whether edge is bridge or not and vertex is articulation point or not
+        void bridgeAndArt()
+        {
+            fill(vis.begin(),vis.end(),0);
+            fill(isBridge.begin(),isBridge.end(),0);
+            for(int i=1;i<=n;i++)   // Graph may be disconnected
+            {
+                if(!vis[i])
+                {
+                    tim=0;
+                    dfs1(i,-1);
+                }
+            }
+        }
+
+        // This generates bridge tree of the given graph
+        void makeTree()
+        {
+            bridgeAndArt();
+            fill(vis.begin(),vis.end(),0);
+            grp=0;
+            for(int i=1;i<=n;i++)      // Graph may be disconnected
+            {
+                if(!vis[i])
+                {
+                    grp++;
+                    dfs2(i);
+                }
+            }
+        }
+
+        // Find and mark all bridges and articulation points in given connected component
+        void dfs1(int u,int par)
+        {
+            vis[u]=1;
+            tin[u]=++tim;
+            minAnc[u]=tin[u];
+            for(auto v:adj[u])
+            {
+                int ver=v.first;
+                if(ver==par)
+                {
+                    continue;
+                }
+                if(vis[ver])  // we encountered back edge
+                {
+                    minAnc[u]=min(minAnc[u],tin[ver]);
+                    continue;
+                }
+                dfs1(ver,u);
+                minAnc[u]=min(minAnc[u],minAnc[ver]);
+                int x=min(ver,u);
+                int y=max(ver,u);
+                if(minAnc[ver]>tin[u])
+                {
+                    isBridge[v.second]=1;
+                }
+            }
+        }
+
+        // Generate bridge tree for the given connected graph
+        void dfs2(int u)
+        {
+            queue<int> Q;
+            int comp=grp;
+            Q.push(u);
+            vis[u]=1;
+            while(!Q.empty())  // current queue explores one bridge component
+            {
+                int ver=Q.front();
+                Q.pop();
+                for(auto v:adj[ver])
+                {
+                    int to=v.first;
+                    int id=v.second;
+                    if(vis[to])
+                    {
+                        continue;
+                    }
+                    if(isBridge[id])   // We encountered another bridge component
+                    {
+                        grp++;
+                        tree[comp].push_back(grp);
+                        tree[grp].push_back(comp);
+                        dfs2(to);
+                    }
+                    else
+                    {
+                        Q.push(to);
+                        vis[to]=1;
+                    }
+                }
+            }
+        }
+};
+
+BCC obj;
+ll n,m,dis[N];
+
+void bfs(ll s)
+{
+    queue<ll> mq;
+    mq.push(s);
+    for(int i=0;i<=obj.grp;i++)
+    {
+        dis[i]=inf;
+    }
+    dis[s]=0;
+    while(!mq.empty())
+    {
+        auto u=mq.front();
+        mq.pop();
+        for(auto v:obj.tree[u])
+        {
+            if(dis[v]>1+dis[u])
+            {
+                dis[v]=1+dis[u];
+                mq.push(v);
+            }
+        }
+    }
+}
+
+signed main()
+{
+    fast;
+
+    ll t=1;
+    //cin>>t;
+    while(t--)
+    {
+        cin>>n>>m;
+        obj=BCC(n,m);
+        f(i,1,m)
+        {
+            ll u,v;
+            cin>>u>>v;
+            obj.addedge(u,v,1,i);
+        }
+        obj.makeTree();
+        bfs(1);
+        ll mx=-1,id=-1;
+        f(i,1,obj.grp)
+        {
+            if(dis[i]>mx)
+            {
+                mx=dis[i];
+                id=i;
+            }
+        }
+        bfs(id);
+        f(i,1,obj.grp)
+        {
+            mx=max(mx,dis[i]);
+        }
+        cout<<mx<<endl;
+    }
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

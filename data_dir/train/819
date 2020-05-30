@@ -1,0 +1,135 @@
+/*
+ * hopeless can you hear me calling ?
+ */
+#pragma GCC optimize ("O3")
+#pragma GCC target ("sse4")
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ff first
+#define ss second
+#define FOR(i,a,b) for(int i = a; i < b; i++)
+#define pb push_back
+
+using ii = pair<int,int>;
+using ll = long long;
+using ull = unsigned long long;
+
+const int N = 1000005;
+const int mod = 1000000007;
+
+int p[N];
+int n, q, l, r;
+vector<int> adj[N];
+int lvl[N], tb[N][18];
+int lcaTable[N][18];
+void dfs(int u, int p) {
+
+	for (int i = 1; i < 18; i++)
+		tb[u][i] = tb[tb[u][i - 1]][i - 1];
+
+	for (auto v : adj[u])
+		if (v != p) {
+			lvl[v] = lvl[u] + 1;
+			tb[v][0] = u;
+			dfs(v, u);
+		}
+}
+int S[N];
+int getLCA(int u, int v) {
+	if (lvl[u] > lvl[v])
+		swap(u, v);
+	int d = lvl[v] - lvl[u];
+	for (int i = 0; i < 18; i++)
+		if (d >> i & 1)
+			v = tb[v][i];
+	if (u == v)
+		return u;
+	for (int i = 17; i >= 0; --i)
+		if (tb[u][i] != tb[v][i])
+			u = tb[u][i], v = tb[v][i];
+	return tb[u][0];
+}
+void buildLCA() {
+	for (int i = 2; i <= n; i++)
+		S[i] = S[i >> 1] + 1;
+
+	for (int i = 1; i <= n; i++)
+		lcaTable[i][0] = i;
+	for (int j = 1; (1 << j) <= n; j++)
+		for (int i = 1; i + (1 << (j - 1)) <= n; i++)
+			lcaTable[i][j] = getLCA(lcaTable[i][j - 1],
+					lcaTable[i + (1 << (j - 1))][j - 1]);
+}
+int qry(int l, int r) {
+	int k = S[r - l + 1];
+	return getLCA(lcaTable[l][k], lcaTable[r - (1 << k) + 1][k]);
+}
+int solve(int l, int r, int rem) {
+	if (rem == r)
+		return qry(l, r - 1);
+	if (rem == l)
+		return qry(l + 1, r);
+	return getLCA(qry(l, rem - 1), qry(rem + 1, r));
+}
+int main() {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#endif
+
+	cin >> n >> q;
+
+	FOR(i,2,n+1)
+	{
+		cin >> p[i];
+		adj[p[i]].pb(i);
+	}
+
+	dfs(1, 1);
+	buildLCA();
+
+//	cout << qry(4,5) << '\n';
+	FOR(i,1,q+1)
+	{
+		cin >> l >> r;
+		int x = qry(l, r);
+
+		int lo = l, hi = r;
+
+		while (lo < hi) {
+			int md = lo + (hi - lo) / 2;
+			if (qry(l, md) == x)
+				hi = md;
+			else
+				lo = md + 1;
+		}
+		///Check erase lo
+		int candidate1 = lo;
+		lo = l, hi = r;
+
+		while (lo < hi) {
+			int md = lo + (hi - lo + 1) / 2;
+			if (qry(md, r) == x)
+				lo = md;
+			else
+				hi = md - 1;
+		}
+
+		int candidate2 = lo;
+		int ans1, ans2;
+		ans1 = solve(l, r, candidate1);
+		ans2 = solve(l, r, candidate2);
+		if (lvl[ans1] >= lvl[ans2]) {
+//			cout << l << ' ' << r << ' ' << candidate1 << ' ' << ans1 << '\n';
+//			cout << solve(l,r,candidate1) << '\n';
+			cout << candidate1 << ' ' << lvl[ans1] << '\n';
+		} else
+			cout << candidate2 << ' ' << lvl[ans2] << '\n';
+
+	}
+
+	return 0;
+}

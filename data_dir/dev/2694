@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(n) ((int)(n).size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+
+const int NEUT = 0, MAXN = 3e5+10;
+int a[MAXN], tree[4*MAXN], lazy[4*MAXN];
+
+int op(int a, int b){
+  return max(a,b);
+}
+
+void unlazy(int node, int start, int end){
+  tree[node] += lazy[node];
+  if(start != end){
+    lazy[2*node] += lazy[node];
+    lazy[2*node+1] += lazy[node];
+  }
+  lazy[node] = 0;
+}
+
+void update(int l, int r, int val, int node = 1, int start = 1, int end = MAXN){
+  if(lazy[node]) unlazy(node, start, end);
+  if(start > end || start > r || end < l) return;
+  if(l <= start && end <= r){
+    tree[node] += val;
+    if(start != end){
+      lazy[2*node] += val;
+      lazy[2*node+1] += val;
+    }
+    return;
+  }
+  int mid = (start + end) / 2;
+  update(l, r, val, 2*node, start, mid);
+  update(l, r, val, 2*node + 1, mid + 1, end);
+  tree[node] = op(tree[2*node], tree[2*node+1]);
+}
+
+int query(int l, int r, int node = 1, int start = 1, int end = MAXN){
+  if(start > end || start > r || end < l) return NEUT;
+  if(lazy[node]) unlazy(node, start, end);
+  if(l <= start && end <= r) return tree[node];
+  int mid = (start + end) / 2;
+  return op(query(l, r, 2*node, start, mid), query(l, r, 2*node + 1, mid + 1, end));
+}
+
+vector<pair<ii,ii>> to[MAXN];
+int l[MAXN], r[MAXN], v[MAXN], acum[MAXN];
+
+int main(){FIN;
+  int n; cin >> n;
+  fore(i,0,n){
+    cin >> l[i] >> v[i] >> r[i];
+    //x -> [l,v]
+    //y -> [v,r]
+    to[l[i]].pb({{v[i],r[i]}, {1,i+1}});
+    to[v[i]+1].pb({{v[i],r[i]},{-1,i+1}});
+  }
+  ii mx = {0,-1};
+  fore(i,1,MAXN){
+    for(auto x : to[i]) update(x.fst.fst,x.fst.snd,x.snd.fst);
+    mx = max(mx, {query(1,MAXN), i});
+  }
+  cout << mx.fst << endl;
+  fore(j,0,n) if(l[j] <= mx.snd && mx.snd <= v[j]) acum[v[j]]++, acum[r[j]+1]--;
+  int now = 0;
+  fore(j,1,MAXN){
+    now += acum[j];
+    if(now == mx.fst){
+      fore(k,0,n) if(l[k] <= mx.snd && mx.snd <= v[k] && v[k] <= j && j <= r[k]) cout << k+1 << " "; cout << endl;
+      return 0;
+    }
+  }
+}

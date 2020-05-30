@@ -1,0 +1,175 @@
+//              +-- -- --++-- +-In the name of ALLAH-+ --++-- -- --+              \\
+
+#include <bits/stdc++.h>
+
+using namespace std ;
+using pii = pair <int , int> ;
+
+const int N = 1e5 + 20 , LG = 22 , inf = 1e9 + 20 ;
+int n , m , par[LG][N] , h[N] , cnt[N] ;
+bool mark[N] ;
+vector <pii> g[N] ;
+
+int d1[N] , d2[N] , d3[N] , up[N] ;
+int td1[N] , td2[N] , td3[N] , tup[N] ;
+
+void pre () {
+	fill(d1 , d1 + N , -inf) ;
+	fill(d2 , d2 + N , -inf) ;
+	fill(d3 , d3 + N , -inf) ;
+	fill(up , up + N , -inf) ;
+
+	memset(td1 , -1 , sizeof td1) ;
+	memset(td2 , -1 , sizeof td2) ;
+	memset(td3 , -1 , sizeof td3) ;
+	memset(tup , -1 , sizeof tup) ;
+}
+
+inline void ok (int v) {
+	if (d2[v] < d3[v]) swap(d2[v] , d3[v]) , swap(td2[v] , td3[v]) ;
+	if (d1[v] < d2[v]) swap(d1[v] , d2[v]) , swap(td1[v] , td2[v]) ;
+}
+
+void dfs_down (int v , int par = -1) {
+	if (mark[v]) d1[v] = 0 , td1[v] = v ; 
+	
+	for (pii ed : g[v]) {
+		int u , w ;
+		tie(u , w) = ed ;
+
+		if (u == par) continue ;
+
+		dfs_down(u , v) ;
+
+		if (d3[v] < d1[u] + w) {
+			d3[v] = d1[u] + w ;
+			if (d1[u] == d2[u]) td3[v] = u ;
+			else td3[v] = td1[u] ;
+		}
+	
+		ok(v) ;
+	}
+}
+
+void dfs_up (int v , int par = -1) {
+	if (mark[v] && up[v] < 0) up[v] = 0 , tup[v] = v ;
+
+	if (up[v] > d3[v]) d3[v] = up[v] , td3[v] = tup[v] ;
+	ok(v) ;
+	
+	for (pii ed : g[v]) {
+		int u , w ;
+		tie(u , w) = ed ;
+
+		if (u == par) continue ;
+
+		if (td1[v] == u || td1[v] == td1[u]) { // d2 , d3
+			up[u] = d2[v] + w ;
+			if (d2[v] == d3[v]) tup[u] = v ;
+			else tup[u] = td2[v] ;
+		}
+		else if (td2[v] == u || td2[v] == td1[u]) { // d1 , d3
+			up[u] = d1[v] + w ;
+			if (d1[v] == d3[v]) tup[u] = v ;
+			else tup[u] = td1[v] ;
+		}
+		else { // d1 , d2
+			up[u] = d1[v] + w ;
+			if (d1[v] == d2[v]) tup[u] = v ;
+			else tup[u] = td1[v] ;
+		}
+
+		dfs_up(u , v) ;
+	}
+}
+
+void build_par (int v) {
+	for (int i = 1 ; i < LG ; i ++) 
+		if (~par[i - 1][v]) par[i][v] = par[i - 1][par[i - 1][v]] ;
+
+	for (pii ed : g[v]) {
+		int u = ed.first ;
+		if (u != par[0][v]) {
+			par[0][u] = v ;
+			h[u] = h[v] + 1 ;
+			build_par(u) ;
+		}
+	}
+}
+
+inline int lca (int u , int v) {
+	if (h[u] > h[v]) swap(u , v) ;
+
+	for (int i = 0 ; i < LG ; i ++) 
+		if ((h[v] - h[u]) & (1 << i)) v = par[i][v] ;
+
+	if (u == v) return u ;
+
+	for (int i = LG - 1 ; i >= 0 ; i --)
+		if (par[i][u] != par[i][v]) u = par[i][u] , v = par[i][v] ;
+
+	return par[0][u] ;
+}
+
+void dfs_calc (int v) {
+	for (pii ed : g[v]) {
+		int u = ed.first ;
+		if (u != par[0][v]) {
+			dfs_calc(u) ;
+			cnt[v] += cnt[u] ;
+		}
+	}
+}
+
+int main(){
+	ios::sync_with_stdio(false) , cin.tie(0) , cout.tie(0) ;
+	
+	pre() ;
+
+	cin >> n >> m ;
+
+	for (int i = 0 ; i < m ; i ++) {
+		int v ;
+		cin >> v ;
+		v -- ;
+		mark[v] = 1 ;
+	}
+
+	for (int i = 0 ; i < n - 1 ; i ++) {
+		int u , v , w ;
+		cin >> u >> v >> w ;
+		u -- , v -- ;
+		g[u].push_back({v , w}) ;
+		g[v].push_back({u , w}) ;
+	}
+
+	dfs_down(0) ;
+	dfs_up(0) ;
+
+	memset(par , -1 , sizeof par) ;
+	build_par(0) ;
+
+	for (int i = 0 ; i < n ; i ++) {
+		if (!mark[i] || d1[i] == d2[i]) continue ;
+
+		int j = td1[i] ;
+		int l = lca(i , j) ;
+
+		cnt[i] ++ ;
+		cnt[j] ++ ;
+		cnt[l] -- ;
+		if (~par[0][l]) cnt[par[0][l]] -- ;
+	}
+
+	dfs_calc(0) ;
+
+	int ans = -1 , cc = 0 ;
+
+	for (int i = 0 ; i < n ; i ++) {
+		if (mark[i]) continue ;
+		if (cnt[i] > ans) ans = cnt[i] , cc = 0 ;
+		if (cnt[i] == ans) cc ++ ;
+	}
+
+	cout << ans << ' ' << cc << '\n' ;
+}

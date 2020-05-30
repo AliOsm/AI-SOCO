@@ -1,0 +1,168 @@
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math,O3")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include <bits/stdc++.h>
+
+using namespace std ;
+
+const long long mod1 = 901840363 ;
+const long long mod2 = 1e9 + 9ll ;
+const int MAX = 1e6 + 10 ;
+
+long long base1[MAX] , base2[MAX] ;
+long long modinv1[MAX] , modinv2[MAX] ;
+
+long long powlog(long long base , long long power , long long mod)
+{
+	if(power == 0)
+		return 1ll ;
+	long long x = powlog(base , power / 2ll , mod) ;
+	x = (x * x) % mod ;
+	if(power & 1)
+		x = (x * base) % mod ;
+	return x ;
+}
+
+long long modinv(long long x , long long mod)
+{
+	return powlog(x , mod-2ll , mod) ;
+}
+
+
+pair<long long , long long>prefhash[MAX] , suffhash[MAX] ;
+
+void Hash(string &s)
+{
+	pair<long long , long long>p = {0 , 0} ;
+	for(int i = 0 ; i < s.size() ; ++i)
+	{
+		p.first = (p.first + (s[i] - 'a' + 1ll) * base1[i]) % mod1 ;
+		p.second = (p.second + (s[i] - 'a' + 1ll) * base2[i]) % mod2 ;
+		prefhash[i] = p ;
+	}
+	p = {0 , 0} ;
+	int cur = 0 ;
+	for(int i = s.size()-1 ; i >= 0 ; --i)
+	{
+		p.first = (p.first + (s[i] - 'a' + 1ll) * base1[cur]) % mod1 ;
+		p.second = (p.second + (s[i] - 'a' + 1ll) * base2[cur]) % mod2 ;
+		suffhash[i] = p ;
+		cur++ ;
+	}
+	return ;
+}
+
+int n  ;
+
+pair<long long , long long>prefhashrange(int l , int r)
+{
+	pair<long long , long long>p = {prefhash[r].first , prefhash[r].second} ;
+	if(l != 0)
+	{
+		p.first = (p.first - prefhash[l-1].first + mod1) % mod1 ;
+		p.second = (p.second - prefhash[l-1].second + mod2) % mod2 ;
+	}
+	p.first = (p.first * modinv1[l]) % mod1 ;
+	p.second = (p.second * modinv2[l]) % mod2 ;
+	return p ;
+}
+
+pair<long long , long long>suffhashrange(int l , int r , int sz)
+{
+	pair<long long , long long>p = {suffhash[l].first , suffhash[l].second} ;
+	if(r != sz-1)
+	{
+		p.first = (p.first - suffhash[r+1].first + mod1) % mod1 ;
+		p.second = (p.second - suffhash[r+1].second + mod2) % mod2 ;
+	}
+	p.first = (p.first * modinv1[sz-1-r]) % mod1 ;
+	p.second = (p.second * modinv2[sz-1-r]) % mod2 ;
+	return p ;
+}
+
+string s ;
+int to[MAX] , to2[MAX] , mark[MAX] ;
+
+bool pal(int x , int y , int sz)
+{
+	return (prefhashrange(x , y) == suffhashrange(x , y , sz)) ;
+}
+
+
+int l = -1 , r = n+1 , Max = 0 ;
+bool tt = 0 ;
+
+void solve(bool t)
+{
+	string s2 = "" ;
+	int l2 = -1 , r2 = n ;
+	for(int i = 0 ; i < n ; ++i)
+	{
+		if(i >= n-1-i)
+			break ;
+		if(s[i] != s[n-1-i])
+			break ;
+		l2 = i , r2 = n-1-i ;
+	}
+	for(int i = l2+1 ; i < r2 ; ++i)
+		s2.push_back(s[i]) ;
+	Hash(s2) ;
+	for(int i = s2.size()-1 ; i >= 0 ; --i)
+	{
+		if(pal(0 , i , s2.size()))
+		{
+			l2 += i ;
+			l2++ ;
+			break ;
+		}
+	}
+	if(l2+1 + n-r2 > Max)
+		Max = l2+1+n-r2 , l = l2 , r = r2 , tt = t ;
+	return ;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0) ;
+	cin.tie(0) ;
+	base1[0] = base2[0] = 1ll ;
+	modinv1[0] = modinv(1ll , mod1) ;
+	modinv2[0] = modinv(1ll , mod2) ;
+	for(int i = 1 ; i < MAX ; ++i)
+	{
+		base1[i] = (base1[i-1] * 31ll) % mod1 ;
+		base2[i] = (base2[i-1] * 31ll) % mod2 ;
+		modinv1[i] = modinv(base1[i] , mod1) ;
+		modinv2[i] = modinv(base2[i] , mod2) ;
+	}
+	int t ;
+	cin>>t ;
+	while(t--)
+	{
+		cin>>s ;
+		n = s.size() ;
+		Max = 0 , l = -1 , r = n+1 , tt = 0 ;
+		solve(0) ;
+		reverse(s.begin() , s.end()) ;
+		solve(1) ;
+		reverse(s.begin() , s.end()) ;
+		if(tt == 0)
+		{
+			for(int i = 0 ; i <= l ; ++i)
+				cout<<s[i] ;
+			for(int i = r ; i < n ; ++i)
+				cout<<s[i] ;
+			cout<<"\n" ;
+		}
+		else
+		{
+			reverse(s.begin() , s.end()) ;
+			for(int i = n-1 ; i >= r ; --i)
+				cout<<s[i] ;
+			for(int i = l ; i >= 0 ; --i)
+				cout<<s[i] ;
+			cout<<"\n" ;
+		}
+	}
+	return 0 ;
+}		

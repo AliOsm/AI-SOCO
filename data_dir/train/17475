@@ -1,0 +1,86 @@
+#include <cstdio>
+#include <queue>
+#include <algorithm>
+#include <cstring>
+struct node {
+  int x, y, st;
+  node(int x = 0, int y = 0, int st = 0)\
+  :x(x),y(y),st(st){}
+};
+int f[20][20][1<<8]; //x y bomb treasure
+int n, m, object[8][2], cntOfobject, value[8], number[8];
+char mp[21][21];
+bool valid(int x,int y) {
+  return x >= 0 && x < n && y >= 0 && y < m && \
+  mp[x][y] == '.' || mp[x][y] == 'S';
+}
+int get(int x,int y,int ny,int st) {
+  for(int i = 0; i < cntOfobject; i++) {
+    if(x > object[i][0] && (y == object[i][1] && \
+      ny > object[i][1] || ny == object[i][1]\
+      && y > object[i][1])) st ^= 1 << i;
+  }
+  return st;
+}
+int dx[] = {1,0,0,-1};
+int dy[] = {0,1,-1,0};
+int bfs(int sx,int sy) {
+  std::queue<node> Q;
+  memset(f,-1,sizeof(f));
+  Q.push(node(sx, sy, 0));
+  f[sx][sy][0] = 0;
+  while(!Q.empty()) {
+    node fr = Q.front(); Q.pop();
+    for(int i = 0; i < 4; i++) {
+      int tx = fr.x + dx[i];
+      int ty = fr.y + dy[i];
+      if(valid(tx, ty)) {
+        int newst = get(tx, ty, fr.y, fr.st);
+        if(f[tx][ty][newst] == -1) {
+          f[tx][ty][newst] = f[fr.x][fr.y][fr.st] + 1;
+//          printf("%d %d %d %d \n",tx,ty,newst,f[tx][ty][newst]);
+          Q.push(node(tx, ty, newst));
+        }
+      }
+    }
+  }
+  int ans = 0;
+  for(int i = 0; i < (1<<cntOfobject); i++) if(f[sx][sy][i] != -1){
+    bool bomb = false;
+    int sum = 0;
+    for(int j = 0; j < cntOfobject; j++) if(i >> j & 1){
+      if(number[j] != -1) sum += value[number[j]];
+      else bomb = true;
+    }
+    if(bomb) continue;
+    ans = std::max(ans, sum - f[sx][sy][i]);
+  }
+  return ans;
+}
+int main() {
+  scanf("%d%d",&n,&m);
+  int sx, sy, mx = 0;
+  for(int i = 0; i < n; i++) {
+    scanf("%s",mp[i]);
+    for(int j = 0; j < m; j++) {
+      if(mp[i][j] >= '1' && mp[i][j] <= '8' || mp[i][j] == 'B') {
+        object[cntOfobject][0] = i;
+        object[cntOfobject][1] = j;
+        if(mp[i][j] == 'B') {
+          number[cntOfobject] = -1;
+        } else
+        number[cntOfobject] = mp[i][j] - '1',\
+                     mx = std::max(mx,mp[i][j]-'0');
+        cntOfobject++;
+      }
+      if(mp[i][j] == 'S') {
+        sx = i;
+        sy = j;
+      }
+    }
+  }
+  for(int i = 0; i < mx; i++) scanf("%d",&value[i]);
+  printf("%d\n",bfs(sx, sy));
+  return 0;
+}
+

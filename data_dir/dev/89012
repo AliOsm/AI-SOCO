@@ -1,0 +1,140 @@
+/**
+*
+* Author: Mouhanad
+* Lang: GNU C++14
+*
+**/
+#include<bits/stdc++.h>
+using namespace std;
+
+#define F first
+#define S second
+#define ii pair < int , int >
+#define LS pair < ll , string >
+typedef long long ll;
+const int inf = 1<<30;
+const int N = 200100 , L = 18;
+int n , p[N][L] , dep[N] , a[N] , ANS[N] , bra[N];
+int timer , in[N] , out[N] , sz[N] ;
+ll pref[N];
+vector<ii>adj[N];
+
+
+void dfs(int u,int par,ll w = 0LL)
+{
+
+    p[u][0]=par;
+    dep[u]=1+dep[par];
+    pref[u] = w  ;
+
+    for(auto v:adj[u])
+        if( v.F!=par )
+        {
+            dfs(v.F,u,w+v.S);
+        }
+ return ;
+}
+
+int jump(int u,int k)
+{
+
+    for(int i=0; i<L; i++)
+        if( k&(1<<i) )
+            u=p[u][i];
+
+    return u;
+}
+
+int kth ( int u , int k ){
+
+    for(int i=0; i<L; i++)
+        if( k&(1<<i) )
+            u=p[u][i];
+
+    return u;
+}
+int LCA(int u,int v)
+{
+
+    if( u == v )return u;
+    if( dep[u]<dep[v] )swap(u,v);
+
+    int dif = dep[u]-dep[v];
+    u=jump(u,dif);
+
+    if( u == v )return u;
+
+    for(int i=L-1; i>=0; i--)
+        if( p[u][i]!=p[v][i] )
+        {
+            u=p[u][i];
+            v=p[v][i];
+        }
+
+    return p[u][0];
+}
+ll dis(int u,int v)
+{
+
+    return pref[u]+pref[v]-2LL*pref[LCA(u,v)];
+
+}
+
+void calc ( int u ){
+//  cerr << "*********************************" <<endl;
+//  cerr << u  <<" " << pref[u] <<endl;
+  int lo = 0 , hi = dep[u]-1 ;
+ // cerr <<"&" << lo << " " << hi <<endl;
+  while ( lo < hi ){
+   int mid = (lo+hi+1) >> 1 ;
+   int cur= kth(u,mid);
+ //  cerr << mid <<" " <<cur <<" " << dis(u,cur) <<endl;
+   if ( dis(u,cur) <= a[u] ) lo = mid  ;
+   else hi = mid-1 ;
+  }
+  int to = kth(u,lo);
+//  cerr  << " u= "<< u <<" " << to <<endl;
+  if ( dis(u,to) > a[u] || to == u ) return ;
+   bra[p[u][0]]++;
+   bra[p[to][0]]--;
+   return ;
+}
+
+void _get ( int u , int par ){
+
+  ANS[u]+= bra[u];
+  for ( auto v: adj[u] ){
+    if ( v.F == par ) continue;
+      _get(v.F,u);
+      ANS[u] += ANS[v.F];
+  }
+
+}
+int main()
+{
+    scanf("%d",&n);
+    for ( int i = 1; i <= n ;i++ ) scanf("%d",a+i);
+    for(int i=2; i<=n; i++) // n-1 edges
+    {
+        int x , y ;
+        scanf("%d %d",&x,&y);
+        adj[x].push_back({i,y});
+        adj[i].push_back({x,y});
+    }
+    dfs(1,0);
+
+    for(int j=1; j<L; j++)
+        for(int i=1; i<=n; i++)
+            p[i][j]=p[ p[i][j-1] ][j-1];
+
+
+    for ( int i = 2 ; i<= n; i++ ){
+           calc(i);
+    }
+
+    _get(1,0);
+
+   for ( int i = 1 ; i <= n ;i++ )
+      printf("%d%c",ANS[i],(i==n?'\n':' '));
+    return 0;
+}

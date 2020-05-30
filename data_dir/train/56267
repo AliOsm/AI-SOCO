@@ -1,0 +1,235 @@
+#include <algorithm>
+#include <bitset>
+#include <complex>
+#include <deque>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <ios>
+#include <iosfwd>
+#include <iostream>
+#include <istream>
+#include <iterator>
+#include <limits>
+#include <list>
+#include <locale>
+#include <map>
+#include <memory>
+#include <new>
+#include <numeric>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdexcept>
+#include <streambuf>
+#include <string>
+#include <typeinfo>
+#include <utility>
+#include <valarray>
+#include <vector>
+#include <cstring>
+
+using namespace std;
+
+#define ll long long
+#define all(aaa) aaa.begin(), aaa.end()
+#pragma warning(disable : 4996)
+
+const int N = 4e5 + 5, A = 300, P = 62, MOD = 1e9 + 7;
+int primes[P], a[N], invp[P];
+ll t[N * 4], up[N * 4];
+bool d[A + 1][P];
+int n, q;
+
+bool isPrime(int x) {
+	for (int i = 2; i < x; i++) {
+		if (x % i == 0)
+			return false;
+	}
+	return true;
+}
+
+
+ll bp(ll a, ll p) {
+	ll r = 1;
+	while (p > 0) {
+		if (p & 1) {
+			r = r * a % MOD;
+		}
+		a = a * a % MOD;
+		p >>= 1;
+	}
+	return r;
+}
+
+struct dsu {
+	int anc[N];
+	set<int> st;
+	dsu() {
+		for (int i = 0; i < N; i++) {
+			anc[i] = -1;
+		}
+	}
+	int findSet(int v) {
+		return anc[v] < 0 ? v : anc[v] = findSet(anc[v]);
+	}
+	void un(int x, int y) {
+		x = findSet(x);
+		y = findSet(y);
+		anc[x] += anc[y];
+		anc[y] = x;
+	}
+	bool que(int l, int r) {
+		auto x = st.lower_bound(l);
+		if (x == st.end())
+			return false;
+		int s = findSet(*x);
+		return s + anc[s] + 1 <= r;
+	}
+	void paint(int l, int r) {
+		for (int i = findSet(l); i <= r; i = findSet(i)) {
+			if (anc[i] != -1) {
+				st.erase(i - 1);
+			}
+			un(i + 1, i);
+			if (findSet(i) == i + 1)
+				st.insert(i);
+		}
+	}
+} z[P];
+
+
+
+void build(int v = 1, int L = 0, int R = n - 1) {
+	up[v] = 1;
+	if (L == R) {
+		t[v] = a[L];
+	}
+	else {
+		int m = (L + R) >> 1;
+		build(v * 2, L, m);
+		build(v * 2 + 1, m + 1, R);
+		t[v] = t[v * 2] * t[v * 2 + 1] % MOD;
+	}
+}
+
+void push(int v, int L, int R) {
+	if (up[v] != 1) {
+		if (L != R) {
+			up[v * 2] = up[v * 2] * up[v] % MOD;
+			up[v * 2 + 1] = up[v * 2 + 1] * up[v] % MOD;
+		}
+		t[v] = t[v] * bp(up[v], R - L + 1) % MOD;
+		up[v] = 1;
+	}
+}
+
+void upd(int l, int r, int x, int v = 1, int L = 0, int R = n - 1) {
+	push(v, L, R);
+	if (l > r)
+		return;
+	if (L == l && r == R) {
+		up[v] = up[v] * x % MOD;
+		push(v, L, R);
+	}
+	else {
+		int m = (L + R) >> 1;
+		upd(l, min(m, r), x, v * 2, L, m);
+		upd(max(m + 1, l), r, x, v * 2 + 1, m + 1, R);
+		t[v] = t[v * 2] * t[v * 2 + 1] % MOD;
+	}
+}
+
+ll que(int l, int r, int v = 1, int L = 0, int R = n - 1) {
+	push(v, L, R);
+	if (l > r)
+		return 1;
+	if (l == L && r == R) {
+		return t[v];
+	}
+	int m = (L + R) >> 1;
+	return que(l, min(m, r), v * 2, L, m) *
+		que(max(m + 1, l), r, v * 2 + 1, m + 1, R) % MOD;
+}
+
+
+signed main() {
+#ifdef HOME
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	cin >> n >> q;
+
+	for (int i = 2, j = 0; i <= A; i++) {
+		if (isPrime(i)) {
+			invp[j] = bp(i, MOD - 2);
+			primes[j++] = i;
+		}
+
+	}
+
+	for (int i = 1; i <= A; i++) {
+		int x = i;
+		for (int j = 0; j < P; j++) {
+			if (x % primes[j] == 0) {
+				d[i][j] = 1;
+			}
+		}
+	}
+
+	for (int i = 0; i < n; i++) {
+		cin >> a[i];
+		for (int j = 0; j < P; j++) {
+			if (d[a[i]][j])
+				z[j].un(i + 1, i);
+		}
+	}
+
+	for (int i = 0; i < P; i++) {
+		for (int j = 0; j < n; j++) {
+			if (z[i].findSet(j) == j + 1)
+				z[i].st.insert(j);
+		}
+	}
+
+	build();
+
+	for (int i = 0; i < q; i++) {
+		string s;
+		cin >> s;
+		int l, r, x;
+		cin >> l >> r;
+		l--, r--;
+
+		if (s[0] == 'T') {
+			ll ans = que(l, r);
+			for (int j = 0; j < P; j++) {
+				if (z[j].que(l, r)) {
+					ans = (ans - ans * invp[j] % MOD + MOD);
+					if (ans >= MOD)
+						ans -= MOD;
+				}
+			}
+			cout << ans << "\n";
+		}
+		else {
+			cin >> x;
+			upd(l, r, x);
+			for (int j = 0; j < P; j++) {
+				if (d[x][j]) {
+					z[j].paint(l, r);
+				}
+			}
+		}
+	}
+
+
+
+	return 0;
+}

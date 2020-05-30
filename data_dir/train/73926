@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 1e2 + 7;
+const int M = 8;
+const int INF = 1e9 + 7;
+
+set<pair<int, pair<int, int> > > st;
+vector<vector<vector<vector<int>>>>dis;
+vector<vector<vector<vector<pair<int, int>>>>>pos;
+int bad[N][N];
+int a[N][N];
+bool used[N][N];
+int n, m, k;
+int dp[1<<M][N][N];
+pair<int, pair<int, int> > par[1 << M][N][N];
+int dr[] = {1, -1, 0, 0};
+int dc[] = {0, 0, 1, -1};
+
+bool valid(int r, int c)
+{
+	return r>=0 && c>=0 && r<n && c < m;
+}
+void dijkstra(int sr, int sc)
+{
+	dis[sr][sc][sr][sc] = a[sr][sc]; 
+	st.insert({a[sr][sc], {sr, sc}});
+	while (!st.empty())
+	{
+		int r = st.begin()->second.first;
+		int c = st.begin()->second.second;
+		st.erase(st.begin());
+		for (int i=0; i<4; i++)
+		{
+			int R = r + dr[i];
+			int C = c + dc[i];
+			if (valid(R, C))
+			{
+				if (dis[sr][sc][R][C] > dis[sr][sc][r][c] + a[R][C])
+				{
+					st.erase({dis[sr][sc][R][C], {R, C}});
+					dis[sr][sc][R][C] = dis[sr][sc][r][c] + a[R][C];
+					pos[sr][sc][R][C] = {r, c};
+					st.insert({dis[sr][sc][R][C], {R, C}});
+				}
+			}
+		}
+	}
+}
+
+
+void solve(int mask, int r, int c)
+{
+	auto all = par[mask][r][c];
+	if (all.first != -1)
+	{
+		int R = all.second.first;
+		int C = all.second.second;
+		int submask = all.first;
+		while (r != -1)
+		{
+			used[r][c] = 1;
+			auto p = pos[R][C][r][c];
+			r = p.first;
+			c = p.second;
+		}
+		solve(submask, R, C);
+		solve(mask ^ submask, R, C);
+	}
+}
+
+int main()
+{
+	cin >> n >> m >> k;
+	dis.resize(n);
+	pos.resize(n);
+	for (int i=0; i<n; i++)
+	{
+		dis[i].resize(m);
+		pos[i].resize(m);
+		for (int j=0; j<m; j++)
+		{
+			dis[i][j].resize(n);
+			pos[i][j].resize(n);
+			for (int k=0; k<n; k++)
+			{
+				dis[i][j][k].resize(m);
+				pos[i][j][k].resize(m);
+				for (int l=0; l<m; l++)
+				{
+					dis[i][j][k][l] = INF;
+					pos[i][j][k][l] = {-1, -1};
+				}
+			}
+		}
+	}
+	for (int i=0; i<n; i++)
+		for (int j=0; j<m; j++)
+			cin >> a[i][j];
+	memset(bad, -1, sizeof bad);
+	for (int i=0; i<k; i++)
+	{
+		int r, c;
+		cin >> r >> c;
+		r--, c--;
+		bad[r][c] = i;
+		used[r][c] = 1;
+	}
+	for (int i=0; i<n; i++)
+		for (int j=0; j<m; j++)
+			dijkstra(i, j);
+	memset(par, -1, sizeof par);
+	memset(dp, 23, sizeof dp);
+	for (int i=0; i<n; i++)
+		for (int j=0; j<m; j++)
+		{
+			dp[0][i][j] = a[i][j];
+			if (bad[i][j] != -1)
+				dp[1 << bad[i][j]][i][j] = a[i][j];
+		}
+	for (int mask = 1; mask < 1 << k; mask++)
+		for (int r=0; r<n; r++)
+			for (int c=0; c<m; c++)
+					for (int R = 0; R<n; R++)
+						for (int C=0; C<m; C++)
+							for (int submask = mask; submask; submask = (submask-1) & mask)
+							{
+								if (dp[mask][r][c] > dp[submask][R][C] + dp[mask ^ submask][R][C] + dis[r][c][R][C] - 2 * a[R][C])
+								{
+									dp[mask][r][c] = dp[submask][R][C] + dp[mask ^ submask][R][C] + dis[r][c][R][C] - a[R][C] - a[R][C];
+									par[mask][r][c] = {submask, {R, C}};
+								}
+							}
+	int ans = 1e9 + 7;
+	for (int i=0; i<n; i++)
+		for (int j=0; j<m; j++)
+			ans = min(ans, dp[(1 << k) - 1][i][j]);
+	for (int i=0; i<n; i++)
+		for (int j=0; j<m; j++)
+			if (dp[(1 << k) - 1][i][j] == ans)
+			{
+				cout << ans << "\n";
+				solve((1 << k) - 1, i, j);
+				for (int i=0; i<n; i++)
+				{
+					for (int j=0; j<m; j++)
+						if (used[i][j])
+							cout << "X";
+						else
+							cout << ".";
+					cout << "\n";
+				}
+				return 0;
+			}
+	return 0;
+}

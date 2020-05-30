@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int64_t MOD = 998244353;
+const int64_t ROOT = 3;
+// MOD-1が何回2で割れるか
+const int MX_PW = 23;
+void add(int64_t& a, int64_t b){
+    a = (a+b) % MOD;
+}
+void mul(int64_t& a, int64_t b){
+    a = a*b % MOD;
+}
+
+int64_t power_mod(int64_t num, int64_t power){
+    int64_t prod = 1;
+    num %= MOD;
+    while(power > 0){
+        if(power&1) prod = prod * num % MOD;
+        num = num * num % MOD;
+        power >>= 1;
+    }
+    return prod;
+}
+
+int64_t extgcd(int64_t a, int64_t b, int64_t& x, int64_t& y){
+    int64_t d = a;
+    if(b != 0){
+        d = extgcd(b, a%b, y, x);
+        y -= (a/b) * x;
+    }else{
+        x = 1; y = 0;
+    }
+    return d;
+}
+
+int64_t inv_mod(int64_t a){
+    int64_t x, y;
+    extgcd(a, MOD, x, y);
+    return (MOD + x%MOD) % MOD;
+}
+
+vector<int64_t> zeta, zeta_inv;
+
+void prepare_ntt(){
+    zeta.resize(MX_PW);
+    zeta_inv.resize(MX_PW);
+    zeta[MX_PW-1] = power_mod(ROOT, (MOD-1)/(1<<MX_PW));
+    zeta_inv[MX_PW-1] = inv_mod(zeta[MX_PW-1]);
+    for(int k=MX_PW-2; k>=0; k--){
+        zeta[k] = zeta[k+1] * zeta[k+1] % MOD;
+        zeta_inv[k] = zeta_inv[k+1] * zeta_inv[k+1] % MOD;
+    }
+}
+
+void dft(vector<int64_t>& f, int n, bool inverse){
+    if(n==1) return;
+    int c = 0;
+    for(int i=1; i<n; i++){
+        for(int j=(n>>1); j>(c^=j); j>>=1);
+        if(c > i){
+            swap(f[c], f[i]);
+        }
+    }
+
+    for(int i=1, k=0; i<n; i<<=1, k++){
+        int64_t w = (inverse ? zeta_inv[k] : zeta[k]);
+        for(int j=0; j<n; j+=2*i){
+            int64_t wn = 1;
+            for(int k=0; k<i; k++){
+                int64_t u = f[k+j];
+                int64_t v = f[k+j+i] * wn % MOD;
+                f[k+j] = (u+v) % MOD;
+                f[k+j+i] = (u-v+MOD) % MOD;
+                wn = wn * w % MOD;
+            }
+        }
+    }
+}
+ 
+vector<int64_t> convolution(vector<int64_t> f, vector<int64_t> g, bool truncate=true){
+    if(zeta.size() == 0) prepare_ntt();
+    int sz = f.size() + g.size();
+    int n = 1;
+    while(n <= sz) n <<= 1;
+	f.resize(n);
+	g.resize(n);
+    dft(f, n, false);
+    dft(g, n, false);
+ 
+    vector<int64_t> h(n);
+    for(int i=0; i<n; i++) h[i] = f[i] * g[i] % MOD;
+    dft(h, n, true);
+    int64_t ninv = inv_mod(n);
+    for(int64_t& a : h) mul(a, ninv);
+
+    if(truncate) while(h.size() && h.back() == 0) h.pop_back();
+    return h;
+}
+
+int main(){
+    int N, K;
+    cin >> N >> K;
+    N /= 2;
+    vector<int64_t> A = {1};
+    vector<int64_t> P(10);
+    for(int i=0; i<K; i++){
+        int a;
+        cin >> a;
+        P[a]++;
+    }
+    while(N > 0){
+        if(N%2) A = convolution(A, P, true);
+        N /= 2;
+        P = convolution(P, P, true);
+    }
+    int64_t ans = 0;
+    for(int64_t a : A) add(ans, a*a);
+    cout << ans << endl;
+}

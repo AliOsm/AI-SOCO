@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int MAX = 1e6;
+#define ii pair<int, int>
+#define fi first
+#define se second
+
+int pai[MAX], sz[MAX], dist[MAX];
+int* where[MAX], val[MAX], cur;
+bool ans, rep[MAX];
+
+vector<ii> tree[MAX];
+
+void change(int &e, int v)
+{
+	where[cur] = &e;
+	val[cur] = e;
+	e = v;
+	cur++;
+}
+
+void rollback()
+{
+	cur--;
+	*(where[cur]) = val[cur]; 
+}
+
+int getDist(int x)
+{
+	if(x == pai[x]) return 0;
+	return dist[x] + getDist(pai[x]);
+}
+
+int find(int x)
+{
+	if(x == pai[x]) return x;
+	return find(pai[x]);
+}
+
+void join(int a, int b)
+{
+	int x = find(a);
+	int y = find(b);
+	if(x == y){ if((getDist(a) + getDist(b) + 1) & 1) ans = false; return;}
+	if(sz[x] > sz[y]) swap(x, y), swap(a, b);
+	change(dist[x], getDist(a) + getDist(b) + 1);
+	change(pai[x], y);
+	change(sz[y], sz[y] + sz[x]);
+}
+
+void add(int node, int start, int end, int l, int r, ii e)
+{
+	if(start > r or end < l) return;
+	if(l <= start and end <= r)
+	{
+		tree[node].push_back(e);
+		return;
+	}
+	int mid = (start + end) / 2;
+	add(2 * node, start, mid, l, r, e);
+	add(2 * node + 1, mid + 1, end, l, r, e);
+}
+
+void dfs(int node, int start, int end)
+{
+	if(start > end) return;
+	int rollback_to = cur;
+	bool rollback_ans = ans;
+	bool fl = false;
+	for(auto it : tree[node])
+		join(it.fi, it.se);
+	if(start == end)
+	{
+		rep[end] = ans;
+	}
+	else
+	{
+		int mid = (start + end) / 2;
+		dfs(2 * node, start, mid);
+		dfs(2 * node + 1, mid + 1, end);
+	}
+	while(rollback_to != cur) rollback();
+	ans = rollback_ans;
+}
+
+int main()
+{
+	int n, m;
+	cin >> n >> m;
+	for(int i = 0; i <= n; i++)
+		pai[i] = i, sz[i] = 1, dist[i] = 0;
+	ans = true;
+	map<ii, int> mapa;
+	for(int i = 0; i < m; i++)
+	{
+		int u, v;
+		scanf(" %d %d", &u, &v);
+		if(u > v) swap(u, v);
+		if(mapa.count({u, v}) == 0) mapa[{u, v}] = i;
+		else
+		{
+			add(1, 0, m, mapa[{u, v}], i - 1, ii(u, v));
+			mapa.erase({u, v});
+		}
+	}
+	for(auto it : mapa)
+		add(1, 0, m, it.se, m - 1, it.fi);
+	dfs(1, 0, m);
+	for(int i = 0; i < m; i++)
+		cout << (rep[i] ? "YES" : "NO") << '\n';
+
+	return 0;
+}

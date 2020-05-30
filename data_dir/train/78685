@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, V;
+int dist[555];
+
+const int INF = 1e9;
+
+int prevv[555], preve[555];
+
+bool in_que[555];
+
+struct edge {int to, cap, cost, rev;};
+
+vector<edge> g[555];
+
+inline void add_edge(int from, int to, int cap, int cost) {
+	g[from].push_back((edge){to, cap, cost, (int)g[to].size()});
+	g[to].push_back((edge){from, 0, -cost, (int)g[from].size() - 1});
+}	
+int min_cost_flow(int s, int t, int f) {
+	int res = 0;
+
+	while (f > 0) {
+		fill(dist, dist + V, INF);
+
+		queue<int> que;
+		
+		dist[s] = 0;
+		que.push(s);
+
+		while (!que.empty()) {
+			int v = que.front(); que.pop();
+
+			in_que[v] = false;
+
+			for (int i = 0; i < (int)g[v].size(); i++) {
+				edge &e = g[v][i];
+
+				if (e.cap > 0 && dist[e.to] > dist[v] + e.cost) {
+					dist[e.to] = dist[v] + e.cost;
+					prevv[e.to] = v;
+					preve[e.to] = i;
+
+					if (!in_que[e.to]) {
+						in_que[e.to] = true;
+						que.push(e.to);
+					}
+				}
+			}
+		}
+
+		int d = f;
+
+		for (int v = t; v != s; v = prevv[v]) {
+			d = min(d, g[prevv[v]][preve[v]].cap);
+		}
+
+		f -= d;
+		res += d * dist[t];
+
+		for (int v = t; v != s; v = prevv[v]) {
+			edge &e = g[prevv[v]][preve[v]];
+
+			e.cap -= d;
+			g[e.to][e.rev].cap += d;
+		}
+	}
+	
+	return res;
+}
+int main() {
+	scanf("%d", &n);
+
+	char ss[555];
+	char buf[555];
+
+	scanf("%s", ss);
+	
+	int m, x;
+
+	scanf("%d", &m);
+
+	int s = n + 1, t = s + 1;
+
+	V = t + 1;
+
+	while (m--) {
+		scanf("\n%s %d", buf, &x);
+
+		int l = strlen(buf);
+
+		for (int i = 0; i < n - l + 1; i++) {
+			bool flag = true;
+
+			for (int j = i; j < i + l; j++) {
+				if (ss[j] != buf[j - i]) {
+					flag = false;
+					break;
+				}
+			}
+
+			if (flag) {
+				add_edge(i, i + l, 1, -x);
+			}
+		}
+	}
+
+	int k;
+
+	scanf("%d", &k);
+
+	add_edge(s, 0, k, 0);
+	add_edge(n, t, k, 0);
+
+	for (int i = 0; i + 1 <= n; i++) {
+		add_edge(i, i + 1, INF, 0);
+	}
+
+	printf("%d\n", -min_cost_flow(s, t, k));
+
+	return 0;
+}

@@ -1,0 +1,71 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e6 + 5;
+
+int a[N], n, A, B;
+long long dp[N][3];
+
+vector<int> get_prime(int num) {
+  vector<int> ret;
+  for(int i = 2; i * i <= num; i++) {
+    if(num % i == 0) {
+      ret.push_back(i);
+      while(num % i == 0) num /= i;
+    }
+  }
+  if(num != 1) ret.push_back(num);
+  return ret;
+}
+
+long long get(int p) {
+  for(int i = 0; i < N; i++) {
+    for(int j = 0; j < 3; j++) {
+      dp[i][j] = 1e18;
+    }
+  }
+  if(a[0] % p == 0) {
+    dp[0][0] = 0;
+  } else if((a[0] + 1) % p == 0 || (a[0] - 1) % p == 0) {
+    dp[0][0] = B;
+  }
+  dp[0][1] = A;
+  for(int i = 1; i < n; i++) {
+    if(a[i] % p == 0) {
+      dp[i][0] = dp[i - 1][0];
+      dp[i][2] = min(dp[i - 1][1], dp[i - 1][2]);
+    } else if((a[i] + 1) % p == 0 || (a[i] - 1) % p == 0) {
+      dp[i][0] = dp[i - 1][0] + B;
+      dp[i][2] = min(dp[i - 1][1], dp[i - 1][2]) + B;
+    }
+    dp[i][1] = min(dp[i - 1][0], dp[i - 1][1]) + A;
+  }
+  //cout << dp[1][0] << endl;
+  return min(dp[n - 1][0], min(dp[n - 1][1], dp[n - 1][2]));
+}
+
+int main() {
+  scanf("%d %d %d", &n, &A, &B);
+  for(int i = 0; i < n; i++) {
+    scanf("%d", a + i);
+  }
+  set<int> can;
+  for(int i = -1; i <= 1; i++) {
+    if(a[0] + i != 1) {
+      vector<int> ret = get_prime(a[0] + i);
+      for(auto it : ret) can.insert(it);
+    }
+    if(a[n - 1] + i != 1) {
+      vector<int> ret = get_prime(a[n - 1] + i);
+      for(auto it : ret) can.insert(it);
+    }
+  }
+  long long ans = 1e18;
+  
+  for(auto it : can) {
+    ans = min(ans, get(it));
+  }
+  cout << ans << endl;
+  return 0;
+}

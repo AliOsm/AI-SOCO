@@ -1,0 +1,136 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <stdio.h>
+#include <cstring>
+#include <cassert>
+#include <bitset>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+typedef long long ll;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+
+const int maxN = 4e5 + 10;
+const int INF = (int)1e9;
+const int mod = (int)1e9 + 7;
+const ll LLINF = (ll)1e18;
+
+int sz = 0;
+int l[maxN], r[maxN];
+int color[maxN];
+
+vector <int> g[maxN];
+
+int dfs(int v, int p = -1) {
+    int ret = 1;
+    l[v] = sz++;
+    for(int x: g[v]) {
+        if (x != p) ret += dfs(x, v);
+    }
+    r[v] = l[v] + ret - 1;
+    return ret;
+}
+
+bitset <61> t[maxN * 4];
+int push[4 * maxN];
+
+void make(int v, int x) {
+    push[v] = x;
+    t[v] = bitset<61>(0);
+    t[v][x] = 1;
+}
+
+void Tpush(int v){
+    if (push[v] == -1) return;
+    make(v + v, push[v]);
+    make(v + v + 1, push[v]);
+    push[v] = -1;
+}
+
+void update(int v, int l, int r, int x, int tl, int tr) {
+    if (r < tl || tr < l) return;
+    if (l <= tl && tr <= r) {
+        make(v, x);
+        return;
+    }
+    Tpush(v);
+    int tm = (tl + tr) / 2;
+    update(v + v, l, r, x, tl, tm);
+    update(v + v + 1, l, r, x, tm + 1, tr);
+    t[v] = t[v + v] | t[v +v + 1];
+}
+
+bitset <61> get(int v, int l, int r, int tl, int tr) {
+    if (r < tl || tr < l) return bitset<61>(0);
+    if (l <= tl && tr <= r) {
+        return t[v];
+    }
+    Tpush(v);
+    int tm = (tl + tr) / 2;
+    return get(v + v, l, r, tl, tm) | get(v + v + 1, l, r, tm + 1, tr);
+}
+
+int main() {
+
+  //  freopen(".in", "r", stdin);
+  //  freopen(".out", "w", stdout);
+
+    memset(push, -1, sizeof push);
+    int n = nextInt<int>();
+    int m = nextInt<int>();
+    for (int i = 0; i < n; ++i) {
+        color[i] = nextInt<int>();
+    }
+
+    for (int i = 0; i < n - 1; ++i) {
+        int x = nextInt<int>() - 1;
+        int y = nextInt<int>() - 1;
+        g[x].push_back(y);
+        g[y].push_back(x);
+    }
+
+    dfs(0, 0);
+
+    for (int i = 0; i < n; ++i) {
+        update(1, l[i], l[i], color[i], 0, n - 1);
+    }
+
+    while(m--) {
+        int type = nextInt<int>();
+        if (type == 1) {
+            int v = nextInt<int>() - 1;
+            int c = nextInt<int>();
+            update(1, l[v], r[v], c, 0, n - 1);
+        } else {
+            int v = nextInt<int>() - 1;
+            printf("%d\n", get(1, l[v], r[v],0, n - 1).count());
+        }
+    }
+    return 0;
+}

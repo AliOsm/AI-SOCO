@@ -1,0 +1,35 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2000;
+
+int a[N];
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  for (int i = 0; i < n; i++) scanf("%d", a + i);
+  int now = 0;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < i; j++) {
+      if (a[j] > a[i]) {
+        now ^= 1;
+      }
+    }
+  }
+  int q;
+  scanf("%d", &q);
+  while (q--) {
+    int l, r;
+    scanf("%d %d", &l, &r);
+    int len = r - l + 1;
+    int ada = len * (len - 1) / 2;
+    if (ada % 2) {
+      now ^= 1;
+    }
+    puts(now? "odd" : "even");
+  }
+
+  return 0;
+}

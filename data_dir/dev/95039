@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long int ll;
+typedef pair <ll, ll> pll;
+
+const int Max = 2e5 + 10;
+const int Mod = 1e9 + 7;
+const ll Inf = 1LL << 62;
+
+ll ar[Max];
+struct Node {
+	ll prop, sum;
+} seg[Max * 4];
+
+void build(ll node, ll l, ll r) {
+	if(l == r) {
+		seg[node].sum = ar[l];
+		return;
+	}
+
+	ll lf = node * 2;
+	ll rt = node * 2 + 1;
+	ll mid = (l + r) / 2;
+	build(lf, l, mid);
+	build(rt, mid + 1, r);
+	seg[node].sum = min(seg[lf].sum, seg[rt].sum);
+	seg[node].prop = 0;
+}
+
+ll query(ll node, ll l, ll r, ll L, ll R, ll cary = 0) {
+	if(L > r || R < l) {
+		return Inf;
+	}
+
+	if(l >= L and r <= R) {
+		return seg[node].sum + cary;
+	}
+
+	ll lf = node << 1;
+	ll rt = (node << 1) + 1;
+	ll mid = (l + r) >> 1;
+
+	ll u = query(lf, l, mid, L, R, cary + seg[node].prop);
+	ll v = query(rt, mid + 1, r, L, R, cary + seg[node].prop);
+
+	return min(u, v);
+}
+
+void update(ll node, ll l, ll r, ll L, ll R, ll val) {
+	if(L > r || R < l) {
+		return;
+	}
+
+	if(l >= L && r <= R) {
+		seg[node].sum += val;
+		seg[node].prop += val;
+		return;
+	}
+
+	ll lf = node * 2;
+	ll rt = (node * 2) + 1;
+	ll mid = (l + r) / 2;
+	update(lf, l, mid, L, R, val);
+	update(rt, mid + 1, r, L, R, val);
+	seg[node].sum = min(seg[lf].sum + seg[node].prop, seg[rt].sum + seg[node].prop);
+}
+
+int val[1 << 3];
+bool neg[1 << 3];
+char str[Max];
+
+int main() {
+#ifdef Mr_Emrul
+	freopen("inputf.in", "r", stdin);
+#endif ///Mr_Emrul
+
+	//ios_base::sync_with_stdio(false);
+	//cin.tie(0);
+
+	int n, m, l, r, v;
+	scanf("%d", &n);
+
+	for(int i = 1; i <= n; i++) {
+		scanf("%lld", &ar[i]);
+	}
+
+	build(1, 1, n);
+	scanf("%d", &m);
+	getchar();
+
+	while(m--) {
+		scanf("%[^\n]", str);
+		getchar();
+		int cur = 1;
+		memset(val, 0, sizeof val);
+		memset(neg, 0, sizeof neg);
+
+		for(int i = 0; i < strlen(str); i++) {
+			if(str[i] == ' ') {
+				cur++;
+				continue;
+			}
+
+			if(str[i] == '-') {
+				neg[cur] = 1;
+				continue;
+			}
+
+			val[cur] = val[cur] * 10 + str[i] - '0';
+		}
+
+		for(int i = 1; i <= cur; i++) {
+			if(neg[i]) {
+				val[i] *= -1;
+			}
+		}
+
+		if(cur == 2) {
+			l = val[1] + 1;
+			r = val[2] + 1;
+
+			if(r >= l) {
+				printf("%lld\n", query(1, 1, n, l, r));
+			}
+			else {
+				printf("%lld\n", min(query(1, 1, n, l, n), query(1, 1, n, 1, r)));
+			}
+		}
+		else {
+			l = val[1] + 1;
+			r = val[2] + 1;
+			v = val[3];
+
+			if(r >= l) {
+				update(1, 1, n, l, r, v);
+			}
+			else {
+				update(1, 1, n, l, n, v);
+				update(1, 1, n, 1, r, v);
+			}
+		}
+	}
+
+	return 0;
+}

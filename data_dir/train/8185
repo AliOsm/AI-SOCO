@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+const int N = 100001;
+const int MAX = 1e9, CNT = 1e5;
+typedef long long ll;
+map<string,int> pri;
+map<string,int> indexing;
+struct node {
+    node *L, *R;
+    ll cnt;
+    node(){
+        L = NULL,R = NULL,cnt = 0;
+    }
+};
+node *version[N+1], *version2[N+1];
+void update(node *prev, node *curr, int l,int r,int x,int v) {
+    if(l == r) {
+        curr->cnt = prev->cnt + v;
+        return;
+    }
+    int mid = (l+r)/2;
+    if(x <= mid) {
+        curr->R = prev->R;
+        curr->L = new node();
+        if(prev->L == NULL)
+            prev->L = new node();
+        update(prev->L,curr->L,l,mid,x,v);
+    } else {
+        curr->L = prev->L;
+        curr->R = new node();
+        if(prev->R == NULL)
+            prev->R = new node();
+        update(prev->R,curr->R,mid+1,r,x,v);
+    }
+    curr->cnt = 0;
+    if(curr->L != NULL)
+        curr->cnt += curr->L->cnt;
+    if(curr->R != NULL)
+        curr->cnt += curr->R->cnt;
+}
+
+ll get(node * root, int l,int r,int qLow,int qHigh) {
+    if(l >= qLow && r <= qHigh)
+        return root->cnt;
+    int mid = (l+r)>>1;
+    ll a = 0, b = 0;
+    if(mid >= qLow) {
+        if(root->L != NULL)
+            a = get(root->L,l,mid,qLow,qHigh);
+    }
+    if(mid+1<=qHigh) {
+        if(root->R != NULL)
+            b = get(root->R,mid+1,r,qLow,qHigh);
+    }
+    return a+b;
+}
+
+int id;
+int main()
+{
+//    freopen("in.txt","r",stdin);
+    int q;
+    cin>>q;
+    string s,t;
+    node *rt = new node(), *rt2 = new node();
+    version[0] = rt, version2[0] = rt2;
+    int x, idx;
+    for(int i = 1;i<=q;i++) {
+        cin>>s;
+        node *nw = new node(), * nw2 = new node();
+        if(s[0] != 'u') {
+            cin>>t;
+            if(!indexing.count(t)) {
+                int id = indexing.size();
+                indexing[t] = id+1;
+            }
+            idx = indexing[t];
+        }
+        if(s[0] == 's') {
+            cin>>x;
+            ll p = get(rt2,1,CNT,idx,idx);
+            update(rt,nw,1,MAX,x,1);
+            update(rt2,nw2,1,CNT,idx,x-p);
+            if(p) {
+                node * temp = new node();
+                update(nw,temp,1,MAX,p,-1);
+                nw = temp;
+            }
+        } else if (s[0] == 'r') {
+            ll p = get(rt2,1,CNT,idx,idx);
+            if(p) {
+                update(rt,nw,1,MAX,p,-1);
+                update(rt2,nw2,1,CNT,idx,-p);
+            } else {
+                nw = rt, nw2 = rt2;
+            }
+        } else if (s[0] == 'q') {
+            ll p = get(rt2,1,CNT,idx,idx);
+            if(p > 1) {
+                printf("%d\n",get(rt,1,MAX,1,p-1));
+            } else {
+                printf("%d\n",p-1);
+            }
+            nw = rt, nw2 = rt2;
+        } else {
+            int x;
+            cin>>x;
+            nw = version[i-x-1];
+            nw2 = version2[i-x-1];
+        }
+        version[i] = nw;
+        version2[i] = nw2;
+        rt = nw, rt2 = nw2;
+    }
+    return 0;
+}

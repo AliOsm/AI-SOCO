@@ -1,0 +1,101 @@
+#include "bits/stdc++.h"
+#define FI first.first
+#define SE first.second
+#define TH second
+#define fi first
+#define se second
+#define th second
+
+using namespace std;
+
+class DebugStream {}LOG;
+template <typename T>DebugStream &operator<<(DebugStream &s, const T&) { return s; }
+#ifdef DEBUG
+#define LOG clog
+#endif
+
+typedef long long ll;
+typedef pair<ll, ll> ii;
+typedef long double ld;
+mt19937 rnd(time(NULL));
+
+const int maxN = 3.6e3 + 9, maxV = 1e6 + 9, MOD = 998244353, SQ = 335, lg = 20, bs = 29;
+
+int n, h, w;
+ll fac[maxN][2];
+
+ll fastPow(ll a, ll b) {
+	ll ret = 1;
+	while(b) {
+		if(b & 1) ret = ret * a % MOD;
+		b >>= 1, a = a * a % MOD;
+	}
+	return ret;
+}
+
+ll npr(int n, int k) {
+	return fac[n][0] * fac[n - k][1] % MOD;
+}
+
+struct El {
+	bool vi[maxN];
+	int cuenta = 0, n;
+	ll dp[maxN][maxN];
+	void incr(int x) {
+		if(vi[x]) return;
+		vi[x] = 1;
+		cuenta++;
+	}
+	void calcdp() {
+		dp[n][0] = 1;
+		for(int i = n - 1; i >= 0; i--)
+			for(int j = 0; j <= n; j++) {
+				dp[i][j] = dp[i + 1][j];
+				if(i + 2 <= n && !vi[i] && !vi[i + 1] && j)
+					dp[i][j] = (dp[i][j] + dp[i + 2][j - 1]) % MOD;
+			}
+		cuenta = n - cuenta;
+	}
+} els[2];
+
+int main() {
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+	#ifdef DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+	#endif
+
+	cin >> h >> w >> n;
+	els[0].n = w, els[1].n = h;
+	fac[0][0] = fac[0][1] = 1;
+	for(int i = 1; i < maxN; i++) {
+		fac[i][0] = fac[i - 1][0] * i % MOD;
+		fac[i][1] = fastPow(fac[i][0], MOD - 2);
+	}
+
+	for(int i = 0; i < n; i++) {
+		int r1, c1, r2, c2;
+		cin >> r1 >> c1 >> r2 >> c2;
+		r1--, c1--, r2--, c2--;
+		els[0].incr(c1), els[0].incr(c2);
+		els[1].incr(r1), els[1].incr(r2);
+	}
+
+	els[0].calcdp();
+	els[1].calcdp();
+
+	ll ans = 0;
+	for(int i = 0; i * 2 <= els[0].cuenta; i++)
+		for(int j = 0; j * 2 <= els[1].cuenta; j++) {
+			int isobra = els[0].cuenta - i * 2;
+			int jsobra = els[1].cuenta - j * 2;
+			if(j <= isobra && i <= jsobra) {
+//				LOG << isobra << ' ' << jsobra << '\n';
+				ans = (ans + els[0].dp[0][i] * els[1].dp[0][j] % MOD * 
+				npr(isobra, j) % MOD * npr(jsobra, i)) % MOD;
+			}
+		}
+	cout << ans << '\n';
+}

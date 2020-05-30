@@ -1,0 +1,325 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <cmath>
+#include <climits>
+#include <memory.h>
+
+#if !defined(__GNUC__)
+#include <hash_set>
+#include <hash_map>
+
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+
+#else // !defined(__GNUC__)
+
+#include <ext/hash_set>
+#include <ext/hash_map>
+namespace stdext = __gnu_cxx;
+#define _CrtDbgBreak()
+
+#endif // !defined(__GNUC__)
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::set<size_t> set_size_t;
+typedef stdext::hash_set<size_t>    hash_set_size_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#elif !defined(__GNUC__)
+#include <library/lib_stopwatch.h>
+#else 
+#include "../../library/library/lib_stopwatch.h"
+#endif
+
+static const double_t Pi = atan(1.0)*4;
+
+struct point_t
+{
+    double_t x;
+    double_t y;
+
+    point_t(): x(0), y(0) {}
+    point_t(double_t x_, double_t y_): x(x_), y(y_) {}
+
+    bool operator==(const point_t& p) const
+    {
+        return IsEqual(x, p.x) && IsEqual(y, p.y);
+    }
+
+    // Rotate using complex number with length = 1
+    point_t GetRotatedPoint(const point_t& c, const double_t dx, const double_t dy) const
+    {
+        point_t res;
+        res.x = (x - c.x) * dx - (y - c.y) * dy + c.x;
+        res.y = (y - c.y) * dx + (x - c.x) * dy + c.y;
+        return res;
+    }
+
+    // Rotate using angle
+    point_t GetRotatedPoint(const point_t& c, const double_t angle) const
+    {
+        const double_t dx = cos(angle);
+        const double_t dy = sin(angle);
+
+        return GetRotatedPoint(c, dx, dy);
+    }
+
+    // Get argument of complex number (*this - c)
+    double_t GetArgument(const point_t& c) const
+    {
+        const double_t dx = this->x - c.x;
+        const double_t dy = this->y - c.y;
+        double_t angle = atan2(dy, dx);
+        if (angle < 0)
+            angle += 2*Pi;
+        return angle;
+    }
+
+    // Get argument of complex number
+    double_t GetArgument() const
+    {
+        return GetArgument(point_t());
+    }
+
+    static double_t GetDistanceSquare(const point_t& p1, const point_t& p2)
+    {
+        const double_t dx = p1.x - p2.x;
+        const double_t dy = p1.y - p2.y;
+        return dx * dx + dy * dy;
+    }
+
+    static point_t GetMiddlePoint(const point_t& p1, const point_t& p2)
+    {
+        point_t res;
+        res.x = (p1.x + p2.x) / 2.0;
+        res.y = (p1.y + p2.y) / 2.0;
+        return res;
+    }
+};
+
+struct line_t
+{
+    double_t a;
+    double_t b;
+    double_t c;
+
+    static line_t CreateFromTwoPoints(const point_t& p1, const point_t& p2)
+    {
+        line_t res;
+        res.a = p1.y - p2.y;
+        res.b = p2.x - p1.x;
+        res.c = p1.x * p2.y - p2.x * p1.y;
+        return res;
+    }
+
+    line_t CreatePerpendicular(const point_t& p0) const
+    {
+        line_t res;
+        res.a = -b;
+        res.b = a;
+        res.c = b * p0.x - a * p0.y;
+        return res;
+    }
+
+    static bool HasIntersectionPoint(const line_t& l1, const line_t& l2)
+    {
+        const double_t d = l1.a * l2.b - l2.a * l1.b;
+        return !IsEqual(d, double_t(0));
+    }
+
+    static point_t GetIntersectionPoint(const line_t& l1, const line_t& l2)
+    {
+        point_t res;
+        const double_t d = l1.a * l2.b - l2.a * l1.b;
+        res.x = l2.c * l1.b - l1.c * l2.b;
+        res.y = l1.c * l2.a - l2.c * l1.a;
+        res.x /= d;
+        res.y /= d;
+        return res;
+    }
+};
+
+typedef std::vector<point_t> vector_point_t;
+typedef std::vector<line_t> vector_line_t;
+
+
+bool IsPointBelongsToLine(const line_t& l1, const point_t& p0)
+{
+    const double_t r1 = l1.a * p0.x + l1.b * p0.y + l1.c;
+    return IsEqual(r1, 0.0L);
+}
+
+bool IsPointBetween(const point_t& p0, const point_t& pa, const point_t& pb)
+{
+    const double_t minX = Min(pa.x, pb.x);
+    const double_t minY = Min(pa.y, pb.y);
+    const double_t maxX = Max(pa.x, pb.x);
+    const double_t maxY = Max(pa.y, pb.y);
+
+    if (IsLess(p0.x, minX))
+        return false;
+    if (IsLess(p0.y, minY))
+        return false;
+    if (IsGreater(p0.x, maxX))
+        return false;
+    if (IsGreater(p0.y, maxY))
+        return false;
+
+    return true;
+}
+
+bool IsIntersectionPointValid(const line_t& l1, const line_t& l2, const point_t& c)
+{
+    return IsPointBelongsToLine(l1, c) && IsPointBelongsToLine(l2, c);
+}
+
+bool IsEqualAngle(const double_t& a1, const double_t& a2)
+{
+    return IsEqual(sin(a1), sin(a2)) && IsEqual(cos(a1), cos(a2));
+};
+
+double_t GetTriangleSquare(const point_t& p1, const point_t p2, const point_t& p3)
+{
+    double_t s = 0.0;
+    s += p1.x * (p2.y - p3.y);
+    s += p2.x * (p3.y - p1.y);
+    s += p3.x * (p1.y - p2.y);
+    return s / 2.0;
+}
+
+struct IsArgLessFunction
+{
+    IsArgLessFunction(const point_t& c): m_c(c) {}
+
+    double_t operator()(const point_t& p1, const point_t& p2) const
+    {
+        return p1.GetArgument(m_c) < p2.GetArgument(m_c);
+    }
+
+    point_t m_c;
+};
+
+double_t GetInstersectionSquare(const int32_t w, const int32_t h, const int32_t deg)
+{
+    if ((deg == 0) && (deg == 180))
+        return w * h;
+
+    if (deg == 90)
+        return Min(w, h) * Min(w, h);
+
+    const double_t a = (double_t)deg / 180.0 * Pi;
+
+    vector_point_t origRect;
+    origRect.push_back(point_t(0, 0));
+    origRect.push_back(point_t(w, 0));
+    origRect.push_back(point_t(w, h));
+    origRect.push_back(point_t(0, h));
+
+    const point_t midPoint((double_t)w / 2, (double_t)h / 2);
+    vector_point_t rotatedRect;
+    for (size_t i = 0; i < 4; i++)
+    {
+        rotatedRect.push_back(origRect[i].GetRotatedPoint(midPoint, a));
+    }
+
+    vector_point_t intersectionPoints;
+    for (size_t i = 0; i < 4; i++)
+    {
+        const point_t& origP1 = origRect[i];
+        const point_t& origP2 = origRect[(i + 1) % 4];
+        const line_t line1 = line_t::CreateFromTwoPoints(origP1, origP2);
+        for (size_t j = 0; j < 4; j++)
+        {
+            const point_t& rotatedP1 = rotatedRect[j];
+            const point_t& rotatedP2 = rotatedRect[(j + 1) % 4];
+            const line_t line2 = line_t::CreateFromTwoPoints(rotatedP1, rotatedP2);
+
+            if (line_t::HasIntersectionPoint(line1, line2))
+            {
+                const point_t intPoint = line_t::GetIntersectionPoint(line1, line2);
+                if (IsPointBetween(intPoint, origP1, origP2) && IsPointBetween(intPoint, rotatedP1, rotatedP2))
+                    intersectionPoints.push_back(intPoint);
+            }
+        }
+    }
+
+    std::sort(intersectionPoints.begin(), intersectionPoints.end(), IsArgLessFunction(midPoint));
+
+    double_t ans = 0.0;
+    for (size_t i = 0; i < intersectionPoints.size(); i++)
+    {
+        const point_t& p1 = intersectionPoints[i];
+        const point_t& p2 = intersectionPoints[(i + 1) % intersectionPoints.size()];
+
+        const double_t s = GetTriangleSquare(p1, p2, midPoint);
+        ans += s;
+    }
+
+    return ans;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw;
+
+    // 
+    int32_t w, h, a;
+    ist >> w >> h >> a;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    // 
+    const double_t ans = GetInstersectionSquare(w, h, a);
+    ost << std::fixed << std::setprecision(12) << ans << std::endl;
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

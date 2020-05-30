@@ -1,0 +1,144 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+typedef pair<LL,LL>PLL;
+
+const LL MAXN = 500007;
+const LL INF = 1e17;
+
+LL dst[MAXN];
+vector<PLL>edg[MAXN];
+
+struct nd {
+    LL mn, lazy;
+} tr[3*MAXN];
+
+void init(int u, int l, int r)
+{
+    tr[u].lazy = 0;
+    if (l==r) {
+        if (edg[l].empty()) tr[u].mn = dst[l];
+        else tr[u].mn = INF;
+        return;
+    }
+    int mid = (l+r)/2;
+    init(u*2, l, mid);
+    init(u*2+1, mid+1, r);
+    tr[u].mn = min(tr[u*2].mn, tr[u*2+1].mn);
+}
+
+void propagate(int u, int l, int r)
+{
+    if (tr[u].lazy) {
+        tr[u].mn += tr[u].lazy;
+        if (l!=r) {
+            tr[u*2].lazy += tr[u].lazy;
+            tr[u*2+1].lazy += tr[u].lazy;
+        }
+        tr[u].lazy = 0;
+    }
+}
+
+void update(int u, int l, int r, int x, int y, LL v)
+{
+    propagate(u, l, r);
+    if (r < x || y < l) return;
+    if (x <= l && r <= y) {
+        tr[u].lazy += v;
+        propagate(u, l, r);
+        return;
+    }
+    int mid = (l+r)/2;
+    update(u*2, l, mid, x, y, v);
+    update(u*2+1, mid+1, r, x, y, v);
+    tr[u].mn = min(tr[u*2].mn, tr[u*2+1].mn);
+}
+
+LL query(int u, int l, int r, int x, int y)
+{
+    propagate(u, l, r);
+    if (r < x || y < l) return INF;
+    if (x <= l && r <= y) return tr[u].mn;
+    int mid = (l+r)/2;
+    return min( query(u*2, l, mid, x, y),
+                query(u*2+1, mid+1, r, x, y) );
+}
+
+struct qr {
+    int v, l, r;
+} qrs[MAXN];
+
+vector<int>oc[MAXN];
+LL ans[MAXN];
+
+int dan[MAXN];
+
+void dfs(int u)
+{
+    dan[u] = u;
+    for (PLL p : edg[u]) {
+        dfs(p.first);
+        dan[u] = dan[p.first];
+    }
+//    cout << "dan[" << u << "] = " << dan[u] << endl;
+}
+
+int n;
+void solve(int u)
+{
+//    cout << "at " << u;;
+//    for (int i = 1; i <= n; i++) {
+//        if (edg[i].empty()) {
+//            cout << ", " << i << " -> " << query(1, 1, n, i, i);
+//        }
+//    }
+//    cout << endl;
+
+    for (int id : oc[u]) {
+        ans[id] = query(1, 1, n, qrs[id].l, qrs[id].r);
+//        cout << "ans[" << id << "] = " << ans[id] << " at " << u << endl;
+    }
+
+    for (PLL p : edg[u]) {
+        update(1, 1, n, 1, n, p.second);
+        update(1, 1, n, p.first, dan[p.first], -2*p.second);
+        solve(p.first);
+        update(1, 1, n, 1, n, -p.second);
+        update(1, 1, n, p.first, dan[p.first], 2*p.second);
+    }
+
+}
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int q;
+    cin >> n >> q;
+
+    for (LL i = 2; i <= n; i++) {
+        LL p, d;
+        cin >> p >> d;
+        dst[i] = dst[p]+d;
+        edg[p].emplace_back(i, d);
+    }
+
+//    for (int i = 1; i <= n; i++) {
+//        cout << "d[" << i << "] = " << dst[i] << endl;
+//    }
+
+    for (int i = 1; i <= q; i++) {
+        cin >> qrs[i].v >> qrs[i].l >> qrs[i].r;
+        oc[qrs[i].v].push_back(i);
+    }
+
+    init(1, 1, n);
+    dfs(1);
+    solve(1);
+
+    for (int i = 1; i <= q; i++) cout << ans[i] << "\n";
+
+
+    return 0;
+}

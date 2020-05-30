@@ -1,0 +1,139 @@
+/*
+  in case of complaint
+  (xi | yi) is true
+  in case of interference
+  (!xi | !yi) is true
+
+*/
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+
+#include "bits/stdc++.h"
+using namespace std;
+
+#define pb push_back
+#define F first
+#define S second
+#define f(i,a,b)  for(int i = a; i < b; i++)
+
+using ll = long long;
+using db = long double;
+using ii = pair<int, int>;
+
+const int N = 2e6 + 5, LG = 19, MOD = 1e9 + 7;
+const int SQ =225;
+const long double EPS = 1e-7;
+
+vector<int> g[N],rg[N];
+void addEdge(int u, int v){
+  g[u].pb(v);
+  rg[v].pb(u);
+}
+
+void add(int u, int v){
+  addEdge(u^1,v);
+  addEdge(v^1,u);
+}
+bool vis[N];
+stack<int> stk;
+void dfs1(int u){
+  if(vis[u])
+    return;
+  vis[u] = true;
+  for(auto v : g[u])
+    dfs1(v);
+  stk.push(u);
+}
+int cmp[N];
+void dfs2(int u, int cnt){
+  if(cmp[u])
+    return;
+  cmp[u] = cnt;
+  for(auto v : rg[u])
+    dfs2(v, cnt);
+}
+vector<int> out;
+bool killSat(int node){
+
+  f(i,0,node*2){
+    dfs1(i);
+  }
+  int cnt = 0;
+  while(stk.size()){
+    auto x = stk.top();
+    stk.pop();
+    if(!cmp[x])
+      dfs2(x,++cnt);
+  }
+
+  f(i,0,node)
+    if(cmp[i<<1] == cmp[i<<1|1])
+      return false;
+    else if(cmp[i<<1] > cmp[i << 1 | 1])
+      out.pb(i);
+  return true;
+}
+
+int32_t main(){
+#ifdef ONLINE_JUDGE
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+#endif
+  int n, p, M, m;
+
+  cin >> n >> p >> M >> m;
+
+  f(i,0,n){
+    ///u|v
+    int u, v;
+    cin >> u >> v;  --u, --v;
+    add(u<<1,v<<1);
+  }
+
+  f(i,0,p){
+    int l, r;
+    cin >> l >> r;  --l, --r;
+    if(l) ///either !i or freq < l
+      add((p + l - 1) << 1, i << 1 | 1);
+    if(r != M - 1) ///either !i or freq > r
+      add((p + r) << 1 | 1, i << 1 | 1);
+  }
+
+  f(i,0,m){
+    ///!u|!v
+    int u, v;
+    cin >> u >> v;  --u, --v;
+    add(u<<1|1,v<<1|1);
+  }
+  ///only one frequency can be okay
+  ///so either i or !(i + 1)
+  f(i,2,M){
+    int u = p + i - 2;
+    int v = u + 1;
+    add(u<<1,v<<1|1);
+  }
+
+  if(!killSat(p + M - 1)){
+    cout << -1 << '\n';
+    return 0;
+  }
+
+  int f = 1;
+
+  vector<int> res;
+
+  for(auto x : out)
+    if(x < p)
+      res.pb(x + 1);
+    else
+      f = max(f, x - p + 2);
+
+  cout << res.size() << ' ' << f << '\n';
+
+  for(auto x : res)
+    cout << x << " ";
+
+
+
+  return 0;
+}

@@ -1,0 +1,230 @@
+#include <bits/stdc++.h>
+#define REP(i, n) for (long long i = 0; i < n; i++)
+using namespace std;
+typedef long long Long;
+
+const Long N = 3e5+10;
+const Long mod = 998244353;
+
+vector<Long> col[N];
+Long A[N];
+vector<Long> adj[N];
+vector<Long> new_adj[N];
+Long parent[N];
+Long dist[N];
+Long anc[N][30];
+bool posible;
+Long grado[N];
+Long grupo[N];
+bool vis[N];
+Long memo[2][N];
+
+void dfs(Long u, Long d){
+	dist[u] = d;
+	for(Long v : adj[u]){
+		if(v != parent[u]){
+			parent[v] = u;
+			dfs(v,d+1);
+		}
+	}
+	return;
+}
+
+void build(Long n){
+	for(Long i = 0; i <= n; i++){
+		for(Long j = 0; (1ll<<j) <= n; j++){
+			anc[i][j] = -1;
+		}
+	}
+	for(Long i = 0; i <= n; i++){
+		anc[i][0] = parent[i];
+	}
+	for(Long j = 1; (1ll<<j) <= n; j++){
+		for(Long i = 0; i <= n; i++){
+			if(anc[i][j-1] != -1){
+				anc[i][j] = anc[anc[i][j-1]][j-1];
+			}
+		}
+	}
+	return;
+}
+
+Long lca(Long u, Long v){
+	if(dist[u] < dist[v]) swap(u,v);
+	Long lg = 63 - (__builtin_clzll(dist[u]));
+	for(Long i = lg; i >= 0; i--){
+		if(dist[u] - (1ll<<i) >= dist[v]){
+			u = anc[u][i];
+		}
+	}
+	if(u == v) return u;
+	for(Long i = lg; i >= 0; i--){
+		if(anc[u][i] != -1 && anc[u][i] != anc[v][i]){
+			u = anc[u][i];
+			v = anc[v][i];
+		}
+	}
+	return parent[u];
+}
+
+void pinta(Long c, Long nod){
+	grupo[nod] = nod;
+	for(Long i = 0; i < col[c].size(); i++){
+		Long v = col[c][i];
+		grupo[v] = nod;
+		if(v == nod) continue;
+		v = parent[v];
+		while(A[v] == 0){
+			grupo[v] = nod;
+			A[v] = c;
+			v = parent[v];
+		}
+		if(A[v] != c){
+			posible = false;
+			return;
+		}
+	}
+	return;
+}
+
+void quita(Long n){
+	deque<Long> q;
+	for(Long i = 1; i <= n; i++){
+		grado[i] = adj[i].size();
+		if(grado[i] == 1 && A[i] == 0){
+			vis[i] = true;
+			A[i] = N;
+			q.push_back(i);
+		}
+	}
+	while(!q.empty()){
+		Long u = q.front();
+		q.pop_front();
+		for(Long v : adj[u]){
+			if(vis[v]) continue;
+			grado[v]--;
+			if(grado[v] == 1 && A[v] == 0){
+				vis[v] = true;
+				A[v] = N;
+				q.push_back(v);
+			}
+		}
+	}
+	return;
+}
+
+void new_graph(Long n){
+	for(Long u = 1; u <= n; u++){
+		for(Long v : adj[u]){
+			if(grupo[v] != grupo[u] && A[grupo[v]] < N && A[grupo[u]] < N){
+				new_adj[grupo[v]].push_back(grupo[u]);
+			}
+		}
+	}
+	return;
+}
+
+Long fp(Long a, Long b){
+	if(b == 0) return 1;
+	if(b == 1) return a%mod;
+	Long t = fp(a,b/2);
+	t = (t*t)%mod;
+	if(b%2 == 1) return (a*t)%mod;
+	return t;
+}
+
+void calcula(Long u, Long p){
+	vector<Long> hijos;
+	for(Long v : new_adj[u]){
+		if(v != p){
+			hijos.push_back(v);
+			calcula(v,u);
+		}
+	}
+	if(hijos.empty()){
+		memo[0][u] = 0;
+		memo[1][u] = 1;
+		return;
+	}
+	Long sz = hijos.size();
+	Long aux = 1;
+	for(Long i = 0; i < sz; i++){
+		aux *= (memo[0][hijos[i]] + memo[1][hijos[i]]);
+		aux %= mod;
+	}
+	
+	if(A[u] == 0){
+		memo[0][u] = aux;
+		memo[1][u] = 0;
+		for(Long i = 0; i < sz; i++){
+			memo[1][u] += ((aux * fp(memo[0][hijos[i]] + memo[1][hijos[i]],mod-2)) % mod) * memo[1][hijos[i]];
+			memo[1][u] %= mod;
+		}
+	}else{
+		memo[0][u] = 0;
+		memo[1][u] = aux;
+	}
+	
+	return;
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	cout.precision(10);
+	cout << fixed;
+    
+    Long n, k, x , y;
+    cin >> n >> k;
+    for(Long i = 1; i <= n; i++){
+    	cin >> x;
+    	A[i] = x;
+    	col[x].push_back(i);
+	}
+	for(Long i = 1; i < n; i++){
+		cin >> x >> y;
+		adj[x].push_back(y);
+		adj[y].push_back(x);
+	}
+	for(Long i = 0; i <= n; i++){
+		parent[i] = -1;
+		grupo[i] = i;
+	}
+	dfs(1,0);
+	build(n);
+	for(Long i = 1; i <= k; i++){
+		Long sz = col[i].size();
+		Long nod = -1;
+		for(Long j = 0; j < sz; j++){
+			if(j == 0){
+				nod = col[i][j];
+			}else{
+				nod = lca(col[i][j],nod);
+			}
+		}
+		if(nod == -1) continue;
+		if(A[nod] == 0 || A[nod] == i){
+			posible = true;
+			A[nod] = i;
+			pinta(i,nod);
+			if(!posible){
+				cout << 0 << endl;
+				return 0;
+			}
+		}else{
+			cout << 0 << endl;
+			return 0;
+		}
+	}
+	quita(n);
+	new_graph(n);
+	
+	for(Long i = 1; i <= n; i++){
+		if(grupo[i] == i && 0 < A[i] && A[i] < N){
+			calcula(i,-1);
+			cout << memo[1][i] << endl;
+			break;
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+ 
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+ 
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+ 
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+ 
+template <class T1, class cmp = less <T1>> using Tree = tree <T1, null_type, cmp, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2> using um = unordered_map <T1, T2>;
+template <class T> using us = unordered_set <T>;
+template <class T> using vec = vector <T>;
+ 
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 1e6 + 1;
+int n, k;
+int arr[N];
+int nxt[N];
+
+struct Graph {
+    int lef[N];
+    int rig[N];
+    vec <int> adj[N];
+} graph;
+
+struct Node {
+    int l, r;
+    int mxm;
+    int lzy;
+} node[N << 2];
+
+void lazy(int id) {
+    int lzy = node[id].lzy;
+    if(node[id].l != node[id].r) {
+        node[l(id)].lzy += lzy;
+        node[r(id)].lzy += lzy;
+    }
+    node[id].mxm += lzy;
+    node[id].lzy = 0;
+}
+
+void merge(int id, int l, int r) {
+    lazy(l), lazy(r);
+    node[id].mxm = max(node[l].mxm, node[r].mxm);
+}
+
+void build(int id, int l, int r) {
+    node[id].l = l;
+    node[id].r = r;
+    if(l == r) {
+        return;
+    }
+    int q = l + r >> 1;
+    build(l(id), l, q);
+    build(r(id), q + 1, r);
+    merge(id, l(id), r(id));
+}
+
+void update(int id, int l, int r, int x) {
+    if(node[id].l == l && node[id].r == r) {
+        node[id].lzy += x;
+        return;
+    }
+    lazy(id);
+    int q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        update(l(id), l, min(q, r), x);
+    }
+    if(r > q) {
+        update(r(id), max(q + 1, l), r, x);
+    }
+    merge(id, l(id), r(id));
+}
+
+void dfs(int u) {
+    static int t = 0;
+    graph.lef[u] = ++t;
+    for(int v: graph.adj[u]) {
+        dfs(v);
+    }
+    graph.rig[u] = t;
+}
+
+void input() {
+    cin >> n >> k;
+    for(int i = 1; i <= n; ++i) {
+        cin >> arr[i];
+    }
+}
+
+void calc_next() {
+    stack <int> st;
+    for(int i = 1; i <= n; ++i) {
+        while(!st.empty() && arr[i] > arr[st.top()]) {
+            nxt[st.top()] = i; st.pop();
+        }
+        st.push(i);
+    }
+    for(int i = 1; i <= n; ++i) {
+        graph.adj[nxt[i]].pb(i);
+    }
+}
+
+int query() {
+    lazy(0);
+    return node[0].mxm;
+}
+
+void solve() {
+    calc_next();
+    dfs(0);
+    build(0, 1, n + 1);
+    for(int i = 1; i <= n; ++i) {
+        if(i > k) {
+            update(0, graph.lef[i - k], graph.rig[i - k], -1);
+        }
+        update(0, graph.lef[i], graph.rig[i], 1);
+        if(i >= k) {
+            cout << query() << " ";
+        }
+    }
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

@@ -1,0 +1,131 @@
+#ifdef DEBUG
+#define _GLIBCXX_DEBUG
+#endif
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+mt19937 mrand(random_device{} ()); 
+
+int rnd(int x) {
+  return mrand() % x;
+}
+
+typedef long double ld;
+typedef long long ll;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf(stderr, __VA_ARGS__), fflush(stderr)
+#else
+#define eprintf(...) ;
+#endif
+
+#define pb push_back
+#define mp make_pair
+#define sz(x) ((int) (x).size())
+#define TASK "text"
+
+const int inf = (int) 1.01e9;
+const ld eps = 1e-9;
+const ld pi = acos((ld) -1.0);
+
+const int maxn = (int) 1e3 + 10;
+int blen[maxn];
+
+void precalc() {
+  blen[1] = 0;
+  for (int i = 2; i < maxn; ++i) {
+    blen[i] = blen[i / 2] + 1;
+  }
+}
+
+int n, m;
+
+int a[maxn][maxn];
+
+int read() {
+  if (scanf("%d%d", &n, &m) < 2) {
+    return 0;
+  }
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      scanf("%d", a[i] + j);
+    }
+  }
+  return 1;
+}
+
+const int maxl = 10;
+short dp[maxl][maxl][maxn][maxn];
+
+int get(int x1, int y1, int x2, int y2) {
+  int it1 = blen[x2 - x1], it2 = blen[y2 - y1];
+  return max(max(dp[it1][it2][x1][y1], dp[it1][it2][x1][y2 - (1 << it2)]),
+             max(dp[it1][it2][x2 - (1 << it1)][y1], dp[it1][it2][x2 - (1 << it1)][y2 - (1 << it2)]));
+}
+
+void solve() {
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      auto &cur = dp[0][0][i][j];
+      cur = a[i][j];
+      if (cur && i && j) {
+        cur = min(dp[0][0][i - 1][j - 1], min(dp[0][0][i][j - 1], dp[0][0][i - 1][j])) + 1;
+      }
+    }
+  }
+
+  for (int it1 = 0; it1 < maxl; ++it1) {
+    for (int it2 = !it1; it2 < maxl; ++it2) {
+      for (int i = 0; i <= n - (1 << it1); ++i) {
+        for (int j = 0; j <= m - (1 << it2); ++j) {
+          auto &cur = dp[it1][it2][i][j];
+          if (it1) {
+            cur = max(dp[it1 - 1][it2][i][j], dp[it1 - 1][it2][i + (1 << (it1 - 1))][j]);
+          } else {
+            cur = max(dp[it1][it2 - 1][i][j], dp[it1][it2 - 1][i][j + (1 << (it2 - 1))]);
+          }
+        }
+      }
+    }
+  }
+
+
+  int q;
+  scanf("%d", &q);
+  for (int iter = 0; iter < q; ++iter) {
+    int x1, y1, x2, y2;
+    scanf("%d%d%d%d", &x1, &y1, &x2, &y2);
+    --x1, --y1;
+    int l = 0, r = min(x2 - x1, y2 - y1) + 1;
+    while (l + 1 < r) {
+      int mid = (l + r) / 2;
+      if (get(x1 + mid - 1, y1 + mid - 1, x2, y2) >= mid) {
+        l = mid;
+      } else {
+        r = mid;
+      }
+    }
+    printf("%d\n", l);
+  }
+}
+
+int main() {
+  precalc();
+#ifdef LOCAL
+  freopen(TASK ".out", "w", stdout);
+  assert(freopen(TASK ".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time %.2f\n", (double) clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

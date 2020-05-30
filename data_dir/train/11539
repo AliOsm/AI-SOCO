@@ -1,0 +1,153 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using PII = pair<int, int>;
+using VI = vector<int>;
+
+const int N = 505, LOG = 10;
+//const int N = 10, LOG = 4;
+
+int grid[N][N];
+
+int cnt[4][N][N];
+inline int get(int k, int li, int lj, int ri, int rj) {
+  li = max(1, li);
+  lj = max(1, lj);
+  ri = min(ri, N - 1);
+  rj = min(rj, N - 1);
+  return cnt[k][ri][rj]
+    - cnt[k][li - 1][rj]
+    - cnt[k][ri][lj - 1]
+    + cnt[k][li - 1][lj - 1];
+}
+inline int getsq(int k, int i, int j, int len) {
+  return get(k, i - len + 1, j - len + 1, i, j);
+}
+
+int logo[N][N];
+
+int pw2[LOG], logg[N];
+int table[N][N][LOG][LOG];
+void build() {
+  pw2[0] = 1;
+  for (int i = 1; i < LOG; i++) {
+    pw2[i] = 2 * pw2[i - 1];
+  }
+  for (int i = 2; i < N; i++) {
+    logg[i] = logg[i - 1];
+    if ((i & -i) == i) logg[i]++;
+  }
+
+  for (int i = 1; i < N; i++) {
+    for (int j = 1; j < N; j++) {
+      table[i][j][0][0] = logo[i][j];
+
+      for (int di = 1; di < LOG; di++) {
+        table[i][j][di][0] = max(
+          table[i][j][di - 1][0],
+          table[max(0, i - pw2[di - 1])][j][di - 1][0]
+        );
+      }
+
+      for (int dj = 1; dj < LOG; dj++) {
+        table[i][j][0][dj] = max(
+          table[i][j][0][dj - 1],
+          table[i][max(0, j - pw2[dj - 1])][0][dj - 1]
+        );
+      }
+
+      for (int di = 1; di < LOG; di++) {
+        for (int dj = 1; dj < LOG; dj++) {
+          table[i][j][di][dj] = max({
+            table[i][j][di][dj - 1],
+            table[i][j][di - 1][dj],
+            table[max(0, i - pw2[di - 1])][max(0, j - pw2[dj - 1])][di - 1][dj - 1]
+          });
+        }
+      }
+    }
+  }
+}
+
+int query(int lx, int ly, int rx, int ry) {
+  if (lx > rx || ly > ry) return 0;
+  int logx = logg[rx - lx + 1], logy = logg[ry - ly + 1];
+  lx += (1 << logx) - 1;
+  ly += (1 << logy) - 1;
+  return max({
+    table[rx][ry][logx][logy],
+    table[rx][ly][logx][logy],
+    table[lx][ry][logx][logy],
+    table[lx][ly][logx][logy],
+  });
+}
+
+int main() {
+#ifdef LOCAL_EXEC
+	freopen("sample.in", "r", stdin);
+//	freopen("sample.out", "w", stdout);
+#else
+  ios_base::sync_with_stdio(false); cin.tie(NULL);
+#endif
+
+  map<char, int> conv;
+  conv['R'] = 0;
+  conv['G'] = 1;
+  conv['Y'] = 2;
+  conv['B'] = 3;
+
+  int n, m, q; cin >> n >> m >> q;
+  for (int i = 1; i <= n; i++) {
+    string s; cin >> s;
+    for (int j = 1; j <= m; j++) {
+      grid[i][j] = conv[s[j - 1]];
+      cnt[grid[i][j]][i][j] = 1;
+    }
+  }
+
+  for (int k = 0; k < 4; k++) {
+    for (int i = 1; i <= n; i++) {
+      for (int j = 1; j <= m; j++) {
+        cnt[k][i][j] += cnt[k][i - 1][j] + cnt[k][i][j - 1] - cnt[k][i - 1][j - 1];
+      }
+    }
+  }
+
+  for (int i = 1; i <= n; i++) {
+    for (int j = 1; j <= m; j++) {
+      int lo = 0, hi = min(i, j) + 1;
+      while (lo + 1 < hi) {
+        int mid = (lo + hi) / 2;
+        if (min({
+          getsq(0, i, j, mid),
+          getsq(1, i, j + mid, mid),
+          getsq(2, i + mid, j, mid),
+          getsq(3, i + mid, j + mid, mid)
+        }) == mid * mid) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+
+      logo[i][j] = lo;
+    }
+  }
+  build();
+
+  while (q--) {
+    int li, lj, ri, rj; cin >> li >> lj >> ri >> rj;
+    int lo = 0, hi = min(ri - li, rj - lj) + 1;
+    while (lo + 1 < hi) {
+      int mid = (lo + hi) / 2;
+      if (query(li + mid - 1, lj + mid - 1, ri - mid, rj - mid) >= mid) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    cout << (4 * lo * lo) << '\n';
+  }
+
+  return 0;
+}

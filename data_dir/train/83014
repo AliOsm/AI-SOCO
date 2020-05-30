@@ -1,0 +1,170 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ff first
+#define ss second
+#define pb push_back
+using ll = long long;
+using ii = pair<int,int>;
+#define eps 1e-9
+#define mod 998244353
+
+const int N = 100005;
+const int E = 2000006;
+const int oo = N;
+vector<int> g[N];
+
+int ne;
+struct Edge{
+	int from, to;
+	ll flow, cap;
+} edge[E];
+
+int lvl[N], vis[N], pass, start = N-2, target = N-1;
+int qu[N], qt, px[N];
+
+ll run(int s, int sink, ll minE){
+	if(s == sink) return minE;
+
+	ll ans = 0;
+
+	for(; px[s] < (int)g[s].size(); px[s]++){
+		int e = g[s][ px[s] ];
+		auto &v = edge[e], &rev = edge[e^1];
+		if(lvl[v.to] != lvl[s]+1 || v.flow >= v.cap) continue;
+		ll tmp = run(v.to, sink,min(minE, v.cap-v.flow));
+		v.flow += tmp, rev.flow -= tmp;
+		ans += tmp, minE -= tmp;
+		if(minE == 0) break;
+	}
+	return ans;
+}
+
+bool bfs(int source, int sink){
+	qt = 0;
+	qu[qt++] = source;
+	lvl[source] = 1;
+	vis[source] = ++pass;
+
+	for(int i = 0; i < qt; i++){
+		int u = qu[i];
+		px[u] = 0;
+		if(u == sink) return true;
+
+		for(int e : g[u]){
+			auto v = edge[e];
+			if(v.flow >= v.cap || vis[v.to] == pass) continue;
+			vis[v.to] = pass;
+			lvl[v.to] = lvl[u]+1;
+			qu[qt++] = v.to;
+		}
+	}
+	return false;
+}
+
+ll flow(int source = start, int sink = target){
+	ll ans = 0;
+	while(bfs(source, sink))
+		ans += run(source, sink, oo);
+	return ans;
+}
+
+int addEdge(int u, int v, ll c = 1, ll rc = 0){
+	edge[ne] = {u, v, 0, c};
+	g[u].push_back(ne++);
+	edge[ne] = {v, u, 0, rc};
+	g[v].push_back(ne++);
+
+	return ne - 2;
+}
+
+void reset_flow(){
+	for(int i = 0; i < ne; i++)
+		edge[i].flow = 0;
+}
+
+int mask[100005];
+int qtd[10];
+int qtdmask[100];
+int ed_char[10];
+int ed_mask[100];
+int all = (1 << 6) - 1;
+
+int main(){
+	char s[100005];
+	scanf("%s", s);
+	int n = strlen(s);
+	for(int i = 0; i < n; i++){
+		mask[i] = all;
+		qtdmask[all]++;
+	}
+	for(int i = 0; i < n; i++){
+		qtd[s[i] - 'a']++;
+	}
+
+	int m;
+	scanf("%d", &m);
+	char t[10];
+	while(m--){
+		int pos;
+		scanf("%d", &pos);
+		pos--;
+		scanf("%s", t);
+		int nt = strlen(t);
+		qtdmask[mask[pos]]--;
+		for(int i = 0; i < nt; i++){
+			mask[pos] ^= 1 << (t[i] - 'a');
+		}
+		for(int i = 0; i < 6; i++){
+			mask[pos] ^= 1 << i;
+		}
+		qtdmask[mask[pos]]++;
+	}
+	
+	for(int j = 0; j < 6; j++){
+		if(qtd[j]){
+		ed_char[j] = addEdge(start, start - j - 1, qtd[j]); 
+			for(int i = 0; i <= all; i++){
+				if(i & (1 << j) && qtdmask[i]){
+					addEdge(start - j - 1, i, N);
+				}
+			}
+		}
+	}
+
+	for(int i = 0; i <= all; i++){
+		if(qtdmask[i])
+			ed_mask[i] = addEdge(i, target, qtdmask[i]);
+	}
+	
+	char ans[100005];
+		
+	for(int i = 0; i < n; i++){
+		bool da = 0;
+		for(int j = 0; j < 6; j++){
+			if(mask[i] & (1 << j) && qtd[j]){
+				edge[ed_char[j]].cap--;
+				edge[ed_mask[mask[i]]].cap--;
+				reset_flow();
+				if(flow() == n - i - 1){
+					qtd[j]--;
+					ans[i] = j + 'a';
+					da = 1;
+					break;
+				}
+				else{
+					edge[ed_char[j]].cap++;
+					edge[ed_mask[mask[i]]].cap++;
+				}
+			}
+		}
+		if(!da){
+			printf("Impossible\n");
+			return 0;
+		}
+	}
+	ans[n] = 0;
+	printf("%s\n", ans);
+	return 0;
+}

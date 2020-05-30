@@ -1,0 +1,194 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 2001;
+const int s = 0;
+const int t = N - 1;
+int n, m, k, sum, cur, tc;
+int deg[N];
+int ans[N];
+
+vec <int> ind[N];
+
+struct Edge {
+    int ver;
+    int cap;
+    int flw;
+    int rev;
+    int ind;
+};
+
+struct Graph {
+    int ptr[N];
+    int lev[N];
+    vec <Edge> adj[N];
+} graph;
+
+void clear() {
+    sum = 0;
+    cur = 0;
+    for(int i = 0; i < N; ++i) {
+        deg[i] = 0;
+        ans[i] = 0;
+        ind[i].clear();
+        graph.adj[i].clear();
+    }
+}
+
+void add_edge(int u, int v, int c, int i) {
+    int lenu = len(graph.adj[u]);
+    int lenv = len(graph.adj[v]);
+    graph.adj[u].pb({v, c, 0, lenv, i});
+    graph.adj[v].pb({u, c, c, lenu, i});
+}
+
+void input() {
+    cin >> n >> m >> k;
+    for(int i = 1; i <= m; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        add_edge(s, i, 1, i);
+        add_edge(i, m + u, 1, i);
+        add_edge(i, m + v, 1, i);
+        deg[u]++;
+        deg[v]++;
+    }
+    for(int i = 1; i <= n; ++i) {
+        int x = 2 * max(0, deg[i] - k);
+        add_edge(m + i, t, x, 0);
+        sum += x;
+    }
+}
+
+bool bfs() {
+    graph.lev[s] = 1;
+    queue <int> q; q.push(s);
+    while(!q.empty()) {
+        int u = q.front(); q.pop();
+        for(Edge &e: graph.adj[u]) {
+            int v = e.ver;
+            if(!graph.lev[v] && e.cap > e.flw) {
+                graph.lev[v] =
+                graph.lev[u] + 1;
+                q.push(v);
+            }
+        }
+    }
+    return graph.lev[t];
+}
+
+int dfs(int u, int flow) {
+    if(u == t) {
+        return flow;
+    }
+    for(int &i = graph.ptr[u]; i < len(graph.adj[u]); ++i) {
+        int v = graph.adj[u][i].ver;
+        Edge &e = graph.adj[u][i];
+        Edge &r = graph.adj[v][e.rev];
+        if(graph.lev[v] != graph.lev[u] + 1 || e.cap == e.flw) {
+            continue;
+        }
+        int f = dfs(v, min(flow, e.cap - e.flw));
+        if(f) {
+            e.flw += f;
+            r.flw -= f;
+            return f;
+        }
+    }
+    return 0;
+}
+
+int dinic() {
+    int res = 0;
+    while(true) {
+        fill(graph.ptr, graph.ptr + N, 0);
+        fill(graph.lev, graph.lev + N, 0);
+        if(!bfs()) {
+            return res;
+        }
+        while(int f = dfs(s, inf)) {
+            res += f;
+        }
+    }
+    return res;
+}
+
+void solve() {
+    if(dinic() != sum) {
+        for(int i = 1; i <= m; ++i) {
+            cout << "0 ";
+        }
+        cout << "\n";
+        return;
+    }
+    for(int i = 1; i <= m; ++i) {
+        for(Edge &e: graph.adj[i]) {
+            if(e.ver > i && e.flw) {
+                ind[e.ver - m].pb(i);
+            }
+        }
+    }
+    for(int i = 1; i <= n; ++i) {
+        while(len(ind[i]) >= 2) {
+            cur++;
+            ans[ind[i].back()] = cur; ind[i].pop_back();
+            ans[ind[i].back()] = cur; ind[i].pop_back();
+        }
+    }
+    for(int i = 1; i <= m; ++i) {
+        if(!ans[i]) {
+            ans[i] = ++cur;
+        }
+    }
+    for(int i = 1; i <= m; ++i) {
+        cout << ans[i] << " ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    cin >> tc;
+    while(tc--) {
+        clear();
+        input();
+        solve();
+    }
+}

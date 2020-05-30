@@ -1,0 +1,161 @@
+#include<bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+
+using namespace std;
+typedef long long ll;
+const int N = 3000*100 + 100;
+const ll MOD = 1000*1000*1000 + 9;
+
+ll fib[N] , a[N] , tr[N*4] , sum[N*4] , n;
+ll mat[20][6] , temp[6];
+pair <ll , ll> lazy[N*4];
+
+void shift(int b , int mid , int e , int ind){
+    
+//    cout << "shifting  " << b << " " << mid << " " << e << "  " << ind << endl;
+
+    temp[0] = lazy[ind].S;
+    temp[1] = temp[2] = lazy[ind].F;
+        
+    int t = mid - b;
+
+    for(int i = 0 ; i < 19 ; i++){
+        if(((1 << i) & t)){
+             ll x = temp[0] , y = temp[1];
+//             cout << "chosen i is  " << i << endl;
+//             cout << "matrice : " << mat[i][0] << " " << mat[i][1] << " " << mat[i][2] <<"  " <<  mat[i][3] << endl;
+             temp[0] = (x*mat[i][0] + y*mat[i][2])%MOD;
+             temp[1] = (x*mat[i][1] + y*mat[i][3])%MOD;
+
+        }
+    }   
+//    cout << "lazy : " << lazy[ind].F << "  " << lazy[ind].S << endl; 
+//    cout << "temps : " << temp[1] << " " << temp[0] << endl;
+    ll k = (temp[0] - lazy[ind].S + MOD)%MOD;
+//    cout << "first part of this node's sum is : " << k << endl;
+    lazy[ind*2].F += lazy[ind].F , lazy[ind*2].S += lazy[ind].S;
+    lazy[ind*2 + 1].F += temp[1] , lazy[ind*2 + 1].S += temp[0];
+
+    tr[ind*2] += k , sum[ind*2] += k;
+    tr[ind*2 + 1] += (sum[ind] - k + MOD) , sum[ind*2 + 1] += (sum[ind] - k + MOD);
+
+    tr[ind*2] %= MOD , tr[ind*2 + 1]%= MOD , sum[ind*2]%= MOD , sum[ind*2 + 1] %= MOD;
+    lazy[ind*2].F %= MOD , lazy[ind*2].S %= MOD , lazy[ind*2 + 1].F %= MOD , lazy[ind*2 + 1].S %= MOD;
+
+//    cout << "sums are : " << tr[ind*2] << " " << tr[ind*2 + 1] << endl;
+    lazy[ind] = mp(0 , 0);
+    sum[ind] = 0;
+
+    return;
+}
+
+
+void Make(int b = 0 , int e = n , int ind = 1){
+     
+     if(b + 1 == e){
+        tr[ind] = a[b];
+        return;
+     }
+
+     int mid = (b + e)/2;
+     Make(b , mid , ind*2);
+     Make(mid , e , ind*2 + 1);
+
+     tr[ind] = (tr[ind*2] + tr[ind*2 + 1])%MOD;
+     
+     return;
+}
+
+ll get(int l , int r , int b = 0 , int e = n , int ind = 1){
+      
+//      cout << "getting!!  " << l << " " << r << " " << b << "  " << e << " " << ind << endl;
+      if(l <= b && e <= r)
+//        cout << "got!"<<endl;
+          return tr[ind];
+      
+      int mid = (b + e)/2;
+      ll ret = 0;
+      shift(b , mid , e , ind);
+
+      if(l < mid)
+          ret += get(l , r , b , mid , ind*2);
+      if(r > mid)
+          ret += get(l , r , mid , e , ind*2 + 1);        
+      
+      return ret%MOD;
+}
+
+void add(int l , int r , int b = 0 , int e = n , int ind = 1){
+
+     if(l <= b && e <= r){
+//          cout << "adding / segment found!"<<endl;          
+          ll k = (fib[e-l] - fib[b-l] + MOD)%MOD;
+//          cout << "k is : " << k << endl;
+          tr[ind] = (tr[ind] + k)%MOD;
+          sum[ind] = (sum[ind] + k)%MOD;
+
+          lazy[ind].F = (lazy[ind].F + fib[b - l + 1] - fib[b - l] + MOD)%MOD;
+          lazy[ind].S = (lazy[ind].S + fib[b - l + 2] - fib[b - l + 1] + MOD)%MOD;
+          
+//          cout <<"lazy is   " <<  lazy[ind].F << "  " << lazy[ind].S << endl;
+//          for(int i = 0 ; i < n ; i++)
+//                cout << get(i , i+1) << " ";
+//          cout << endl;      
+          return;
+     }
+
+     int mid = (b + e)/2;
+     shift(b , mid , e , ind);
+
+     if(l < mid)
+        add(l , r , b , mid , ind*2);
+     if(r > mid)
+        add(l , r , mid , e , ind*2 + 1);
+     
+     tr[ind] = (tr[ind*2] + tr[ind*2 + 1])%MOD;
+     return;
+}
+
+
+int main(){
+
+     ios_base::sync_with_stdio(0) , cin.tie(0) , cout.tie(0);
+     
+     int m , tp , l , r;
+     cin >> n >> m;
+
+     for(int i = 0 ; i < n ; i++)
+        cin >> a[i];
+
+     Make();
+     
+     fib[1] = 1;
+     mat[0][0] = mat[0][1] = mat[0][2] = 1;
+
+     for(int i = 1 ; i < 19 ; i++){
+        mat[i][0] = (mat[i-1][0] * mat[i-1][0] + mat[i-1][1] * mat[i-1][2])%MOD; 
+        mat[i][1] = (mat[i-1][0] * mat[i-1][1] + mat[i-1][1] * mat[i-1][3])%MOD;
+        mat[i][2] = (mat[i-1][2] * mat[i-1][0] + mat[i-1][3] * mat[i-1][2])%MOD;
+        mat[i][3] = (mat[i-1][2] * mat[i-1][1] + mat[i-1][3] * mat[i-1][3])%MOD;
+     }
+
+     for(int i = 2 ; i <= n+10 ; i++)
+        fib[i] = (fib[i-1] + fib[i-2])%MOD;      
+      
+     for(int i = 1 ; i <= n ; i++){
+        fib[i] = (fib[i-1] + fib[i])%MOD;     
+//        cout << "fib " << i << "  =  " << fib[i] << endl;
+     }
+     for(int i = 0 ; i < m ; i++){
+        cin >> tp >> l >> r;
+        l--;
+        if(tp - 1)
+            cout << get(l , r) << endl;        
+        else
+            add(l , r);        
+     }
+     return 0;
+}

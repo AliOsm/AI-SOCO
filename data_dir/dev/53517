@@ -1,0 +1,386 @@
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+
+#include <vector>
+
+#include <stack>
+#include <algorithm>
+
+#include <set>
+#include <queue>
+
+using namespace std;
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+#define HIGHESTSETBIT(mask) ( sizeof(int)*8-1-__builtin_clz((mask)) )
+
+#undef FIND_BICONNECTED_COMPONENTS
+#undef FIND_ARTICULATION_POINTS
+#define FIND_BRIDGES
+
+#if defined (FIND_BICONNECTED_COMPONENTS) || defined(FIND_BRIDGES)
+struct Edge {
+   int u, v;
+   Edge(int _u, int _v) : u(_u), v(_v) {}
+   bool operator<(const Edge& e) const {
+      if (u != e.u) return u < e.u;
+      return v < e.v;
+   }
+};
+#endif
+
+VVI adj;
+class BiconnectedComponent {
+   int N;
+   int dfs_time;    // DFS "counter"
+   int root;
+
+#ifdef FIND_BICONNECTED_COMPONENTS
+   stack<Edge> S;
+   void store_bcc(const Edge& r);
+#endif
+
+   void _dfs(int u);
+
+public:
+
+// OUTPUT
+#ifdef FIND_ARTICULATION_POINTS
+   VI  artic_pts;
+#endif
+#ifdef FIND_BRIDGES
+   vector< Edge > bridges;
+#endif
+#ifdef FIND_BICONNECTED_COMPONENTS
+   vector< vector<Edge> > BCCs;
+#endif
+
+   VI  dfs_order;
+   VI  low;
+   VI  dfs_level;
+   VI  par;
+
+   BiconnectedComponent(int _N) : N(_N) { adj = VVI(N); }
+   void run();
+};
+
+#ifdef FIND_BICONNECTED_COMPONENTS
+void BiconnectedComponent::store_bcc(const Edge& r) {
+   BCCs.push_back(vector<Edge>());
+   vector<Edge>& bcc = BCCs.back();
+   while (!S.empty()) {
+      Edge e = S.top();
+      S.pop();
+      bcc.push_back(e);
+      if (e.u == r.u && e.v == r.v || e.v == r.u && e.u == r.v)
+         break;
+   }
+}
+#endif
+
+void BiconnectedComponent::_dfs(int u) {
+   dfs_order[u] = low[u] = ++dfs_time;
+#ifdef FIND_ARTICULATION_POINTS
+   int tree_edges = 0;
+   bool is_artic_point = false;
+#endif
+   for (int j = 0; j < adj[u].size(); ++j) {
+      int v = adj[u][j];
+      if (par[u] == v) continue;  // ignore edge to parent
+      if (dfs_order[v] == 0) {  // tree edge
+         dfs_level[v] = dfs_level[u] + 1;
+#ifdef FIND_ARTICULATION_POINTS
+         ++tree_edges;
+#endif
+
+#ifdef FIND_BICONNECTED_COMPONENTS
+         S.push(Edge(u, v));
+#endif
+         par[v] = u;
+         _dfs(v);
+
+         if (u == root) {
+#ifdef FIND_ARTICULATION_POINTS
+            if (tree_edges > 1)
+               // root is an articulation point iff it has more than one tree edge
+               is_artic_point = true;
+#endif
+#ifdef FIND_BICONNECTED_COMPONENTS
+            store_bcc(Edge(u, v));  // all subtrees of root form a BCC
+#endif
+         }
+         else {
+            if (low[v] >= dfs_order[u]) {
+               // v cannot reach an earlier node -> u is an articulation
+#ifdef FIND_ARTICULATION_POINTS
+               is_artic_point = true;
+#endif
+#ifdef FIND_BICONNECTED_COMPONENTS
+               store_bcc(Edge(u, v));
+#endif
+            }
+         }
+
+#ifdef FIND_BRIDGES
+         if (low[v] > dfs_order[u])
+            bridges.push_back(Edge(u, v));
+#endif
+
+         low[u] = min(low[u], low[v]);
+      }
+      else if (dfs_level[v] < dfs_level[u]-1) { // back edge
+         low[u] = min(low[u], dfs_order[v]);
+#ifdef FIND_BICONNECTED_COMPONENTS
+         S.push(Edge(u, v));
+#endif
+      }
+   }
+#ifdef FIND_ARTICULATION_POINTS
+   if (is_artic_point)
+      artic_pts.push_back(u);
+#endif
+}
+
+void BiconnectedComponent::run() {
+   N = adj.size();
+#ifdef FIND_BICONNECTED_COMPONETS
+   BCCs.clear();
+   S = stack<Edge>();
+#endif
+#ifdef FIND_ARTICULATION_POINTS
+   artic_pts.clear();
+#endif
+#ifdef FIND_BRIDGES
+   bridges.clear();
+#endif
+
+   dfs_order = VI(N, 0);
+   low = VI(N, 0);
+   dfs_level = VI(N, 0);
+   par = VI(N, -1);
+   dfs_time = 0;
+   for (int u = 0; u < N; ++u) {
+      if (dfs_order[u] == 0)
+         _dfs( root = u );
+   }
+}
+
+int which_comp[100004];
+set<Edge> is_bridge;
+VVI adj2;
+
+/*
+void dfs2(int u, int id) {
+   if (which_comp[u] >= 0) return;
+   which_comp[u] = id;
+   for (int j = 0; j < adj[u].size(); ++j) {
+      int v = adj[u][j];
+      if (is_bridge.count(Edge(u, v))) continue;
+      dfs2(v, id);
+   }
+}
+*/
+
+void bfs2(int src, int id) {
+   which_comp[src] = id;
+   queue<int> q;
+   q.push(src);
+   while (!q.empty()) {
+      int u = q.front();
+      q.pop();
+      for (int j = 0; j < adj[u].size(); ++j) {
+         int v = adj[u][j];
+         if (is_bridge.count(Edge(u, v))) continue;
+         if (which_comp[v] < 0) {
+            which_comp[v] = id;
+            q.push(v);
+         }
+      }
+   }
+}
+
+VI LCA_P;   // parent array for tree
+VI LCA_L;   // level of each node in tree;  level of root = 0
+class LCA {
+   VVI M;
+public:
+   // input
+   LCA(int _N = 0) {
+      LCA_P = VI(_N, -1);
+      LCA_L = VI(_N, -1);
+   }
+   void preprocess() {
+      int N = LCA_P.size();
+      if (N == 0) return;
+
+      // initialize M for every element in P and ancestor path with -1
+   // int LOGN = N > 1 ? 1+HIGHESTSETBIT(N-1) : 0;  // not tested!!!
+      int LOGN = N > 1 ? 1+HIGHESTSETBIT(N) : 1;  // not tested!!!
+   // for (LOGN = 0; (1 << LOGN) < N; ++LOGN);
+      M = VVI(LOGN, VI(N, -1));
+      /*
+      for (int j = 0; (1 << j) < N; j++)
+         for (int i = 0; i < N; i++)
+            M[j][i] = -1;
+      */
+
+      // The first ancestor of every node i is P[i]
+      for (int i = 0; i < N; ++i)
+          M[0][i] = LCA_P[i];
+      // Bottom up dynamic programing
+      for (int j = 1; (1 << j) < N; ++j)
+         for (int i = 0; i < N; ++i)
+             if (M[j - 1][i] != -1)
+                 M[j][i] = M[j - 1][ M[j - 1][i] ];
+   }
+   int query(int p, int q) {
+      // if p is situated on a higher level than q then we swap them
+      if (LCA_L[p] < LCA_L[q])
+         swap(p, q);
+
+      // Compute the value of floor( log( L[p] ) )
+      int LOGLp;
+   // int LOGLp = LCA_L[p] > 0 ? HIGHESTSETBIT(LCA_L[p]) : 0;
+      for (LOGLp = 1; (1 << LOGLp) <= LCA_L[p]; ++LOGLp);
+      --LOGLp;
+
+      // Find the ancestor of node p situated on the same level
+      //  with q using the values in M
+      for (int j = LOGLp; j >= 0; --j)
+         if (LCA_L[p] - (1 << j) >= LCA_L[q])
+            p = M[j][p];
+   
+      if (p == q)
+         return p;
+
+      // Compute LCA(p, q) using the values in M
+      for (int j = LOGLp; j >= 0; --j)
+         if (M[j][p] != -1 && M[j][p] != M[j][q])
+            p = M[j][p], q = M[j][q];
+
+      return LCA_P[p];
+   }
+};
+
+void bfs3(int src) {
+   LCA_L[src] = 0;
+   queue<int> q;
+   q.push(src);
+   while (!q.empty()) {
+      int u = q.front();
+      q.pop();
+      for (int j = 0; j < adj2[u].size(); ++j) {
+         int v = adj2[u][j];
+         if (LCA_L[v] < 0) {
+            LCA_L[v] = LCA_L[u] + 1;
+            LCA_P[v] = u;
+            q.push(v);
+         }
+      }
+   }
+}
+
+int main() {
+   int N, M;
+   scanf("%d %d", &N, &M);
+   BiconnectedComponent bc(N);
+   for (int m = 0; m < M; ++m) {
+      int u, v;
+      scanf("%d %d", &u, &v);
+      --u, --v;
+      adj[u].push_back(v);
+      adj[v].push_back(u);
+   }
+
+   bc.run();
+/*
+   for (int i = 0; i < N; ++i)
+      printf("%d:  ord:%d  low:%d  lvl:%d  par:%d\n",
+             i+1, bc.dfs_order[i], bc.low[i], bc.dfs_level[i], bc.par[i]+1 );
+*/
+
+// fputs("Bridges\n", stderr);
+   for (int j = 0; j < bc.bridges.size(); ++j) {
+      Edge e = bc.bridges[j];
+      is_bridge.insert(e);
+      is_bridge.insert(Edge(e.v, e.u));
+   // fprintf(stderr, "(%d,%d)\n", e.u+1, e.v+1);
+   }
+
+   memset(which_comp, -1, sizeof(which_comp));
+   for (int j = 0; j < bc.bridges.size(); ++j) {
+      Edge e = bc.bridges[j];
+   // if (e.u > e.v) swap(e.u, e.v);
+      int comp_u = which_comp[e.u];
+      if (comp_u < 0) {
+         comp_u = adj2.size();
+         adj2.push_back(VI());
+      // dfs2(e.u, comp_u);
+         bfs2(e.u, comp_u);
+      }
+      int comp_v = which_comp[e.v];
+      if (comp_v < 0) {
+         comp_v = adj2.size();
+         adj2.push_back(VI());
+      // dfs2(e.v, comp_v);
+         bfs2(e.v, comp_v);
+      }
+      adj2[comp_u].push_back(comp_v);
+      adj2[comp_v].push_back(comp_u);
+   }
+
+/*
+   for (int j = 0; j < adj2.size(); ++j) {
+      fprintf(stderr, "* %d:", j);
+      for (int k = 0; k < adj2[j].size(); ++k)
+         fprintf(stderr, " %d", adj2[j][k]);
+      fprintf(stderr, "\n");
+   }
+*/
+
+   if (bc.bridges.empty()) {
+      int K;
+      scanf("%d", &K);
+      for (int k = 1; k <= K; ++k) {
+         int u, v;
+         scanf("%d %d", &u, &v);
+         puts("0");
+      }
+      return 0;
+   }
+
+   LCA lca(adj2.size());
+// dfs3(0);
+   bfs3(0);
+   lca.preprocess();
+/*
+   for (int i = 0; i < adj2.size(); ++i)
+      fprintf(stderr, "%d: %d %d\n", i, lca.L[i], lca.P[i]);
+*/
+
+   int K;
+   scanf("%d", &K);
+   for (int k = 1; k <= K; ++k) {
+      int u, v;
+      scanf("%d %d", &u, &v);
+      --u, --v;
+      int comp_u = which_comp[u];
+      int comp_v = which_comp[v];
+   // if (comp_u < 0 || comp_v < 0) while (1);
+
+      int x = lca.query(comp_u, comp_v);
+/*
+      fprintf(stderr, "%d (%d) %d (%d) %d (%d)\n",
+              comp_u, lca.L[comp_u],
+              comp_v, lca.L[comp_v],
+              x, lca.L[x]);
+*/
+      int res = (LCA_L[comp_u]-LCA_L[x]) + (LCA_L[comp_v]-LCA_L[x]);
+      printf("%d\n", res);
+   }
+
+   return 0;
+}

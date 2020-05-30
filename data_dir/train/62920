@@ -1,0 +1,124 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define FOR(i,a,b) for(int i = (a); i <= (b); ++i)
+#define FORD(i,a,b) for(int i = (a); i >= (b); --i)
+#define RI(i,n) FOR(i,1,(n))
+#define REP(i,n) FOR(i,0,(n)-1)
+#define mini(a,b) a=min(a,b)
+#define maxi(a,b) a=max(a,b)
+#define mp make_pair
+#define pb push_back
+#define st first
+#define nd second
+#define sz(w) (int) w.size()
+typedef vector<int> vi;
+typedef long long ll;
+typedef long double ld;
+typedef pair<ll,ll> pii;
+typedef pair<pii, ll> para;
+const ll inf = 1e9 + 7;
+const ll maxN = 5e6 + 5;
+const ll MOD = 998244353;
+
+ll n, q;
+ll arr[maxN], pref[maxN], weirdSum[maxN];
+set<ll> checkpoints;
+
+ll mul_inv(ll a, ll b)
+{
+	ll b0 = b, t, q;
+	ll x0 = 0, x1 = 1;
+	if (b == 1) return 1LL;
+	while (a > 1) {
+		q = a / b;
+		t = b, b = a % b, a = t;
+		t = x0, x0 = x1 - q * x0, x1 = t;
+	}
+	if (x1 < 0) x1 += b0;
+	return x1;
+}
+
+ll multiply(ll p, ll q) {
+	return (p * q) % MOD;
+}
+
+ll divide(ll p, ll q) {
+	return multiply(mul_inv(q, MOD), p);
+}
+
+ll add(ll p, ll q) {
+	return (p + q) % MOD;
+}
+
+ll subtract(ll p, ll q) {
+	return (p - q + MOD) % MOD;
+}
+
+ll getProd(ll i, ll j) {
+	if (i > j) return 1;
+	return divide(pref[j], pref[i - 1]);
+}
+
+ll getWeirdSum(ll i, ll j) {
+	return divide(subtract(weirdSum[i], weirdSum[j + 1]), getProd(j + 1, n));
+}
+
+int main() {
+	ios_base::sync_with_stdio(0);
+	cin >> n >> q;
+	RI(i, n) {
+		cin >> arr[i];
+		arr[i] = divide(100, arr[i]);
+	}
+	pref[0] = 1;
+	pref[1] = arr[1];
+	FOR(i, 2, n) {
+		pref[i] = multiply(pref[i - 1], arr[i]);
+	}
+	ll mainAns = 0;
+	RI(i, n) {
+		ll tmp = multiply(arr[i], getProd(i + 1, n));
+		weirdSum[i] = tmp;
+		mainAns = add(mainAns, tmp);
+	}
+	FORD(i, n - 1, 1) {
+		weirdSum[i] = add(weirdSum[i], weirdSum[i + 1]);
+	}
+	checkpoints.insert(1);
+	checkpoints.insert(n + 1);
+	REP(_, q) {
+		ll j;
+		cin >> j;
+		auto it = checkpoints.find(j);
+		if (it != checkpoints.end()) {
+			it--;
+			ll i = *it;
+			it++;
+			it++;
+			ll k = *it;
+			ll ij = getWeirdSum(i, j - 1);
+			ll jk = getWeirdSum(j, k - 1);
+			ll ik = getWeirdSum(i, k - 1);
+			//cout << ij << " " << jk << " " << ik << endl;
+			mainAns = add(mainAns, ik);
+			mainAns = subtract(mainAns, jk);
+			mainAns = subtract(mainAns, ij);
+			checkpoints.erase(checkpoints.find(j));
+		} else {
+			it = checkpoints.upper_bound(j);
+			ll k = *it;
+			it--;
+			ll i = *it;
+			ll ij = getWeirdSum(i, j - 1);
+			ll jk = getWeirdSum(j, k - 1);
+			ll ik = getWeirdSum(i, k - 1);
+			mainAns = subtract(mainAns, ik);
+			mainAns = add(mainAns, jk);
+			mainAns = add(mainAns, ij);
+			checkpoints.insert(j);
+		}
+		cout << mainAns << endl;
+	}
+	return 0;
+}

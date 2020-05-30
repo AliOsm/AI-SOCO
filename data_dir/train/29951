@@ -1,0 +1,96 @@
+#include<bits/stdc++.h>
+#include<ext/numeric>
+
+using namespace std;
+using namespace __gnu_cxx;
+
+const int MAX = 105;
+
+typedef vector<int> vi;
+
+#define CLR(a,v) memset(a,v,sizeof(a))
+#define sz(v) (int)v.size()
+
+int t, n, m, memo[MAX][MAX];
+bool known[MAX];
+string name[MAX], message[MAX];
+vi cand[MAX];
+
+int solve(int idx, int prev) {
+	if (idx == m)
+		return memo[idx][prev] = 1;
+	int &ret = memo[idx][prev];
+	if (~ret)
+		return ret;
+	ret = 0;
+	for (auto x : cand[idx])
+		if (x != prev)
+			ret |= solve(idx + 1, x);
+	return ret;
+}
+
+void buildPath(int idx, int prev) {
+	if (idx == m)
+		return;
+	for (auto x : cand[idx])
+		if (x != prev && memo[idx + 1][x] == 1) {
+			if (!known[idx])
+				message[idx].replace(0, 1, name[x]);
+			cout << message[idx] << endl;
+			buildPath(idx + 1, x);
+			break;
+		}
+}
+
+bool good(char c) {
+	return !isalpha(c) && !isdigit(c);
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("in.txt", "r", stdin);
+#endif
+	cin >> t;
+	while (t--) {
+		for (int i = 0; i < MAX; ++i)
+			cand[i].clear();
+		CLR(memo, -1);
+		CLR(known, 0);
+		cin >> n;
+		for (int i = 1; i <= n; ++i)
+			cin >> name[i];
+		cin >> m;
+		cin.ignore();
+		for (int i = 0; i < m; ++i) {
+			string s;
+			getline(cin, s);
+			message[i] = s;
+			int colon = s.find(':');
+			if (s.find('?') != 0) {
+				known[i] = 1;
+				cand[i].push_back(
+						find(name + 1, name + n + 1, s.substr(0, colon))
+								- name);
+			} else
+				for (int j = 1; j <= n; ++j) {
+					bool found = 0;
+					int cur = s.find(name[j]);
+					while (cur != -1) {
+						if (good(s[cur - 1])
+								&& (cur + sz(name[j]) == sz(s)
+										|| good(s[cur + sz(name[j])]))) {
+							found = 1;
+							break;
+						}
+						cur = s.find(name[j], cur + 1);
+					}
+					if (!found)
+						cand[i].push_back(j);
+				}
+		}
+		if (solve(0, 0) == 0)
+			puts("Impossible");
+		else
+			buildPath(0, 0);
+	}
+}

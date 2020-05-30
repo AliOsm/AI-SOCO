@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	100000
+#define M	1000000
+#define LN	16	/* LN = floor(log2(N)) */
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+int ii[M], jj[M], ww[M];
+
+int compare_h(const void *a, const void *b) {
+	int h1 = *(int *) a;
+	int h2 = *(int *) b;
+
+	return ww[h1] - ww[h2];
+}
+
+int dsu[N];
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+int join(int i, int j) {
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return 0;
+	if (dsu[i] > dsu[j])
+		dsu[i] = j;
+	else {
+		if (dsu[i] == dsu[j])
+			dsu[i]--;
+		dsu[j] = i;
+	}
+	return 1;
+}
+
+int oo[1 + (N - 1) * 2], oh[1 + (N - 1) * 2];
+
+int link(int o, int h) {
+	static int _ = 1;
+
+	oo[_] = o, oh[_] = h;
+	return _++;
+}
+
+int ae[N], dd[N], ff[N], pp[N][LN + 1], ww_[N][LN + 1];
+
+void dfs(int f, int p, int i, int d) {
+	int o, k;
+
+	dd[i] = d, ff[i] = f;
+	if (f != -1) {
+		pp[i][0] = p;
+		ww_[i][0] = ww[f];
+		for (k = 1; 1 << k <= d; k++) {
+			int q = pp[i][k - 1];
+
+			pp[i][k] = pp[q][k - 1];
+			ww_[i][k] = max(ww_[i][k - 1], ww_[q][k - 1]);
+		}
+	}
+	for (o = ae[i]; o; o = oo[o]) {
+		int h = oh[o];
+
+		if (h != f) {
+			int j = i ^ ii[h] ^ jj[h];
+
+			dfs(h, i, j, d + 1);
+		}
+	}
+}
+
+int query(int i, int j) {
+	int k, w;
+
+	if (dd[i] < dd[j])
+		return query(j, i);
+	w = -1;
+	for (k = LN; k >= 0; k--)
+		if (dd[i] - dd[j] >= 1 << k) {
+			w = max(w, ww_[i][k]);
+			i = pp[i][k];
+		}
+	if (i == j)
+		return w;
+	for (k = LN; k >= 0; k--)
+		if (dd[i] >= 1 << k && pp[i][k] != pp[j][k]) {
+			w = max(w, max(ww_[i][k], ww_[j][k]));
+			i = pp[i][k], j = pp[j][k];
+		}
+	w = max(w, max(ww_[i][0], ww_[j][0]));
+	return w;
+}
+
+int main() {
+	static char tree[M];
+	static int hh[M];
+	int n, m, m_, h, i, j;
+
+	scanf("%d%d", &n, &m);
+	for (h = 0; h < m; h++) {
+		scanf("%d%d%d", &ii[h], &jj[h], &ww[h]), ii[h]--, jj[h]--;
+		hh[h] = h;
+	}
+	qsort(hh, m, sizeof *hh, compare_h);
+	memset(dsu, -1, n * sizeof *dsu);
+	for (h = 0; h < m; h++) {
+		int h_ = hh[h];
+
+		i = ii[h_], j = jj[h_];
+		if (join(i, j)) {
+			tree[h_] = 1;
+			ae[i] = link(ae[i], h_), ae[j] = link(ae[j], h_);
+		}
+	}
+	dfs(-1, -1, 0, 0);
+	m_ = 0;
+	for (h = 0; h < m; h++)
+		if (!tree[h]) {
+			i = ii[h], j = jj[h];
+			printf("%d\n", query(i, j));
+		}
+	return 0;
+}

@@ -1,0 +1,180 @@
+#define DBG 1
+// chrono::system_clock::now().time_since_epoch().count()
+#include<bits/stdc++.h>
+//#include<ext/pb_ds/tree_policy.hpp>
+//#include<ext/pb_ds/assoc_container.hpp>
+
+#define pb push_back
+#define eb emplace_back
+#define mp make_pair
+#define fi first
+#define se second
+#define all(x) (x).begin(), (x).end()
+#define debug(x) if (DBG) cerr << #x << " = " << x << endl;
+
+using namespace std;
+//using namespace __gnu_pbds;
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+//template<typename T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+const int MAXN = (int)3e5 + 5;
+
+ll fenw[2][MAXN];
+vector<pii> que[MAXN];
+vector<int> pos[MAXN];
+bool used[MAXN], isbr[MAXN];
+vector<int> adj[MAXN];
+int h[MAXN], fup[MAXN];
+ll ans[MAXN];
+pii e[MAXN];
+int lf[MAXN];
+int n, m, q;
+
+void dfs(int v, int pr = -1) {
+    fup[v] = h[v];
+    used[v] = 1;
+    
+    for (int id : adj[v]) {
+        if (id == pr) {
+            continue;
+        }
+    
+        int to = e[id].fi + e[id].se - v;
+        
+        if (!used[to]) {
+            h[to] = h[v] + 1;
+            dfs(to, id);
+            fup[v] = min(fup[v], fup[to]);
+            
+            if (fup[to] > h[v]) {
+                isbr[id] = 1;
+            }
+        }
+        else {
+            fup[v] = min(fup[v], h[to]);
+        }
+    }
+}
+
+void dfs2(int v, int &l, int &r) {
+    used[v] = 1;
+    l = min(l, v);
+    r = max(r, v);
+    
+    for (int id : adj[v]) {
+        if (isbr[id]) {
+            continue;
+        }
+        
+        int to = e[id].fi + e[id].se - v;
+        
+        if (!used[to]) {
+            dfs2(to, l, r);
+        }
+    }
+}
+
+ll f(int x) {
+    return x * (x + 1ll) / 2;
+}
+
+void fenwUpd(int id, int p, int x) {
+    for (; p <= n; p |= (p + 1)) {
+        fenw[id][p] += x;
+    }
+}
+
+ll prefSum(int id, int p) {
+    ll ret = 0;
+    
+    for (; p > 0; --p) {
+        ret += fenw[id][p];
+        p &= (p + 1);
+    }
+    
+    return ret;
+}
+
+ll segSum(int id, int l, int r) {
+    return prefSum(id, r) - prefSum(id, l - 1);
+}
+
+void solve() {
+	scanf("%d %d", &n, &m);
+    
+    for (int i = 1; i <= m; ++i) {
+        int u, v;
+        scanf("%d %d", &u, &v);
+        adj[u].pb(i);
+        adj[v].pb(i);
+        e[i] = mp(u, v);
+    }
+    
+    for (int i = 1; i <= n; ++i) {
+        if (!used[i]) {
+            dfs(i);
+        }
+    }
+    
+    for (int i = 1; i <= n; ++i) {
+        used[i] = 0;
+        lf[i] = 1;
+    }
+    
+    for (int i = 1; i <= n; ++i) {
+        if (!used[i]) {
+            int l = i, r = i;
+            dfs2(i, l, r);
+            
+            if (l != r) {
+                lf[r] = max(lf[r], l + 1);
+            }
+        }
+    }
+    
+    for (int i = 1; i <= n; ++i) {
+        lf[i] = max(lf[i], lf[i - 1]);
+        pos[lf[i]].pb(i);
+        fenwUpd(0, i, lf[i]);
+    }
+    
+    scanf("%d", &q);
+    
+    for (int i = 1; i <= q; ++i) {
+        int l, r;
+        scanf("%d %d", &l, &r);
+        ans[i] = f(r + 1) - f(l);
+        que[l].pb(mp(r, i));
+    }
+    
+    for (int l = 1; l <= n; ++l) {
+        for (auto it : que[l]) {
+            int r, id;
+            tie(r, id) = it;
+            ans[id] -= segSum(0, l, r);
+            ans[id] -= segSum(1, l, r) * l;
+        }
+        
+        for (int p : pos[l]) {
+            fenwUpd(0, p, -lf[p]);
+            fenwUpd(1, p, 1);
+        }
+    }
+    
+    for (int i = 1; i <= q; ++i) {
+        printf("%lld\n", ans[i]);
+    }
+}
+
+int main() {
+	int tt = 1;
+	
+	while (tt--) {
+		solve();
+	}
+
+	return 0;
+}

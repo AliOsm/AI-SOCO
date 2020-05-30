@@ -1,0 +1,116 @@
+#include <sstream>
+#include <fstream>
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+#include <cassert>
+#include <bitset>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+
+#define DEBUG
+#ifdef DEBUG
+#define debug(...) fprintf(stderr, __VA_ARGS__)
+#define deputs(str) fprintf(stderr, "%s\n",str)
+#else
+#define debug(...)
+#define deputs(str)
+#endif // DEBUG
+typedef unsigned long long ULL;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef long long LL;
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=2e5+107;
+const double pi=acos(-1.0);
+const double eps=0.0000000001;
+LL gcd(LL a, LL b) {return b?gcd(b,a%b):a;}
+template<typename T>inline void pr2(T x,int k=64) {ll i; REP(i,k) debug("%d",(x>>i)&1); putchar(' ');}
+template<typename T>inline void add_(T &A,int B,ll MOD=M) {A+=B; (A>=MOD) &&(A-=MOD);}
+template<typename T>inline void mul_(T &A,ll B,ll MOD=M) {A=(A*B)%MOD;}
+template<typename T>inline void mod_(T &A,ll MOD=M) {A%=MOD; A+=MOD; A%=MOD;}
+template<typename T>inline void max_(T &A,T B) {(A<B) &&(A=B);}
+template<typename T>inline void min_(T &A,T B) {(A>B) &&(A=B);}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+inline ll powMM(ll a, ll b, ll mod=M) {
+	ll ret=1;
+	for (; b; b>>=1ll,a=a*a%mod)
+		if (b&1) ret=ret*a%mod;
+	return ret;
+}
+int startTime;
+void startTimer() {startTime=clock();}
+void printTimer() {debug("/--- Time: %ld milliseconds ---/\n",clock()-startTime);}
+
+struct node{
+	int lm,mr,lmr;//2*m
+	int val,min,max;
+	node(int x=0){val=min=max=x; lm=mr=lmr=0; }
+}T[maxn*4];
+node merge(const node &x,const node &y) {
+	node ret;
+	ret.min=min(x.min,x.val+y.min);
+	ret.max=max(x.max,x.val+y.max);
+	ret.val=x.val+y.val;
+	ret.lm=max(x.lm,y.lm-x.val);
+	max_(ret.lm,x.max-(x.val+y.min)*2);
+	ret.mr=max(x.mr,y.mr-x.val);
+	max_(ret.mr,(x.val+y.max)-x.min*2);
+	ret.lmr=max(x.lmr,y.lmr);
+	max_(ret.lmr,max(x.lm+x.val+y.max,x.max+y.mr-x.val));
+	return ret;
+}
+char str[maxn];
+void update(int x,int pos,int L,int R) {
+	if (L==R) {
+		if (str[L]=='(') T[x]=node(1);
+		else T[x]=node(-1);
+		return;
+	} int mid=(L+R)/2;
+	if (pos<=mid) update(x<<1,pos,L,mid);
+	else update(x<<1|1,pos,mid+1,R);
+	T[x]=merge(T[x<<1],T[x<<1|1]);
+	// printf("%d-%d: lm=%d mr=%d lmr=%d; val,min,max=%d %d %d\n",L,R,T[x].lm,T[x].mr,T[x].lmr,T[x].val,T[x].min,T[x].max);
+}
+int main() {
+	int n,m,i;
+	scanf("%d%d",&n,&m);
+	scanf("%s",str+1);//used this
+	FOR(i,1,n*2-2) update(1,i,1,n*2-2);
+	// puts("");
+	printf("%d\n",T[1].lmr);
+	FOR(i,1,m) {
+		int x,y;
+		scanf("%d%d",&x,&y);
+		if (str[x]=='(') str[x]=')';
+		else str[x]='(';
+		update(1,x,1,n*2-2);
+		if (str[y]=='(') str[y]=')';
+		else str[y]='(';
+		update(1,y,1,n*2-2);
+		// puts(str+1);
+		printf("%d\n",T[1].lmr);
+	}
+}
+/*
+*/

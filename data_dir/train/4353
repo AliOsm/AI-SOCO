@@ -1,0 +1,82 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define sz(a) int(a.size())
+
+const int MAX_N = 1e5 + 10;
+const int MOD = 1e9 + 7;
+
+vector<int> cn[MAX_N];
+bool vis[MAX_N];
+int fChild[MAX_N], nx[MAX_N];
+
+void dfs(int u) {
+	bool f = vis[u] = 1;
+	int pv = -1;
+	fChild[u] = -1;
+	for (int v : cn[u]) {
+		if (!vis[v]) {
+			if (f) fChild[u] = v, f = 0;
+			else nx[pv] = v;
+			pv = v;
+			dfs(v);
+		}
+	}
+	if (fChild[u] != -1) nx[pv] = -1;
+}
+
+long long M, K;
+int res[MAX_N][11][2][2][2];
+
+int dp(int id, int x, bool fx, bool parLK, bool parGK) {
+	if (id == -1) return !x;
+
+	if (res[id][x][fx][parLK][parGK] != -1) return res[id][x][fx][parLK][parGK];
+	int w = 0;
+	if (fx) {
+		w += (dp(fChild[id], x, 0, 1, 0) * (K - 1)) % MOD; // (< K)
+
+		if (parLK || parGK) w += (dp(fChild[id], x, 0, 0, 1) * (M - K)) % MOD; //(> K)
+		if (w >= MOD) w -= MOD;
+
+		if (x && parLK) w += dp(fChild[id], x - 1, 0, 0, 0); // K
+		if (w >= MOD) w -= MOD;
+
+	} else {
+		if (nx[id] == -1) return dp(id, x, 1, parLK, parGK);
+
+		for (int i = 0; i <= x; i++) {
+			w += (1LL * dp(id, i, 1, parLK, parGK) * dp(nx[id], x - i, 0, parLK, parGK)) % MOD;
+			if (w >= MOD) w -= MOD;
+		}
+	}
+	return res[id][x][fx][parLK][parGK] = w;
+}
+
+
+int main() {
+	memset(res, -1, sizeof(res));
+
+	int n, m;
+	scanf("%d%d", &n, &m);
+	M = m;
+
+	for (int i = 1; i < n; i++) {
+		int u, v;
+		scanf("%d%d", &u, &v);
+		u--,v--;
+		cn[u].push_back(v);
+		cn[v].push_back(u);
+	}
+	dfs(0);
+	int k, x;
+	scanf("%d%d", &k, &x);
+	K = k;
+	int ans = 0;
+	for (int i = 0; i <= x; i++) {
+		ans += dp(0, i, 1, 1, 0);
+		if (ans >= MOD) ans -= MOD;
+	}
+	printf("%d\n", ans);
+}

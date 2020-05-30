@@ -1,0 +1,149 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+const int MAXN = 400100;
+
+struct seg{
+	seg *fe,*fd;
+	int meio,mex,l,r;
+	
+	seg(int x,int y){
+		l = x,r = y;
+		meio = (x + y)/2;
+		mex = 0;
+		
+		if(l == r) return;
+		
+		fe = new seg(x,meio);
+		fd = new seg(meio + 1,y);
+	}
+	
+	void up(int pos,int novo){
+		if(l == r){
+			mex = novo;
+			return;
+		}
+		if(pos <= meio) fe->up(pos,novo);
+		else fd->up(pos,novo);
+		
+		mex = max(fe->mex,fd->mex);
+	}
+	
+	int get(int x,int y){
+		if(l >= x && r <= y) return mex;
+		if(l > y || r < x) return 0;
+		return max(fe->get(x,y),fd->get(x,y));
+	}
+};
+
+vector<int> grafo[MAXN];
+
+int linear[MAXN];
+
+int memo[MAXN][22];
+int subt[MAXN];
+int val[MAXN];
+int pai[MAXN];
+int niv[MAXN];
+int pos[MAXN];
+int tempo = 0;
+int n;
+
+int r[MAXN];
+
+seg st(0,MAXN);
+
+int dp(int i,int j){
+	if(j == 0) return pai[i];
+	if(memo[i][j] != -1) return memo[i][j];
+	return memo[i][j] = dp(dp(i,j-1),j-1);	
+}
+
+void dfs(int x,int p){
+	
+	tempo ++;
+	linear[tempo] = x;
+	pos[x] = tempo;
+	
+	subt[x] ++;
+	
+	for(int i = 0;i < grafo[x].size();i++){
+		int at = grafo[x][i];
+		if(p == at) continue;
+		
+		pai[at] = x;
+		niv[at] = niv[x] + 1;
+		
+		dfs(at,x);
+		subt[x] += subt[at];	
+		
+		val[x] = max(val[at],val[x]);
+	}
+	
+	if(subt[x] <= n/2) val[x] = subt[x];
+}
+
+void solve(int x){
+	st.up(pos[x],0);
+
+	int k = -1;
+	
+	for(int i = 0;i < grafo[x].size();i++){
+		int at = grafo[x][i];
+		
+		if(at == pai[x]){
+			if(n - subt[x] > n/2) k = at;
+			continue;
+		}
+		else solve(at);
+		
+		if(subt[at] > n/2) k = at;
+	}
+	
+	if(k == -1) r[x] = 1;
+	else if(k != pai[x]){
+		if(subt[k] - val[k] <= n/2) r[x] = 1;
+		else r[x] = 0;
+	}
+	else{
+		int u = x;
+		
+		for(int i = 20;i >= 0;i--){
+			if(niv[u] - (1 << i) >= 0){
+				int h = dp(u,i);
+				if(subt[h] - subt[x] <= n/2) u = h;
+			}
+		}
+	
+		int h = max({subt[u] - subt[x],st.get(0,pos[x] - 1),st.get(pos[x] + subt[x],n+1)});
+		
+		if(n - subt[x] - h <= n/2) r[x] = 1;
+		else r[x] = 0;
+	}
+	
+	st.up(pos[x],val[x]);
+}
+
+int main(){
+	memset(val,0,sizeof val);
+	memset(memo,-1,sizeof memo);
+	
+	cin >> n;
+	
+	/*for(int i = 1;i <= n;i++){
+		for(int j = 0;j <= 20;j++){
+			dp(i,j);
+		}
+	}*/
+	
+	for(int i = 1;i < n;i++){
+		int x,y;
+		scanf("%d %d",&x,&y);
+		grafo[x].push_back(y) , grafo[y].push_back(x);
+	}
+	
+	dfs(1,1);	
+	for(int i = 1;i <= n;i++) st.up(i,val[linear[i]]);
+	solve(1);
+	for(int i = 1;i <= n;i++) printf("%d ",r[i]);
+}

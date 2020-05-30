@@ -1,0 +1,132 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+
+using namespace std;
+
+#define debug(x) '[' << #x << " is: " << x << "] "
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+
+const int nax = 1e5 + 100;
+
+vector<pair<ll,ll>> g[nax],tree[nax];
+int par[nax][22],depth[nax];
+ll mx[nax][22];
+int n,m,k,q;
+int fr[nax];
+ll cost[nax];
+
+void addedge(int u,int v,int w){
+	g[u].push_back({v,w});
+	g[v].push_back({u,w});
+}
+
+void dij(){
+	priority_queue<pair<ll,int>> q;
+	for(int i=1;i<=n;i++)cost[i] = 1e18;
+	cost[1] = 0;
+	fr[1] = 1;
+	q.push({0,1});
+	while(q.size()){
+		int u = q.top().second;
+		ll cst = -q.top().first;
+		if(u <= k && fr[u] != u){
+			assert(cst);
+			tree[fr[u]].push_back({u,cst});
+			tree[u].push_back({fr[u],cst});
+			// cout << fr[u] << ' ' << u << ' ' << cst << endl;
+			fr[u] = u;
+			cost[u] = 0;
+			cst = cost[u];
+		}
+		q.pop();
+		if(cost[u] < cst)continue;
+		for(pair<ll,int> curnode : g[u]){
+			int v = curnode.first;
+			ll w = curnode.second;
+			ll ncst = cst + w;
+			if(ncst >= cost[v])continue;
+			cost[v] = ncst;
+			fr[v] = fr[u];
+			q.push({-cost[v],v});
+		}
+	}
+}
+
+void dfs(int u,int p){
+	for(pair<ll,ll> curnode : tree[u]){
+		int v = curnode.first;
+		ll w = curnode.second;
+		if(v == p)continue;
+		depth[v] = depth[u] + 1;
+		par[v][0] = u;
+		mx[v][0] = w;
+		dfs(v,u);
+	}
+}
+
+pair<ll,int> kth(int u,int dis){
+	ll big = 0;
+	for(int k=20;k>=0;k--){
+		if((dis>>k) & 1){
+			big = max(big , mx[u][k]);
+			assert(mx[u][k]);
+			u = par[u][k];
+		}
+	}
+	return {big,u};
+}
+
+ll lca(int u,int v){
+	if(depth[u] < depth[v])swap(u,v);
+	int dis = depth[u] - depth[v];
+	pair<ll,int> nxt = kth(u,dis);
+	ll big = nxt.first;
+	u = nxt.second;
+	// cout << u << ' ' << v << endl;
+	if(u == v){
+		return big;
+	}
+	for(int k=20;k>=0;k--){
+		if(par[u][k] != par[v][k]){
+			big = max(big , max(mx[v][k] , mx[u][k]));
+			assert(mx[u][k]);
+			assert(mx[v][k]);
+			u = par[u][k];
+			v = par[v][k];
+		}
+	}
+	// cout << u << ' ' << v << endl;
+	big = max(big , max(mx[u][0] , mx[v][0]));
+	return big;
+}
+
+int main(){
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.precision(10);
+	cout << fixed;
+	#ifndef ONLINE_JUDGE
+		freopen("input.txt","r",stdin);
+	#endif
+	cin>>n>>m>>k>>q;
+	for(int i=0;i<m;i++){
+		int u,v,w;
+		cin>>u>>v>>w;
+		addedge(u,v,w);
+	}
+	dij();
+	dfs(1,0);
+	for(int k=1;k<20;k++){
+		for(int i=1;i<=n;i++){
+			par[i][k] = par[par[i][k-1]][k-1];
+			mx[i][k] = max(mx[i][k-1] , mx[par[i][k-1]][k-1]);
+		}
+	}
+	while(q--){
+		int a,b;
+		cin>>a>>b;
+		cout << lca(a,b) << '\n';
+	}
+}

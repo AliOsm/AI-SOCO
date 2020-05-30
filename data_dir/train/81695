@@ -1,0 +1,141 @@
+#include <vector>
+#include <cstring>
+#include <cstdio>
+#include <queue>
+#include <cmath>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <cassert>
+#include <ctype.h>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(n);i++)
+
+typedef long long ll;
+
+vector<vector<int> > nv;
+vector<int> v0;
+
+struct DSU
+{
+	int *p;
+	DSU(int n)
+	{
+		p=new int[n];
+		REP(i,n)
+			p[i]=i;
+	}
+	int get(int x)
+	{
+		if(p[x]==x) return x;
+		return p[x]=get(p[x]);
+	}
+	void unite(int a, int b)
+	{
+		a=get(a);
+		b=get(b);
+		if(rand()%2) swap(a,b);
+		p[a]=b;
+	}
+};
+
+DSU * dsu;
+vector<pair<int,int> > uniteRequest;
+
+void addRequest(int node, int l, int r)
+{
+	assert(node!=0);
+	assert(l>0);
+	if(l<=r)
+	{
+		dsu->unite(node, l);
+		uniteRequest.push_back(make_pair(l,-1));
+		uniteRequest.push_back(make_pair(r,1));
+	}
+}
+
+void NO()
+{
+	printf("impossible\n");
+	exit(0);
+}
+
+void YES()
+{
+	printf("possible");
+	exit(0);
+}
+
+int main()
+{
+	int n,m,k;
+	scanf("%d%d%d",&n,&m,&k);
+	nv.resize(n);
+	REP(i,m)
+	{
+		int a, b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		nv[a].push_back(b);
+		nv[b].push_back(a);
+	}
+	dsu=new DSU(n);
+
+	REP(i,n)
+	{
+		sort(nv[i].begin(), nv[i].end());
+		if(i==0) continue;
+		if(nv[i].empty())
+			addRequest(i,1,n-1);
+		else
+		{
+			addRequest(i,1,nv[i][0]-1);
+			for(int j=0;j+1<nv[i].size();j++)
+				addRequest(i,nv[i][j]+1, nv[i][j+1]-1);
+			addRequest(i,nv[i].back()+1,n-1);
+		}
+	}
+
+	sort(uniteRequest.begin(), uniteRequest.end());
+	int bal=0;
+	vector<int> uniteRequestRefined;
+	for(int i=0;i<uniteRequest.size();i++)
+	{
+		if(bal==0)
+		{
+			assert(uniteRequest[i].second==-1);
+			uniteRequestRefined.push_back(uniteRequest[i].first);
+		}
+		bal-=uniteRequest[i].second;
+		if(bal==0)
+		{
+			uniteRequestRefined.push_back(uniteRequest[i].first);
+		}
+	}
+	for(int i=0;i<uniteRequestRefined.size();i+=2)
+		for(int j=uniteRequestRefined[i];j+1<=uniteRequestRefined[i+1];j++)
+			dsu->unite(j,j+1);
+	int compcnt=0;
+	for(int i=1;i<n;i++)
+		if(dsu->get(i)==i)
+			compcnt++;
+	if(compcnt>k)
+		NO();
+
+	vector<int> used(n);
+	for(int i=1;i<n;i++)
+		if(!binary_search(nv[0].begin(), nv[0].end(),i))
+			v0.push_back(i);
+	if(v0.size()<k)
+		NO();
+
+	for(int i=0;i<v0.size();i++)
+		used[dsu->get(v0[i])]=true;
+	for(int i=1;i<n;i++)
+		if(!used[dsu->get(i)])
+			NO();
+
+	YES();
+	return 0;
+}

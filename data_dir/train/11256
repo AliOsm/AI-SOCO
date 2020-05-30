@@ -1,0 +1,103 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define finish(x) return cout << x << endl, 0
+#define ll long long
+
+struct fenwick{
+    ll n, fen[500010];
+    void resize(int _n){
+        n = _n + 5;
+        memset(fen, 0, sizeof fen);
+    }
+    ll query(int ind){
+        ind++;
+        ll ans = 0;
+        while(ind >= 1){
+            ans += fen[ind];
+            ind -= ind & -ind;
+        }
+        return ans;
+    }
+    void update(int ind, ll val){
+        ind++;
+        while(ind <= n){
+            fen[ind] += val;
+            ind += ind & -ind;
+        }
+    }
+    ll query(int l, int r){
+        return query(r) - query(l - 1);
+    }
+};
+
+int n, x;
+vector <int> a;
+fenwick tree, tree2;
+
+int check(int x){
+    if(x > n - 1) return 1;
+    tree.resize(n + 1);
+    tree2.resize(n + 1);
+    int ind = -1;
+    for(int i = 0 ; i < n ; i++){
+        if(i == n - 1 || x >= a[i + 1]){
+            a.insert(a.begin() + i + 1, x);
+            ind = i + 1;
+            break;
+        }
+    }
+    ll pre = 0;
+    for(auto &i : a) pre += i;
+    if(pre > 1LL * n * (n - 1)) return 1;
+    for(int i = 1 ; i <= n ; i++)
+        if(a[i] == x)
+            ind = i;
+    for(int i = n ; i >= 2 ; i--){
+        pre -= a[i];
+        tree.update(a[i], a[i]);
+        tree2.update(a[i], 1);
+        ll cur = tree.query(1, n);
+        cur -= tree.query(i - 1, n);
+        cur += tree2.query(i - 1, n) * (i - 1);
+        if(pre > 1LL * (i - 1) * (i - 2) + cur){
+            a.erase(a.begin() + ind);
+            if(ind >= i) return -1;
+            return 1;
+        }
+    }
+    a.erase(a.begin() + ind);
+    return 0;
+}
+int main(){
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cin >> n;
+    n++;
+    a.resize(n);
+    ll sum = 0;
+    for(int i = 1 ; i < n ; i++)
+        cin >> a[i], sum += a[i];
+    sort(a.begin() + 1, a.end());
+    reverse(a.begin() + 1, a.end());
+    int parity = sum % 2;
+    int l1 = 0, r1 = n;
+    while(l1 <= r1){
+        int mid = (l1 + r1) / 2;
+        if(check(2 * mid + parity) >= 0) r1 = mid - 1;
+        else l1 = mid + 1;
+    }
+    r1++;
+    r1 = 2 * r1 + parity;
+    int l2 = 0, r2 = n;
+    while(l2 <= r2){
+        int mid = (l2 + r2) / 2;
+        if(check(2 * mid + parity) <= 0) l2 = mid + 1;
+        else r2 = mid - 1;
+    }
+    l2--;
+    l2 = 2 * l2 + parity;
+    for(int i = r1 ; i <= l2 ; i += 2)
+        cout << i << " ";
+    if(l2 < r1) cout << -1;
+    cout << endl;
+}

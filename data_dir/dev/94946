@@ -1,0 +1,135 @@
+
+// In the name of God
+
+#include<bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define Size(x) ((int)(x).size())
+typedef long long ll;
+typedef long double ld;
+typedef pair<int , int>pii;
+const int INF = 1e9 + 10 , MN = 6e5 + 10 , LG = 22;
+
+int n , cen , d1 , d2;
+vector<int>child[MN] , C;
+int st[MN] , ft[MN] , Time , h[MN] , par[LG][MN];
+pii seg[MN<<2];
+int lz[MN<<2] , rev[MN];
+
+void prep(int s){
+	st[s] = Time++;
+	rev[st[s]] = s;
+	for(auto v:child[s])
+		prep(v);
+	ft[s] = Time;
+}
+
+int getPar(int x,int t){
+	for(int i=0;i<LG;++i) if(t&1<<i)
+		x = par[i][x];
+	return x;
+}
+
+int lca(int u,int v){
+	if(h[u] > h[v]) swap(u , v);
+	v = getPar(v , h[v] - h[u]);
+	if(u == v) return v;
+	for(int i=LG-1;~i;--i)
+		if(par[i][u] ^ par[i][v])
+			u = par[i][u] , v = par[i][v];
+	return par[0][v];
+}
+
+void Add(int x,int y){
+	par[0][y] = x;
+	h[y] = h[x]+1;
+	for(int i=1;i<LG;++i)
+		if(~par[i-1][y]) par[i][y] = par[i-1][par[i-1][y]];
+		else par[i][y] = -1;
+	
+	if(h[d1] + h[d2] - 2 * h[lca(d1 , d2)] < max(h[d1] + h[y] - 2 * h[lca(d1 , y)] , h[d2] + h[y] - 2*h[lca(d2 , y)])){
+		if(h[d1] + h[y] - 2 * h[lca(d1 , y)] > h[d2] + h[y] - 2 * h[lca(d2 , y)]){
+			d2 = y;
+		}else d1 = y;
+	}
+	
+}
+
+pii mrg(pii A,pii B){
+	if(A.first == B.first) return {A.first , A.second + B.second};
+	if(A.first < B.first) return B;
+	return A;
+}
+
+void shift(int id){
+	lz[id<<1|1] += lz[id] , lz[id<<1] += lz[id];
+	seg[id<<1].first += lz[id] , seg[id<<1|1].first += lz[id];
+	lz[id] = 0;
+}
+
+void build(int id,int b,int e){
+	if(e - b == 1){
+		seg[id] = {h[rev[b]] , 1};
+		if(b) seg[id].first -= INF;
+		return;
+	}
+	int mid = b+e>>1;
+	build(id<<1 , b , mid) , build(id<<1|1 , mid , e);
+	seg[id] = mrg(seg[id<<1] , seg[id<<1|1]);
+}
+
+void add(int id,int b,int e,int l,int r,int x){
+	if(r <= b || e <= l) return;
+	if(l <= b && e <= r){
+		seg[id].first += x;
+		lz[id] += x;
+		return;
+	}
+	shift(id);
+	int mid = b+e>>1;
+	add(id<<1 , b , mid , l ,r , x);
+   	add(id<<1|1 , mid , e , l , r , x);
+	seg[id] = mrg(seg[id<<1] , seg[id<<1|1]);	
+}
+
+int main(){
+	ios_base :: sync_with_stdio(false) , cin.tie(0) , cout.tie(0);
+	cin >> n;
+	n = 2 * n + 1;
+	C.pb(0);
+	for(int i=0;i<LG;++i) par[i][0] = -1;
+
+	for(int i=1;i<n;i+=2){
+		int x;cin>>x;--x;
+		x *= 2;
+		Add(x , i);
+
+		child[x].pb(i);
+		Add(i , i+1);
+		child[i].pb(i+1);
+		int lc = lca(d1 , d2);
+		int d = h[d1] + h[d2] - 2 * h[lc];
+		if(d/2 <= h[d1] - h[lc])
+			cen = getPar(d1 , d/2);
+		else cen = getPar(d2 , d/2);
+		C.pb(cen);
+	}
+
+	prep(0);
+	build(1 , 0 , n);
+	for(int i=1;i<Size(C);++i){
+		int u = C[i-1] , v = C[i];
+		add(1 , 0 , n , st[2*i-1] , st[2*i-1]+1 , INF);
+		add(1 , 0 , n , st[2*i] , st[2*i] + 1 , INF);
+		if(par[0][u] == v){
+			add(1 , 0 , n , 0 , n , -1);
+			add(1 , 0 , n , st[u] , ft[u] , 2);
+		}else if(par[0][v] == u){
+			add(1 , 0 , n , 0 , n , 1);
+			add(1 , 0 , n , st[v] , ft[v] , -2);
+		}
+		cout << seg[1].second << '\n';
+	}	
+	return 0;
+}
+

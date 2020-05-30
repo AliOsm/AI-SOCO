@@ -1,0 +1,161 @@
+#pragma comment(linker, "/STACK:1024000000,1024000000")
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <set>
+#include <queue>
+#include <map>
+#include <sstream>
+#include <stack>
+#include <cassert>
+#include <ctime>
+#include <cmath>
+#include <queue>
+#include <ctime>
+#include <cassert>
+#include <vector>
+#include <cmath>
+#include <stack>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+
+const int N = 1010;
+const int M = 1e9 + 0.5;
+const int inf = 0x3f3f3f3f;
+const int mod = 1e9 + 7;
+const int pi = cos(-1.0);
+const ll oo = 0x3f3f3f3f3f3f3f3fll;
+
+#define pb push_back
+#define sz(x) ((x).size())
+
+struct MinCostFlow{
+ struct Edge{
+  int v,next,s;
+  int cost;
+ }edge[1000010];
+ int pos;
+ int head[N];
+ void insert(int x, int y, int s, int cost)
+ {
+  edge[pos].v=y;
+  edge[pos].s=s;
+  edge[pos].cost=cost;
+  edge[pos].next=head[x];
+  head[x]=pos++;
+
+  edge[pos].v=x;
+  edge[pos].s=0;
+  edge[pos].cost=-cost;
+  edge[pos].next=head[y];
+  head[y]=pos++;
+ }
+ int src,tc,nodenum;
+ int dis[N];
+ int cur[N];
+ bool hash[N];
+ int aug(int u, int f)
+ {
+  if (u == tc)
+   return f;
+  hash[u] = true;
+  for (int i = cur[u]; i!=-1; i=edge[i].next)
+  {
+   int v=edge[i].v;
+   if (edge[i].s && !hash[v] && dis[u] == dis[v] + edge[i].cost)
+    if (int tmp = aug(v, min(f, edge[i].s)))
+     return edge[i].s -= tmp, edge[i^1].s += tmp, cur[u] = i, tmp;
+  }
+  return 0;
+ }
+ bool modlabel()
+ {
+  int tmp = inf;
+  for (int u = 0; u <= nodenum; u++)
+   if (hash[u])
+   {
+    for (int i = head[u]; i!=-1; i = edge[i].next)
+    {
+     int v=edge[i].v;
+     if (edge[i].s && !hash[v])
+      tmp = min(tmp, dis[v] + edge[i].cost - dis[u]);
+    }
+   }
+  if (tmp ==inf)
+   return true;
+  for (int i = 0; i <= nodenum; i++)
+   if (hash[i])
+   {
+    hash[i] = false;
+    dis[i] += tmp;
+   }
+  return false;
+ }
+ int CostFlow(int s, int t, int &max_flow)
+ {
+  src = s;
+  tc = t;
+  max_flow=0;
+  int  costflow = 0, tmp;
+  while (1)
+  {
+   for (int i = 0; i <= nodenum; i++)
+    cur[i] = head[i];
+   while((tmp = aug(src, 99999999)))
+   {
+    max_flow += tmp;
+    costflow += tmp * dis[src];
+    memset(hash,0,sizeof(hash));
+   }
+   if (modlabel())
+    break;
+  }
+  return costflow;
+ }
+ void init(int n)
+ {
+  nodenum=n;
+  for(int i=0;i<N;i++)
+   dis[i]=0;
+  memset(hash,false,sizeof(hash));
+  memset(head,-1,sizeof(head));
+  pos=0;
+ }
+}CF;
+
+int c[N][N];
+
+int main(){
+	int n, k;
+	scanf("%d%d", &n, &k);
+	
+	for(int i = 1; i <= n; i++){
+		for(int j = 1; j <= n; j++){
+			scanf("%d", &c[i][j]);
+		}
+	}
+	int l = 0, r = 1e9, ret = 0;
+	while(l <= r){
+		int mid = (l + r) >> 1;
+		CF.init(n + n);
+		for(int i = 1; i <= n; i++)
+			for(int j = 1; j <= n; j++){
+				if(c[i][j] == 0) continue;
+				CF.insert(i, j, c[i][j], 0);
+				CF.insert(i, j, k, 1);
+			}
+		CF.insert(0, 1, mid, 0);
+		int cf, maxFlow;
+		cf = CF.CostFlow(0, n, maxFlow);
+		if(cf <= k && maxFlow == mid) ret = mid, l = mid + 1;
+		else r = mid - 1;
+	}
+	cout << ret << endl;
+	return 0;
+}

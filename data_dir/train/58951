@@ -1,0 +1,126 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+int n,m,a[100010];
+inline int lowbit(int x)
+{
+	return x&(-x);
+}
+class tree
+{
+	public:
+		ll dat[100010];
+		void modify(int p,int v)
+		{
+			p++;
+			for(;p;p-=lowbit(p))dat[p]+=v;
+		}
+		ll query(int p)
+		{
+			p++;
+			ll ret=0;
+			for(;p<=n+1;p+=lowbit(p))ret+=dat[p];
+			return ret;
+		}
+}T;
+ll ans[100010];
+int typ[100010];
+set<int> pos[100010];
+typedef set<int>::iterator it;
+inline it pre(int id,it x)
+{
+	if(x==pos[id].begin())return pos[id].end();
+	return --x;
+}
+inline it nxt(int id,it x)
+{
+	if(x==pos[id].end())return x;
+	return ++x;
+}
+class opt
+{
+	public:
+		int typ,x,y,v,id;
+		bool operator <(const opt &t)const
+		{
+			if(x!=t.x)return x<t.x;
+			return typ<t.typ;
+		}
+}q[1000010],buf[1000010];
+int qcnt=0;
+void solve(int l,int r)
+{
+	if(l==r)return;
+	int mid=(l+r)>>1;
+	solve(l,mid);
+	solve(mid+1,r);
+	int i=l,j=mid+1,k=l;
+	for(;i<=mid&&j<=r;)
+	{
+		if(q[i]<q[j])
+		{
+			if(q[i].typ==0)T.modify(q[i].y,q[i].v);
+			buf[k++]=q[i++];
+		}
+		else
+		{
+			if(q[j].typ==1)ans[q[j].id]+=T.query(q[j].y);
+			buf[k++]=q[j++];
+		}
+	}
+	for(;i<=mid;)
+	{
+		if(q[i].typ==0)T.modify(q[i].y,q[i].v);
+		buf[k++]=q[i++];
+	}
+	for(;j<=r;)
+	{
+		if(q[j].typ==1)ans[q[j].id]+=T.query(q[j].y);
+		buf[k++]=q[j++];
+	}
+	for(int i=l;i<=mid;i++)if(q[i].typ==0)T.modify(q[i].y,-q[i].v);
+	copy(buf+l,buf+r+1,q+l);
+}
+int main()
+{
+	scanf("%d%d",&n,&m);
+//	for(int i=1;i<=n;i++)pos[i].insert(0);
+	for(int i=1;i<=n;i++)scanf("%d",&a[i]),pos[a[i]].insert(i);
+	for(int i=1;i<=n;i++)
+	{
+		auto p=pre(a[i],pos[a[i]].find(i));
+		if(p!=pos[a[i]].end())q[++qcnt]=(opt){0,i,*p,i-*p,0};
+	}
+	for(int i=1,ti,tj;i<=m;i++)
+	{
+		scanf("%d%d%d",&typ[i],&ti,&tj);
+		if(typ[i]==1)
+		{
+			if(a[ti]==tj)continue;
+			auto pr=pre(a[ti],pos[a[ti]].find(ti)),nx=nxt(a[ti],pos[a[ti]].find(ti));
+			if(pr!=pos[a[ti]].end())q[++qcnt]=(opt){0,ti,*pr,*pr-ti,0};
+			if(nx!=pos[a[ti]].end())
+			{
+				q[++qcnt]=(opt){0,*nx,ti,ti-*nx,0};
+				if(pr!=pos[a[ti]].end())q[++qcnt]=(opt){0,*nx,*pr,*nx-*pr,0};
+			}
+			pos[a[ti]].erase(ti);
+			a[ti]=tj;	
+			auto p=pos[a[ti]].insert(ti).first;
+			pr=pre(a[ti],p),nx=nxt(a[ti],p);
+			if(pr!=pos[a[ti]].end())q[++qcnt]=(opt){0,ti,*pr,ti-*pr,0};
+			if(nx!=pos[a[ti]].end())
+			{
+				if(pr!=pos[a[ti]].end())q[++qcnt]=(opt){0,*nx,*pr,*pr-*nx,0};
+				q[++qcnt]=(opt){0,*nx,ti,*nx-ti,0};
+			}
+		}
+		else
+		{
+			q[++qcnt]=(opt){1,tj,ti,0,i};
+		}
+	}
+	solve(1,qcnt);
+	for(int i=1;i<=m;i++)if(typ[i]==2)printf("%lld\n",ans[i]);
+	return 0;
+}

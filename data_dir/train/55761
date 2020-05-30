@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define ll long long
+#define N 500010
+int n, q;
+struct qnode
+{
+	int l, r, id;
+	qnode () {}
+	qnode (int l, int r, int id) : l(l), r(r), id(id) {}
+};
+vector <qnode> vec[N];
+ll ans[N];
+struct Graph
+{
+	struct node
+	{
+		int to, nx, w;
+		node () {}
+		node (int to, int nx, int w) : to(to), nx(nx), w(w) {}
+	}a[N << 1];
+    int head[N], pos;
+	void init()
+	{
+		memset(head, 0, sizeof head);
+		pos = 0;
+	}	
+	void add(int u, int v, int w)
+	{
+		a[++pos] = node(v, head[u], w); head[u] = pos;
+		a[++pos] = node(u, head[v], w); head[v] = pos;
+	}
+}G;
+#define erp(u) for (int it = G.head[u], v = G.a[it].to, w = G.a[it].w; it; it = G.a[it].nx, v = G.a[it].to, w = G.a[it].w)
+int fa[N], isleaf[N]; ll dis[N]; 
+
+namespace SEG
+{
+	ll Min[N << 2], lazy[N << 2];
+	void pushup(int id) { Min[id] = min(Min[id << 1], Min[id << 1 | 1]); }
+	void build(int id, int l, int r)
+	{
+		lazy[id] = 0;
+		if (l == r)
+		{
+			Min[id] = dis[l]; 
+			if (!isleaf[l]) Min[id] = (ll)1e18; 
+			return;
+		}
+		int mid = (l + r) >> 1;
+		build(id << 1, l, mid);
+		build(id << 1 | 1, mid + 1, r);
+		pushup(id);
+	}
+	void pushdown(int id)
+	{
+		if (!lazy[id]) return;
+		lazy[id << 1] += lazy[id];
+		lazy[id << 1 | 1] += lazy[id];
+		Min[id << 1] += lazy[id];
+		Min[id << 1 | 1] += lazy[id];
+		lazy[id] = 0;
+	}
+	void update(int id, int l, int r, int ql, int qr, ll val)
+	{
+		if (l >= ql && r <= qr)
+		{
+			Min[id] += val;
+			lazy[id] += val;
+			return;
+		}
+		pushdown(id);
+		int mid = (l + r) >> 1;
+		if (ql <= mid) update(id << 1, l, mid, ql, qr, val);
+		if (qr > mid) update(id << 1 | 1, mid + 1, r, ql, qr, val);
+		pushup(id);
+	}
+	ll query(int id, int l, int r, int ql, int qr)
+	{
+		if (l >= ql && r <= qr) return Min[id];
+		pushdown(id);
+		int mid = (l + r) >> 1;
+		ll res = (ll)1e18;
+		if (ql <= mid) res = min(res, query(id << 1, l, mid, ql, qr));
+		if (qr > mid) res = min(res, query(id << 1 | 1, mid + 1, r, ql, qr));
+		return res;
+	}
+}
+
+int lp[N], rp[N];
+void DFS1(int u)
+{
+	lp[u] = u;
+	rp[u] = u;
+	erp(u) if (v != fa[u])
+	{
+		fa[v] = u;
+		dis[v] = dis[u] + w;
+		DFS1(v);
+		rp[u] = max(rp[u], rp[v]);
+	}
+	isleaf[u] = (lp[u] == rp[u]);
+}
+
+void DFS2(int u)
+{
+	for (auto it : vec[u])
+		ans[it.id] = SEG::query(1, 1, n, it.l, it.r);
+	erp(u) if (v != fa[u])
+	{
+		SEG::update(1, 1, n, 1, n, w);
+		SEG::update(1, 1, n, lp[v], rp[v], -2ll * w);
+		DFS2(v);
+		SEG::update(1, 1, n, 1, n, -w);
+		SEG::update(1, 1, n, lp[v], rp[v], 2ll * w);
+	}
+}
+	
+int main()
+{
+	while (scanf("%d%d", &n, &q) != EOF)
+	{
+		for (int i = 1; i <= n; ++i) vec[i].clear();
+		G.init();
+		for (int i = 2, p, w; i <= n; ++i)
+		{
+			scanf("%d%d", &p, &w);
+			G.add(i, p, w);
+		}
+		for (int i = 1, v, l, r; i <= q; ++i)
+		{
+			scanf("%d%d%d", &v, &l, &r);
+			vec[v].emplace_back(l, r, i);
+		}
+		dis[1] = 0;
+		DFS1(1);
+		SEG::build(1, 1, n);
+		DFS2(1);
+		for (int i = 1; i <= q; ++i) printf("%lld\n", ans[i]);
+	}	
+	return 0;
+}

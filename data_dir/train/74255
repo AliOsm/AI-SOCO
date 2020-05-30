@@ -1,0 +1,183 @@
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <ctime>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
+#define getBit(x,i) ((x&(1<<i))>0)
+
+typedef unsigned long long ull;
+typedef long double ld;
+
+template <class T> T sqr(T a) {
+    return a * a;
+}
+template <class T> T nextInt() {
+    T x = 0, p = 1;
+    char c;
+    do {
+        c = getchar();
+    } while (c <= 32);
+    if (c == '-') {
+        p = -1;
+        c = getchar();
+    }
+    while (c >= '0' && c <= '9') {
+        x = x * 10 + c - '0';
+        c = getchar();
+    }
+    return x * p;
+}
+
+const int INF = int(1e9);
+const long long LINF = (long long)(1e18);
+const ld EPS = 1e-9;
+
+const int maxn = (1 << 20) + 5;
+
+int a[maxn];
+int ft[maxn];
+
+int n, len;
+
+int addFlag[22];
+long long addVal[22][2];
+
+vector<int> b;
+
+int sum(int r) {
+    int res = 0;
+    for (; r >= 0; r = (r & (r + 1)) - 1)
+        res += ft[r];
+    return res;
+}
+
+int sum(int l, int r) {
+    return sum(r) - sum(l - 1);
+}
+
+void add(int r, int val) {
+    for (; r < maxn; r |= r + 1)
+        ft[r] += val;
+}
+
+long long calcInv(int l, int r) {
+    long long res = 0;
+    for (int i = l; i <= r; i++) {
+        res += (long long)(sum(a[i] + 1, maxn - 1));
+        add(a[i], 1);
+    }
+    for (int i = l; i <= r; i++) {
+        add(a[i], -1);
+    }
+    return res;
+}
+
+int globalFlag;
+
+int tmp[maxn];
+
+void myMerge(int * arr, int len, int depth) {
+    if (len==1) return;
+    myMerge(arr,len/2,depth+1);
+    myMerge(arr+(len/2),len/2,depth+1);
+    int * a = arr;
+    int * b = arr + (len/2);
+    int len2 = len / 2;
+    int tmpLen = 0;
+    long long rev = 0;
+    int l = 0, r;
+    for (r = 0; r < len2; r++) {
+        while (l<len2 && a[l]<=b[r]) ++l;
+        rev+=1LL*(len2-l);
+    }
+    l = 0, r = 0;
+    while (l<len2 || r<len2)
+        if (l==len2) tmp[tmpLen++]=b[r++];
+        else if (r==len2) tmp[tmpLen++]=a[l++];
+        else if (a[l]<b[r]) tmp[tmpLen++]=a[l++];
+        else tmp[tmpLen++]=b[r++];
+    for (int i=0;i<len;i++)
+        a[i]=tmp[i];
+    addVal[depth][globalFlag]+=rev;
+}
+
+int mtmp[maxn];
+
+void build2(int fl) {
+    globalFlag = fl;
+    memcpy(mtmp,a,sizeof(a));
+    myMerge(mtmp,len,0);
+}
+
+void doo(int q) {
+    q = n - q;
+    for (int i=q;i<=n;i++)
+        addFlag[i]^=1;
+}
+
+long long query() {
+    long long res = 0;
+    for (int i=0;i<=n;i++)
+        res += addVal[i][addFlag[i]];
+    return res;
+}
+
+void build() {
+    build2(0);
+    reverse(a,a+len);
+    build2(1);
+}
+
+void LLtoStr(char * s, long long x) {
+    int slen = 0;
+    while (x) {
+        s[slen++]=(x%10)+'0';
+        x/=10;
+    }
+    if (slen==0) s[slen++]='0';
+    reverse(s,s+slen);
+    s[slen]=0;
+}
+
+int main()
+{
+    n = nextInt<int>();
+
+    len = 1 << n;
+
+    b.resize(len);
+
+    for (int i = 0; i < len; i++)
+        b[i] = a[i] = nextInt<int>();
+
+    sort(b.begin(), b.end());
+
+    b.erase(unique(b.begin(), b.end()), b.end());
+
+    for (int i = 0; i < len; i++) {
+        a[i] = lower_bound(b.begin(), b.end(), a[i]) - b.begin();
+    }
+
+    build();
+
+    int m = nextInt<int>();
+
+    while (m--) {
+        int q = nextInt<int>();
+        doo(q);
+        char s[22];
+        LLtoStr(s,query());
+        puts(s);
+    }
+
+    return 0;
+}

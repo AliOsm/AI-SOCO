@@ -1,0 +1,81 @@
+/*input
+3
+6 15 10
+*/
+#include "bits/stdc++.h"
+using namespace std;
+const int MX = 1<<20;
+int a[100005], n, spf[MX];
+
+vector<int> v[MX];
+int vis[MX], dad[MX], lvl[MX];
+vector<int> primes;
+
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);cout.tie(0);
+	iota(spf, spf+MX, 0);
+	for(int i = 2; i < MX; ++i) if(spf[i] == i){
+		primes.push_back(i);
+		for(int j = i; j < MX; j += i)
+			spf[j] = min(spf[j], i);
+	}
+	cin >> n;
+	for(int i = 1; i <= n; ++i) cin >> a[i];
+
+	// 1
+	for(int i = 1; i <= n; ++i){
+		map<int,int> div;
+		for(int k = a[i]; k > 1; k /= spf[k])
+			++div[spf[k]];
+		
+		if(div.size() == 0 || div.size() == 1 && div.begin()->second == 2)
+			return cout << 1, 0;
+	}
+
+	// 2
+	set<set<int>> seen;
+	for(int i = 1; i <= n; ++i){
+		map<int,int> div;
+		for(int k = a[i]; k > 1; k /= spf[k])
+			++div[spf[k]];
+
+		set<int> now;
+		for(auto p: div) if(p.second % 2) 
+			now.insert(p.first);
+		
+		if(seen.count(now))
+			return cout << 2, 0;
+
+		if(now.size() == 2){
+			int x = *now.begin(), y = *now.rbegin();
+			v[x].push_back(y); v[y].push_back(x);
+		}
+		seen.insert(now);
+	}
+
+	int ans = n+1;
+	for(int p = 1; p < 1000; ++p) if(spf[p] == p){
+		queue<int> q; q.push(p);
+		vis[p] = p, dad[p] = 0, lvl[p] = 0;
+
+		int chain = 0 ,chain_cnt = 0;
+
+		while(q.size()){
+			int u = q.front(); q.pop();
+			if(chain_cnt < 2 && seen.count({u}))
+				++chain_cnt, chain += 1 + lvl[u];
+			for(auto i: v[u]) 
+				if(vis[i] < p){
+					vis[i] = p, lvl[i] = lvl[u]+1, dad[i] = u;
+					q.emplace(i);
+				} else if(i != dad[u]) {
+					ans = min(ans, lvl[u] + lvl[i] + 1);
+				}
+			if(chain_cnt == 2)
+				ans = min(ans, chain);
+		}
+	}
+
+	cout << (ans <= n? ans : -1) << '\n';
+}

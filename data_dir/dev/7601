@@ -1,0 +1,129 @@
+#include <iostream>
+#include <cstdio>
+#include <map>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <iomanip>
+#include <vector>
+#include <queue>
+#include <set>
+
+using namespace std;
+
+const long long md = 1000000007;
+
+long long V[1555];
+
+long long f[220000];
+long long rf[220000];
+long long p[220000];
+long long q[220000];
+int n, m, k;
+long long dp1[1502][1502];
+long long dp2[1502][1502];
+long long sm2[1502];
+long long lsm[1502];
+long long rsm[1502];
+long long sm[1502];
+
+long long Pow(long long a, long long b) {
+    long long s = 1;
+    while (b) {
+        if (b % 2) {
+            s = (s * a) % md;
+        }
+        a = (a * a) % md;
+        b /= 2;
+    }
+    return s;
+}
+
+long long rev(long long a) {
+    return Pow(a, md - 2);
+} 
+
+long long cnk(int n, int k) {
+    if (k < 0) {
+        return 0;
+    }
+    if (k > n) {
+        return 0;
+    }
+    return f[n] * rf[k] % md * rf[n - k] % md;
+}
+
+long long moves(int t) {
+    return (cnk(k, t) * p[t] % md * q[k - t] % md);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+    long long a, b;
+
+    f[0] = rf[0] = 1;
+    for (int i = 1; i <= 210000; i++) {
+        f[i] = (f[i - 1] * i) % md;
+        rf[i] = rev(f[i]);
+    }
+
+    cin >> n >> m >> a >> b >> k;
+    a = (a * rev(b)) % md;
+
+    p[0] = 1;
+    for (int i = 1; i <= 210000; i++) {
+        p[i] = (p[i - 1] * a) % md;
+    }
+    q[0] = 1;
+    for (int i = 1; i <= 210000; i++) {
+        q[i] = (q[i - 1] * (1 - a + md)) % md;
+    }    
+    
+    for (int j = 1; j <= m; j++) {        
+        for (int l = 1; l <= j; l++) {
+            dp1[1][j] = (dp1[1][j] +
+                moves(m - j) * moves(l - 1) % md
+                ) % md;
+        }        
+        dp2[1][m - j + 1] = dp1[1][j];        
+    }    
+    for (int i = 2; i <= n; i++) {
+        for (int j = m; j >= 1; j--) {
+            sm2[j] = (sm2[j + 1] + dp2[i - 1][j]) % md;                        
+        }
+        for (int j = m; j >= 1; j--) {
+            lsm[j] = (lsm[j + 1] + moves(j - 1)) % md;
+        }
+        for (int j = 1; j <= m; j++) {
+            rsm[j] = (rsm[j - 1] + dp1[i - 1][j]) % md;
+        }
+        for (int j = 1; j <= m; j++) {            
+            sm[j] = (sm[j - 1] + dp1[i - 1][j] * lsm[j + 1]) % md;
+        }
+        for (int j = 1; j <= m; j++) {
+            dp1[i][j] = dp1[1][j] * rsm[m] % md;
+            dp1[i][j] = (dp1[i][j] + md - 
+                        sm2[j + 1] * dp1[1][j] % md
+                        ) % md;            
+                    
+            long long val = (sm[j - 1] - rsm[j - 1] * lsm[j + 1] % md + md) % md * moves(m - j) % md;
+
+            dp1[i][j] = (dp1[i][j] + md - 
+                        val
+                        ) % md;
+
+            dp2[i][m - j + 1] = dp1[i][j];
+           // cout << dp1[i][j] << endl;
+        }
+    }
+
+    long long ans = 0;
+    for (int j = 1; j <= m; j++) {
+        ans = (ans + dp1[n][j]) % md;
+    }
+    cout << ans << endl;
+
+	return 0;
+}

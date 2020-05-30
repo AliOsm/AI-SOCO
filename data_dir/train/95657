@@ -1,0 +1,133 @@
+#include<bits/stdc++.h>
+#define rep(i,n) for(int i=0;i<(int)n;i++)
+#define all(c) (c).begin(),(c).end()
+#define mp make_pair
+#define pb push_back
+#define dbg(...) do{cerr<<__LINE__<<": ";dbgprint(#__VA_ARGS__, __VA_ARGS__);}while(0);
+
+using namespace std;
+
+namespace std{template<class S,class T>struct hash<pair<S,T>>{size_t operator()(const pair<S,T>&p)const{return ((size_t)1e9+7)*hash<S>()(p.first)+hash<T>()(p.second);}};template<class T>struct hash<vector<T>>{size_t operator()(const vector<T> &v)const{size_t h=0;for(auto i : v)h=h*((size_t)1e9+7)+hash<T>()(i)+1;return h;}};}
+template<class T>ostream& operator<<(ostream &os, const vector<T> &v){os<<"[ ";rep(i,v.size())os<<v[i]<<(i==v.size()-1?" ]":", ");return os;}template<class T>ostream& operator<<(ostream &os,const set<T> &v){os<<"{ "; for(const auto &i:v)os<<i<<", ";return os<<"}";}
+template<class T,class U>ostream& operator<<(ostream &os,const map<T,U> &v){os<<"{";for(const auto &i:v)os<<" "<<i.first<<": "<<i.second<<",";return os<<"}";}template<class T,class U>ostream& operator<<(ostream &os,const pair<T,U> &p){return os<<"("<<p.first<<", "<<p.second<<")";}
+void dbgprint(const string &fmt){cerr<<endl;}template<class H,class... T>void dbgprint(const string &fmt,const H &h,const T&... r){cerr<<fmt.substr(0,fmt.find(","))<<"= "<<h<<" ";dbgprint(fmt.substr(fmt.find(",")+1),r...);}
+typedef long long ll;typedef vector<int> vi;typedef pair<int,int> pi;const int inf = (int)1e9;const double EPS = 1e-10, INF = 1e12, PI = acos(-1.0);
+typedef complex<long double> P;
+namespace std{
+	bool operator<(const P& a, const P& b){
+		return real(a) != real(b) ? real(a) < real(b) : imag(a) < imag(b);
+	}
+}
+inline long double cross(const P& a, const P& b){ return imag(conj(a)*b); }
+inline long double dot(const P& a, const P& b){ return real(conj(a)*b); }
+struct L : public vector<P>{
+	L(const P &a, const P &b) {
+		push_back(a); push_back(b);
+	}
+};
+typedef vector<P> G;
+inline int ccw(P a, P b, P c) {
+	b -= a; c -= a;
+	if(cross(b, c) > 0)   return +1;		// counter clockwise
+	if(cross(b, c) < 0)   return -1;		// clockwise
+	if(dot(b, c) < 0)     return +2;		// c--a--b on line
+	if(norm(b) < norm(c)) return -2;		// a--b--c on line
+	return 0;
+}
+inline vector<P> tanCP(P c, long double r, P p){
+	long double x = norm(p - c);
+	long double d = x - r * r;
+	if(d < -EPS) return vector<P>(0);
+	if(d < 0) d = 0;
+	P q1 = (p - c) * r * r / x;
+	P q2 = (p - c) * (-r * sqrt(d) / x) * P(0, 1);
+	
+	vector<P> res;
+	res.pb(c + q1 - q2);
+	res.pb(c + q1 + q2);
+	return res;
+}
+inline G isCC(P c1, long double r1, P c2, long double r2){
+	long double x = norm(c1 - c2);
+	long double y = ((r1 * r1 - r2 * r2) / x + 1) / 2;
+	long double d = r1 * r1 / x - y * y;
+	if(d < -EPS) return vector<P>(0);
+	if(d < 0) d = 0;
+	P q1 = c1 + (c2 - c1) * y, q2 = (c2 - c1) * sqrt(d) * P(0, 1);
+	G res;
+	res.pb(q1 - q2); res.pb(q1 + q2);
+	return res;
+}
+
+inline long double arg2(P p){
+	long double a = arg(p);
+	return a < -EPS ? a += 2 * PI : max((long double)0, a);
+}
+#define arg arg2
+
+int main(){
+//	cin.tie(0); cin.sync_with_stdio(0);
+	
+	int n, x0, y0, v, T; scanf("%d%d%d%d", &x0, &y0, &v, &T);
+	long double dist = (long double)v * T;
+	P o(x0, y0);
+	//map<double, int> d;
+	vector<pair<long double, int>> ev;
+	
+	ev.pb(mp(0, 0)); ev.pb(mp(2 * PI, 0));
+	scanf("%d", &n);
+	
+	rep(i, n){
+		double x, y, r; scanf("%lf%lf%lf", &x, &y, &r);
+		P p = P(x, y) - o;
+		
+		//dbg(abs(p) - r, dist);
+		if(abs(p) - r < EPS){
+			cout << 1 << endl;
+			return 0;
+		}
+		if(abs(p) > dist + r + EPS) continue;
+		
+		G cs = tanCP(p, r, P(0, 0));
+		if(cs.size() >= 2 && abs(cs[0]) < dist + EPS && abs(cs[0] - cs[1]) > EPS){
+			long double a1 = arg(cs[0]), a2 = arg(cs[1]);
+			if(ccw(P(0, 0), cs[0], cs[1]) != 1) swap(a1, a2), swap(cs[0], cs[1]);
+			//dbg(a1, a2, cs[0], cs[1]);
+			assert(ccw(P(0, 0), cs[0], cs[1]) == 1);
+			
+			/*
+			if(a1 > a2) d[0]++, d[a2 + EPS]--, d[a1]++, d[2 * PI + EPS]--;
+			else d[a1]++, d[a2 + EPS]--;
+			*/
+			if(a1 > a2) ev.pb(mp(0, 1)), ev.pb(mp(a2 + EPS, -1)), ev.pb(mp(a1, 1)), ev.pb(mp(2 * PI + EPS, -1));
+			else ev.pb(mp(a1, 1)), ev.pb(mp(a2 + EPS, -1));
+			
+			//continue;
+		}
+		
+		cs = isCC(p, r, P(0, 0), dist);
+		if(cs.size() >= 2 && abs(cs[0]) < dist + EPS && abs(cs[0] - cs[1]) > EPS){
+			long double a1 = arg(cs[0]), a2 = arg(cs[1]);
+			if(ccw(P(0, 0), cs[0], cs[1]) != 1) swap(a1, a2), swap(cs[0], cs[1]);
+			//dbg(a1, a2, cs[0], cs[1]);
+			assert(ccw(P(0, 0), cs[0], cs[1]) == 1);
+			
+			if(a1 > a2) ev.pb(mp(0, 1)), ev.pb(mp(a2 + EPS, -1)), ev.pb(mp(a1, 1)), ev.pb(mp(2 * PI + EPS, -1));
+			else ev.pb(mp(a1, 1)), ev.pb(mp(a2 + EPS, -1));
+		}
+	}
+	sort(all(ev));
+	
+	int cnt = 0;
+	long double ans = 0, prev = 0;
+	for(auto p : ev){
+		if(cnt > 0) ans += p.first - prev;
+		cnt += p.second;
+		prev = p.first;
+		
+		//dbg(p.first, cnt);
+	}
+	printf("%.20f\n", (double)ans / (2 * PI));
+	
+	return 0;
+}

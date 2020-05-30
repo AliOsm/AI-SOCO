@@ -1,0 +1,182 @@
+#include <bits/stdc++.h>
+// #include <ext/pb_ds/assoc_container.hpp>
+// #include <ext/pb_ds/tree_policy.hpp>
+
+#define xx first
+#define yy second
+#define pb push_back
+#define mp make_pair
+#define lb lower_bound
+#define ub upper_bound
+
+#define len(x) (ll)((x).size())
+#define all(x) (x).begin(), (x).end()
+#define lsb(x) ((x) & -(x))
+#define l(x) ((x << 1) + 1)
+#define r(x) ((x << 1) + 2)
+#define v(x) (ll)(x - '0')
+
+using namespace std;
+// using namespace __gnu_pbds;
+
+typedef long long ll;
+typedef pair <ll, ll> pii;
+
+template <class T> using vec = vector <T>;
+// template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+const ll inf = numeric_limits <ll>::max();
+const ll mod = 1e9 + 7;
+const ll pri = 31;
+const ll N = 1e5 + 1;
+ll n, m, q;
+
+ll exx[N];
+ll inv[N];
+ll pre[N];
+
+string t;
+
+struct Node {
+    ll l, r;
+    ll sum;
+    ll lzy;
+} node[N << 2];
+
+ll fpow(ll b, ll p = mod - 2) {
+    ll res = 1;
+    ll pow = b;
+    for(; p; p >>= 1) {
+        if(p & 1) {
+            res *= pow;
+            res %= mod;
+        }
+        pow *= pow;
+        pow %= mod;
+    }
+    return res;
+}
+
+void calc_exx() {
+    exx[0] = 1;
+    inv[0] = 1;
+    pre[0] = 1;
+    for(ll i = 1; i < N; ++i) {
+        exx[i] = exx[i - 1] * 1ll * pri % mod;
+        pre[i] = pre[i - 1] + exx[i];
+        pre[i] %= mod;
+        inv[i] = fpow(exx[i]);
+    }
+}
+
+void lazy(ll id) {
+    ll lzy = node[id].lzy;
+    if(lzy == -1) {
+        return;
+    }
+    if(node[id].l != node[id].r) {
+        node[l(id)].lzy = lzy;
+        node[r(id)].lzy = lzy;
+    }
+    ll l = node[id].l;
+    ll r = node[id].r;
+    node[id].lzy = -1;
+    node[id].sum = pre[r - l] * lzy % mod;
+}
+
+void merge(ll id, ll l, ll r) {
+    lazy(l), lazy(r);
+    ll q = node[id].l + node[id].r >> 1;
+    node[id].sum = (1ll * exx[node[id].r - q] * node[l].sum + node[r].sum) % mod;
+}
+
+void build(ll id, ll l, ll r) {
+    node[id].l = l;
+    node[id].r = r;
+    node[id].lzy = -1;
+    if(l == r) {
+        node[id].sum = v(t[l]);
+        return;
+    }
+    ll q = l + r >> 1;
+    build(l(id), l, q);
+    build(r(id), q + 1, r);
+    merge(id, l(id), r(id));
+}
+
+void update(ll id, ll l, ll r, ll x) {
+    if(node[id].l == l && node[id].r == r) {
+        node[id].lzy = x;
+        return;
+    }
+    lazy(id);
+    ll q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        update(l(id), l, min(q, r), x);
+    }
+    if(r > q) {
+        update(r(id), max(q + 1, l), r, x);
+    }
+    merge(id, l(id), r(id));
+}
+
+ll query(ll id, ll l, ll r) {
+    lazy(id);
+    if(node[id].l == l && node[id].r == r) {
+        return node[id].sum;
+    }
+    ll sum = 0;
+    ll q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        sum += query(l(id), l, min(q, r));
+        sum %= mod;
+    }
+    if(r > q) {
+        sum *= exx[r - max(q + 1, l) + 1];
+        sum += query(r(id), max(q + 1, l), r);
+        sum %= mod;
+    }
+    return sum;
+}
+
+void input() {
+    cin >> n >> m >> q;
+    cin >> t;
+    t = '#' + t;
+}
+
+void solve() {
+    calc_exx();
+    build(0, 1, n);
+    for(ll i = 0; i < m + q; ++i) {
+        ll t; cin >> t;
+        ll l; cin >> l;
+        ll r; cin >> r;
+        ll x; cin >> x;
+        if(t == 1) {
+            update(0, l, r, x);
+        } else {
+            ll p = (r - l + 1) / x;
+            ll y = (r - l + 1) % x;
+            ll a = exx[x];
+            ll c = 1ll * (fpow(a, p) - 1) * fpow(a - 1) % mod;
+            if(y) {
+                if(query(0, l, l + y - 1) != query(0, l + p * x, r)) {
+                    cout << "NO\n";
+                    continue;
+                }
+            }
+            if(1ll * query(0, l, l + x - 1) * c % mod == query(0, l, l + p * x - 1)) {
+                cout << "YES\n";
+            } else {
+                cout << "NO\n";
+            }
+        }
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

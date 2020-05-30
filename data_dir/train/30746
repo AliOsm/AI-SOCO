@@ -1,0 +1,30 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int mod = 100000;
+
+long long power(long long a, long long b) {
+  if(b == 0) return 1;
+  long long tmp = power(a, b / 2);
+  tmp = tmp * tmp % mod;
+  if(b & 1) {
+    tmp = tmp * a % mod;
+  }
+  return tmp;
+}
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  int a = n / 10000 % 10;
+  int b = n / 1000 % 10;
+  int c = n / 100 % 10;
+  int d = n / 10 % 10;
+  int e = n / 1 % 10;
+  n = a * 10000 + c * 1000 + e * 100 + d * 10 + b;
+  long long ans = power(n, 5);
+  printf("%I64d%I64d%I64d%I64d%I64d\n", ans/10000%10, ans/1000%10, ans/100%10, ans/10%10, ans/1%10);
+  //cout << power(n, 5) << endl;
+  return 0;
+}

@@ -1,0 +1,196 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+using namespace std;
+template<class T, class T2> inline void chkmax(T &x, const T2 &y) { if(x < y) x = y; }
+template<class T, class T2> inline void chkmin(T &x, const T2 &y) { if(x > y) x = y; }
+const int MAXN = (117);
+const int mod = (int)1e9 + 7;
+const int64_t inf = (int64_t)1e16 + 42;
+
+template<class T>
+struct matrix
+{
+	int n;
+	vector<vector<T> > t;
+
+	matrix(int _n, T val) {n = _n; t.assign(n, vector<T>(n, val)); }
+	matrix(int _n) {n = _n; t.assign(n, vector<T>(n, 0)); }
+    matrix() { n = 0; t.clear(); }
+
+	matrix operator * (matrix b)
+	{
+		matrix c = matrix(n, 0);
+		for(int i = 0; i < n; i++)
+			for(int k = 0; k < n; k++)
+				for(int j = 0; j < n; j++)
+					c.t[i][j] = (c.t[i][j] + t[i][k] * b.t[k][j]) % mod;
+		return c;
+	}
+
+	vector<T> operator * (vector<T> b)
+	{
+		vector<T> c = vector<T>(n, 0);
+		for(int i = 0; i < n; i++)
+			for(int j = 0; j < n; j++)
+                c[i] = (c[i] + t[i][j] * b[j]) % mod;
+
+		return c;
+	}
+
+	matrix operator ^ (matrix b)
+	{
+		matrix c = matrix(n, inf);
+		for(int i = 0; i < n; i++)
+			for(int k = 0; k < n; k++)
+				for(int j = 0; j < n; j++)
+					c.t[i][j] = min(c.t[i][j], t[i][k] + b.t[k][j]);
+		return c;
+	}
+
+	matrix operator + (matrix b)
+	{
+		matrix c = matrix(n, 0);
+		for(int i = 0; i < n; i++)
+			for(int j = 0; j < n; j++)
+				c.t[i][j] = (t[i][j] + b.t[i][j]) % mod;
+
+		return c;
+	}
+
+	matrix operator - (matrix b)
+	{
+		matrix c = matrix(n, 0);
+		for(int i = 0; i < n; i++)
+			for(int j = 0; j < n; j++)
+				c.t[i][j] = (t[i][j] - b.t[i][j] + mod) % mod;
+
+		return c;
+	}
+
+	matrix operator & (matrix b)
+	{
+		matrix c = matrix(n, -inf);
+		for(int i = 0; i < n; i++)
+			for(int k = 0; k < n; k++)
+				for(int j = 0; j < n; j++)
+					c.t[i][j] = max(c.t[i][j], t[i][k] + b.t[k][j]);
+
+		return c;
+	}
+};
+
+template<class T>
+matrix<T> pow_min(matrix<T> base, int64_t p)
+{
+	if(p == 1) return base;
+
+	if(p % 2ll == 0ll)
+	{
+		matrix<T> d = pow_min(base, p / 2ll);
+		return d ^ d;
+	}
+
+	return base ^ pow_min(base, p - 1);
+}
+
+template<class T>
+matrix<T> pow_max(matrix<T> base, int64_t p)
+{
+	if(p == 1) return base;
+
+	if(p % 2ll == 0ll)
+	{
+		matrix<T> d = pow_max(base, p / 2ll);
+		return d & d;
+	}
+
+	return base & pow_max(base, p - 1);
+}
+
+template<class T>
+matrix<T> pow(matrix<T> base, int64_t p)
+{
+	if(p == 1) return base;
+
+	if(p % 2ll == 0ll)
+	{
+		matrix<T> d = pow(base, p / 2ll);
+		return d * d;
+	}
+
+	return base * pow(base, p - 1);
+}
+
+template<class T>
+void print(matrix<T> mat)
+{
+	for(int i = 0; i < mat.n; i++)
+		for(int j = 0; j < mat.n; j++)
+			if(mat.t[i][j] < inf) cout << mat.t[i][j] << " \n"[j == mat.n - 1];
+			else cout << "inf" << " \n"[j == mat.n - 1];
+
+	cout << endl;
+}
+
+int64_t n, k;
+
+void read()
+{
+	cin >> n >> k;
+}
+
+int64_t C[MAXN][MAXN];
+int psz = 0;
+
+void solve()
+{
+	C[0][0] = 1;
+	for(int i = 1; i < MAXN; i++)
+	{
+		C[i][0] = 1;
+		for(int j = 1; j <= i; j++)
+			C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % mod;
+	}
+
+	matrix<int64_t> base(2 * k + 3);
+	int s = 2 * k + 3;
+
+	for(int i = 0; i <= k; i++)
+	{
+		for(int j = 0; j <= i; j++) 
+		{
+			base.t[i][j] = C[i][j];
+			base.t[i][j + k + 1] = C[i][j];
+		}
+	}
+
+	for(int i = 0; i <= k; i++)
+	{
+		int p = i + k + 1;
+		for(int j = 0; j <= i; j++)
+			base.matrix::t[p][j] = C[i][j];
+	}
+
+	base.t[s - 1][s - 1] = 1;
+	base.t[s - 1][k] = 1;
+
+	base = pow(base, n);
+
+	int answer = 0;
+	for(int i = 0; i < s - 1; i++)
+		answer = (answer + base.t[s - 1][i]) % mod;
+
+	cout << answer << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

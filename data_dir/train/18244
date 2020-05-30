@@ -1,0 +1,34 @@
+// too easy to AC
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 5;
+
+char a[N], b[N];
+int p[N][2];
+
+int get(int l, int r, int c) {
+  return p[r][c] - p[l - 1][c];
+}
+
+int main() {
+  scanf("%s %s", a + 1, b + 1);
+  int na = strlen(a + 1);
+  int nb = strlen(b + 1);
+  for(int i = 1; i <= nb; i++) {
+    p[i][b[i] - '0']++;
+  }
+  for(int i = 1; i <= nb; i++) {
+    p[i][0] += p[i - 1][0];
+    p[i][1] += p[i - 1][1];
+  }
+  long long ans = 0;
+  for(int i = 1; i <= na; i++) {
+    int l = i;
+    int r = nb - na + i;
+    ans += get(l, r, (a[i] - '0') ^ 1);
+  }
+  cout << ans << endl;
+  return 0;
+}

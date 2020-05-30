@@ -1,0 +1,110 @@
+		//			- -- --- ---- -----be name khoda----- ---- --- -- -			\\
+
+#include <bits/stdc++.h>
+using namespace std;
+
+#define Edge pair<int, pair<int, int>>
+#define V second.second
+#define U second.first
+#define W first
+
+const int N = 200002;
+
+int par[N], h[N], d[N], mark[N];
+vector <pair<int, int>> g[N];
+map<pair<int, int>, int> mp;
+vector <Edge> es;
+string ans[N];
+
+int root(int v) { return par[v] < 0 ? v : par[v] = root(par[v]); }
+
+int dfs(int v, int chi = 0, int dad = -1)
+{
+	mark[v] = 1;
+	h[v] = d[v] = chi;
+	int cnt = 0;
+	for(auto u : g[v])
+		if(!mark[u.first])
+		{
+			int k = dfs(u.first, chi + 1, v);
+			h[v] = min(k, h[v]);
+			if(k > d[v])
+				ans[u.second] = "any";
+		}
+		else if(u.first != dad)
+			h[v] = min(d[u.first], h[v]);
+		else
+			cnt++;
+	if(cnt > 1)
+		h[v] = min(h[v], d[v] - 1);
+	return h[v];
+}
+
+int main()
+{
+	ios::sync_with_stdio(0); cin.tie(0);
+	int n, m;
+	cin >> n >> m;
+	for(int i = 0; i < m; i++)
+	{
+		int l, r, w;
+		cin >> l >> r >> w;
+		l--;
+		r--;
+		es.push_back({w, {l, r}});
+		mp[{l, r}] = mp[{r, l}] = i;
+	}
+	sort(es.begin(), es.end());
+	fill(par, par + n, -1);
+	for(int i = 0; i < m; i++)
+	{
+		int j = i;
+		while(j < m && es[i].W == es[j].W)
+			j++;
+		vector <int> nv;
+		for(int k = i; k < j; k++)
+		{
+			int l = es[k].U;
+			int r = es[k].V;
+			if(root(l) == root(r))
+				ans[mp[{l, r}]] = "none";
+			else
+			{
+				int u = root(l);
+				int v = root(r);
+				if(!mark[u])
+				{
+					vector <pair<int, int>>().swap(g[u]);
+					nv.push_back(u);
+				}
+				if(!mark[v])
+				{
+					vector <pair<int, int>>().swap(g[v]);
+					nv.push_back(v);
+				}
+				mark[u] = mark[v] = 1;
+				g[v].push_back({u, mp[{l, r}]});
+				g[u].push_back({v, mp[{l, r}]});
+			}
+		}
+		for(auto v : nv)
+			mark[v] = 0;
+		for(auto v : nv)
+			if(!mark[v])
+				dfs(v);
+		for(auto v : nv)
+			mark[v] = 0;
+		for(int k = i; k < j; k++)
+		{
+			int l = root(es[k].U);
+			int r = root(es[k].V);
+			if(l != r) par[l] = r;
+		}
+		i = j - 1;
+	}
+	for(int i = 0; i < m; i++)
+		if(ans[i].empty())
+			cout << "at least one" << endl;
+		else
+			cout << ans[i] << endl;
+}

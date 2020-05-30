@@ -1,0 +1,174 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long double ld;
+typedef long long int ll;
+
+const ll logx=30;
+const ll N=2e2+5;
+const ll M=3e5+5;
+const ll mod=1e9+7;
+const ll INF=1e9+5;
+const double PI = 3.14159265;
+
+#define ints(n) scanf("%d",&n)
+#define intp(n) printf("%d\n",n)
+#define longs(n) scanf("%intd",&n)
+#define longp(n) printf("%intd\n",n)
+
+inline ll mul(ll a, ll b){ return (a * 1ll * b) % mod; }
+inline ll sub(ll a, ll b){ ll c = a - b; if(c < 0) c += mod; return c; }
+inline ll add(ll a, ll b){ ll c = a + b; if(c > mod) c -= mod; return c; }
+
+#define f first
+#define s second
+#define pb(x) push_back(x)
+#define pf(x) push_front(x)
+#define mp(x,y) make_pair(x,y)
+#define GCD(a,b) __gcd((a),(b))
+#define all(v) v.begin(),v.end()
+#define bits(x) __builtin_popcount(x)
+#define LCM(a,b) ((a)*(b))/GCD((a),(b))
+#define ms(dp,val) memset(dp,val,sizeof(dp))
+#define fast ios_base::sync_with_stdio(false);cin.tie(NULL);
+#define printclock cerr<<"Time : "<<1000*(ld)clock()/(ld)CLOCKS_PER_SEC<<"ms\n";
+template<typename T> T power(T x,T y,ll m){T ans=1;while(y>0){if(y&1LL) ans=(ans*x)%m;y>>=1ll;x=(x*x)%m;}return ans%m;}
+
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+    cerr << name << " : " << arg1 << '\n';
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+    const char* comma = strchr(names + 1, ',');cerr.write(names, comma - names) << " : " << arg1<<" | ";__f(comma+1, args...);
+}
+
+vector<ll> g[N];
+vector<pair<ll,ll> > store[N];
+ll n,m,lev[N],p[N][logx],lca[N][N],inpath[N],indp[N],outdp[N];
+
+void DFS(ll cur,ll par)
+{
+  p[cur][0]=par;
+  lev[cur]=lev[par]+1;
+  for(auto i:g[cur])
+  {
+    if(i==par){continue;}
+    DFS(i,cur);
+  }
+}
+
+void PreCompute()
+{
+  for(ll i=1;i<logx;i++)
+  {
+    for(ll j=1;j<=n;j++)
+    {
+      if(!p[j][i-1]){continue;}
+      p[j][i]=p[p[j][i-1]][i-1];
+    }
+  }
+}
+
+ll LCA(ll u,ll v)
+{
+  if(lev[u]>lev[v]){swap(u,v);}
+  for(ll i=logx-1;i>=0;i--)
+  {
+    if(lev[p[v][i]]>=lev[u]){v=p[v][i];}
+  }
+  if(u==v){return u;}
+  for(ll i=logx-1;i>=0;i--)
+  {
+    if(p[u][i]!=0&&p[u][i]!=p[v][i]){u=p[u][i];v=p[v][i];}
+  }
+  return p[u][0];
+}
+
+void inDFS(ll cur,ll par)
+{
+  ll maxi=0;
+  for(auto i:g[cur])
+  {
+    if(i==par){continue;}
+    inDFS(i,cur);
+    if(inpath[i]){continue;}
+    maxi=max(maxi,1+indp[i]);
+    store[cur].pb(mp(1+indp[i],i));
+  }
+  indp[cur]=maxi;
+  if(inpath[cur]){indp[cur]=0;}
+  sort(all(store[cur]));
+  reverse(all(store[cur]));
+  if(store[cur].size()>2){store[cur].resize(2);}
+}
+
+void outDFS(ll cur,ll par)
+{
+  if(inpath[cur]||cur==1){outdp[cur]=0;}
+  else
+  {
+    ll ans=1+outdp[par];
+    if(inpath[par]){ans=0;}
+    if(!inpath[par])
+    {
+      for(auto i:store[par])
+      {
+        if(i.s==cur){continue;}
+        ans=max(ans,1+i.f);break;
+      }
+    }
+    outdp[cur]=ans;
+  }
+  for(auto i:g[cur])
+  {
+    if(i==par){continue;}
+    outDFS(i,cur);
+  }
+}
+
+int main()
+{
+  fast;
+  cin>>n;
+  ll m=n-1,ans=0;
+  while(m--)
+  {
+    ll u,v;
+    cin>>u>>v;
+    g[u].pb(v);
+    g[v].pb(u);
+  }
+  lev[0]=-1;
+  DFS(1,0);
+  PreCompute();
+  for(ll i=1;i<=n;i++)
+  {
+    for(ll j=1;j<=n;j++){lca[i][j]=LCA(i,j);}
+  }
+  for(ll i=1;i<=n;i++)
+  {
+    for(ll j=i+1;j<=n;j++)
+    {
+      ll lcaij=lca[i][j];
+      ll dis=lev[i]+lev[j]-(2*lev[lca[i][j]]);
+      for(ll h=1;h<=n;h++)
+      {
+        ll herelca1=lca[i][h];
+        ll herelca2=lca[j][h];
+        if((herelca1==i&&herelca2==h)||(herelca1==j&&herelca2==h)){inpath[h]=1;}
+        herelca1=lca[lcaij][h];
+        herelca2=lca[j][h];
+        if((herelca1==lcaij&&herelca2==h)||(herelca1==j&&herelca2==h)){inpath[h]=1;}
+        herelca1=lca[lcaij][h];
+        herelca2=lca[i][h];
+        if((herelca1==lcaij&&herelca2==h)||(herelca1==i&&herelca2==h)){inpath[h]=1;}
+      }
+      inDFS(1,0);
+      outDFS(1,0);
+      for(ll h=1;h<=n;h++){ans=max(ans,dis*(indp[h]+outdp[h]));}
+      for(ll h=1;h<=n;h++){inpath[h]=0;store[h].clear();}
+    }
+  }
+  cout<<ans<<endl;
+}

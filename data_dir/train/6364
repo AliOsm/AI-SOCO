@@ -1,0 +1,172 @@
+//#pragma GCC optimize("Ofast,no-stack-protector")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx")
+//#pragma GCC target("avx,tune=native")
+// Anand Jaisingh
+
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+#define pii pair<int,int>
+#define pll pair< ll , ll >
+#define vi vector<int>
+#define vvi vector< vi >
+
+const int maxn=(int)(2e5+5),LN=20;
+const ll mod=(ll)(1e9+7);
+int a[maxn];
+ll st[LN][maxn];
+int pa[maxn],lcs[maxn],lg[maxn];
+int sparse[LN][maxn];
+
+bool func(pll& a,pll& b)
+{
+    return a.second<b.second;
+}
+
+int lcss(int x,int y)
+{
+    int ret=0;
+
+    for(int i=LN-1;i>=0 && x>=0 && y>=0;i--)
+    {
+        int len=1<<i;
+
+        if(min(x,y)-len+1>=0 && st[i][x]==st[i][y])
+        {
+            ret+=len;x-=len;y-=len;
+        }
+    }
+
+    return ret;
+}
+
+int get_min(int l,int r)
+{
+    int val=lg[r-l];
+
+    int x=sparse[val][l],y=sparse[val][r-(1<<val)+1];
+
+    return lcs[x]<=lcs[y]?x:y;
+}
+
+ll solve(int l,int r)
+{
+    if(l>r)
+    {
+        return 0;
+    }
+
+    else
+    {
+        int curr=get_min(l,r);
+
+        assert(curr>=l && curr<=r);
+
+        ll ret=(r-l+2)*1ll*lcs[curr];
+
+        ret=max(ret,max(solve(l,curr-1),solve(curr+1,r)));
+
+        return ret;
+    }
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);cin.tie(0);
+
+    int n;string a,b;
+
+    cin>>n>>a>>b;
+
+    for(int i=0;i<n;i++)
+    {
+        st[0][i]=a[i]-'a';
+    }
+
+    for(int i=1;i<LN;i++)
+    {
+        vector< pll > v;
+
+        int len=(1<<(i-1));
+
+        for(int j=0;j<n;j++)
+        {
+            ll curr=(st[i-1][j]<<30ll)+(j-len>=0?st[i-1][j-len]+1:0);
+
+            v.pb({j,curr});
+        }
+
+        sort(v.begin(),v.end(),func);
+
+        int now=-1;ll last=-1;
+
+        for(int j=0;j<n;j++)
+        {
+            int idx=v[j].first;
+
+            st[i][idx]=(v[j].second==last?now:++now);
+
+            last=v[j].second;
+        }
+    }
+
+    for(int i=0;i<n;i++)
+    {
+        pa[st[LN-1][i]]=i;
+    }
+
+    vector<int> v;ll res=0;
+
+    for(int i=0;i<n;i++)
+    {
+        int curr=pa[i];
+
+        if(b[curr]=='0')
+        {
+            v.pb(i);
+
+            res=max(res,(curr+1)*1ll);
+        }
+    }
+
+    int m=v.size();
+
+    for(int i=1;i<m;i++)
+    {
+        int idx1=pa[v[i]],idx2=pa[v[i-1]];
+
+        lcs[i]=lcss(idx1,idx2);
+    }
+
+    for(int i=0;i<m;i++)
+    {
+        sparse[0][i]=i;
+    }
+
+    for(int i=1;i<LN;i++)
+    {
+        for(int j=0;j+(1<<i)-1<m;j++)
+        {
+            int x=lcs[sparse[i-1][j]],y=lcs[sparse[i-1][j+(1<<(i-1))]];
+
+            sparse[i][j]=(x<=y?sparse[i-1][j]:sparse[i-1][j+(1<<(i-1))]);
+        }
+    }
+
+    for(int i=2;i<maxn;i++)
+    {
+        lg[i]=lg[i>>1]+1;
+    }
+
+    res=max(res,solve(1,m-1));
+
+    cout<<res<<endl;
+
+    return 0;
+}

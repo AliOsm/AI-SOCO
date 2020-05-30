@@ -1,0 +1,125 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <stdio.h>
+#include <cstring>
+#include <cassert>
+#include <bitset>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+typedef long long ll;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+
+const int maxN = (int)5e3 + 10;
+const int INF = (int)1e9;
+const int mod = (int)1e9 + 7;
+const ll LLINF = (ll)1e18;
+
+int dp[maxN][maxN];
+int prefsum[maxN][maxN];
+
+int n;
+char s[maxN];
+
+vector <ll> h1[maxN];
+vector <ll> h2[maxN];
+
+bool equalSubstrings(int i, int j, int len) {
+     return h1[i][len] == h1[j][len] && h2[i][len] == h2[j][len];
+}
+
+bool ok(int i, int j, int len) {
+    int sti = i - len + 1;
+    int stj = j - len + 1;
+    if (sti <= 0) return false;
+    if (equalSubstrings(sti, stj, len)) return false;
+    int l = 0, r = len;
+    for (int it = 0; it < 13; ++it) {
+        int mid = (l + r + 1) / 2;
+        if (equalSubstrings(sti, stj, mid)) {
+            l = mid;
+        } else {
+            r = mid - 1;
+        }
+    }
+    if (s[sti + l] > s[stj + l]) return false;
+    if (s[sti + l] < s[stj + l]) return true;
+    assert(false);
+}
+
+void calcHashes(ll base, ll mod, vector <ll> h[maxN]) {
+    for (int i = 1; i <= n; ++i) {
+        ll x = 1;
+        h[i].resize(n - i + 2);
+        for (int j = i; j <= n; ++j) {
+            int len = j - i + 1;
+            h[i][len] = h[i][len - 1] + x * (s[j] - '0' + 1);
+            h[i][len] %= mod;
+            x *= base;
+            x %= mod;
+        }
+    }
+}
+
+void add(int &x, int y) {
+    x += y;
+    if (x >= mod) x -= mod;
+}
+
+int main() {
+
+    cin >> n;
+    getchar();
+    gets(s + 1);
+
+    calcHashes(53, mod, h1);
+    calcHashes(53, numeric_limits<ll>::max(), h2);
+
+    for (int i = 1; i <= n; ++i) {
+        if (i == 1) {
+            dp[1][1] = 1;
+        } else {
+            for (int len = 1; len <= i; ++len) {
+                if (s[i - len + 1] == '0') continue;
+                add(dp[i][len], prefsum[i - len][len - 1]);
+                if (ok(i - len, i, len)) {
+                    add(dp[i][len], dp[i - len][len]);
+                }
+                if (i == len) dp[i][len] = 1;
+            }
+        }
+        for (int j = 1; j <= n; ++j) {
+            add(prefsum[i][j], prefsum[i][j - 1]);
+            add(prefsum[i][j], dp[i][j]);
+        }
+    }
+
+    printf("%d\n", prefsum[n][n]);
+    return 0;
+}

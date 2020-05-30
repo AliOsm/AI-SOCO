@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using ll = long long;
+using ii = pair<int, int>;
+#define ff first
+#define ss second
+#define pb push_back
+
+const int N = 200005;
+
+class SegTree{
+	vector<int> st;
+	vector<int> st2;
+	int n;
+
+	void upd(int p, int nodeL, int nodeR, int queryL, int queryR, int v){
+
+		if(queryR <  nodeL or  queryL >  nodeR) return;
+		if(queryL <= nodeL and queryR >= nodeR){
+			st[p] = v;
+			st2[p] = v;
+			return;
+		}
+
+		int mid = (nodeL + nodeR) / 2;
+
+		upd(2*p,   nodeL, mid,   queryL, queryR, v);
+		upd(2*p+1, mid+1, nodeR, queryL, queryR, v);
+
+		st[p] = max(st[2*p], st[2*p+1]);
+		st2[p] = min(st2[2*p], st2[2*p+1]);
+	}
+
+	int qry(int p, int nodeL, int nodeR, int queryL, int queryR){
+
+		if(queryR <  nodeL or  queryL >  nodeR) return -1e9;
+		if(queryL <= nodeL and queryR >= nodeR) return st[p];
+
+		int mid = (nodeL + nodeR) / 2;
+
+		return max(qry(2*p, nodeL, mid, queryL, queryR), qry(2*p+1, mid+1, nodeR, queryL, queryR));
+	}
+	int qry2(int p, int nodeL, int nodeR, int queryL, int queryR){
+
+		if(queryR <  nodeL or  queryL >  nodeR) return 1e9;
+		if(queryL <= nodeL and queryR >= nodeR) return st2[p];
+
+		int mid = (nodeL + nodeR) / 2;
+
+		return min(qry2(2*p, nodeL, mid, queryL, queryR), qry2(2*p+1, mid+1, nodeR, queryL, queryR));
+	}
+
+	public:
+
+	SegTree(int sz){
+		n = sz;
+		st.assign(5*(n + 1), -1e9);
+		st2.assign(5*(n + 1), 1e9);
+	}
+
+	int qry(int i, int j){
+		return qry(1, 1, n, i, j);
+	}
+	int qry2(int i, int j){
+		return qry2(1, 1, n, i, j);
+	}
+
+	void upd(int i, int j, int v){
+		upd(1, 1, n, i, j, v);
+	}
+
+};
+
+int main(){
+	int n, k;
+	scanf("%d %d", &n, &k);
+	vector<SegTree> st(40, SegTree(n));
+	int a[N][6];
+	for(int i = 1; i <= n; i++){
+		for(int j = 0; j < k; j++){
+			scanf("%d", &a[i][j]);
+		}
+		for(int j = 0; j < (1 << k); j++){
+			int sum = 0;
+			for(int l = 0; l < k; l++){
+				if(j & (1 << l))
+					sum += a[i][l];
+				else
+					sum -= a[i][l];
+			}
+			st[j].upd(i, i, sum);
+		}
+	}
+	int q;
+	scanf("%d", &q);
+	while(q--){
+		int op;
+		scanf("%d", &op);
+		if(op == 1){
+			int id;
+			scanf("%d", &id);
+			for(int j = 0; j < k; j++){
+				scanf("%d", &a[id][j]);
+			}
+			for(int j = 0; j < (1 << k); j++){
+				int sum = 0;
+				for(int l = 0; l < k; l++){
+					if(j & (1 << l))
+						sum += a[id][l];
+					else
+						sum -= a[id][l];
+				}
+				st[j].upd(id, id, sum);
+			}
+		}
+		else{
+			int l, r;
+			scanf("%d %d", &l, &r);
+			ll ans = -1e9;
+			for(int j = 0; j < (1 << k); j++){
+				ans = max(ans, 1LL * st[j].qry(l, r) - st[j].qry2(l, r));
+			}
+			printf("%lld\n", ans);
+		}
+	}
+	return 0;
+}
+

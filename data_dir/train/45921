@@ -1,0 +1,143 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <stdlib.h>
+#include <set>
+#include <vector>
+#include <list>
+#include <algorithm>
+#include <regex>
+#include <math.h>
+#include <map>
+#include <iterator>
+#include <climits>
+#include <numeric>
+#include <bitset>
+#include <unordered_map>
+#include <unordered_set>
+#include <iomanip>
+#include <queue>	
+#include <deque>
+#include <stack>
+#include <array>
+#include <valarray>
+#include <complex>
+#include <random>
+#include <functional>
+#include <cassert>
+#include <chrono>
+using namespace std;
+
+#pragma region TEMPLATE
+//#define int long long
+#define double long double
+typedef long long ll;
+typedef unsigned long long ull;
+template <typename T>
+void __read(T& a) { cin >> a; }
+template <typename T, typename ... Args>
+void __read(T& a, Args& ... args) { cin >> a; __read(args...); }
+#define make(t, ...) t __VA_ARGS__; __read(__VA_ARGS__)
+#define makev(a, n) VI a(n); FOR(n) cin >> a[i];
+#define ALL(x) (x).begin(), (x).end()
+#define RALL(x) (x).rbegin(), (x).rend()
+#define FORIT(p) for(auto it = p.begin(); it != p.end(); it++)
+#define FOR(b) for(signed i = 0; i <(b); i++)
+#define FORE(i, l, r) for(int i = (l); i < (r); i++)
+#define NFOR(i, n) for(int i = (((int) n)-1); i >= 0; i--)
+typedef vector<int> VI;
+typedef vector<vector<int>> VVI;
+typedef pair<int, int> PII;
+typedef pair<pair<int, int>, int> PPII;
+constexpr ll M7 = 1000000007ll;
+constexpr ll M9 = 1000000009ll;
+constexpr ll MFFT = 998244353ll;
+template <class T> void outv(T& a) { for (auto& x : a) cout << x << ' '; }
+mt19937 rnd(static_cast<unsigned>(chrono::steady_clock::now().time_since_epoch().count()));
+template <class T> void random_shuffle(T s, T e) { shuffle(s, e, rnd); };
+static auto __super_speed__ = (ios_base::sync_with_stdio(0), cin.tie(0));
+#pragma endregion
+
+const int MAXN = 300'000;
+const int MAXK = 4;
+PII tree[MAXN * 4][MAXK];
+int a[MAXN];
+VI pos[MAXN + 1];
+
+void mrg(PII* to, PII* l, PII* r) {
+	for (int i = 0; i < MAXK; ++i) if (l[i].first != 0) to[i] = l[i];
+	for (int j = 0; j < MAXK; ++j) {
+		bool was = r[j].first == 0;
+		for (int i = 0; !was && i < MAXK; ++i) {
+			if (to[i].first == r[j].first) {
+				to[i].second += r[j].second;
+				was = true;
+				break;
+			}
+		}
+		if (was) continue;
+		int mn = 0;
+		for (int i = 0; i < MAXK; ++i) {
+			if (to[i].second < to[mn].second) {
+				mn = i;
+			}
+		}
+		int d = min(to[mn].second, r[j].second);
+		for (int i = 0; i < MAXK; ++i) to[i].second -= d;
+		if (to[mn].second == 0) {
+			to[mn] = r[j];
+			to[mn].second -= d;
+		}
+	}
+}
+
+void build(int pos, int l, int r) {
+	if (l == r) {
+		tree[pos][0] = { a[l], 1 };
+		return;
+	}
+	int mid = (l + r) / 2;
+	int npos = pos * 2;
+	build(npos, l, mid);
+	build(npos + 1, mid + 1, r);
+	mrg(tree[pos], tree[npos], tree[npos + 1]);
+}
+
+void query(int pos, int l, int r, int ql, int qr, PII* to) {
+	if (l > qr || ql > r) return;
+	if (l >= ql && r <= qr) {
+		for (int i = 0; i < MAXK; ++i) to[i] = tree[pos][i];
+		return;
+	}
+	int mid = (l + r) / 2;
+	int npos = pos * 2;
+	PII lres[MAXK], rres[MAXK];
+	query(npos, l, mid, ql, qr, lres);
+	query(npos + 1, mid + 1, r, ql, qr, rres);
+	mrg(to, lres, rres);
+}
+
+int32_t main() {
+	make(int, n, q);
+	FOR(n) {
+		cin >> a[i];
+		pos[a[i]].push_back(i);
+	}
+	build(1, 0, MAXN - 1);
+	while (q--) {
+		make(int, l, r, k);
+		l--, r--;
+		PII res[MAXK];
+		query(1, 0, MAXN - 1, l, r, res);
+		int ans = -1;
+		for (auto& [val, __] : res) {
+			int j = upper_bound(ALL(pos[val]), r) - pos[val].begin();
+			j -= (r - l + 1) / k + 1;
+			if (j >= 0 && pos[val][j] >= l && (ans == -1 || ans > val)) ans = val;
+		}
+		cout << ans << '\n';
+	}
+	return 0;
+}

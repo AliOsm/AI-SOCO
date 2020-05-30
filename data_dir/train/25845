@@ -1,0 +1,153 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+//#pragma GCC optimize ("O3")
+//#pragma GCC target ("sse4")
+
+#define SZ(x) ((int)x.size())
+#define ALL(V) V.begin(), V.end()
+#define L_B lower_bound
+#define U_B upper_bound
+#define pb push_back
+
+using namespace std;
+template<class T, class T2> inline int chkmax(T &x, const T2 &y) { return x < y ? x = y, 1 : 0; }
+template<class T, class T2> inline int chkmin(T &x, const T2 &y) { return x > y ? x = y, 1 : 0; }
+const int MAXN = (1 << 20);
+
+int n;
+vector<int> adj[MAXN];
+int deg[MAXN];
+
+void read()
+{
+	cin >> n;
+	for(int i = 0; i < n - 1; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		adj[u].pb(v);
+		adj[v].pb(u);
+
+		deg[u]++;
+		deg[v]++;
+	}
+}
+
+vector<pair<int, int> > li[MAXN];
+bool used[MAXN];
+
+int dep[MAXN];
+bool important[MAXN];
+
+void dfs(int u, int pr, int d = 0)
+{
+	dep[u] = d;
+	for(int v: adj[u])
+		if(!used[v] && v != pr)
+			dfs(v, u, d + 1);
+}
+
+void fix(vector<pair<int, int> > &v)
+{
+	sort(ALL(v));
+	reverse(ALL(v));
+	while(SZ(v) > 2)
+		v.pop_back();
+}
+
+void fix(vector<pair<pair<int, int>, int> > &v)
+{
+	sort(ALL(v));
+	reverse(ALL(v));
+	while(SZ(v) > 2)
+		v.pop_back();
+}
+
+pair<int, int> answer = {-1, -1};
+int ans1, ans2;
+
+pair<pair<int, int>, int> dp[MAXN];
+
+int sum(const vector<pair<int, int> > &V) 
+{
+	int ret = 0;
+	for(auto it: V)
+		ret += it.first;
+	return ret;
+}
+
+void dfs2(int u, int pr)
+{
+	dp[u] = {{1, sum(li[u])}, u};
+	vector<pair<pair<int, int>, int> > best;
+	best.pb(dp[u]);
+	
+	for(int v: adj[u])
+		if(!used[v] && v != pr)
+		{
+			dfs2(v, u);
+			chkmax(dp[u], make_pair(make_pair(1 + dp[v].first.first, dp[v].first.second), dp[v].second));
+			best.pb(dp[v]);
+			fix(best);
+		}
+
+	if(SZ(best) == 2)
+	{
+		pair<int, int> QQ = {best[0].first.first + best[1].first.first, best[0].first.second + best[1].first.second};
+		if(chkmax(answer, QQ))
+			ans1 = best[0].second, ans2 = best[1].second;
+	}
+}
+
+void solve()
+{
+	queue<int> Q;
+	for(int i = 1; i <= n; i++)
+		if(deg[i] == 1)
+		{
+			li[i] = {{1, i}};
+			Q.push(i);
+		}
+
+	while(!Q.empty())
+	{
+		int u = Q.front();
+		used[u] = true;
+		Q.pop();
+
+		for(int v: adj[u])
+			if(!used[v])
+			{
+				for(auto x: li[u]) li[v].pb({x.first + 1, x.second});
+				fix(li[v]);
+
+				if(deg[v] <= 2)
+					Q.push(v);
+			}
+	}
+
+	for(int i = 1; i <= n; i++)
+		if(!used[i]) 
+			fix(li[i]);
+
+	int X = 1;
+	while(used[X]) X++;
+	dfs2(X, X);
+	
+
+	int u = ans1, v = ans2;
+	cout << li[u][0].second << " " << li[v][0].second << endl;
+	cout << li[u][1].second << " " << li[v][1].second << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

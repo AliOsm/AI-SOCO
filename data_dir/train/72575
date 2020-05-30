@@ -1,0 +1,99 @@
+#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<string>
+#include<map>
+#include<iterator>
+#include<stack>
+#include<string>
+#include<climits>
+#include<bitset>
+#include<queue>
+#include<cmath>
+#include<cstdlib>
+#include<cstdio>
+#include<sstream>
+#include<iomanip>
+
+#define MOD 1000000007
+#define ll long long int
+#define vi vector<int>
+#define vll vector<long long int>
+#define vvi vector<vector<int> >
+#define vvl vector<vector<long long int> >
+#define vp vector<pair<int, int> >
+#define sc(n) scanf("%d", &n)
+#define ssync ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0)
+
+using namespace std;
+
+string toBin(long long int a)
+{
+	return bitset<64>(a).to_string();
+}
+
+void printArr(int* a, int n)
+{
+	for(int i = 0; i < n; i++)
+		printf("%d ", a[i]);
+	printf("\n");
+}
+
+string intToString (ll a)
+{
+	ostringstream temp;
+	temp<<a;
+	return temp.str();
+}
+
+ll pow(ll base, ll exponent)
+{
+	ll result = 1;
+	while(exponent > 0)
+	{
+		if (exponent % 2 == 1)
+			result *= base;
+		exponent = exponent >> 1;
+		base *= base;
+	}
+	return result;
+}
+
+ll powerWithMod(ll base, ll exponent, ll modulus)
+{
+	ll result = 1;
+	base %= modulus;
+	while(exponent > 0)
+	{
+		if (exponent % 2 == 1)
+			result = (result * base) % modulus;
+		exponent = exponent >> 1;
+		base = (base * base) % modulus;
+	}
+	return result;
+}
+
+ll dp[41][4][4];
+
+int main()
+{
+	ssync;
+	int t[4][4], n;
+	for(int i=1; i<4; i++)
+		for(int j=1; j<4; j++)
+			cin>>t[i][j];
+	cin>>n;
+	for(int num=1; num <= n; num++)
+	{
+		for(int i=1; i<4; i++)
+		{
+			for(int j=1; j<4; j++)
+			{
+				int rest = 6-i-j;
+				dp[num][i][j] = min(dp[num-1][i][rest] + dp[num-1][rest][j] + t[i][j], 2*dp[num-1][i][j] + t[i][rest] + dp[num-1][j][i] + t[rest][j]);
+			}
+		}
+	}
+	cout << dp[n][1][3] << "\n";
+	return 0;
+}

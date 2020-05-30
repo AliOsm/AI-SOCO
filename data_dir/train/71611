@@ -1,0 +1,154 @@
+#include "bits/stdc++.h"
+#define MAXN 100009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+#define next ossobi
+#define prev bor
+#define left cep
+#define right sag
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+const int BLOK=350;
+int bel[MAXN],next[MAXN],arr[MAXN];
+int st[MAXN],en[MAXN],last[MAXN],prev[MAXN],n;
+set<int>s[MAXN];
+struct Fenwick_Tree{
+	ll F[MAXN];
+	Fenwick_Tree(){
+		memset(F,0,sizeof F);
+	}
+	ll tap(int x){
+		ll res=0;
+		for(;x<MAXN;x+=x&(-x))
+			res+=F[x];
+		return res;	
+	}
+	void upd(int x,int y){
+		for(;x;x-=x&(-x))
+			F[x]+=y;
+	}
+}S[MAXN/BLOK+4],M;
+ll query(int x,int y){
+	ll res=M.tap(x)-M.tap(y+1);
+	if(bel[x]==bel[y]){
+		for(int i=x;i<=y;i++)
+			if(next[i]>y)
+				res-=next[i]-i;
+		return res;
+	}
+	for(int i=x;i<=en[bel[x]];i++)
+		if(next[i]>y)
+			res-=next[i]-i;		
+	for(int i=st[bel[y]];i<=y;i++)
+		if(next[i]>y)
+			res-=next[i]-i;	
+	for(int i=bel[x]+1;i<bel[y];i++)
+		res-=S[i].tap(y+1);
+	return res;	
+}
+void update(int p,int v){
+	if(arr[p]==v)
+		return;			
+	S[bel[p]].upd(next[p],-(next[p]-p));
+	M.upd(p,-(next[p]-p));
+	s[arr[p]].erase(p);
+	if(next[p]<=n)
+		prev[next[p]]=prev[p];
+	if(prev[p]){
+		next[prev[p]]=next[p];
+		M.upd(prev[p],-(p-prev[p])+(next[p]-prev[p]));
+		S[bel[prev[p]]].upd(p,-(p-prev[p]));
+		S[bel[prev[p]]].upd(next[p],next[p]-prev[p]);
+	}arr[p]=v;s[v].insert(p);
+	if(s[v].size()==1){
+		next[p]=n+1;prev[p]=0;
+		M.upd(p,next[p]-p);
+		S[bel[p]].upd(next[p],next[p]-p);
+		return;
+	}
+	__typeof((s[v]).begin())it=s[v].upper_bound(p);
+	int left=0,right=n+1;
+	if(it!=s[v].end())
+		right=*it;
+	it--;
+	if(it!=s[v].begin()){
+		it--;	
+		left=*it;
+	}
+	next[p]=right;prev[p]=left;
+	if(right<=n)
+		prev[next[p]]=p;
+	if(left){
+		next[prev[p]]=p;
+		M.upd(prev[p],-(next[p]-prev[p])+(p-prev[p]));
+		S[bel[prev[p]]].upd(next[p],-(next[p]-prev[p]));
+		S[bel[prev[p]]].upd(p,p-prev[p]);
+	}	
+	M.upd(p,next[p]-p);
+	S[bel[p]].upd(next[p],next[p]-p);	
+	//~ for(int i=1;i<=n;i++)
+		//~ cout<<prev[i]<<" ";
+	//~ cout<<endl;	
+	//~ for(int i=1;i<=n;i++)
+		//~ cout<<next[i]<<" ";
+	//~ cout<<endl;	
+	//~ for(int i=1;i<=4;i++){
+		//~ tr(it,s[i])
+			//~ cout<<*it<<" ";
+		//~ cout<<endl;	
+	//~ }
+}
+int main(){
+    //~ freopen("file.in", "r", stdin);
+    int q;
+    scanf("%d%d",&n,&q);
+    for(int i=1;i<=n;i++){
+		scanf("%d",arr+i);
+		last[i]=n+1;
+	}		
+	for(int i=n;i>=1;i--){
+		next[i]=last[arr[i]];
+		M.upd(i,last[arr[i]]-i);
+		last[arr[i]]=i;		
+	}int now=1;st[1]=1;
+	for(int i=1;i<=n;i++)
+		last[i]=0;
+	for(int i=1;i<=n;i++){
+		bel[i]=now;
+		prev[i]=last[arr[i]];
+		last[arr[i]]=i;
+		if(i%BLOK==0){
+			en[now]=i;
+			if(i<n)
+				st[++now]=i+1;
+		}
+	}
+	if(n%BLOK!=0)
+		en[now]=n;
+	for(int i=1;i<=n;i++){
+		S[bel[i]].upd(next[i],next[i]-i);
+		s[arr[i]].insert(i);
+	}	
+	while(q--){
+		int type,l,r;
+		scanf("%d%d%d",&type,&l,&r);
+		if(type==1)
+			update(l,r);
+		else
+			printf("%lld\n",query(l,r));
+	}
+	return 0;
+}

@@ -1,0 +1,139 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct TreeNode {
+  int f[3][2][2][2][2];
+  bool has[3];
+  
+  void clear() {
+    memset(f, 0, sizeof f);
+    memset(has, 0, sizeof has);
+  }
+  
+  TreeNode() {
+    clear();
+  }
+  
+  void set(int c) {
+    clear();
+    f[c][0][0][0][0] = 1;
+    has[c] = 1;
+  }
+  
+  int count() {
+    int r = 0;
+    for (int i = 0; i < 3; ++i) {
+      for (int x1 = 0; x1 < 2; ++x1) {
+        for (int x2 = 0; x2 < 2; ++x2) {
+          if (x1 && !x2) continue;
+          for (int y1 = 0; y1 < 2; ++y1) {
+            for (int y2 = 0; y2 < 2; ++y2) {
+              if (y1 && !y2) continue;
+              r += f[i][x1][x2][y1][y2];
+            }
+          }
+        }
+      }
+    }
+    return r;
+  }
+};
+
+TreeNode merge(const TreeNode& l, const TreeNode& r) {
+  TreeNode rs;
+  
+  for (int i = 0; i < 3; ++i) {
+    rs.has[i] = l.has[i] | r.has[i];
+    int nxt = (i + 1) % 3;
+    int prv = (i + 2) % 3;
+    for (int x1 = 0; x1 < 2; ++x1)
+      for (int x2 = 0; x2 < 2; ++x2)
+        for (int y1 = 0; y1 < 2; ++y1)
+          for (int y2 = 0; y2 < 2; ++y2)
+            rs.f[i][x1][x2][y1|r.has[nxt]][y2|r.has[prv]] += l.f[i][x1][x2][y1][y2],
+            rs.f[i][x1|l.has[nxt]][x2|l.has[prv]][y1][y2] += r.f[i][x1][x2][y1][y2];
+  }
+  
+  return rs;
+};
+
+struct SegTree {
+  int n;
+  vector<TreeNode> t;
+  
+  SegTree(const vector<int>& a): n(a.size()), t(4 * a.size()) {
+    build(1, 0, n - 1, a);
+  }
+  
+  int count() {
+    return t[1].count();
+  }
+  
+  void build(int v, int tl, int tr, const vector<int>& a) {
+    if (tl == tr) {
+      t[v].set(a[tl]);
+      return;
+    }
+    int tm = (tl + tr) / 2;
+    build(2 * v, tl, tm, a);
+    build(2 * v + 1, tm + 1, tr, a);
+    t[v] = merge(t[2 * v], t[2 * v + 1]);
+  }
+  
+  void update(int pos, int val) {
+    update(1, 0, n - 1, pos, val);
+  }
+  
+  void update(int v, int tl, int tr, int pos, int val) {
+    if (tl == tr) {
+      t[v].set(val);
+      return;
+    }
+    int tm = (tl + tr) / 2;
+    if (pos <= tm)
+      update(2 * v, tl, tm, pos, val);
+    else
+      update(2 * v + 1, tm + 1, tr, pos, val);
+    t[v] = merge(t[2 * v], t[2 * v + 1]);
+  }
+};
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+  
+  int n, q;
+  cin >> n >> q;
+  
+  auto conv = [](char c) {
+    switch (c) {
+      case 'R': return 0;
+      case 'P': return 1;
+      case 'S': return 2;
+    }
+    // Unreachable
+    return -1;
+  };
+  
+  vector<int> init_vals(n);
+  for (int i = 0; i < n; ++i) {
+    char c;
+    cin >> c;
+    init_vals[i] = conv(c);
+  }
+  
+  SegTree tree(init_vals);
+  cout << tree.count() << '\n';
+  
+  for (int i = 0; i < q; ++i) {
+    int pos;
+    char c;
+    cin >> pos >> c;
+    --pos;
+    c = conv(c);
+    tree.update(pos, c);
+    cout << tree.count() << '\n';
+  }
+  
+}
+  

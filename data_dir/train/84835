@@ -1,0 +1,75 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define ld long double
+#define oo 666666666
+
+vector<vector<ll>> mul(vector<vector<ll>>A, vector<vector<ll>>B, ll M)
+{
+    int n = A.size();
+    vector<vector<ll>>C(n,vector<ll>(n));
+
+    for(int i=0; i<n; i++)
+    for(int j=0; j<n; j++)
+    for(int k=0; k<n; k++)
+    C[i][j] = (C[i][j] + A[i][k]*B[k][j])%M;
+
+    return C;
+}
+
+vector<vector<ll>>powm(vector<vector<ll>>A, ll n, ll M)
+{
+    if(n==1)return A;
+    if(n&1)return mul(A,powm(A,n-1,M),M);
+    return powm(mul(A,A,M),n/2,M);
+}
+
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    ll n,m,M=1e9+7;
+    cin>>n>>m;
+    map<ll,vector<ll>>mp; //maps coordinate to event >0 events - obstacle start, others - end
+
+    ll x = 1;
+
+    for(int i=0; i<n; i++)
+    {
+        ll row, L,R;
+        cin>>row>>L>>R;
+        mp[L].push_back(row);
+        mp[R+1].push_back(-row);
+    }
+
+    vector<vector<ll>>O = {{1,1,0},{1,1,1},{0,1,1}};//original matrix
+    vector<vector<ll>>B = {{0,0,0},{0,0,0},{0,0,0}};//blocked matrix
+    vector<ll>c = {0,1,0};
+    vector<ll>block(3); //blocking status
+    auto A = O;
+
+    for(auto& e : mp)
+    {
+        ll pos = e.first;
+        if(x < pos-1) //if we are not at pos-1 yet
+        {
+            auto MM = powm(A,pos-1-x,M);
+            vector<ll>c2(3);
+            for(int i=0; i<3; i++)
+                c2[i] = (c[0]*MM[i][0]%M + c[1]*MM[i][1]%M + c[2]*MM[i][2]%M)%M;
+            c=c2;
+            x=pos-1;
+        }
+
+        for(auto&v : e.second)
+        if(v > 0)
+            A[v-1]=B[v-1],block[v-1]++;
+        else if(--block[-v-1]==0)
+            A[-v-1]=O[-v-1];
+    }
+
+    //now all obstacles should be over and all thats left is to move to last column
+    auto MM = powm(A,m-x,M);
+    ll ats = (c[0]*MM[1][0]%M + c[1]*MM[1][1]%M + c[2]*MM[1][2]%M)%M;
+    cout<<ats<<"\n";
+}

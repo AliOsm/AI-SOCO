@@ -1,0 +1,133 @@
+#pragma comment(linker, "/STACK:134217728")
+
+#include <cstdio>
+#include <iostream>
+#include <map>
+#include <set>
+#include <vector>
+#include <queue>
+#include <string>
+#include <algorithm>
+#include <numeric>
+#include <functional>
+#include <cmath>
+#include <complex>
+#include <memory.h>
+#include <time.h>
+
+using namespace std;
+
+typedef long long LL;
+
+const int b1 = 2999;
+const int b2 = 3137;
+const int MOD = (int)1e9 + 7;
+const int mod = 1 << 18;
+
+struct node
+{
+	LL hash;
+	vector<int> pos;
+	int next;
+};
+
+int First[mod];
+node HT[mod];
+
+int sz = 0;
+
+int Find(LL hash)
+{
+	int h = hash & (mod - 1);
+	for(int i = First[h]; i != -1; i = HT[i].next)
+		if (HT[i].hash == hash)
+			return i;
+	return -1;
+}
+
+void Add(LL hash)
+{
+	int h = hash & (mod - 1);
+	HT[sz].hash = hash;
+	HT[sz].next = First[h];
+	First[h] = sz++;
+}
+
+LL H1[mod], H2[mod];
+LL X1[mod], X2[mod];
+
+int n, q;
+
+char buf[mod];
+string s[mod];
+LL Hash[mod];
+
+int main()
+{
+	scanf("%d%d", &n, &q);
+
+	set<int> S;
+	for(int i = 0; i < n; ++i)
+	{
+		scanf("%s", buf);
+		s[i] = string(buf);
+		S.insert((int)s[i].size());
+	}
+	vector<int> len(S.begin(), S.end());
+
+	memset(First, -1, sizeof(First));
+
+	for(int i = 0; i < n; ++i)
+	{
+		LL h1 = 0, h2 = 0;
+		for(int j = 0; j < s[i].size(); ++j)
+		{
+			h1 = (h1 * b1 + s[i][j]) % MOD;
+			h2 = (h2 * b2 + s[i][j]) % MOD;
+		}
+		Hash[i] = h1 * MOD + h2;
+		if (Find(Hash[i]) == -1)
+			Add(Hash[i]);
+	}
+
+	X1[0] = X2[0] = 1;
+	for(int i = 1; i < mod; ++i)
+	{
+		X1[i] = X1[i - 1] * b1 % MOD;
+		X2[i] = X2[i - 1] * b2 % MOD;
+	}
+
+	for(int i = 0; i < n; ++i)
+	{
+		for(int j = 0; j < s[i].size(); ++j)
+		{
+			H1[j + 1] = (H1[j] * b1 + s[i][j]) % MOD;
+			H2[j + 1] = (H2[j] * b2 + s[i][j]) % MOD;
+		}
+		for(int j = 0; j < len.size(); ++j)
+		{
+			for(int k = 0; k <= (int)s[i].size() - len[j]; ++k)
+			{
+				LL h1 = (H1[k + len[j]] - H1[k] * X1[len[j]]) % MOD;
+				if (h1 < 0)
+					h1 += MOD;
+				LL h2 = (H2[k + len[j]] - H2[k] * X2[len[j]]) % MOD;
+				if (h2 < 0)
+					h2 += MOD;
+				int pos = Find(h1 * MOD + h2);
+				if (pos != -1)
+					HT[pos].pos.push_back(i);
+			}
+		}
+	}
+
+	while (q --> 0)
+	{
+		int L, R, k;
+		scanf("%d%d%d", &L, &R, &k);
+		L--, R--, k--;
+		int pos = Find(Hash[k]);
+		printf("%d\n", upper_bound(HT[pos].pos.begin(), HT[pos].pos.end(), R) - lower_bound(HT[pos].pos.begin(), HT[pos].pos.end(), L));
+	}
+	return 0;
+}

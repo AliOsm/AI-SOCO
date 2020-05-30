@@ -1,0 +1,129 @@
+// I can't tell you what it really is,
+// I can only tell you what it feels like.
+#include "bits/stdc++.h"
+using namespace std;
+
+#define F first
+#define S second
+
+const int N = 5005;
+const int mx = 15;
+short idx[N][N];
+int ans[N], gl;
+
+class LCA {
+  vector <short> g[N];
+  short up[N][mx], in[N];
+  short t = 0, out[N], n;
+public:
+  LCA() {
+    for (int i = 0; i < N; ++i) {
+      in[i] = out[i] = 0;
+    }
+  }
+  void dfs(int u, int p) {
+    in[u] = ++t;
+    up[u][0] = p;
+    for (int i = 1; i < mx; ++i) {
+      up[u][i] = up[up[u][i-1]][i-1];
+      // f(u, i) = f(f(u, i-1), i-1); (Recurrence Relation)
+    }
+    for (auto i : g[u]) {
+      if (i != p) {
+        dfs(i, u);
+      }
+    }
+    out[u] = ++t;
+  }
+  // Check if u is ancestor of v or not
+  inline bool ancestor(int u, int v) {
+    return (in[u] <= in[v] && out[u] >= out[v]);
+  }
+  inline int lca(int u, int v) {
+    if (ancestor(u, v)) {
+      return u; // If u is ancestor of v
+    } else if(ancestor(v, u)) {
+      return v; // If v is ancestor of u
+    } else {     
+      for (int i = mx-1; i >= 0; --i) {
+        if (!ancestor(up[u][i], v)) {
+          u = up[u][i];
+        }
+      }
+    }
+    return up[u][0];
+  }
+  void inp() {
+    int l, r;
+    cin >> n;gl = n;
+    for (int i = 1; i < n; ++i) {
+      cin >> l >> r;
+      g[l].push_back(r);
+      g[r].push_back(l);
+      idx[l][r] = idx[r][l] = i;
+    }
+    dfs(1, 1);      
+  }
+  auto get(int u, int v) {
+    int lc = lca(u, v), x;
+    vector<int> l, ans;    
+    x = u;
+    while (true) {
+      l.push_back(x);
+      if (x == lc || !x) break;
+      x = up[x][0];
+    }
+    for (int i = 1; i < l.size(); ++i) {
+      ans.push_back(idx[l[i-1]][l[i]]);
+    }
+    l.clear();
+    x = v;
+    while (true) {
+      l.push_back(x);
+      if (x == lc || !x) break;
+      x = up[x][0];
+    }
+    for (int i = 1; i < l.size(); ++i) {
+      ans.push_back(idx[l[i-1]][l[i]]);
+    }
+    return ans;
+  } 
+};
+
+signed main() {
+  ios::sync_with_stdio(false);
+  cin.tie(0);
+  int l, r, Q;
+  LCA ins;
+  ins.inp();
+  cin >> Q;
+  vector<pair<int,pair<int,int>>> query(Q);
+  for (auto &to: query) {
+    cin >> l >> r >> to.F;
+    to.S = minmax(l,r);
+  }
+  sort(begin(query), end(query));
+  for (auto i: query) {
+    auto it = ins.get(i.S.F, i.S.S);
+    for (int val: it) {
+      ans[val] = max(ans[val], i.first);
+    }
+  }
+  for (int i = 1; i < N; ++i) {
+    if (!ans[i]) ans[i] = 1e6;
+  }
+  int id = 0;
+  for (auto i: query) {
+    auto it = ins.get(i.S.F, i.S.S);
+    int tmp = 1e6+1;
+    for (int val: it) tmp = min(ans[val], tmp);
+    if (tmp != i.first) {
+      return cout << -1,0;
+    }
+  }
+  for (int i = 1; i < gl; ++i) {
+    cout << ans[i] << ' ';
+  }
+}
+// 1). Try forming/rearranging the equations if any
+// 2). If problem asks to count, try counting in reverse(it can be easier sometimes)

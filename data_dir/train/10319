@@ -1,0 +1,222 @@
+#pragma comment(linker, "/stack:20000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,sse3,sse4,popcnt,abm,mmx")
+
+#include <bits/stdc++.h>
+
+#define f first
+#define s second
+
+#define pb push_back
+#define pp pop_back
+#define mp make_pair
+
+#define sz(x) (int)x.size()
+#define sqr(x) ((x) * 1ll * (x))
+#define all(x) x.begin(), x.end()
+
+#define rep(i, l, r) for (int i = l; i <= r; i++)
+#define per(i, l, r) for (int i = l; i >= r; i--)
+
+#define dbg(x) cerr << (#x) << " --> " << (x) << nl;
+#define Kazakhstan ios_base :: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+
+#define nl '\n'
+#define ioi exit(0);
+
+#define Toktama ""
+
+using namespace std;
+
+#ifdef superset
+  #include <ext/pb_ds/assoc_container.hpp>
+  #include <ext/pb_ds/tree_policy.hpp>
+  #include <ext/pb_ds/detail/standard_policies.hpp>
+
+  using namespace __gnu_pbds;
+  typedef tree < pair <int, int>, null_type, less < pair <int, int> >, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+#endif
+
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+
+const int N = 1e5 + 7, inf = 1e9 + 7, mod = 1e9 + 7;
+const ll linf = (ll)1e18 + 7;
+const int dx[] = {-1, 0, 1, 0, 1, -1, -1, 1}, dy[] = {0, 1, 0, -1, 1, -1, 1, -1};
+
+
+int get_int() {
+  char x = getchar();
+  bool mns = 0;
+  while (!isdigit(x)) mns |= x == '-', x = getchar();
+  int res = 0;
+  while (isdigit(x)) res = res * 10 + x - '0', x = getchar();
+  if (mns) res = -res;
+  return res;
+}
+void add(int &x, int y) {
+  x += y;
+  if (x >= mod) x -= mod;
+  if (x < 0) x += mod;
+}
+int mult(int x, int y) {
+  return x * 1ll * y % mod;
+}
+int sum(int x, int y) {
+  add(x, y);
+  return x;
+}
+
+mt19937 rnd(time(0));
+
+int n, m;
+int a[N];
+
+int pr[N], nx[N], bfr[N];
+
+struct node {
+  node *l, *r;
+  int x, y, val;
+  ll sum;
+  inline node(int prv = 0, int id = 0) {
+    l = r = 0;
+    sum = val = id;
+    x = prv;
+    y = rand() * rand();
+  }
+};
+struct treap {
+  node *t;
+  inline ll gs(node *&v) {
+    return v ? v -> sum : 0;
+  }
+  inline void rc(node *&v) {
+    if (v) v -> sum = gs(v -> l) + gs(v -> r) + v -> val;
+  }
+  inline void split(node *t, node *&l, node *&r, int x) {
+    if (!t) {
+      l = r = 0;
+      return;
+    }
+    if (t -> x <= x) {
+      l = t;
+      split(t -> r, l -> r, r, x);
+    }
+    else {
+      r = t;
+      split(t -> l, l, r -> l, x);
+    }
+    rc(t);
+  }
+  inline node *merge(node *l, node *r) {
+    if (!l || !r) return l ? l : r;
+    if (l -> y >= r -> y) {
+      l -> r = merge(l -> r, r);
+      rc(l);
+      return l;
+    }
+    else {
+      r -> l = merge(l, r -> l);
+      rc(r);
+      return r;
+    }
+  }
+  inline void insert(int prv, int id) {
+    node *L, *R;
+    split(t, L, R, prv);
+    L = merge(L, new node(prv, id));
+    t = merge(L, R);
+  }
+  inline void erase(int prv) {
+    node *L, *R, *M;
+    split(t, L, R, prv);
+    split(L, L, M, prv - 1);
+    t = merge(L, R);
+  }
+  inline ll get(int x) {
+    node *L, *R;
+    split(t, L, R, x - 1);
+    ll res = gs(R);
+    t = merge(L, R);
+    return res;
+  }
+} f[N];
+
+inline void add(int p, int prv, int id) {
+  for (; p <= n; p |= p + 1)
+    f[p].insert(prv, id);
+}
+inline void del(int p, int prv) {
+  for (; p <= n; p |= p + 1)
+    f[p].erase(prv);
+}
+inline ll get(int p, int L) {
+  ll res = 0;
+  for (; p >= 1; p = (p & (p + 1)) - 1)
+    res += f[p].get(L);
+  return res;
+}
+
+set <int> pos[N];
+void solve() {
+  n = get_int(), m = get_int();
+  rep(i, 1, n) {
+    a[i] = get_int();
+    pos[a[i]].insert(i);
+    pr[i] = bfr[a[i]];
+    bfr[a[i]] = i;
+    if (pr[i]) add(i, pr[i], i - pr[i]);
+  }
+  rep(i, 1, n)
+    bfr[i] = 0;
+  per(i, n, 1) {
+    nx[i] = bfr[a[i]];
+    bfr[a[i]] = i;
+  }
+  rep(i, 1, m) {
+    int type = get_int(), l = get_int(), r = get_int();
+    if (type == 1) {
+      if (a[l] == r) continue;
+      pos[a[l]].erase(l);
+      a[l] = r;
+      pos[a[l]].insert(l);
+      if (pr[l]) {
+        del(l, pr[l]);
+        nx[pr[l]] = nx[l];
+      }
+      if (nx[l]) {
+        del(nx[l], l);
+        pr[nx[l]] = pr[l];
+        if (pr[l]) add(nx[l], pr[l], nx[l] - pr[l]);
+      }
+      auto it = pos[r].upper_bound(l);
+      if (it != pos[r].end()) {
+        nx[l] = *it;
+        if (pr[nx[l]]) del(nx[l], pr[nx[l]]);
+        pr[nx[l]] = l;
+        add(nx[l], pr[nx[l]], nx[l] - l);
+      }
+      else nx[l] = 0;
+      it = pos[r].lower_bound(l);
+      if (it == pos[r].begin()) pr[l] = 0;
+      else {
+        pr[l] = *--it;
+        add(l, pr[l], l - pr[l]);
+        nx[pr[l]] = l;
+      }
+    }
+    else printf ("%I64d\n", get(r, l));
+  }
+}
+int main() {
+  #ifndef Toktama
+    freopen (".in", "r", stdin);
+    freopen ("C.out", "w", stdout);
+  #endif
+  srand(time(0));
+  int t = 1;
+  while (t--)
+    solve();
+  ioi
+}

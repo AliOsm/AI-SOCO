@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define pb push_back
+#define F first
+#define S second
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define TIME 1.0*clock()/CLOCKS_PER_SEC
+#define pii pair < int , int >
+#define Endl '\n'
+#define endl '\n'
+
+#pragma GCC optimize("Ofast")
+
+using namespace std;
+using namespace __gnu_pbds;
+
+template <typename T> using ordered_set = tree <T,null_type,less<T>,rb_tree_tag,tree_order_statistics_node_update>;
+
+mt19937 gen(chrono::system_clock::now().time_since_epoch().count());
+
+const ll mod = 1e9 + 7;
+const int FFTM = 998244353;
+
+const int SX[4] = {0 , 1 ,  - 1 , 0};
+const int SY[4] = {1 , 0 , 0 ,  - 1};
+const int rx[8] = {1,  - 1, 0, 0, 1, 1, -1, -1};
+const int ry[8] = {0, 0, 1,  - 1, 1,  - 1, 1, -1};
+const int kx[8] = {1, 1, -1, -1, 2, 2, -2, -2};
+const int ky[8] = {2, -2, 2, -2, 1, -1, 1, -1};
+
+typedef cc_hash_table< int, int, hash<int>, equal_to<int>, direct_mask_range_hashing<int>, hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<true>, true>> ht;
+
+int n, m;
+vector < int > a;
+
+class DO{
+private:
+
+    vector < int > t;
+    vector < int > lazy;
+
+    void push(int v){
+        if (lazy[v] != 0){
+            t[2 * v + 1] += lazy[v];
+            t[2 * v + 2] += lazy[v];
+            lazy[2 * v + 1] += lazy[v];
+            lazy[2 * v + 2] += lazy[v];
+            lazy[v] = 0;
+        }
+    }
+public:
+
+    void init(int n){
+        t.resize(4 * n);
+        lazy.resize(4 * n);
+    }
+
+
+    void update(int v, int vl, int vr, int l, int r, int val){
+        if (vl > r || vr < l)return;
+        if (vl >= l && vr <= r){
+            t[v] += val;
+            lazy[v] += val;
+            return;
+        }
+        push(v);
+        int mid = vl + ((vr - vl) >> 1);
+        update(2 * v + 1, vl, mid, l, r, val);
+        update(2 * v + 2, mid + 1, vr, l, r, val);
+    }
+
+    int get_pos(int v, int vl, int vr, int pos){
+        if (vl == vr) return t[v];
+        int mid = vl + ((vr - vl) >> 1);
+        push(v);
+        if (pos <= mid)return get_pos(2 * v + 1, vl, mid, pos);
+        else return get_pos(2 * v + 2, mid + 1, vr, pos);
+    }
+
+};
+
+vector < vector < int > > G;
+
+vector < int > tin, tout;
+
+vector < int > deep;
+
+int timer = -1;
+
+DO A_0, A_1;
+
+void dfs(int v, int pr = -1){
+    timer++;
+    tin[v] = timer;
+    if (pr != -1)deep[v] = deep[pr] + 1;
+    if (deep[v] % 2 == 0)A_0.update(0, 0, n - 1, tin[v], tin[v], a[v]);
+    else A_1.update(0, 0, n - 1, tin[v], tin[v], a[v]);
+    for (auto to : G[v]){
+        if (to == pr)continue;
+        dfs(to, v);
+    }
+    tout[v] = timer;
+}
+
+int32_t main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+#ifdef LOCAL
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#else
+//    freopen("game.in", "r", stdin);
+//    freopen("game.out", "w", stdout);
+#endif
+    cin >> n >> m;
+    a.resize(n);
+    for (int i = 0;i < n; ++i)cin >> a[i];
+    G.resize(n);
+    tin.resize(n);
+    tout.resize(n);
+    deep.resize(n);
+    for (int i = 0;i < n - 1; ++i){
+        int x, y;
+        cin >> x >> y;
+        x--;
+        y--;
+        G[x].pb(y);
+        G[y].pb(x);
+    }
+    A_0.init(n);
+    A_1.init(n);
+    dfs(0);
+    for (int i = 0;i < m; ++i){
+        int tp;
+        cin >> tp;
+        if (tp == 1){
+            int x, val;
+            cin >> x >> val;
+            x--;
+            if (deep[x] % 2 == 0)A_0.update(0, 0, n - 1, tin[x], tout[x], val), A_1.update(0, 0, n - 1, tin[x], tout[x], -val);
+            else A_1.update(0, 0, n - 1, tin[x], tout[x], val), A_0.update(0, 0, n - 1, tin[x], tout[x], -val);
+        }else{
+            int x;
+            cin >> x;
+            x--;
+            if (deep[x] % 2 == 0)cout << A_0.get_pos(0, 0, n - 1, tin[x]) << endl;
+            else cout << A_1.get_pos(0, 0, n - 1, tin[x]) << endl;
+        }
+    }
+    return 0;
+}
+

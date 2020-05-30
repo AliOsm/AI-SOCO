@@ -1,0 +1,122 @@
+// In the name of Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+struct node{
+
+    bool endmark;
+    node * next[2];
+    int counter;
+
+    node(){
+
+        counter = 0;
+        endmark = false;
+        next[0] = NULL;
+        next[1] = NULL;
+    }
+}*root ;
+
+string make(ll x)
+{
+    string temp = "";
+
+    while(x){
+
+        temp+= (x%2)+'0';
+        x/=2;
+    }
+
+    while(temp.size()<32)temp+='0';
+
+    reverse(temp.begin() , temp.end());
+
+    return temp;
+}
+
+void ins(string str , int len)
+{
+
+    node *cur = root;
+    for(int i=0;i<len;i++){
+
+        int id = str[i] - '0';
+
+        if(cur->next[id]==NULL){
+
+            cur->next[id] = new node();
+        }
+
+        cur = cur->next[id];
+        cur->counter++;
+    }
+}
+
+void del(string str , int len)
+{
+    node *cur = root;
+
+    for(int i=0;i<len;i++){
+
+        int id = str[i] - '0';
+
+        cur = cur->next[id];
+        cur->counter--;
+    }
+}
+
+int Find(string str , int len)
+{
+    node *cur = root;
+    int ans = 0;
+
+    for(int i=0;i<len;i++){
+
+        int id = str[i]-'0';
+        ans*=2;
+
+        if(cur->next[id^1]==NULL||cur->next[id^1]->counter==0){
+
+            cur = cur->next[id];
+        }
+
+        else{
+
+            cur = cur->next[id^1];
+            ans+=1;
+        }
+    }
+
+    return ans;
+}
+
+int main(void)
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    root = new node();
+
+    ins(make(0) , 32);
+
+    int n;
+    cin >> n;
+
+    while(n--){
+
+        char x;
+        int y;
+
+        cin >> x >> y;
+
+        if(x=='+')ins(make(y) , 32);
+        else if(x=='-')del(make(y), 32);
+        else cout << Find(make(y) , 32) << endl;
+    }
+
+    return 0;
+}

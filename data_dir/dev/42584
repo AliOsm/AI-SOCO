@@ -1,0 +1,238 @@
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <utility>
+#include <stack>
+#include <queue>
+#include <set>
+#include <list>
+#include <bitset>
+
+using namespace std;
+
+#define fi first
+#define se second
+#define long long long
+typedef pair<int,int> ii;
+typedef pair<int,ii> iii;
+ii operator+ (ii a, ii b) { return {a.fi+b.fi,a.se+b.se}; }
+
+const int ROOT = 1;
+int n, m, S;
+int W[200003], C[200003];
+ii E[200003];
+vector<ii> vec[200003];
+vector<ii> ans;
+
+///////////////////////////////////////////////////////// MST
+priority_queue<ii, vector<ii>, greater<ii> > pq;
+int par[200003];
+int parent(int u) {return par[u] = (par[u] == u)? u : parent(par[u]); }
+int gab(int u, int v) {return par[parent(u)] = parent(v);}
+void MST()
+{
+	for(int i = 1; i <= n; i++) par[i] = i;
+	while(pq.size())
+	{
+		ii curr = pq.top(); pq.pop();
+		int idx = curr.se;
+		if(parent(E[idx].fi) != parent(E[idx].se))
+		{
+			vec[E[idx].fi].push_back({E[idx].se,idx});
+			vec[E[idx].se].push_back({E[idx].fi,idx});
+			gab(E[idx].fi, E[idx].se);
+			ans.push_back({idx,W[idx]});
+			// printf("%d\n", idx);
+		}
+	}
+}
+
+////////////////////////////////////////////////////////// LCA
+int sz1;
+int T1[800003][20];
+int path[800003], occ[800003];
+
+void epath(int u)
+{
+	occ[u] = ++sz1;
+	path[sz1] = u;
+ 	for(ii nxt : vec[u])
+	{
+		int v = nxt.fi;
+		if(!occ[v])
+		{
+			epath(v);
+			path[++sz1] = u;
+		}
+	}
+}
+
+void buildT1() 
+{
+	for(int i = 0; i <= 20; i++)
+		for(int j = 1; j+(1<<i)-1 <= sz1; j++)
+			T1[j][i] = (i == 0)? occ[path[j]] : min(T1[j][i-1], T1[j+(1<<(i-1))][i-1]);
+}
+
+int mn_occ(int kir, int kan)
+{
+	if(kir > kan) swap(kir,kan);
+	int x = (int)log2(kan-kir+1);
+	return min(T1[kir][x], T1[kan-(1<<x)+1][x]);
+}
+
+int LCA(int u, int v) { return path[mn_occ(occ[u],occ[v])]; }
+
+////////////////////////////////////////////////////////// HLD
+int sz2;
+int no[200003], head[200003], id[200003], dp[200003], lup[200003];
+ii T2[200003][20];
+ii chain[200003], arr[200003]; 
+
+void buildT2()
+{
+	for(int i = 0; i <= 18; i++)
+		for(int j = 1; j+(1<<i)-1 <= sz2; j++)
+			T2[j][i] = (i == 0)? chain[j] : max(T2[j][i-1],T2[j+(1<<(i-1))][i-1]);
+}
+
+ii RMQ(int kir, int kan)
+{
+	int x = (int)log2(kan-kir+1);
+	return max(T2[kir][x], T2[kan-(1<<x)+1][x]);
+}
+
+
+void count_subtree(int u)
+{
+	dp[u] = 1;
+	for(ii nxt : vec[u])
+	{
+		int v = nxt.fi;
+		int idx = nxt.se;
+		if(!dp[v])
+		{
+			arr[v] = {W[idx], idx};
+			count_subtree(v);
+			dp[u] += dp[v];
+		}
+	}
+}
+
+void HLD(int u, int H)
+{
+	++sz2;
+	head[u] = H;
+	id[u] = sz2;
+	no[sz2] = u;
+	chain[sz2] = arr[u];
+
+	int mx = 0, hev = 0;
+	for(ii nxt : vec[u])
+	{
+		int v = nxt.fi;
+		if(!id[v] && dp[v] > mx)
+		{
+			mx = dp[v];
+			hev = v;
+		}
+	}
+
+	if(hev) HLD(hev, H);
+	for(ii nxt : vec[u])
+	{
+		int v = nxt.fi;
+		if(!id[v] && v != hev)
+		{
+			lup[v] = u;
+			HLD(v,v);
+		}
+	}
+}
+
+ii  qtohead(int u, int H)
+{
+	ii mx = {0,0};
+	while(head[u] != head[H])
+	{
+		mx = max(mx,RMQ(id[head[u]], id[u]));
+		u = lup[head[u]];
+	}
+	if(u != H)
+		mx = max(mx,RMQ(id[H]+1, id[u]));
+	return mx;
+}
+ii query(int u, int v)
+{
+	return max(qtohead(u,LCA(u,v)), qtohead(v,LCA(u,v)));
+}
+
+
+int main()
+{
+	//ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+	// freopen("input.in", "r", stdin);
+
+	scanf("%d %d", &n, &m);
+	for(int i = 1; i <= m; i++) scanf("%d", &W[i]);
+	for(int i = 1; i <= m; i++) scanf("%d", &C[i]);
+	for(int i = 1; i <= m; i++)
+	{
+		scanf("%d %d", &E[i].fi, &E[i].se);
+		pq.push({W[i],i});
+	}
+	scanf("%d", &S);
+
+	MST();
+	epath(ROOT);
+	buildT1();
+	count_subtree(ROOT);
+	HLD(ROOT,ROOT);
+	buildT2();
+
+	int mn = 2e9, idx = 0, dis = 0;
+	for(int i = 1; i <= m; i++)
+	{
+		int u = E[i].fi, v = E[i].se;
+		ii q = query(u,v);
+		if(mn > (W[i]-S/C[i])-q.fi)
+		{
+			mn = (W[i]-S/C[i])-q.fi;
+			dis = q.se;
+			idx = i;
+		}
+	}
+	// printf("%d %d %d\n", idx, dis, mn);
+
+	long res = W[idx]-S/C[idx];
+	for(auto i : ans)
+	{
+		if(i.fi == dis) continue;
+		res += i.se;
+	}
+	printf("%lld\n", res);
+	for(auto i : ans)
+	{
+		if(i.fi == dis) continue;
+		printf("%d %d\n", i.fi, i.se);
+	}
+	printf("%d %d\n", idx, W[idx]-S/C[idx]);
+
+	// for(int i = 1; i <= n; i++) printf("%d %d %d %d\n", i, no[i], chain[i].fi, chain[i].se);
+	// for(int i = 1; i <= n; i++) printf("%d ", no[i]); printf("\n");
+	// for(int i = 1; i <= n; i++) printf("%d ", head[no[i]]); printf("\n");
+}
+
+
+
+
+
+
+
+
+
+

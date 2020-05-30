@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+struct DoubleHash
+{
+    int Seed1 = 953, Seed2 = 1013;
+    int Mod1 = 998634293, Mod2 = 986464091;
+
+    vector <int> Power1, Power2;
+    vector <int> Prefix1, Prefix2;
+
+    DoubleHash(string x)
+	{
+	    Power1.assign(x.size(), 0);
+	    Power2.assign(x.size(), 0);
+	    Prefix1.assign(x.size(), 0);
+	    Prefix2.assign(x.size(), 0);
+		Build(x);
+	}
+
+	void Build(string x)
+	{
+		Power1[0] = 1;
+		Power2[0] = 1;
+		Prefix1[0] = x[0];
+		Prefix2[0] = x[0];
+
+		for(int i = 1; i < Power1.size(); i++)  Power1[i] = (long long) Power1[i - 1] * Seed1 % Mod1;
+		for(int i = 1; i < Power2.size(); i++)  Power2[i] = (long long) Power2[i - 1] * Seed2 % Mod2;
+        for(int i = 1; i < Prefix1.size(); i++) Prefix1[i] = (x[i] + (long long) Prefix1[i - 1] * Seed1) % Mod1;
+        for(int i = 1; i < Prefix2.size(); i++) Prefix2[i] = (x[i] + (long long) Prefix2[i - 1] * Seed2) % Mod2;
+	}
+
+    /// i, j inclusive
+	pair <int,int> Get(int i, int j)
+	{
+	    if(i > j)   return make_pair(0, 0);
+
+		int Res1 = Prefix1[j];
+		if(i)   Res1 -= (long long) Prefix1[i - 1] * Power1[j - i + 1] % Mod1;
+		if(Res1 < 0) Res1 += Mod1;
+
+		int Res2 = Prefix2[j];
+		if(i)   Res2 -= (long long) Prefix2[i - 1] * Power2[j - i + 1] % Mod2;
+		if(Res2 < 0) Res2 += Mod2;
+
+		return {Res1, Res2};
+	}
+
+	pair <int,int> Get(int i1, int j1, int i2, int j2)
+	{
+	    pair <int,int> Res1 = Get(i1, j1);
+	    pair <int,int> Res2 = Get(i2, j2);
+
+	    int L = j2 - i2 + 1;
+
+	    Res1.first = (long long) Res1.first * Power1[L] % Mod1;
+	    Res1.second = (long long) Res1.second * Power2[L] % Mod2;
+
+	    pair <int,int> Res = make_pair(Res1.first + Res2.first, Res1.second + Res2.second);
+
+	    if(Res.first >= Mod1)   Res.first -= Mod1;
+	    if(Res.second >= Mod2)  Res.second -= Mod2;
+
+	    return Res;
+	}
+};
+
+const int N = 5050;
+
+char Buffer[N];
+
+string Read()
+{
+    scanf("%s", Buffer);
+    return Buffer;
+}
+
+int main()
+{
+    int T;  cin >> T;
+
+    while(T--)
+    {
+        string s = Read();
+        string t = s;
+
+        reverse(t.begin(), t.end());
+
+        int n = s.size();
+        DoubleHash Hs(s);
+        DoubleHash Ht(t);
+
+        int Max = 0;
+        int Pref = 0;
+        int Suff = 0;
+
+        for(int i = 0; i <= n; i++)
+        {
+            for(int j = 0; i + j <= n; j++)
+            {
+                if(Hs.Get(0, i - 1, n - j, n - 1) == Ht.Get(0, j - 1, n - i, n - 1))
+                {
+                    if(Max < i + j)
+                    {
+                        Max = i + j;
+                        Pref = i;
+                        Suff = j;
+                    }
+                }
+            }
+        }
+
+        string Ans = "";
+
+        if(Pref)    Ans += s.substr(0, Pref);
+        if(Suff)    Ans += s.substr(n - Suff, Suff);
+
+        puts(Ans.c_str());
+    }
+}

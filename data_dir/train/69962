@@ -1,0 +1,103 @@
+#include <iostream>
+#include <string.h>
+#include <stdio.h>
+#include <algorithm>
+#include <queue>
+#include <set>
+#include <vector>
+#include <math.h>
+
+using namespace std;
+
+const int N = 510;
+const int inf = 0x3f3f3f3f;
+const double eps = 1e-6;
+
+int n, x;
+int dis[N][N];
+double A[N][N];
+
+void Print(int n, int m, double A[N][N]){
+	cout << n << " " << m << endl;
+	for(int i = 0; i <= m; i++, cout << endl)
+		for(int j = 0; j <= n; j++)
+			cout << A[i][j] << " ";
+	cout << "--------------------------------------------------\n";
+}
+
+void PIVOT(int n, int m, double A[N][N], int a, int b){
+	//cout << "a = " << a << " b = " << b << endl;
+	//Print(n, m, A);
+	for(int i = 0; i <= m; i++){
+		if(i == a) continue;
+		for(int j = 0; j <= n; j++)
+			if(j != b) A[i][j] -= A[a][j] * A[i][b] / A[a][b];
+	}
+	for(int i = 0; i <= n; i++)
+		if(i != b) A[a][i] /= -A[a][b];
+	for(int i = 0; i <= m; i++)
+		if(i != a) A[i][b] /= A[a][b];
+	A[a][b] = 1.0 / A[a][b];
+	//Print(n, m, A);
+}
+
+double Simplex(int n, int m, double A[N][N]){
+	while(1){
+		int a = 1, b = 1;
+		for(int i = 1; i <= m; i++)
+			if(A[i][0] < A[a][0]) a = i;
+		if(A[a][0] >= 0) break;
+		for(int i = 1; i <= n; i++)
+			if(A[a][i] > A[a][b]) b = i;
+		if(A[a][b] <= 0) return 1e100;
+		PIVOT(n, m, A, a, b);
+	}
+	//cout << "TTT" << endl;
+	while(1){
+		int a = 1, b = 1;
+		for(int i = 1; i <= n; i++)
+			if(A[0][i] < A[0][b]) b = i;
+		if(A[0][b] >= 0) break;
+		for(int i = 1; i <= m; i++)
+			if(A[i][b] < -eps && (A[a][b] >= 0 || A[i][0] / A[i][b] > A[a][0] / A[a][b]))
+				a = i;
+		//cout << "ab " << a << " " << b << " " << A[a][b] << endl;
+		if(A[a][b] >= 0) return -1e100;
+		PIVOT(n, m, A, a, b);
+	}
+	return A[0][0];
+}
+
+int main(){
+	scanf("%d%d", &n, &x);
+	int s = 0;
+	for(int i = 1; i <= n; i++){
+		scanf("%lf", &A[0][i]);
+		A[0][i] = 1 - A[0][i];
+		s += A[0][i] == 0;
+	}
+	memset(dis, 0x3f, sizeof(dis));
+	for(int i = 1; i < n; i++){
+		int x, y, z;
+		scanf("%d%d%d", &x, &y, &z);
+		dis[x][y] = dis[y][x] = z;
+	}
+	for(int i = 1; i <= n; i++)
+		dis[i][i] = 0;
+	for(int k = 1; k <= n; k++)
+		for(int i = 1; i <= n; i++)
+			for(int j = 1; j <= n; j++)
+				dis[i][j] = min(dis[i][j], dis[i][k] + dis[k][j]);
+	for(int i = 1; i <= n; i++){
+		A[i][0] = -1;
+		for(int j = 1; j <= n; j++)
+			A[i][j] = (dis[i][j] <= x);
+	}
+	A[n + 1][0] = s;
+	for(int i = 1; i <= n; i++)
+		A[n + 1][i] = -1;
+	double ans = Simplex(n, n + 1, A);
+	if(ans > 1000) puts("-1");
+	else printf("%d\n", int(ans + 0.5));
+	return 0;
+}

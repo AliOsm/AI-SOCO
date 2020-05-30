@@ -1,0 +1,80 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+#define INF 1.0E+12
+#define T (1<<18)
+
+int x[T+10],p[T+10];
+double sum[T+10];
+
+struct state {double small,big,diff;};
+state empty = {INF, -INF, 0.0};
+state tree[2*T];
+
+state merge(state &st1, state &st2){
+    state st = {min(st1.small,st2.small), max(st1.big,st2.big), max(max(st1.diff,st2.diff),st2.big-st1.small)};
+    return st;
+}
+
+void init(void){
+    int i;
+    
+    REP(i,T){
+        state st = {min(sum[i],sum[i+1]), max(sum[i],sum[i+1]), max(sum[i+1]-sum[i],0.0)};
+        tree[T+i] = st;
+    }
+    
+    for(i=T-1;i>=1;i--) tree[i] = merge(tree[2*i],tree[2*i+1]);
+}
+
+state query(int L, int R, int id = 1, int low = 0, int high = T){
+    if(R <= low || L >= high) return empty;
+    if(L <= low && R >= high) return tree[id];
+    
+    int mid = (high + low) / 2;
+    state st1 = query(L,R,2*id,low,mid);
+    state st2 = query(L,R,2*id+1,mid,high);
+    return merge(st1,st2);
+}
+
+int main(void){
+    int N,Q,C,i;
+    
+    scanf("%d%d%d",&N,&Q,&C); N--;
+    REP(i,N+1) scanf("%d",&x[i]);
+    REP(i,N) scanf("%d",&p[i]);
+    
+    REP(i,N) sum[i+1] = sum[i] + (x[i+1] - x[i]) / 2.0 - p[i] / 100.0 * C;
+    for(i=N+1;i<=T;i++) sum[i] = sum[N];
+    
+    init();
+    
+    double ans = 0.0;
+    REP(i,Q){
+        int a,b;
+        scanf("%d%d",&a,&b);
+        ans += query(a-1,b-1).diff;
+    }
+    
+    printf("%.9f\n",ans);
+    
+    return 0;
+}

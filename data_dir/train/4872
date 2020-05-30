@@ -1,0 +1,172 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+
+int const N = 40200;
+int const INF = 100 + (int) 1e9;
+
+struct edge {
+    int to, ind, col;
+    
+    edge() {}
+    
+    edge(int to, int ind, int col) :
+        to(to), ind(ind), col(col) {}
+};
+
+vector<edge> g[N];
+int fup[N], tin[N];
+
+void calc(int v) {
+    static int timer = 0;
+    tin[v] = ++timer;
+    fup[v] = timer;
+    for (auto e : g[v]) {
+        int to = e.to;
+        if (tin[to] == 0) {
+            calc(to);
+            fup[v] = min(fup[v], fup[to]);
+        } else {
+            fup[v] = min(fup[v], tin[to]);
+        }
+    }
+}
+
+int const M = 200200;
+
+bool used[N];
+int comp[M];
+int last;
+
+void dfs(int v, int prev) {
+    used[v] = true;
+    for (auto e : g[v]) {
+        int to = e.to;
+        int x = e.ind;
+        if (comp[x] == 0) {
+            if (!used[to] && (prev == -1 || fup[to] >= tin[v])) {
+                comp[x] = ++last;
+            } else {
+                comp[x] = comp[prev];
+            }
+        }
+        if (!used[to]) {
+            dfs(to, x);
+        }
+    }
+}
+
+struct f_edge {
+    int to, cap, flow;
+    
+    f_edge() {}
+    
+    f_edge(int to, int cap) :
+        to(to), cap(cap), flow(0) {}
+};
+
+vector<f_edge> all;
+vector<int> fg[N]; 
+
+void add_edge(int from, int to, int cap) {
+    fg[from].push_back(all.size());
+    all.emplace_back(to, cap);
+    fg[to].push_back(all.size());
+    all.emplace_back(from, 0);
+}
+
+int dist[N], index[N];
+
+int go(int v, int sink, int flow) {
+    if (!flow || v == sink) {
+        return flow;
+    }
+    for (int& i = index[v]; i < (int)fg[v].size(); ++i) {
+        int x = fg[v][i];
+        auto& e = all[x];
+        if (e.cap > e.flow && dist[v] + 1 == dist[e.to]) {
+            int cur_flow = go(e.to, sink, min(flow, e.cap - e.flow));
+            if (cur_flow > 0) {
+                e.flow += cur_flow;
+                all[x ^ 1].flow -= cur_flow;
+                return cur_flow;
+            }
+        }
+    }
+    return 0;
+}
+
+int max_flow(int source, int sink, int n) {
+    int ret = 0;
+    while (true) {
+        static int q[N];
+        int tail = 0;
+        q[tail++] = source;
+        fill(dist, dist + n, INF);
+        dist[source] = 0;
+        for (int head = 0; head < tail; ++head) {
+            int v = q[head];
+            for (auto x : fg[v]) {
+                auto e = all[x];
+                if (e.cap > e.flow && dist[e.to] == INF) {
+                    dist[e.to] = dist[v] + 1;
+                    q[tail++] = e.to;
+                }
+            }
+        }
+        if (dist[sink] == INF) {
+            break;
+        }
+        fill(index, index + n, 0);
+        while (int flow = go(source, sink, INF)) {
+            ret += flow;
+        }
+    }
+    return ret;
+}
+
+int main() {
+    int n, m;
+    scanf("%d%d", &n, &m);
+    static int color[N];
+    for (int i = 0; i < m; i++) {
+        int a, b, c;
+        scanf("%d%d%d", &a, &b, &c);
+        --a, --b, --c;
+        g[a].emplace_back(b, i, c);
+        g[b].emplace_back(a, i, c);
+        color[i] = c;
+    }
+    for (int i = 0; i < n; ++i) {
+        if (tin[i] == 0) {
+            calc(i);
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        if (!used[i]) {
+            dfs(i, -1);
+        }
+    }
+    int sz = 0;
+    int source = sz++;
+    int sink = sz++;
+    static int cnet[N];
+    static int bnet[N];
+    static int bcap[N];
+    for (int i = 0; i < m; ++i) {
+        cnet[i] = sz++;
+        ++bcap[comp[i]];
+    }
+    for (int i = 1; i <= last; ++i) {
+        bnet[i] = sz++;
+        add_edge(source, bnet[i], max(1, bcap[i] - 1));
+    }
+    for (int i = 0; i < m; ++i) {
+        add_edge(bnet[comp[i]], cnet[color[i]], 1);
+    }
+    for (int i = 0; i < m; ++i) {
+        add_edge(cnet[i], sink, 1);
+    }
+    printf("%d\n", max_flow(source, sink, sz));
+}

@@ -1,0 +1,100 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX_N = 200005;
+const int LOG_N = 18;
+
+int n, m, q;
+int p[MAX_N];
+int a[MAX_N];
+int posInP[MAX_N];
+vector<int> posInA[MAX_N];
+int fwd[LOG_N][MAX_N];
+int b[MAX_N];
+int t[4 * MAX_N];
+
+void build(int i, int l, int r)
+{
+	if (l == r)
+		t[i] = b[l];
+	else
+	{
+		int mid = (l + r) / 2;
+		build(2 * i + 1, l, mid);
+		build(2 * i + 2, mid + 1, r);
+		t[i] = min(t[2 * i + 1], t[2 * i + 2]);
+	}
+}
+
+int rmq(int i, int l, int r, int lx, int rx)
+{
+	if (l == lx && r == rx)
+		return t[i];
+	else
+	{
+		int mid = (l + r) / 2;
+		int res = m;
+		if (lx <= mid)
+			res = rmq(2 * i + 1, l, mid, lx, min(rx, mid));
+		if (rx > mid)
+			res = min(res, rmq(2 * i + 2, mid + 1, r, max(lx, mid + 1), rx));
+		return res;
+	}
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin >> n >> m >> q;
+	for (int i = 0; i < n; i++)
+	{
+		cin >> p[i];
+		p[i]--;
+		posInP[p[i]] = i;
+	}
+	for (int i = 0; i < m; i++)
+	{
+		cin >> a[i];
+		a[i]--;
+		posInA[a[i]].push_back(i);
+	}
+
+	for (int i = 0; i < m; i++)
+	{
+		int nextInP = (posInP[a[i]] == n - 1) ? p[0] : p[posInP[a[i]] + 1];
+		auto it = upper_bound(posInA[nextInP].begin(), posInA[nextInP].end(), i);
+		if (it == posInA[nextInP].end())
+			fwd[0][i] = m;
+		else
+			fwd[0][i] = *it;
+	}
+	for (int j = 0; j < LOG_N; j++)
+		fwd[j][m] = m;
+
+	for (int i = m - 1; i >= 0; i--)
+		for (int j = 1; j < LOG_N; j++)
+			fwd[j][i] = fwd[j - 1][fwd[j - 1][i]];
+
+	for (int i = 0; i < m; i++)
+	{
+		int v = i;
+		for (int j = LOG_N - 1; j >= 0; j--)
+			if ((n - 1) & (1 << j))
+				v = fwd[j][v];
+		b[i] = v;
+	}
+
+	build(0, 0, m - 1);
+	for (int i = 0; i < q; i++)
+	{
+		int l, r;
+		cin >> l >> r;
+		l--; r--;
+		int val = rmq(0, 0, m - 1, l, r);
+		cout << (val <= r ? '1' : '0');
+	}
+	cout << endl;
+}

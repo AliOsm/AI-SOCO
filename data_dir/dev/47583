@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int level[100005], lca[18][100005];
+
+vector<int> minn[18][100005];
+vector<int> X[100005], Y[100005], Z, W;
+
+void dfs(int i, int par, int lvl)
+{
+    level[i] = lvl;
+    lca[0][i] = par;
+
+    for(int j=0; j<X[i].size(); j++)
+    {
+        if(X[i][j]==par)
+            continue;
+
+        dfs(X[i][j], i, lvl+1);
+    }
+}
+
+vector<int> mergex(vector<int> A, vector<int> B)
+{
+    W.clear();
+    int ptr1 = 0, ptr2 = 0;
+
+    for(int i=0; i<10; i++)
+    {
+        if(ptr1==A.size() && ptr2==B.size())
+            break;
+
+        if(ptr1==A.size())
+            W.push_back(B[ptr2++]);
+        else if(ptr2==B.size())
+            W.push_back(A[ptr1++]);
+        else if(A[ptr1]<B[ptr2])
+            W.push_back(A[ptr1++]);
+        else if(A[ptr1]>B[ptr2])
+            W.push_back(B[ptr2++]);
+        else
+            W.push_back(A[ptr1++]), ptr2++;
+    }
+
+    return W;
+}
+
+void build(int N)
+{
+    for(int i=1; i<=N; i++)
+        minn[0][i] = mergex(Y[i], Y[ lca[0][i] ]);
+
+    for(int i=1; i<18; i++)
+        for(int j=1; j<=N; j++)
+        {
+            lca[i][j] = lca[i-1][ lca[i-1][j] ];
+            minn[i][j] = mergex(minn[i-1][j], minn[i-1][ lca[i-1][j] ]);
+        }
+}
+
+void solve(int u, int v, int a)
+{
+    if(u==v)
+    {
+        printf("%d ", min(a, (int)Y[u].size()));
+
+        for(int i=0; i<a && i<Y[u].size(); i++)
+            printf("%d ", Y[u][i]);
+        printf("\n");
+
+        return;
+    }
+
+    if(level[u]>level[v])
+        swap(u, v);
+
+    Z.clear();
+    int dist = level[v] - level[u];
+
+    for(int i=17; i>=0; i--)
+        if(dist&(1<<i))
+        {
+            Z = mergex(Z, minn[i][v]);
+            v = lca[i][v];
+        }
+
+    if(u==v)
+    {
+        printf("%d ", min(a, (int)Z.size()));
+
+        for(int i=0; i<a && i<Z.size(); i++)
+            printf("%d ", Z[i]);
+        printf("\n");
+
+        return;
+    }
+
+    for(int i=17; i>=0; i--)
+        if(lca[i][u]!=lca[i][v])
+        {
+            Z = mergex(Z, minn[i][u]);
+            u = lca[i][u];
+
+            Z = mergex(Z, minn[i][v]);
+            v = lca[i][v];
+        }
+
+    Z = mergex(Z, minn[0][u]);
+    Z = mergex(Z, minn[0][v]);
+
+    printf("%d ", min(a, (int)Z.size()));
+
+    for(int i=0; i<a && i<Z.size(); i++)
+        printf("%d ", Z[i]);
+    printf("\n");
+}
+
+int main()
+{
+    int N, M, Q;
+    scanf("%d %d %d", &N, &M, &Q);
+
+    for(int i=1; i<=N-1; i++)
+    {
+        int u, v;
+        scanf("%d %d", &u, &v);
+
+        X[u].push_back(v);
+        X[v].push_back(u);
+    }
+
+    for(int i=1; i<=M; i++)
+    {
+        int x;
+        scanf("%d", &x);
+
+        Y[x].push_back(i);
+    }
+
+    dfs(1, 0, 1);
+    build(N);
+
+    while(Q--)
+    {
+        int u, v, a;
+        scanf("%d %d %d", &u, &v, &a);
+
+        solve(u, v, a);
+    }
+
+    return 0;
+}

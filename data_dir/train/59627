@@ -1,0 +1,170 @@
+//              +-- -- --++-- +-In the name of ALLAH-+ --++-- -- --+              \\
+
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define _sz(x) (int)x.size()
+#define pb push_back
+
+#define error(x) cout << #x << " = " << x << endl
+
+using namespace std;
+using ll = long long;
+using ld = long double;
+using pii = pair<int, int>;
+
+const int N = 1e5 + 20, LG = 30;
+int n, m, k, maxp;
+int a[N], b[N], c[N], d[N];
+
+vector <pair<int, pii>> vec[N];
+
+int cnt[LG];
+int res[LG], g;
+
+int sz;
+struct node
+{
+	int cnt[LG], mx[LG];
+	int val;
+} seg[N << 2];
+
+vector <int> xs, ys;
+
+void compress ()
+{
+	for (int i = 0; i < m; i++)
+	{
+		xs.pb(a[i]);
+		ys.pb(b[i]);
+		xs.pb(c[i]);
+		ys.pb(d[i]);
+	}
+
+	sort(xs.begin(), xs.end());
+	xs.resize( unique(xs.begin(), xs.end()) - xs.begin() );
+
+	sort(ys.begin(), ys.end());
+	ys.resize( unique(ys.begin(), ys.end()) - ys.begin() );
+
+	for (int i = 0; i < m; i++)
+	{
+		a[i] = lower_bound(xs.begin(), xs.end(), a[i]) - xs.begin();
+		b[i] = lower_bound(ys.begin(), ys.end(), b[i]) - ys.begin();
+		c[i] = lower_bound(xs.begin(), xs.end(), c[i]) - xs.begin();
+		d[i] = lower_bound(ys.begin(), ys.end(), d[i]) - ys.begin();
+	}
+}
+
+
+#define mid ((s + e) >> 1)
+#define lc (v << 1)
+#define rc (lc ^ 1)
+
+inline void calc (int cnt[LG], int l, int r)
+{
+	for (int i = 0; i < LG; i++) cnt[i] = 0;
+	for (int i = 0; i < maxp; i++)
+	{
+		if (l == r) break;
+		if (l & 1) l++, cnt[i]++;
+		cnt[i] += (r - l) / 2;
+		l /= 2, r = (r + 1) / 2;
+	}
+	cnt[maxp] = r - l;
+}
+
+void build (int v = 1, int s = 0, int e = sz)
+{
+	if (e - s == 1)
+	{
+		calc(seg[v].mx, ys[s], ys[e]);
+		return;
+	}
+
+	build(lc, s, mid);
+	build(rc, mid, e);
+
+	for (int i = 0; i <= maxp; i++)
+	{
+		seg[v].mx[i] = seg[lc].mx[i] + seg[rc].mx[i];	
+	}
+}
+
+void add (int l, int r, int val, int v = 1, int s = 0, int e = sz)
+{
+	if (r <= s || e <= l) return;
+	if (l <= s && e <= r)
+	{
+		seg[v].val += val;
+
+		if (seg[v].val)
+			for (int i = 0; i <= maxp; i++) seg[v].cnt[i] = seg[v].mx[i];
+		else if (e - s == 1)
+			for (int i = 0; i <= maxp; i++) seg[v].cnt[i] = 0;
+		else 
+			for (int i = 0; i <= maxp; i++)
+				seg[v].cnt[i] = seg[lc].cnt[i] + seg[rc].cnt[i];
+
+		return;
+	}
+
+	add(l, r, val, lc, s, mid);
+	add(l, r, val, rc, mid, e);
+
+	if (!seg[v].val)
+		for (int i = 0; i <= maxp; i++)
+			seg[v].cnt[i] = seg[lc].cnt[i] + seg[rc].cnt[i];
+}
+
+int main()
+{
+	ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+
+	cin >> n >> m >> k;
+
+	while ((1 << (maxp + 1)) <= k) maxp++;
+
+	for (int i = 0; i < m; i++)
+	{
+		cin >> a[i] >> b[i] >> c[i] >> d[i];
+		c[i]++, d[i]++;
+	}
+
+	compress();
+
+	for (int i = 0; i < m; i++)
+	{
+		vec[a[i]].pb({+1, {b[i], d[i]}});
+		vec[c[i]].pb({-1, {b[i], d[i]}});
+	}
+	
+	sz = _sz(ys) - 1;
+
+	build();
+
+	for (int i = 0; i < _sz(xs) - 1; i++)
+	{
+		for (auto p : vec[i])
+			add(p.S.F, p.S.S, p.F);
+	
+		calc(cnt, xs[i], xs[i + 1]);
+
+		int sum1 = 0, sum2 = 0;
+		for (int i = maxp; i >= 0; i--)
+		{
+			sum1 ^= (cnt[i] & 1);
+			sum2 ^= (seg[1].cnt[i] & 1);
+			res[i] = sum1 * sum2;
+		}
+
+		for (int i = 0; i < maxp; i++)
+			res[i] ^= res[i + 1];
+
+		for (int i = 0; i <= maxp; i++)
+			if (res[i] & 1) g ^= (1 << i);
+	}
+
+	cout << (g? "Hamed" : "Malek") << '\n';
+}

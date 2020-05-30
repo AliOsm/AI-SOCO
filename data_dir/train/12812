@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll  long long
+#define mp  make_pair
+#define pb  push_back
+#define vi  vector<int>
+#define vvi vector<vi >
+#define all(x) x.begin(), x.end()
+
+struct dsu {
+    int n;
+    vector<int> p, r;
+    dsu() {};
+    dsu(int n) : n(n) {
+        p.resize(n);
+        r.assign(n, 1);
+        for (int i = 0; i < n; ++i)
+            p[i] = i;
+    }
+    int find_set(int v) {
+        if (v != p[v])
+            p[v] = find_set(p[v]);
+        return p[v];
+    }
+    void unite(int a, int b) {
+        a = find_set(a);
+        b = find_set(b);
+        if (a == b)
+            return;
+        if (r[a] < r[b])
+            swap(a, b);
+        p[b] = a;
+        r[a] += r[b];
+    }
+} d;
+
+struct query {
+    int i, w;
+    vi  v;
+    query() {};
+    query(int i, int w) : i(i), w(w) {};
+};
+bool operator<(query& a, query& b) { return a.w < b.w; }
+
+int n, m, q, k;
+vi  res;
+vector<query> v;
+vector<pair<int, pair<int, int> > > g;
+vector<pair<int, int> > h[500001];
+
+bool cmp(int i, int j) { return g[i].first < g[j].first; }
+
+bool ok(vi& v) {
+    vi xx;
+    for (int i = 0; i < v.size(); ++i) {
+        int j = v[i];
+        int a = g[j].second.first;
+        int b = g[j].second.second;
+        a = d.find_set(a); xx.pb(a);
+        b = d.find_set(b); xx.pb(b);
+    }
+    sort(all(xx));
+    xx.resize(unique(all(xx)) - xx.begin());
+    dsu dd(xx.size());
+    for (int i = 0; i < v.size(); ++i) {
+        int j = v[i];
+        int a = g[j].second.first;
+        int b = g[j].second.second;
+        a = d.find_set(a);
+        b = d.find_set(b);
+        a = lower_bound(all(xx), a) - xx.begin();
+        b = lower_bound(all(xx), b) - xx.begin();
+        a = dd.find_set(a);
+        b = dd.find_set(b);
+        if (a == b) return false;
+        dd.unite(a, b);
+    }
+    return true;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    scanf("%d %d", &n, &m);
+    for (int i = 0; i < m; ++i) {
+        int a, b, w; scanf("%d %d %d", &a, &b, &w); --a; --b;
+        g.pb(mp(w, mp(a, b)));
+        h[w].pb(mp(a, b));
+    }
+    scanf("%d", &q);
+    res.assign(q, 1);
+    for (int i = 0; i < q; ++i) {
+        scanf("%d", &k); vi z(k);
+        for (int j = 0; j < k; ++j) {
+            scanf("%d", &z[j]); --z[j];
+        }
+        sort(all(z), cmp);
+        for (int j = 0; j < k; ++j) {
+            if (j == 0 || g[z[j - 1]].first != g[z[j]].first)
+                v.pb(query(i, g[z[j]].first));
+            v.back().v.pb(z[j]);
+        }
+    }
+    d = dsu(n);
+    sort(all(v));
+    int s = 0;
+    for (int i = 0; i < v.size(); ++i) {
+        if (!res[v[i].i]) continue;
+        int w = v[i].w;
+        for (; s < w; ++s)
+            for (int j = 0; j < h[s].size(); ++j)
+                d.unite(h[s][j].first, h[s][j].second);
+        if (!ok(v[i].v))
+            res[v[i].i] = 0;
+    }
+    for (int i = 0; i < q; ++i)
+        printf(res[i] ? "YES\n" : "NO\n");
+
+    return 0;
+}

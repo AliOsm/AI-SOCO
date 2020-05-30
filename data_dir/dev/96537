@@ -1,0 +1,192 @@
+#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <chrono>
+#include <stack>
+#include <cassert>
+#include <queue>
+#include <deque>
+#include <climits>
+#include <cstring>
+#include <random>
+#include <bitset>
+
+using namespace std;
+
+map<vector<int>, int> asked;
+
+int n;
+
+int query(const vector<int> &a, const vector<int> &b) {
+    vector<int> all(n);
+    for (auto t : a) {
+        all[t] = true;
+    }
+    for (auto t : b) {
+        all[t] = true;
+    }
+    if (!asked.count(all)) {
+        cout << "? " << a.size() + b.size() << '\n';
+        for (auto t : a) {
+            cout << t + 1 << ' ';
+        }
+        for (auto t : b) {
+            cout << t + 1 << ' ';
+        }
+        cout << flush;
+        int x;
+        cin >> x;
+        asked[all] = x;
+    }
+    return asked[all];
+}
+
+int find_edge_one(const vector<int> &a, const vector<int> &b) {
+    int l = 0;
+    int r = (int)b.size() - 1;
+    int out = query(a, vector<int> (0));
+    while (r - l > 1) {
+        int m = (r + l) >> 1;
+        vector<int> uu;
+        for (int i = 0; i <= m; i++) {
+            uu.push_back(b[i]);
+        }
+        int in = query(uu, vector<int> (0));
+        if (query(a, uu) - in - out > 0) {
+            r = m;
+        } else {
+            l = m;
+        }
+    }
+    if (query(a, {b[r]}) - out > 0) {
+        return b[r];
+    } else if (query(a, {b[l]}) - out > 0){
+        return b[l];
+    } else {
+        assert(0);
+        return -1;
+    }
+}
+
+pair<int, int> find_edge_two(const vector<int> &a, const vector<int> &b) {
+    int f = find_edge_one(a, b);
+    vector<int> uu_pituh = {f};
+    int s = find_edge_one(uu_pituh, a);
+    return {s, f};
+}
+
+void dfs(int cur, int clr, vector<vector<int>> &g, vector<int> &colors) {
+    colors[cur] = clr;
+    for (auto t : g[cur]) {
+        if (colors[t] == -1) {
+            dfs(t, 1 - clr, g, colors);
+        }
+    }
+}
+
+void dfs_path(int cur, int pr, int search, vector<vector<int>> &g, vector<int> &p, vector<int> &used, vector<int> &res) {
+    p[cur] = pr;
+    used[cur] = 1;
+    if (cur == search) {
+        for (int u = cur; u != -1; u = p[u]) {
+            res.push_back(u);
+        }
+    } else {
+        for (auto t : g[cur]) {
+            if (!used[t]) {
+                dfs_path(t, cur, search, g, p, used, res);
+            }
+        }
+    }
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    #ifdef LOCAL
+//    assert(freopen("input.txt", "r", stdin));
+//    assert(freopen("output.txt", "w", stdout));
+    cout << "-1\n";
+    #endif
+    
+    cin >> n;
+    vector<vector<int>> g(n);
+    vector<int> f;
+    vector<int> s;
+    f.push_back(0);
+    for (int i = 1; i < n; i++) {
+        s.push_back(i);
+    }
+    for (int i = 1; i < n; i++) {
+        auto edge = find_edge_two(f, s);
+        assert(edge.second < n && edge.first < n);
+        g[edge.first].push_back(edge.second);
+        g[edge.second].push_back(edge.first);
+        f.push_back(edge.second);
+        s.erase(find(s.begin(), s.end(), edge.second));
+    }
+    vector<int> colors(n, -1);
+    dfs(0, 0, g, colors);
+    vector<int> fpart;
+    vector<int> spart;
+    for (int i = 0; i < n; i++) {
+        if (colors[i]) {
+            fpart.push_back(i);
+        } else {
+            spart.push_back(i);
+        }
+    }
+    int uu = 0;
+    if (!fpart.empty()) {
+        uu = query(fpart, vector<int> (0));
+    }
+    int uu_pituh = 0;
+    if (!spart.empty()) {
+        uu_pituh = query(spart, vector<int> (0));
+    }
+    if (!uu && !uu_pituh) {
+        cout << "Y\n";
+        cout << fpart.size() << '\n';
+        for (auto t : fpart) {
+            cout << t + 1 << ' ';
+        }
+        cout << '\n';
+    } else {
+        if (uu_pituh) {
+            swap(fpart, spart);
+            swap(uu, uu_pituh);
+        }
+        int some = -1;
+        for (int i = 0; i < (int)fpart.size(); i++) {
+            vector<int> cur = fpart;
+            cur.erase(find(cur.begin(), cur.end(), fpart[i]));
+            int k = query(cur, vector<int> (0));
+            if (k < uu) {
+                some = fpart[i];
+                break;
+            }
+        }
+        vector<int> cur = fpart;
+        cur.erase(find(cur.begin(), cur.end(), some));
+        assert(!cur.empty());
+        int sec = find_edge_one(vector<int> (1, some), cur);
+        vector<int> used(n, false);
+        vector<int> p(n, -1);
+        vector<int> ans;
+        dfs_path(some, -1, sec, g, p, used, ans);
+        cout << "N\n";
+        cout << ans.size() << '\n';
+        for (auto t : ans) {
+            cout << t + 1 << ' ';
+        }
+    }
+}

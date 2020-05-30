@@ -1,0 +1,121 @@
+#include <iostream>
+#include <cstdio>
+#include <deque>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#define TERM -1
+using namespace std;
+typedef vector<int> vect;
+int SX,SY,TX,TY;
+int N,M,K;
+char V[52][52];
+vector<vect> C;
+vect cur;
+void gen(int sv,int how){
+  if(sv>=26 && cur.size()==K)C.push_back(cur);
+  if(sv>=26 || how<0)return;
+  gen(sv+1,how);
+  if(how>0){cur.push_back(sv);gen(sv+1,how-1);cur.pop_back();}
+}
+// BFS
+int bestl=(int)1E9;string best;
+bool can[300];
+int LEV[50][50];
+deque<int> QX,QY;
+string dp[50][50];
+string wrd;
+vector<int> PX,PY;
+vector<int> _PX,_PY;
+int u1[50][50],u1s=0;
+string dfs(int x,int y){
+  PX.clear();PY.clear();
+  wrd="";PX.push_back(x);PY.push_back(y);
+  while(1){
+   ++u1s;
+   if(PX[0]==TX && PY[0]==TY)return wrd;
+   _PX.clear();_PY.clear();
+   char USE='z'+1;
+   for(int i=0;i<PX.size();++i){
+    x=PX[i];y=PY[i];
+    if(x-1>=0 && can[V[x-1][y]] && LEV[x-1][y]==LEV[x][y]-1)USE=min(USE,V[x-1][y]);
+    if(y-1>=0 && can[V[x][y-1]] && LEV[x][y-1]==LEV[x][y]-1)USE=min(USE,V[x][y-1]);
+    if(x+1<N && can[V[x+1][y]] && LEV[x+1][y]==LEV[x][y]-1)USE=min(USE,V[x+1][y]);
+    if(y+1<M && can[V[x][y+1]] && LEV[x][y+1]==LEV[x][y]-1)USE=min(USE,V[x][y+1]);  
+                               }
+   wrd+=USE;
+   for(int i=0;i<PX.size();++i){
+    x=PX[i];y=PY[i];
+    if(x-1>=0 && can[V[x-1][y]] && LEV[x-1][y]==LEV[x][y]-1 && USE==V[x-1][y]){
+     if(u1[x-1][y]!=u1s){_PX.push_back(x-1);_PY.push_back(y);u1[x-1][y]=u1s;}
+                                                                              }
+    if(y-1>=0 && can[V[x][y-1]] && LEV[x][y-1]==LEV[x][y]-1 && USE==V[x][y-1]){
+     if(u1[x][y-1]!=u1s){_PX.push_back(x);_PY.push_back(y-1);u1[x][y-1]=u1s;}
+                                                                              }
+    if(x+1<N && can[V[x+1][y]] && LEV[x+1][y]==LEV[x][y]-1 && USE==V[x+1][y]){
+     if(u1[x+1][y]!=u1s){_PX.push_back(x+1);_PY.push_back(y);u1[x+1][y]=u1s;}
+                                                                             }
+    if(y+1<M && can[V[x][y+1]] && LEV[x][y+1]==LEV[x][y]-1 && USE==V[x][y+1]){
+     if(u1[x][y+1]!=u1s){_PX.push_back(x);_PY.push_back(y+1);u1[x][y+1]=u1s;}
+                                                                             } 
+                               }
+   PX=_PX;PY=_PY; 
+          }
+}
+string BFS(vect U){
+  int i,j;
+  for(i=0;i<N;++i)
+   for(j=0;j<M;++j)dp[i][j].clear();
+  memset(LEV,-1,sizeof LEV);
+  QX.clear();QY.clear();
+  for(i=0;i<U.size();++i)can[U[i]+'a']=true;
+  can['S']=can['T']=true;
+  LEV[TX][TY]=1;QX.push_back(TX);QY.push_back(TY);
+  while(!QX.empty()){
+   int x=QX[0],y=QY[0];
+   QX.pop_front();QY.pop_front();
+   if(x-1>=0 && can[V[x-1][y]] && LEV[x-1][y]==-1){LEV[x-1][y]=LEV[x][y]+1;QX.push_back(x-1);QY.push_back(y);}
+   if(y-1>=0 && can[V[x][y-1]] && LEV[x][y-1]==-1){LEV[x][y-1]=LEV[x][y]+1;QX.push_back(x);QY.push_back(y-1);}
+   if(x+1<N && can[V[x+1][y]] && LEV[x+1][y]==-1){LEV[x+1][y]=LEV[x][y]+1;QX.push_back(x+1);QY.push_back(y);}
+   if(y+1<M && can[V[x][y+1]] && LEV[x][y+1]==-1){LEV[x][y+1]=LEV[x][y]+1;QX.push_back(x);QY.push_back(y+1);}
+   if(LEV[SX][SY]!=-1)break;
+                    }
+  string ret="NO";
+  if(LEV[SX][SY]-LEV[TX][TY]-1<=bestl)
+   if(LEV[SX][SY]!=-1){
+    ret=dfs(SX,SY);
+    ret=ret.substr(0,(int)ret.size()-1);
+                      }
+  for(i=0;i<U.size();++i)can[U[i]+'a']=false;
+  can['S']=can['T']=false;
+  return ret;
+}
+// OPTIMIZE
+bool IN[300];
+int main(){
+  int i,j,k,l,B=0;
+  scanf("%d%d%d",&N,&M,&K);
+  for(i=0;i<N;++i)scanf("%s",&V[i]);
+  for(i=0;i<N;++i)
+   for(j=0;j<M;++j){
+    if(V[i][j]=='S'){SX=i;SY=j;}
+    else if(V[i][j]=='T'){TX=i;TY=j;}
+         else{if(!IN[V[i][j]])++B;IN[V[i][j]]=1;}
+                   }
+  K=min(K,B);
+  gen(0,K);
+  for(i=0;i<C.size();++i){
+   bool OK=true;
+   for(j=0;j<C[i].size();++j)
+    if(!IN['a'+C[i][j]]){OK=false;break;}
+   if(!OK)continue;
+   string T=BFS(C[i]);
+   if(T=="NO")continue;
+   if(T.size()<bestl || (T.size()==bestl && T<best)){best=T;bestl=best.size();}
+                         }
+  if(bestl>1000000)cout<<"-1\n";
+  else cout<<best<<'\n';
+  //system("pause");
+  return 0;
+}

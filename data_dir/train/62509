@@ -1,0 +1,192 @@
+#include<stdio.h>
+#include<string.h>
+#include<ctype.h>
+#include<math.h>
+#include<iostream>
+#include<string>
+#include<set>
+#include<map>
+#include<vector>
+#include<queue>
+#include<bitset>
+#include<algorithm>
+#include<time.h>
+using namespace std;
+void fre(){freopen("c://test//input.in","r",stdin);freopen("c://test//output.out","w",stdout);}
+#define MS(x,y) memset(x,y,sizeof(x))
+#define MC(x,y) memcpy(x,y,sizeof(x))
+#define MP(x,y) make_pair(x,y)
+#define ls o<<1
+#define rs o<<1|1
+typedef long long LL;
+typedef unsigned long long UL;
+typedef unsigned int UI;
+template <class T1,class T2>inline void gmax(T1 &a,T2 b){if(b>a)a=b;}
+template <class T1,class T2>inline void gmin(T1 &a,T2 b){if(b<a)a=b;}
+const int N=1e5+10,M=0,Z=1e9+7,ms63=1061109567;
+int casenum,casei;
+int n,m,q,tim;
+int x,y,w;
+struct A
+{
+	int l,r;
+	int g;
+	int b[10];
+}c[1<<18];
+vector<int>a[N];
+int g[N];
+int b[N][10];
+int G,tmpg;
+int B[10],tmpb[10];
+int fa[N],son[N],dep[N],size[N],pos[N],rev[N],top[N];
+void dfs1(int x)
+{
+	size[x]=1;
+	son[x]=0;
+	for(int i=a[x].size()-1;~i;--i)
+	{
+		int y=a[x][i];
+		if(y==fa[x])continue;
+		fa[y]=x;
+		dep[y]=dep[x]+1;
+		dfs1(y);
+		size[x]+=size[y];
+		if(size[y]>size[son[x]])son[x]=y;
+	}
+}
+void dfs2(int x,int chain)
+{
+	pos[x]=++tim;
+	rev[tim]=x;
+	top[x]=chain;
+	if(son[x]==0)return;
+	dfs2(son[x],chain);
+	for(int i=a[x].size()-1;~i;--i)
+	{
+		int y=a[x][i];
+		if(y!=fa[x]&&y!=son[x])dfs2(y,y);
+	}
+}
+void merge(int &g,int &gl,int &gr,int b[],int bl[],int br[])
+{
+	int p=0,pl=0,pr=0;
+	while(p<10)
+	{
+		if(pl<gl&&pr<gr)
+		{
+			if(bl[pl]<br[pr])b[p++]=bl[pl++];
+			else b[p++]=br[pr++];
+		}
+		else if(pl<gl)b[p++]=bl[pl++];
+		else if(pr<gr)b[p++]=br[pr++];
+		else break;
+	}
+	g=p;
+}
+void pushup(int o)
+{
+	merge(c[o].g,c[ls].g,c[rs].g,c[o].b,c[ls].b,c[rs].b);
+}
+void build(int o,int l,int r)
+{
+	c[o].l=l;
+	c[o].r=r;
+	if(l==r)
+	{
+		int v=rev[l];
+		c[o].g=g[v];
+		MC(c[o].b,b[v]);
+		return;
+	}
+	int m=(l+r)>>1;
+	build(ls,l,m);
+	build(rs,m+1,r);
+	pushup(o);
+}
+void update(int o,int l,int r)
+{
+	if(c[o].l==l&&c[o].r==r)
+	{
+		tmpg=G;
+		MC(tmpb,B);
+		merge(G,tmpg,c[o].g,B,tmpb,c[o].b);
+		return;
+	}
+	int m=(c[o].l+c[o].r)>>1;
+	if(r<=m)update(ls,l,r);
+	else if(l>m)update(rs,l,r);
+	else
+	{
+		update(ls,l,m);
+		update(rs,m+1,r);
+	}
+}
+void SOLVE(int x,int y,int w)
+{
+	G=0;
+	while(top[x]!=top[y])
+	{
+		if(dep[top[x]]<dep[top[y]])swap(x,y);
+		update(1,pos[top[x]],pos[x]);
+		x=fa[top[x]];
+	}
+	if(pos[x]>pos[y])swap(x,y);
+	update(1,pos[x],pos[y]);
+	gmin(G,w);
+	printf("%d",G);
+	for(int i=0;i<G;i++)printf(" %d",B[i]);
+	puts("");
+}
+int main()
+{
+	while(~scanf("%d%d%d",&n,&m,&q))
+	{
+		for(int i=1;i<=n;i++)
+		{
+			a[i].clear();
+			g[i]=0;
+		}
+		for(int i=1;i<n;i++)
+		{
+			scanf("%d%d",&x,&y);
+			a[x].push_back(y);
+			a[y].push_back(x);
+		}
+		for(int i=1;i<=m;i++)
+		{
+			scanf("%d",&x);
+			if(g[x]<10)b[x][g[x]++]=i;
+		}
+		dep[1]=0;fa[1]=0;dfs1(1);
+		tim=0;dfs2(1,1);
+		build(1,1,n);
+		for(int i=1;i<=q;i++)
+		{
+			scanf("%d%d%d",&x,&y,&w);
+			SOLVE(x,y,w);
+		}
+	}
+	return 0;
+}
+/*
+【trick&&吐槽】
+这题明明要比D简单，是裸的树链剖分。
+我写得很慢慢悠悠，然而竟然是div2前几个做出来的，太吃惊了！
+
+【题意】
+给你一棵有n（1e5）个节点树，
+然后有m（1e5）个人，告诉你编号为i个人位于什么节点。
+有q（1e5）个询问，问你对于（x,y）路径上的点中，最小编号的w（[1,10]）个人的编号。（当然如果没有w个人，有几个输出几个）
+
+【类型】
+树链剖分
+
+【分析】
+因为w实在是太小了，所以每个节点直接记录以它为父节点的最小编号的10个人的编号即可。
+用线段树，通过类似于归并排序的方式维护一下。然后因为是在树上，套一个树链剖分的模板就可以AC了。
+因为没有修改，所以线段树只用pushup，也就写个合并操作即可。
+
+【时间复杂度&&优化】
+O（（n+q）logn*10）
+
+*/

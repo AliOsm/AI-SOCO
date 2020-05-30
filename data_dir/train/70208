@@ -1,0 +1,218 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 2005;
+int n, cur;
+int covver;
+int covhor;
+
+bool cover[N];
+bool lef[N];
+
+pii p[N];
+
+map <pair <int, pii>, int> horid;
+map <pair <int, pii>, int> verid;
+map <int, vec <int>> hor;
+map <int, vec <int>> ver;
+set <pii> was;
+
+struct Graph {
+    int mtc[N];
+    int vis[N];
+    vec <int> adj[N];
+} graph;
+
+bool intersect(pair <int, pii> a, pair <int, pii> b) {
+    bool x = a.yy.xx <= b.xx && a.yy.yy >= b.xx;
+    bool y = b.yy.xx <= a.xx && b.yy.yy >= a.xx;
+    return x && y;
+}
+
+void construct() {
+    for(auto &it: hor) {
+        int x = it.xx;
+        sort(all(it.yy));
+        for(int i = 1; i < len(it.yy); ++i) {
+            int a = it.yy[i - 1];
+            int b = it.yy[i];
+            horid[{x, {a, b}}] = ++cur;
+            lef[cur] = 1;
+        }
+    }
+    for(auto &it: ver) {
+        int x = it.xx;
+        sort(all(it.yy));
+        for(int i = 1; i < len(it.yy); ++i) {
+            int a = it.yy[i - 1];
+            int b = it.yy[i];
+            verid[{x, {a, b}}] = ++cur;
+        }
+    }
+    for(auto ith: horid) {
+        for(auto itv: verid) {
+            if(intersect(ith.xx, itv.xx) && !was.count({ith.xx.xx, itv.xx.xx})) {
+                graph.adj[ith.yy].pb(itv.yy);
+            }
+        }
+    }
+}
+
+bool dfs(int u) {
+    if(graph.vis[u]) {
+        return 0;
+    }
+    graph.vis[u] = 1;
+    for(int v: graph.adj[u]) {
+        if(!graph.mtc[v] || dfs(graph.mtc[v])) {
+            graph.mtc[u] = v;
+            graph.mtc[v] = u;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void visit(int u) {
+    graph.vis[u] = 1;
+    for(int v: graph.adj[u]) {
+        if(!graph.vis[v]) {
+            graph.vis[v] = 1;
+            visit(graph.mtc[v]);
+        }
+    }
+}
+
+void max_match() {
+    int res = 0;
+    while(true) {
+        bool aug = 0;
+        fill(graph.vis, graph.vis + N, 0);
+        for(int i = 1; i <= cur; ++i) {
+            if(!graph.mtc[i] && dfs(i)) {
+                aug = 1;
+                res++;
+            }
+        }
+        if(!aug) {
+            break;
+        }
+    }
+    fill(graph.vis, graph.vis + N, 0);
+    for(int i = 1; i <= cur; ++i) {
+        if(lef[i] && !graph.mtc[i]) {
+            visit(i);
+        }
+    }
+    for(int i = 1; i <= cur; ++i) {
+        if(lef[i] && !graph.vis[i]) {
+            covhor++;
+            cover[i] = 1;
+        }
+        if(!lef[i] && graph.vis[i]) {
+            covver++;
+            cover[i] = 1;
+        }
+    }
+}
+
+void print_ans() {
+    cout << len(ver) + covver << "\n";
+    for(auto &it: ver) {
+        sort(all(it.yy));
+        int x = it.xx;
+        int l = it.yy[0];
+        for(int i = 0; i < len(it.yy); ++i) {
+            if(i == len(it.yy) - 1) {
+                cout << l << " " << x << " " << it.yy[i] << " " << x << "\n";
+                continue;
+            }
+            int a = it.yy[i];
+            int b = it.yy[i + 1];
+            int ind = verid[{x, {a, b}}];
+            if(cover[ind]) {
+                cout << l << " " << x << " " << it.yy[i] << " " << x << "\n";
+                l = it.yy[i + 1];
+            }
+        }
+    }
+    cout << len(hor) + covhor << "\n";
+    for(auto &it: hor) {
+        sort(all(it.yy));
+        int x = it.xx;
+        int l = it.yy[0];
+        for(int i = 0; i < len(it.yy); ++i) {
+            if(i == len(it.yy) - 1) {
+                cout << x << " " << l << " " << x << " " << it.yy[i] << "\n";
+                continue;
+            }
+            int a = it.yy[i];
+            int b = it.yy[i + 1];
+            int ind = horid[{x, {a, b}}];
+            if(cover[ind]) {
+                cout << x << " " << l << " " << x << " " << it.yy[i] << "\n";
+                l = it.yy[i + 1];
+            }
+        }
+    }
+}
+
+void input() {
+    cin >> n;
+    for(int i = 1; i <= n; ++i) {
+        cin >> p[i].xx;
+        cin >> p[i].yy;
+        hor[p[i].xx].pb(p[i].yy);
+        ver[p[i].yy].pb(p[i].xx);
+        was.insert(p[i]);
+    }
+}
+
+void solve() {
+    construct();
+    max_match();
+    print_ans();
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

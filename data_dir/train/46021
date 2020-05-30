@@ -1,0 +1,82 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <unordered_set>
+#define N 100005
+using namespace std;
+typedef long long ll;
+const ll mod = 1000000007LL;
+int n,q;
+bool vis[3][N];
+int main() {
+	cin>>n>>q;
+	memset(vis, false, sizeof(vis));
+	unordered_set<int> s1;
+	unordered_set<int> s2;
+	unordered_set<int> s3;
+	s1.clear();
+	s2.clear();
+	s3.clear();
+	for (int i = 0; i < q; ++i) {
+		int r,c;
+		cin>>r>>c;
+		if (r == 1) {
+			if (vis[r][c]) {
+				if (c-1>=1 && vis[2][c-1]) {
+					s1.erase(c-1);
+				}
+				if (vis[2][c]) {
+					s2.erase(c);
+				}
+				if (c+1<=n && vis[2][c+1]) {
+					s3.erase(c);
+				}
+				vis[r][c] = false;
+			} else {
+				if (c-1 >= 1 && vis[2][c-1]) {
+					s1.insert(c-1);
+				}
+				if (vis[2][c]) {
+					s2.insert(c);
+				}
+				if (c+1<=n&&vis[2][c+1]) {
+					s3.insert(c);
+				}
+				vis[r][c] =true;
+			}
+		} else {
+			if (vis[r][c]) {
+				if (c-1>=1 && vis[1][c-1]) {
+					s3.erase(c-1);
+				}
+				if (vis[1][c]) {
+					s2.erase(c);
+				}
+				if (c+1<=n && vis[1][c+1]) {
+					s1.erase(c);
+				}
+				vis[r][c]= false;
+			} else {
+				if (c-1>=1 && vis[1][c-1]) {
+					s3.insert(c-1);
+				}
+				if (vis[1][c]) {
+					s2.insert(c);
+				}
+				if (c+1<=n && vis[1][c+1]) {
+					s1.insert(c);
+				}
+				vis[r][c]=true;
+			}
+		}
+		if (s1.empty() && s2.empty() && s3.empty()) {
+			cout<<"Yes"<<endl;
+		} else {
+			cout<<"No"<<endl;
+		}
+	}
+	return 0;
+}

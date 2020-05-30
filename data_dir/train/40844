@@ -1,0 +1,147 @@
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+
+#define int64 long long
+
+const int N = 1000000;
+const int INF = 1e9;
+
+struct T
+{
+	int t, i;
+	T(){}
+	T(int t, int i) : t(t), i(i){}
+	bool operator < (const T &other) const
+	{
+		return t - i < other.t - other.i;
+	}
+};
+
+struct Node
+{
+	int mx, add;
+	Node()
+	{
+		mx = -INF;
+		add = 0;
+	}
+	Node(int mx, int add) : mx(mx), add(add){}
+};
+
+int n, t, b[N], p[N];
+T a[N];
+Node tree[4 * N];
+
+int findIndex(int x)
+{
+	if (a[1].t - a[1].i >= x) return -1;
+	int l = 1, r = n;
+	while (l + 1 < r)
+	{
+		int m = (l + r) / 2;
+		if (a[m].t - a[m].i >= x) r = m - 1;
+		else l = m;
+	}
+	if (a[r].t - a[r].i < x) return r;
+	return l;
+}
+
+void build(int v, int tl, int tr)
+{
+	if (tl == tr)
+	{
+		if (tl == 0) tree[v] = Node(0, 0);
+		else tree[v] = Node();
+		return;
+	}
+	int tm = (tl + tr) / 2;
+	build(v * 2, tl, tm);
+	build(v * 2 + 1, tm + 1, tr);
+	tree[v].add = 0;
+	tree[v].mx = max(tree[v * 2].mx, tree[v * 2 + 1].mx);
+}
+
+void push(int v)
+{
+	if (tree[v].add != 0) 
+	{
+		tree[v * 2].add += tree[v].add;
+		tree[v * 2].mx += tree[v].add;
+		tree[v * 2 + 1].add += tree[v].add;
+		tree[v * 2 + 1].mx += tree[v].add;
+		tree[v].add = 0;
+	}
+}
+
+void updateSegment(int v, int tl, int tr, int l, int r, int val)
+{
+	if (l > r) return;
+	if (l == tl && r == tr) 
+	{
+		tree[v].mx += val;
+		tree[v].add += val;
+		return;
+	}
+	push(v);
+	int tm = (tl + tr) / 2;
+	updateSegment(v * 2, tl, tm, l, min(r, tm), val);
+	updateSegment(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, val);
+	tree[v].mx = max(tree[v * 2].mx, tree[v * 2 + 1].mx);
+}
+
+void updatePos(int v, int tl, int tr, int pos, int val)
+{
+	if (tl == tr)
+	{
+		tree[v].mx = val;
+		return;
+	}
+	push(v);
+	int tm = (tl + tr) / 2;
+	if (pos <= tm) updatePos(v * 2, tl, tm, pos, val);
+	else updatePos(v * 2 + 1, tm + 1, tr, pos, val);
+	tree[v].mx = max(tree[v * 2].mx, tree[v * 2 + 1].mx);
+}
+
+int getmax(int v, int tl, int tr, int l, int r)
+{
+	if (l > r) return -INF;
+	if (l == tl && r == tr) 
+	{
+		return tree[v].mx;
+	}
+	push(v);
+	int tm = (tl + tr) / 2;
+	return max(getmax(v * 2, tl, tm, l, min(r, tm)), 
+		getmax(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r));
+}
+
+
+int main() {
+	scanf("%d%d", &n, &t);
+	for (int i = 1; i <= n; i++) scanf("%d", &b[i]);
+	for (int i = 1; i <= n; i++) b[i] = max(b[i], i);
+	b[0] = 0;
+	for (int i = 0; i <= n; i++) a[i] = T(b[i], i);
+	sort(a + 1, a + n + 1);
+	for (int i = 0; i <= n; i++) p[a[i].i] = i;
+	int ans = 0;
+	build(1, 0, n);
+	for (int i = 1; i <= n; i++)
+	{
+		if (b[i] >= t) continue;
+		int cur = 0;
+		int ind1 = findIndex(t - i);
+		int ind2 = findIndex(b[i] - i + 1);
+		updatePos(1, 0, n, p[i], getmax(1, 0, n, 0, min(ind1, ind2)) + 1);
+		updateSegment(1, 0, n, ind2 + 1, ind1, 1);
+		ans = max(ans, getmax(1, 0, n, 0, n));
+	}
+	cout << ans;
+	return 0;
+}

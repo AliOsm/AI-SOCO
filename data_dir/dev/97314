@@ -1,0 +1,161 @@
+#include <iostream>
+#include <vector>
+#include <cstring>
+
+using namespace std;
+typedef long long Long;
+
+struct Trie {
+    struct Node {
+        int child[2];
+        int sum;
+        Node(){
+            sum = 0;
+            memset(child, -1, sizeof(child));
+        }
+    };
+    vector<Node> nodes;
+    Trie() {
+        nodes.push_back(Node());
+    }
+#define getC(u, c) (nodes[u].child[c])
+    void insert(string s) {
+        int v = 0;
+        for (char c : s) {
+            nodes[v].sum++;
+            int p = c - '0';
+            if (getC(v, p) == -1) {
+                getC(v, p) = nodes.size();
+                nodes.push_back(Node());
+            }
+            v = getC(v, p);
+        }
+        nodes[v].sum++;
+    }
+
+    void insertAll(string s) {
+        for (int i = 0; i < s.size(); ++i) insert(s.substr(i));
+    }
+    void print(int u = 0, int lvl = 0, int lim = 2) {
+        if (u == -1) return;
+        print(getC(u, 0), lvl+1);
+        cout << string(lvl*2, ' ') << nodes[u].sum << endl;
+        print(getC(u, 1), lvl+1, lim);
+    }
+    void printPath(const string &s, int doMore = 1, int u = 0, int lvl = 0) {
+        if (u == -1) return;
+        int p = lvl < s.size() ? s[lvl]-'0' : -1;
+        cout << string(lvl*2, ' ') << nodes[u].sum << endl;
+        if (doMore) {
+            printPath(s, p == 0, getC(u, 0), lvl+1);
+            printPath(s, p == 1, getC(u, 1), lvl+1);
+        }
+    }
+};
+#define INF 4000000000000000000LL
+struct Fibo {
+    string pre, suf;
+    Long sz;
+    Fibo(const string &s) {
+        pre = s;
+        suf= s;
+        sz = s.size();
+    }
+    Fibo operator+(const Fibo &o)const {
+        Fibo r("");
+        r.sz = sz + o.sz;
+        r.pre = (pre + o.pre);
+        r.suf = (suf + o.suf);
+        if (r.pre.size() > 220) r.pre = r.pre.substr(0, 220);
+        if (r.suf.size() > 220) r.suf = r.suf.substr(r.suf.size() - 220);
+        if (r.sz >= INF) r.sz = INF;
+        return r;
+    }
+};
+
+typedef pair<Long, Long> PLL;
+PLL countWith(string s, int N, const vector<Fibo> &fibos) {
+    vector<vector<PLL>> P(max(N, 2), vector<PLL>(s.size() + 1, PLL(0, 0)));
+    P[0][0].first = 1;
+    P[1][0].second = 1;
+    for (int i = 2; i < N; ++i) {
+        string suf = fibos[i-2].suf;
+        string pre = fibos[i-1].pre;
+        P[i] = P[i-1];
+        P[i][s.size()].first = min(INF, P[i][s.size()].first + P[i-2][s.size()].first);
+        P[i][s.size()].second = min(INF, P[i][s.size()].second + P[i-2][s.size()].second);
+        for (int sz = 0; sz < suf.size(); ++sz) {
+            string rsuf = suf.substr(sz);
+            int p = 0;
+            while (p < s.size() && p < rsuf.size() && s[p] == rsuf[p]) p++;
+            if (p < suf.size() - sz) continue;
+            rsuf += pre;
+            while (p < s.size() && p < rsuf.size() && s[p] == rsuf[p]) p++;
+            if (p != rsuf.size()) {
+                PLL &t = P[i][p];
+                Long &d = (rsuf[p] == '0' ? t.first : t.second);
+                d = min(d+1, INF);
+
+            }
+//            while(--p > 0) {
+//                PLL &t = P[i][p];
+//                Long &d = (rsuf[p] == '0' ? t.first : t.second);
+//                d = min(d+1, INF);
+//            }
+        }
+    }
+    return P[N-1][s.size()];
+}
+
+string findKth(Long K, int N, const vector<Fibo> &fibos, int ML = 200) {
+    string s;
+    string me = fibos[N-1].suf;
+    while (K > 0 && s.size() < ML) {
+        PLL cn = countWith(s, N, fibos);
+        if (s.size() && me.substr(me.size() - s.size()) == s) {
+            K--;
+            if (K == 0) break;
+        }
+        if (K <= cn.first) {
+            s += "0";
+        } else {
+            K -= cn.first;
+            s += "1";
+        }
+    }
+    return s;
+}
+
+int main() {
+
+    vector<Fibo> fibos;
+    Fibo a("0");
+    Fibo b("1");
+    fibos.push_back(a);
+    fibos.push_back(b);
+    int N = 210;
+    for (int i = 3; i <= N; ++i) {
+        Fibo c = a + b;
+//        cout << c.pre << " " << c.suf << " " << c.sz << endl;
+        a = b;
+        b = c;
+        fibos.push_back(c);
+    }
+    Long K, M;
+    cin >> N >> K >> M;
+
+//    for (int k = 1; k <= min(fibos[N].sz, 100LL); ++k) {
+//        cout << findKth(k, N+1, fibos) << endl;
+//    }
+
+    cout << findKth(K, N+1, fibos, M) << endl;
+//    for (int k = 1; k <= fibos[N].sz; ++k) {
+//        cout << findKth(k, N+1, fibos, M) << endl;
+//    }
+//    string s = "010110101101101011010110110101101101011010110110101101";
+//    PLL cn = countWith(s, N, fibos);
+//    cout << cn.first << " " << cn.second << endl;
+
+
+}
+

@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define MAX 100005
+#define LD long double
+
+const LD pi = 4 * atan(1);
+const LD eps = 1e-6;
+
+inline int dcmp (LD x) { if (fabs(x) < eps) return 0; else return x < 0 ? -1 : 1; }
+LD fix_acute(LD th) {return th<-pi ? (th+2*pi): th>pi ? (th-2*pi) : th;}
+
+inline LD getDistance (LD x, LD y) { return sqrt(x * x + y * y); }
+inline LD torad(LD deg) { return deg / 180 * pi; }
+
+struct Point {
+    LD x, y;
+    Point (LD x = 0, LD y = 0): x(x), y(y) {}
+    void read () { scanf("%lf %lf",&x,&y); }
+
+    bool operator == (const Point& u) const { return dcmp(x - u.x) == 0 && dcmp(y - u.y) == 0; }
+    bool operator != (const Point& u) const { return !(*this == u); }
+    bool operator < (const Point& u) const { return dcmp(x - u.x) < 0 || (dcmp(x-u.x)==0 && dcmp(y-u.y) < 0); }
+    bool operator > (const Point& u) const { return u < *this; }
+    bool operator <= (const Point& u) const { return *this < u || *this == u; }
+    bool operator >= (const Point& u) const { return *this > u || *this == u; }
+    Point operator + (const Point& u) { return Point(x + u.x, y + u.y); }
+    Point operator - (const Point& u) { return Point(x - u.x, y - u.y); }
+    Point operator * (const LD u) { return Point(x * u, y * u); }
+    Point operator / (const LD u) { return Point(x / u, y / u); }
+    LD operator * (const Point& u) { return x*u.y - y*u.x; }
+};
+typedef Point Vector;
+
+namespace Punctual {
+    LD getDistance (Point a, Point b) { LD x=a.x-b.x, y=a.y-b.y; return sqrt(x*x + y*y); }
+};
+
+namespace Vectorial {
+    LD getDot (Vector a, Vector b) { return a.x * b.x + a.y * b.y; }
+    LD getCross (Vector a, Vector b) { return a.x * b.y - a.y * b.x; }
+    LD getLength (Vector a) { return sqrt(getDot(a, a)); }
+    LD getPLength (Vector a) { return getDot(a, a); }
+    LD getAngle (Vector u) { return atan2(u.y, u.x); }
+    LD getSignedAngle (Vector a, Vector b) {return getAngle(b)-getAngle(a);}
+    Vector rotate (Vector a, LD rad) { return Vector(a.x*cos(rad)-a.y*sin(rad), a.x*sin(rad)+a.y*cos(rad)); }
+    Vector getNormal (Vector a) { LD l = getLength(a); return Vector(-a.y/l, a.x/l); }
+};
+
+namespace Linear {
+    using namespace Vectorial;
+    using namespace Punctual;
+
+    LD getDistanceToSegment (Point p, Point a, Point b) {
+        if (a == b) return getLength(p-a);
+        Vector v1 = b - a, v2 = p - a, v3 = p - b;
+        if (dcmp(getDot(v1, v2)) < 0) return getLength(v2);
+        else if (dcmp(getDot(v1, v3)) > 0) return getLength(v3);
+        else return fabs(getCross(v1, v2) / getLength(v1));
+    }
+
+    //Minimum distance between corresponding points of two segments
+    LD SegmentSegmentPointDIst(Point a1,Point a2,Point b1,Point b2){
+        LD lo=0;
+        LD hi=1;
+        LD mid1,mid2,val1,val2;
+        for(int i=1;i<=30;i++){
+            mid1=lo+(hi-lo)/3;
+            mid2=hi-(hi-lo)/3;
+
+            val1=getDistance(a1*mid1+a2*(1-mid1),b1*mid1+b2*(1-mid1));
+            val2=getDistance(a1*mid2+a2*(1-mid2),b1*mid2+b2*(1-mid2));
+
+            if(val1<val2) hi=mid2;
+            else lo=mid1;
+        }
+        return val1;
+    }
+}
+
+Point A[MAX];
+Point B[MAX];
+
+int main(){
+    using namespace Linear;
+
+    int n,d1,d2;
+    scanf("%d",&n);
+    scanf("%d %d",&d1,&d2);
+
+    int Count=0;
+    LD Min=1e18;
+    LD Max=0;
+
+    double a,b,c,d;
+    for(int i=1;i<=n;i++){
+        scanf("%lf %lf %lf %lf",&a,&b,&c,&d);
+        A[i]=Point(a,b);
+        B[i]=Point(c,d);
+    }
+
+    for(int i=1;i<n;i++){
+        LD CurrMax = getDistance(A[i],B[i]);
+        LD CurrMin = SegmentSegmentPointDIst(A[i],A[i+1],B[i],B[i+1]);
+
+        Max=max(Max,CurrMax);
+        if(Count==0 ||  dcmp(Max-d2)>0) Min = min(Min,CurrMin);
+        if(dcmp(Min-d1)<=0) {Count++; Min=1e18; Max=0;}
+    }
+    cout<<Count<<endl;
+}

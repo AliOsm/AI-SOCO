@@ -1,0 +1,187 @@
+#include <bits/stdc++.h>
+
+#define FOR(i,b,e) for(int i=(b); i <= (e); ++i)
+#define FORD(i,b,e) for(int i=(b); i >= (e); --i)
+#define REP(i,n) for(int i=0; i < (n); ++i)
+#define SIZE(c) (int) (c).size()
+#define ALL(c) (c).begin(), (c).end()
+#define PB push_back
+#define MP make_pair
+#define ST first
+#define ND second
+#define FWD(i,a,b) for (int i=(a); i<(b); ++i)
+#define BCK(i,a,b) for (int i=(a); i>(b); --i)
+#define PI 3.14159265358979311600
+#define pb push_back
+#define mp make_pair
+#define st first
+#define nd second
+
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+typedef pair <ll, ll> pll;
+
+typedef vector < int > VI;
+typedef vector<ll> VL;
+
+typedef long double K;
+
+struct SegTree {
+	int n;
+	vector<int> t1, t2;
+
+	SegTree() {}
+	SegTree(int n): n(n + 1), t1(4*n + 4), t2(4*n+4) {}
+
+	void update(int pos, int x, int y) {
+		update(1, 0, n - 1, pos, x, y);
+	}
+
+	pair<int,int> go(int l, int r) {
+		return go(1, 0, n - 1, l, r);
+	}
+
+	void update(int v, int tl, int tr, int pos, int x, int y) {
+		if (tl == tr) {
+			t1[v] = x;
+			t2[v] = y;
+			return;
+		}
+		int tm = (tl + tr) / 2;
+		if (pos <= tm) {
+			update(2*v, tl, tm, pos, x, y);
+		} else {
+			update(2*v+1, tm+1, tr, pos, x, y);
+		}
+		t1[v] = t1[2*v] + t1[2*v+1];
+		t2[v] = t2[2*v] + t2[2*v+1];
+	}
+
+	pair<int,int> go(int v, int tl, int tr, int l, int r) {
+		if (l > tr || r < tl) return {0, 0};
+		if (l <= tl && r >= tr) return {t1[v], t2[v]};
+		int tm = (tl + tr) / 2;
+		auto lf = go(2*v, tl, tm, l, r);
+		auto rt = go(2*v+1, tm+1, tr, l, r);
+		return {lf.first + rt.first, lf.second + rt.second};
+	}
+};
+
+// Adam Polak
+const int N = 200005;
+
+int n;                  // INPUT
+VI graph[N];   // INPUT
+
+int p[N], ind[N], depth[N];
+deque<int> ladder[N]; // Clear these vectors after each testcase!
+SegTree tree[N];
+
+int dfs(int u) {
+    int s = 1, best_s = 0; ind[u] = u;
+    for(int v : graph[u]) if (v != p[u]) {
+        p[v] = u; depth[v] = depth[u] + 1;
+        int t = dfs(v);
+        if (t > best_s) { best_s = t; ind[u] = ind[v]; }
+        s += t;
+    }
+    ladder[ind[u]].push_front(u);
+    return s;
+}
+
+void init(int root) { 
+	p[root] = -1; depth[root] = 0; dfs(root); 
+	REP(i, n) tree[i] = SegTree(SIZE(ladder[i]));
+}
+
+int LCA(int a, int b) {  // Lowest common ancestor
+    while(ind[a] != ind[b])
+    	if(depth[ladder[ind[a]][0]] < depth[ladder[ind[b]][0]])
+    		b = p[ladder[ind[b]][0]];
+    	else
+    		a = p[ladder[ind[a]][0]];
+    return depth[a] < depth[b] ? a : b;
+}
+
+struct qr {
+	int x, y, c;
+};
+
+int m;
+vector<qr> q[N];
+int f[N];
+
+int query(int a, int b) {
+	pair<int,int> here;
+	int result = 0;
+	while(ind[a] != ind[b]) {
+    	if(depth[ladder[ind[a]][0]] < depth[ladder[ind[b]][0]]) {
+    		here = tree[ind[b]].go(0, depth[b] - depth[ladder[ind[b]][0]]);
+    		b = p[ladder[ind[b]][0]];
+    	}
+    	else {
+    		here = tree[ind[a]].go(0, depth[a] - depth[ladder[ind[a]][0]]);
+    		a = p[ladder[ind[a]][0]];
+    	}
+    	result += here.second - here.first;
+    }
+    int l = depth[a] - depth[ladder[ind[a]][0]];
+    int r = depth[b] - depth[ladder[ind[b]][0]];
+    if (l > r) swap(l, r);
+    if (l < r) {
+    	here = tree[ind[a]].go(l, r);
+    	result += here.second - here.first;
+    }
+    return result;
+}
+
+void update(int v, int x, int y) {
+	int id = ind[v];
+	tree[id].update(depth[v] - depth[ladder[id][0]], x, y);
+}
+
+void go(int v) {
+	int sum = 0;
+	for (auto& to : graph[v]) {
+		go(to);
+		sum += f[to];
+	}
+	f[v] = sum;
+	for (auto& item : q[v]) {
+		int x = item.x, y = item.y, c = item.c;
+		f[v] = max(f[v], sum + query(x, y) + c);
+	}
+	update(v, f[v], sum);
+}
+
+void solve() {
+	cin >> n >> m;
+	FOR (i, 1, n - 1) {
+		int par;
+		cin >> par;
+		--par;
+		graph[par].push_back(i);
+	}
+	init(0);
+	REP(i, m) {
+		int x, y, c;
+		cin >> x >> y >> c;
+		--x; --y;
+		int lca = LCA(x, y);
+		q[lca].push_back({x, y, c});
+	}
+	go(0);
+	cout << f[0] << '\n';
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+
+	int t = 1;
+	REP(i, t) solve();
+
+	return 0;
+}

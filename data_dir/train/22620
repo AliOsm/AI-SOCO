@@ -1,0 +1,200 @@
+//#pragma comment(linker, "/stack:200000000")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma GCC optimize("unroll-loops")
+
+#include <iostream>
+#include <stdlib.h>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <random>
+#include <assert.h>
+#include <memory.h>
+#include <time.h>
+
+#define uint unsigned int
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define rep(i, l, r) for (int i = l; i < r; i++)
+#define repb(i, r, l) for (int i = r; i > l; i--)
+#define sz(a) (int)a.size()
+#define fi first
+#define se second
+#define mp(a, b) make_pair(a, b)
+#define rank qwertyuio
+
+using namespace std;
+
+inline bool setmin(int &x, int y) { return (y < x) ? x = y, 1 : 0; }
+inline bool setmax(int &x, int y) { return (y > x) ? x = y, 1 : 0; }
+inline bool setmin(ll &x, ll y) { return (y < x) ? x = y, 1 : 0; }
+inline bool setmax(ll &x, ll y) { return (y > x) ? x = y, 1 : 0; }
+
+const int N = 200000;
+const int inf = (int)1e9 + 1;
+const ll big = (ll)1e18 + 1;
+const int P = 239;
+const int P1 = 31;
+const int P2 = 57;
+const int MOD = (int)1e9 + 7;
+const int MOD1 = (int)1e9 + 9;
+const int MOD2 = 998244353;
+const double eps = 1e-9;
+const double pi = atan2(0, -1);
+const int ABC = 26;
+
+struct var {
+    int a1, a2;
+    char op;
+    var(int a1, int a2, char op) : a1(a1), a2(a2), op(op) {}
+};
+
+vector<var> V;
+map<string, int> mapa;
+set<string> used;
+map<int, string> init;
+map<pair<pair<int, int>, char>, int> MAPA;
+
+map<int, string> toSTR;
+
+string f(int x) {
+    string res;
+    rep(i, 0, 4) {
+        res += char('a' + x % 26);
+        x /= 26;
+    }
+    reverse(res.begin(), res.end());
+    return res;
+}
+
+string getStr(int x) {
+    int xxx = x;
+    if (x == mapa["res"]) {
+        return "res";
+    }
+    if (init.count(x)) {
+        return init[x];
+    }
+    if (toSTR.count(x)) {
+        return toSTR[x];
+    }
+    while (used.count(f(x))) {
+        x++;
+    }
+    used.insert(f(x));
+    return toSTR[xxx] = f(x);
+}
+
+vector<string> out;
+set<int> was;
+
+void restore(int id) {
+    if (V[id].op == '.') {
+        return;
+    }
+    if (!was.count(V[id].a1)) {
+        restore(V[id].a1);
+    }
+    if (!was.count(V[id].a2)) {
+        restore(V[id].a2);
+    }
+    out.push_back(getStr(id) + "=" + getStr(V[id].a1) + V[id].op + getStr(V[id].a2));
+    was.insert(id);
+}
+
+int main()
+{
+    //freopen("a.in", "r", stdin);
+    //freopen("a.out", "w", stdout);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.precision(20);
+    cout << fixed;
+    //ll TL = 0.95 * CLOCKS_PER_SEC;
+    //clock_t time = clock();
+    int n;
+    cin >> n;
+    int curID = 0;
+    int ANS_ID = -1;
+    string ANS_STR = "";
+    rep(t, 0, n) {
+        string s;
+        cin >> s;
+        int p1 = -1, p2 = -1;
+        rep(i, 0, sz(s)) {
+            if (s[i] == '=') {
+                p1 = i;
+            }
+            if (s[i] == '$' || s[i] == '^' || s[i] == '#' || s[i] == '&') {
+                p2 = i;
+            }
+        }
+        if (p2 == -1) {
+            string a = s.substr(0, p1), b = s.substr(p1 + 1, sz(s) - p1 - 1);
+            if (a == b) {
+                continue;
+            }
+            if (mapa.find(b) == mapa.end()) {
+                mapa[b] = curID++;
+                init[mapa[b]] = b;
+                used.insert(b);
+                V.push_back(var(-1, -1, '.'));
+            }
+            if (a == "res") {
+                if (V[mapa[b]].op == '.') {
+                    ANS_ID = mapa[b];
+                    ANS_STR = init[mapa[b]];
+                }
+            }
+            mapa[a] = mapa[b];
+        } else {
+            string a = s.substr(0, p1), b = s.substr(p1 + 1, p2 - p1 - 1), c = s.substr(p2 + 1, sz(s) - p2 - 1);
+            if (mapa.find(b) == mapa.end()) {
+                mapa[b] = curID++;
+                init[mapa[b]] = b;
+                used.insert(b);
+                V.push_back(var(-1, -1, '.'));
+            }
+            if (mapa.find(c) == mapa.end()) {
+                mapa[c] = curID++;
+                init[mapa[c]] = c;
+                used.insert(c);
+                V.push_back(var(-1, -1, '.'));
+            }
+            int idB = mapa[b], idC = mapa[c];
+            auto it = MAPA.find({{idB, idC}, s[p2]});
+            if (it == MAPA.end()) {
+                V.push_back(var(idB, idC, s[p2]));
+                mapa[a] = curID++;
+                MAPA[{{idB, idC}, s[p2]}] = mapa[a];
+            } else {
+                mapa[a] = it->se;
+            }
+        }
+    }
+    if (mapa.find("res") == mapa.end()) {
+        cout << 0 << "\n";
+        return 0;
+    }
+    if (mapa["res"] == ANS_ID) {
+        if (ANS_STR == "res") {
+            cout << 0 << "\n";
+            return 0;
+        }
+        cout << 1 << "\n";
+        cout << "res=" << ANS_STR << "\n";
+        return 0;
+    }
+    restore(mapa["res"]);
+    cout << sz(out) << "\n";
+    for (auto it : out) {
+        cout << it << "\n";
+    }
+    return 0;
+}

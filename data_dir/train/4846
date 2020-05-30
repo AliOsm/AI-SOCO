@@ -1,0 +1,138 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define SZ(x) ((int)(x).size())
+#define PB(x) push_back(x)
+#define MEMSET(x,v) memset(x,v,sizeof(x))
+#define REP(i,n) for(int i=0;(i)<(n);++(i))
+#define x first
+#define y second
+#define INF (0x3f3f3f3f)
+
+typedef long long LL;
+typedef pair<int, int> P2;
+template<class A, class B> inline bool mina(A &x, B y) {return (x > y)?(x=y,1):0;}
+template<class A, class B> inline bool maxa(A &x, B y) {return (x < y)?(x=y,1):0;}
+
+
+class SegmentTree {
+public:
+    typedef struct segment_st {
+        int depth;  // final depth
+        int max_d;
+        int min_d;
+        int max_ab; // d(a) - 2d(b)
+        int max_bc; //      - 2d(b) + d(c)
+        int max_v;  // d(a) - 2d(b) + d(c)
+        int l, r;
+    } TreeNode;
+
+    vector<TreeNode> tree;
+    int N; // the number of data
+    int tree_size; // the number of tree nodes
+    vector<int> leaves; // leaves' indices
+    SegmentTree(int n) { build_tree(n); }
+    int query() { return tree[1].max_v; }
+    void update(int at, char val) { internal_update(at, val); }
+private:
+    // Recalculate the parent's value
+    void update_up(int at){
+        int left = at + at;
+        int right = at + at + 1;
+        int l_depth = tree[left].depth;
+        int l_max_d = tree[left].max_d;
+        int l_min_d = tree[left].min_d;
+        int l_max_ab = tree[left].max_ab;
+        int l_max_bc = tree[left].max_bc;
+        int l_max_v = tree[left].max_v;
+
+        int r_depth = tree[right].depth + l_depth;
+        int r_max_d = tree[right].max_d + l_depth;
+        int r_min_d = tree[right].min_d + l_depth;
+        int r_max_ab = tree[right].max_ab - l_depth;
+        int r_max_bc = tree[right].max_bc - l_depth;
+        int r_max_v = tree[right].max_v;
+
+        tree[at].depth = r_depth;
+        tree[at].max_d = max(l_max_d, r_max_d);
+        tree[at].min_d = min(l_min_d, r_min_d);
+        tree[at].max_ab = max({l_max_ab, r_max_ab, l_max_d - 2 * r_min_d});
+        tree[at].max_bc = max({l_max_bc, r_max_bc, -2 * l_min_d + r_max_d});
+        tree[at].max_v = max({l_max_v, r_max_v, l_max_ab + r_max_d, l_max_d + r_max_bc});
+
+    }
+    // Update leaf's value for internal update
+    void update_leaf_value(int at, char &val) {
+        if (val == '(') {
+            tree[at].depth = 1;
+            tree[at].max_d = 1;
+            tree[at].min_d = 0;
+            tree[at].max_ab = 0;
+            tree[at].max_bc = 1;
+            tree[at].max_v = 1;
+        } else {
+            tree[at].depth = -1;
+            tree[at].max_d = 0;
+            tree[at].min_d = -1;
+            tree[at].max_ab = 2;
+            tree[at].max_bc = 1;
+            tree[at].max_v = 1;
+        }
+    }
+    void internal_update(int at, char &val) {
+        at = leaves[at];
+        update_leaf_value(at, val);
+        at >>= 1;
+        while (at) { update_up(at); at >>= 1; }
+    }
+    void build_tree(int n) {
+        N = n; int base = 1; while (base < N) base <<= 1; tree_size = base << 1;
+        leaves.resize(N + 1); tree = vector<TreeNode> (tree_size);
+        init(1, 1, n);
+    }
+    void init(int at, int ll, int rr) {
+        tree[at].l = ll; tree[at].r = rr;
+        if(ll == rr) { leaves[ll] = at;
+            tree[at].depth = 0;
+            tree[at].max_d = 0;
+            tree[at].min_d = 0;
+            tree[at].max_ab = 0;
+            tree[at].max_bc = 0;
+            tree[at].max_v = 0;
+        }
+        else {
+            int mid = (tree[at].l + tree[at].r) >> 1;
+            init(at + at, tree[at].l, mid);
+            init(at + at + 1, mid + 1, tree[at].r);
+            update_up(at);
+        }
+    }
+};
+
+const int MAXN = 1e5+5;
+
+int N, Q;
+string S;
+
+int main() {
+    cin >> N >> Q;
+    cin >> S;
+    N = 2 * (N - 1);
+    SegmentTree tree(N);
+    REP(i, N) {
+        tree.update(i + 1, S[i]);
+    }
+    printf("%d\n", tree.query());
+    int ll, rr;
+    REP(q, Q) {
+        scanf("%d %d", &ll, &rr);
+        if (S[ll - 1] != S[rr - 1]) {
+            tree.update(ll, S[rr - 1]);
+            tree.update(rr, S[ll - 1]);
+            swap(S[ll - 1], S[rr - 1]);
+        }
+        printf("%d\n", tree.query());
+    }
+    return 0;
+}

@@ -1,0 +1,143 @@
+// Team: MEPhI SoZo
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace std;
+
+#define all(_obj) (_obj).begin(), (_obj).end()
+#define debug(_x) cerr << (#_x) << " = " << (_x) << '\n' << flush;
+#define RET(_x) cout << (_x) << '\n'; return;
+#define endl "\n"
+
+using ll = long long;
+using pii = pair<int, int>;
+constexpr int INF = 0x3f3f3f3f;
+
+//.data
+template<typename T>
+using ordered_set = __gnu_pbds::tree<T, __gnu_pbds::null_type, less<T>,
+                                     __gnu_pbds::rb_tree_tag,
+                                     __gnu_pbds::tree_order_statistics_node_update>;
+
+class SegmentTree {
+public:
+    struct Node {
+        ordered_set<int> Values;
+        int Left = -1;
+        int Right = -1;
+    };
+
+    SegmentTree(int* arr, int n) : size(n), tree(1) {
+        Build(0, 0, size - 1, arr);
+    }
+
+    void Update(int i, int x, int j, int y) {
+        UpdateImpl(0, 0, size - 1, i, x, false);
+        UpdateImpl(0, 0, size - 1, j, y, false);
+        UpdateImpl(0, 0, size - 1, j, x, true);
+        UpdateImpl(0, 0, size - 1, i, y, true);
+    }
+
+    int Query(int l, int r, int x, int y) {
+        return QueryImpl(0, 0, size - 1, l, r, x, y);
+    }
+
+private:
+    void Build(int v, int tl, int tr, int* arr) {
+        if (tl == tr) {
+            tree[v].Values.insert(arr[tl]);
+            return;
+        }
+        int mid = (tl + tr) >> 1;
+        tree[v].Left = tree.size();
+        tree.emplace_back();
+        Build(tree[v].Left, tl, mid, arr);
+        tree[v].Right = tree.size();
+        tree.emplace_back();
+        Build(tree[v].Right, mid + 1, tr, arr);
+        for (int x : tree[tree[v].Left].Values) {
+            tree[v].Values.insert(x);
+        }
+        for (int x : tree[tree[v].Right].Values) {
+            tree[v].Values.insert(x);
+        }
+    }
+
+    void UpdateImpl(int v, int tl, int tr, int i, int x, bool ins) {
+        if (ins) {
+            tree[v].Values.insert(x);
+        } else {
+            tree[v].Values.erase(x);
+        }
+        if (tl == tr) {
+            return;
+        }
+        int mid = (tl + tr) >> 1;
+        if (i <= mid) {
+            UpdateImpl(tree[v].Left, tl, mid, i, x, ins);
+        } else {
+            UpdateImpl(tree[v].Right, mid + 1, tr, i, x, ins);
+        }
+    }
+
+    int QueryImpl(int v, int tl, int tr, int l, int r, int x, int y) {
+        if (l > r) {
+            return 0;
+        }
+        if (tl == l && r == tr) {
+            auto px = tree[v].Values.upper_bound(x);
+            if (px == tree[v].Values.end()) {
+                return 0;
+            }
+            int dx = tree[v].Values.order_of_key(*px);
+            auto py = tree[v].Values.lower_bound(y);
+            int dy;
+            if (py == tree[v].Values.end()) {
+                dy = tree[v].Values.size();
+            } else {
+                dy = tree[v].Values.order_of_key(*py);
+            }
+            return dy - dx;
+        }
+        int mid = (tl + tr) >> 1;
+        return QueryImpl(tree[v].Left, tl, mid, l, min(mid, r), x, y) +
+               QueryImpl(tree[v].Right, mid + 1, tr, max(mid + 1, l), r, x, y);
+    }
+
+    int size;
+    vector<Node> tree;
+};
+
+int arr[200000];
+
+//.code
+void Solve() {
+    int n, m;
+    cin >> n >> m;
+    iota(arr, arr + n, 0);
+    ll ans = 0;
+    SegmentTree st(arr, n);
+    for (int i = 0; i < m; ++i) {
+        int l, r;
+        cin >> l >> r;
+        if (l != r) {
+            --l; --r;
+            if (l > r) {
+                swap(l, r);
+            }
+
+            int d = st.Query(l, r, min(arr[r], arr[l]), max(arr[l], arr[r])) * 2 + 1;
+            st.Update(l, arr[l], r, arr[r]);
+            ans += arr[l] < arr[r] ? d : -d;
+            swap(arr[l], arr[r]);
+        }
+        cout << ans << endl;
+    }
+}
+
+int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    Solve();
+    return 0;
+}

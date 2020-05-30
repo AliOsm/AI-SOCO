@@ -1,0 +1,164 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+#define rep(i,a,n) for (int i=(a);i<(n);i++)
+#define per(i,a,n) for (int i=(n)-1;i>=(a);i--)
+#define pb push_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define fi first
+#define se second
+#define SZ(x) (int)x.size()
+#define x first
+#define w second
+
+typedef long long ll;
+typedef long double ld;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll>pll;
+typedef vector<pii> vpii;
+
+template<typename T>
+T getint() {
+    T x=0,p=1;
+    char ch;
+    do{ch=getchar();}while(ch <= ' ');
+    if(ch=='-')p=-1,ch=getchar();
+    while(ch>='0'&&ch<='9')x=x*10+ch-'0',ch=getchar();
+    return x*p;
+}
+
+mt19937 gen(chrono::system_clock::now().time_since_epoch().count());
+
+template<typename T1,typename T2>bool umin(T1 &x,const T2&y){if(x>y)return x=y,true;return false;}
+template<typename T1,typename T2>bool umax(T1 &x,const T2&y){if(x<y)return x=y,true;return false;}
+
+const int maxn=(int)2e5+10;
+const int inf=(int)1e9+5;
+const int mod=(int)1e9+7;
+const ll llinf=(ll)1e18+5;
+const ld pi=acos(-1.0);
+
+
+
+int mark[maxn],sz[maxn];
+int n,q;
+vector<int> g[maxn];
+int anc[maxn];
+vector<int> nodes;
+
+
+void calcsz(int v,int p=-1){
+    nodes.pb(v);
+    sz[v]=1;
+    anc[v]=p;
+    for(int x:g[v]){
+        if(x==p||mark[x])continue;
+        calcsz(x,v);
+        sz[v]+=sz[x];
+    }
+}
+
+int find(int n){
+    for(int x:nodes){
+        int mxsz=n-sz[x];
+        for(int y:g[x]){
+            if(mark[y]||y==anc[x])continue;
+            mxsz=max(mxsz,sz[y]);
+        }
+        if(mxsz<=n/2)return x;
+    }
+    assert(false);
+}
+
+int a[maxn];
+ll z = 0;
+ll cnt = 0;
+ll ans = 0;
+void add(ll &x, ll y) {
+    x += y;
+    if (x >= mod) x -= mod;
+    if (x < 0) x += mod;
+}
+
+int mul(int x, int y) {
+    return 1LL * x * y % mod;
+}
+
+void add(int v, int p, ll sum, int dep, int d) {
+    ll val = a[v] * (dep % 2 ? -1 : 1);
+    add(sum, val);
+//    cout << sum << ' ' << d << endl;
+    add(cnt, d);
+    add(z, d * sum);
+    for(int x: g[v]) if (x != p && !mark[x]) {
+        add(x, v, sum, dep + 1, d);
+    }
+}
+void add2(int v, int p, ll sum, int dep) {
+    add(sum, a[v] * (dep % 2 ? -1 : 1));
+    if (dep % 2 == 0) {
+        add(ans, z);
+        add(ans, mul(sum, cnt));
+    } else {
+//        cout << z << ' ' << sum << ' ' << cnt << endl;
+        add(ans, -z);
+        add(ans, -mul(sum, cnt));
+    }
+    for(int x: g[v]) if (x != p && !mark[x]) {
+        add2(x, v, sum, dep + 1);
+    }
+}
+
+void build(int v,int dep) {
+    nodes.clear();
+    calcsz(v);
+    v=find(sz[v]);
+    mark[v]=1;
+
+//    cout << "cen" << v << ' ' << endl;
+    z = a[v];
+    cnt = 1;
+    for(int x: g[v]) {
+        if (mark[x]) continue;
+        add(x, v, a[v], 1, 1);
+    }
+    add(ans, z);
+    for(int x: g[v]) {
+
+        if (mark[x]) continue;
+        add(x, v, a[v], 1, -1);
+//        cout << "sin " << z << endl;
+        add2(x, v, 0, 1);
+        add(x, v, a[v], 1, 1);
+    }
+
+    for(int x:g[v]){
+        if(mark[x])continue;
+        build(x,dep+1);
+    }
+}
+
+
+int main() {
+    ios_base::sync_with_stdio(0);
+//    freopen("input.txt", "r", stdin);
+//    freopen("output.txt", "w", stdout);
+    cin >> n;
+    rep(i,1,n+1)cin>>a[i];
+    rep(i,0,n-1){
+        int x,y;
+        cin>>x>>y;
+        g[x].pb(y);
+        g[y].pb(x);
+    }
+    build(1, 0);
+    cout << ans << endl;
+    return 0;
+}

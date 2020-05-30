@@ -1,0 +1,132 @@
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,no-stack-protector,fast-math")
+#include <bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define IO ios_base::sync_with_stdio(0),cin.tie(0),cout.tie(0);
+using namespace std;
+const int N = 1e5 + 5, M = 2 * N + 5;
+
+int head[N], to[M], nxt[M], ne, n;
+
+void init(){
+    ne = 0;
+    memset(head, -1, n * sizeof head[0]);
+}
+
+void addEdge(int f, int t){
+    to[ne] = t;
+    nxt[ne] = head[f];
+    head[f] = ne++;
+}
+
+void addBiEdge(int a, int b){
+    addEdge(a, b);
+    addEdge(b, a);
+}
+
+int height[M], par[N], edgPar[N];
+int nodetoindex[M], indextonode[M], sz;
+
+void dfs(int u = 0, int p = -1, int lvl = 0){
+    par[u] = p;
+    nodetoindex[u] = sz;
+    indextonode[sz] = u;
+    height[sz++] = lvl;
+    for(int e = head[u] ; ~e ; e = nxt[e]){
+        int v = to[e];
+        if(v == p)continue;
+        edgPar[v] = e / 2;
+        dfs(v, u, lvl + 1);
+        nodetoindex[u] = sz;
+        indextonode[sz] = u;
+        height[sz++] = lvl;
+    }
+}
+
+const int range = 2 * N + 5;
+
+int LG[range], sparse[19][range];
+inline int idx_query(int i, int j){
+    return (height[i] < height[j]) ? i : j;
+}
+void build_sparse(){
+    LG[0] = -1;
+    for(int i = 0 ; i < sz ; ++i){
+        LG[i + 1] = LG[i] + !(i & (i + 1));
+        sparse[0][i] = i;
+    }
+    for(int lg = 1 ; (1 << lg) <= sz ; ++lg){
+        for(int i = 0 ; i + (1 << lg) <= sz ; ++i){
+            int I = sparse[lg - 1][i];
+            int J = sparse[lg - 1][i + (1 << (lg - 1))];
+            sparse[lg][i] = idx_query(I, J);
+        }
+    }
+}
+int idx(int l, int r){
+    if(l > r)swap(l, r);
+    int sz = r - l + 1;
+    int lg = LG[sz];
+    int i = sparse[lg][l];
+    int j = sparse[lg][r - (1 << lg) + 1];
+    return idx_query(i, j);
+}
+
+int getLca(int u, int v){
+    u = nodetoindex[u];
+    v = nodetoindex[v];
+    return indextonode[idx(u, v)];
+}
+
+int cnt[N];
+
+void solve(int u, int v){
+    int lca = getLca(u, v);
+
+    ++cnt[u], ++cnt[v], cnt[lca] -= 2;
+}
+
+int nodes[N], ans[N];
+
+int main(){
+#ifndef ONLINE_JUDGE
+    freopen("input.in", "r", stdin);
+#endif
+    scanf("%d", &n);
+    init();
+
+    for(int i = 1 ; i < n ; ++i){
+        int u, v;
+        scanf("%d %d", &u, &v);
+        addBiEdge(--u, --v);
+    }
+
+    dfs();
+    build_sparse();
+
+    int q;
+    scanf("%d", &q);
+
+    while(q--){
+        int u, v;
+        scanf("%d %d", &u, &v);
+        solve(--u, --v);
+    }
+
+    iota(nodes, nodes + n, 0);
+
+    sort(nodes, nodes + n, [](int i, int j){
+        return height[nodetoindex[i]] > height[nodetoindex[j]];
+    });
+
+    for(int i = 0 ; i < n ; ++i){
+        int u = nodes[i];
+        int p = par[u];
+        if(p == -1)continue;
+        cnt[p] += cnt[u], ans[edgPar[u]] = cnt[u];
+    }
+
+    for(int i = 0 ; i + 1 < n ; ++i)
+        printf("%d%c", ans[i], " \n"[i == n - 2]);
+
+}

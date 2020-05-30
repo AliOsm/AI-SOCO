@@ -1,0 +1,174 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define int           long long 
+#define S             second
+#define F             first
+#define pb            push_back
+#define ppb           pop_back()
+#define ppb           pop_back()
+#define B(c)          (c).begin()
+#define E(c)          (c).end()
+#define all(c)        (c).begin(),(c).end()
+#define rall(c)       (c).rbegin(),(c).rend() 
+#define lb            lower_bound
+#define si(c)         (int)((c).size())
+#define lcm(a,b)      (a * (b / __gcd(a,b)))  
+#define inf           (int)(1e18 + 10)
+#define err           cerr << "move" << '\n';
+#define endl          '\n'
+#define mp            make_pair
+
+typedef vector<int>                           vi;
+typedef pair<int,int>                         pii;
+typedef vector<pii>                           vpi;
+typedef vector<vector<int> >                  vvi;;
+typedef priority_queue<pii, vector<pii>, greater<pii> > pq;
+
+const int N = 1e5+10;
+int a[N];
+struct venue{
+    int l, r, j;
+    bool operator<(venue other){
+        return mp(l, r) < mp(other.l, other.r);
+    }
+};
+struct segm{
+    int seg[4*N];
+    segm(int x, int k){
+        for(int i = 0; i < k; i++){
+            seg[i] = x;
+        }
+    }
+    void build(int s, int e, int v, int f){
+        if(s == e){
+            seg[v]=a[s];
+        }
+        else{
+            int mid=(s+e)/2;
+            build(s,mid,2*v, f);
+            build(mid+1,e,2*v+1, f);
+            if(f)seg[v] = max(seg[2*v], seg[2*v+1]);
+            else seg[v] = min(seg[2*v], seg[2*v+1]);
+        }
+    }
+    int query(int s,int e,int v, int l, int r, int f){
+        if(l>e||r<s){
+            if(f) return -inf;
+            return inf;
+        }
+        else if(l<=s&&r>=e){
+            return seg[v];
+        }
+        else{
+            int mid=(s+e)/2;
+            int m1=query(s,mid,2*v, l, r, f);
+            int m2=query(mid+1,e,2*v+1, l, r, f);
+            if(f)return max(m1, m2);
+            else return min(m1, m2);    
+        }
+    }
+    void update(int s,int e,int v, int i , int x, int f){
+        if(s == e){
+            seg[v]=x;
+        }
+        else{
+            int mid=(s+e)/2;
+            if(s<=i&&i<=mid)
+            update(s,mid,2*v, i, x, f);
+            else
+            update(mid+1,e,2*v+1, i, x, f);   
+            if(f)seg[v] = max(seg[2*v], seg[2*v+1]);
+            else seg[v] = min(seg[2*v], seg[2*v+1]); 
+        }
+    }
+};
+
+void solve(){
+    int n;
+    cin >> n;
+    segm seg1(-inf, 4*n), seg2(inf, 4*n), seg3(-inf, 4*n), seg4(inf, 4*n);
+    set<pii> s;
+    venue v1[n], v2[n];
+    int st1[n], en1[n], st2[n], en2[n];
+    for(int i = 0; i < n; i++){
+        cin >> v1[i].l >> v1[i].r >> v2[i].l >> v2[i].r;
+        v1[i].j = v2[i].j = i;
+        st1[i] = v1[i].l, en1[i] = v1[i].r;
+        st2[i] = v2[i].l, en2[i] = v2[i].r;
+    }
+    sort(v1, v1+n);
+    sort(v2, v2+n);
+    for(int i = 0; i < n; i++){
+        a[i] = st2[v1[i].j];
+    }
+    seg1.build(0, n, 1, 1);
+    for(int i = 0; i < n; i++){
+        a[i] = en2[v1[i].j];
+    }
+    seg2.build(0, n, 1, 0);
+    for(int i = 0; i < n; i++){
+        a[i] = st1[v2[i].j];
+    }
+    seg3.build(0, n, 1, 1);
+    for(int i = 0; i < n; i++){
+        a[i] = en1[v2[i].j];
+    }
+    seg4.build(0, n, 1, 0);
+    
+    for(int i = 0; i < n; i++){
+        while(si(s) && B(s)->F < v1[i].l){
+            seg1.update(0, n, 1, B(s)->S, -inf, 1);
+            seg2.update(0, n, 1, B(s)->S, inf, 0);
+            s.erase(*B(s));
+        }
+        s.insert({v1[i].r, i});
+        int mx = seg1.query(0, n, 1, 0, i, 1);
+        int mn = seg2.query(0, n, 1, 0, i, 0);
+        if(mx > en2[v1[i].j] || mn < st2[v1[i].j]){
+            cout << "NO" << endl;return;
+        }
+    }
+    s.clear();
+    for(int i = 0; i < n; i++){
+        while(si(s) && B(s)->F < v2[i].l){
+            seg3.update(0, n, 1, B(s)->S, -inf, 1);
+            seg4.update(0, n, 1, B(s)->S, inf, 0);
+            s.erase(*B(s));
+        }
+        int mx = seg3.query(0, n, 1, 0, i, 1);
+        int mn = seg4.query(0, n, 1, 0, i, 0);
+        s.insert({v2[i].r, i});
+        if(mx > en1[v2[i].j] || mn < st1[v2[i].j]){
+            cout << "NO" << endl;return;
+        }
+    }
+    cout << "YES" << endl;
+}
+
+signed main(){
+
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);    
+    int t = 1;
+    clock_t start, end; 
+    start = clock(); 
+
+    cout << fixed << setprecision(20);
+    
+
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin); 
+    freopen("output.txt", "w", stdout);
+    freopen("error.txt", "w", stderr);
+    #endif
+
+    // cin >> t;
+  
+    while(t--){
+        solve();
+    }
+
+    end = clock();
+    double time_taken = double(end - start) / double(CLOCKS_PER_SEC); 
+    //cerr << time_taken;
+}

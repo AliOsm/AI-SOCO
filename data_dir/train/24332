@@ -1,0 +1,89 @@
+#include <cstring>
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <cmath>
+#include <cstdio>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(n);i++)
+
+typedef long long ll;
+
+vector<vector<int> > adj;
+
+const int SZ=100000;
+
+
+ll cnt[SZ];
+ll sum[SZ+1];
+ll wsum[SZ+1];
+int max_depth;
+
+void dfs(int cur, int depth, int p=-1)
+{
+	cnt[depth]++;
+	max_depth=max(max_depth,depth+1);
+	for(int i=0;i<adj[cur].size();i++)
+	{
+		int to=adj[cur][i];
+		if(to==p) continue;
+		dfs(to,depth+1,cur);
+	}
+}
+
+ll get_weighted_sum(int l, int r)
+{
+//	???
+	return wsum[r]-wsum[l-1]-sum[l-1]*(r-l+1);
+}
+
+int main()
+{
+	int m,k,p;
+	scanf("%d%d%d",&m,&k,&p);
+	adj.resize(m);
+	REP(i,m-1)
+	{
+		int a,b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		adj[a].push_back(b);
+		adj[b].push_back(a);
+	}
+	dfs(0,0);
+	cnt[0]=0;
+	for(int i=1;i<=max_depth;i++)
+	{
+		sum[i]=sum[i-1]+cnt[i-1];
+		wsum[i]=wsum[i-1]+sum[i-1];
+	}
+	int res=0;
+	for(int i=0;i<max_depth;i++)
+	{
+		int l=0;
+		int r=i;
+		while(l<r)
+		{
+			int c=(l+r)/2;
+			ll cur_sum=get_weighted_sum(c+1,i+1);
+			if(cur_sum>p)
+				l=c+1;
+			else
+				r=c;
+		}
+		int cur=get_weighted_sum(l+1,i+1);
+		int curcnt=sum[i+1]-sum[l];
+		if(l>0)
+		{
+			int v=(p-cur)/(i-l+1);
+			curcnt+=v;
+			cur+=v*(i-l+1);
+			assert(v<=cnt[l-1]);
+		}
+		res=max(res,curcnt);
+	}
+	printf("%d\n",min(res,k));
+	return 0;
+}

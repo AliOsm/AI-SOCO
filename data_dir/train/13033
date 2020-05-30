@@ -1,0 +1,81 @@
+#include<cstdio>
+#include<cmath>
+
+#define lson l, m, o<<1
+#define rson m + 1,r,o<<1|1
+#define MAX_N 100010
+typedef long long int64;
+
+int64 sum[MAX_N<<2], mark[MAX_N<<2];
+int col[MAX_N<<2];
+int L, R, color, val;
+void pushdown(int l, int r, int o) {
+	if(col[o]) {
+		col[o << 1] = col[o << 1|1] = col[o]; 
+		col[o] = 0;
+	} 
+	if(mark[o]) {
+		int m = r + l >> 1;
+		mark[o << 1] += mark[o];
+		mark[o << 1|1] += mark[o];
+		sum[o << 1] += (m - l + 1) * mark[o];
+		sum[o << 1|1] += (r - m) * mark[o];
+		mark[o] = 0;
+	}
+}
+void update(int l, int r, int o) {
+	if(L <= l && r <= R && col[o]) {
+		mark[o] += std::abs(color - col[o]);
+		sum[o] += std::abs(color - col[o]) * 1LL * (r - l + 1);
+		col[o] = color;
+	} else {
+		int m = l + r >> 1;
+		pushdown(l, r, o);
+		if(L <= m)		update(lson);
+		if(R > m)		update(rson);
+		sum[o] = sum[o << 1] + sum[o << 1|1];
+		if(col[o << 1] == col[o << 1|1])
+			col[o] = col[o << 1];
+	}
+}
+
+int64 query(int l, int r, int o) {
+	if(L <= l && r <= R) {
+		return sum[o];
+	} else {
+		int m = l + r >> 1;
+		int64 ret = 0;
+		pushdown(l, r, o);
+		if(L <= m)		ret += query(lson);
+		if(R > m)		ret += query(rson);
+		sum[o] = sum[o << 1] + sum[o << 1|1];
+		if(col[o << 1] == col[o << 1|1])
+			col[o] = col[o << 1];
+		return ret;
+	}
+}
+void Build(int l, int r, int o) {
+	if(l == r) {
+		col[o] = l;
+	} else {
+		int m = l + r >> 1;
+		Build(lson);
+		Build(rson);
+	}
+}
+int main() {
+	int n, m, op;
+	scanf("%d%d", &n, &m);
+	Build(1, n, 1);
+	for(int i = 1; i <= m; i ++) {
+		scanf("%d", &op);
+		if(op == 1) {
+			scanf("%d%d%d", &L, &R, &color);
+			update(1, n, 1);
+		} else {
+			scanf("%d%d", &L, &R);
+			printf("%I64d\n", query(1, n, 1));
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100005;
+
+int st[4*N], lz[4*N];
+
+void prop(int p, int L, int R) {
+	if(lz[p]) {
+		st[p] += lz[p];
+		if(L < R) {
+			lz[2 * p] += lz[p];
+			lz[2 * p + 1] += lz[p];
+		}
+		lz[p] = 0;
+	}
+}
+
+void upd(int p, int L, int R, int i, int j, int val) {
+	prop(p, L, R);
+	if(j < L or i > R) return;
+	if(L >= i and R <= j) {
+		lz[p] = val;
+		prop(p, L, R);
+		return;
+	}
+	int mid = (L + R) / 2;
+	upd(2 * p, L, mid, i, j, val);
+	upd(2 * p + 1, mid + 1, R, i, j, val);
+	st[p] = max(st[2 * p], st[2 * p + 1]);
+}
+int query(int p, int L, int R, int i, int j) {
+	prop(p, L, R);
+	if(j < L or i > R) return 0;
+	if(L >= i and R <= j) return st[p];
+	int mid = (L + R) / 2;
+	return max(query(2 * p, L, mid, i, j),
+				query(2 * p + 1, mid + 1, R, i, j));
+}
+
+int n, h[N];
+int id[N];
+int m;
+int l[N], r[N], w[N];
+int ans[N];
+int ptr;
+set<int> off;
+
+void add(int p) {
+	p = id[p];
+	int len = 1;
+	len += query(1, 1, n, p + 1, p + 1);
+	off.erase(p);
+	auto it = off.lower_bound(p);
+	int lef = p;
+	if(it != off.begin()) {
+		it--;
+		lef = *it + 1;
+	}
+	else lef = 1;
+	upd(1, 1, n, lef, p, len);
+}
+void rem(int p) {
+	p = id[p];
+	int len = 1;
+	len += query(1, 1, n, p + 1, p + 1);
+	auto it = off.lower_bound(p);
+	int lef = p;
+	if(it != off.begin()) {
+		it--;
+		lef = *it + 1;
+	}
+	else lef = 1;
+	upd(1, 1, n, lef, p, -len);
+	off.insert(p);
+}
+
+void fix(int pos) {
+	while(ptr > pos) {
+		add(--ptr);
+	}
+	while(ptr < pos) {
+		rem(ptr++);
+	}
+}
+
+void solve(int L, int R, const vector<int> &qids) {
+	if(qids.empty() or L > R) return;
+	int mid = (L + R) / 2;
+	fix(mid);
+
+	vector<int> lef, rig;
+
+	for(int x : qids) {
+		if(query(1, 1, n, l[x], r[x]-w[x]+1) >= w[x]) {
+			ans[x] = h[ id[mid] ];
+			rig.push_back(x);
+		}
+		else {
+			lef.push_back(x);
+		}
+	}
+
+	solve(mid + 1, R, rig);
+	solve(L, mid-1, lef);
+}
+
+int main() {
+
+	scanf("%d", &n);
+	ptr = n + 1;
+
+	for(int i = 1; i <= n; i++) scanf("%d", h + i), id[i] = i;
+
+	for(int i = 1; i <= n; i++) off.insert(i);
+
+	sort(id+1, id+n+1, [](int i, int j) {
+		return h[i] < h[j];
+	});
+
+	scanf("%d", &m);
+
+	vector<int> qids;
+	for(int i = 0; i < m; i++) {
+		scanf("%d %d %d", l + i, r + i, w + i);
+		qids.push_back(i);
+	}
+
+	solve(1, n, qids);
+
+	for(int i = 0; i < m; i++) {
+		printf("%d\n", ans[i]);
+	}
+}

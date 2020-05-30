@@ -1,0 +1,91 @@
+#include <bits/stdc++.h>
+//#define int long long
+using namespace std;
+#define IOS ios::sync_with_stdio(false) , cin.tie(0) , cout.tie(0)
+inline int in(){int32_t x ; scanf("%d",&x) ; return x ; }
+inline long long lin(){long long x ; scanf("%lld",&x) ; return x ;}
+const int maxn  = 1e6 + 10;
+const int mod = 1e9 + 7;
+int n , m;
+string s;
+struct info
+{
+    int arr[2][2];
+    info(){memset(arr,0,sizeof arr);}
+};
+struct node
+{
+    int lazy;
+    info decreasing , increasing;
+    node(){lazy = 0;}
+}stree[4*maxn];
+
+inline node merge(node &l , node &r)
+{
+    node ret;
+    for (int a = 0 ; a <= 1 ; a ++)
+        for (int b = a ; b <= 1 ; b ++)
+            for (int c = b ; c <= 1 ; c ++)
+                for (int d = c ; d <= 1 ; d ++){
+                    ret.increasing.arr[a][d] = max(ret.increasing.arr[a][d],l.increasing.arr[a][b]+r.increasing.arr[c][d]);
+                    ret.decreasing.arr[a][d] = max(ret.decreasing.arr[a][d],l.decreasing.arr[a][b]+r.decreasing.arr[c][d]);
+                }
+    return ret;
+}
+inline void build(int p = 0 , int l = 0 , int r = n - 1)
+{
+    if (l == r)
+    {
+        int C = s[l] == '7';
+        stree[p].increasing.arr[C][C] = stree[p].decreasing.arr[1-C][1-C] = 1;
+        return;
+    }
+    int mid = (l + r) >> 1;
+    build(2 * p + 1 , l , mid);
+    build(2 * p + 2 , mid + 1 , r);
+    stree[p] = merge(stree[2 * p + 1] , stree[2 * p + 2]);
+}
+inline void flip(int p)
+{
+    stree[p].lazy ^= 1;
+    swap(stree[p].decreasing,stree[p].increasing);
+}
+inline void shift(int p)
+{
+    if (stree[p].lazy == 0 ) return ;
+    flip(2 * p + 1);
+    flip(2 * p + 2);
+    stree[p].lazy = 0;
+}
+inline void update(int ql , int qr , int p = 0 , int l = 0 , int r = n - 1)
+{
+    if (l > qr || r < ql ) return ;
+    
+    if (l >= ql && r <= qr)
+    {
+        flip(p);
+        return ;
+    }
+    int mid = (l + r) >> 1;
+    shift(p);
+    update(ql,qr,2*p+1,l,mid);
+    update(ql,qr,2*p+2,mid+1,r);
+    stree[p] = merge(stree[2 * p + 1] , stree[2 * p + 2]);
+}
+int32_t main()
+{
+    IOS;
+    cin >> n >> m >> s;
+    build();
+    while (m --)
+    {
+        string op ; cin >> op;
+        
+        if (op[0] == 'c') cout << max(stree[0].increasing.arr[0][1],max(stree[0].increasing.arr[0][0],stree[0].increasing.arr[1][1])) << "\n";
+        
+        else{
+            int l , r ; cin >> l >> r;
+            update(l-1,r-1);
+        }
+    }
+}

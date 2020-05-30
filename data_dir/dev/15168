@@ -1,0 +1,120 @@
+// Let Go Your Earthly Tether , Enter The Void , Empty And Become Wind
+
+#include<bits/stdc++.h>
+using namespace std ;
+
+#define all(x) x.begin() , x.end()
+
+#define PB push_back
+#define F first
+#define S second
+#define _sz(x) (int)x.size()
+
+#define debug(x) cerr << #x << " = " << x << endl
+
+using ll = long long ;
+using ld = long double ;
+using pll = pair<ll , ll> ;
+
+const ll MAXN = 200 * 1000 + 19 , LOG = 28 ;
+const ll MOD = 1e9 + 7 ;
+const ll inf = 4e18 + 19 ;
+
+mt19937 yasi(chrono::steady_clock::now().time_since_epoch().count()) ;
+
+struct Edge {
+        ll v , u , w ;
+        friend bool operator < (Edge a , Edge b) {
+                return a.w < b.w ;
+        }
+} ;
+
+ll sum , n , m , tin[MAXN] , tout[MAXN] , par[MAXN] , ind[MAXN] , timer , up[MAXN][LOG] , mx[MAXN][LOG] ;
+vector<pll> g[MAXN] ;
+vector<Edge> edge ;
+
+void make_set(ll v) {
+        par[v] = -1 , ind[v] = yasi() ;
+}
+
+ll find_root(ll v) {
+        if (par[v] == -1)
+                return v ;
+        return par[v] = find_root(par[v]) ;
+}
+
+void merge(ll v , ll u) {
+        v = find_root(v) , u = find_root(u) ;
+        if (v == u)
+                return ;
+        if (ind[v] < ind[u])
+                swap(v , u) ;
+        par[u] = v ;
+}
+
+void MST() {
+        for (int i = 1 ; i <= n ; i ++)
+                make_set(i) ;
+        vector<Edge> tmp = edge ;
+        sort(all(tmp)) ;
+        for (auto e : tmp) {
+                if (find_root(e.v) != find_root(e.u))
+                        merge(e.v , e.u) , sum += e.w , g[e.v].PB({e.u , e.w}) , g[e.u].PB({e.v , e.w}) ;
+        }
+}
+
+void dfs(ll v , ll par = 0 , ll w = 0) {
+	tin[v] = timer ++ ;
+	up[v][0] = par ;
+	mx[v][0] = w ;
+	for (int i = 1 ; i < LOG ; i ++) {
+		up[v][i] = up[up[v][i - 1]][i - 1] ;
+		mx[v][i] = max(mx[up[v][i - 1]][i - 1] , mx[v][i - 1]) ;
+	}
+	for (auto u : g[v])
+		if (u.F ^ par)
+			dfs(u.F , v , u.S) ;
+	tout[v] = timer ++ ;
+}
+ 
+bool is_anc(ll v , ll u) {
+	return (tin[v] <= tin[u] && tout[v] >= tout[u]) ;
+}
+ 
+ll lca (ll u , ll v) {
+	ll res = 0;
+	if (is_anc(u, v))
+		swap(u, v) ;
+	for (int i = LOG - 1 ; ~i ; i --) 
+		if (!is_anc(up[u][i], v)) {
+			res = max(mx[u][i] , res) ;
+			u = up[u][i] ;
+		}
+	res = max(mx[u][0] , res) ;
+	u = up[u][0] ;
+	if (u == v)
+		return res ;
+	for (int i = LOG - 1 ; ~i ; i --) 
+		if (!is_anc(up[v][i] , u)) {
+			res = max(mx[v][i] , res) ;
+			v = up[v][i] ;
+		}
+	return max(res, mx[v][0]) ;
+}
+
+int main() {
+        ios::sync_with_stdio(false) , cin.tie(0) , cout.tie(0) ;
+        cin >> n >> m ;
+        tout[0] = inf ;
+        for (int i = 0 ; i < m ; i ++) {
+                Edge tmp ;
+                cin >> tmp.v >> tmp.u >> tmp.w ;
+                edge.PB(tmp) ;
+        }
+        MST() , dfs(1) ;
+        for (auto e : edge) {
+                ll lc = lca(e.v , e.u) ;
+                cout << sum - lc + e.w << endl ;
+        }
+        return (0) ;
+}

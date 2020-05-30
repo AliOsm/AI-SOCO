@@ -1,0 +1,137 @@
+#include <bits/stdc++.h>
+#include <ext/hash_set>
+#include <ext/numeric>
+
+using namespace std;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<int, int> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const ll MOD = 1e9 + 7;
+const long double EPS = 1e-5;
+const ll INF = 1e18;
+int di[] = { 0, 0, 1, -1 };
+int dj[] = { 1, -1, 0, 0 };
+#define all(x) x.begin(),x.end()
+#define SZ(x) (int)x.size()
+
+
+class SegmentTree {
+private:
+	vi ones, zeros, lis, lds, A;
+	vb lazy;
+	int n;
+	inline int left(int p) { return p << 1; }
+	inline int right(int p) { return (p << 1) + 1; }
+	inline int mid(int a, int b) { return (a + b) / 2; }
+
+	void merge(int p) {
+		int pl = left(p), pr = right(p);
+		ones[p] = ones[pl] + ones[pr];
+		zeros[p] = zeros[pl] + zeros[pr];
+		lis[p] = max(lis[pl] + ones[pr],
+		             zeros[pl] + lis[pr]);
+		lds[p] = max(lds[pl] + zeros[pr],
+		             ones[pl] + lds[pr]);
+	}
+
+	void build(int p, int L, int R) {
+		if (L == R) {
+			ones[p] = A[L];
+			zeros[p] = !A[L];
+			lis[p] = lds[p] = 1;
+		}
+		else {
+			build(left(p), L, mid(L, R));
+			build(right(p), mid(L, R) + 1, R);
+			merge(p);
+		}
+	}
+
+	void update(int p, int L, int R, int i, int j) {
+		if (lazy[p]) {
+			swap(zeros[p], ones[p]);
+			swap(lis[p], lds[p]);
+
+			if (L != R) {
+				lazy[left(p)] = !lazy[left(p)];
+				lazy[right(p)] = !lazy[right(p)];
+			}
+			lazy[p] = false;
+		}
+
+		if (i > R || j < L) return;
+
+		if (i <= L && R <= j) {
+			swap(zeros[p], ones[p]);
+			swap(lis[p], lds[p]);
+
+			if (L != R) {
+				lazy[left(p)] = !lazy[left(p)];
+				lazy[right(p)] = !lazy[right(p)];
+			}
+			return;
+		}
+
+		update(left(p), L, mid(L, R), i, j);
+		update(right(p), mid(L, R) + 1, R, i, j);
+		merge(p);
+	}
+
+public:
+	SegmentTree(const vi& _A) {
+		A = _A; n = (int)A.size();
+		ones.assign(4 * n, 0);
+		zeros.assign(4 * n, 0);
+		lis.assign(4 * n, 0);
+		lds.assign(4 * n, 0);
+		lazy.assign(4 * n, 0);
+		build(1, 0, n - 1);
+	}
+
+	int query() { return lis[1]; }
+
+	void update(int i, int j) {
+		update(1, 0, n - 1, i, j);
+	}
+};
+
+const int MAXN = 1e6 + 6;
+const int sqMAXN = 1005;
+int n, m;
+char s[MAXN];
+vi num;
+
+int main() {
+//	ios::sync_with_stdio(0), cin.tie(0);
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+#endif
+
+	scanf("%d %d", &n, &m);
+	scanf("%s", s);
+
+	num.resize(n);
+	for (int i = 0; i < n; ++i)
+		num[i] = (s[i] == '7');
+
+	SegmentTree sgt(num);
+
+
+	char type[7];
+	while (m--) {
+		scanf("%s", type);
+		if (type[0] == 's') {
+			int l, r; scanf("%d %d", &l, &r);
+			l--, r--;
+			sgt.update(l, r);
+		}
+		else printf("%d\n", sgt.query());
+	}
+
+}

@@ -1,0 +1,138 @@
+//be naame khodaa
+
+#include <bits/stdc++.h>
+
+typedef long long ll;
+
+const int maxN = 100005;
+
+using namespace std;
+
+int n, m;
+
+struct Segment
+{
+	int prog[4*maxN], Min[4*maxN], tMin[4*maxN];
+
+	void make(int s=0, int e=n, int x=1)
+	{
+		if (e-s == 1){
+			tMin[x] = 1;
+			return;
+		}
+		int mid = (s + e)/2;
+		make(s, mid, 2*x);
+		make(mid, e, 2*x+1);
+		tMin[x] = tMin[2*x] + tMin[2*x+1];
+	}
+
+	void shift(int x)
+	{
+		prog[2*x] += prog[x];
+		prog[2*x+1] += prog[x];
+		Min[2*x] += prog[x];
+		Min[2*x+1] += prog[x];
+		prog[x] = 0;
+	}
+
+	void update(int x)
+	{
+		Min[x] = min(Min[2*x] , Min[2*x+1]);
+		tMin[x] = 0;
+		if (Min[x] == Min[2*x]) tMin[x] += tMin[2*x];
+		if (Min[x] == Min[2*x+1]) tMin[x] += tMin[2*x+1];
+	}
+
+	void add(int l, int r, int val, int s=0, int e=n, int x=1)
+	{
+		if (l <= s && e <= r)
+		{
+			prog[x] += val;
+			Min[x] += val;
+			return;
+		}
+		shift(x);
+		int mid = (s + e)/2;
+		if (l < mid)
+			add(l, r, val, s, mid, 2*x);
+		if (r > mid)
+			add(l, r, val, mid, e, 2*x+1);
+		update(x);
+	}
+
+	int get()
+	{
+		if (Min[1] > 0) return n;
+		return n-tMin[1];
+	}
+
+} seg;
+
+int s[maxN], e[maxN], c[maxN];
+vector <int> v[maxN], put[maxN];
+pair <int, int> Move[maxN];
+
+void dfs(int now, int par, int &id)
+{
+	s[now] = id;
+	for (int u : v[now])
+	{
+		if (u == par) continue;
+		dfs(u, now, id);
+	}
+	e[now] = ++id;
+}
+
+void go(int now, int par)
+{
+	for (int i = 0; i < put[now].size(); i++)
+	{
+		int a = Move[put[now][i]].first;
+		int b = Move[put[now][i]].second;
+		seg.add(s[a], e[a], 1);
+		seg.add(s[b], e[b], 1);
+	}
+	c[now] = max(0, seg.get()-1);
+	for (int u : v[now])
+	{
+		if (u == par) continue;
+		go(u, now);
+	}
+	for (int i = 0; i < put[now].size(); i++)
+	{
+		int a = Move[put[now][i]].first;
+		int b = Move[put[now][i]].second;
+		seg.add(s[a], e[a], -1);
+		seg.add(s[b], e[b], -1);
+	}
+}
+
+int main()
+{
+	cin >> n >> m;
+	for (int i = 0; i < n-1; i++)
+	{
+		int a, b;
+		cin >> a >> b;
+		a--; b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+	for (int i = 0; i < m; i++)
+	{
+		int a, b;
+		cin >> a >> b;
+		a--; b--;
+		put[a].push_back(i);
+		put[b].push_back(i);
+		Move[i] = {a, b};
+	}
+	int id = 0;
+	seg.make();
+	dfs(0, -1, id);
+	go(0, -1);
+	for (int i = 0; i < n; i++)
+		cout << c[i] << ' ';
+	cout << endl;
+    return 0;
+}

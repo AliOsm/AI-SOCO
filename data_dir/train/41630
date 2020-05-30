@@ -1,0 +1,147 @@
+
+// Problem : C. Sum Balance
+// Contest : Codeforces - Codeforces Round #599 (Div. 1)
+// URL : https://codeforces.com/problemset/problem/1242/C
+// Memory Limit : 256 MB
+// Time Limit : 1000 ms
+// Powered by CP Editor (https://github.com/cpeditor/cpeditor)
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp> // Common file
+#include <ext/pb_ds/tree_policy.hpp> // Including tree_order_statistics_node_update
+
+using namespace std;
+using namespace __gnu_pbds;
+
+typedef tree<int, null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update>
+ordered_set;	
+
+#define FOR(i,a,b) for(int i = (a); i <= (b); ++i)
+#define FORD(i,a,b) for(int i = (a); i >= (b); --i)
+#define RI(i,n) FOR(i,1,(n))
+#define REP(i,n) FOR(i,0,(n)-1)
+#define mini(a,b) a=min(a,b)
+#define maxi(a,b) a=max(a,b)
+#define pb push_back
+#define st first
+#define nd second
+#define sz(w) (int) w.size()
+typedef vector<int> vi;
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<pii, int> para;
+const ll inf = 1e18 + 7;
+const ll maxN = 5000 + 5;
+const ll MOD = 1e9 + 7;
+
+ll sum;
+int k, len[16];
+int arr[16][maxN];
+map<int, int> ind;
+ll row[16];
+pii ile[26];
+vector<pii> ans;
+pair<vector<pii>, int> changes[16][maxN];
+short dp[32769];
+
+vector<pii> change(int free, int pos, int& mask) {
+	int fst = free, pos_fst = pos;
+	vector<pii> ans;
+	while (true) {
+		ll need = sum - row[pos] + free;
+		if (!ind.count(need)) return {};
+		int i = ind[need];
+		if (mask & (1 << i)) return {};
+		ans.pb({need, pos});
+		mask |= (1 << i);
+		free = need, pos = i;
+		if (i == pos_fst) {
+			if (need == fst) break;
+			return {};
+		}
+	}
+	return ans;
+}
+
+bool solve(int pos, int mask) {
+	if (pos == k) {
+		return true;
+	}
+	if (mask & (1 << pos)) {
+		return solve(pos + 1, mask);
+	}
+	if (dp[mask] != -1) {
+		return dp[mask];
+	}
+	REP(i, len[pos]) {
+		auto tmp = changes[pos][i];
+		if (tmp.nd == -1 || (mask & tmp.nd)) continue;
+		bool b = solve(pos + 1, mask | tmp.nd);
+		if (b) {
+			for (auto x: tmp.st) {
+				ans.pb(x);
+			}
+			dp[mask] = true;
+			return true;
+		}
+	}
+	dp[mask] = false;
+	return false;
+}
+
+void preprocess() {
+	REP(i, k) {
+		REP(j, len[i]) {
+			int mask = 0;
+			vector<pii> tmp = change(arr[i][j], i, mask);
+			if (tmp.empty()) {
+				changes[i][j] = {{}, -1};
+			} else {
+				changes[i][j] = {tmp, mask};
+			}
+		}
+	}
+}
+
+// sprawdz MODULO!
+int main() {
+    mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+	ios_base::sync_with_stdio(0);
+	cin.tie(0); cout.tie(0);
+	cin >> k;
+	REP(i, k) {
+		cin >> len[i];
+		REP(j, len[i]) {
+			cin >> arr[i][j];
+			sum += arr[i][j];
+			ind[arr[i][j]] = i;
+			row[i] += arr[i][j];
+		}
+	}
+	
+		REP(j, (1 << k)) {
+			dp[j] = -1;
+		}
+	if (sum % k != 0) {
+		cout << "No\n";
+		return 0;
+	}
+	sum /= k;
+	preprocess();
+	bool b = solve(0, 0);
+	if (!b) {
+		cout << "No\n";
+		return 0;
+	}
+	cout << "Yes\n";
+	for (auto p: ans) {
+		ile[ind[p.st]] = p;
+	}
+	REP(i, k) {
+		cout << ile[i].st << " " << ile[i].nd + 1<< "\n";
+	}
+	return 0;
+}
+ 

@@ -1,0 +1,202 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define rs resize
+#define mp make_pair
+#define pi 3.1415926535897932384626433832795
+#define sz(a) (int)(a).size()
+#define Sort(a) sort((a).begin(), (a).end())
+#define Reverse(a) reverse((a).begin(), (a).end())
+#define sf scanf
+#define pf printf
+#define ms(a, x) memset((a), (x), sizeof(a))
+typedef vector <int> vi;
+typedef vector <vi> vvi;
+typedef vector <vvi> vvvi;
+typedef vector <vvvi> vvvvi;
+typedef vector <bool> vb;
+typedef vector <vb> vvb;
+typedef vector <vvb> vvvb;
+typedef vector <vvvb> vvvvb;
+typedef long long ll;
+typedef vector <ll> vl;
+typedef vector <vl> vvl;
+typedef vector <vvl> vvvl;
+typedef vector <vvvl> vvvvl;
+typedef pair <int, int> ii;
+typedef vector <ii> vii;
+typedef vector <vii> vvii;
+typedef pair <int, ll> il;
+typedef vector <il> vil;
+typedef vector <vil> vvil;
+typedef pair <ll, int> li;
+typedef vector <li> vli;
+typedef vector <vli> vvli;
+typedef set <int> si;
+typedef set <li> sli;
+typedef set <il> sil;
+typedef vector <string> vs;
+typedef vector <vs> vvs;
+typedef vector <vvs> vvvs;
+typedef map <char, int> mci;
+typedef pair <ll, ll> pll;
+
+const ll inf = (ll)1e18;
+
+struct edge {
+	int to, back;
+	ll c, f;
+	edge() {}
+	edge(int to, int c, int f, int back) : to(to), c(c), f(f), back(back) {}
+};
+
+void bfs(int s, vector <vector <edge> > &g, vector <int> &d, ll max_edge) {
+	d.assign(sz(g), (int)1e9);
+	d[s] = 0;
+	queue <int> q;
+	q.push(s);
+	while (!q.empty()) {
+		int v = q.front();
+		q.pop();
+		for (int i = 0; i < sz(g[v]); ++i) {
+			if (g[v][i].c > g[v][i].f && d[g[v][i].to] > d[v] + 1 && g[v][i].c - g[v][i].f >= max_edge) {
+				d[g[v][i].to] = d[v] + 1;
+				q.push(g[v][i].to);
+			}
+		}
+	}
+	return;
+}
+
+ll dfs(int v, vector <vector <edge> > &g, vb &u, vi &d, ll flow, int t, ll max_edge) {
+	u[v] = 1;
+	if (v == t) {
+		return flow;
+	}
+	for (auto &e: g[v]) {
+		if (u[e.to] || d[e.to] != d[v] + 1 || e.c == e.f || e.c - e.f < max_edge) {
+			continue;
+		}
+		ll pushed = dfs(e.to, g, u, d, min(flow, e.c - e.f), t, max_edge);
+		if (pushed > 0) {
+			e.f += pushed;
+			g[e.to][e.back].f -= pushed;
+			return pushed;
+		}
+	}
+	return 0;
+}
+
+ll dinic(int s, int t, vector <vector <edge> > &g) {
+	int n = sz(g);
+	vi d(n);
+	ll flow = 0;
+	vb u(n);
+	for (ll max_edge = 2; max_edge > 0; max_edge /= 2) {
+		while (1) {
+			bfs(s, g, d, max_edge);
+			if (d[t] == (int)1e9) {
+				break;
+			}
+			ll pushed = 1;
+			u.assign(n, 0);
+			while (pushed = dfs(s, g, u, d, inf, t, max_edge)) {
+				u.assign(n, 0);
+				flow += pushed;
+			}
+		}
+	}
+	return flow;
+}
+
+void add_edge(vector <vector <edge> > &g, int v, int to, int c) {
+	g[v].pb(edge(to, c, 0, sz(g[to])));
+	g[to].pb(edge(v, 0, 0, sz(g[v]) - 1));
+	return;
+}
+
+bool is_prime(int x) {
+	for (int i = 2; i * i <= x; ++i)
+		if (x % i == 0) {
+			return 0;
+		}
+	return 1;
+}
+
+void dfs2(int v, vvi &g, vb &u, vi &a) {
+	u[v] = 1;
+	a.pb(v);
+	for (int to: g[v]) {
+		if (!u[to]) {
+			dfs2(to, g, u, a);
+		}
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	int n;
+	cin >> n;
+	if (n % 2 != 0) {
+		cout << "Impossible";
+		return 0;
+	}
+	vi a(n + 1);
+	for (int i = 1; i <= n; ++i) {
+		cin >> a[i];
+	}
+	vector <vector <edge> > g(n + 2);
+	for (int i = 1; i <= n; ++i) {
+		if (a[i] % 2 != 0)
+			add_edge(g, 0, i, 2);
+	}
+	for (int i = 1; i <= n; ++i) {
+		for (int j = 1; j <= n; ++j) {
+			if (a[i] % 2 == 0) {
+				continue;
+			}
+			if (is_prime(a[i] + a[j])) {
+				add_edge(g, i, j, 1);
+			}
+		}
+	}
+	for (int i = 1; i <= n; ++i) {
+		if (a[i] % 2 == 0)
+			add_edge(g, i, n + 1, 2);
+	}
+	if (dinic(0, n + 1, g) != n) {
+		cout << "Impossible";
+		return 0;
+	}
+	vvi g2(n + 1);
+	for (int i = 1; i <= n; ++i) {
+		if (a[i] % 2 == 0) {
+			continue;
+		}
+		for (auto e: g[i]) {
+			if (e.c == 1 && e.f == 1) {
+				g2[i].pb(e.to);
+				g2[e.to].pb(i);
+			}
+		}
+	}
+	vvi ans;
+	vb u(n + 1);
+	for (int i = 1; i <= n; ++i) {
+		if (u[i]) {
+			continue;
+		}
+		ans.pb(vi(0));
+		dfs2(i, g2, u, ans.back());
+	}
+	cout << sz(ans) << endl;
+	for (int i = 0; i < sz(ans); ++i) {
+		cout << sz(ans[i]) << ' ';
+		for (int j = 0; j < sz(ans[i]); ++j) {
+			cout << ans[i][j] << ' ';
+		}
+		cout << endl;
+	}
+}

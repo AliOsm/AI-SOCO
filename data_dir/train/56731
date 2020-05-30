@@ -1,0 +1,66 @@
+#include <bits/stdc++.h>
+#include <assert.h>
+#include <unordered_map>
+using namespace std;
+ 
+typedef long long ll;
+typedef long double ld;
+typedef vector < long long > vll;
+typedef pair < long long, long long > pll;
+typedef pair < int, int > pii;
+typedef vector < int > vii;
+typedef vector < vll > matrix;
+ 
+#define rep(i,n) for(ll i = 0; i < n; i++)
+#define reps(i,a,n) for(ll i = a; i < n; i++)
+#define csl ios_base::sync_with_stdio(false); cin.tie(NULL)
+#define l(x) (((x) << 1) | 1)
+#define r(x) ((l(x)) + 1)
+#define mp make_pair
+#define y1 dlfsdjfsd
+#define fst first
+#define snd second
+ 
+ll t, n, u, v, m, q, r, ql, qr, k, l, s, c, x, y, p;
+const int N = 1e5 + 600;
+const ll mod = 1e9 + 7;
+const ll INF = 1LL << 57LL;
+const bool JUDGE = false;
+bool q2[N];
+ll len[N];
+ll S[N];
+int main(){
+	csl;
+	if (JUDGE) {
+        freopen("in.txt", "r", stdin);
+        freopen("out.txt", "w", stdout);
+	}
+	cin >> m;
+	for (int i = 1; i <= m; ++i) {
+		int id; 
+		cin >> id;
+		if (id == 1) {
+			q2[i] = true;
+			cin >> x;
+			len[i] = x;
+			S[i] = S[i - 1] + 1;
+		}
+		else {
+			cin >> u >> v;
+			len[i] = u;
+			S[i] = S[i - 1] + (u * v);
+		}
+	}
+	cin >> q;
+	while (q--) {
+		cin >> x;
+		int ind = lower_bound(S, S + m + 1, x) - S;
+		while (q2[ind] != true) {
+			x -= S[ind - 1];
+			x = ((x - 1) % len[ind]) + 1;
+			ind = lower_bound(S, S + m + 1, x) - S;
+		}
+		cout << len[ind] << '\n';
+	}
+	return 0;
+}

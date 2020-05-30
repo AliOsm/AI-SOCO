@@ -1,0 +1,147 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long int ll;
+typedef pair <ll, ll> pll;
+
+const int Max = 5e5 + 10;
+const int Mod = 1e9 + 7;
+const ll Inf = 1LL << 62;
+
+int BLOCK_SIZE;
+
+ll cnt[Max];
+ll ans[Max];
+int mp[Max];
+int par[Max];
+int col[Max];
+
+set <int> st;
+
+struct Node {
+	int l, r, id;
+
+	Node() {};
+
+	Node(int l_, int r_, int id_) {
+		l = l_;
+		r = r_;
+		id = id_;
+	}
+
+	bool operator<(const Node &b) const {
+		if(l / BLOCK_SIZE < b.l / BLOCK_SIZE) {
+			return 1;
+		}
+
+		if(l / BLOCK_SIZE > b.l / BLOCK_SIZE) {
+			return 0;
+		}
+
+		return ((l / BLOCK_SIZE) & 1) ? r < b.r : r > b.r;
+	}
+} qr[Max];
+
+void add(int x) {
+	mp[col[x]]++;
+	cnt[mp[col[x]]] += col[x];
+
+	if(cnt[mp[col[x]]] == col[x]) {
+		st.insert(mp[col[x]]);
+	}
+}
+
+void del(int x) {
+	if(cnt[mp[col[x]]] == col[x]) {
+		st.erase(mp[col[x]]);
+	}
+
+	cnt[mp[col[x]]] -= col[x];
+	mp[col[x]]--;
+}
+
+vector <int> G[Max];
+int Where[Max];
+int Sub[Max], Count;
+
+void dfs(int src) {
+	Where[src] = ++Count;
+	Sub[src] = 1;
+	par[Count] = src;
+
+	for(int v : G[src]) {
+		if(!Sub[v]) {
+			dfs(v);
+			Sub[src] += Sub[v];
+		}
+	}
+}
+
+int main() {
+#ifdef Mr_Emrul
+	freopen("inputf.in", "r", stdin);
+#endif /// Mr_Emrul
+
+	//ios_base::sync_with_stdio(false);
+	//cin.tie(0);
+
+	int n, u, v; scanf("%d", &n);
+	BLOCK_SIZE = sqrt(n);
+
+	for(int i = 1; i <= n; i++) {
+		scanf("%d", &col[i]);
+	}
+
+	for(int i = 1; i < n; i++) {
+		scanf("%d %d", &u, &v);
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+
+	dfs(1);
+
+	for(int i = 1; i <= n; i++) {
+		qr[i] = Node(Where[i], Where[i] + Sub[i] - 1, i);
+	}
+
+	sort(qr + 1, qr + n + 1);
+
+	int L = 1, R = 0;
+
+	for(int i = 1; i <= n; i++) {
+		int l = qr[i].l;
+		int r = qr[i].r;
+
+		//printf(":: %d %d\n", l, r);
+
+		while(R < r) {
+			R++;
+			add(par[R]);
+		}
+
+		while(R > r) {
+			del(par[R]);
+			R--;
+		}
+
+		while(L < l) {
+			del(par[L]);
+			L++;
+		}
+
+		while(L > l) {
+			L--;
+			add(par[L]);
+		}
+
+		ans[qr[i].id] = cnt[*st.rbegin()];
+	}
+
+	for(int i = 1; i <= n; i++) {
+		//ans[i] += ans[i];
+		//ans[i] += ans[i + 1];
+		printf("%lld ", ans[i]);
+	}
+
+	return 0;
+}

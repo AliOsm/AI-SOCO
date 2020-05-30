@@ -1,0 +1,218 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,sse4.1,sse4.2,popcnt,abm,mmx,avx,tune=native")
+#include "bits/stdc++.h"
+#include <smmintrin.h>
+#include <nmmintrin.h>
+#include <assert.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+#define PB push_back
+#define MP make_pair
+const int MOD=1000000007;
+#define endl "\n"
+#define fst first
+#define snd second
+const int UNDEF = -1;
+const int INF=1<<30;
+template<typename T> inline bool chkmax(T &aa, T bb) { return aa < bb ? aa = bb, true : false; }
+template<typename T> inline bool chkmin(T &aa, T bb) { return aa > bb ? aa = bb, true : false; }
+typedef pair<ll,ll> pll;typedef vector<ll> vll;typedef pair<int,int> pii;typedef vector<int> vi;typedef vector<vi> vvi;
+#ifdef ONLINE_JUDGE
+#define assert(...) /* nothing */
+#endif
+#define DEBUG_CAT
+#ifdef DEBUG_CAT
+#define dbg(...)   printf( __VA_ARGS__ )
+#else 
+#define dbg(...)   /****nothing****/
+#endif
+const int mn=2000;
+
+bitset<mn> a[mn],origa[mn];
+vi g[mn];
+bitset<mn> seen;
+bool iscyc;
+bitset<mn> induced;
+int b2cnt[mn],r2cnt[mn];
+bitset<mn> x2b[mn];
+
+priority_queue<pii,vector<pii>,greater<pii> > pq;
+bitset<mn> cvalid,rvalid;
+
+void init(int rn, int cn) {
+	cvalid.set(); rvalid.set();
+	for (int x=0;x<rn;x++) {
+		a[x].reset();
+		origa[x].reset();
+	}
+	for (int x=0;x<cn;x++){
+		x2b[x].reset();
+	}
+	for (int x=0;x<cn;x++) g[x].clear();
+	seen.reset();
+	iscyc=false;
+	induced.reset();
+	memset(b2cnt,0,sizeof b2cnt);
+	memset(r2cnt,0,sizeof r2cnt);
+	pq=priority_queue<pii,vector<pii>,greater<pii> >();
+}
+
+
+void dfs(int x, int p) {
+	if (seen[x]) {
+		iscyc=true;
+		return;
+	}
+	seen[x]=true;
+	for (auto &y:g[x]) {
+		if (y!=p) dfs(y,x);
+		if (iscyc) return;
+	}
+}
+
+
+void dfs2(int x) {
+	if (seen[x]||!induced[x]) return;
+	seen[x]=true;
+	for (auto &y:g[x]) {
+		dfs2(y);
+	}
+}
+
+void makeb(int x, int rn) {
+		bitset<mn> &group=x2b[x]; group.set();
+		for (int r=rvalid._Find_first();r<rn;r=rvalid._Find_next(r)) {
+			if (a[r][x]) {
+				group&=a[r];
+			}
+		}
+		group[x]=false;
+		int cnt=group.count();
+		if (cnt==0) {
+			b2cnt[x]=INF;
+		}
+		else {
+			//printf("x:%d cnt:%d\n",x,cnt);
+			pq.push(MP(cnt,x));
+			b2cnt[x]=cnt;
+		}
+}
+
+void solve(int rn,int cn) {
+  for (int r=0;r<rn;r++) {
+    string s; cin>>s;
+    int ones=0;
+    for (auto &c:s) ones+=c-'0';
+    if (ones<=1) rvalid[r]=false;
+  	r2cnt[r]=ones;
+    for (int c=0;c<cn;c++) a[r][c]=(s[c]=='1');
+    origa[r]=a[r];
+  }
+
+	for (int x=0;x<cn;x++) {
+		makeb(x,rn);
+	}
+
+	while(!pq.empty()) {
+		pii top=pq.top(); int cnt=top.fst,x=top.snd; pq.pop();
+		if (b2cnt[x]!=cnt||!cvalid[x]) continue;
+  	int y;
+  	for (y=x2b[x]._Find_first();y<cn;y=x2b[x]._Find_next(y)) {
+  		//printf("x:%d try y:%d\n",x,y);
+  		if (cvalid[y]&&y!=x) break;
+  	}
+  	// x is not attached to anything. Process remaining connected components.
+  	if (y>=cn) continue;
+  	cvalid[x]=false;
+  	//printf("x:%d -> y:%d\n",x,y);
+  	// x is a leaf connecting to y.
+  	g[x].PB(y); g[y].PB(x);
+  	assert(cvalid[y]);
+  	{
+  		for (int r=rvalid._Find_first();r<rn;r=rvalid._Find_next(r)) {
+  			auto &group=a[r];
+  			if (group[x]) {
+  				group[x]=false;
+  				if (group[y]) {
+  					r2cnt[r]--;
+  					if (r2cnt[r]<=1) {
+  						rvalid[r]=false;
+  					}
+  				}
+  				else group[y]=true;
+  			}
+  		}
+  	}
+  	makeb(y,rn);
+  	for (int z=cvalid._Find_first();z<cn;z=cvalid._Find_next(z)) {
+  		if (z==y) continue;
+  		auto &group=x2b[z];
+  		if (group[x]) {
+  			group[x]=false;
+  			if (group[y]) {
+  				b2cnt[z]--;
+  				if (b2cnt[z]==0) {
+  					b2cnt[z]=INF;
+  				}
+  				else {
+  					pq.push(MP(b2cnt[z],z));
+  				}
+  			}
+  			else {
+  				group[y]=true;
+  			}
+  		}
+  	}
+	}
+  int prev=-1;
+  vector<pii> join;
+  for (int x=0;x<cn;x++) {
+  	if (!seen[x]) {
+  		dfs(x,-1);
+  		if (iscyc) {
+  			//fflush(stdout);assert(0); 
+  			printf("NO\n");
+  			return;
+  		}
+  		if (prev!=-1) {
+  			join.PB(MP(prev,x));
+  		}
+  		prev=x;
+  	}
+  }
+  for (auto &w:join) {
+  	int x=w.fst,y=w.snd; g[x].PB(y); g[y].PB(x);
+  }
+  for (int r=0;r<rn;r++) {
+  	if (origa[r].count()) {
+  		seen.reset();
+  		induced=origa[r];
+  		dfs2(induced._Find_first());
+  		if (induced!=seen) {
+  			//fflush(stdout);assert(0);
+  			printf("NO\n");
+  			return;
+  		}
+  	}
+  }
+  printf("YES\n");
+  //for (auto &w:join) printf("%d %d\n",w.fst+1,w.snd+1);
+  for (int x=0;x<cn;x++) {
+  	for (auto &y:g[x]) {
+  		if (y>x) printf("%d %d\n",x+1,y+1);
+  	}
+  }
+}
+
+int main() 
+{
+  ios_base::sync_with_stdio(false); cin.tie(0);
+  int T; cin>>T;
+  for(int i=0;i<T;i++) {
+  	int rn,cn; cin>>cn>>rn;
+  	init(rn,cn);
+  	solve(rn,cn);
+  }
+}
+

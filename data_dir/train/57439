@@ -1,0 +1,164 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+
+using namespace std;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef pair<ll, ll> ii;
+typedef pair<ll, ii> iii;
+
+ll pwr(ll base, ll p, ll mod = MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+
+
+ll gcd(ll a, ll b){
+    if(b == 0)  return a;
+    return gcd(b, a%b);
+}
+
+
+const int N = 200002;
+int n, e, src, indeg[N], par[20][N], depth[N];
+vector<iii> edge_list;
+vector<ii> adj[N];
+vector<int> spdag_adj[N], incoming[N], dominator_adj[N];
+ll dist[N];
+
+
+int LCA(int a, int b){
+
+    if(depth[a] < depth[b])
+        swap(a, b);
+    int diff = depth[a] - depth[b];
+    for(int i=0;i<20;i++)
+        if((diff >> i) & 1)
+            a = par[i][a];
+
+    if(a == b)  return a;
+    for(int i=19;i>=0;i--)
+        if(par[i][a] != par[i][b]){
+            a = par[i][a];
+            b = par[i][b];
+        }
+
+    if(a == b)  return a;
+    return par[0][a];
+}
+
+
+int dfs(int v){
+    int ans = 1;
+    for(auto vv : dominator_adj[v])
+        ans += dfs(vv);
+    return ans;
+}
+
+
+
+int main(){
+
+    // ios_base::sync_with_stdio(0);
+    // cin.tie(0);
+
+    scanf("%d%d%d", &n, &e, &src);
+    edge_list.resize(e);
+    for(int i=0;i<e;i++){
+        scanf("%lld%lld%lld", &edge_list[i].ss.ff, &edge_list[i].ss.ss, &edge_list[i].ff);
+        adj[edge_list[i].ss.ff].pb({edge_list[i].ss.ss, edge_list[i].ff});
+        adj[edge_list[i].ss.ss].pb({edge_list[i].ss.ff, edge_list[i].ff});
+    }
+
+    for(int i=1;i<=n;i++)
+        dist[i] = (ll)1e15;
+
+    priority_queue<ii> pq;
+    dist[src] = 0;
+    pq.push({0, src});
+    while(!pq.empty()){
+
+        ll d = -pq.top().ff;
+        int v = pq.top().ss;
+        pq.pop();
+
+        if(d > dist[v]) continue;
+
+        for(auto it : adj[v]){
+            ll dd = d + it.ss;
+            int vv = it.ff;
+            if(dd < dist[vv]){
+                dist[vv] = dd;
+                pq.push({-dd, vv});
+            }
+        }
+    }
+
+// cout<<"dist: ";for(int i=1;i<=n;i++)    cout<<dist[i]<<" ";cout<<endl;
+
+
+    for(auto e : edge_list){
+        int a = e.ss.ff, b = e.ss.ss, c = e.ff;
+        if(dist[a]+c == dist[b]){
+            spdag_adj[a].pb(b);
+            indeg[b]++;
+            incoming[b].pb(a);
+        }
+        else if(dist[b]+c == dist[a]){
+            spdag_adj[b].pb(a);
+            indeg[a]++;
+            incoming[a].pb(b);
+        }
+    }
+
+    //build dominator tree of DAG after topological sort
+    vector<int> topsort;
+    queue<int> pending;
+    pending.push(src);
+    while(!pending.empty()){
+        int v = pending.front();
+        pending.pop();
+        topsort.pb(v);
+        for(auto vv : spdag_adj[v]){
+            indeg[vv]--;
+            if(indeg[vv] == 0)
+                pending.push(vv);
+        }
+    }
+
+// cout<<"topsort: ";for(auto v : topsort) cout<<v<<" ";cout<<endl;
+
+    for(auto v : topsort){
+
+        if(v == src)    continue;
+        
+        int lca = incoming[v].back();
+        incoming[v].pop_back();
+        while(!incoming[v].empty()){
+            lca = LCA(lca, incoming[v].back());
+            incoming[v].pop_back();
+        }
+
+        dominator_adj[lca].pb(v);
+        depth[v] = depth[lca]+1;
+        par[0][v] = lca;
+        for(int i=0;i<19;i++)
+            if(par[i][v] != -1)
+                par[i+1][v] = par[i][par[i][v]];
+    }
+
+    int ans = 0;
+    for(auto v : dominator_adj[src])
+        ans = max(ans, dfs(v));
+    printf("%d\n", ans);
+    return 0;
+}
+
+
+
+

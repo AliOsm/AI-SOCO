@@ -1,0 +1,181 @@
+#include <bits/stdc++.h>
+#ifdef BUG
+    #include "debug.hpp"
+#else
+    #define DEBUG(var)
+    #define EXPECT(expr)
+#endif
+#define NO_IO_TIE ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+using namespace std;
+template< class T1, class T2 > inline istream &
+operator>>( istream & fin, pair< T1, T2 > & pr )
+{ fin >> pr.first >> pr.second; return fin; }
+template< class T0, class T1, class T2 > inline istream &
+operator>>( istream & fin, tuple< T0, T1, T2 > & t )
+{ fin >> get<0>(t) >> get<1>(t) >> get<2>(t); return fin; }
+template< class T > inline istream &
+operator>>( istream & fin, vector< T > & a ) {
+if(! a.size()){ size_t n; fin >> n; a.resize( n ); }
+for( auto & u: a) fin >> u; return fin; }
+/* @@@ ----------------------------------- */
+
+/**
+ * maximum flow:
+ *      capacities have direction & can be non-symmetric
+ *      n: the source node, n + 1 the sink node
+ */
+typedef struct
+{
+    const size_t next; /* the other end of edge */
+    const int cap; /* capacities have direction & can be non-symmetric */
+    int flow; /* flows have sign, are symmetric with diff. signs */
+    const size_t i; /* adj[next][i]:self; index of self in adj vector of next*/
+} edge_t;
+
+
+int push_flow( const size_t node,
+               const int flow, /* incoming flow */
+               vector< vector< edge_t > > & adj,
+               vector< bool > & tag )
+{
+    if( node + 1 == tag.size() ) /* sink node */
+        return flow;
+
+    tag[ node ] = true;
+    int acc = 0; /* total flow pushed out of this node */
+
+    for( auto & e: adj[ node ] )
+        if( ! tag[ e.next ] && e.flow < e.cap )
+        {
+            const auto fl = min( flow - acc, e.cap - e.flow );
+            const auto inc = push_flow( e.next, fl, adj, tag);
+
+            if( inc )
+            {
+                acc += inc;
+                e.flow += inc;
+                adj[ e.next ][ e.i ].flow -= inc;
+
+                if( acc == flow )
+                    break;
+            }
+        }
+
+    tag[ node ] = acc == 0;
+    return acc;
+}
+
+int max_flow( vector< vector< edge_t > > & adj )
+{
+    /* n: source node,  n + 1: sink node */
+    const auto n = adj.size() - 2;
+
+    /* need to tag to avoid looping or visiting a node twice */
+    vector< bool > tag( n + 2, false );
+
+    /* push infinite flow to source node */
+    const auto inf = numeric_limits< int >::max();
+    while( push_flow( n, inf, adj, tag ) )
+        fill(begin(tag), end(tag), false);
+
+    /* add up all to flow out of source node */
+    int out = 0;
+    for( const auto e: adj[n])
+        out += e.flow;
+
+    return out;
+}
+
+inline int xdiv( int & a, const int x )
+{
+    int i;
+    for( i = 0; a % x == 0; ++ i, a /= x )
+        ;
+    return i;
+}
+
+inline size_t xsolve( vector< int > & a, const int x,
+                      const vector< pair< size_t, size_t > > & e )
+{
+    const size_t n = a.size();
+
+    vector< int > b( n );
+    transform( begin(a), end(a), begin(b),
+               bind(xdiv, placeholders::_1, x));
+
+    if( ! * max_element(begin(b), end(b)))
+        return 0;
+
+    /* build the graph */
+    vector< vector< edge_t > > adj( n + 2 );
+    for( const auto & pr : e )
+        if( b[ pr.first ] && b[ pr.second ] )
+        {
+            adj[ pr.first ].push_back( edge_t({ pr.second,
+                    min( b[ pr.first ], b[ pr.second ] ),
+                    0, adj[ pr.second ].size() }));
+
+            /* caps should be directed !!! */
+            adj[ pr.second ].push_back( edge_t({ pr.first, 0, 0,
+                        adj[ pr.first ].size() - 1 }));
+        }
+
+    /* even nodes are connected to source */
+    auto & src = adj[ n ];
+    for( size_t i = 0; i < n; i += 2 )
+        if( b[ i ] )
+        {
+            src.push_back( edge_t({ i, b[i], 0, adj[ i ].size() }));
+            adj[ i ].push_back( edge_t({ n, 0, 0, src.size() - 1 }));
+        }
+
+    /* odd nodes are connected to sink */
+    auto & sink = adj[ n + 1 ];
+    for( size_t i = 1; i < n; i += 2 )
+        if( b[ i ] )
+        {
+            sink.push_back( edge_t({ i, 0, 0, adj[ i ].size() }));
+            adj[ i ].push_back( edge_t({ n + 1, b[ i ], 0, sink.size() - 1 }));
+        }
+
+    return max_flow( adj );
+}
+
+size_t c498()
+{
+    size_t n, m;
+    cin >> n >> m;
+    vector< int > a( n );
+    vector< pair< size_t, size_t > > e( m );
+    cin >> a >> e;
+
+    for( auto & pr: e )
+    {
+        -- pr.first;
+        -- pr.second;
+        if( pr.first & 1 )
+            swap( pr.first, pr.second );
+    }
+
+    size_t val = xsolve(a, 2, e) + xsolve(a, 3, e);
+
+    const auto ub = 1 + * max_element(begin(a), end(a));
+
+    for( int i = 5; i * i < ub; i += 6)
+        val += xsolve(a, i, e) + xsolve(a, i + 2, e);
+
+    for( const auto i: a )
+        if( i != 1 )
+            val += xsolve(a, i, e);
+
+    return val;
+}
+
+int main( const int argc, char * argv [])
+{
+    // NO_IO_TIE;
+    cout << c498();
+
+    return EXIT_SUCCESS;
+}

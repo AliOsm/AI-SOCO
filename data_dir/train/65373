@@ -1,0 +1,301 @@
+#define _USE_MATH_DEFINES
+#define _CRT_SECURE_NO_DEPRECATE
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <utility>
+#include <algorithm>
+#include <memory.h>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <set>
+#include <map>
+#include <queue>
+#include <complex>
+
+using namespace std;
+
+#define pb push_back
+#define pii pair<int, int>
+#define pdi pair<double, int>
+#define pdii pair<pdi, int>
+#define pll pair<ll, ll>
+#define pli pair<ll, int>
+#define psi pair<string, int>
+#define vi vector<int>
+#define inf 2000000000
+#define mod 1000000007
+#define y1 uhgeg
+#define lim 31700
+#define eps 1e-9
+#define prime 3001
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef complex<double> comp;
+
+struct query
+{
+	int time, l, v1, v2;
+	bool operator < (const query &q) const
+	{
+		return l < q.l;
+	}
+	query(int time, int l, int v1, int v2) : time(time), l(l), v1(v1), v2(v2){}
+	query(){}
+};
+
+int n, m, j, i, h, k, q1, q2, q, l, high[100500], own[100500], par[100500], lvl[100500], cnt[100500], f[100500], nxt[100500], ans[100500], ptr;
+vector<pii> g[100500];
+query qu[100500];
+vector<pii> dist;
+
+struct node
+{
+	int l, r, mid, size;
+
+	node(int mid, int l, int r, int size) : mid(mid), size(size), l(l), r(r){}
+
+	node(){}
+
+	node operator + (const node &n)
+	{
+		node res;
+		if (size == l)
+		{
+			if (n.size == n.l)
+			{
+				return node(0, l + n.l, r + n.r, size + n.size);
+			}
+			else
+			{
+				return node(n.mid, l + n.l, n.r, size + n.size);
+			}
+		}
+		else
+		{
+			if (n.size == n.l)
+			{
+				return node(mid, l, r + n.r, size + n.size);
+			}
+			else
+			{
+				return node(mid + n.mid + f[r + n.l], l, n.r, size + n.size);
+			}
+		}
+	}
+
+	node operator ! ()
+	{
+		node res = (*this);
+		swap(res.l, res.r);
+		return res;
+	}
+
+	int answer()
+	{
+		if (l != size)
+		{
+			return f[l] + mid + f[r];
+		}
+		else
+		{
+			return f[l];
+		}
+	}
+};
+
+struct segment_tree
+{
+private:
+	vector <node> tree;
+	int size;
+	void update(int i, int p1, int p2, int q)
+	{
+		if (p1 == p2)
+		{
+			tree[i] = node(0, 0, 0, 1);
+			return;
+		}
+		int p = (p1 + p2) >> 1;
+		if (q <= p)
+		{
+			update((i << 1) + 1, p1, p, q);
+		}
+		else
+		{
+			update((i << 1) + 2, p + 1, p2, q);
+		}
+		tree[i] = tree[(i << 1) + 1] + tree[(i << 1) + 2];
+	}
+	void build(int i, int p1, int p2)
+	{
+		if (p1 == p2)
+		{
+			tree[i] = node(0, 1, 1, 1);
+			return;
+		}
+		int p = (p1 + p2) >> 1;
+		build((i << 1) + 1, p1, p);
+		build((i << 1) + 2, p + 1, p2);
+		tree[i] = tree[(i << 1) + 1] + tree[(i << 1) + 2];
+	}
+	node get_sum(int i, int p1, int p2, int q1, int q2)
+	{
+		if (q1 <= p1 && p2 <= q2)
+		{
+			return tree[i];
+		}
+		int p = (p1 + p2) >> 1;
+		node res(0, 0, 0, 0);
+		if (q1 <= p)
+		{
+			res = res + get_sum((i << 1) + 1, p1, p, q1, q2);
+		}
+		if (q2 > p)
+		{
+			res = res + get_sum((i << 1) + 2, p + 1, p2, q1, q2);
+		}
+		return res;
+	}
+public:
+	segment_tree(){}
+	segment_tree(int v, int len)
+	{
+		tree.resize(len << 2);
+		size = len;
+		build(0, 0, len - 1);
+	}
+	void update(int pos)
+	{
+		update(0, 0, size - 1, pos);
+	}
+	node get_sum(int pos1, int pos2)
+	{
+		return get_sum(0, 0, size - 1, pos1, pos2);
+	}
+};
+
+segment_tree trees[100500];
+
+void init_dfs(int v, int p)
+{
+	par[v] = p;
+	cnt[v] = 1;
+	lvl[v] = lvl[p] + 1;
+	for (int j = 0; j < g[v].size(); j++)
+	{
+		if (g[v][j].first == p)
+		{
+			continue;
+		}
+		init_dfs(g[v][j].first, v);
+		cnt[v] += cnt[g[v][j].first];
+		if (cnt[g[v][j].first] > cnt[nxt[v]])
+		{
+			nxt[v] = g[v][j].first;
+		}
+		dist.pb(pii(g[v][j].second, g[v][j].first));
+	}
+}
+
+int build_dfs(int v, int top_v)
+{
+	high[v] = top_v;
+	if (!nxt[v])
+	{
+		trees[v] = segment_tree(v, lvl[v] - lvl[top_v]);
+		return own[v] = v;
+	}
+	for (int j = 0; j < g[v].size(); j++)
+	{
+		if (g[v][j].first == par[v])
+		{
+			continue;
+		}
+		if (g[v][j].first == nxt[v])
+		{
+			own[v] = build_dfs(nxt[v], top_v);
+			continue;
+		}
+		build_dfs(g[v][j].first, v);
+	}
+	return own[v];
+}
+
+void solve()
+{
+	scanf ("%d%d", &n, &m);
+	for (j = 1; j < n; j++)
+	{
+		scanf ("%d", &f[j]);
+	}
+	for (j = 1; j < n; j++)
+	{
+		scanf ("%d%d%d", &q1, &q2, &q);
+		g[q1].pb(pii(q2, q));
+		g[q2].pb(pii(q1, q));
+	}
+	init_dfs(1, 0);
+	build_dfs(1, 0);
+	sort (dist.begin(), dist.end());
+	for (j = 1; j <= m; j++)
+	{
+		scanf ("%d%d%d", &q1, &q2, &q);
+		qu[j] = query(j, q, q1, q2);
+	}
+	sort (qu + 1, qu + m + 1);
+	for (j = 1; j <= m; j++)
+	{
+		while (ptr < dist.size() && dist[ptr].first < qu[j].l)
+		{
+			trees[own[dist[ptr].second]].update(lvl[own[dist[ptr].second]] - lvl[dist[ptr].second]);
+			ptr++;
+		}
+		q1 = qu[j].v1;
+		q2 = qu[j].v2;
+		node res1 = node(0, 0, 0, 0), res2 = node(0, 0, 0, 0);
+		while (own[q1] != own[q2])
+		{
+			int top1 = high[q1], top2 = high[q2];
+			if (lvl[top1] >= lvl[top2])
+			{
+				res1 = res1 + trees[own[q1]].get_sum(lvl[own[q1]] - lvl[q1], lvl[own[q1]] - lvl[top1] - 1);
+				q1 = top1;
+			}
+			else
+			{
+				res2 = res2 + trees[own[q2]].get_sum(lvl[own[q2]] - lvl[q2], lvl[own[q2]] - lvl[top2] - 1);
+				q2 = top2;
+			}
+		}
+		if (q1 != q2)
+		{
+			if (lvl[q1] > lvl[q2])
+			{
+				res1 = res1 + trees[own[q1]].get_sum(lvl[own[q1]] - lvl[q1], lvl[own[q1]] - lvl[q2] - 1);
+			}
+			else
+			{
+				res2 = res2 + trees[own[q2]].get_sum(lvl[own[q2]] - lvl[q2], lvl[own[q2]] - lvl[q1] - 1);
+			}
+		}
+		res1 = res1 + !res2;
+		ans[qu[j].time] = res1.answer();
+	}
+	for (j = 1; j <= m; j++)
+	{
+		printf ("%d\n", ans[j]);
+	}
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);cin.tie(0);
+	//freopen("input.txt", "r", stdin); freopen("output.txt", "w", stdout);
+	srand(333);
+	solve();
+	return 0;
+}

@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int N = 1e6 + 100;
+const int LG = 20;
+int f[N];
+
+void xor_basis(vector <int> &b, int lg) {
+    vector<int> a = b;
+    while(a.size() > 0 && a.back() >= (1<<lg)) a.pop_back();
+    int n = a.size();
+    if(n < lg) return;
+    int row = 0;
+    vector<int> basis, basis_mask;
+    vector<bool> colm(lg, 0);
+    vector<int> mask(n, 0);
+
+    for(int k = lg-1; k >= 0; k--) {
+        bool flag = false;
+        for(int i = row; i < n; i++) {
+            if((a[i]>>k)&1) {
+                flag = true;
+                swap(a[i], a[row]);
+                swap(mask[i], mask[row]);
+                break;
+            }
+        }
+        if(!flag) return;
+        if(row < n && (a[row]>>k)&1) {
+            basis.push_back(a[row]);
+            mask[row] ^= (1<<k);
+            basis_mask.push_back(mask[row]);
+            colm[k] = 1;
+            for(int i = row + 1; i < n; i++) {
+                if((a[i]>>k)&1) a[i] ^= a[row], mask[i] ^= mask[row];
+            }
+            row++;
+        }
+    }
+    assert(basis.size() == lg);
+    vector<int> mapped((1<<lg));
+    for(int i = 0; i < (1<<lg); i++) {
+        int x = 0, m = 0;
+        for(int j = 0; j < lg; j++) {
+            if((i>>j)&1) x ^= basis[j], m ^= basis_mask[j];
+        }
+        mapped[m] = x;
+    }
+    vector<int> gray_code = {0, 1};
+    for(int k = 1; k < lg; k++) {
+        for(int j = (1<<(k))-1; j >= 0; j--) {
+            gray_code.push_back(gray_code[j]^(1<<k));
+        }
+    }
+    for(int i = 1; i < gray_code.size(); i++) {
+        int x = mapped[gray_code[i]] ^ mapped[gray_code[i-1]];
+        assert(f[x] > 0);
+    }
+    cout << lg << endl;
+    for(int x : gray_code) {
+        cout << mapped[x] << " ";
+    }
+    exit(0);
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for(int i = 0; i < n; i++) {
+        cin >> a[i];
+        f[a[i]]++;
+    }
+    sort(a.begin(), a.end());
+    for(int k = LG-1; k >= 1; k--) {
+        xor_basis(a, k);
+    }
+    cout << "0 0" << endl;
+    return 0;
+}

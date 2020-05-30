@@ -1,0 +1,316 @@
+#include <algorithm>
+#include <numeric>
+#include <string>
+#include <cstring>
+#include <set>
+#include <map>
+#include <vector>
+#include <queue>
+#include <iostream>
+#include <iterator>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <sstream>
+
+using namespace std;
+
+typedef vector<int> int_array;
+
+typedef long long ll;
+typedef vector<ll> long_array;
+
+int min(int a, int b)
+{
+	return (a < b ? a : b);
+}
+
+int max(int a, int b)
+{
+	return (a > b ? a : b);
+}
+
+int read_int() 
+{
+	int value;
+	cin >> value;
+	return value;
+}
+
+int_array read_int_array(int size)
+{
+	int_array a(size);
+	for (int i = 0; i < size; ++i) a[i] = read_int();
+	return a;
+}
+
+class FenwickTree
+{
+private:
+	long_array tree;
+	
+public:
+	int size;
+	
+	FenwickTree(int size)
+	: size(size + 1)
+	, tree(size + 1, 0)
+	{}
+	
+	ll get(int index)
+	{
+		ll sum = 0;
+		for (; index >= 0; index &= (index + 1), --index) sum += tree[index];
+		return sum;
+	}
+	
+	ll get_segment_sum(int left, int right)
+	{
+		return get(right + 1) - get(left);
+	}
+	
+	void update(int index, ll delta)
+	{
+		++index;
+		for (; index < size; index |= (index + 1)) tree[index] += delta;
+	}
+	
+	void clear()
+	{
+		for (int index = 0; index < size; ++index) tree[index] = 0;
+	}
+};
+
+class Query
+{
+public:
+
+	int index;
+	int type;
+	int first, second;
+	
+	Query(int index, int type, int first, int second)
+	: index(index)
+	, type(type)
+	, first(first)
+	, second(second)
+	{ }
+};
+
+typedef vector<Query*> query_array;
+
+long_array get_answers(int n, int_array & a, int q, query_array & queries)
+{
+	long_array answers(n, -1);
+	
+	int blockSize = 1000;
+	
+	query_array blockUpdates(blockSize);
+	query_array blockQueries(blockSize);
+	
+	vector<query_array> blockQueriesByStarts(n, query_array());
+	vector<query_array> blockQueriesByEnds(n, query_array());
+	
+	FenwickTree startTree(n);
+	FenwickTree endTree(n);
+	
+	vector<set<int> > interestingGroupIndexes(n, set<int>());
+	
+	int_array prev_indexes(n);
+	int_array next_indexes(n);
+	int_array interesting(n, -1);
+	
+	for (int query_start = 0; query_start < q; query_start += blockSize)
+	{
+		blockSize = min(blockSize, q - query_start);
+		
+		blockUpdates.clear();
+		blockQueries.clear();
+		
+		int updatesCount = 0;
+		int queriesCount = 0;
+		
+		for (int i = 0; i < blockSize; ++i) {
+			int index = query_start + i;
+			Query* query = queries[index];
+			
+			int type = query -> type;
+			
+			int first = query -> first;
+			int second = query -> second;
+			
+			if (type == 1) {
+				blockUpdates[updatesCount++] = query;
+			} else {
+				blockQueries[queriesCount++] = query;
+				answers[index] = 0;
+			}
+		}
+		
+		set<int> interestingValuesSet;
+		
+		for (int i = 0; i < updatesCount; ++i) {
+			Query* update = blockUpdates[i];
+			
+			int fromValue = a[update -> first];
+			int toValue = update -> second;
+			
+			interestingValuesSet.insert(fromValue);
+			interestingValuesSet.insert(toValue);
+		}
+		
+		int interesting_values_count = interestingValuesSet.size();
+		
+		int_array interestingValues(interesting_values_count, 0);
+		{
+			int i = 0;
+			for (int interesting_value : interestingValuesSet) 
+				interestingValues[i++] = interesting_value;
+		}
+		
+		for (int value : interestingValues) {
+			interestingGroupIndexes[value].clear();
+			interesting[value] = query_start;
+		}
+		
+		for (int i = 0; i < queriesCount; ++i) {
+			Query * query = blockQueries[i];
+			
+			blockQueriesByStarts[query -> first].push_back(query);
+			blockQueriesByEnds[query -> second].push_back(query);
+		}
+		
+		endTree.clear();
+		for (int i = 0; i < n; ++i) prev_indexes[i] = -1;
+		// left-to-right
+		for (int i = 0; i < n; ++i) {
+			int value = a[i];
+			
+			if (interesting[value] != query_start) {
+				int prevIndex = prev_indexes[value];
+				if (prevIndex != -1) {
+					endTree.update(prevIndex, -prevIndex);
+				}
+				
+				endTree.update(i, i);
+				prev_indexes[value] = i;	
+			} else {
+				interestingGroupIndexes[value].insert(i);
+			}
+			
+			for (Query * query : blockQueriesByEnds[i]) {
+				int left = query -> first, right = i;
+				ll sum = endTree.get_segment_sum(left, right);
+				
+				answers[query -> index] += sum; 
+			}
+		}
+		
+		// right-to-left
+		startTree.clear();
+		for (int i = 0; i < n; ++i) next_indexes[i] = -1;
+		
+		for (int i = n - 1; i >= 0; --i) {
+			int value = a[i];
+			if (interesting[value] != query_start) {
+				int nextIndex = next_indexes[value];
+				if (nextIndex != -1) {
+					startTree.update(nextIndex, -nextIndex);
+				}
+				
+				startTree.update(i, i);
+				next_indexes[value] = i;	
+			}
+			
+			for (Query * query : blockQueriesByStarts[i]) {
+				int left = i, right = query -> second;
+				ll sum = startTree.get_segment_sum(left, right);
+				
+				answers[query -> index] -= sum; 
+			}
+		}
+		
+		int j = 0;
+		for (int i = 0; i < queriesCount; ++i) {
+			Query * query = blockQueries[i];
+			
+			for (; j < updatesCount; ++j) {
+				Query * update = blockUpdates[j];
+				
+				if (update -> index > query -> index) {
+					break;
+				}
+				
+				int oldValue = a[update -> first];
+				interestingGroupIndexes[oldValue].erase(update -> first);
+				
+				a[update -> first] = update -> second;
+				interestingGroupIndexes[update -> second].insert(update -> first);
+			}
+			
+			int left = query -> first, right = query -> second;
+			for (int interestingValue : interestingValues) {
+				auto start_iterator = interestingGroupIndexes[interestingValue].lower_bound(left);
+				if (start_iterator == interestingGroupIndexes[interestingValue].end()) continue;
+				
+				auto end_iterator = interestingGroupIndexes[interestingValue].upper_bound(right);
+				if (end_iterator == interestingGroupIndexes[interestingValue].begin()) continue;
+				--end_iterator;
+				
+				int start = (*start_iterator), end = (*end_iterator);
+				if (start > right || end < left) continue;
+
+				answers[query -> index] += end - start; 
+			}	
+			
+		}
+		
+		for (; j < updatesCount; ++j) {
+			Query * update = blockUpdates[j];
+			
+			a[update -> first] = update -> second;
+		}
+		
+		// clear blockByStart/End
+		for (int i = 0; i < queriesCount; ++i) {
+			Query * query = blockQueries[i];
+			
+			blockQueriesByStarts[query -> first].clear();
+			blockQueriesByEnds[query -> second].clear();
+		}
+	}
+	
+	return answers;
+}
+
+void solve()
+{
+	int n = read_int();
+	int q = read_int();
+	
+	int_array a = read_int_array(n);
+	for (int i = 0; i < n; ++i) a[i]--;
+	
+	query_array queries(q);
+	for (int i = 0; i < q; ++i) 
+	{
+		int index = i;
+		int type = read_int();
+		int first = read_int() - 1;
+		int second = read_int() - 1;
+		
+		queries[i] = new Query(index, type, first, second);
+	}
+	
+	long_array answers = get_answers(n, a, q, queries);
+	for (ll answer : answers) 
+	{
+		if (answer != -1) cout << answer << '\n';
+	}
+}
+	
+int main()
+{
+	solve();
+	return 0;
+}

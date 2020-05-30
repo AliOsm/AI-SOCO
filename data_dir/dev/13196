@@ -1,0 +1,160 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using matrix = vector<vector<long long>>;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+
+#define all(x) (x).begin(), (x).end()
+//#define int ll
+
+struct item {
+    int c, q;
+};
+
+bool operator <(item a, item b) {
+    return a.q > b.q || a.q == b.q && a.c < b.c;
+}
+
+mt19937 gen(32183891);
+
+struct node {
+    node *l, *r;
+    int n, cnt, promise1, promise2, x, y;
+    node(int i, int b, int c) : l(nullptr), r(nullptr), n(i), cnt(c), promise1(0), promise2(0), x(b), y(gen()) {};
+};
+
+void update(node *&root) {
+    if (root == nullptr) {
+        return;
+    }
+    root->cnt += root->promise1;
+    root->x -= root->promise2;
+    if (root->l) {
+        root->l->promise1 += root->promise1;
+        root->l->promise2 += root->promise2;
+    }
+    if (root->r) {
+        root->r->promise1 += root->promise1;
+        root->r->promise2 += root->promise2;
+    }
+    root->promise1 = 0;
+    root->promise2 = 0;
+}
+
+pair<node*, node*> split(node *root, int key) {
+    update(root);
+    if (root == nullptr) {
+        return {nullptr, nullptr};
+    }
+    if (root->x < key) {
+        auto splitted = split(root->r, key);
+        root->r = splitted.first;
+        update(root);
+        return {root, splitted.second};
+    }
+    else {
+        auto splitted = split(root->l, key);
+        root->l = splitted.second;
+        update(root);
+        return {splitted.first, root};
+    }
+}
+
+node* merge(node *l, node *r) {
+    update(l);
+    update(r);
+    if (l == nullptr) {
+        return r;
+    }
+    if (r == nullptr) {
+        return l;
+    }
+    if (l->y < r->y) {
+        l->r = merge(l->r, r);
+        update(l);
+        return l;
+    }
+    else {
+        r->l = merge(l, r->l);
+        update(r);
+        return r;
+    }
+}
+
+void insert(node *&root, int i, int b, int c) {
+    auto splitted = split(root, b);
+    root = merge(merge(splitted.first, new node(i, b, c)), splitted.second);
+}
+
+void refresh(node *&root, node *&cur, int c) {
+    update(cur);
+    if (cur == nullptr) {
+        return;
+    }
+    refresh(root, cur->l, c);
+    insert(root, cur->n, cur->x - c, cur->cnt + 1);
+    refresh(root, cur->r, c);
+}
+
+void change(node *&root, int c) {
+    auto first = split(root, c);
+    auto second = split(first.second, c * 2);
+    if (second.second) {
+        second.second->promise1++;
+        second.second->promise2 += c;
+        update(second.second);
+    }
+    root = merge(first.first, second.second);
+    refresh(root, second.first, c);
+}
+
+const int MAXN = 2e5 + 100;
+int ans[MAXN];
+
+void getans(node *&root) {
+    update(root);
+    if (root == nullptr) {
+        return;
+    }
+    getans(root->l);
+    ans[root->n] = root->cnt;
+    getans(root->r);
+}
+
+signed main() {
+
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+
+    node *root = nullptr;
+    int n;
+    cin >> n;
+    vector<item> a(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i].c >> a[i].q;
+    }
+    sort(all(a));
+    int q;
+    cin >> q;
+    for (int i = 0; i < q; ++i) {
+        int b;
+        cin >> b;
+        insert(root, i, b, 0);
+    }
+    for (int i = 0; i < n; ++i) {
+        change(root, a[i].c);
+    }
+    getans(root);
+    for (int i = 0; i < q; ++i) {
+        cout << ans[i] << ' ';
+    }
+}

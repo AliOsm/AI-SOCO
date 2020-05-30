@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+
+using namespace std ;
+
+const int MAX = 2e5 + 10 ;
+
+long long X[MAX] , V[MAX] ;
+int n ;
+string s ;
+
+struct segment_tree
+{
+	vector<long long>v ;
+	vector<long long> tree ;
+	int sz ;
+	bool flag ;
+	void init(vector<long long>v2 , bool t)
+	{
+		if(t == 0)
+			flag = 0 ;
+		else
+			flag = 1 ;
+		sz = (int)v2.size() ;
+		v = v2 ;
+		sort(v.begin() , v.end()) ;
+		tree.resize(sz*4+10) ;
+		for(int i = 0 ; i <= sz*4 ; ++i)
+			tree[i] = 0 ;
+	}
+	int getidx1(long long idx)
+	{
+		int idx2 = lower_bound(v.begin() , v.end() , idx) - v.begin() ;
+		return idx2 ;
+	}
+	int getidx2(long long idx)
+	{
+		int idx2 = upper_bound(v.begin() , v.end() , idx) - v.begin() ;
+		idx2-- ;
+		return idx2 ;
+	}
+	void update(int node , int l , int r , int idx , long long v)
+	{
+		if(idx > r || idx < l || idx < 0)
+			return ;
+		if(l == r)
+		{
+			if(flag == 0)
+				tree[node] = max(tree[node] , v) ;
+			else
+				tree[node] += v ;
+			return ;
+		}
+		int mid = (l + r) >> 1 ;
+		update(node << 1 , l , mid , idx , v) ;
+		update(node << 1 | 1 , mid+1 , r , idx , v) ;
+		if(flag == 0)
+			tree[node] = max(tree[node << 1] , tree[node << 1 | 1]) ;
+		else
+			tree[node] = tree[node << 1] + tree[node << 1 | 1] ;
+	}
+ 
+	long long query(int node , int l , int r , int from , int to)
+	{
+		if(from > r || to < l || from > to)
+			return 0 ;
+		if(l >= from && r <= to)
+			return tree[node] ;
+		int mid = (l + r) >> 1 ;
+		long long a = query(node << 1 , l , mid , from , to) ;
+		long long b = query(node << 1 | 1 , mid+1 , r , from , to) ;
+		if(flag == 0)
+			return max(a , b) ;
+		else
+			return (a + b) ;
+	}
+ 
+	void update(long long idx , long long val)
+	{
+		idx = getidx1(idx) ;
+		update(1 , 0 , sz , idx , val) ;
+	}
+ 
+	long long query(long long idx)
+	{
+		idx = getidx2(idx) ;
+		return query(1 , 0 , sz , 0 , idx) ;
+	}
+};
+
+int main()
+{
+	ios_base::sync_with_stdio(0) ;
+	cin.tie(0) ;
+	cin>>n ;
+	for(int i = 0 ; i < n ; ++i)
+		cin>>X[i] ;
+	for(int i = 0 ; i < n ; ++i)
+		cin>>V[i] ;
+	segment_tree tree , Cnt ;
+	vector<long long>v ;
+	for(int i = 0 ; i < n ; ++i)
+		v.push_back(X[i]) ;
+	tree.init(v , 1) ;
+	Cnt.init(v , 1) ;
+	vector< pair<long long , long long> >vp ;
+	for(int i = 0 ; i < n ; ++i)
+		vp.emplace_back(V[i] , X[i]) ;
+	sort(vp.begin() , vp.end()) ;
+	for(int i = 0 ; i < n ; ++i)
+		X[i] = vp[i].second , V[i] = vp[i].first ;
+	long long ans = 0ll , cnt , sum ;
+	for(int i = 0 ; i < n ; ++i)
+	{
+		sum = tree.query(X[i]) ;
+		cnt = Cnt.query(X[i]) ;
+		ans += (X[i] * cnt - sum) ;
+		tree.update(X[i] , X[i]) ;
+		Cnt.update(X[i] , 1) ;
+	}
+	return cout<<ans<<"\n" , 0 ;
+}
+
+

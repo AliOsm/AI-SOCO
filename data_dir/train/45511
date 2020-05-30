@@ -1,0 +1,131 @@
+//be naame khodaa
+
+#include <bits/stdc++.h>
+
+typedef long long ll;
+
+using namespace std;
+
+int dp[8005][4005];
+int ans[8005][4005];
+int c[4005], h[4005], t[4005];
+int size = 1;
+vector < pair <int, int> > state;
+vector <int> state_end;
+int st[20005], ed[20005];
+pair <int, int> seg[200005];
+set <int> mark;
+
+void add(int id)
+{
+	dp[size][0] = 0;
+	for (int i = 1; i <= 4000; i++)
+	{
+		dp[size][i] = (size? dp[size-1][i] : 0);
+		if (c[id] <= i)
+			dp[size][i] = max(dp[size][i], (size? dp[size-1][i - c[id]] : 0) + h[id]);
+	}
+	size++;
+	assert(size <= 8000);
+}
+
+void inter(int s, int e, int x = 1)
+{
+	if (e-s == 1)
+	{
+		seg[x] = state[s];
+		return;
+	}
+	inter(s, (s+e)/2, 2*x);
+	inter((s+e)/2, e, 2*x+1);
+	pair <int, int> pie1 = seg[2*x],
+		 			pie2 = seg[2*x+1];
+	if (pie1.second == -1 || pie2.second == -1)
+		seg[x] = make_pair(0, -1);
+	else
+		seg[x] = make_pair(max(pie1.first, pie2.first), min(pie1.second, pie2.second));
+}
+
+void f(int s, int e , int x = 1)
+{
+	vector <int> Stack;
+	Stack.clear();
+
+	for (auto i = mark.lower_bound(seg[x].first); i != mark.end() && (*i) <= seg[x].second; i++)
+	{
+		Stack.push_back(*i);
+		add(*i);
+	}
+	for (int i = 0; i < Stack.size(); i++)
+		mark.erase(Stack[i]);
+	if (e-s == 1)
+	{
+		for (int i = 0; i <= 4000; i++)
+			ans[s][i] = dp[size-1][i];
+	}
+	else
+	{
+		f(s, (s + e)/2, 2*x);
+		f((s+e)/2, e, 2*x+1);
+	}
+
+	for (int i = 0; i < Stack.size(); i++)
+	{
+		mark.insert(Stack[i]);
+		size--;
+	}
+	Stack.clear();
+}
+
+int main()
+{
+	int n, p;
+	cin >> n >> p;
+	for (int i = 0; i < n; i++)
+	{
+		cin >> c[i] >> h[i] >> t[i];
+		int j = i;	
+		for (; j && t[j] < t[j-1]; j--)
+		{
+			swap(c[j], c[j-1]);
+			swap(h[j], h[j-1]);
+			swap(t[j], t[j-1]);
+		}
+		st[t[j]]++;
+		ed[t[j]+p]++;
+	}
+
+	int i = 0, j = -1;
+	for (int now = 1; now <= 20000; now++)
+	{
+		if ((st[now] || ed[now]))
+		{
+			state.push_back({i, j});
+			state_end.push_back(now);
+		}
+		j += st[now];
+		i += ed[now];
+	}
+
+//	for (int i = 0; i < state.size(); i++)
+//		cout << state[i].first << ',' << state[i].second << endl;
+
+	for (int i = 0; i < n; i++)
+		mark.insert(i);
+	inter(0, state.size());
+	f(0, state.size());
+
+	int q;
+	cin >> q;
+	while (q--)
+	{
+		int a, b;
+		cin >> a >> b;
+		int it = upper_bound(state_end.begin(), state_end.end(), a) - state_end.begin();
+		if (it == state_end.size())
+			cout << 0 << endl;
+		else
+			cout << ans[it][b] << endl;
+	}
+    return 0;
+}

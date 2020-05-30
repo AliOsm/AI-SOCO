@@ -1,0 +1,45 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <stack>
+#include <queue>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x7f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL N=3e6+7;
+const double eps=1e-7;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a,T b) {return a>0?a:-a;}
+
+int n,m,i,j;
+int a[N];
+bool b[N];
+int main(){
+	scanf("%d%d",&n,&m);
+	j=1;
+	REP(i,m){
+		scanf("%d",&a[i]);
+		a[i]=(a[i]-1)%(n-i)+1;
+		while (a[i]--){
+			j=j%n+1;
+			while (b[j]) j=j%n+1;
+		}
+		b[j]=1;
+		printf("%d ",j);
+		while (b[j]) j=j%n+1;
+	}
+}
+/*
+*/

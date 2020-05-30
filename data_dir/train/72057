@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+
+using namespace std  ;
+
+class segmentTree{
+public:
+    long long *sTree , *lazy ;
+    int N ;
+    segmentTree(int n)
+    {
+        N = 1 ;
+        while(N < n) N <<= 1 ;
+        sTree = new long long [N << 1] ;
+        lazy = new long long [N << 1] ;
+        for(int i = 0 ; i < N << 1 ; i++)
+            sTree[i] = 0 , lazy[i] = -1 ;
+    }
+    void propagate(int node)
+    {
+        if(lazy[node] == -1) return;
+        lazy[node << 1] = lazy[node] ;
+        lazy[node << 1 | 1] = lazy[node] ;
+        sTree[node << 1] = lazy[node] ;
+        sTree[node << 1 | 1] = lazy[node] ;
+        lazy[node] = -1 ;
+    }
+    void updateRange(int node , int b , int e , int i , int j , long long val)
+    {
+        if(j < b || i > e) return;
+        if(i <= b && e <= j)
+        {
+            sTree[node] = val ;
+            lazy[node] = val ;
+            return;
+        }
+        int mid = b + e >> 1 ;
+        propagate(node) ;
+        updateRange(node << 1 , b , mid , i , j , val) ;
+        updateRange(node << 1 | 1 , mid + 1 , e , i , j , val) ;
+        sTree[node] = sTree[node << 1] | sTree[node << 1 | 1] ;
+    }
+    void updateRange(int i , int j , long long val)
+    {
+        updateRange(1 , 1 , N , i , j , val) ;
+    }
+    long long query(int node , int b , int e , int i , int j)
+    {
+        if(j < b || e < i) return 0 ;
+        if(i <= b && e <= j) return sTree[node] ;
+        propagate(node) ;
+        int mid = b + e >> 1 ;
+        return query(node << 1 , b , mid , i , j) | query(node << 1 | 1 , mid + 1 , e , i , j) ;
+    }
+
+    long long query(int i , int j){return query(1 , 1 , N , i , j);}
+};
+
+vector<int > adjList [(int)4e5 + 1] ;
+int tin[(int)4e5 + 1] , tout[(int)4e5 + 1] ;
+int timer = 0 ;
+
+void dfs(int u , int p = -1)
+{
+    tin[u] = ++timer;
+    for(int v : adjList[u])
+        if(v != p)
+            dfs(v , u) ;
+    tout[u] = timer ;
+}
+
+int main()
+{
+    ios_base :: sync_with_stdio(false) ;
+    cin.tie(nullptr) ;
+    int n , m ;
+    cin >> n >> m ;
+    vector<long long > a (n + 1) ;
+    for(int i = 1 ; i <= n ; i++)
+    {
+        int c ;
+        cin >> c ;
+        a[i] = 1LL << (c - 1) ;
+    }
+    segmentTree seg (n) ;
+    for(int i = 0 ; i < n - 1 ; i++)
+    {
+        int x , y ;
+        cin >> x >> y ;
+        x-- , y -- ;
+        adjList[x].push_back(y) ;
+        adjList[y].push_back(x) ;
+    }
+    dfs(0) ;
+    for(int i = 1 ; i <= n ; i++)
+        seg.updateRange(tin[i - 1] , tin[i - 1] , a[i]) ;
+    while(m--)
+    {
+        int t  , v;
+        cin >> t >> v;
+        --v;
+        if(t == 1)
+        {
+            int c ;
+            cin >> c ;
+            seg.updateRange(tin[v] , tout[v] , 1LL << (c - 1)) ;
+        }
+        else {
+            int ans = 0 ;
+            long long q = seg.query(tin[v] , tout[v]) ;
+            while(q > 0)
+            {
+                ans ++ ;
+                q &= (q - 1) ;
+            }
+            cout << ans << '\n';
+        }
+    }
+
+    return 0 ;
+}

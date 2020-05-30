@@ -1,0 +1,114 @@
+#include <algorithm>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <set>
+#include <cassert>
+#include <cmath>
+#include <numeric>
+#include <cassert>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN=200000;
+const int MAXK=5;
+
+int n,k;
+int down[MAXN][MAXK];
+int up[MAXN][MAXK];
+
+vector<vector<int> > v;
+
+ll res=0;
+
+void fill_down(int cur, int p)
+{
+	down[cur][0]=1;
+	for(int i=0;i<v[cur].size();i++)
+	{
+		int to=v[cur][i];
+		if(to==p) continue;
+		fill_down(to, cur);
+		for(int i=0;i<k;i++)
+			down[cur][(i+1)%k]+=down[to][i];
+	}
+}
+
+int tmp[MAXN][MAXK];
+
+void fill_up(int cur, int p)
+{
+	up[cur][0]++;
+	for(int i=0;i<k;i++)
+		tmp[cur][(i+1)%k]=up[cur][i];
+	for(int i=0;i<v[cur].size();i++)
+	{
+		int to=v[cur][i];
+		if(to==p) continue;
+		for(int j=0;j<k;j++)
+			tmp[cur][(j+2)%k]+=down[to][j];
+	}
+	for(int i=0;i<v[cur].size();i++)
+	{
+		int to=v[cur][i];
+		if(to==p) continue;
+		for(int j=0;j<k;j++)
+			up[to][(j+2)%k]=tmp[cur][(j+2)%k]-down[to][j];
+		fill_up(to, cur);
+	}
+}
+
+void fill_res(int cur, int p)
+{
+	int n1=accumulate(down[cur], down[cur]+k,0);
+	int n2=accumulate(up[cur], up[cur]+k,0);
+	assert(n1+n2-1==n);
+	res+=ll(n1)*(n2-1);
+
+	{
+		int rem[MAXK];
+		for(int i=0;i<k;i++)
+			rem[i]=down[cur][i];
+		for(int i=0;i<v[cur].size();i++)
+		{
+			int to=v[cur][i];
+			if(to==p) continue;
+			for(int j=0;j<k;j++)
+				rem[(j+1)%k]-=down[to][j];
+			for(int j=0;j<k;j++)
+				for(int l=0;l<k;l++)
+					res+=((k-(j+l+1)%k)%k)*down[to][j]*ll(rem[l]);
+		}
+		assert(accumulate(rem, rem+k,-1)==0);
+	}
+
+	for(int i=0;i<v[cur].size();i++)
+	{
+		int to=v[cur][i];
+		if(to==p) continue;
+		fill_res(to, cur);
+	}
+}
+
+int main()
+{
+	scanf("%d%d",&n,&k);
+	v.resize(n);
+	for(int i=0;i<n-1;i++)
+	{
+		int a,b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+	fill_down(0,-1);
+	fill_up(0,-1);
+	fill_res(0,-1);
+	assert(res%k==0);
+	cout<<res/k<<endl;
+	return 0;
+}

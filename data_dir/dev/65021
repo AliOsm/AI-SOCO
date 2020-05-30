@@ -1,0 +1,215 @@
+
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <algorithm>
+#include <cmath>
+#include <array>
+#include <climits>
+#include <limits.h>
+#include <string>
+#include <stack>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <assert.h>
+#include <cstring>
+#include <bitset>
+#include <complex>
+using namespace std;
+#define rep(i, n) for (int (i) = 0; (i) < (n); (i) ++)
+#define rep1(i, n) for (int (i) = 1; (i) <= (n); (i) ++)
+#define FOR(i, a, b) for (int (i) = (a); (i) <= (b); (i)++)
+#define db(x) {cout << #x << " = " << (x) << endl;}
+#define dba(a, x, y) {cout<<#a<<" :";FOR(i123,x,y)cout<<setw(4)<<(a)[i123];cout<<endl;}
+#define clr(x) memset(x,0,sizeof(x));
+#define mp make_pair
+#define pb push_back
+#define sz(x) int((x).size())
+#define endl '\n'
+typedef long long ll;
+typedef long double ld;
+const int INF = INT_MAX;
+const ll INFL = LLONG_MAX;
+const ld pi = acos(-1);
+// const int MOD = ;
+
+class ShortestPathWeightedGraph {
+private:
+  int N;
+  vector<vector<pair<int,long long> > > adj;
+  vector<long long> dist;
+  void check_node(int u)
+  {
+    if (u < 0 || N <= u)
+    {
+      throw "Node number out of boundary.";
+    }
+  }
+public:
+  // Creates a graph with N nodes where each node is numbered
+  // from 0 to N - 1.
+  ShortestPathWeightedGraph(int N)
+  {
+    this->N = N;
+    adj.resize(N);
+  }
+  // Add an edge from u to v with the specified weight.
+  void add(int u, int v, long long weight)
+  {
+    check_node(u);
+    check_node(v);
+    if (weight < 0)
+    {
+      throw "The weight has to be non-negative.";
+    }
+    adj[u].push_back(make_pair(v, weight));
+  }
+  // Add an undirected edge between u and v with the specified weight.
+  void add_undirected(int u, int v, long long weight)
+  {
+    add(u, v, weight);
+    add(v, u, weight);
+  }
+  // Find the distance from u to v.
+  int shortest(int u, int v)
+  {
+    check_node(u);
+    check_node(v);
+    dist.resize(N);
+    fill(dist.begin(), dist.end(), -1);
+    priority_queue<pair<long long, int> > q;
+    q.push(make_pair(0, u));
+    dist[u] = 0;
+    while (!q.empty())
+    {
+      int cur = q.top().second;
+      if (cur == v) return dist[cur];
+      ll distcur = -q.top().first;
+      q.pop();
+      if (dist[cur] < distcur) continue;
+      for (int i = 0; i < adj[cur].size(); i++)
+      {
+        int nxt = adj[cur][i].first;
+        long long weight = adj[cur][i].second;
+        if (dist[nxt] == -1 || dist[cur] + weight < dist[nxt])
+        {
+          dist[nxt] = dist[cur] + weight;
+          q.push(make_pair(-dist[nxt], nxt));
+        }
+      }
+    }
+    return dist[v];
+  }
+  // Find the distance from u to each node.
+  // parent describes the shortest-path tree.
+  void shortest(int u, vector<long long>& distance, vector<int>& parent)
+  {
+    check_node(u);
+    distance.resize(N);
+    parent.resize(N);
+    fill(distance.begin(), distance.end(), -1);
+    fill(parent.begin(), parent.end(), -1);
+    priority_queue<pair<long long, int> > q;
+    q.push(make_pair(0, u));
+    distance[u] = 0;
+    while (!q.empty())
+    {
+      int cur = q.top().second;
+      ll distcur = -q.top().first;
+      q.pop();
+      if (distance[cur] < distcur) continue;
+      for (int i = 0; i < adj[cur].size(); i++)
+      {
+        int nxt = adj[cur][i].first;
+        long long weight = adj[cur][i].second;
+        if (distance[nxt] == -1 || distance[cur] + weight < distance[nxt])
+        {
+          distance[nxt] = distance[cur] + weight;
+          parent[nxt] = cur;
+          assert(distance[nxt] >= 1);
+          q.push(make_pair(-distance[nxt], nxt));
+        }
+      }
+    }
+  }
+};
+int N, M, K;
+
+vector<int> adj[200100];
+map<int,int> edge_index[200100];
+vector<pair<int,int> > edges;
+vector<int> maybe[200100];
+int must[200100];
+int answer[200100];
+int numprinted;
+void dfs(int u, int numtoprint) {
+  if (u == N + 1) {
+    for (int i = 0; i < M; i++) {
+      cout << must[i];
+    }
+    cout << endl;
+    numprinted++;
+    if (numprinted == numtoprint) {
+      exit(0);
+    }
+    return;
+  }
+  if (sz(maybe[u]) == 0) {
+    dfs(u + 1, numtoprint);
+  } else {
+    for (int e : maybe[u]) {
+      must[e] = 1;
+      dfs(u + 1, numtoprint);
+      must[e] = 0;
+    }
+  }
+}
+int main() {
+  ios_base::sync_with_stdio(0); cout.precision(15); cout << fixed; cout.tie(0); cin.tie(0);
+  cin >> N >> M >> K;
+  ShortestPathWeightedGraph graph(N + 1);
+  for (int i = 0; i < M; i++) {
+    int a, b;
+    cin >> a >> b;
+    adj[a].push_back(b);
+    adj[b].push_back(a);
+    edge_index[a][b] = i;
+    edge_index[b][a] = i;
+    graph.add_undirected(a, b, 1);
+    edges.push_back(mp(a, b));
+  }
+  vector<long long> dist;
+  vector<int> par;
+  graph.shortest(1, dist, par);
+  for (pair<int,int> edge : edges) {
+    int u = edge.first;
+    int v = edge.second;
+    if (u == 1 || v == 1) {
+      must[edge_index[u][v]] = 1;
+//      db(edge_index[u][v]);
+      continue;
+    }
+    if (abs(dist[u] - dist[v]) == 1) {
+      if (dist[u] > dist[v]) {
+        maybe[u].push_back(edge_index[u][v]);
+      } else {
+        maybe[v].push_back(edge_index[u][v]);
+//        db(u); db(v); cout << endl;
+      }
+    }
+  }
+  ll tot = 1;
+  for (int u = 1; u <= N; u++) {
+    if (sz(maybe[u]) >= 2) {
+      tot *= sz(maybe[u]);
+      if (tot > K) {
+        tot = K;
+        break;
+      }
+    }
+  }
+  cout << tot << endl;
+  dfs(1, tot);
+}

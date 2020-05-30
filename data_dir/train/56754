@@ -1,0 +1,128 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int inf = 1e9 + 239;
+
+struct SegmentTree {
+    vector<int> a;
+    
+    SegmentTree(const vector<int> &a_) {
+        a = a_;
+    }
+    
+    void inc(int l, int r, int val) {
+        r++;
+        for (int i = l; i < r; i++) {
+            a[i] += val;
+        }
+    }
+    
+    int get_min(int l, int r) {
+        r++;
+        int ans = inf;
+        for (int i = l; i < r; i++) {
+            ans = min(ans, a[i]);
+        }
+        return ans;
+    }
+};
+
+struct event {
+    int pos;
+    int id;
+    int tp;
+    
+    event() {
+        pos = -1;
+        id = -1;
+    }
+    
+    event(int id_, int pos_, int tp_) {
+        id = id_;
+        pos = pos_;
+        tp = tp_;
+    }
+    
+    bool operator <(const event &other) const {
+        if (pos != other.pos) {
+            return pos < other.pos;
+        } else if (tp != other.tp) {
+            return tp < other.tp;
+        } else {
+            return id < other.id;
+        }
+    }
+};
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+#ifdef LOCAL
+    assert(freopen("input.txt", "r", stdin));
+    assert(freopen("output.txt", "w", stdout));
+#endif
+    
+    int n, m;
+    cin >> n >> m;
+    vector<int> a(n);
+    for (auto &t : a) {
+        cin >> t;
+    }
+    vector<pair<int, int>> b(m);
+    for (auto &t : b) {
+        cin >> t.first >> t.second;
+        t.first--;
+        t.second--;
+    }
+    auto ins = [&](int pos, int ind) {
+        return b[ind].first <= pos && pos <= b[ind].second;
+    };
+    int best = -inf;
+    int best_pos = -1;
+    
+    vector<event> ev;
+    for (int i = 0; i < m; i++) {
+        ev.push_back(event(i, b[i].first, 0));
+        ev.push_back(event(i, b[i].second, 1));
+    }
+    sort(ev.begin(), ev.end());
+    
+    SegmentTree st(a);
+    for (int i = 0; i < m; i++) {
+        st.inc(b[i].first, b[i].second, -1);
+    }
+    
+    int pnt = 0;
+    for (int i = 0; i < n; i++) {
+        while (pnt < (int)ev.size() && ev[pnt].pos == i && ev[pnt].tp == 0) {
+            auto seg = b[ev[pnt].id];
+            st.inc(seg.first, seg.second, +1);
+            pnt++;
+        }
+        int cur = a[i] - st.get_min(0, n - 1);
+        if (cur > best) {
+            best = cur;
+            best_pos = i;
+        }
+        while (pnt < (int)ev.size() && ev[pnt].pos == i && ev[pnt].tp == 1) {
+            auto seg = b[ev[pnt].id];
+            st.inc(seg.first, seg.second, -1);
+            pnt++;
+        }
+        
+    }
+    
+    cout << best << endl;
+    vector<int> uu;
+    for (int i = 0; i < m; i++) {
+        if (!ins(best_pos, i)) {
+            uu.push_back(i);
+        }
+    }
+    cout << uu.size() << endl;
+    for (auto t : uu) {
+        cout << t + 1 << ' ';
+    }
+}

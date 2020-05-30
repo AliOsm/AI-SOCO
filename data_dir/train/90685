@@ -1,0 +1,118 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+/*
+*/
+
+vector<vector<int> > tr;
+vector<vector<long long> > pref, suff;
+vector<pair<int, int> > p;
+vector<long long> dp;
+vector<long long> dp3;
+vector<long long> dp2;
+
+long long pw(int a, int P)
+{
+	if (P==0) return 1;
+	if (P%2==0)
+	{
+		long long r = pw(a, P/2);
+		return (r*r)%1000000007;
+	}
+	else return (a*pw(a, P-1))%1000000007;
+}
+
+long long dfs(int i, int par, int nth)
+{
+	p[i] = make_pair(par, nth);
+	long long res = 1;
+	pref[i] = vector<long long> (tr[i].size());
+	suff[i] = vector<long long> (tr[i].size());
+	for (int j = 0; j < tr[i].size(); j++)
+	{
+		if (tr[i][j] == par) continue;
+		res *= (1+dfs(tr[i][j], i, j));
+		res %= 1000000007;
+	}
+	long long x=1;
+	for (int j = 0; j < tr[i].size(); j++)
+	{
+		if (tr[i][j] == par) {
+			pref[i][j] = x;
+			continue;
+		}
+		
+		x *= (1+dp[tr[i][j]]);
+		x%=1000000007;
+		pref[i][j] = x;
+	}
+	
+	x=1;
+	for (int j = tr[i].size() - 1; j >=0; j--)
+	{
+		if (tr[i][j] == par) {
+			suff[i][j] = x;
+			continue;
+		}
+		
+		x *= (1+dp[tr[i][j]]);
+		x%=1000000007;
+		suff[i][j] = x;
+	}
+	return dp[i] = res;
+}
+
+void dfs2(int i, int par)
+{
+	if (par != -1)
+	{
+		dp2[i] = 1;
+		if (p[i].second > 0)
+			dp2[i] *= pref[p[i].first][p[i].second-1];
+		dp2[i] %= 1000000007;
+		if (p[i].second+1 < tr[p[i].first].size())
+			dp2[i] *= suff[p[i].first][p[i].second+1];
+		dp2[i] %= 1000000007;
+		dp2[i] *= dp3[p[i].first];
+		dp2[i]++;
+		dp2[i] %= 1000000007;
+		dp3[i] = dp2[i];
+		dp2[i] *= dp[i];
+		dp2[i] %= 1000000007;
+	}
+	else
+	{
+		dp3[i] = 1;
+		dp2[i] = dp[i];
+	}
+	for (int j = 0; j < tr[i].size(); j++)
+	{
+		if (tr[i][j] == par) continue;
+		dfs2(tr[i][j], i);
+	}
+}
+
+int main()
+{
+	int n;
+	cin>>n;
+	tr = vector<vector<int> > (n);
+	pref = suff = vector<vector<long long> > (n);
+	dp = dp2 = dp3 = vector<long long> (n);
+	p = vector<pair<int, int> > (n);
+	for (int i = 1; i < n; i++)
+	{
+		int Par;
+		cin>>Par;
+		tr[i].push_back(Par-1);
+		tr[Par-1].push_back(i);
+	}
+	dfs(0, -1, -1);
+	dfs2(0, -1);
+	for (int i = 0; i < n; i++)
+	{
+		cout<<dp2[i]<<endl;
+	}
+}

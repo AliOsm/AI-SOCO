@@ -1,0 +1,175 @@
+#include <algorithm>
+#include <bitset>
+#include <complex>
+#include <deque>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <ios>
+#include <iosfwd>
+#include <iostream>
+#include <istream>
+#include <iterator>
+#include <limits>
+#include <list>
+#include <locale>
+#include <map>
+#include <memory>
+#include <new>
+#include <numeric>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdexcept>
+#include <streambuf>
+#include <string>
+#include <typeinfo>
+#include <utility>
+#include <valarray>
+#include <vector>
+#include <cstring>
+
+using namespace std;
+
+#define ll long long
+#define all(aaa) aaa.begin(), aaa.end()
+#pragma warning(disable : 4996)
+
+const int N = 2e5 + 5, NN = 1e6, MOD = 1e9 + 7, M = 305, INF = 1e9;
+vector<int> v[N], qv[N];
+ll dp[M];
+deque<int> occ[N];
+int tour[NN], lb[N], rb[N], ans[N];
+int z = 0;
+
+struct Q {
+	int k, m, r, i;
+} qr[N];
+
+bool used[N];
+
+void dfs(int node, int anc = -1) {
+	tour[z++] = node;
+	for (int to : v[node]) {
+		if (to != anc) {
+			dfs(to, node);
+			tour[z++] = node;
+		}
+	}
+}
+
+void deep(int node, int m, vector<int> &w, int h = 0) {
+	for (int i = m; i >= 0; i--) {
+		if (i < m) {
+			dp[i + 1] += dp[i];
+		}
+		dp[i] = dp[i] * max(0, i - h);
+	}
+	for (int i = 0; i <= m; i++)
+		dp[i] %= MOD;
+	while (!w.empty() && occ[w.back()].front() <= rb[node]) {
+		int to = w.back();
+		w.pop_back();
+		deep(to, m, w, h + 1);
+	}
+}	
+
+signed main() {
+#ifdef HOME
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	int n, q;
+	cin >> n >> q;
+
+	if (n == 1) {
+		for (int i = 0; i < q; i++) {
+			cout << 1 << "\n";
+		}
+		return 0;
+	}
+
+	for (int i = 0; i < n - 1; i++) {
+		int a, b;
+		cin >> a >> b;
+		a--, b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+
+	dfs(0);
+	z--;
+	
+	for (int i = 0; i < z; i++) {
+		tour[i + z] = tour[i];
+		occ[tour[i]].push_back(i);
+	}
+
+	for (int i = 0; i < q; i++) {
+		int k, m, r;
+		cin >> k >> m >> r;
+		qr[i] = { k, m, r - 1, i };
+		for (int j = 0; j < k; j++) {
+			int x;
+			cin >> x;
+			qv[i].push_back(x - 1);
+		}
+	}
+
+	sort(qr, qr + q, [&](Q &x, Q &y) {
+		return occ[x.r].front() < occ[y.r].front();
+	});
+
+	for (int i = 0; i < n; i++) {
+		lb[i] = occ[i].front();
+		rb[i] = occ[i].back();
+	}
+
+	for (int i = 0, j = 0; i < q; i++) {
+		while (tour[j] != qr[i].r) {
+			occ[tour[j]].pop_front();
+			occ[tour[j + z]].push_back(j + z);
+			lb[tour[j]] = occ[tour[j]].front();
+			rb[tour[j + z]] = j + z;
+			j++;
+		}
+
+		vector<int> &w = qv[qr[i].i];
+
+		sort(all(w), [](int x, int y) {
+			return occ[x].front() > occ[y].front();
+		});
+
+		fill(dp, dp + M, 0);
+		dp[0] = 1;
+
+		int tmp = rb[qr[i].r];
+		rb[qr[i].r] = INF;
+		while (!w.empty()) {
+			int to = w.back();
+			w.pop_back();
+			deep(to, qr[i].m, w);
+		}
+		rb[qr[i].r] = tmp;
+
+		ll sum = 0;
+		for (int j = 0; j <= qr[i].m; j++) {
+			sum += dp[j];
+		}
+
+		sum %= MOD;
+		ans[qr[i].i] = sum;
+	}
+
+	for (int i = 0; i < q; i++)
+		cout << ans[i] << "\n";
+
+
+	return 0;
+}

@@ -1,0 +1,218 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+    AssertsCounter(): counter(0) {}
+    ~AssertsCounter() { std::cout << std::endl << "DIAG: " << (counter == 0 ? "OK" : "!!!") << " Asserts count: " << counter << std::endl; }
+    void Increment() { counter++; }
+    uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cout << "ASSERT FAILED: '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << ")" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> inline std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+    return ist;
+}
+
+template<typename T> inline std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+    return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+typedef std::map<uint64_t, size_t, std::greater<uint64_t> > map_uint64_size_t;
+
+void CleanUp(map_uint64_size_t& lengths)
+{
+    while (!lengths.empty() && lengths.begin()->second == 0)
+    {
+        lengths.erase(lengths.begin());
+    }
+}
+
+bool TryTakeTwo(map_uint64_size_t& lengths, uint64_t& pairedLength)
+{
+    map_uint64_size_t::iterator p1 = lengths.begin();
+
+    while (p1 != lengths.end())
+    {
+        if (p1->second >= 2)
+        {
+            p1->second -= 2;
+            pairedLength = p1->first;
+            lengths.erase(lengths.begin(), p1);
+            CleanUp(lengths);
+            return true;
+        }
+
+        map_uint64_size_t::iterator p2 = p1;
+        ++p2;
+        if (p2 == lengths.end())
+        {
+            return false;
+        }
+
+        if (p1->first == p2->first + 1)
+        {
+            pairedLength = p2->first;
+            p1->second -= 1;
+            p2->second -= 1;
+            CleanUp(lengths);
+            return true;
+        }
+
+        lengths.erase(p1++);
+    }   
+    
+    return false;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; (void)sw;
+
+    // 
+    size_t n;
+    ist >> n;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+#if LOCAL_TEST
+    ost << std::endl << "Next test" << std::endl;
+#endif
+
+    // 
+    vector_uint64_t p(n);
+    ist >> p;
+
+    map_uint64_size_t lengths;
+    for (size_t i = 0; i < p.size(); i++)
+    {
+        lengths[p[i]]++;
+    }
+
+    uint64_t totalSquare = 0;
+    uint64_t l1;
+    uint64_t l2;
+
+    while (TryTakeTwo(lengths, l1) && TryTakeTwo(lengths, l2))
+    {
+        totalSquare += l1 * l2;
+    }
+
+    ost << totalSquare << std::endl;
+
+    return multipleTestMode;
+}
+
+int main(int argc, const char *argv[])
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

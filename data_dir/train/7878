@@ -1,0 +1,139 @@
+//Be Name Khoda
+//no comment...
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+template <typename T> using ordered_set =  tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+template <typename T> using ordered_multiset =  tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+typedef long long ll;
+typedef long double ld;
+const int MOD = (int)1e9 + 7;
+const int MAXN = (int)1e5 + 7;
+const int infint = (int)1e9;
+const ll inf = (ll)1e18;
+int n, h[MAXN], par[MAXN][17];
+vector<int> G[MAXN];
+vector<int> S[MAXN];
+vector<int> mer[MAXN][17];
+vector<int> merge(vector<int> a, vector<int> b)
+{
+  vector<int> ret(a.size()+b.size());
+  merge(a.begin(),a.end(),b.begin(),b.end(),ret.begin());
+  if (ret.size()>10) ret.resize(10);
+  return ret;
+}
+void dfs_pre(int v, int p)
+{
+	for (auto u : G[v])
+		if(u != p)
+		{
+			h[u] = h[v] + 1;
+			mer[u][0] = merge(mer[u][0], S[v]);
+			par[u][0] = v;
+			dfs_pre(u, v);
+		}
+}
+int lca(int x, int y)
+{
+	if(h[x] < h[y])
+		swap(x, y);
+	//alan h[x] >= h[y]
+	ll lg = 0;
+	for (int i = 1; i <= h[x]; i *= 2)
+		lg++;
+	lg--;
+	for (int i = lg; i >= 0; i--)
+		if(h[x] - (1 << i) >= h[y])
+			x = par[x][i];
+	if(x == y)
+		return x;
+	for (int i = lg; i >= 0; i--)
+		if(par[x][i] != -1 && par[y][i] != -1 && par[x][i] != par[y][i])
+			x = par[x][i], y = par[y][i];
+	return par[x][0];
+}
+int main()
+{
+	int m, q;
+	cin >> n >> m >> q;
+	for (int i = 0; i < n - 1; i++)
+	{
+		int u, v;
+		scanf("%d%d", &u, &v);
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+	//preprocess 
+	h[1] = 0;
+	for (int i = 1; i <= m; i++)
+	{
+		int a;
+		scanf("%d", &a);
+		S[a].push_back(i);
+	}
+	for (int i = 1; i <= n; i++)
+	{
+		sort(S[i].begin(), S[i].end());
+		if(S[i].size() > 10)
+			S[i].resize(10);
+	}
+	dfs_pre(1, -1);
+	for (int i = 1; (1 << i) <= n; i++)
+		for (int j = 1; j <= n; j++)
+			if(par[j][i - 1] != -1)
+				par[j][i] = par[par[j][i - 1]][i - 1];
+	
+	for (int i = 1; (1 << i) <= n; i++)
+		for (int j = 1; j <= n; j++)
+			if(par[j][i - 1] != -1 && par[par[j][i - 1]][i - 1] != -1)
+			{
+				mer[j][i] = merge(mer[j][i], mer[j][i - 1]);
+				mer[j][i] = merge(mer[j][i], mer[par[j][i - 1]][i - 1]);
+			}
+	//query
+	for (int i = 0; i < q; i++)
+	{
+		int u, v, a;
+		scanf("%d%d%d", &u, &v, &a);
+		int c = lca(u, v), lg = 0;
+		vector<int> ans;
+		//u
+		for (int j = 1; j <= (h[u] - h[c]); j *= 2)
+			lg++;
+		lg--;
+		int cur = u;
+		for (int j = lg; j >= 0; j--)
+			if((1 << j) <= (h[cur] - h[c]))
+			{
+				ans = merge(ans, mer[cur][j]);
+				cur = par[cur][j];
+			}
+		ans = merge(ans, S[u]);
+		//v
+		lg = 0;
+		for (int j = 1; j <= (h[v] - h[c] - 1); j *= 2)
+			lg++;
+		lg--;
+		cur = v;
+		for (int j = lg; j >= 0; j--)
+			if((1 << j) <= h[cur] - h[c] - 1)
+			{
+				ans = merge(ans, mer[cur][j]);
+				cur = par[cur][j];
+			}
+		if(v != u && c != v)
+			ans = merge(ans, S[v]);
+		int sz = min(a, (int)ans.size());
+		printf("%d ", sz);
+		for (auto u : ans)
+		{
+			if(sz == 0)
+				break;
+			printf("%d ", u);
+			sz--;
+		}
+		printf("\n");
+	}
+}

@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair < int, int > ii;
+
+const int N = 1e6 + 5;
+const int mod = 1e9 + 7;
+
+int n;
+int pw[10];
+
+int add(int x, int y) {
+    return x + y >= mod ? x + y - mod : x + y;
+}
+
+int mul(int x, int y) {
+    return (ll) x * y % mod;
+}
+
+class data{ public:
+    int cnt, sum, sqsum;
+    data() {
+        cnt = sum = sqsum = 0;
+    }
+    data(int x) {
+        cnt = 1;
+        sum = x;
+        sqsum = mul(x, x);
+    }
+};
+
+/*
+a1b1
+a1b2
+a1b3
+a1b4
+a1b5
+a2b1
+a2b2
+*/
+
+data operator+(data x, data y) {
+    if(x.cnt == 0)
+        return y;
+    if(y.cnt == 0)
+        return x;
+    data res;
+    res.cnt = add(add(x.cnt, y.cnt), mul(x.cnt, y.cnt));
+    res.sum = add(x.sum, y.sum);
+    res.sum = add(res.sum, mul(x.cnt, y.sum));
+    res.sum = add(res.sum, mul(y.cnt, x.sum));
+    res.sqsum = add(x.sqsum, y.sqsum);
+    res.sqsum = add(res.sqsum, mul(x.cnt, y.sqsum));
+    res.sqsum = add(res.sqsum, mul(y.cnt, x.sqsum));
+    int val = mul(x.sum, y.sum);
+    res.sqsum = add(res.sqsum, mul(val, 2));
+    return res;
+}
+
+data a[N];
+
+int upgrade(int x, int i) {
+    int num = x / pw[6 - i] % 10;
+    if(num == 9) {
+        // puts("FAILED");
+        return -1;
+    }
+    int lf = x / pw[6 - i + 1];
+    int rg = x % pw[6 - i];
+    int y = (lf * 10 + (num + 1)) * pw[6 - i] + rg;
+    // printf("x = %d i = %d lf = %d rg = %d y = %d\n", x, i, lf, rg, y);
+    return y;
+}
+
+int g[N];
+
+int main() {
+
+    pw[0] = 1;
+
+    for(int i = 1; i <= 9; i++)
+        pw[i] = pw[i - 1] * 10;
+
+    // printf("%d\n", upgrade(123456, 3));
+
+    scanf("%d", &n);
+
+    for(int i = 1; i <= n; i++) {
+        int x;
+        scanf("%d", &x);
+        a[x] = a[x] + data(x);
+    }
+
+    for(int i = 6; i >= 1; i--) {
+        for(int j = 9; j >= 1; j--) {
+            for(int k = 0; k < 100000; k++) {
+                //(6-i)j(i-1)
+                //left x of k --> k / pw[5 - x]
+                //right x of k --> k % pw[x]
+                int x = ((k / pw[5 - (6 - i)]) * 10 + j) * pw[i - 1] + (k % pw[i - 1]);
+                int y = x - pw[i - 1];
+                a[y] = a[y] + a[x];
+            }
+        }
+    }
+
+    ll ans = 0;
+
+    for(int i = (int) 1e6 - 1; i >= 0; i--) {
+        g[i] = a[i].sqsum;
+        // printf("inG[%d] = %d\n", i, g[i]);
+        // printf("i = %d\n", i);
+        for(int mask = 1; mask < (1 << 6); mask++) {
+            int pop = __builtin_popcount(mask);
+            int x = i;
+            for(int j = 0; j < 6; j++) {
+                if(mask & (1 << j)) {
+                    x = upgrade(x, j + 1);
+                    if(x == -1)
+                        break;
+                }
+            }
+            if(x == -1)
+                continue;
+            // printf("i = %d mask = %d x = %d\n", i, mask, x);
+            if(pop & 1)
+                g[i] = add(g[i], mod - a[x].sqsum);
+            else
+                g[i] = add(g[i], a[x].sqsum);
+        }
+        // if(g[i]) {
+            // printf("g[%d] = %d\n", i, g[i]);
+            // getchar();
+        // }
+        ans ^= (ll) i * g[i];
+    }
+
+    printf("%lld\n", ans);
+
+    return 0;
+
+}
+

@@ -1,0 +1,140 @@
+/*
+ * Code be weshen zyk :'(
+ */
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma comment(linker, "/STACK:1024000000,1024000000")
+
+#include <bits/stdc++.h>
+
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/rope>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+template<class T> using orderd_set = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+
+#define S second
+#define F first
+#define pb push_back
+
+using ii = pair<int, int>;
+using ll = long long;
+using db = long double;
+
+const int N = 1e5 + 5, K = 20, MOD = 1e9 + 7;
+const ll MX = 1e15;
+const int blkSz = 320;
+int n, a[N];
+void compress() {
+	vector<int> ord;
+	for (int i = 0; i < n; i++) {
+		ord.pb(a[i]);
+	}
+	sort(ord.begin(), ord.end());
+	ord.resize(unique(ord.begin(), ord.end()) - ord.begin());
+
+	for (int i = 0; i < n; i++)
+		a[i] = lower_bound(ord.begin(), ord.end(), a[i]) - ord.begin();
+}
+int bit[N];
+inline void add(int & x, int v){if((x += v) >= MOD) x -= MOD;}
+inline void sub(int & x, int v){if((x -= v) < 0) x += MOD;}
+inline void mul(int & x, int v){x = 1ll * x * v  % MOD;}
+inline void upd(int x){for(++x;x<N;x+=x&-x)add(bit[x],1);}
+inline int get(int x){int ret = 0; for(++x;x;x-=x&-x)add(ret,bit[x]); return ret;}
+int L[N], R[N];
+struct node{
+	int go[3][3] = {};
+}t[N*20];
+int root[N], LC[N * 20], RC[N * 20], ptr;
+node mrg(node a, node b){
+	///going from 0->2
+	node ret;
+	for(int i = 0; i < 3; i++){
+		for(int j = i; j < 3; j++){
+			ret.go[i][j] = (a.go[i][j] + b.go[i][j]) % MOD;
+			for(int k = i; k < j; k++){
+				add(ret.go[i][j], 1ll * a.go[i][k] * b.go[k+1][j] % MOD);
+			}
+		}
+	}
+	return ret;
+}
+void upd(int & cur, int s, int e, int idx, int v){
+	if(!cur)cur = ++ptr;
+	if(s==e){
+		t[cur].go[0][0] = L[s] * v;
+		t[cur].go[2][2] = R[s] * v;
+		t[cur].go[1][1] = v;
+		return;
+	}
+	int md = (s + e) >> 1;
+	if(idx <= md)
+		upd(LC[cur],s,md,idx,v);
+	else
+		upd(RC[cur],md+1,e,idx,v);
+	t[cur] = mrg(t[LC[cur]], t[RC[cur]]);
+}
+int main(int argc, char** argv) {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+#endif
+	cin >> n;
+
+	for (int i = 0; i < n; i++) {
+		cin >> a[i];
+	}
+
+	compress();
+
+	for(int i = 0; i < n; i++){
+		L[i] = get(a[i]);
+		upd(a[i]);
+	}
+
+	memset(bit, 0, sizeof bit);
+
+	for(int i = n - 1; i >= 0; --i){
+		R[i] = get(a[i]);
+		upd(a[i]);
+	}
+
+	int k = *max_element(a,a + n) + 1;
+
+	for(int i = 0; i < n; i++){
+		upd(root[a[i]], 0, n - 1, i, 1);
+	}
+//	for(int i = 0; i < n; i++){
+//		cout << i << ':' << L[i]  << ' ' << R[i] << '\n';
+//	}
+	int ans = 0;
+
+	for(int i = 0; i < k; i++){
+		add(ans, t[root[i]].go[0][2]);
+	}
+
+//	cout << ans << '\n';
+
+	int q;	cin >> q;
+
+	while(q--){
+		int x, y;
+		cin >> x >> y;	--y;
+		sub(ans, t[root[a[y]]].go[0][2]);
+		if(x == 1){
+			upd(root[a[y]], 0, n - 1, y, 0);
+		}	else {
+			upd(root[a[y]], 0, n - 1, y, 1);
+		}
+		add(ans, t[root[a[y]]].go[0][2]);
+		cout << ans << '\n';
+	}
+
+	return 0;
+}

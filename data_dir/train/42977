@@ -1,0 +1,164 @@
+#include <cstdio>
+
+#include <cstring>
+
+#include <string>
+#include <vector>
+#include <algorithm>
+//#include <map>
+//#include <set>
+//#include <queue>
+//#include <stack>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+typedef long long llong;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+
+struct SegmentTreeNode {
+   int val;
+   short delay_val;   // es un delta (para suma acumulada)
+   SegmentTreeNode(int _val = 0) : val(_val), delay_val(0) { }
+   inline void update(int L, int R, int d) {
+      delay_val += d;
+      val += d;
+   }
+/*
+   void propagate(SegmentTreeNode& pL,
+                  SegmentTreeNode& pR,
+                  int L, int R)
+   {
+      if (delay_val) {
+         // push sum to children
+         pL.update(L, (L+R)/2, delay_val);
+         pR.update((L+R)/2+1, R, delay_val);
+         delay_val  = 0;
+      }
+   }
+*/
+};
+
+int N, M;
+int A[100004];
+SegmentTreeNode tree[400004];
+class SegmentTreeLazyProp {
+   void _build(int node, int L, int R);
+   void _update(int p, int q, int val, int node, int L, int R);
+public:
+   SegmentTreeLazyProp() {
+      _build(1, 0, N-1);
+   }
+   void update(int p, int q, int val) {
+      _update(p, q, val, 1, 0, N-1);
+   }
+   int query() {
+      return tree[1].val;
+   }
+};
+
+void SegmentTreeLazyProp::_build(int node, int L, int R) {
+   if (L == R) {
+      tree[node] = SegmentTreeNode(A[L]);
+      return;
+   }
+
+   _build(2*node, L, (L+R)/2);
+   _build(2*node+1, (L+R)/2+1, R);
+
+   const SegmentTreeNode& pL = tree[2*node];
+   const SegmentTreeNode& pR = tree[2*node+1];
+
+   tree[node].val = min(pL.val, pR.val);
+}
+
+void SegmentTreeLazyProp::_update(int p, int q, int val, 
+                                  int node, int L, int R) {
+   if (q < L || p > R) return;
+   if (p <= L && R <= q) {
+      tree[node].update(L, R, val);
+      return;
+   }
+
+   SegmentTreeNode& pL = tree[2*node];
+   SegmentTreeNode& pR = tree[2*node+1];
+   if (tree[node].delay_val) {
+      pL.update(L, (L+R)/2, tree[node].delay_val);
+      pR.update((L+R)/2+1, R, tree[node].delay_val);
+      tree[node].delay_val  = 0;
+   }
+
+   _update(p, q, val, 2*node, L, (L+R)/2);
+   _update(p, q, val, 2*node+1, (L+R)/2+1, R);
+   tree[node].val = min(pL.val, pR.val);
+}
+
+
+struct Segm {
+   int L, R;
+};
+
+int main(int argc, char* argv[]) {
+   scanf("%d %d", &N, &M);
+
+   REP(i, N)
+      scanf("%d", A+i);
+
+   VVI starts(N), ends(N);
+
+   vector<Segm> segm(M);
+   REP(j, M) {
+      int L, R;
+      scanf("%d %d", &L, &R);
+      --L, --R;
+      segm[j] = {L, R};
+
+      starts[L].push_back(j);
+      ends[R].push_back(j);
+   }
+
+   int maxv = *max_element(A, A+N);
+   int minv = *min_element(A, A+N);
+
+   int res =  maxv - minv;
+   vector<bool> best_subset(M);
+
+   SegmentTreeLazyProp ST;
+   REP(j, M)
+      ST.update(segm[j].L, segm[j].R, -1);
+   vector<bool> cur_subset(M, true);
+
+   REP(maxi, N) {
+      for (int j : starts[maxi]) {
+         ST.update(segm[j].L, segm[j].R, +1);
+         cur_subset[j] = false;
+      }
+
+      int cur = ST.query();
+      if (res < A[maxi] - cur) {
+         res = A[maxi] - cur;
+         best_subset = cur_subset;
+      }
+
+      for (int j : ends[maxi]) {
+         ST.update(segm[j].L, segm[j].R, -1);
+         cur_subset[j] = true;
+      }
+   }
+
+   printf("%d\n", res);
+   int cnt = count(best_subset.begin(), best_subset.end(), true);
+   printf("%d\n", cnt);
+   REP(j, M) {
+      if (best_subset[j])
+         printf("%d ", j+1);
+   }
+   putchar('\n');
+
+   return 0;
+}

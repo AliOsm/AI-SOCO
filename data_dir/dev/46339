@@ -1,0 +1,133 @@
+#include <bits/stdc++.h>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/pb_ds/tree_policy.hpp>
+
+#define ook order_of_key
+#define fbk find_by_order
+#define pb push_back
+#define mp make_pair
+#define intl long long
+#define maxn 100005
+#define ff first
+#define ss second
+#define bug printf ("bug\n")
+#define sz(a) ((int)a.size())
+#define set0(a) memset ((a), 0 , sizeof(a))
+#define set1(a) memset((a),-1,sizeof (a))
+#define si(a) scanf("%d" , &a)
+#define sl(a) scanf("%lld" , &a)
+#define sii(a,b) scanf("%d %d" , &a , &b)
+#define sll(a,b) scanf("%lld %lld" , &a , &b)
+#define FOR(i,a,b) for(intl i = (a) ; i <= (b) ; i++)
+#define IN freopen("in.txt" , "r" , stdin)
+#define OUT freopen("output2.txt" , "w" , stdout)
+#define whats(x) printf ("x : %d\n" , x)
+
+#define int long long
+using namespace std ;
+const int N = 3e5 + 5 , md = 1e9 + 9 ;
+int a[N] , fib[N] ;
+int tree[4*N] ;
+int lazy[4*N][2] ;
+
+void build (int cn,int b,int e) {
+    if (b == e) {
+        tree[cn] = a[b] ;
+        return ;
+    }
+    int lc = 2*cn , rc = lc+1 , mid = (b+e)/2;
+    build(lc,b,mid) ;
+    build(rc,mid+1,e) ;
+    tree[cn] = (tree[lc] + tree[rc])%md ;
+}
+
+int fibonacci(int a , int b , int k) {
+    a %= md , b %= md ;
+    if (k == 1) return a ;
+    if (k == 2) return b ;
+    return ((a*fib[k-2])%md + (b*fib[k-1])%md)%md ;
+}
+
+
+void relax (int cn , int b ,int e) {
+    if (lazy[cn][0] or lazy[cn][1]) {
+        if (b != e) {
+            int l = e - b + 1 ;
+            tree[cn] += fibonacci(lazy[cn][0] , lazy[cn][1] , l+2) - lazy[cn][1] ;
+            tree[cn] %= md ;
+
+            lazy[2*cn][0] += fibonacci(lazy[cn][0] , lazy[cn][1] , 1);
+            lazy[2*cn][0] %= md ;
+            lazy[2*cn][1] += fibonacci(lazy[cn][0] , lazy[cn][1] , 2);
+            lazy[2*cn][1] %= md ;
+            int mid = (b+e)/2 ;
+            lazy[2*cn+1][0] += fibonacci(lazy[cn][0] , lazy[cn][1] , mid - b + 2);
+            lazy[2*cn+1][0] %= md ;
+            lazy[2*cn+1][1] += fibonacci(lazy[cn][0] , lazy[cn][1] , mid - b + 3) ;
+            lazy[2*cn+1][1] %= md ;
+        }
+        else {
+            tree[cn] += lazy[cn][0] ;
+            tree[cn] %= md ;
+        }
+    }
+    lazy[cn][0] = lazy[cn][1] = 0 ;
+}
+
+void upd (int cn , int b , int e , int i , int j) {
+    relax(cn,b,e) ;
+    if (b > j or e < i) {
+        return ;
+    }
+    int lc = 2*cn , rc = lc + 1 , mid = (b+e)/2 ;
+    if (b >= i and e <= j) {
+        lazy[cn][0] = fib[b-i+1] ;
+        lazy[cn][1] = fib[b-i+2] ;
+        relax(cn,b,e) ;
+        return ;
+    }
+    upd(lc,b,mid,i,j) ;
+    upd(rc,mid+1,e,i,j) ;
+    tree[cn] = (tree[lc] + tree[rc])%md ;
+}
+
+
+int query (int cn , int b , int e , int i ,int j) {
+    relax(cn,b,e) ;
+    if (b > j or e < i) return 0 ;
+    if (b >= i and e <= j) {
+        return tree[cn] ;
+    }
+    int lc = 2*cn , rc = lc + 1 , mid = (b+e)/2 ;
+    return (query(lc,b,mid,i,j) + query(rc,mid+1,e,i,j))%md ;
+}
+
+
+main () {
+  //  freopen ("in.txt" , "r" , stdin) ;
+    int n , m ;
+    scanf("%lld %lld" , &n , &m) ;
+    for (int i = 1 ; i <= n ; i++) {
+        scanf("%lld" , &a[i]) ;
+    }
+    build(1,1,n) ;
+    fib[1] = fib[2] = 1 ;
+    for (int i = 2 ; i <= n + 2 ; i++) {
+        fib[i] = fib[i-1] + fib[i-2] ;
+        fib[i] %= md ;
+    }
+
+    while (m--) {
+        int type , l , r ;
+        scanf ("%lld %lld %lld" , &type , &l , &r) ;
+        if (type == 1) {
+            upd(1,1,n,l,r) ;
+        }
+        else {
+            int res = query(1,1,n,l,r) ;
+            res += md ;
+            res %= md ;
+            printf ("%lld\n" , res) ;
+        }
+    }
+}

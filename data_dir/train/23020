@@ -1,0 +1,94 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long double LD;
+typedef long long int LL;
+typedef pair <int,int> pii;
+
+#define L first
+#define R second
+
+const int maxn = 1e5 + 100, maxf = 42;
+int dp[1 << 22];
+LL A[maxf];
+
+vector <int> adj[maxn];
+int type[maxn];
+string name[maxn];
+
+int main() {
+	ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+	int n, m;
+	cin >> n >> m;
+	vector <string> all;
+	for (int i = 0; i < n; i++) {
+		cin >> type[i];
+		if (type[i] == 2) {
+			cin >> name[i];
+			all.push_back(name[i]);
+		}
+	}
+	sort (all.begin(), all.end());
+	all.resize(unique(all.begin(), all.end()) - all.begin());
+
+	int last = -1;
+	for (int i = 0; i < n ; i++) {
+		if (type[i] == 1)
+			last = i;
+		else {
+			int v = lower_bound(all.begin(), all.end(), name[i]) - all.begin();
+			adj[last].push_back(v);
+		}
+	}
+
+	for (int v = 0; v < m; v++)
+		A[v] = (1LL << m) - 1LL;
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < adj[i].size(); j++)
+			for (int k = 0; k < j; k++) {
+				int v = adj[i][j], u = adj[i][k];
+				if (v != u) {
+					A[v] &= ((1LL << m) - 1LL) ^ (1LL << u);
+					A[u] &= ((1LL << m) - 1LL) ^ (1LL << v);
+				}
+			}
+	}
+
+	int k = m / 2;
+	for (int mask = 0; mask < (1 << k); mask++) {
+		int V = -1;
+		dp[mask] = 0;
+		for (int v = 0; v < k; v++)
+			if (mask & (1 << v))
+				dp[mask] = max(dp[mask], dp[mask ^ (1 << v)]), V = v;
+		if (V == -1)
+			continue;
+		bool okay = true;
+		for (int v = 0; v < k; v++)
+			if ((mask & (1 << v)) && !(A[V] & (1 << v)))
+				okay = false;
+		if (okay)
+			dp[mask] = max(dp[mask], dp[mask ^ (1 << V)] + 1);
+	}
+
+	int ans = 0;
+	for (LL mask = 0; mask < (1LL << m); mask += (1LL << k)) {
+		LL conn = ((1LL << m) - 1) ^ ((1LL << k) - 1);
+		for (int v = k; v < m; v++)
+			if (mask & (1LL << v))
+				conn &= A[v];
+		if ((conn & mask) != mask)
+			continue;
+		int cnt = 0;
+		LL MASK = (1LL << k) - 1LL;
+		for (int v = k; v < m; v++)
+			if (mask & (1LL << v))
+				MASK &= A[v], cnt++;
+		ans = max(ans, cnt + dp[MASK]);
+	}
+	cout << ans << endl;
+
+	return 0;
+}

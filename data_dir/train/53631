@@ -1,0 +1,191 @@
+#include <bits/stdc++.h>
+#define lsb(x) ((x) & -(x))
+using namespace std;
+
+typedef long long i64;
+
+int firstap[100010];
+int lastap[100010], cnt;
+
+i64 aint[400010];
+i64 lazy[400010];
+int l, r, val, poz;
+void pass_lazy(int nod, int st, int dr)
+{
+    if (lazy[nod]) {
+        if (st != dr) {
+            lazy[2 * nod] += lazy[nod];
+            lazy[2 * nod + 1] += lazy[nod];
+        }
+        aint[nod] += 1ll * lazy[nod] * (dr - st + 1);
+        lazy[nod] = 0;
+    }
+}
+void update(int nod, int st, int dr)
+{
+    if (st > r || dr < l)
+        return;
+    if (st >= l && dr <= r) {
+        lazy[nod] += val;
+        return;
+    }
+    aint[nod] += 1ll * (min(dr, r) - max(st, l) + 1) * val;
+    update(2 * nod, st, (st + dr) / 2);
+    update(2 * nod + 1, (st + dr) / 2 + 1, dr);
+}
+i64 query(int nod, int st, int dr)
+{
+    pass_lazy(nod, st, dr);
+    if (st > r || dr < l)
+        return 0;
+    if (st >= l && dr <= r)
+        return aint[nod];
+    return query(2 * nod, st, (st + dr) / 2) +
+           query(2 * nod + 1, (st + dr) / 2 + 1, dr);
+}
+
+vector <int> adia[100010];
+int h[100010];
+int lgb2[1000010];
+int stramos[20][100010];
+
+void dfs(int nod, int tata)
+{
+    stramos[0][nod] = tata;
+    h[nod] = 1 + h[tata];
+    for (int i(1); i < 20; i++)
+        stramos[i][nod] = stramos[i - 1][stramos[i - 1][nod]];
+
+    firstap[nod] = ++cnt;
+    for (auto i : adia[nod])
+        if (i != tata)
+            dfs(i, nod);
+    lastap[nod] = cnt;
+}
+void up(int & nod, int h)
+{
+    for (int i(h); i; i -= lsb(i))
+        nod = stramos[lgb2[lsb(i)]][nod];
+}
+int lca(int a, int b)
+{
+    if (h[a] < h[b])
+        swap(a, b);
+    up(a, h[a] - h[b]);
+
+    if (a == b)
+        return a;
+    for (int i(19); i >= 0; i--)
+        if (stramos[i][a] != stramos[i][b])
+            a = stramos[i][a], b = stramos[i][b];
+    return stramos[0][a];
+}
+bool is_son(int father, int son)
+{
+    if (father == 0)
+        return true;
+    if (son == 0)
+        return false;
+    return (firstap[father] <= firstap[son] && lastap[father] >= lastap[son]);
+}
+int max_up(int nod, int fiu1, int fiu2 = 0)
+{
+    assert(!is_son(nod, fiu1));
+    assert(!is_son(nod, fiu2));
+    for (int i(19); i >= 0; i--)
+        if (!is_son(stramos[i][nod], fiu1) && !is_son(stramos[i][nod], fiu2))
+            nod = stramos[i][nod];
+    return nod;
+}
+i64 big_query(int nod, int root)
+{
+    if (nod == root) {
+        l = 1, r = cnt;
+        return query(1, 1, cnt);
+    }
+    if (!is_son(nod, root)) {
+        l = firstap[nod], r = lastap[nod];
+        return query(1, 1, cnt);
+    }
+    root = max_up(root, nod);
+    l = 1, r = cnt;
+    i64 ans = query(1, 1, cnt);
+    l = firstap[root], r = lastap[root];
+    return ans - query(1, 1, cnt);
+}
+void big_update(int root, int a, int b, int v)
+{
+    //cout << "root : " << root << ", a = " << a << ", b = " << b << ", lca = ";
+    if (is_son(root, a) && is_son(root, b)) {
+        a = lca(a, b);
+        //cout << a << '\n';
+        if (a == root)
+            lazy[1] += v;
+        else {
+            l = firstap[a], r = lastap[a], val = v;
+            update(1, 1, cnt);
+        }
+    }
+    else if (!is_son(root, a) && !is_son(root, b)) {
+        int q = lca(a, b);
+        if (!is_son(q, root)) {
+            l = firstap[q], r = lastap[q], val = v;
+            update(1, 1, cnt);
+            return;
+        }
+        root = max_up(root, a, b);
+        //cout << stramos[0][root] << '\n';
+        lazy[1] += v;
+        l = firstap[root], r = lastap[root], val = -v;
+        update(1, 1, cnt);
+    }
+    else {
+        lazy[1] += v;
+        //cout << "don't care\n";
+    }
+}
+
+int cost_init[100010];
+
+int main()
+{
+    for (int i(0); i < 20; i++)
+        lgb2[1 << i] = i;
+    int n, q, a, b;
+    ios_base :: sync_with_stdio(0);
+    cin.tie(0);
+
+    cin >> n >> q;
+    for (int i(1); i <= n; i++)
+        cin >> cost_init[i];
+
+    for (int i(1); i < n; i++) {
+        cin >> a >> b;
+        adia[a].push_back(b);
+        adia[b].push_back(a);
+    }
+
+    dfs(1, 0);
+
+    for (int i(1); i <= n; i++) {
+        l = r = firstap[i];
+        val = cost_init[i];
+        update(1, 1, cnt);
+    }
+    int root = 1;
+
+    while (q--) {
+        int type, a, b, c;
+        cin >> type >> a;
+        if (type == 1)
+            root = a;
+        else if (type == 2) {
+            cin >> b >> c;
+            big_update(root, a, b, c);
+        }
+        else {
+            cout << big_query(a, root) << '\n';
+        }
+    }
+    return 0;
+}

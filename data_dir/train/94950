@@ -1,0 +1,86 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 2;
+
+struct line{
+      long long m, c;
+      long long eval(int x){
+            return m * x + c;
+      }
+      long double inter(line l){
+            return (0.0 + l.c - c) / (0.0 + m - l.m);
+      }
+};
+
+int n, q;
+line a[N];
+vector < pair <line, int> > t[N * 4];
+
+void build(int v = 1, int tl = 1, int tr = n){
+      if(tl == tr){
+            t[v].push_back({a[tl], tl});
+      } else {
+            int tm = (tl + tr) >> 1;
+            build(v << 1, tl, tm);
+            build((v << 1) | 1, tm + 1, tr);
+            vector < pair < pair <int, int> , int> > vec, vc;
+            for(int i = tl; i <= tr; i ++){
+                  vc.push_back({{a[i].m, a[i].c}, i});
+            }
+            sort(vc.rbegin(), vc.rend());
+            for(int i = 0; i < vc.size(); i ++){
+                  if(i && vc[i - 1].first.first == vc[i].first.first)
+                        continue;
+                  vec.push_back(vc[i]);
+            }
+            reverse(vec.begin(), vec.end());
+            for(int i = 0; i < vec.size(); i ++){
+                  int id = vec[i].second;
+                  line cur = {vec[i].first.first, vec[i].first.second};
+                  while(t[v].size() >= 2 && cur.inter(t[v].back().first) <= t[v].back().first.inter(t[v][ t[v].size() - 2 ].first))
+                        t[v].pop_back();
+                  t[v].push_back({cur, id});
+            }
+      }
+}
+
+pair <long long, int> best(vector < pair <line, int> > &v, int x){
+      int lo = 1, hi = v.size() - 1, id = 0;
+      while(lo <= hi){
+            int md = (lo + hi) >> 1;
+            if(v[md].first.inter(v[md - 1].first) <= x)
+                  lo = md + 1, id = md;
+            else
+                  hi = md - 1;
+      }
+      return {v[id].first.eval(x), v[id].second};
+}
+
+pair <long long, int> get(int l, int r, int x, int v = 1, int tl = 1, int tr = n){
+      if(l > tr || tl > r)
+            return {0, 0};
+      if(l <= tl && tr <= r){
+            return best(t[v], x);
+      }
+      int tm = (tl + tr) >> 1;
+      return max(get(l, r, x, v << 1, tl, tm),
+                  get(l, r, x, (v << 1) | 1, tm + 1, tr));
+}
+
+int main(){
+      scanf("%d %d", &n, &q);
+
+      for(int i = 1; i <= n; i ++){
+            scanf("%I64d %I64d", &a[i].c, &a[i].m);
+      }
+
+      build();
+
+      while(q --){
+            int l, r, x;
+            scanf("%d %d %d", &l, &r, &x);
+            printf("%d\n", get(l, r, x).second);
+      }
+}

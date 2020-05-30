@@ -1,0 +1,172 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <random>
+#include <chrono>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+#define endl '\n'
+
+typedef long long ll;
+typedef pair<int, int> pii;
+//typedef tree<int,null_type,less<int>,rb_tree_tag, tree_order_statistics_node_update> indexed_set;
+
+//mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+const int maxn = 1e5 + 5;
+const ll oo = 1e9;
+
+ll a[maxn];
+
+struct segment_tree{
+	
+	vector<ll> st, lazy;
+	
+	segment_tree(int n) : st(4 * n), lazy(4 * n) { build(1, 1, n); }
+	
+	
+	void add_lazy(int node, int b, int e, ll x){
+		st[node] += x;
+		lazy[node] += x;
+	}
+	
+	void push(int node, int b, int e){
+		if(b == e || !lazy[node])
+			return;
+		
+		int m = (b + e) >> 1;
+		int l = node << 1;
+		int r = l | 1;
+		
+		add_lazy(l, b, m, lazy[node]);
+		add_lazy(r, m + 1, e, lazy[node]);
+		
+		lazy[node] = 0;
+	}
+	
+	void build(int node, int b, int e){
+		if(b == e)
+			st[node] = a[b];
+		else{
+			int m = (b + e) >> 1;
+			int l = node << 1;
+			int r = l | 1;
+			
+			build(l, b, m);
+			build(r, m + 1, e);
+			
+			st[node] = max(st[l], st[r]);
+		}
+	}
+	
+	void update(int node, int b, int e, int i, int j, ll x){
+		if(b >= i && e <= j){
+			add_lazy(node, b, e, x);
+			return;
+		}
+		
+		if(b > j || e < i)
+			return;
+		
+		int m = (b + e) >> 1;
+		int l = node << 1;
+		int r = l | 1;
+		
+		push(node, b, e);
+		
+		update(l, b, m, i, j, x);
+		update(r, m + 1, e, i, j, x);
+		
+		st[node] = max(st[l], st[r]);
+		
+	}
+	
+	ll query(int node, int b, int e, int i, int j){
+		if(b >= i && e <= j)
+			return st[node];
+		if(b > j || e < i)
+			return -oo;
+		
+		int m = (b + e) >> 1;
+		int l = node << 1;
+		int r = l | 1;
+		
+		push(node, b, e);
+		
+		ll L = query(l, b, m, i, j);
+		ll R = query(r, m + 1, e, i, j);
+		
+		return max(L, R);
+	}
+	
+};
+
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	
+	int n, m;
+	cin >> n >> m;
+	
+	for(int i = 1; i <= n; i++)
+		cin >> a[i];
+	
+	segment_tree st(n);
+	vector<vector<pii>> L(n + 1), R(n + 1);
+	
+	ll ans = -2 * oo;
+	
+	for(int i = 1; i <= m; i++){
+		int l, r;
+		cin >> l >> r;
+		L[l].push_back({r, i});
+		R[r].push_back({l, i});
+	}
+	
+	set<int> segs, cur;
+	
+	for(int i = 1; i <= n; i++){
+		for(auto &s : R[i - 1]){
+			int idx = s.second;
+			int lo = s.first;
+			int hi = i - 1;
+			st.update(1, 1, n, lo, hi, +1);
+			cur.erase(idx);	
+		}
+		
+		for(auto &s : L[i]){
+			int idx = s.second;
+			int lo = i;
+			int hi = s.first;
+			st.update(1, 1, n, lo, hi, -1);
+			cur.insert(idx);
+		}
+		
+		ll mn = st.query(1, 1, n, i, i);
+		ll mx = st.query(1, 1, n, 1, n);
+		
+		if(mx - mn > ans){
+			ans = mx - mn;
+			segs.clear();
+			for(auto &s : cur)
+				segs.insert(s);
+		}
+		
+	}
+	
+	cout << ans << endl;
+	int sz = segs.size();
+	cout << sz << endl;
+	
+	int pos = 0;
+	
+	for(set<int>::iterator it = segs.begin(); it != segs.end(); it++, pos++)
+		cout << *it << " \n"[pos + 1 == sz];
+
+	return 0;
+}

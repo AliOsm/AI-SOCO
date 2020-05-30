@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define fora(i, n) for (int i = 0; i < n; ++i)
+#define forb(i, n) for (int i = 1; i <= n; ++i)
+#define forc(i, n) for (const auto &i : n)
+#define sz(x) (int)(x).size()
+#define all(x) begin(x), end(x)
+#define mp make_pair
+#define pb push_back
+#define eb emplace_back
+
+using ll = long long;
+using ld = long double;
+
+int h;
+constexpr ll query_default = 0;
+constexpr ll updateFlag = 0;
+vector<ll> d, tree;
+
+void init(int n) {
+	tree.assign(2*n, 0);
+	d.assign(n, updateFlag);
+	h = sizeof(int)*8-__builtin_clz(n);
+}
+
+void apply(int p, ll value) {
+	tree[p] += value;
+	if (p < sz(tree)/2) d[p] += value;
+}
+
+void build(int p) {
+	while (p > 1) p/=2, tree[p] = max(tree[2 * p], tree[2*p+1]) + d[p];
+}
+
+void push(int p) {
+	for (int s = h; s >0; --s) {
+		int i = p >> s;
+		if (d[i] != updateFlag) {
+			apply(2 * i, d[i]);
+			apply(2 * i + 1, d[i]);
+			d[i] = updateFlag;
+		}
+	}
+}
+
+void inc(int l, int r, ll value) {
+	l += sz(tree)/2, r += sz(tree)/2;
+	int l0 = l, r0 = r;
+	for (; l < r; l/=2, r/=2) {
+		if (l&1) apply(l++, value);
+		if (r&1) apply(--r, value);
+	}
+	build(l0); build(r0-1);
+}
+
+ll query(int l, int r) {
+	l += sz(tree)/2, r += sz(tree)/2;
+	push(l);
+	push(r - 1);
+	ll res = query_default;
+	for (; l < r; l/=2, r/=2) {
+		if (l&1) res = max(res, tree[l++]);
+		if (r&1) res = max(tree[--r], res);
+	}
+	return res;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	ll n, rad;
+	cin >> n >> rad;
+	vector<pair<ll,ll>> in(n);
+	for (ll i = 0; i < n; i++) {
+		ll x, y;
+		cin >> x >> y;
+		ll xx = x+y;
+		ll yy = x-y;
+		yy += 2000007;
+		in[i] = {xx, yy};
+	}
+	sort(all(in));
+	init(4000009);
+	auto que = [](){
+		return query(0, 4000009);
+	};
+	auto upd = [&](ll y, ll v){
+		inc(y, min(4000009ll, y + 2*rad+1), v);
+	};
+	ll l = 0;
+	ll r = 0;
+	ll res = 0;
+	while (l < n) {
+		while (r < n && in[r].first <= in[l].first + 2*rad) {
+			upd(in[r].second, +1);
+			r++;
+		}		
+		res = max(res, que());
+		upd(in[l].second, -1);
+		l++;
+	}
+	cout << res << endl;
+}

@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+#define ii pair<int, int>
+#define fi first
+#define se second
+
+int n, m, k, q;
+vector<ii> G[300000];
+vector<array<int, 3>> edges;
+vector<int> token[300000];
+int of[700000], query[300000];
+int pai[300000], sz[300000];
+int dist[300000];
+
+int find(int x)
+{
+	if(x == pai[x]) return x;
+	return pai[x] = find(pai[x]);
+}
+
+void join(int x, int y, int w)
+{
+	x = find(x);
+	y = find(y);
+	if(x == y) return;
+	if(sz[x] > sz[y]) swap(x, y);
+	for(int &t : token[x])
+	{
+		if(find(of[t ^ 1]) == y)
+			query[t / 2] = w;
+		token[y].push_back(t);
+	}
+	sz[y] += sz[x];
+	pai[x] = y;	
+}
+
+void dijkstra()
+{
+	memset(dist, 63, sizeof(dist));
+	priority_queue<ii> pq;
+	for(int i = 0; i < k; i++)
+	{
+		pq.push({0, i});
+		dist[i] = 0;
+	}
+	while(!pq.empty())
+	{
+		int u = pq.top().se;
+		int d = -pq.top().fi;
+		pq.pop();
+		if(d > dist[u]) continue;
+		for(int i = 0; i < G[u].size(); i++)
+		{
+			int dd = G[u][i].se;
+			int w = G[u][i].fi;
+			if(dist[w] > dist[u] + dd)
+			{
+				dist[w] = dist[u] + dd;
+				pq.push({-dist[w], w});
+			}
+		}
+	}
+}
+
+int32_t main()
+{
+	cin >> n >> m >> k >> q;
+	while(m--)
+	{
+		int u, v, w;
+		cin >> u >> v >> w; u--; v--;
+		G[u].push_back({v, w});
+		G[v].push_back({u, w});
+	}
+	for(int i = 0; i < q; i++)
+	{
+		int u, v;
+		cin >> u >> v; u--; v--;
+		of[2 * i] = u;
+		of[2 * i + 1] = v;
+		token[u].push_back(2 * i);
+		token[v].push_back(2 * i + 1);
+	}
+	dijkstra();
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < G[i].size(); j++)
+			edges.push_back({dist[i] + dist[G[i][j].fi] + G[i][j].se, i, G[i][j].fi});
+	sort(edges.begin(), edges.end());
+	for(int i = 0; i < n; i++)
+		pai[i] = i, sz[i] = 1;
+	for(array<int, 3> p : edges)
+		join(p[2], p[1], p[0]);
+	for(int i = 0; i < q; i++)
+		cout << query[i] << '\n'; 
+
+	return 0;
+}

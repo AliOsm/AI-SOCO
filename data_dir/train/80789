@@ -1,0 +1,119 @@
+//AUTHOR : TIRTH JARSANIA
+//COLLEGE : DAIICT
+
+#include<bits/stdc++.h>
+using namespace std;
+
+#define INF LONG_LONG_MAX
+#define MINF LONG_LONG_MIN
+#define bp __builtin_popcountll
+#define ll long long int
+#define ld long double
+#define pb push_back
+#define ff first
+#define ss second
+#define pii pair<ll,ll>
+#define precision(x,d) cout<<fixed<<setprecision(d)<<x
+#define minQueue priority_queue<pii,vector<pii>,greater<pii> > 
+#define maxQueue priority_queue<pii> 
+#define FAST ios_base::sync_with_stdio(false),cin.tie(0),cout.tie(0);srand(time(NULL))
+
+#define L(p) 2*p+1
+#define R(p) 2*p+2
+const ll N = 1e5+5;
+vector<pii> jt[4*N] , order;
+vector<ll> tin(N,0) , tout(N,0) , dep(N,0) ,a(N) ,g[N];
+
+bool comp(pii &a,pii &b)
+{
+    return (a.ff < b.ff || (a.ff == b.ff && a.ss < b.ss));
+}
+void build(ll l , ll h , ll p )
+{
+	if(l == h)
+	{
+        jt[p].pb(order[l]);
+		return;
+	}
+	ll m = (l+h)>>1;
+	build(l , m , L(p));
+	build(m+1 , h , R(p));
+	merge(jt[L(p)].begin() , jt[L(p)].end(),jt[R(p)].begin() , jt[R(p)].end() , back_inserter(jt[p]));
+    ll mini = INF;
+    for( auto &it : jt[p] )
+    {
+        mini = min(mini , it.ss);
+        it.ss = mini;
+    }
+	return;
+}
+
+ll query(ll l,ll h, ll p, ll ql ,ll qh,ll v)
+{
+	if(l > qh || h < ql)
+		return INF;
+	else if(l >= ql && h <= qh)
+    {
+        ll low = 0;
+        ll high = jt[p].size()-1;
+        ll ans = INF;
+        while( low <= high )
+        {
+            ll mid = (low+high)>>1;
+            if( jt[p][mid].ff <= v )
+            {
+                ans = jt[p][mid].ss;
+                low = mid+1;
+            }
+            else
+                high = mid-1;
+        }
+        return ans;
+    }
+	ll m = (l + h )>> 1;
+	ll p1 = query( l , m , L(p) ,ql ,qh,v);
+	ll p2 = query(m+1 , h , R(p) , ql ,qh,v);
+	return min(p1,p2);
+}
+
+void dfs(ll v,ll p,ll lvl)
+{
+    dep[v] = lvl;
+    order.pb({lvl,a[v]});
+    tin[v] = order.size()-1;
+    for(auto &u : g[v] )
+    {
+        if(u != p )
+            dfs(u,v,lvl+1);
+    }
+    tout[v] = order.size()-1;
+    return;
+}
+int main()
+{
+    FAST;
+    ll n ,  m;
+    cin >> n >> m;
+    for(ll i=1;i<=n;i++) cin >> a[i];
+    for(ll i=1;i<n;i++) 
+    {
+        ll u ,v;
+        cin >> u >> v;
+        g[u].pb(v);
+        g[v].pb(u);
+    }
+    dfs(m,0,0);
+    build(0,n-1,0);
+    ll q;
+    cin >> q;
+    ll last = 0;
+    for(ll i=0;i<q;i++)
+    {
+        ll  c,d;
+        cin >> c >> d;
+        ll x = (c+last)%n+1;
+        ll k = (d+last)%n;
+        last = query( 0 , n-1 , 0 , tin[x] , tout[x] , dep[x] + k );
+        cout << last  << "\n";
+    }
+}

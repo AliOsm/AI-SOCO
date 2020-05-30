@@ -1,0 +1,147 @@
+#include <iostream>
+#include <fstream>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <stack>
+#include <queue>
+#include <deque>
+#include <bitset>
+#include <algorithm>
+#include <complex>
+#include <array>
+#include <functional>
+using namespace std;
+ 
+#define REP(i,n) for(int i=0; i<n; ++i)
+#define FOR(i,a,b) for(int i=a; i<=b; ++i)
+#define FORR(i,a,b) for (int i=a; i>=b; --i)
+#define ALL(c) (c).begin(), (c).end()
+ 
+typedef long long ll;
+typedef vector<int> VI;
+typedef vector<ll> VL;
+typedef vector<double> VD;
+typedef vector<VI> VVI;
+typedef vector<VL> VVL;
+typedef vector<VD> VVD;
+typedef pair<int,int> P;
+typedef pair<ll,ll> PL;
+
+template<typename T> void chmin(T &a, T b) { if (a > b) a = b; }
+template<typename T> void chmax(T &a, T b) { if (a < b) a = b; }
+
+int in() { int x; scanf("%d", &x); return x; }
+ll lin() { ll x; scanf("%lld", &x); return x; }
+
+VI Centroid(VVI &graph){
+    int n = graph.size();
+    VI ret, sz(n);
+    function<void (int, int)> dfs = [&](int now, int past){
+        sz[now] = 1;
+        bool is_centroid = true;
+        for (int next : graph[now]){
+            if (next == past) continue;
+            dfs(next, now);
+            sz[now] += sz[next];
+            if (sz[next] > n / 2) is_centroid = false;
+        }
+        if (n - sz[now] > n / 2) is_centroid = false;
+        if (is_centroid) ret.push_back(now);
+    };
+    dfs(0, -1);
+    return ret;
+}
+
+void dfs0(int now, int past, VVI &e, VI &sz){
+    sz[now] = 1;
+    for (int next : e[now]){
+        if (next == past) continue;
+        dfs0(next, now, e, sz);
+        sz[now] += sz[next];
+    }
+}
+
+int check(VVI e, int r, int b){
+    int n = e.size();
+    if (n == 2) return r;
+    VI sz(n);
+    dfs0(r, -1, e, sz);
+    int cnt = 0, ret = -1;
+    VI dist(n, -1), del(n);
+    queue<int> que;
+    que.push(r);
+    dist[r] = 0;
+    del[r] = 1;
+    // cout << "root check " << r << endl;
+    while (!que.empty()){
+        int now = que.front();
+        // cout << "now " << now << endl;
+        que.pop();
+        if (sz[now] != (1 << (b - dist[now])) - 1 - del[now]) return -1;
+        VI next;
+        for (int x : e[now]){
+            if (dist[x] == -1) next.push_back(x);
+        }
+        if (next.size() == 0){
+            if (dist[now] != b - 1) return -1;
+        }else if (next.size() == 1){
+            if (dist[now] != b - 2 || !del[now]) return -1;
+            if (sz[next[0]] != 1) return -1;
+            dist[next[0]] = dist[now] + 1;
+            cnt++;
+            ret = now;
+        }else if (next.size() == 2){
+            int x = next[0], y = next[1];
+            if (abs(sz[x] - sz[y]) != del[now]) return -1;
+            if (del[now]){
+                if (sz[x] < sz[y]) del[x] = 1;
+                else del[y] = 1;
+            }
+            dist[x] = dist[y] = dist[now] + 1;
+        }else if (next.size() == 3){
+            int x = next[0], y = next[1], z = next[2];
+            if (dist[now] >= b - 2) return -1;
+            dist[x] = dist[y] = dist[z] = dist[now] + 2;
+            if (sz[x] == sz[y]) dist[z] = dist[now] + 1;
+            else if (sz[z] == sz[y]) dist[x] = dist[now] + 1;
+            else if (sz[x] == sz[z]) dist[y] = dist[now] + 1;
+            else return -1;
+            ret = now;
+            cnt++;
+        }else{
+            return -1;
+        }
+        for (int x : next) que.push(x);
+    }
+    if (cnt != 1) return -1;
+    return ret;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    int m = (1 << n) - 2;
+    VVI e(m);
+    REP(i,m-1){
+        int u = in() - 1, v = in() - 1;
+        e[u].push_back(v);
+        e[v].push_back(u);
+    }
+    VI cs = Centroid(e), ans;
+    for (int c : cs){
+        int x = check(e, c, n);
+        if (x != -1) ans.push_back(x);
+    }
+    // cout << "ans" << endl;
+    sort(ALL(ans));
+    cout << ans.size() << endl;
+    if (!ans.empty()) {
+        for (int x : ans) cout << x + 1 << " ";
+        cout << endl;
+    }
+    return 0;
+}

@@ -1,0 +1,122 @@
+#include <cstring>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <memory.h>
+#include <cassert>
+#include <complex>
+
+using namespace std;
+
+const int N=400000;
+int  c[N],val, n, m, oldc[N],nw_idx[N],cnt[N],A;
+long long stc[4*N+1],lazy[4*N+1],ans;
+vector<int> e[N];
+void build(int idx,int l ,int r){
+    if(l==r){
+        stc[idx]=(long long )1<<c[l];
+        return ;
+    }
+    build(idx+idx,l,(l+r)/2);
+    build(idx+idx+1,(l+r)/2 + 1 ,r);
+    stc[idx]=stc[idx+idx] | stc[idx+idx+1];
+    
+}
+void push(int idx){
+    if(idx+idx<4*N){
+    lazy[idx+idx+1]=lazy[idx+idx]=lazy[idx];
+    }
+    stc[idx]=(long long)1<<lazy[idx];
+    lazy[idx]=0;
+}
+void get(int idx,int l ,int r,int i,int j){
+    if(lazy[idx]!=0){
+        push(idx);
+    }
+    if(l>j||r<i){
+        return ;
+    }
+    if(l>=i&&r<=j){
+        ans|=stc[idx];
+        return ;
+    }
+    get(idx+idx, l, (l+r)/2, i, j);
+    get(idx+idx+1,(l+r)/2 + 1 , r, i, j);
+    stc[idx]=stc[idx+idx] | stc[idx+idx+1];
+    
+}
+void update(int idx,int l, int r , int i, int j){
+    if(lazy[idx]!=0){
+        push(idx);
+    }
+    if(l>j||r<i){
+        return ;
+    }
+    if(l>=i&&r<=j){
+        lazy[idx]=val;
+        push(idx);
+        return ;
+    }
+    update(idx<<1, l, (l+r)/2, i, j);
+    update(idx+idx+1,(l+r)/2 + 1 , r, i, j);
+    stc[idx]=stc[idx+idx] | stc[idx+idx+1];
+    
+}
+void dfs(int idx){
+    c[A]=oldc[idx];
+    nw_idx[idx]=A++;
+    cnt[idx]=1;
+    for(int i=0;i<e[idx].size();i++){
+        int to=e[idx][i];
+        if(nw_idx[to]==-1){
+            dfs(to);
+            cnt[idx]+=cnt[to];
+        }
+    }
+}
+int main(){
+    scanf("%d%d",&n,&m);
+    for(int i=0;i<n;i++){
+        scanf("%d",&oldc[i]);
+    }
+    memset(nw_idx,-1,sizeof(nw_idx));
+    int a,b;
+    for(int i=1;i<n;i++){
+        scanf("%d%d",&a,&b);
+        a--;b--;
+        e[a].push_back(b);
+        e[b].push_back(a);
+    }
+    dfs(0);
+    build(1,0,n-1);
+    int ty;
+    for(int i=0;i<m;i++){
+        scanf("%d%d",&ty,&a);
+        if(ty==1){
+            scanf("%d",&val);
+            update(1,0,n-1,nw_idx[a-1],nw_idx[a-1]+cnt[a-1]-1);
+        }else{
+            ans=0;
+            get(1,0,n-1,nw_idx[a-1],nw_idx[a-1]+cnt[a-1]-1);
+            printf("%d\n",__builtin_popcountll(ans));
+        }
+    }
+    
+    return 0;
+}

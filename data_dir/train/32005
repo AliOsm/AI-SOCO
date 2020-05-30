@@ -1,0 +1,136 @@
+#include <stdio.h>
+#include <stack>
+#include <map>
+#include <string.h>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <math.h>
+#include <vector>
+#include <set>
+#include <queue>
+#include <climits>
+#include <unordered_map>
+#include <iterator> 
+#include <bitset>
+#include <complex>
+using namespace std;
+#define ll long long
+#define ull unsigned long long
+#define ui unsigned int
+#define mp make_pair
+#define inf32 INT_MAX
+#define inf64 LLONG_MAX
+#define PI acos(-1)
+#define cos45 cos(PI/4)
+#define ld long double
+#define inf 1000000
+#define pii pair<int, int>
+#define pll pair<ll, ll>
+#pragma GCC optimize ("O3")
+//#define x first
+//#define y second
+const int mod = (1e9) + 7;
+const double eps = 1e-10;
+const int siz = 11e5 + 5, siz2 = 256, lg = 21, block = 317, block2 = 1000, extrm[2] = { INT_MIN, INT_MAX };
+int n, m, cur, iter=1;
+map<string, int> tonum;
+char name[45], dp[2][siz], ver[siz];
+string str;
+vector<vector<int>> grps;
+ll nbr_msk[45];
+int getnum(string &s) {
+	int &num = tonum[s];
+	if (num == 0) {
+		num = ++cur;
+	}
+	return num;
+}
+int solve(ll msk, int n, int ofs, char dp[]) {
+	int dp_msk = msk >> ofs;
+	if (ver[dp_msk] == iter) {
+		return dp[dp_msk];
+	}
+	int cnt = 0;
+	for (int i = 0; i < n; i++) {
+		int frnd = ofs + i;
+		ll frnd_msk = (ll)1 << frnd;
+		if (frnd_msk & msk) {
+			ll intr = nbr_msk[frnd] & msk;
+			if (intr) {
+				int ret = max(solve(msk & (~frnd_msk), n, ofs, dp), solve(msk & (~intr), n, ofs, dp));
+				ver[dp_msk] = iter;
+				return dp[dp_msk] = ret;
+			}
+			cnt++;
+		}
+	}
+	ver[dp_msk] = iter;
+	return dp[dp_msk] = cnt;
+}
+int main()
+{
+	scanf("%d%d", &n, &m);
+	int lst = -1, ch;
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &ch);
+		if (ch == 2) {
+			scanf("%s", name);
+			str = string(name);
+			int num = getnum(str) - 1;
+			if (lst != 2) {
+				grps.push_back({});
+			}
+			grps[grps.size() - 1].push_back(num);
+		}
+		lst = ch;
+	}
+	int ans = 1;
+	if (m == 1) {
+		printf("%d\n", ans);
+		return 0;
+	}
+	int sz = grps.size();
+	for (int i = 0; i < m; i++) {
+		for (int j = 0; j < sz; j++) {
+			int sz2 = grps[j].size();
+			bool fnd = false;
+			for (int k = 0; k < sz2; k++) {
+				if (grps[j][k] == i) {
+					fnd = true;
+					break;
+				}
+			}
+			if (fnd) {
+				for (int k = 0; k < sz2; k++) {
+					if (grps[j][k] != i) {
+						nbr_msk[i] |= ((ll)1 << grps[j][k]);
+					}
+				}
+			}
+		}
+	}
+	int hvs[2] = {m/2, m/2 + m%2};
+	int shfts[2] = {0, m/2};
+	for (int i = 0; i < 2; i++) {
+		int lim = 1 << hvs[i];
+		for (int j = 0; j < lim; j++) {
+			solve((ll)j<<shfts[i], hvs[i], shfts[i], dp[i]);
+		}
+		iter++;
+	}
+	int lim = 1 << hvs[0];
+	for (int i = 0; i < lim; i++) {
+		int lft = 0;
+		for (int j = 0; j < hvs[1]; j++) {
+			int frnd = j + hvs[0];
+			if (!(nbr_msk[frnd] & i)) {
+				lft |= 1 << j;
+			}
+		}
+		ans = max(ans, dp[0][i] + dp[1][lft]);
+	}
+	printf("%d\n", ans);
+  	return 0;
+}

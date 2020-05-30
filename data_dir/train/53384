@@ -1,0 +1,179 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int **aa, i_, j_;
+
+int compare_i(const void *a, const void *b) {
+	int i1 = *(int *) a;
+	int i2 = *(int *) b;
+
+	return aa[i1][j_] - aa[i2][j_];
+}
+
+int compare_j(const void *a, const void *b) {
+	int j1 = *(int *) a;
+	int j2 = *(int *) b;
+
+	return aa[i_][j1] - aa[i_][j2];
+}
+
+int *dsu;
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+void join(int i, int j) {
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return;
+	if (dsu[i] > dsu[j])
+		dsu[i] = j;
+	else {
+		if (dsu[i] == dsu[j])
+			dsu[i]--;
+		dsu[j] = i;
+	}
+}
+
+int *next, *hh, *ao, *dd;
+
+int link(int l, int h) {
+	static int l_ = 1;
+
+	next[l_] = l, hh[l_] = h;
+	dd[h]++;
+	return l_++;
+}
+
+void init(int n, int m) {
+	next = (int *) malloc((1 + m) * sizeof *next);
+	hh = (int *) malloc((1 + m) * sizeof *hh);
+	ao = (int *) calloc(n, sizeof *ao);
+	dd = (int *) calloc(n, sizeof *dd);
+}
+
+int main() {
+	int *ii, *jj, *qq, *bb;
+	int n, m, h, i, j, k, head, cnt;
+
+	scanf("%d%d", &n, &m);
+	aa = (int **) malloc(n * sizeof *aa);
+	for (i = 0; i < n; i++) {
+		aa[i] = (int *) malloc(m * sizeof *aa[i]);
+		for (j = 0; j < m; j++)
+			scanf("%d", &aa[i][j]);
+	}
+	dsu = (int *) malloc(n * m * sizeof *dsu), memset(dsu, -1, n * m * sizeof *dsu);
+	jj = (int *) malloc(m * sizeof *jj);
+	for (j = 0; j < m; j++)
+		jj[j] = j;
+	for (i = 0; i < n; i++) {
+		i_ = i;
+		qsort(jj, m, sizeof *jj, compare_j);
+		for (j = 1; j < m; j++) {
+			int j1 = jj[j - 1], j0 = jj[j];
+
+			if (aa[i][j1] == aa[i][j0])
+				join(i * m + j1, i * m + j0);
+		}
+	}
+	ii = (int *) malloc(n * sizeof *ii);
+	for (i = 0; i < n; i++)
+		ii[i] = i;
+	for (j = 0; j < m; j++) {
+		j_ = j;
+		qsort(ii, n, sizeof *ii, compare_i);
+		for (i = 1; i < n; i++) {
+			int i1 = ii[i - 1], i0 = ii[i];
+
+			if (aa[i1][j] == aa[i0][j])
+				join(i1 * m + j, i0 * m + j);
+		}
+	}
+	k = 0;
+	for (h = 0; h < n * m; h++)
+		if (dsu[h] < 0)
+			dsu[h] = -++k;
+	for (i = 0; i < n; i++) {
+		i_ = i, qsort(jj, m, sizeof *jj, compare_j);
+		for (j = 1; j < m; j++) {
+			int j1 = jj[j - 1], j0 = jj[j];
+
+			if (aa[i][j1] == aa[i][j0])
+				join(i * m + j1, i * m + j0);
+		}
+	}
+	ii = (int *) malloc(n * sizeof *ii);
+	for (i = 0; i < n; i++)
+		ii[i] = i;
+	for (j = 0; j < m; j++) {
+		j_ = j, qsort(ii, n, sizeof *ii, compare_i);
+		for (i = 1; i < n; i++) {
+			int i1 = ii[i - 1], i0 = ii[i];
+
+			if (aa[i1][j] == aa[i0][j])
+				join(i1 * m + j, i0 * m + j);
+		}
+	}
+	init(k, n * m * 2);
+	for (i = 0; i < n; i++) {
+		i_ = i, qsort(jj, m, sizeof *jj, compare_j);
+		for (j = 1; j < m; j++) {
+			int j1 = jj[j - 1], j0 = jj[j];
+
+			if (aa[i][j1] != aa[i][j0]) {
+				int h1 = -dsu[find(i * m + j1)] - 1;
+				int h0 = -dsu[find(i * m + j0)] - 1;
+
+				ao[h1] = link(ao[h1], h0);
+			}
+		}
+	}
+	for (j = 0; j < m; j++) {
+		j_ = j, qsort(ii, n, sizeof *ii, compare_i);
+		for (i = 1; i < n; i++) {
+			int i1 = ii[i - 1], i0 = ii[i];
+
+			if (aa[i1][j] != aa[i0][j]) {
+				int h1 = -dsu[find(i1 * m + j)] - 1;
+				int h0 = -dsu[find(i0 * m + j)] - 1;
+
+				ao[h1] = link(ao[h1], h0);
+			}
+		}
+	}
+	qq = (int *) malloc(k * sizeof *qq);
+	bb = (int *) calloc(k, sizeof *bb);
+	head = cnt = 0;
+	for (h = 0; h < k; h++)
+		if (dd[h] == 0) {
+			qq[head + cnt++] = h;
+			bb[h] = 1;
+		}
+	while (cnt > 0) {
+		int l, b;
+
+		h = qq[cnt--, head++];
+		b = bb[h] + 1;
+		for (l = ao[h]; l; l = next[l]) {
+			int h_ = hh[l];
+
+			if (bb[h_] < b)
+				bb[h_] = b;
+			if (--dd[h_] == 0)
+				qq[head + cnt++] = h_;
+		}
+	}
+	for (i = 0; i < n; i++) {
+		for (j = 0; j < m; j++) {
+			h = -dsu[find(i * m + j)] - 1;
+			printf("%d ", bb[h]);
+		}
+		printf("\n");
+	}
+	return 0;
+}

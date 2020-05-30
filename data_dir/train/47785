@@ -1,0 +1,88 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+const int N = 1e5 + 5;
+int values[N];
+vector<int> g[N];
+ll ans = 0;
+
+pair<ll, ll> dp[N][20];
+bool vis[N][20];
+
+pair<ll, ll> get_paths(int node, int parent, int bit)
+{
+	pair<ll, ll> &ret = dp[node][bit];
+	if(vis[node][bit])
+		return ret;
+	ret = {0, 0};
+	vis[node][bit] = 1;
+	if(values[node] & (1 << bit))
+		ret.first++;
+	else
+		ret.second++;
+	for(auto &new_node: g[node])
+	{
+		if(new_node == parent)
+			continue;
+
+		pair<int, int> cur = get_paths(new_node, node, bit);
+		if(values[node] & (1 << bit))
+			ret.second += cur.first, ret.first += cur.second;
+		else
+			ret.first += cur.first, ret.second += cur.second;
+	}
+	return ret;
+}
+
+void solve(int node, int parent, int bit)
+{
+	if(values[node] & (1 << bit))
+		ans += (1 << bit);
+	ll zero = 0, one = 0;
+	for(auto &new_node: g[node])
+	{
+		if(new_node == parent)
+			continue;
+		pair<ll, ll> p = get_paths(new_node, node, bit);
+		if(values[node] & (1 << bit))
+		{
+			ans += p.second * (1 << bit);
+			ans += zero * p.second * (1 << bit);
+			ans += one * p.first * (1 << bit);
+		}
+		else
+		{
+			ans += p.first * (1 << bit);
+			ans += one * p.second * (1 << bit);
+			ans += zero * p.first * (1 << bit);
+		}
+		one += p.first;
+		zero += p.second;
+		solve(new_node, node, bit);
+	}
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	int n;
+	cin >> n;
+	for(int i = 0; i < n; i++)
+		cin >> values[i];
+	for(int i = 0; i < n - 1; i ++)
+	{
+		int u, v;
+		cin >> u >> v;
+		u--, v--;
+		g[u].push_back(v);
+		g[v].push_back(u);
+	}
+	for(int bit = 0; bit < 20; bit++)
+		solve(0, 0, bit);
+	cout << ans;
+	return 0;
+}

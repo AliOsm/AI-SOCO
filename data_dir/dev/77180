@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const long long INF = 1e15;
+
+int n, m, arr[200005];
+long long st[800005], lazy[800005];
+string line;
+
+void build(int p, int L, int R) {
+	if (L == R) {
+		st[p] = arr[L];
+	} else {
+		build((p << 1), L, ((L + R) >> 1));
+		build((p << 1) + 1, ((L + R) >> 1) + 1, R);
+		st[p] = min(st[(p << 1)], st[(p << 1) + 1]);
+	}
+
+	lazy[p] = 0;
+}
+
+void update(int p, int L, int R, int i, int j, int val) {
+	if (lazy[p] != 0) {
+		st[p] += lazy[p];
+
+		if (L != R) {
+			lazy[(p << 1)] += lazy[p];
+			lazy[(p << 1) + 1] += lazy[p];
+		}
+
+		lazy[p] = 0;
+	}
+
+	if (L > j || R < i) return;
+	if (L >= i && R <= j) {
+		st[p] += val;
+
+		if (L != R) {
+			lazy[(p << 1)] += val;
+			lazy[(p << 1) + 1] += val;
+		}
+	} else {
+		update((p << 1), L, ((L + R) >> 1), i, j, val);
+		update((p << 1) + 1, ((L + R) >> 1) + 1, R, i, j, val);
+
+		st[p] = min(st[(p << 1)], st[(p << 1) + 1]);
+	}
+}
+
+long long query(int p, int L, int R, int i, int j) {
+	if (lazy[p] != 0) {
+		st[p] += lazy[p];
+
+		if (L != R) {
+			lazy[(p << 1)] += lazy[p];
+			lazy[(p << 1) + 1] += lazy[p];
+		}
+
+		lazy[p] = 0;
+	}
+
+	if (L > j || R < i) return INF;
+	if (L >= i && R <= j) return st[p];
+
+	long long p1 = query((p << 1), L, ((L + R) >> 1), i, j);
+	long long p2 = query((p << 1) + 1, ((L + R) >> 1) + 1, R, i, j);
+	return min(p1, p2);
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		cin >> arr[i];
+	}
+	build(1, 0, n-1);
+
+	cin >> m;
+	cin.ignore(10, '\n');
+	while (m--) {
+		getline(cin, line);
+		istringstream iss(line);
+
+		int a[5], id = 0;
+		while (iss >> a[id]) id++;
+		if (id == 2) {
+			long long ans;
+			if (a[0] > a[1]) {
+				ans = min(query(1, 0, n-1, 0, a[1]), query(1, 0, n-1, a[0], n-1));
+			} else {
+				ans = query(1, 0, n-1, a[0], a[1]);
+			}
+
+			cout << ans << '\n';
+		} else {
+			if (a[0] > a[1]) {
+				update(1, 0, n-1, 0, a[1], a[2]);
+				update(1, 0, n-1, a[0], n-1, a[2]);
+			} else {
+				update(1, 0, n-1, a[0], a[1], a[2]);
+			}
+		}
+	}
+
+	return 0;
+}

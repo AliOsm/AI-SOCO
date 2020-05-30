@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+#define pb push_back
+using namespace std;
+
+using ll = long long int;
+const ll MOD = 998244353;
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+typedef tree<int,null_type,less_equal<int>,rb_tree_tag,tree_order_statistics_node_update> ordered_set;
+
+ordered_set seg[400040];
+
+void build(int node, int l, int r, vector<vector<int>> &v)
+{
+	if (l == r)
+	{
+		for (auto x : v[l])
+			seg[node].insert(x);
+		return;
+	}
+	int m = (l + r) / 2;
+	build(2*node, l, m, v);
+	build(2*node+1, m+1, r, v);
+	if (seg[2*node].size() > seg[2*node+1].size())
+	{
+		seg[node] = seg[2*node];
+		for (auto x : seg[2*node+1])
+			seg[node].insert(x);
+	}
+	else
+	{
+		seg[node] = seg[2*node+1];
+		for (auto x : seg[2*node])
+			seg[node].insert(x);
+	}
+}
+
+int query(int node, int l, int r, int Llim, int Rlim, int k)
+{
+	if (l > Rlim or r < Llim) return 0;
+	if (l >= Llim and r <= Rlim) return seg[node].order_of_key(k);
+	int m = (l + r ) / 2;
+	return query(2*node, l, m, Llim, Rlim, k) + query(2*node+1, m+1, r, Llim, Rlim, k);
+}
+
+int main()
+{
+	ios::sync_with_stdio(0); cin.tie(0);
+	
+	int n; cin >> n;
+	vector<vector<array<int, 2>>> v;
+	for (int i = 0; i < n; ++i)
+	{
+		int k; cin >> k;
+		int prevx = 0, prevy = 0;
+		int firstx = 0, firsty = 0;
+		vector<array<int, 2>> temp;
+		for (int j = 0; j < k; ++j)
+		{
+			int x, y; cin >> x >> y;
+			if (j)
+			{
+				int X = x - prevx, Y = y - prevy;
+				int d = abs(gcd(X, Y));
+				X /= d;
+				Y /= d;
+				temp.pb({X, Y});
+			}
+			else
+			{
+				firstx = x;
+				firsty = y;
+			}
+			if (j == k-1)
+			{
+				int X = firstx - x, Y = firsty - y;
+				int d = abs(gcd(X, Y));
+				X /= d;
+				Y /= d;
+				temp.pb({X, Y});
+			}
+			prevx = x;
+			prevy = y;
+		}
+		v.pb(temp);
+	}
+	vector<vector<int>> pos(n);
+	map<array<int, 2>, int> prev;
+	for (int i = 0; i < n; ++i)
+	{
+		for (auto slope : v[i])
+		{
+			if (prev.find(slope) == prev.end()) pos[i].pb(-1);
+			else pos[i].pb(prev[slope]);
+			prev[slope] = i;
+		}
+	}
+	build(1, 0, n-1, pos);
+	int q; cin >> q;
+	while (q--)
+	{
+		int l, r; cin >> l >> r;
+		cout << query(1, 0, n-1, l-1, r-1, l-1) << '\n';
+	}
+}

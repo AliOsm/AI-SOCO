@@ -1,0 +1,217 @@
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define pii pair<int, int>
+#define pb push_back
+#define SS 4 * N
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+const int N = 1e5 + 10, LOG = 18, GOL = 24, M = 1e7 + 10, E = 2e6 + 10, mod = 1e9 + 7;
+int fen[GOL][N], par[LOG][N], st[N], en[N], tim;
+int ans[N], n, a[N], h[N], ptr[M], fi[M];
+
+vector <pair<pair<pii, int>, pii> > que[E];
+vector <pii> add[E];
+vector <int> dt, adj[N];
+
+struct triple {
+	int u, v, x;
+	triple(){u = v = x = 0;}
+} ps[N];
+
+int power(ll a, ll b)
+{
+	if(b == 0) return 1;
+	ll res = power(a, b/2);
+	res *= res, res %= mod;
+	if(b & 1) res *= a, res %= mod;
+	return res;
+}
+
+void DFS(int v, int p = 0)
+{
+	par[0][v] = p;
+	for (int i=1; i<LOG; i++)
+		par[i][v] = par[i - 1][par[i - 1][v]];
+	
+	st[v] = tim ++;
+	for (auto u : adj[v])
+	{
+		if(u == p) continue; 
+		h[u] = h[v] + 1;
+		DFS(u, v);
+	}
+	en[v] = tim;
+}
+
+int i_par(int v, int d)
+{
+	if(d > h[v]) return 1;
+	for (int i=0; i<LOG; i++)
+		if(d & (1 << i)) v = par[i][v];
+	return v;
+}
+
+int lca(int u, int v)
+{
+	if(h[u] > h[v]) swap(u, v);
+	v = i_par(v, h[v] - h[u]);
+	if(u == v)return v;
+
+	for (int i=LOG-1; i>=0; i--)
+		if(par[i][v] != par[i][u])
+			v = par[i][v], u = par[i][u];
+	
+	return par[0][v];
+}
+
+int GET(int lg, int p)
+{
+	int res = 0;
+	for(; p>0; p-=p&-p)
+		res += fen[lg][p];
+	return res;
+}
+
+inline void UPD(int lg, int p, int z)
+{
+	for(p++; p<N; p+=p&-p)
+		fen[lg][p] += z;
+	return ;
+}
+
+inline void upd(int lg, int L, int R, int vl)
+{
+	UPD(lg, L, +vl);
+	UPD(lg, R, -vl);
+}
+
+inline int get(int lg, int p)
+{
+	return GET(lg, p + 1);
+}
+
+void solve(int id)
+{
+	int P = dt[id], mx = 1;
+	for (auto X : add[id])
+	{
+		int v = X.F, cnt = X.S;
+		upd(cnt, st[v], en[v], +1);
+		mx = max(mx, cnt);
+	}
+	
+	for (auto X : que[id])
+	{
+		int u = X.F.F.F, v = X.F.F.S, p = X.F.S, cnt = X.S.F, wh = X.S.S;
+		for (int t=1; t<=cnt; t++)
+		{
+			int besh = get(t, st[v]) + get(t, st[u]) - 2*get(t, st[p]);
+			ans[wh] = (1LL * ans[wh] * power(P, (ll)t * besh)) % mod;
+		}
+		for (int t=cnt+1; t<=mx; t++)
+		{
+			int besh = get(t, st[u]) + get(t, st[v]) - 2*get(t, st[p]);
+			ans[wh] =  (1LL * ans[wh] * power(P, (ll)cnt * besh)) % mod;
+		}
+	}
+	for (auto X : add[id])
+	{
+		int v = X.F, cnt = X.S;
+		upd(cnt, st[v], en[v], -1);
+	}
+	return ;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	cin >> n;
+	for (int i=0; i<n-1; i++)
+	{
+		int u, v; cin >> u >> v;
+		adj[u].pb(v); adj[v].pb(u);
+	}
+	DFS(1);
+
+	fi[1] = 1;
+	for (int i=2; i<M; i++)
+		for (int j=i; j<M; j+=i)
+			if(fi[j] == 0) fi[j] = i;
+
+	for (int i=1; i<=n; i++)
+	{
+		cin >> a[i];
+		int curr = a[i];
+		while(curr > 1)
+		{
+			int p = fi[curr], cnt = 0;
+			while(curr % p == 0) curr /= p, cnt ++;
+			dt.pb(p);
+		}
+	}
+
+	int q; cin >> q;
+	for (int i=0; i<q; i++)
+	{
+		cin >> ps[i].u >> ps[i].v >> ps[i].x;
+		int curr = ps[i].x;
+		while(curr > 1)
+		{
+			int p = fi[curr], cnt = 0;
+			while(curr % p == 0) curr /= p, cnt ++;
+			dt.pb(p);
+		}
+	}
+
+	sort(dt.begin(), dt.end());
+	dt.resize(unique(dt.begin(), dt.end()) - dt.begin());
+
+	int sz = dt.size();
+	for (int i=0; i<sz; i++) ptr[dt[i]] = i;
+
+	for (int i=1; i<=n; i++)
+	{
+		int curr = a[i];
+		while(curr > 1)
+		{
+			int p = fi[curr], cnt = 0;
+			while(curr % p == 0) curr /= p, cnt ++;
+			add[ptr[p]].pb({i, cnt});
+			//cout << "Add : " << p << ',' << ptr[p] << " ---> " << i << ',' << cnt << endl;
+		}
+	}
+	
+	for (int i=0; i<q; i++)
+	{
+		ans[i] = 1;
+		int u, v, x;
+		u = ps[i].u, v = ps[i].v, x = ps[i].x;
+		int _p = lca(u, v), curr = x;
+		while(curr > 1)
+		{
+			int p = fi[curr], cnt = 0;
+			while(curr % p == 0) curr /= p, cnt ++;
+			que[ptr[p]].pb({{{u, v}, _p}, {cnt, i}});
+			//cout << "Query : " << p << ',' << ptr[p] << " --> " << u << ',' << v << ',' << _p << " : " << cnt << endl;
+		}
+	}
+
+	//for (auto p : dt) cout << p << " : "; cout << endl;
+	
+	for (int i=0; i<sz; i++) solve(i);
+	
+	for (int i=0; i<q; i++)
+	{
+		int p = lca(ps[i].u, ps[i].v);
+		int t = __gcd(ps[i].x, a[p]);
+		ans[i] = (1LL * ans[i] * t) % mod;
+		cout << ans[i] << '\n';
+	}
+
+}

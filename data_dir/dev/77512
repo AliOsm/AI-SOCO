@@ -1,0 +1,149 @@
+#include <stdio.h>
+
+#define N	200000
+#define M	200000
+#define N_	(1 << 18)	/* N_ = pow2(ceil(log2(N))) */
+#define INF	0x3f3f3f3f3f3f3f3fLL
+
+long long min(long long a, long long b) { return a < b ? a : b; }
+
+int oo[1 + M], oj[1 + M], ow[1 + M];
+
+int link(int o, int j, int w) {
+	static int _ = 1;
+
+	oo[_] = o, oj[_] = j, ow[_] = w;
+	return _++;
+}
+
+long long st[N_ * 2], lz[N_]; int n_, h_;
+
+void put(int i, long long x) {
+	st[i] += x;
+	if (i < n_)
+		lz[i] += x;
+}
+
+void pus(int i) {
+	if (lz[i]) {
+		put(i << 1, lz[i]), put(i << 1 | 1, lz[i]);
+		lz[i] = 0;
+	}
+}
+
+void pul(int i) {
+	if (!lz[i])
+		st[i] = min(st[i << 1], st[i << 1 | 1]);
+}
+
+void push(int i) {
+	int h;
+
+	for (h = h_; h > 0; h--)
+		pus(i >> h);
+}
+
+void pull(int i) {
+	while (i > 1)
+		pul(i >>= 1);
+}
+
+void build(int *aa, int n) {
+	int i;
+
+	h_ = 0;
+	while (1 << h_ < n)
+		h_++;
+	n_ = 1 << h_;
+	for (i = 0; i < n_; i++)
+		st[n_ + i] = i < n ? aa[i] : INF;
+	for (i = n_ - 1; i > 0; i--)
+		pul(i);
+}
+
+void update(int l, int r, int x) {
+	int l_ = l += n_, r_ = r += n_;
+
+	if (l > r)
+		return;
+	push(l_), push(r_);
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			put(l++, x);
+		if ((r & 1) == 0)
+			put(r--, x);
+	}
+	pull(l_), pull(r_);
+}
+
+int pq[1 + N], iq[1 + N], cnt; long long cc_[N];
+
+int less(int u, int v) { return cc_[u] < cc_[v]; }
+
+int i2(int i) {
+	return (i *= 2) > cnt ? 0 : i < cnt && less(pq[i + 1], pq[i]) ? i + 1 : i;
+}
+
+void pq_up(int u) {
+	int i, j, v;
+
+	for (i = iq[u]; (j = i / 2) && less(u, v = pq[j]); i = j)
+		pq[iq[v] = i] = v;
+	pq[iq[u] = i] = u;
+}
+
+void pq_dn(int u) {
+	int i, j, v;
+
+	for (i = iq[u]; (j = i2(i)) && less(v = pq[j], u); i = j)
+		pq[iq[v] = i] = v;
+	pq[iq[u] = i] = u;
+}
+
+void pq_add_last(int u) {
+	pq[iq[u] = ++cnt] = u;
+}
+
+int pq_first() {
+	return pq[1];
+}
+
+int main() {
+	static int ae[N], wa[N], wb[N];
+	static long long cc[N];
+	int n, m, q, h, i, j;
+
+	scanf("%d%d%d", &n, &m, &q);
+	for (i = 0; i < n - 1; i++)
+		scanf("%d%d", &wa[i], &wb[i + 1]);
+	for (h = 0; h < m; h++) {
+		int w;
+
+		scanf("%d%d%d", &i, &j, &w), i--, j--;
+		ae[i] = link(ae[i], j, w);
+	}
+	build(wb, n);
+	for (i = 0; i < n; i++) {
+		int o;
+
+		for (o = ae[i]; o; o = oo[o]) {
+			int w;
+
+			j = oj[o], w = ow[o];
+			update(0, j, w);
+		}
+		cc[i] = st[1];
+		cc_[i] = wa[i] + cc[i], pq_add_last(i);
+	}
+	for (h = cnt / 2; h > 0; h--)
+		pq_dn(pq[h]);
+	printf("%lld\n", cc_[pq_first()]);
+	while (q--) {
+		int w;
+
+		scanf("%d%d", &i, &w), i--;
+		cc_[i] = w + cc[i], pq_up(i), pq_dn(i);
+		printf("%lld\n", cc_[pq_first()]);
+	}
+	return 0;
+}

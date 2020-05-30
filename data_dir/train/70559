@@ -1,0 +1,207 @@
+#include <bits/stdc++.h>
+#include <ext/hash_set>
+#include <ext/numeric>
+
+using namespace std;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<ll, ll> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const ll MOD = 1e9 + 7;
+const long double EPS = 1e-5;
+const ll INF = 1e9;
+int di[] = { 0, 0, 1, -1 };
+int dj[] = { 1, -1, 0, 0 };
+#define all(x) x.begin(),x.end()
+
+class SegmentTreeMin {
+private: vi st, A;
+	int n;
+	inline int left(int p) { return p << 1; }
+	inline int right(int p) { return (p << 1) + 1; }
+	inline int mid(int a, int b) { return (a + b) / 2; }
+
+	void build(int p, int L, int R) {
+		if (L == R)
+			st[p] = L;
+		else {
+			build(left(p), L, mid(L, R));
+			build(right(p), mid(L, R) + 1, R);
+			int p1 = st[left(p)], p2 = st[right(p)];
+			st[p] = (A[p1] <= A[p2]) ? p1 : p2;
+		}
+	}
+
+	int rmq(int p, int L, int R, int i, int j) {
+		if (i > R || j < L) return -1;
+		if (L >= i && R <= j) return st[p];
+
+		int p1 = rmq(left(p), L, mid(L, R), i, j);
+		int p2 = rmq(right(p), mid(L, R) + 1, R, i, j);
+
+		if (p1 == -1) return p2;
+		if (p2 == -1) return p1;
+		return (A[p1] <= A[p2]) ? p1 : p2;
+	}
+
+	int update_point(int p, int L, int R, int idx, int new_value) {
+		int i = idx, j = idx;
+
+		if (i > R || j < L)
+			return st[p];
+
+		if (L == i && R == j) {
+			A[i] = new_value;
+			return st[p] = L;
+		}
+
+		int p1 = update_point(left(p), L, mid(L, R), idx, new_value);
+		int p2 = update_point(right(p), mid(L, R) + 1, R, idx, new_value);
+
+		return st[p] = (A[p1] <= A[p2]) ? p1 : p2;
+	}
+
+public:
+	SegmentTreeMin(const vi &_A) {
+		A = _A; n = (int)A.size();
+		st.assign(4 * n, 0);
+		build(1, 0, n - 1);
+	}
+
+	int rmq(int i, int j) { return A[rmq(1, 0, n - 1, i, j)]; }
+
+	int update_point(int idx, int new_value) {
+		return update_point(1, 0, n - 1, idx, new_value);
+	}
+};
+
+class SegmentTreeMax {
+private: vi st, A;
+	int n;
+	inline int left(int p) { return p << 1; }
+	inline int right(int p) { return (p << 1) + 1; }
+	inline int mid(int a, int b) { return (a + b) / 2; }
+
+	void build(int p, int L, int R) {
+		if (L == R)
+			st[p] = L;
+		else {
+			build(left(p), L, mid(L, R));
+			build(right(p), mid(L, R) + 1, R);
+			int p1 = st[left(p)], p2 = st[right(p)];
+			st[p] = (A[p1] >= A[p2]) ? p1 : p2;
+		}
+	}
+
+	ll rmq(int p, int L, int R, int i, int j) {
+		if (i > R || j < L) return -1;
+		if (L >= i && R <= j) return st[p];
+
+		ll p1 = rmq(left(p), L, mid(L, R), i, j);
+		ll p2 = rmq(right(p), mid(L, R) + 1, R, i, j);
+
+		if (p1 == -1) return p2;
+		if (p2 == -1) return p1;
+		return (A[p1] >= A[p2]) ? p1 : p2;
+	}
+
+	int update_point(int p, int L, int R, int idx, int new_value) {
+		int i = idx, j = idx;
+
+		if (i > R || j < L)
+			return st[p];
+
+		if (L == i && R == j) {
+			A[i] = new_value;
+			return st[p] = L;
+		}
+
+		int p1 = update_point(left(p), L, mid(L, R), idx, new_value);
+		int p2 = update_point(right(p), mid(L, R) + 1, R, idx, new_value);
+
+
+		return st[p] = (A[p1] >= A[p2]) ? p1 : p2;
+	}
+
+public:
+	SegmentTreeMax(const vi &_A) {
+		A = _A; n = (int)A.size();
+		st.assign(4 * n, 0);
+		build(1, 0, n - 1);
+	}
+
+	int rmq(int i, int j) { return A[rmq(1, 0, n - 1, i, j)]; }
+
+	int update_point(int idx, int new_value) {
+		return update_point(1, 0, n - 1, idx, new_value);
+	}
+};
+
+
+int main() {
+//	ios::sync_with_stdio(0), cin.tie(0);
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+#endif
+
+	int n, k; scanf("%d %d", &n, &k);
+	vi num(n);
+	int _2k = 1 << (k-1);
+	vector<SegmentTreeMax> sgtMax(_2k, num);
+	vector<SegmentTreeMin> sgtMin(_2k, num);
+	for (int i = 0; i < n; ++i) {
+		vi v(k);
+		for (int j = 0; j < k; ++j)
+			scanf("%d", &v[j]);
+
+		for (int msk = 0; msk < _2k; ++msk) {
+			int sum = 0;
+			for (int l = 0; l < k; ++l) {
+				if (msk & (1 << l))
+					sum += -v[l];
+				else
+					sum += v[l];
+			}
+			sgtMax[msk].update_point(i, sum);
+			sgtMin[msk].update_point(i, sum);
+		}
+	}
+
+
+	int q; scanf("%d", &q);
+	while (q--) {
+		int tp; scanf("%d", &tp);
+		if (tp == 1) {
+			int i; scanf("%d", &i); i--;
+			vi v(k);
+			for (int j = 0; j < k; ++j)
+				scanf("%d", &v[j]);
+
+			for (int msk = 0; msk < _2k; ++msk) {
+				int sum = 0;
+				for (int l = 0; l < k; ++l) {
+					if (msk & (1 << l))
+						sum += -v[l];
+					else
+						sum += v[l];
+				}
+				sgtMax[msk].update_point(i, sum);
+				sgtMin[msk].update_point(i, sum);
+			}
+		}
+		else {
+			int l, r; scanf("%d %d", &l, &r); l--, r--;
+			int ans = 0;
+			for (int msk = 0; msk < _2k; ++msk) {
+				ans = max(ans, sgtMax[msk].rmq(l, r) - sgtMin[msk].rmq(l, r));
+			}
+			printf("%d\n", ans);
+		}
+	}
+
+}

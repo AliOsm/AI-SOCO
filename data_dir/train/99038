@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define N 300'000
+using namespace std;
+typedef long long ll;
+int n, p[N];
+char c[N];
+ll iter(set<char> colors, int first, int last, function<ll(ll, ll)> b) {
+    ll ans = 0;
+    int pre = first;
+    for(int i = first; i <= last; i++) {
+        if(colors.count(c[i])) {
+            ans = b(ans, p[i] - p[pre]);
+            pre = i;
+        }
+    }
+    return ans;
+}
+ll sum_gaps(set<char> colors, int first, int last) {
+    return iter(colors, first, last, [](ll a, ll b) { return a + b; });
+}
+ll max_gap(set<char> colors, int first, int last) {
+    return iter(colors, first, last, [](ll a, ll b) { return max(a, b); });
+}
+int find_first(char color, int first, int last) {
+    for(int i = first; i <= last; i++) if(c[i] == color) return i;
+    return -1;
+}
+int find_last(char color, int first, int last) {
+    for(int i = last; i >= first; i--) if(c[i] == color) return i;
+    return -1;
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin >> n;
+    int first_r = -1, last_r = -1;
+    int first_g = -1, last_g = -1;
+    int first_b = -1, last_b = -1;
+    vector<int> gs;
+    for(int i = 0; i < n; i++) {
+        cin >> p[i] >> c[i];
+        if(c[i] == 'R' && first_r == -1) first_r = i;
+        if(c[i] == 'G' && first_g == -1) first_g = i;
+        if(c[i] == 'B' && first_b == -1) first_b = i;
+        if(c[i] == 'R') last_r = i;
+        if(c[i] == 'G') last_g = i;
+        if(c[i] == 'B') last_b = i;
+        if(c[i] == 'G') gs.push_back(i);
+    }
+    ll ans = 0;
+    if(first_g == -1) {
+        if(first_r != -1) ans += sum_gaps({'R'}, first_r, last_r);
+        if(first_b != -1) ans += sum_gaps({'B'}, first_b, last_b);
+    } else {
+        if(first_r != -1) ans += sum_gaps({'R', 'G'}, first_r, first_g);
+        if(first_b != -1) ans += sum_gaps({'B', 'G'}, first_b, first_g);
+        ans += sum_gaps({'G'}, first_g, last_g);
+        for(int i = 1; i < gs.size(); i++) {
+            int first_r = find_first('R', gs[i-1], gs[i]);
+            long long r_saved = 0;
+            if(first_r != -1) {
+                ans += sum_gaps({'R', 'G'}, gs[i-1], gs[i]);
+                r_saved = max_gap({'R', 'G'}, gs[i-1], gs[i]);
+            }
+            int first_b = find_first('B', gs[i-1], gs[i]);
+            long long b_saved = 0;
+            if(first_b != -1) {
+                ans += sum_gaps({'B', 'G'}, gs[i-1], gs[i]);
+                b_saved = max_gap({'B', 'G'}, gs[i-1], gs[i]);
+            }
+            if(first_r == -1 || first_b == -1) {
+                ans -= r_saved + b_saved;
+            } else {
+                ans -= max(r_saved + b_saved, sum_gaps({'G'}, gs[i-1], gs[i]));
+            }
+        }
+        if(last_r != -1) ans += sum_gaps({'R', 'G'}, last_g, last_r);
+        if(last_b != -1) ans += sum_gaps({'B', 'G'}, last_g, last_b);
+    }
+    cout << ans << endl;
+    return 0;
+}

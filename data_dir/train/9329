@@ -1,0 +1,68 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 2e5+5;
+int n, m;
+int x[maxn];
+
+ll pre[maxn];
+
+struct Event
+{
+    int t, type, event;
+
+    bool operator<(const Event& rhs) const {
+        return t < rhs.t;
+    }
+};
+
+int main() {
+    cin >> n >> m;
+    for (int i = 1; i <= m; i++) {
+        cin >> x[i];
+    }
+    for (int i = 1; i < m; i++) {
+        int i1 = x[i];
+        int i2 = x[i+1];
+        if (i1 == i2) continue;
+        int index1 = i1, index2 = i2;
+        vector<int> v = {i1,i1+1,i2,i2+1,n+1};
+        sort(v.begin(),v.end());
+        v.erase(unique(v.begin(),v.end()),v.end());
+        for (int j = 0; j < v.size(); j++) {
+            int l = j == 0 ? 1 : v[j-1];
+            int r = v[j]-1;
+            if (l <= r) {
+                int dist = abs(index2-index1);
+                pre[l] += dist;
+                pre[r+1] -= dist;
+                //printf("v[j] = %d: i1 = %d, index1 = %d, i2 = %d, index2 = %d: adding %d on [%d,%d]\n",v[j],i1,index1,i2,index2,dist,l,r);
+            }
+
+            //update
+            if (v[j] == i1) {
+                index1 = 1;
+                //printf("update %s to %d\n","index1",1);
+            }
+            else if (v[j] == i1+1) {
+                index1 = i1+1;
+                //printf("update %s to %d\n","index1",i1+1);
+            }
+            if (v[j] == i2) {
+                index2 = 1;
+                //printf("update %s to %d\n","index2",1);
+            }
+            else if (v[j] == i2+1) {
+                index2 = i2+1;
+                //printf("update %s to %d\n","index2",i2+1);
+            }
+        }
+    }
+    for (int i = 1; i <= n; i++) {
+        pre[i] += pre[i-1];
+        cout << pre[i] << ' ';
+    }
+    cout << '\n';
+}
+

@@ -1,0 +1,136 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+
+map <int, int> mp;
+int init[100010],cur[100010];
+int type[100010],from[100010],to[100010]; // 1: move, 2: sum
+int X;
+ll x[200010];
+
+struct node {int cnt; ll sum,sum2;};
+
+#define T (1<<18)
+node tree[2*T];
+
+node merge(node x, node y){
+    node z = {x.cnt + y.cnt, x.sum + y.sum, y.sum * x.cnt - x.sum * y.cnt + x.sum2 + y.sum2};
+    return z;
+}
+
+void update(int id, int cnt, ll sum){
+    tree[id].cnt = cnt;
+    tree[id].sum = sum;
+    while(1){
+        id /= 2;
+        if(id == 0) break;
+        tree[id] = merge(tree[2*id], tree[2*id+1]);
+    }
+}
+
+node query(int L, int R, int id = 1, int low = 0, int high = T){
+    if(L <= low && R >= high) return tree[id];
+    int mid = (low + high) / 2;
+    if(R <= mid) return query(L, R, 2*id, low, mid);
+    if(L >= mid) return query(L, R, 2*id+1, mid, high);
+    return merge(query(L, R, 2*id, low, mid), query(L, R, 2*id+1, mid, high));
+}
+
+int main(void){
+    int N,M,i,j;
+    
+    cin >> N;
+    REP(i,N) scanf("%d", &init[i]);
+    REP(i,N) cur[i] = init[i];
+    
+    cin >> M;
+    REP(i,M){
+        scanf("%d%d%d", &type[i], &from[i], &to[i]);
+        if(type[i] == 1){
+            int p = from[i] - 1;
+            from[i] = cur[p];
+            cur[p] += to[i];
+            to[i] = cur[p];
+        }
+    }
+    
+    REP(i,N) mp[init[i]] = 0;
+    REP(i,M) if(type[i] == 1) mp[to[i]] = 0;
+    
+    X = 0;
+    snuke(mp,itr){
+        (itr->second) = X;
+        x[X] = (itr->first);
+        X++;
+    }
+    
+    REP(i,N) init[i] = mp[init[i]];
+    REP(i,N) cur[i] = init[i];
+    REP(i,M) if(type[i] == 1){
+        from[i] = mp[from[i]];
+        to[i] = mp[to[i]];
+    }
+    
+    REP(i,M) if(type[i] == 2){
+        int L = from[i], R = to[i]; // [L, R]
+        
+        int low = -1, high = X; // x[high] >= L
+        while(high-low > 1){
+            int mid = (low + high) / 2;
+            if(x[mid] >= L) high = mid; else low = mid;
+        }
+        from[i] = high;
+        
+        low = -1, high = X; // x[high] > R
+        while(high-low > 1){
+            int mid = (low + high) / 2;
+            if(x[mid] > R) high = mid; else low = mid;
+        }
+        to[i] = high;
+    }
+    
+    REP(i,2*T) tree[i].cnt = tree[i].sum = tree[i].sum2 = 0;
+    REP(i,N){
+        tree[T+init[i]].cnt = 1;
+        tree[T+init[i]].sum = x[init[i]];
+    }
+    for(i=T-1;i>=1;i--) tree[i] = merge(tree[2*i], tree[2*i+1]);
+    
+    REP(i,M){
+        if(type[i] == 1){
+            update(T+from[i], 0, 0);
+            update(T+to[i], 1, x[to[i]]);
+        } else {
+            if(from[i] < to[i]){
+                node ans = query(from[i], to[i]);
+                cout << ans.sum2 << endl;
+            } else {
+                cout << 0 << endl;
+            }
+        }
+    }
+    
+    return 0;
+}

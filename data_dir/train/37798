@@ -1,0 +1,119 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <queue>
+#include <map>
+#include <stack>
+#include <complex>
+#include <random>
+#include <bitset>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+
+const int MAXN = 200005;
+const int MOD = 1000000007;
+int N;
+vector<int> adj[MAXN];
+int dp[MAXN];
+int indeg[MAXN];
+bool vis[MAXN];
+int par[MAXN];
+int sz[MAXN];
+
+void flood_fill(int cur)
+{
+    vis[cur] = true;
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i];
+        if (!vis[next])
+            flood_fill(next);
+    }
+}
+
+void dfs(int cur)
+{
+    vis[cur] = true;
+    dp[cur] = 1;
+    for (int i = 0; i < adj[cur].size(); i++)
+    {
+        int next = adj[cur][i];
+        dfs(next);
+        dp[cur] += dp[next];
+    }
+}
+
+int find_parent(int x)
+{
+    if (par[x] == x)
+        return x;
+    return par[x] = find_parent(par[x]);
+}
+
+void merge(int a, int b)
+{
+    a = find_parent(a), b = find_parent(b);
+    if (a == b)
+        return;
+    par[a] = b;
+    sz[b] += sz[a];
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    
+    cin >> N;
+    for (int i = 1, a, b; i <= N; i++)
+    {
+        cin >> a >> b;
+        adj[b].push_back(a);
+        indeg[a]++;
+    }
+
+    ll ans = 1;
+    for (int i = 1; i <= 2*N; i++)
+        if (!vis[i])
+            for (int j = 0; j < adj[i].size(); j++)
+                if (adj[i][j] == i) //self-loop
+                    flood_fill(i);
+
+    for (int i = 1; i <= 2*N; i++) //get through all the trees
+        if (!vis[i] && indeg[i] == 0)
+        {
+            dfs(i);
+            ans = ans*dp[i] % MOD;
+        }
+
+    for (int i = 1; i <= 2*N; i++)
+    {
+        par[i] = i;
+        sz[i] = 1;
+    }
+
+    for (int i = 1; i <= 2*N; i++)
+        if (!vis[i])
+            for (int j = 0; j < adj[i].size(); j++)
+                if (!vis[adj[i][j]])
+                    merge(i, adj[i][j]);
+
+    for (int i = 1; i <= 2*N; i++)
+        if (!vis[i] && find_parent(i) == i && sz[i] > 1)
+            ans = 2*ans % MOD;
+
+    cout << ans << "\n";
+
+    return 0;
+}

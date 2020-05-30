@@ -1,0 +1,223 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+// Modular operations
+const int MOD = 1E9 + 7;
+
+int Add(int a, int b, int m = MOD){
+  a += b;
+  if(a >= m) a -= m;
+  return a;
+}
+
+int Sub(int a, int b, int m = MOD){
+  a -= b;
+  if(a < 0) a += m;
+  return a;
+}
+
+int AddTo(int& to, int w, int m = MOD){
+  to += w;
+  if(to >= m) to -= m;
+  return to;
+}
+
+int SubTo(int& to, int w, int m = MOD){
+  to -= w;
+  if(to < 0) to += m;
+  return to;
+}
+
+int Mult(int a, int b, int m = MOD){
+  return (a * 1LL * b) % m;
+}
+
+int Pow(int a, ll deg, int m = MOD){
+  int res = 1 % m;
+  for(;deg > 0;deg >>= 1, a = Mult(a, a, m))
+    if(deg & 1) res = Mult(res, a, m);
+  return res;
+}
+
+int Oem(int to, int m = MOD){
+  return Pow(to, m - 2, m);
+}
+
+int Div(int a, int b, int m = MOD){
+  return Mult(a, Oem(b, m), m);
+}
+
+// Graph
+typedef vector<vi> Graph;
+
+int ns, nt;
+Graph s, t;
+
+void AddEdge(Graph& g, int f, int t){
+  g[f].pb(t), g[t].pb(f);
+}
+
+void RemEdge(Graph& g, int f, int t){
+  if(f == -1 || t == -1) return;
+  g[f].erase(find(all(g[f]), t));
+}
+
+// Counting automorphisms
+int na;
+Graph a;
+
+vi best_p, path;
+void Dfs(int vr, int par){
+  path.pb(vr);
+  if(sz(path) > sz(best_p)) best_p = path;
+  for(int nxt : t[vr])
+    if(nxt != par) Dfs(nxt, vr);
+  path.pop_back();
+}
+
+pii Center(){
+  for(int i = 0;i < sz(t);++i) Dfs(i, -1);
+  int m = sz(best_p) / 2;
+  if(sz(best_p) & 1) return mp(best_p[m], best_p[m]);
+  else return mp(best_p[m - 1], best_p[m]);
+}
+
+map<vi, int> names;
+int Name(const vi& l){
+  if(names.count(l)) return names[l];
+  return names[l] = sz(names) - 1;
+}
+
+int iso = 1;
+int fact[15];
+int AutoDfs(int vr, int par = -1){
+  vi ch;
+  for(int nxt : a[vr])
+    if(nxt != par)
+      ch.pb(AutoDfs(nxt, vr));
+  sort(all(ch));
+
+  for(int i = 0;i < sz(ch);){
+    int j = i;
+    while(j < sz(ch) && ch[i] == ch[j]) ++j;
+    iso = Mult(iso, fact[j - i]);
+    i = j;
+  }
+
+  return Name(ch);
+}
+
+int Auto(){
+  fact[0] = 1;
+  for(int i = 1;i < 15;++i)
+    fact[i] = Mult(i, fact[i - 1]);
+
+  auto c = Center();
+
+  a = t;
+  int root = c.fi;
+  if(c.fi != c.se){
+    RemEdge(a, c.fi, c.se);
+    RemEdge(a, c.se, c.fi);
+    a.pb(vi());
+    AddEdge(a, sz(a) - 1, c.fi);
+    AddEdge(a, sz(a) - 1, c.se);
+    root = sz(a) - 1;
+  }
+
+  AutoDfs(root);
+  return iso;
+}
+
+// DP
+Graph base, put;
+int dp[1000][12];
+
+void Orient(Graph& g, int vr, int par = -1){
+  RemEdge(g, vr, par);
+  for(int nxt : g[vr]) Orient(g, nxt, vr);
+}
+
+int dps[1010][1 << 11], dps_c = 0;
+
+int Eval(int bvr, int pvr){
+  if(dp[bvr][pvr] != -1) return dp[bvr][pvr];
+
+  int c = sz(put[pvr]);
+  int* cdp = dps[dps_c++];
+  memset(cdp, 0, (1 << c) * sizeof(int));
+  cdp[0] = 1;
+
+  for(int nxt : base[bvr]){
+    for(int msk = (1 << c) - 1;msk > 0;--msk){
+      for(int i = 0;i < c;++i)
+        if((msk & (1 << i)) && cdp[msk ^ (1 << i)] != 0)
+          AddTo(cdp[msk], Mult(cdp[msk ^ (1 << i)],
+                               Eval(nxt, put[pvr][i])));
+    }
+  }
+
+  --dps_c;
+  return dp[bvr][pvr] = cdp[(1 << c) - 1];
+}
+
+int Count(int proot){
+  memset(dp, -1, sizeof dp);
+  base = s, put = t;
+
+  Orient(base, 0);
+  Orient(put, proot);
+
+  int tot = 0;
+  for(int i = 0;i < sz(base);++i)
+    AddTo(tot, Eval(i, proot));
+
+  return tot;
+}
+
+int main(){
+  scanf("%d", &ns);
+  //ns = 1000;
+  s.resize(ns);
+  for(int i = 1, x, y;i < ns;++i)
+    scanf("%d%d", &x, &y),
+    //x = 1, y = i + 1,
+    AddEdge(s, x - 1, y - 1);
+
+  scanf("%d", &nt);
+  //nt = 11;
+  t.resize(nt);
+  for(int i = 1, x, y;i < nt;++i)
+    scanf("%d%d", &x, &y),
+    //x = 1, y = i + 1,
+    AddEdge(t, x - 1, y - 1);
+
+  Auto();
+
+  //cout << Count(0) << endl;
+  //for(int i = 0;i < ns;++i)
+  //  cout << i << ' ' << Count(i) << endl;
+
+  int total = 0;
+  for(int i = 0;i < nt;++i)
+    AddTo(total, Count(i));
+
+  printf("%d\n", Div(total, iso));
+  //printf("%.3f\n", (clock() - 0.0) / CLOCKS_PER_SEC);
+
+  return 0;
+}

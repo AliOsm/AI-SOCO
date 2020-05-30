@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define pll pair <ll,ll>
+#define Left (2 * Node)
+#define Right (2 * Node + 1)
+#define Mid ((L + R) / 2)
+
+using namespace std;
+
+const ll N = 200200;
+const ll M = 4 * N;
+const ll Inf = 1e18;
+
+ll n;
+ll a[N];
+ll s[N];
+pll Tree[M];
+ll Lazy[M];
+
+void Merge(ll Node)
+{
+    Tree[Node] = min( Tree[Left], Tree[Right]);
+}
+
+void PushLazy(ll Node)
+{
+    if(Lazy[Node])
+    {
+        Tree[Node].first += Lazy[Node];
+        if(Left < M)    Lazy[Left] += Lazy[Node];
+        if(Right < M)   Lazy[Right] += Lazy[Node];
+        Lazy[Node] = 0;
+    }
+}
+
+void Build(ll Node = 1,ll L = 1,ll R = n)
+{
+    if(L == R)
+    {
+        Tree[Node] = pll( s[L], -L);
+        return ;
+    }
+
+    Build( Left, L, Mid);
+    Build( Right, Mid + 1, R);
+
+    Merge(Node);
+}
+
+void Update(ll i,ll j,ll x,ll Node = 1,ll L = 1,ll R = n)
+{
+    PushLazy(Node);
+
+    if(j < L || R < i)  return ;
+    if(i <= L && R <= j)
+    {
+        Lazy[Node] += x;
+        return PushLazy(Node);
+    }
+
+    Update( i, j, x, Left, L, Mid);
+    Update( i, j, x, Right, Mid + 1, R);
+
+    Merge(Node);
+}
+
+pll Get(ll i,ll j,ll Node = 1,ll L = 1,ll R = 1)
+{
+    PushLazy(Node);
+
+    if(j < L || R < i)      return pll( Inf, Inf);
+    if(i <= L && R <= j)    return Tree[Node];
+
+    return min( Get( i, j, Left, L, Mid)
+              , Get( i, j, Right, Mid + 1, R));
+}
+
+int main()
+{
+    cin >> n;
+
+    for(ll i = 1; i <= n; i++) scanf("%I64d", s + i);
+
+    Build();
+
+    for(ll Cur = 1; Cur <= n; Cur++)
+    {
+        pll p = Get(1,n);
+
+        p.second *= -1;
+
+        assert(p.first == 0);
+
+        a[p.second] = Cur;
+
+        Update( p.second, p.second, +Inf);
+        if(p.second < n)    Update( p.second + 1, n, -Cur);
+    }
+
+    for(ll i = 1; i <= n; i++) printf("%I64d ", a[i]);    puts("");
+}

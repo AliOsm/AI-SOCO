@@ -1,0 +1,236 @@
+#include <vector>
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <cstdio>
+#include <numeric>
+#include <cstring>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(n);i++)
+typedef long long ll;
+
+const int MAXN=200001;
+
+int maxr[4*MAXN];
+int maxid[4*MAXN];
+int minl[4*MAXN];
+int minid[4*MAXN];
+
+int l[MAXN];
+int r[MAXN];
+int a[MAXN];
+int b[MAXN];
+int c[MAXN];
+
+int pl[MAXN];
+int pa[MAXN];
+
+bool cmpR(int a, int b)
+{
+    return r[a]<r[b];
+}
+
+bool cmpB(int A, int B)
+{
+    return b[A]<b[B];
+}
+
+
+vector<int> shrink;
+int id(int x)
+{
+    return lower_bound(shrink.begin(),shrink.end(),x)-shrink.begin();
+}
+
+int val(int x)
+{
+    return shrink[x];
+}
+
+vector<pair<int,int> > tree;
+int ds;
+int getds(int n)
+{
+    n--;
+    n|=n>>1;
+    n|=n>>2;
+    n|=n>>4;
+    n|=n>>8;
+    n|=n>>16;
+    return n+1;
+}
+
+void update(int i, pair<int,int> val)
+{
+    i+=ds;
+    while(i>0)
+    {
+        tree[i]=max(tree[i],val);
+        i>>=1;
+    }
+}
+
+pair<int,int> get_res(int l, int r)
+{
+    l+=ds;
+    r+=ds;
+    pair<int,int> res(0,-1);
+    while(l<=r)
+    {
+        if(l&1) res=max(res,tree[l++]);
+        if(~r&1) res=max(res,tree[r--]);
+        l>>=1;
+        r>>=1;
+    }
+    return res;
+}
+
+int main()
+{
+    int n,m;
+    scanf("%d%d",&n,&m);
+    REP(i,n)
+        scanf("%d%d",&l[i],&r[i]);
+    REP(i,m)
+        scanf("%d%d%d",&a[i],&b[i],&c[i]);
+
+    shrink.reserve(2*n+2*m);
+    REP(i,n)
+    {
+        shrink.push_back(l[i]);
+        shrink.push_back(r[i]);
+    }
+    REP(i,m)
+    {
+        shrink.push_back(a[i]);
+        shrink.push_back(b[i]);
+    }
+    sort(shrink.begin(),shrink.end());
+    shrink.erase(unique(shrink.begin(),shrink.end()),shrink.end());
+    REP(i,n)
+    {
+        l[i]=id(l[i]);
+        r[i]=id(r[i]);
+    }
+    REP(i,m)
+    {
+        a[i]=id(a[i]);
+        b[i]=id(b[i]);
+    }
+    int NN=shrink.size();
+    REP(i,NN)
+    {
+        maxr[i]=-1;
+        minl[i]=NN;
+    }
+    REP(i,n)
+    {
+        if(maxr[l[i]]<r[i])
+        {
+            maxr[l[i]]=r[i];
+            maxid[l[i]]=i+1;
+        }
+        if(minl[r[i]]>l[i])
+        {
+            minl[r[i]]=l[i];
+            minid[r[i]]=i+1;
+        }
+    }
+
+    for(int i=0;i+1<NN;i++)
+    {
+        if(maxr[i+1]<maxr[i])
+        {
+            maxr[i+1]=maxr[i];
+            maxid[i+1]=maxid[i];
+        }
+    }
+    for(int i=NN-1;i>0;i--)
+    {
+        if(minl[i-1]>minl[i])
+        {
+            minl[i-1]=minl[i];
+            minid[i-1]=minid[i];
+        }
+    }
+
+    ll res=0;
+    int ri=-1, rj=-1;
+
+    REP(i,m)
+    {
+        int cur=0;
+        int j=-1;
+        if(maxr[a[i]]!=-1)
+        {
+            int cv=min(val(maxr[a[i]]),val(b[i]))-val(a[i]);
+            if(cur<cv)
+            {
+                cur=cv;
+                j=maxid[a[i]];
+            }
+        }
+        if(minl[b[i]]!=NN)
+        {
+            int cv=val(b[i])-max(val(minl[b[i]]),val(a[i]));
+            if(cur<cv)
+            {
+                cur=cv;
+                j=minid[b[i]];
+            }
+        }
+
+        if(res<cur*ll(c[i]))
+        {
+            res=cur*ll(c[i]);
+            ri=i+1;
+            rj=j;
+        }
+    }
+    REP(i,n)
+        pl[i]=i;
+    REP(i,m)
+        pa[i]=i;
+
+    sort(pl,pl+n,cmpR);
+    sort(pa,pa+m,cmpB);
+
+    ds=getds(NN);
+    tree.resize(2*ds,pair<int,int>(0,-1));
+
+    int A,L;
+    A=0;
+    L=0;
+    while(A<m || L<n)
+    {
+        int minpos=NN;
+        if(A<m)
+            minpos=min(minpos,b[pa[A]]);
+        if(L<n)
+            minpos=min(minpos,r[pl[L]]);
+        if(L<n && minpos==r[pl[L]])
+        {
+            update(l[pl[L]], make_pair(val(r[pl[L]])-val(l[pl[L]]),pl[L]+1));
+            L++;
+        }
+        else
+        {
+            pair<int,int> cur=get_res(a[pa[A]], b[pa[A]]);
+            if(cur.first*ll(c[pa[A]])>res)
+            {
+                res=cur.first*ll(c[pa[A]]);
+                ri=pa[A]+1;
+                rj=cur.second;
+            }
+            A++;
+
+        }
+    }
+
+
+    printf("%lld\n",res);
+    if(res)
+        printf("%d %d\n",rj, ri);
+    return 0;
+}
+

@@ -1,0 +1,157 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int K = 5e4 + 1;
+const int N = 7001;
+const int M = 81;
+int n, m, cur;
+int s, t;
+
+int mat[M][M];
+
+pii adj[4] = {{1, 0}, {0, 1}, {0, -1}, {-1, 0}};
+
+struct Edge {
+    int cap;
+    int flw;
+    int wgt;
+} edge[K];
+
+struct Adj {
+    int v, i;
+};
+
+struct Graph {
+    int par[N];
+    int ind[N];
+    int dst[N];
+    vec <Adj> adj[N];
+} graph;
+
+void input() {
+    cin >> n >> m;
+    for(int i = 1; i <= n; ++i) {
+        for(int j = 1; j <= m; ++j) {
+            cin >> mat[i][j];
+        }
+    }
+}
+
+int ind(int i, int j) {
+    return i * (m + 1) + j;
+}
+
+void add_edge(int u, int v, int c, int w) {
+    graph.adj[u].pb({v, cur});
+    edge[cur].cap = c;
+    edge[cur].flw = 0;
+    edge[cur].wgt = w;
+    cur++;
+
+    graph.adj[v].pb({u, cur});
+    edge[cur].cap = c;
+    edge[cur].flw = c;
+    edge[cur].wgt = -w;
+    cur++;
+}
+
+int edmonds_karp() {
+    int res = 0;
+    while(true) {
+        fill(graph.dst, graph.dst + N, inf);
+        queue <int> q; q.push(s);
+        graph.par[s] = 0;
+        graph.dst[s] = 0;
+        while(!q.empty()) {
+            int u = q.front(); q.pop();
+            for(auto it: graph.adj[u]) {
+                int v = it.v;
+                int i = it.i;
+                int w = edge[i].wgt;
+                if(graph.dst[v] > graph.dst[u] + w && edge[i].cap > edge[i].flw) {
+                    graph.dst[v] = graph.dst[u] + w;
+                    graph.par[v] = u;
+                    graph.ind[v] = i;
+                    q.push(v);
+            
+                }
+            }
+
+        }
+        if(graph.dst[t] == inf) {
+            return res;
+        }
+        res += graph.dst[t];
+        for(int v = t; v != s; ) {
+            int u = graph.par[v];
+            int i = graph.ind[v];
+            edge[i].flw++;
+            edge[i ^ 1].flw--;
+            v = u;
+        }
+    }
+}
+
+void solve() {
+    s = 0, t = N - 1;
+    for(int i = 1; i <= n; ++i) {
+        for(int j = 1; j <= m; ++j) {
+            if(i + j & 1) {
+                for(pii p: adj) {
+                    int ix = i + p.xx;
+                    int jx = j + p.yy;
+                    if(mat[ix][jx]) {
+                        add_edge(ind(i, j), ind(ix, jx), 1, mat[ix][jx] != mat[i][j]);
+                    }
+                }
+                add_edge(s, ind(i, j), 1, 0);
+            } else {
+                add_edge(ind(i, j), t, 1, 0);
+            }
+        }
+    }
+    cout << edmonds_karp() << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

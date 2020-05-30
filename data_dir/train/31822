@@ -1,0 +1,118 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstdint>
+#include <algorithm>
+using namespace std;
+
+double dist(double ax, double ay, double bx, double by)
+{
+	return sqrt((ax - bx)*(ax - bx) + (ay - by)*(ay - by));
+}
+
+struct tree
+{
+	vector<pair<double, int> > t;
+	vector<int> id;
+	int n;
+
+	tree(vector<double> & a)
+		: n(a.size())
+		, t(2 * a.size())
+	{
+		for (int i = 0; i < n; ++i)
+			t[n + i] = { a[i], i };
+		for (int i = n - 1; i >= 0; --i)
+			t[i] = min(t[i << 1], t[i << 1 | 1]);
+	}
+
+	void modify(int p, double value)
+	{
+		for (t[p += n].first = value; p > 1; p >>= 1)
+			t[p >> 1] = min(t[p], t[p ^ 1]);
+	}
+
+	pair<double, int> query(int l, int r)
+	{
+		pair<double, int> res = { 1e300, 0 };
+		for (l += n, r += n; l < r; l >>= 1, r >>= 1)
+		{
+			if (l & 1)
+				res = min(res, t[l++]);
+			if (r & 1)
+				res = min(res, t[--r]);
+		}
+		return res;
+	}
+};
+
+void solve(int num_test = 0)
+{
+	double ax, ay, bx, by, cx, cy;
+	cin >> ax >> ay >> bx >> by >> cx >> cy;
+	int n;
+	cin >> n;
+	vector<double> x(n), y(n);
+	vector<double> da(n), db(n), dc(n), q(n);
+	for (int i = 0; i < n; ++i)
+	{
+		cin >> x[i] >> y[i];
+	}
+	for (int i = 0; i < n; ++i)
+	{
+		da[i] = dist(ax, ay, x[i], y[i]);
+		db[i] = dist(bx, by, x[i], y[i]);
+		dc[i] = dist(cx, cy, x[i], y[i]);
+	}
+	double ans = 0;
+	for (int i = 0; i < n; ++i)
+	{
+		ans += 2 * dc[i];
+	}
+	double ans_bkp = ans;
+
+	double mxa = dist(ax, ay, cx, cy);
+	double mxb = dist(bx, by, cx, cy);
+	ans += min(mxa, mxb);
+
+	for (int i = 0; i < n; ++i)
+	{
+		q[i] = -dc[i] + db[i];
+	}
+
+	tree seg(q);
+	for (int i = 0; i < n; ++i)
+	{
+		double nxt = ans_bkp;
+		nxt = nxt - dc[i] + da[i];
+		ans = min(ans, nxt);
+
+		nxt = ans_bkp;
+		nxt = nxt - dc[i] + db[i];
+		ans = min(ans, nxt);
+	}
+
+	for (int i = 0; i < n; ++i)
+	{
+		double nxt = ans_bkp;
+		nxt = nxt - dc[i] + da[i];
+
+		seg.modify(i, 1e200);
+		auto it = seg.query(0, n);
+		seg.modify(i, q[i]);
+
+		nxt = nxt + it.first;
+		ans = min(ans, nxt);
+	}
+	printf("%.9f\n", ans);
+}
+
+int main(void)
+{
+	ios::sync_with_stdio(false);
+	solve();
+	return 0;
+}

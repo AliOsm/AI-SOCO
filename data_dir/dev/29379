@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+#include <ext/numeric>
+
+using namespace std;
+using namespace __gnu_cxx;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+void fastInOut();
+
+const int N = 100000, OO = 1e9;
+int n, mxVal, mn[2 * N], sg[8 * N];
+int a[N], b[N], h[N];
+ll memo[2 * N], totH[2 * N];
+
+void init() {
+  memset(memo, -1, sizeof memo);
+  for (int i = 0; i < 2 * N; ++i)
+    mn[i] = OO;
+}
+
+void repVal() {
+  int id = 0;
+  set<int> all;
+  map<int, int> ids;
+  for (int i = 0; i < n; ++i)
+    all.insert(a[i]), all.insert(b[i]);
+  for (auto cur : all)
+    ids[cur] = id++;
+  for (int i = 0; i < n; ++i) {
+    int idA = ids[a[i]], idB = ids[b[i]];
+    mxVal = max(mxVal, idB);
+    totH[idB] += h[i], mn[idB] = min(mn[idB], idA);
+  }
+}
+
+int build(int idx, int st, int ed) {
+  if (st > ed)
+    return OO;
+  if (st == ed)
+    return sg[idx] = mn[st];
+  int md = (st + ed) / 2;
+  return sg[idx] = min(build(2 * idx + 1, st, md), build(2 * idx + 2, md + 1, ed));
+}
+
+int query(int idx, int st, int ed, int l, int r) {
+  if (st > ed || ed < l || st > r)
+    return OO;
+  if (st >= l && ed <= r)
+    return sg[idx];
+  int md = (st + ed) / 2;
+  return min(query(2 * idx + 1, st, md, l, r), query(2 * idx + 2, md + 1, ed, l, r));
+}
+
+int getNxt(int val) {
+  int st = val + 1, ed = mxVal;
+  while (st < ed) {
+    int md = (st + ed) / 2;
+    if (val <= query(0, 0, mxVal, val + 1, md))
+      st = md + 1;
+    else
+      ed = md;
+  }
+  return (st == ed && val > query(0, 0, mxVal, val + 1, st) ? st : -1);
+}
+
+ll solve(int st) {
+  ll &ret = memo[st];
+  if (ret != -1)
+    return ret;
+  ret = totH[st];
+  int nxt = getNxt(st);
+  if (nxt != -1)
+    ret += solve(nxt);
+  return ret;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+  freopen("input.txt", "r", stdin);
+#endif
+  fastInOut();
+  cin >> n;
+  for (int i = 0; i < n; ++i)
+    cin >> a[i] >> b[i] >> h[i];
+  init(), repVal(), build(0, 0, mxVal);
+  ll ret = 0;
+  for (int st = 0; st <= mxVal; ++st)
+    if (totH[st])
+      ret = max(ret, solve(st));
+  cout << ret;
+  return 0;
+}
+
+void fastInOut() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(NULL), cout.tie(NULL);
+}

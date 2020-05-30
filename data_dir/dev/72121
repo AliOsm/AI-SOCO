@@ -1,0 +1,180 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 5e5;
+
+const int base = 2e5;
+
+int n, q, a[N], suf[N], nsuf[N], cl[N], ncl[N], col, cnt, small = base, head[N], lcp[N], st[30][N], sz, Rt[N], lg[N], len[N], pos[N], pos_in[N], pos_in_str[N];
+
+struct node
+{
+	int L, R, sum;
+} T[30 * N];
+                                                                 
+string str;
+
+bool cmp(int i, int j)
+{
+	return a[i] < a[j];
+}
+
+void build()
+{
+	for (int i = 1;i <= cnt;i++) suf[i] = i;
+	sort(suf + 1, suf + cnt + 1, &cmp);
+	col = 0;
+	for (int i = 1;i <= cnt;i++)
+	{
+		if (i == 1 || a[suf[i]] != a[suf[i - 1]]) cl[suf[i]] = ++col, head[col] = i;
+		else cl[suf[i]] = cl[suf[i - 1]];
+	}
+	for (int len = 1;len <= cnt;len += len)
+	{
+		for (int i = 1;i <= cnt;i++)
+		{
+			int j = suf[i] - len;
+			if (j < 1) j += cnt;
+			nsuf[head[cl[j]]++] = j;
+		}		
+		col = 0;
+		for (int i = 1;i <= cnt;i++)
+		{
+			suf[i] = nsuf[i];
+			int a = suf[i] + len;
+			if (a > cnt) a -= cnt;
+			int b = suf[i - 1] + len;
+			if (b > cnt) b -= cnt;
+			if (i == 1 || cl[suf[i]] != cl[suf[i - 1]] || cl[a] != cl[b])
+			{
+				ncl[suf[i]] = ++col;
+				head[col] = i;						
+			}
+			else ncl[suf[i]] = ncl[suf[i - 1]];
+		}
+		for (int i = 1;i <= cnt;i++) cl[i] = ncl[i];
+	}
+	for (int i = 1;i <= cnt;i++) pos[suf[i]] = i;
+	int Lcp = 0;
+	for (int i = 1;i <= cnt;i++)
+	{
+		int j = pos[i];
+		if (j == cnt)
+		{
+			lcp[j] = Lcp = 0;
+			continue;
+		}
+		if (Lcp) Lcp--;
+		while(i + Lcp <= cnt && suf[j + 1] + Lcp <= cnt && a[i + Lcp] == a[suf[j + 1] + Lcp]) Lcp++;
+		lcp[j] = Lcp;
+	}
+}
+
+void upd(int pv, int v, int pos, int tl = 1, int tr = cnt)
+{
+	T[v].L = T[pv].L;
+	T[v].R = T[pv].R;
+	T[v].sum = T[pv].sum;
+	if (tl == tr)
+	{
+		T[v].sum++;
+		return;
+	}
+	int tm = (tl + tr) / 2;
+	if (pos <= tm) 
+	{
+		T[v].L = ++sz;
+		upd(T[pv].L, T[v].L, pos, tl, tm);
+	}
+	else
+	{
+		T[v].R = ++sz;
+		upd(T[pv].R, T[v].R, pos, tm + 1, tr);
+	}
+	T[v].sum = T[T[v].L].sum + T[T[v].R].sum;
+}
+
+int get_sum(int v, int l, int r, int tl = 1, int tr = cnt)
+{
+	if (tl > r || tr < l) return 0;
+	if (l <= tl && tr <= r) return T[v].sum;
+	int tm = (tl + tr) / 2;
+	return get_sum(T[v].L, l, r, tl, tm) + get_sum(T[v].R, l, r, tm + 1, tr); 
+}
+
+int get_min(int l, int r)
+{
+	if (l > r) return 0;
+	int k = lg[r - l + 1];
+//	cout << " k = " << k << " len = " << r - l + 1 << endl;
+	return min(st[k][l], st[k][r - (1 << k) + 1]);
+}
+
+int Find_Left(int pos, int x)
+{
+	int l = 1, r = pos;
+	while(r - l > 1)
+	{
+		int m = (l + r) / 2;
+		if (get_min(m, pos - 1) >= x) r = m;
+		else l = m;
+	}
+	if (get_min(l, pos - 1) >= x) return l;
+	return r;
+}
+
+int Find_Right(int pos, int x)
+{
+	int l = pos, r = cnt;
+	while(r - l > 1)
+	{
+		int m = (l + r) / 2;
+		if (get_min(pos, m - 1) >= x) l = m;
+		else r = m;
+	}
+	if (get_min(pos, r - 1) >= x) return r;
+	return l;
+}
+
+int main()
+{
+//  ios_base::sync_with_stdio(0);
+	scanf("%d%d", &n, &q);
+ 	cnt = 0;
+ 	int cur_sum = 0;
+  for (int i = 1;i <= n;i++)
+  {
+  	cin >> str;
+  	pos_in_str[i] = cnt + 1;
+  	for (auto it : str) a[++cnt] = (it - 'a') + base, pos_in[cnt] = i;
+  	a[++cnt] = --small;
+  	pos_in[cnt] = i;
+  	len[i] = str.size();
+  }
+  build();
+  for (int i = 1;i <= cnt;i++) st[0][i] = lcp[i];
+	for (int it = 1;(1 << it) <= cnt;it++)
+		for (int i = 1;i + (1 << it) - 1 <= cnt;i++)	
+			st[it][i] = min(st[it - 1][i], st[it - 1][i + (1 << (it - 1))]);
+	for (int i = 1;i <= cnt;i++)
+	{
+		Rt[i] = ++sz;
+		upd(Rt[i - 1], Rt[i], pos_in[suf[i]]);
+		if (i > 1) lg[i] = lg[i >> 1] + 1;
+	}				
+//	for (int i = 1;i <= cnt;i++) cout << "i = " << i << " a[i] = " << a[i] << endl;
+//	for (int i = 1;i <= cnt;i++) cout << "i = " << i << " suf[i] = " << suf[i] << " lcp[i] = " << lcp[i] << " pos_in[i] = " << pos_in[suf[i]] << " T[Rt[i]].sum = " << T[Rt[i]].sum << endl;
+	for (int i = 1, l, r, k;i <= q;i++)
+	{
+	  scanf("%d%d%d", &l, &r, &k);
+		int FF = len[k];
+		k = pos_in_str[k];
+		int L = Find_Left(pos[k], FF);
+		int R = Find_Right(pos[k], FF);		
+//		cout << "L = " << L << " R = " << R << " len[k] = " << len[k] << " k = " << k << endl;
+		printf("%d\n", get_sum(Rt[R], l, r) - get_sum(Rt[L - 1], l, r));
+//		return 0;
+	}
+	return 0;
+}

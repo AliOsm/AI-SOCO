@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e5 + 10;
+int n, seg[N << 2], lazy[N << 2], st[N], fn[N], dfstime;
+vector<int> gr[N];
+void dfs(int v, int par = -1) {
+	st[v] = dfstime++;
+	for (auto u : gr[v]) 
+		if (u != par) 
+			dfs(u, v);
+	fn[v] = dfstime;
+}
+void relax(int id, int s, int e) {
+	if (!lazy[id])
+		return;
+	int mid = (s + e) / 2, lc = id * 2, rc = lc + 1;
+	lazy[lc] = 1 - lazy[lc];
+	lazy[rc] = 1 - lazy[rc];
+	seg[lc] = (mid - s) - seg[lc];
+	seg[rc] = (e - mid) - seg[rc];
+	lazy[id] = 0;
+}
+void add(int l, int r, int id = 1, int s = 0, int e = n) {
+	if (l <= s && e <= r) {
+		lazy[id] = 1 - lazy[id];
+		seg[id] = (e - s) - seg[id];
+		return;
+	}
+	if (e <= l || r <= s)
+		return;
+	relax(id, s, e);
+	int mid = (s + e) / 2, lc = id * 2, rc = lc + 1;
+	add(l, r, lc, s, mid);
+	add(l, r, rc, mid, e);
+	seg[id] = seg[lc] + seg[rc];
+//	cout << "s = " << s << " e = " << e << " : " << seg[id] << endl;
+}
+int get(int l, int r, int id = 1, int s = 0, int e = n) {
+//	cout << " s = " << s << " e = " << e << " : " << seg[id] << endl;
+	if (l <= s && e <= r) 
+		return seg[id];
+	if (e <= l || r <= s)
+		return 0;
+	relax(id, s, e);
+	int mid = (s + e) / 2, lc = id * 2, rc = lc + 1;
+	return get(l, r, lc, s, mid) + get(l, r, rc, mid, e);
+}	
+int main() {
+	ios_base::sync_with_stdio (false);
+	cin.tie(0);
+	cout.tie(0);
+	cin >> n;
+	for (int i = 1; i < n; i++) {
+		int p;
+		cin >> p;
+		p--;
+		gr[p].push_back(i);
+		gr[i].push_back(p);
+	}
+	dfs(0);
+	for (int i = 0; i < n; i++) {
+		int x;
+		cin >> x;
+		if (x)
+			add(st[i], st[i] + 1);
+	}
+	int q;
+	cin >> q;
+	for (int i = 0; i < q; i++) {
+		string s;
+		cin >> s;
+		if (s[0] == 'p') {
+			int v;
+			cin >> v;
+			v--;
+			add(st[v], fn[v]);
+		}
+		else { 
+			int v;
+			cin >> v;
+			v--;
+			cout << get(st[v], fn[v]) << "\n";
+		}
+	}
+	return 0;
+}

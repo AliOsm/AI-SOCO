@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+#define base 1000000007LL
+#define ll long long
+#define ld double
+#define X first
+#define Y second
+#define pb push_back
+#define EPS 1e-9
+#define all(a) (a).begin(), (a).end()
+#define sz(a) int((a).size())
+#define ms(s, n) memset(s, n, sizeof(s))
+#define FOR(i,a,b) for (int i = (a); i <= (b); i++)
+#define FORE(i,a,b) for (int i = (a); i >= (b); i--)
+#define FORALL(it, a) for (__typeof((a).begin()) it = (a).begin(); it != (a).end(); it++)
+using namespace std;
+typedef pair<int, int> II;
+typedef pair<int, II> III;
+
+int leaf[100010], d[100010], parent[100010][20], n, m;
+vector<int> a[100010];
+ll road[100010], roadS[100010], siz[100010];
+
+void dfs(int u, int p)
+{
+    siz[u] = 1;
+    leaf[u] = 0;
+    road[u] = 0;
+    int cnt = 0;
+    FOR(i,0,sz(a[u])-1) {
+        int v = a[u][i];
+        if (v == p) continue;
+        cnt++;
+        d[v] = d[u] + 1;
+        parent[v][0] = u;
+        dfs(v, u);
+        siz[u] += siz[v];
+        leaf[u] += leaf[v];
+        road[u] += siz[v] + road[v];
+    }
+    if (!cnt) leaf[u] = 1;
+}
+
+void dfs2(int u, int p)
+{
+    FOR(i,0,sz(a[u])-1) {
+        int v = a[u][i];
+        if (v == p) continue;
+        roadS[v] = roadS[u] - siz[v] + siz[1] - siz[v];
+        dfs2(v, u);
+    }
+}
+
+int lca(int u, int v)
+{
+    if (d[v] < d[u]) FORE(i,17,0) if (d[parent[u][i]] >= d[v]) u = parent[u][i];
+    if (d[u] < d[v]) FORE(i,17,0) if (d[parent[v][i]] >= d[u]) v = parent[v][i];
+    FORE(i,17,0) if (parent[u][i] != parent[v][i]) { u = parent[u][i]; v = parent[v][i]; }
+    while (u != v) { u = parent[u][0]; v = parent[v][0]; }
+    return u;
+}
+
+int getParent(int u, int h)
+{
+    FORE(i,17,0)
+        if (h & (1<<i)) u = parent[u][i];
+    return u;
+}
+
+void init()
+{
+    d[1] = 1;
+    dfs(1,0);
+    FOR(j,1,17)
+        FOR(i,1,n) parent[i][j] = parent[parent[i][j-1]][j-1];
+    roadS[1] = road[1];
+    dfs2(1,0);
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    cin.tie(NULL);
+    //freopen("inp.txt", "r", stdin);
+    //freopen("out.txt", "w", stdout);
+    cin >> n >> m;
+    FOR(i,1,n-1) {
+        int u, v;
+        cin >> u >> v;
+        a[u].pb(v);
+        a[v].pb(u);
+    }
+    init();
+    while (m--) {
+        int u, v;
+        cin >> u >> v;
+        int g = lca(u,v);
+        if (g == v) swap(u,v);
+        ld res = 0;
+        if (g == u) {
+            int dist = d[v] - d[u];
+            int h = getParent(v, dist-1);
+            int sizU = n - siz[h];
+            ll roadU = roadS[u] - siz[h] - road[h];
+            res = (ll) sizU * siz[v] * (dist + 1) + (ll) siz[v] * roadU + (ll) sizU * road[v];
+            res /= (ll) sizU * siz[v];
+        }
+        else {
+            res = (ll) siz[u] * siz[v] * (d[u] + d[v] - 2*d[g] + 1) + (ll) siz[v] * road[u] + (ll) siz[u] * road[v];
+            res /= (ll) siz[u] * siz[v];
+        }
+        cout << fixed << setprecision(9) << res << "\n";
+    }
+    return 0;
+}

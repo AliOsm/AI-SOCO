@@ -1,0 +1,98 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <iomanip>
+#include <memory.h>
+#include <unordered_map>
+
+using namespace std;
+const long long md = 1e9 + 7;
+const int N = 200000;
+
+long long dp[N], kol[N];
+vector<pair<int, long long> > g[N];
+
+void calc(int v, int p) {
+    kol[v] = 1;
+    dp[v] = 0;
+    for(auto u : g[v]) {
+        if(u.first == p)
+            continue;
+        calc(u.first, v);
+        dp[v] += dp[u.first] + kol[u.first] * u.second;
+        kol[v] += kol[u.first];
+    }
+}
+
+long long make(int v, int p, long long up, long long upkol = 0) {
+    long long ans = (long long)1e18;
+
+    for(auto u : g[v]) {
+        if(u.first == p)
+            continue;
+        ans = min(make(u.first, v,
+                       up + u.second * (upkol + kol[v] - kol[u.first]) + dp[v] - (dp[u.first] + u.second * kol[u.first]),
+                       upkol + kol[v] - kol[u.first]), ans);
+    }
+    return min(ans, dp[v] + up);
+}
+
+
+int main() {
+    ios::sync_with_stdio(false);
+
+    int n;
+    cin >> n;
+
+    vector<pair<pair<int, int>, long long> > e;
+    for(int i = 1; i < n; i++) {
+        int x, y;
+        long long z;
+        cin >> x >> y >> z;
+
+        g[x].push_back(make_pair(y, z));
+        g[y].push_back(make_pair(x, z));
+
+        e.push_back(make_pair(make_pair(x, y), z));
+    }
+
+    long long sum = 0;
+    for(int i = 1; i <= n; i++) {
+        calc(i, 0);
+        sum += dp[i];
+//        cout << i << " = " << dp[i] << "\n";
+    }
+    sum /= 2LL;
+//    cout << sum << "\n";
+//
+    long long ans = sum;
+    for(int i = 0; i < e.size(); i++) {
+        int x = e[i].first.first;
+        int y = e[i].first.second;
+        long long z = e[i].second;
+
+        long long temp = sum;
+
+        calc(x, y);
+        calc(y, x);
+
+        temp -= kol[x] * dp[y] + kol[y] * dp[x];
+
+        long long px = make(x, y, 0);
+        long long py = make(y, x, 0);
+
+        temp += px * kol[y];
+        temp += py * kol[x];
+
+        ans = min(ans, temp);
+//        cout << x << " " << y << " = " << temp << "\n";
+    }
+    cout << ans;
+
+    return 0;
+}

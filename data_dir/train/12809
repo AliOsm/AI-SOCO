@@ -1,0 +1,103 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1000 * 1000 + 5;
+
+int n;
+string type[N];
+int val[N];
+int to[N][2];
+int r[N];
+
+struct Vector {
+  vector<int> v;
+  
+  void merge(Vector& o) {
+    if (v.size() < o.v.size()) {
+      v.swap(o.v);
+    }
+    for (auto& e: o.v) {
+      v.emplace_back(e);
+    }
+    o.v.clear();
+  }
+};
+
+int op(int v, int x, int y) {
+  int r = x ^ y;
+  if (type[v] == "AND") {
+    r = x & y;
+  }
+  if (type[v] == "OR") {
+    r = x | y;
+  }
+  return r;
+}
+
+int dfs(int v) {
+  if (type[v] == "IN") {
+    return val[v];
+  }
+  if (type[v] == "NOT") {
+    return val[v] = !dfs(to[v][0]);
+  }
+  return val[v] = op(v, dfs(to[v][0]), dfs(to[v][1]));
+}
+
+Vector g[N][2];
+
+void go(int v) {
+  if (type[v] == "IN") {
+    g[v][!val[v]].v.push_back(v);
+    return;
+  }
+  if (type[v] == "NOT") {
+    go(to[v][0]);
+    for (int i = 0; i < 2; ++i) {
+      g[v][i].merge(g[to[v][0]][i ^ 1]);
+    }
+    return;
+  }
+  for (int i = 0; i < 2; ++i) {
+    go(to[v][i]);
+    int w = val[to[v][i ^ 1]];
+    for (int j = 0; j < 2; ++j) {
+      g[v][op(v, j, w)].merge(g[to[v][i]][j]);
+    }
+  }
+}
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+  
+  cin >> n;
+  for (int i = 0; i < n; ++i) {
+    cin >> type[i];
+    if (type[i] == "IN") {
+      cin >> val[i];
+    } else 
+    if (type[i] == "NOT") {
+      cin >> to[i][0];
+      --to[i][0];
+    } else {
+      cin >> to[i][0] >> to[i][1];
+      --to[i][0];
+      --to[i][1];
+    }
+  }
+  dfs(0);
+  go(0);
+  
+  for (int i = 0; i < n; ++i) {
+    for (auto& v: g[0][i].v) {
+      r[v] = i;
+    }
+  }
+  for (int i = 0; i < n; ++i) {
+    if (type[i] == "IN") {
+      cout << r[i];
+    }
+  }
+  cout << '\n';
+}

@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+#define SQRT 100
+using namespace std;
+int n,q;
+const int N = 100001;
+int par[N];
+int nextUp[N];
+int height[N];
+int comp[N];
+vector <vector <pair<int,int> > > adjList(N);
+vector <int> anss(N);
+vector<int> edges(N);
+vector<int> p(N);
+vector <int> leaves;
+vector <int> print(N);
+vector<int> degree(N);
+void dfs(int node,int parent,int h,int cmp) {
+    par[node] = parent;
+    if(h && h % SQRT == 0)
+        cmp++;
+    comp[node] = cmp;
+    height[node] = h;
+    if(h < SQRT)
+        nextUp[node] = 1;
+    else
+        if(h % SQRT == 0)
+            nextUp[node] = par[node];
+        else
+            nextUp[node] = nextUp[par[node]];
+    bool leaf = true;
+    for(pair<int,int> ch : adjList[node])
+        if(ch.first != parent) {
+            leaf = false;
+            dfs(ch.first,node,h+1,cmp);
+            edges[ch.first] = ch.second;
+            p[ch.first] = node;
+            degree[node]++;
+        }
+    if(leaf)
+        leaves.push_back(node);
+}
+
+void dfs2(int node) {
+    print[edges[node]] = anss[node];
+    if(node != 1) {
+        degree[p[node]]--;
+        if(!degree[p[node]])
+            leaves.push_back(p[node]);
+        anss[p[node]] += anss[node];
+//        dfs2(p[node]);
+    }
+}
+int query(int x,int y) {
+    while(nextUp[x] != nextUp[y])
+        if(height[x] > height[y])
+            x = nextUp[x];
+        else
+            y = nextUp[y];
+    while(x != y)
+        if(height[x] > height[y])
+            x = par[x];
+        else
+            y = par[y];
+    return x;
+}
+
+int main()
+{
+    scanf("%d",&n);
+    for(int i = 1;i<n;++i) {
+        int x,y;
+        scanf("%d %d",&x,&y);
+        adjList[x].push_back(make_pair(y,i));
+        adjList[y].push_back(make_pair(x,i));
+    }
+    dfs(1,0,0,1);
+    scanf("%d",&q);
+    while(q--) {
+        int x,y;
+        scanf("%d %d",&x,&y);
+        int lca = query(x,y);
+        anss[x]++, anss[y]++, anss[lca]-=2;
+    }
+    while(leaves.size()) {
+        int curr = leaves.back();
+        leaves.pop_back();
+        dfs2(curr);
+    }
+
+    for(int i = 1;i<n;i++)
+        printf("%d ",print[i]);
+    return 0;
+}

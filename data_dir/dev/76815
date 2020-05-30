@@ -1,0 +1,185 @@
+#include <bits/stdc++.h>
+/*#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;*/
+#define itn int
+#define all(c) c.begin(),c.end()
+#define make_unique(x) sort(all((x))); (x).resize(unique(all((x))) - (x).begin())
+#define ll long long
+#define ull unsigned long long
+#define pll pair<ll, ll>
+#define pii pair<int, int>
+#define mp(x, y) make_pair(x, y)
+using namespace std;
+
+const ll inf = 1e18;
+const double PI = 3.1415926536;
+int days[13] = {0, 31, 28, 31, 30, 31,30, 31, 31, 30, 31, 30, 31};
+
+template<typename T>
+ostream& operator <<(ostream& out, const vector<T>& mas) {
+    for (const auto& x : mas) {
+        out << x << ' ';
+    }
+    return out;
+}
+
+void ok() {
+    cout << "YES" << '\n';
+}
+
+void no() {
+    cout << "NO" << '\n';
+}
+
+inline ll nxt() {
+    ll x;
+    cin >> x;
+    return x;
+}
+
+
+struct Pair {
+    int a, b;
+    int sum;
+
+    Pair(int first, int second) {
+        a = first;
+        b = second;
+        sum = a + b;
+    }
+
+    bool operator <(const Pair& te) const {
+        return sum < te.sum;
+    }
+};
+
+class SegmTree1 {
+public:
+
+    SegmTree1(const vector<int>& a_) {
+        a = a_;
+        n = a.size();
+        tree.resize(n * 4);
+    }
+
+    void build(int v, int l, int r) {
+        if (l == r) {
+            tree[v].push_back(a[l]);
+        } else{
+            int md = (l + r) / 2;
+            build(v * 2, l, md);
+            build(v * 2 + 1, md + 1, r);
+            merge(all(tree[v * 2]), all(tree[v * 2 + 1]), back_inserter(tree[v]));
+        }
+    }
+
+    int calc(int v, int l, int r, int tl, int tr, int sum) {
+        if (tl > r || l > tr || l > r || tl > tr) {
+            return 0;
+        }
+
+        if (tl <= l && r <= tr) {
+            return upper_bound(all(tree[v]), sum) - tree[v].begin();
+        }
+        int md = (l + r) / 2;
+        return calc(v * 2, l, md, tl, tr, sum) +
+            calc(v * 2 + 1, md + 1, r, tl, tr, sum);
+    }
+
+    int calc(int l, int r, int sum) {
+        return calc(1, 0, n - 1, l, r, sum);
+    }
+private:
+    int n;
+    vector<vector<int>> tree;
+    vector<int> a;
+};
+
+class SegmTree2 {
+public:
+    SegmTree2(const vector<int>& a_) {
+        a = a_;
+        n = a.size();
+        tree.resize(n * 4);
+    }
+
+    void build(int v, int l, int r) {
+        if (l == r) {
+            tree[v].push_back(a[l]);
+        } else{
+            int md = (l + r) / 2;
+            build(v * 2, l, md);
+            build(v * 2 + 1, md + 1, r);
+            merge(all(tree[v * 2]), all(tree[v * 2 + 1]), back_inserter(tree[v]));
+        }
+    }
+
+    int calc(int v, int l, int r, int tl, int tr, int sum) {
+        if (tl > r || l > tr || l > r || tl > tr) {
+            return 0;
+        }
+
+        if (tl <= l && r <= tr) {
+            return tree[v].end() - lower_bound(all(tree[v]), sum);
+        }
+        int md = (l + r) / 2;
+        return calc(v * 2, l, md, tl, tr, sum) +
+            calc(v * 2 + 1, md + 1, r, tl, tr, sum);
+    }
+
+    int calc(int l, int r, int sum) {
+        return calc(1, 0, n - 1, l, r, sum);
+    }
+private:
+    int n;
+    vector<vector<int>> tree;
+    vector<int> a;
+};
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    int ttt = nxt();
+    while (ttt--) {
+        int n = nxt(), k = nxt();
+        vector<int> a(n);
+        generate(all(a), nxt);
+        vector<Pair> buf;
+        vector<int> vals;
+        for (int i = 0; i < n / 2; i++) {
+            int mn = min(a[i], a[n - i - 1]);
+            int mx = max(a[i], a[n - i - 1]);
+            vals.push_back(a[i] + a[n - i - 1]);
+            buf.push_back(Pair(mn, mx));
+        }
+        sort(all(buf));
+        sort(all(vals));
+        vector<int> lb;
+        vector<int> rb;
+        for (int i = 0; i < n / 2; i++) {
+            lb.push_back(buf[i].b + k);
+            rb.push_back(buf[i].a + 1);
+        }
+
+        SegmTree1 left(lb);
+        SegmTree2 right(rb);
+        left.build(1, 0, n / 2 - 1);
+        right.build(1, 0, n / 2 - 1);
+        int ans = INT_MAX; 
+        for (int i = 1; i <= 2 * k; i++) {
+            ll t = i;
+            int l = lower_bound(all(vals), t) - vals.begin();
+            int r = upper_bound(all(vals), t) - vals.begin();
+            int left_sum = l + left.calc(0, l - 1, t - 1);
+            int right_sum = n / 2 - r + right.calc(r, n / 2 - 1, t + 1); 
+            ans = min(ans, left_sum + right_sum);
+        }
+        cout << ans << '\n';
+    }
+
+    return 0;
+}

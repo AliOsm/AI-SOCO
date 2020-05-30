@@ -1,0 +1,152 @@
+#include<algorithm>
+#include<iostream>
+#include<numeric>
+#include<iomanip>
+#include<cassert>
+#include<chrono>
+#include<string>
+#include<vector>
+#include<random>
+#include<cmath>
+#include<ctime>
+#include<deque>
+#include<queue>
+#include<set>
+#include<map>
+
+using namespace std;
+
+typedef long long ll;
+
+const int N = 303303, INF = 1001001001;
+
+int n, a[N], b[N], t[N * 4];
+vector<int> occur[N];
+bool deleted[N];
+
+int get(int i) {
+	if (occur[i].empty()) {
+		return INF;
+	}
+	return occur[i].back();
+}
+
+void build(int v, int L, int R) {
+	if (L == R) {
+		t[v] = get(L);
+	} else {
+		int M = (L + R) / 2;
+		build(v * 2, L, M);
+		build((v * 2) + 1, M + 1, R);
+		t[v] = min(t[v * 2], t[(v * 2) + 1]);
+	}
+}
+
+void change(int v, int L, int R, int i, int V) {
+	if (L == R) {
+		t[v] = V;
+	} else {
+		int M = (L + R) / 2;
+		if (i <= M) {
+			change(v * 2, L, M, i, V);
+		} else {
+			change((v * 2) + 1, M + 1, R, i, V);
+		}
+		t[v] = min(t[v * 2], t[(v * 2) + 1]);
+	}
+}
+
+void pop(int i) {
+	occur[i].pop_back();
+	change(1, 0, n - 1, i, get(i));
+}
+
+int get(int v, int L, int R, int l, int r) {
+	if (l == L && r == R) {
+		return t[v];
+	}
+	int M = (L + R) / 2;
+	if (r <= M) {
+		return get(v * 2, L, M, l, r);
+	} 
+	if (l > M) {
+		return get((v * 2) + 1, M + 1, R, l, r);
+	}
+	return min(get(v * 2, L, M, l, M), get((v * 2) + 1, M + 1, R, M + 1, r));
+}
+
+inline bool read() {
+	if (!(cin >> n)) {
+		return false;
+	}
+	for (int i = 0; i < n; i++) {
+		cin >> a[i];
+		a[i]--;
+	}
+	for (int j = 0; j < n; j++) {
+		cin >> b[j];
+		b[j]--;
+	}
+	return true;
+}
+
+void solve() {
+	for (int i = 0; i < n; i++) {
+		occur[a[i]].push_back(i);
+	}
+	for (int i = 0; i < n; i++) {
+		reverse(occur[i].begin(), occur[i].end());
+	}
+	for (int i = 0; i < n; i++) {
+		deleted[i] = false;
+	}
+	build(1, 0, n - 1);
+	int i = 0, j = 0;
+	while (j < n) {
+		if (deleted[i]) {
+			i++;
+			continue;
+		}
+		if (a[i] == b[j]) {
+			pop(a[i]);
+			i++;
+		} else {
+			if (occur[b[j]].empty()) {
+				cout << "NO\n";
+				break;
+			} else {
+				if (b[j] == 0 || get(1, 0, n - 1, 0, b[j] - 1) > occur[b[j]].back()) {
+					deleted[occur[b[j]].back()] = true;
+					pop(b[j]);
+				} else {
+					cout << "NO\n";
+					break;
+				}
+			}
+		}
+		j++;
+ 	}
+	if (j == n) {
+		cout << "YES\n";
+	}
+}
+
+void clear() {
+	for (int i = 0; i < n; i++) {
+		occur[i].clear();
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	int T;
+	cin >> T;
+	while (T--) {
+		if (read()) {
+			solve();
+			clear();
+		}
+	}
+	return 0;
+}

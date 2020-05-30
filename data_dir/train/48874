@@ -1,0 +1,111 @@
+#include <iostream>
+#include<bits/stdc++.h>
+using namespace std;
+const int N = 1e5 + 5;
+int F[N], dist[N], st[3*N][25], LOG[3*N]; vector<int> E, L, edges[N];
+
+void dfs(int u, int par = -1, int level = 0) {
+    E.push_back(u);
+    L.push_back(level);
+
+    if (F[u] == 0)
+        F[u] = L.size();
+
+    dist[u] = level;
+
+    for (int i = 0; i < edges[u].size(); ++i) {
+        int v = edges[u][i];
+
+        if (v != par) {
+            dfs(v, u, level + 1);
+            E.push_back(u);
+            L.push_back(level);
+        }
+    }
+}
+
+void build_sparse_table(int n) {
+	int x, y, i, j;
+
+	for (i = 0, LOG[0] = -1; i <= n; ++i) {
+		st[i][0] = i;
+		LOG[i + 1] = LOG[i] + !(i & (i + 1));
+	}
+
+	for (j = 1; (1 << j) <= n; ++j) {
+		for (i = 0; (i + (1 << j)) <= n; ++i) {
+			x = st[i][j - 1];
+			y = st[i + (1 << (j - 1))][j - 1];
+			if (L[x] < L[y])
+                st[i][j] = x;
+            else
+                st[i][j] = y;
+
+		}
+	}
+}
+
+inline int getMin_st(int l, int r) {
+    if (l > r) swap(l, r);
+
+	int s = r - l + 1;
+	int g = LOG[s];
+
+	int a = st[l][g];
+	int b = st[r - (1 << g) + 1][g];
+
+	if (L[a] < L[b])
+        return a;
+    else
+        return b;
+}
+
+inline int LCA(int u, int v) {
+    return E[getMin_st(F[u] - 1, F[v] - 1)];
+}
+vector<int>vec[N];
+int sum[N];
+int ans[N];
+int solve(int id , int par , int edge)
+{
+    int cnt = 0;
+    for(int i = 0 ; i<edges[id].size() ; ++i)
+    {
+        int to = edges[id][i];
+        if(to == par) continue;
+        cnt+= solve(to , id , vec[id][i]);
+    }
+   cnt += sum[id];
+   ans[edge] = cnt;
+   return cnt;
+}
+int main()
+{
+    int n;
+    cin>>n;
+    for(int i = 0 ; i<n-1 ; ++i)
+    {
+        int u,v;
+        scanf("%d %d" , &u , &v);
+        edges[u].push_back(v);
+        edges[v].push_back(u);
+        vec[u].push_back(i);
+        vec[v].push_back(i);
+    }
+    dfs(1);
+    build_sparse_table(L.size());
+    int k ;
+    cin>>k;
+    while(k--)
+    {
+        int u,v;
+        scanf("%d %d" , &u , &v);
+        int l = LCA(u,v);
+        sum[u]++;
+        sum[v]++;
+        sum[l]-=2;
+    }
+    solve(1,-1,n);
+    for(int i = 0 ; i<n-1 ; ++i) printf("%d%c" , ans[i] , " \n"[i==n-2]);
+    return 0;
+}

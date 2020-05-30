@@ -1,0 +1,118 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+
+const int maxN = 1e5 + 10;
+int data[4 * maxN][26],lazy[4 * maxN][26],n;
+//data[node][c]: jaame tedade character haye c too bazehye node
+
+void shift(int ch, int s, int e, int id)
+{
+    int x = lazy[id][ch];
+    if (x == -1) //chizi baraye shift dadan nadare
+        return;
+        
+    int mid = s + e >> 1;
+
+    lazy[2 * id][ch] = x;
+    data[2 * id][ch] = (mid - s) * x;
+
+    lazy[2 * id + 1][ch] = x;
+    data[2 * id + 1][ch] = (e - mid) * x;
+
+    lazy[id][ch] = -1;
+}
+
+void update(int l, int r, int ch, int val, int s = 0, int e = n, int id = 1)
+{
+    if (e <= l || r <= s)
+        return;
+    if (l <= s && e <= r)
+    {
+        data[id][ch] = (e - s) * val;
+        lazy[id][ch] = val;
+        //cout << l << " " << r << " " << data[id][ch] << " " << lazy[id][ch] << " " << char(ch + 'a') << endl;
+        return;
+    }
+
+    shift(ch, s, e, id);
+
+    int mid = s + e >> 1;
+    update(l, r, ch, val, s, mid, 2 * id);
+    update(l, r, ch, val, mid, e, 2 * id + 1);
+    data[id][ch] = data[2 * id][ch] + data[2 * id + 1][ch];
+}
+
+int get(int l, int r, int ch, int s = 0, int e = n, int id = 1)
+{
+    if (e <= l || r <= s)
+        return 0;
+    if (l <= s && e <= r)
+        return data[id][ch];
+    int mid = s + e >> 1;
+    shift(ch, s, e, id);
+    return get(l, r, ch, s, mid, 2 * id) + get(l, r, ch, mid, e, 2 * id + 1);
+}
+
+int32_t main()
+{
+    for (int i = 0 ; i < maxN ; i++)
+        for (int j = 0 ; j < 26 ; j++)
+            lazy[i][j] = -1;
+
+    string s;
+    int q;
+    cin >> n >> q >> s;
+    for (int i = 0 ; i < n ; i++)
+    {
+        //cout << "Adding " << i << " " << i + 1 << " " << s[i] - 'a' << " " << 1 << endl;
+        update(i, i + 1, s[i] - 'a', 1); 
+    }
+
+    /*
+    while (1)
+    {
+        int l,r,c;
+        cin >> l >> r >> c;
+        l--;
+        cout << get(l, r, c) << endl;
+    }
+    */
+
+    while (q--)
+    {
+        int l,r,k;
+        cin >> l >> r >> k;
+        l--;
+        int pos = l;
+        if (k == 1)
+        {
+            for (int i = 0 ; i < 26 ; i++)
+            {
+                int cnt = get(l, r, i);
+                update(l, r, i, 0); //char i ro paak koneshoon
+                update(pos, pos + cnt, i, 1); //[pos,pos + cnt) ro char e i bezar
+                pos += cnt;
+            }
+        }
+  
+        if (k == 0)
+        {
+            for (int i = 26 - 1 ; i >= 0 ; i--)
+            {
+                int cnt = get(l, r, i);
+                update(l, r, i, 0);
+                update(pos, pos + cnt, i, 1);
+                pos += cnt;
+            }
+        }
+    }
+
+    for (int i = 0 ; i < n ; i++)
+        for (int j = 0 ; j < 26 ; j++)
+            if (get(i, i + 1, j) > 0)
+                cout << (char)(j + 'a');
+    cout << endl;
+    return 0;
+}

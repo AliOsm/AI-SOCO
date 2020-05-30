@@ -1,0 +1,182 @@
+#include <bits/stdc++.h>
+#define int long long
+
+using namespace std;
+
+const int MaxN = 1e5 + 15;
+const int INF = 1e9;
+const long long LINF = INF * 1ll * INF;
+const int MOD = 1e9 + 7;
+
+map<pair<int, int>, long double> mp;
+
+int n, m, q;
+
+int p[MaxN];
+int dp1[MaxN];
+int dp2[MaxN];
+vector <int> v[MaxN];
+vector <int> V[MaxN];
+vector <int> SV[MaxN];
+int X, Y;
+
+
+int findSet(int x)
+{
+    if(p[x] != x)
+        p[x] = findSet(p[x]);
+    return p[x];
+}
+
+void dfs1(int x, int y, int p = 0)
+{
+    dp1[x] = y;
+    if(dp1[x] > dp1[X])
+        X = x;
+
+    for(int i = 0; i < v[x].size(); ++i)
+    {
+        int to = v[x][i];
+        if(to == p)
+            continue;
+        dfs1(to, y + 1, x);
+    }
+
+}
+
+void dfs2(int x, int y, int p = 0)
+{
+    dp2[x] = y;
+
+    if(dp2[x] > dp2[Y])
+        Y = x;
+
+    for(int i = 0; i < v[x].size(); ++i)
+    {
+        int to = v[x][i];
+        if(to == p)
+            continue;
+        dfs2(to, y + 1, x);
+    }
+}
+
+void dfs3(int x, int X, int p = 0)
+{
+    V[X].push_back(max(dp1[x], dp2[x]));
+    for(int i = 0; i < v[x].size(); ++i)
+    {
+        int to = v[x][i];
+        if(to == p)
+            continue;
+        dfs3(to, X, x);
+    }
+}
+
+void solve(int x)
+{
+    X = x;
+    dfs1(x, 0);
+    dfs1(X, 0);
+    Y = X;
+    dfs2(Y, 0);
+    dfs3(x, x);
+    sort(V[x].begin(), V[x].end());
+    SV[x].resize(V[x].size());
+    for(int i = 0; i < V[x].size(); ++i)
+    {
+        SV[x][i] = V[x][i];
+        if(i)
+            SV[x][i] += SV[x][i - 1];
+    }
+}
+
+void solve(int x, int y)
+{
+    if(V[x].size() > V[y].size())
+        swap(x, y);
+
+    if(V[x].size() == V[y].size() && x > y)
+        swap(x, y);
+
+    if(mp.count(make_pair(x, y)))
+    {
+        cout << fixed << mp[make_pair(x, y)] << '\n';
+    }else
+    {
+        int cur = max(V[x].back(), V[y].back());
+
+        long double all = V[x].size() * 1ll * V[y].size();
+        long double sum = 0;
+
+        int ans = V[y].size() - 1;
+
+        for(int i = 0; i < V[x].size(); ++i)
+        {
+            while(ans >= 0 && V[x][i] + V[y][ans] + 1 >= cur)
+                --ans;
+
+            int cnt = ans + 1;
+            sum += cur * cnt;
+
+            cnt = V[y].size() - cnt;
+            sum += cnt;
+
+            sum += V[x][i] * cnt;
+
+            sum += SV[y].back();
+
+            if(cnt != SV[y].size())
+                sum -= SV[y][SV[y].size() - 1 - cnt];
+        }
+
+        mp[make_pair(x, y)] = (sum / all);
+        cout << fixed << mp[make_pair(x, y)] << '\n';
+    }
+}
+
+main()
+{
+    cout.precision(9);
+    srand(time(NULL));
+//    freopen("input.txt", "r", stdin);
+    ios_base :: sync_with_stdio(false);
+    cin.tie(NULL);
+
+    cin >> n >> m >> q;
+
+    for(int i = 1; i <= n; ++i)
+        p[i] = i;
+
+    for(int i = 0; i < m; ++i)
+    {
+        int x, y;
+        cin >> x >> y;
+
+        if(rand() & 1)
+            p[findSet(x)] = findSet(y);
+        else
+            p[findSet(y)] = findSet(x);
+
+        v[x].push_back(y);
+        v[y].push_back(x);
+    }
+
+    for(int i = 1; i <= n; ++i)
+        if(p[i] == i)
+            solve(i);
+
+    while(q --> 0)
+    {
+        int x, y;
+        cin >> x >> y;
+        x = findSet(x);
+        y = findSet(y);
+        if(x == y)
+            cout << "-1\n";
+        else
+            solve(x, y);
+    }
+}
+/**
+5 6
+*/

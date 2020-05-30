@@ -1,0 +1,249 @@
+/*
+      HET PAGHADAR
+      DA-IICT
+      @HET262
+*/
+ 
+#include<bits/stdc++.h>
+using namespace std;
+typedef long double ld;
+typedef long long ll;
+typedef vector<ll> vec;
+#define inf LLONG_MAX
+#define bp __builtin_popcountll
+#define pb push_back
+#define ff first
+#define ss second
+#define P pair<ll,ll>
+#define MM 300001
+#define ALL(a) a.begin(),a.end()
+#define LG 20
+#define int ll
+#define MOD 1000000007
+#define FAST ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+vector<vec> g(MM);
+
+ll tin[MM],tout[MM],level[MM],t=1;
+ 
+struct SegTree
+{
+      int N;
+      vector<ll> st;
+      vector<bool> cLazy;
+      vector<ll> lazy;
+ 
+      void init(int n)
+      {
+            N = n;
+            st.resize(4 * N + 5);
+            cLazy.assign(4 * N + 5, false);
+            lazy.assign(4 * N + 5, 0);
+      }
+ 
+      //Write reqd merge functions
+      void merge(ll &cur, ll &l, ll &r) 
+      {
+            cur = l^r;
+      }
+      
+      //Handle lazy propagation appriopriately
+      void propagate(int node, int L, int R)
+      {
+            if(L != R)
+            {
+                  cLazy[node*2] = 1;
+                  cLazy[node*2 + 1] = 1;
+                  lazy[node*2] += lazy[node];
+                  lazy[node*2 + 1] += lazy[node]; 
+            }
+            st[node] += lazy[node];
+            lazy[node]=0;
+            cLazy[node] = 0;
+      }
+ 
+      ll Query(int node, int L, int R, int i, int j)
+      {
+            if(j<L || i>R)
+                  return 0;
+            if(i<=L && R<=j)
+                  return st[node];
+            int M = (L + R)/2;
+            ll left=Query(node*2, L, M, i, j);
+            ll right=Query(node*2 + 1, M + 1, R, i, j);
+            ll cur;
+            merge(cur, left, right);
+            return cur;
+      }
+ 
+      ll pQuery(int node, int L, int R, int pos)
+      {
+            if(cLazy[node])
+                  propagate(node, L, R);
+            if(L == R)
+                  return st[node];
+            int M = (L + R)/2;
+            if(pos <= M)
+                  return pQuery(node*2, L, M, pos);
+            else
+                  return pQuery(node*2 + 1, M + 1, R, pos);
+      }     
+ 
+      void Update(int node, int L, int R, int i, int j, int val)
+      {
+            if(cLazy[node])
+                  propagate(node, L, R);
+            if(j<L || i>R)
+                  return;
+            if(i<=L && R<=j)
+            {
+                  cLazy[node] = 1;
+                  lazy[node] += val;
+                  propagate(node, L, R);
+                  return;
+            }
+            int M = (L + R)/2;
+            Update(node*2, L, M, i, j, val);
+            Update(node*2 + 1, M + 1, R, i, j, val);
+            merge(st[node], st[node*2], st[node*2 + 1]);
+      }
+ 
+      void pUpdate(int node, int L, int R, int pos, int val)
+      {
+            if(L == R)
+            {
+                  st[node]=val;
+                  return;
+            }
+            int M = (L + R)/2;
+            if(pos <= M)
+                  pUpdate(node*2, L, M, pos, val);
+            else
+                  pUpdate(node*2 + 1, M + 1, R, pos, val);
+            merge(st[node], st[node*2], st[node*2 + 1]);
+      }
+ 
+      ll query(int pos)
+      {
+            return pQuery(1, 1, N, pos);
+      }
+ 
+      ll query(int l, int r)
+      {
+            return Query(1, 1, N, l, r);
+      }
+ 
+      void update(int pos, int val)
+      {
+            pUpdate(1, 1, N, pos, val);
+      }
+ 
+      void update(int l, int r, int val)
+      {
+            Update(1, 1, N, l, r, val);
+      }
+};
+
+vec od,ev;
+
+void dfs(ll x,ll p,ll lv)
+{
+      tin[x]=t++;
+      level[x]=lv%2;
+      if(lv%2)
+            od.pb(t-1);
+      else
+            ev.pb(t-1);
+
+      for(auto X:g[x])
+      {
+            if(X!=p)
+                  dfs(X,x,lv+1);
+      }
+
+      tout[x]=t;
+}
+
+void query()
+{
+      ll n,q;
+      cin>>n>>q;
+
+      ll a[n+1];
+
+      for(int i=1;i<=n;i++)
+            cin>>a[i];
+
+      for(int i=1;i<n;i++)
+      {
+            ll x,y;
+            cin>>x>>y;
+            g[x].pb(y);
+            g[y].pb(x);
+      }
+
+      dfs(1,1,1);
+      SegTree st[2];
+
+      st[0].init(od.size());
+      st[1].init(ev.size());
+
+      while(q--)
+      {
+            ll t,x;
+            cin>>t>>x;
+
+            if(t==1)
+            {
+                  ll val;
+                  cin>>val;
+
+                  ll tt=level[x];
+
+                  ll s1=lower_bound(ALL(od),tin[x])-od.begin()+1;
+                  ll e1=lower_bound(ALL(od),tout[x])-od.begin();
+                  ll s2=lower_bound(ALL(ev),tin[x])-ev.begin()+1;
+                  ll e2=lower_bound(ALL(ev),tout[x])-ev.begin();
+                  
+                  if(tt)
+                  {
+                        st[0].update(s1,e1,val);
+                        st[1].update(s2,e2,-val);
+                  }
+                  else
+                  {
+                        st[0].update(s1,e1,-val);
+                        st[1].update(s2,e2,+val);
+                  }
+            }
+            else
+            {
+                  ll tt=level[x];
+
+                  if(tt)
+                  {
+                        ll ind=upper_bound(ALL(od),tin[x])-od.begin();
+                        cout<<st[0].query(ind)+a[x]<<"\n";
+                  }
+                  else
+                  {
+                        ll ind=upper_bound(ALL(ev),tin[x])-ev.begin();
+                        cout<<st[1].query(ind)+a[x]<<"\n";
+                  }
+            }
+      }
+}
+
+int32_t main()
+{
+      FAST;
+      
+      ll t=1;
+      // cin>>t;
+      while(t--)
+      {
+            query();
+      }
+      
+ 
+}

@@ -1,0 +1,38 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <deque>
+#include <queue>
+#define N 100005
+using namespace std;
+typedef long long ll;
+int t,n;
+int a[N];
+int main() {
+	cin>>t;
+	for (int cas=1; cas<=t; ++cas) {
+		scanf("%d", &n);
+		for (int i = 1; i <= n; ++i) {
+			scanf("%d", &a[i]);
+		}
+		sort(a+1, a+n+1);
+		int s = (n+1)/2;
+		int det = 1;
+		int sign = 1;
+		for (int i = 1; i <= n; ++i) {
+			printf("%d", a[s]);
+			s += sign * det;
+			det++;
+			sign *= -1;
+			if (i < n) cout<<" ";
+			else cout<<endl;
+		}
+	}
+	return 0;
+}

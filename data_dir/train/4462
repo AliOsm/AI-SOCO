@@ -1,0 +1,132 @@
+#pragma comment(linker, "/STACK:33554432")
+
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <queue>
+#include <deque>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <utility>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>			
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <memory.h>
+
+using namespace std;
+
+typedef long long LL;
+typedef vector<int> vint;
+
+const int MOD = (int)1e9 + 7;
+
+LL dp[1 << 8][1 << 8][1 << 4][1 << 1][1 << 2];
+int C[1 << 4][1 << 4];
+
+int cnt(int x)
+{
+	int res = 0;
+	while (x)
+	{
+		x &= x - 1;
+		res++;
+	}
+	return res;
+}
+
+LL go(int n, int k, int mask, int sq, int step)
+{
+	if (k < 0)
+		return 0;
+	if (n == 0 && sq)
+		return k == 0;
+	LL & res = dp[n][k][mask][sq][step];
+	if (res != -1)
+		return res;
+	res = 0;
+	if (sq)
+	{
+		int c = 4 - cnt(mask);
+		for(int i = 0; i <= 4; ++i)
+		{
+			res += C[c][i] * go(n - 1, k - i, mask, 0, 0);
+			res %= MOD;
+		}
+	}
+	else
+	{
+		if (step == 0)
+		{
+			for(int i = 0; i < 4; ++i)
+			{
+				int t = (1 << i) | (1 << (i + 1) % 4);
+				if (mask & t)
+					continue;
+				res += go(n, k - 1, mask | t, sq, 1);
+				res %= MOD;
+			}
+			if (mask == 0)
+			{
+				res += 2 * go(n, k - 2, 15, sq, 1); 
+				res %= MOD;
+			}
+			res += go(n, k, mask, sq, 1);
+		}
+		else if (step == 1)
+		{
+			for(int i = 0; i < 1 << 4; ++i)
+			{
+				if (mask & i)
+					continue;
+				res += go(n, k - cnt(i), mask | i, sq, 2);
+				res %= MOD;
+			}
+		}
+		else
+		{
+			if (n == 0)
+				return res = go(n, k, mask, 1, 0);
+			int two = 0;
+			int one = 0;
+			for(int i = 0; i < 4; ++i)
+			{
+				two += !(mask & (1 << i)) && !(mask & (1 << (i + 1) % 4));
+				one += !(mask & (1 << i)) * 2;
+			}
+			for(int i = 0; i <= two; ++i)
+				for(int j = 0; j <= one - 2 * i; ++j)
+				{
+					int ways = C[two][i] * C[one - 2 * i][j];
+					res += ways * go(n, k - i - j, mask, 1, 0);
+					res %= MOD;
+				}
+		}
+	}
+	return res;
+}
+
+int main()
+{
+	int n, k;
+	scanf("%d%d", &n, &k);
+	memset(dp, -1, sizeof(dp));
+	memset(C, 0, sizeof(C));
+	for(int i = 0; i < 1 << 4; ++i)
+		C[i][i] = 1, C[i][0] = 1;
+	for(int i = 2; i < 1 << 4; ++i)
+		for(int j = 1; j < i; ++j)
+			C[i][j] = C[i - 1][j] + C[i - 1][j - 1];
+	LL res = go(n, k, 0, 0, 0);
+	for(int i = 1; i <= k; ++i)
+		res = res * i % MOD;
+	printf("%d\n", (int)res);
+	return 0;
+}

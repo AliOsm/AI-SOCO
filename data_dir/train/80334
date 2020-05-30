@@ -1,0 +1,167 @@
+// only miss the sun when it starts to snow
+
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int Max=210,Mask=(1<<7)+10;
+
+int dp[Mask][Max], ds[Max][Max], bef[Max][Max];
+pii par[Mask][Max];
+
+int dx[4]={1,-1,0,0};
+int dy[4]={0,0,1,-1};
+
+int a[Max][Max],n,m,k;
+pii p[10];
+
+bool in[Max];
+
+void cover(int a,int b,int c,int d){
+    int x=a*m + b, y=c*m + d;
+    while(y!=x){
+	in[y]=1;
+	y=bef[x][y];
+    }
+    in[x]=1;    
+}
+
+int CNT=0;
+
+void f(int i,int j,int msk){
+    if(msk==0){
+	cover(i,j,i,j);
+	return;
+    }
+    if(__builtin_popcount(msk)==1){
+	int id=__builtin_ctz(msk);
+	cover(i, j, p[id].F, p[id].S);
+	return;
+    }
+    int x= par[msk][i*m + j].S / m, y= par[msk][i*m + j].S %m;
+    cover(i,j,x,y);
+    
+    f(x,y, par[msk][i*m + j].F);
+    f(i,j, msk ^ par[msk][i*m + j].F);
+}
+
+int main(){
+    ios_base::sync_with_stdio(false);cin.tie(0);
+    
+    cin>>n>>m>>k;
+
+    for(int i=0;i<n;i++){
+	for(int j=0;j<m;j++)
+	    cin>>a[i][j];
+    }
+    for(int i=0;i<k;i++){
+	cin>>p[i].F>>p[i].S;
+
+	p[i].F--, p[i].S--;
+    }
+
+    for(int i=0;i<Max;i++)
+	for(int j=0;j<Max;j++)
+	    ds[i][j]= (i==j ? 0 : 1e9), bef[i][j]= i;
+    for(int i=0;i<n;i++){
+	for(int j=0;j<m;j++){
+	    for(int go=0;go<4*n*m;go++){
+		for(int ii=0;ii<n;ii++){
+		    for(int jj=0;jj<m;jj++){
+			for(int k=0;k<4;k++){
+			    int x= dx[k] + ii, y=dy[k] + jj;
+			    if(x>=0 && y>=0 && x<n && y<m){	
+				if( ds[i*m + j][x*m + y] + a[x][y] < ds[i*m + j][ii*m + jj] )
+				    ds[i*m + j][ii*m + jj]= ds[i*m + j][x*m + y] + a[x][y], bef[i*m + j][ii*m + jj]=x*m + y;
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    int ans=1e9, posx=-1, posy=-1;
+
+    for(int i=0;i<n;i++){
+	for(int j=0;j<m;j++){
+	    dp[0][i*m + j]= a[i][j];
+	}
+    }
+    
+    for(int msk=1;msk<(1<<k);msk++){
+	for(int i=0;i<n;i++){
+	    for(int j=0;j<m;j++){
+
+		int &num= dp[msk][i*m + j]= 1e9;
+		pii &pr= par[msk][i*m + j]= {-1,-1};
+		
+		for(int msk2=1; msk2<msk; msk2++){
+		    if((msk2 | msk) != msk) continue;
+		    
+		    for(int ii=0;ii<n;ii++){
+			for(int jj=0;jj<m;jj++){
+			    int x= dp[msk2][ii*m + jj] + ds[ii*m + jj][i*m + j] - a[ii][jj] + dp[msk ^ msk2][i*m + j];
+			    
+			    if((ii!=i || jj!=j) && x<num) pr= { msk2, (ii*m + jj) }, num=x;
+			}
+		    }
+		}
+
+		int id=-1;
+
+		for(int w=0;w<k;w++){
+		    if(bit(msk,w) && p[w].F==i && p[w].S==j)
+			id=w;		    
+		}
+		if(id!=-1){
+		    dp[msk][i*m + j]= dp[msk ^ (1<<id)][i*m + j], par[msk][i*m + j]={ msk ^ (1<<id), i*m + j};
+		}
+	    }
+	}
+     	
+	for(int i=0;i<n;i++){
+	    for(int j=0;j<m;j++){	
+		for(int ii=0;ii<n;ii++){
+		    for(int jj=0;jj<m;jj++){
+			int x= dp[msk][ii*m + jj] + ds[i*m + j][ii*m + jj];
+			if(dp[msk][i*m + j] > x) dp[msk][i*m + j]=x, par[msk][i*m + j]= {msk, ii*m + jj};
+		    }
+		}
+
+		if(msk == (1<<k)-1 && dp[msk][i*m + j] < ans) ans= dp[msk][i*m + j], posx=i, posy=j;
+	    }
+	}
+    }
+    
+    f(posx,posy,(1<<k)-1);
+    
+    cout<<ans<<"\n";
+
+    for(int i=0;i<n;i++){
+	for(int j=0;j<m;j++){
+	    if(in[i*m + j]) cout<<'X';
+	    else cout<<'.';
+	}
+	cout<<"\n";
+    }
+    return 0;
+}
+// Deathly mistakes:
+//  * Read the problem curfully.
+//  * Check maxn.
+//  * Overflows.
+
+
+// #pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math")
+// #pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")

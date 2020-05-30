@@ -1,0 +1,228 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int MAX_N = 2e5, MAX_K = 22, MY_TAG = 2e9;
+
+struct edge {
+    int x, y, w, c, id;
+    bool flag = false;
+
+    edge() {}
+
+    bool operator < (const edge & rhs) const {
+        return w < rhs.w;
+    }
+};
+
+int n, m, p[MAX_N], jump[MAX_N][MAX_K], w[MAX_N][MAX_K], tin[MAX_N], tout[MAX_N], s, vx[MAX_N];
+long long ans = 1e18;
+edge edges[MAX_N];
+vector<int> e[MAX_N];
+
+bool update(long long nval) {
+    if (nval > ans) {
+        return false;
+    }
+
+    ans = nval;
+    return true;
+}
+
+int find_set(int v) {
+    return p[v] == v ? v : p[v] = find_set(p[v]);
+}
+
+void join_sets(int v, int u) {
+    v = find_set(v);
+    u = find_set(u);
+    p[v] = u;
+}
+
+void dfs(int v = 0) {
+    for (int i = 0; ; i++) {
+        int u = jump[v][i];
+
+        if (u == -1) {
+            break;
+        }
+
+        jump[v][i + 1] = jump[u][i];
+        w[v][i + 1] = edges[w[v][i]].w < edges[w[u][i]].w ? w[u][i] : w[v][i];
+    }
+
+    static int timer = 0;
+    tin[v] = tout[v] = timer++;
+
+    for (int i : e[v]) {
+        int to = edges[i].x;
+
+        if (to == v) {
+            to = edges[i].y;
+        }
+
+        if (to == jump[v][0]) {
+            continue;
+        }
+
+        jump[to][0] = v;
+        w[to][0] = i;
+        dfs(to);
+        tout[v] = tout[to];
+    }
+}
+
+bool is_upper(int p, int v) {
+    return tin[p] <= tin[v] && tout[v] <= tout[p];
+}
+
+int get_lca(int x, int y) {
+    if (is_upper(x, y)) {
+        return x;
+    }
+
+    if (is_upper(y, x)) {
+        return y;
+    }
+
+    for (int i = MAX_K - 1; i >= 0; i--) {
+        int z = jump[x][i];
+
+        if (z != -1 && !is_upper(z, y)) {
+            x = z;
+        }
+    }
+
+    return jump[x][0];
+}
+
+int max_w_on_path(int p, int v) {
+    if (p == v) {
+        return -1;
+    }
+
+    int res = -1;
+
+    for (int i = MAX_K - 1; i >= 0; i--) {
+        int u = jump[v][i];
+
+        if (u == -1 || is_upper(u, p)) {
+            continue;
+        }
+
+        if (res == -1 || edges[w[v][i]].w > edges[res].w) {
+            res = w[v][i];
+        }
+        v = u;
+    }
+
+    if (res == -1 || edges[w[v][0]].w > edges[res].w) {
+        res = w[v][0];
+    }
+
+    return res;
+}
+
+main() {
+    #ifdef T0RRES
+    freopen("1.txt", "r", stdin);
+    #endif // T0RRES
+
+    scanf("%d%d", &n, &m);
+
+    for (int i = 0; i < n; i++) {
+        p[i] = i;
+    }
+
+    for (int i = 0; i < m; i++) {
+        scanf("%d", &edges[i].w);
+        vx[i] = MY_TAG;
+        edges[i].id = i;
+    }
+
+    for (int i = 0; i < m; i++) {
+        scanf("%d", &edges[i].c);
+    }
+
+    for (int i = 0; i < m; i++) {
+        scanf("%d%d", &edges[i].x, &edges[i].y);
+        edges[i].x--;
+        edges[i].y--;
+    }
+
+    sort(edges, edges + m);
+    long long total_w = 0;
+    scanf("%d", &s);
+
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        x = edges[i].x;
+        y = edges[i].y;
+
+        if (find_set(x) != find_set(y)) {
+            total_w += edges[i].w;
+            join_sets(x, y);
+            ans += edges[i].w;
+            e[x].push_back(i);
+            e[y].push_back(i);
+        }
+    }
+
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < MAX_K; j++) {
+            jump[i][j] = -1;
+        }
+
+    dfs();
+    int to_del = -1, to_add = -1;
+
+    for (int i = 0; i < m; i++) {
+        int x, y, z, max_w = -1, wx, wy;
+        long long tmp;
+        x = edges[i].x;
+        y = edges[i].y;
+        z = get_lca(x, y);
+        wx = max_w_on_path(z, x);
+        wy = max_w_on_path(z, y);
+
+        if (wx != -1) {
+            max_w = wx;
+        }
+
+        if (wy != -1 && (max_w == -1 || edges[max_w].w < edges[wy].w)) {
+            max_w = wy;
+        }
+
+        assert(max_w != -1);
+        tmp = total_w + edges[i].w - s / edges[i].c - edges[max_w].w;
+
+        if (update(tmp)) {
+            to_del = max_w;
+            to_add = i;
+        }
+    }
+
+    for (int i = 0; i < n; i++)
+        for (int j : e[i]) {
+            int val = edges[j].w;
+
+            if (j == to_add) {
+                val -= s / edges[j].c;
+            } else if (j == to_del) {
+                val = MY_TAG;
+            }
+
+            vx[edges[j].id] = val;
+        }
+
+    printf("%I64d\n", ans);
+    int id, c, w;
+    id = edges[to_add].id;
+    c = edges[to_add].c;
+    w = edges[to_add].w;
+    vx[id] = w - s / c;
+
+    for (int i = 0; i < m; i++)
+        if (vx[i] != MY_TAG) {
+            printf("%d %d\n", i + 1, vx[i]);
+        }
+}

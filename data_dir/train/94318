@@ -1,0 +1,136 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+#define se second
+#define fi first
+#define pb push_back
+const int N=1e5 + 5;
+int sz[N],temp,cur,n,M,tot,dp[N];
+bool cc[N];
+vector<pair<int, int> > g[N];
+map<int, int> mp;
+
+ll pw(int n,int p){
+
+	if(!p) return 1;
+	if(p == 1) return n;
+	ll temp=pw(n,p / 2);
+	temp=(temp * temp) % M;
+	if(p & 1) temp=(temp * n) % M;
+	return temp;
+}
+
+void cen(int u,int p,int stz){
+
+	int mx=0;
+	sz[u]=1;
+	for(int i=0;i < g[u].size();i++){
+		int v=g[u][i].fi;
+		if(v != p && !cc[v]){
+			cen(v,u,stz);
+			mx=max(mx,sz[v]);
+			sz[u]+=sz[v];
+		}
+	}
+	mx=max(mx,stz - sz[u]);
+	if(mx < temp){
+		temp=mx;
+		cur=u;
+	}
+}
+
+int totient(int n){
+
+	ll t=n,b=1;
+	for(int i=2;i * i <= n;i++){
+		int c=0;
+		while(n % i == 0){
+			n/=i;
+			c++;
+		}
+		if(c) t*=i - 1, b*=i;
+	}
+	if(n != 1) t*=n - 1, b*=n;
+	return t / b;
+}
+
+void all(int u,int p,int ten,int part){
+
+	mp[part]++;
+	for(int i=0;i < g[u].size();i++){
+		int v=g[u][i].fi;
+		if(v != p && !cc[v])
+			all(v,u,(ten * 10LL) % M,(part + 0LL + g[u][i].se * 1LL * ten) % M);
+	}
+}
+ll ans;
+
+ll inv(int len){
+	if(dp[len] != -1) return dp[len];
+	int x=pw(10,len);
+	return dp[len]=pw(x,tot - 1);
+}
+void dfs(int u,int p,int ten,int part,int f,int len){
+
+	if(f == 1 && p != -1){
+		ll temp=-part + M;
+		temp=(temp * inv(len)) % M;
+		ans+=mp[temp];
+	}
+	for(int i=0;i < g[u].size();i++){
+		int v=g[u][i].fi;
+		if(v != p && !cc[v]){
+			if(f == 0)
+				dfs(v,u,(ten * 10LL) % M,
+					(part + 0LL + g[u][i].se * 1LL * ten) % M,0,len + 1);
+			if(p == -1 || f == 1)
+				dfs(v,u,1,(g[u][i].se + part * 10LL) % M,1,len + 1);
+			if(p == -1 || f == 2)
+				dfs(v,u,(ten * 10LL) % M,
+					(part + 0LL + g[u][i].se * 1LL * ten) % M,2,len + 1);
+		}
+	}
+	if(!f && p != -1) mp[part]--;
+	if(f == 2 && p != -1) mp[part]++;
+}
+
+void calc(int in,int stz){
+	temp=1e9;
+	mp.clear();
+	cen(in,-1,stz);
+	int u=cur;
+	all(u,-1,1,0);
+	ans+=mp[0] - 1;
+	dfs(u,-1,1,0,0,0);
+	cc[u]=1;
+	for(int i=0;i < g[u].size();i++){
+		int v=g[u][i].fi;
+		if(!cc[v]){
+			int x=sz[v];
+			if(x > sz[u]) x=stz - sz[u];
+			calc(v,x);
+		}
+	}
+
+}
+
+int main(){
+
+//	freopen("in.txt","r",stdin);
+
+	cin >> n >> M;
+	memset(dp,-1,sizeof dp);
+	tot=totient(M);
+	for(int i=0,a,b,c;i < n - 1;i++){
+		scanf("%d%d%d",&a,&b,&c);
+		g[a].pb({ b, c });
+		g[b].pb({ a, c });
+	}
+	calc(0,n);
+	cout << ans << endl;
+#ifndef ONLINE_JUDGE
+	cout << "Time elapsed: " << 1.0 * clock() / CLOCKS_PER_SEC << " s.\n";
+#endif
+	return 0;
+
+}

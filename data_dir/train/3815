@@ -1,0 +1,101 @@
+#include<bits/stdc++.h>
+#define uint uint64_t
+#define pb push_back
+using namespace std;
+const uint N = 1e5 + 10, SQ = 319, Mod = 3e14;
+struct SQRT
+{
+    uint INF = Mod * 60000, A[N + SQ + 2], M[SQ + 2];
+    vector < uint > T[SQ + 2], V[SQ + 2], P[SQ + 2];
+    SQRT()
+    {
+        for (int i = 0; i < N + SQ + 2; i++)
+            A[i] = INF;
+        for (int i = 0; i <= SQ; i++)
+            M[i] = INF, Init(i);
+    }
+    inline void Init(int block)
+    {
+        vector < uint > B;
+        V[block].clear(); T[block].clear(); P[block].clear();
+        P[block].pb(0); T[block].pb(0); M[block] = INF;
+        for (int i = block * SQ; i < (block + 1) * SQ; i++)
+            B.pb(A[i]);
+        sort(B.begin(), B.end());
+        V[block].pb(B[0]); P[block].pb(B[0] % Mod); T[block].pb(1);
+        for (int i = 1; i < B.size(); i++)
+        {
+            if (V[block].back() == B[i])
+                T[block].back() ++, P[block].back() = (P[block].back() + B[i] % Mod) % Mod;
+            else
+                V[block].pb(B[i]), T[block].pb(T[block].back() + 1), P[block].pb((P[block].back() + B[i] % Mod) % Mod);
+        }
+    }
+    inline void Modify(int block, int l, int r, uint k)
+    {
+        for (int i = block * SQ; i < (block + 1) * SQ; i++)
+            A[i] = min(A[i], M[block]);
+        for (int i = l; i < r; i++)
+            A[i] = min(A[i], k);
+        Init(block);
+    }
+    inline void Update(int l, int r, uint k)
+    {
+        Modify(l / SQ, l, min((l / SQ + 1) * SQ, (uint)r), k);
+        if (l / SQ == r / SQ)
+            return ;
+        for (int i = l / SQ + 1; i < r / SQ; i++)
+        {
+            int lb = lower_bound(V[i].begin(), V[i].end(), k) - V[i].begin();
+            if (M[i] < k || lb == V[i].size())
+                continue;
+            V[i].resize(lb + 1); V[i][lb] = k;
+            P[i].resize(lb + 2); T[i].resize(lb + 2);
+            P[i][lb + 1] = (P[i][lb] + k % Mod * (SQ - T[i][lb])) % Mod;
+            T[i][lb + 1] = SQ; M[i] = k;
+        }
+        Modify(r / SQ, r / SQ * SQ, r, k);
+    }
+    inline uint get(int l, int r)
+    {
+        uint ret = 0;
+        Modify(l / SQ, l / SQ * SQ, (l / SQ + 1) * SQ, INF);
+        Modify(r / SQ, r / SQ * SQ, (r / SQ + 1) * SQ, INF);
+        for (int i = l; i < min((l / SQ + 1) * SQ, (uint)r); i++)
+            ret = (ret + A[i] % Mod) % Mod;
+        if (l / SQ == r / SQ)
+            return (ret);
+        for (int block = l / SQ + 1; block < r / SQ; block ++)
+            ret = (ret + P[block].back()) % Mod;
+        for (int i = r / SQ * SQ; i < r; i++)
+            ret = (ret + A[i] % Mod) % Mod;
+        return (ret);
+    }
+};
+int q, L[N], R[N], K[N];
+vector < int > B;
+int main()
+{
+    SQRT A[2];
+    scanf("%d", &q);
+    for (int i = 0, tp; i < q; i++)
+    {
+        scanf("%d%d%d", &tp, &L[i], &R[i]);
+        if (tp == 1)
+            scanf("%d", &K[i]), B.pb(abs(K[i]));
+    }
+    sort(B.begin(), B.end());
+    B.resize(unique(B.begin(), B.end()) - B.begin());
+    for (int i = 0; i < q; i++)
+    {
+        if (!K[i])
+            printf("%llu\n", (A[0].get(L[i], R[i]) + A[1].get(L[i], R[i])) % Mod);
+        else
+        {
+            int lb = lower_bound(B.begin(), B.end(), abs(K[i])) - B.begin() + 2;
+            A[K[i] > 0].Update(L[i], R[i], abs(K[i]));
+            A[K[i] < 0].Update(L[i], R[i], lb * Mod - abs(K[i]));
+        }
+    }
+    return (0);
+}

@@ -1,0 +1,90 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define MOD 998244353
+#define ll long long int
+#define MAXN 1005
+#define MAX 1000005
+ll a[MAXN][MAXN];
+ll dp[MAXN][MAXN];
+ll Fact[MAX];
+ll InvFact[MAX];
+ll InvMe[MAX];
+
+ll bigmod(ll n,ll r){
+    if(r==0) return 1LL;
+    ll ret=bigmod(n,r/2);
+    ret=(ret*ret)%MOD;
+    if(r%2==1) ret=(ret*n)%MOD;
+    return ret;
+}
+ll invmod(ll n){return bigmod(n,MOD-2);}
+ll Mul(ll a,ll b){return (a*b)%MOD;}
+ll Add(ll a,ll b){return a+b>=MOD ? a+b-MOD : a+b;}
+
+vector< pair<int, pair<int,int> > >Numbers;
+vector< pair<int, pair<int,int> > > Curr;
+
+int main(){
+    Fact[0]=InvFact[0]=1;
+    for(int i=1;i<MAX;i++) Fact[i]=(Fact[i-1]*i)%MOD;
+    InvFact[MAX-1]=invmod(Fact[MAX-1]);
+    for(int i=MAX-2;i>=1;i--) InvFact[i]=(InvFact[i+1]*(i+1))%MOD;
+    for(int i=MAX-2;i>=1;i--) InvMe[i]=(Fact[i-1]*InvFact[i])%MOD;
+
+    int n,m;
+    scanf("%d %d",&n,&m);
+    for(int i=1;i<=n;i++) for(int j=1;j<=m;j++){
+        scanf("%d",&a[i][j]);
+        Numbers.push_back({a[i][j],{i,j}});
+    }
+
+    sort(Numbers.begin(),Numbers.end());
+
+    ll Count=0,SumX=0,SumY=0,SumSq=0,SumAns=0;
+
+    for(int i=0;i<Numbers.size();i++){
+        Curr.clear();
+        for(int j=i;j<Numbers.size();j++){
+            if(Numbers[j].first>Numbers[i].first) break;
+            Curr.push_back(Numbers[j]);
+        }
+
+        ll NowCount=0,NowSumX=0,NowSumY=0,NowSumSq=0,NowSumAns=0;
+        for(int j=0;j<Curr.size();j++){
+            ll n=Curr[j].first;
+            ll x=Curr[j].second.first;
+            ll y=Curr[j].second.second;
+
+            dp[x][y]=SumAns;
+            dp[x][y]=Add(dp[x][y],Mul(Count,Mul(x,x)));
+            dp[x][y]=Add(dp[x][y],Mul(Count,Mul(y,y)));
+
+            dp[x][y]=Add(dp[x][y],SumSq);
+
+            ll Temp=Add(Mul(x,SumX),Mul(y,SumY));
+            Temp=Add(Temp,Temp);
+            Temp=MOD-Temp;
+            dp[x][y]=Add(dp[x][y],Temp);
+
+            dp[x][y]=Mul(dp[x][y],InvMe[Count]);
+
+            NowCount++;
+            NowSumX=Add(NowSumX,x);
+            NowSumY=Add(NowSumY,y);
+            NowSumSq=Add(NowSumSq,Mul(x,x));
+            NowSumSq=Add(NowSumSq,Mul(y,y));
+            NowSumAns=Add(NowSumAns,dp[x][y]);
+        }
+
+        Count=Add(Count,NowCount);
+        SumX=Add(SumX,NowSumX);
+        SumY=Add(SumY,NowSumY);
+        SumSq=Add(SumSq,NowSumSq);
+        SumAns=Add(SumAns,NowSumAns);
+        i+=Curr.size()-1;
+    }
+
+    int r,c;
+    scanf("%d %d",&r,&c);
+    printf("%lld\n",dp[r][c]);
+}

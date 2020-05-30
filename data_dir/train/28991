@@ -1,0 +1,104 @@
+#include<bits/stdc++.h>
+#define MAX_NODES 210
+#define infinity 1e9
+using namespace std;
+int a[105], b[105];
+
+int ans[105][105];
+struct edge {
+    int to, flow, rev, constFlow;
+};
+
+vector<vector<edge> > adj;
+bool vis[MAX_NODES];
+int source, sink, node_count, edge_count;
+void add_edge(int from, int to, int flow) {
+    edge e1 = { to, flow, adj[to].size(), flow };
+    edge e2 = { from, 0, adj[from].size(), flow };
+    adj[from].push_back(e1);
+    adj[to].push_back(e2);
+}
+int find_path(int cur, int flow) {
+    if (cur == sink)
+        return flow;
+    if (vis[cur] || !flow)
+        return 0;
+    vis[cur] = true;
+    for (int i = 0; i < int(adj[cur].size()); i++) {
+        edge &e = adj[cur][i];
+        int fl = find_path(e.to, min(flow, e.flow));
+        if (fl) {
+            edge &r = adj[e.to][e.rev];
+            e.flow -= fl;
+            r.flow += fl;
+            return fl;
+        }
+    }
+    return 0;
+}
+int max_flow() {
+    memset(vis, 0, sizeof(vis));
+    int res = 0, fl;
+    while ((fl = find_path(source, infinity))) {
+        res += fl;
+        memset(vis, 0, sizeof(vis));
+    }
+    return res;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+
+    int n, m;
+    cin >> n >> m;
+    adj.resize(2 * n + 2);
+    node_count = 2 * n + 2;
+    int sumo = 0;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+        sumo += a[i];
+        edge_count++;
+        add_edge(0, i + 1, a[i]);
+        add_edge(i + 1, i + 1 + n, a[i]);
+    }
+    int sum = 0;
+    for (int i = 0; i < n; i++) {
+        cin >> b[i];
+        edge_count++;
+        add_edge(i + 1 + n, n + n + 1, b[i]);
+        sum += b[i];
+    }
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        --u;
+        --v;
+        edge_count++;
+        add_edge(u + 1, v + 1 + n, a[u]);
+        add_edge(v + 1, u + 1 + n, a[v]);
+    }
+    source = 0;
+    sink = n + n + 1;
+    int flow = max_flow();
+    if (flow != sum || sumo != sum) {
+        cout << "NO\n";
+        return 0;
+    }
+    cout << "YES\n";
+    for (int i = 1; i < n + 1; i++) {
+        for (int j = 0; j < int(adj[i].size()); j++) {
+            int u = i;
+            int v = adj[i][j].to;
+            int flow = adj[i][j].constFlow - adj[i][j].flow;
+            if (u >= 1 && u <= n && v > n && v <= n + n)
+                ans[u - 1][v - n - 1] = flow;
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++)
+            cout << ans[i][j] << " ";
+        cout << endl;
+    }
+    return 0;
+}

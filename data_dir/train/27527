@@ -1,0 +1,121 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <unordered_set>
+#include <functional>
+#include <climits>
+#include <cstring>
+#include <cmath>
+#include <numeric>
+#include <random>
+#include <tuple>
+#include <chrono>
+
+using namespace std;
+
+constexpr int N = 16;
+int memo[N][N][1 << N];
+bool p[N][N];
+
+int n, m;
+vector<int> a[N];
+vector<int> g[N];
+
+bool dp(int s, int v, int mask) {
+  if (mask == (1 << n) - 1) {
+    return p[s][v];
+  }
+  if (memo[s][v][mask] != -1) {
+    return memo[s][v][mask] == 1;
+  }
+
+  for(int to : g[v]) {
+    if ((mask & (1 << to))) {
+      continue;
+    }
+    if (dp(s, to, mask ^ 1 << to)) {
+      memo[s][v][mask] = 1;
+      return true;
+    }
+  }
+  memo[s][v][mask] = 0;
+  return false;
+}
+
+bool check(int k) {
+  for(int i = 0; i < N; ++i) {
+    g[i].clear();
+  }
+
+  for(int i = 0; i < n; ++i) {
+    for(int j = 0; j < n; ++j) {
+      bool connected = true;
+      for(int t = 0; t + 1 < m; ++t) {
+        if (abs(a[j][t] - a[i][t + 1]) < k) {
+          connected = false;
+        }
+      }
+      p[i][j] = connected;
+    }
+  }
+
+  for(int i = 0; i < n; ++i) {
+    for(int j = i + 1; j < n; ++j) {
+      bool connected = true;
+      for(int t = 0; t < m; ++t) {
+        if (abs(a[i][t] - a[j][t]) < k) {
+          connected = false;
+          break;
+        }
+      }
+      if (connected) {
+        g[i].emplace_back(j);
+        g[j].emplace_back(i);
+      }
+    }
+  }
+
+  for(int i = 0; i < n; ++i) {
+    for(int j = 0; j < n; ++j) {
+      fill(memo[i][j], memo[i][j] + (1 << n), -1);
+    }
+  }
+
+  for(int i = 0; i < n; ++i) {
+    if (dp(i, i, 1 << i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
+
+  cin >> n >> m;
+  for(int i = 0; i < n; ++i) {
+    a[i].resize(m);
+    for(int j = 0; j < m; ++j) {
+      cin >> a[i][j];
+    }
+  }
+
+  int lo = 0, hi = 1000000010;
+  while(hi - lo > 1) {
+    int mid = lo + (hi - lo) / 2;
+    if (check(mid)) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+
+  cout << lo << endl;
+  return 0;
+}

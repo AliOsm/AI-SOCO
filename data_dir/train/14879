@@ -1,0 +1,271 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <hash_set>
+#include <hash_map>
+#include <map>
+#include <functional>
+#include <cmath>
+
+#if !defined(__GNUC__)
+#include <hash_set>
+#include <hash_map>
+
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+
+typedef stdext::hash_set<size_t>    hash_set_size_t;
+#else // !defined(__GNUC__)
+
+#endif // !defined(__GNUC__)
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::set<size_t> set_size_t;
+typedef std::multiset<size_t> multiset_size_t;
+
+typedef std::vector<string8_t> vector_string8_t;
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<std::string> multiset_string8_t;
+
+
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline T IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline T IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline T IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else //defined(ONLINE_JUDGE)
+#include <library/lib_stopwatch.h>
+#endif //defined(ONLINE_JUDGE)
+
+const string8_t TeamName("BERLAND");
+
+struct Game
+{
+    string8_t name1;
+    string8_t name2;
+    int32_t balls1;
+    int32_t balls2;
+};
+
+struct Stats
+{
+    size_t gameCount;
+    uint32_t score;
+    string8_t name;
+    int32_t goalsDone;
+    int32_t goalsIn;
+
+    Stats()
+    {
+        gameCount = 0;
+        score = 0;
+        goalsDone = 0;
+        goalsIn = 0;
+    }
+
+    bool operator<(const Stats& rval) const
+    {
+        if (score > rval.score)
+            return true;
+        if (score < rval.score)
+            return false;
+
+        if (goalsDone - goalsIn > rval.goalsDone - rval.goalsIn)
+            return true;
+        if (goalsDone - goalsIn < rval.goalsDone - rval.goalsIn)
+            return false;
+
+        if (goalsDone > rval.goalsDone)
+            return true;
+        if (goalsDone < rval.goalsDone)
+            return false;
+
+        if (name < rval.name)
+            return true;
+        if (name > rval.name)
+            return false;
+
+        return false;
+    }
+};
+
+typedef std::map<string8_t, Stats> StatMapping;
+typedef std::vector<Stats> StatVector;
+
+int32_t ToNumber(const char ch)
+{
+    if (ch >= '0' && ch <= '9')
+        return (int32_t)(ch - '0');
+    return 0;
+}
+
+string8_t GetOpponentName(const StatMapping& stats)
+{
+    for (StatMapping::const_iterator pi = stats.begin(); pi != stats.end(); ++pi)
+    {
+        if (pi->second.gameCount == 2 && pi->first != TeamName)
+            return pi->first;
+    }
+    return string8_t();
+}
+
+void AddGame(const Game& game, StatMapping& stats)
+{
+    Stats& team1 = stats[game.name1];
+    Stats& team2 = stats[game.name2];
+
+    team1.gameCount++;
+    team2.gameCount++;
+
+    team1.goalsDone += game.balls1;
+    team1.goalsIn += game.balls2;
+    team2.goalsDone += game.balls2;
+    team2.goalsIn += game.balls1;
+
+    team1.name = game.name1;
+    team2.name = game.name2;
+
+    if (game.balls1 == game.balls2)
+    {
+        team1.score += 1;
+        team2.score += 1;
+    }
+    else if (game.balls1 > game.balls2)
+    {
+        team1.score += 3;
+    }
+    else
+    {
+        team2.score += 3;
+    }
+}
+
+bool FindAnswer(const StatMapping& stats, const string8_t& opponentName, int32_t& ballsToDo, int32_t& ballsToMiss)
+{
+    for (int32_t d = 1; d < 100; d++)
+    {
+        for (int32_t b = 0; b < 100; b++)
+        {
+            StatMapping mStats(stats);
+            Game game;
+            game.balls1 = b + d;
+            game.balls2 = b;
+            game.name1 = TeamName;
+            game.name2 = opponentName;
+            AddGame(game, mStats);
+
+            StatVector result;
+
+            for (StatMapping::iterator pi = mStats.begin(); pi != mStats.end(); ++pi)
+            {
+                result.push_back(pi->second);
+            }
+
+            std::sort(result.begin(), result.end());
+
+            size_t place = 0;
+            for (size_t i = 0; i < result.size(); i++)
+            {
+                if (result[i].name == TeamName)
+                {
+                    place = i;
+                    break;
+                }
+            }
+
+            if (place < 2)
+            {
+                ballsToDo = game.balls1;
+                ballsToMiss = game.balls2;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw;
+
+    // first input operation
+    //
+    const size_t n = 5;
+    Game games[n];
+    for (size_t i = 0; i < n; i++)
+    {
+        ist >> games[i].name1 >> games[i].name2;
+        string8_t score;
+        ist >> score;
+
+        if (multipleTestMode && !ist) { return false; }
+
+        games[i].balls1 = ToNumber(score[0]);
+        games[i].balls2 = ToNumber(score[2]);
+    }
+    // /////////////////////
+
+
+    // other input operation and calculations
+    //
+    StatMapping stats;
+    for (size_t i = 0; i < n; i++)
+    {
+        AddGame(games[i], stats);
+    }
+
+    const string8_t opponentName = GetOpponentName(stats);
+
+    int32_t ballsToDo = 0;
+    int32_t ballsToMiss = 0;
+    if (FindAnswer(stats, opponentName, ballsToDo, ballsToMiss))
+    {
+        ost << ballsToDo << ":" << ballsToMiss << std::endl;
+    }
+    else
+    {
+        ost << "IMPOSSIBLE" << std::endl;
+    }
+
+    // /////////////////////
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

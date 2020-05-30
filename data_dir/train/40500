@@ -1,0 +1,247 @@
+#pragma comment(linker, "/STACK:102400000,102400000")
+#include <iostream>
+#include <stdio.h>
+#include <algorithm>
+#include <string.h>
+#include <vector>
+#include <map>
+#include <queue>
+#include <set>
+#include <cmath>
+#include <fstream>
+#include <assert.h>
+#include <complex>
+using namespace std;
+#define vi vector<int>
+#define pii pair<int,int>
+#define pb push_back
+#define mp make_pair
+#define all(x) x.begin(),x.end()
+#define inf 1000000007
+#define mod 1000000007
+#define x first
+#define y second
+#define pi acos(-1.0)
+#define DBG(x) cerr<<(#x)<<"="<<x<<"\n";
+#define FOREACH(it,x) for(__typeof(x.begin()) it=x.begin();it!=x.end();it++)
+#define ull unsigned long long
+#define ll long long
+#define N 50005
+
+template <class T> inline void Min(T &a,T b){if(a>b)a=b;}
+template <class T> inline void Max(T &a,T b){if(a<b)a=b;}
+
+typedef int arr[2][2];
+arr a,b,c;
+ll K,P;
+int C[N],n;
+pair<ll,int>q[N];
+void mul(arr aa,arr &bb){
+    memset(c,0,sizeof(c));
+    for(int i=0;i<2;i++)
+        for(int j=0;j<2;j++){
+            for(int k=0;k<2;k++){
+                c[i][j]+=1LL*aa[i][k]*bb[k][j]%P;
+                if(c[i][j]>=P)c[i][j]-=P;
+            }
+        }
+    memcpy(bb,c,sizeof(bb));
+}
+void mul(arr &cc,arr aa,arr bb){
+    memset(cc,0,sizeof(cc));
+    for(int i=0;i<2;i++)
+        for(int j=0;j<2;j++){
+            for(int k=0;k<2;k++){
+                cc[i][j]+=1LL*aa[i][k]*bb[k][j]%P;
+                if(cc[i][j]>=P)cc[i][j]-=P;
+            }
+        }
+}
+void pow(ll n,arr &cc){
+    cc[0][0]=cc[1][1]=1;
+    cc[0][1]=cc[1][0]=0;
+    memcpy(a,b,sizeof(a));
+    while(n){
+        if(n&1)mul(a,cc);
+        mul(a,a);n>>=1;
+    }
+}
+arr t[N<<2];
+void build(int p,int l,int r){
+    if(l==r){
+        t[p][0][0]=C[l];t[p][0][1]=C[(l-1+n)%n];
+        t[p][1][0]=1,t[p][1][1]=0;
+        return;
+    }
+    int m=(l+r)>>1;
+    build(p<<1,l,m);
+    build(p<<1|1,m+1,r);
+    mul(t[p],t[p<<1|1],t[p<<1]);
+}
+void upd(int p,int l,int r,int x,int v,int k){
+    if(l==r){
+        t[p][0][k]=v;return;
+    }
+    int m=(l+r)>>1;
+    if(x<=m)upd(p<<1,l,m,x,v,k);
+    else upd(p<<1|1,m+1,r,x,v,k);
+    mul(t[p],t[p<<1|1],t[p<<1]);
+} 
+void query(int p,int l,int r,int x,int y,arr &v){
+    if(l==x&&r==y){
+        memcpy(v,t[p],sizeof(t[p]));
+        return;
+    }
+    int m=(l+r)>>1;
+    if(y<=m)query(p<<1,l,m,x,y,v);
+    else if(x>m)query(p<<1|1,m+1,r,x,y,v);
+    else{
+        arr v1,v2;
+        query(p<<1,l,m,x,m,v1);
+        query(p<<1|1,m+1,r,m+1,y,v2);
+        mul(v,v2,v1);
+    }
+}  
+ll f[N];
+int main()
+{
+    int T,i,j,k,m;
+    cin>>K>>P>>n;
+    for(i=0;i<n;i++)scanf("%d",&C[i]),C[i]%=P;
+    if(K==0||P==1){puts("0");return 0;}
+    scanf("%d",&m);
+    //map<ll,int>g;
+    for(i=0;i<m;i++){
+        scanf("%I64d%d",&q[i].x,&q[i].y);q[i].y%=P;
+        //g[q[i].x]=q[i].y;
+    }
+    sort(q,q+m);
+/*
+    for(i=0;i<n;i++)printf("%d ",C[i]);
+    puts("");
+    f[0]=0,f[1]=1;
+    for(i=2;i<=K;i++){
+        int x=i-1;ll ret=0;
+        if(g[x])ret+=f[i-1]*g[x];
+        else ret+=f[i-1]*C[x%n];
+        x=i-2;
+        if(g[x])ret+=f[i-2]*g[x];
+        else ret+=f[i-2]*C[x%n];
+        f[i]=ret%P;
+    }
+    DBG(f[K])
+    //*/
+    b[0][0]=b[1][1]=1;b[0][1]=b[1][0]=0;
+    if(K<=n){
+        for(i=1;i<K;i++){
+            a[0][0]=C[i],a[0][1]=C[i-1];
+            a[1][0]=1,a[1][1]=0;
+            mul(a,b);
+        }
+        printf("%d\n",b[0][0]);return 0;
+    }
+    for(i=1;i<n;i++){
+        a[0][0]=C[i],a[0][1]=C[i-1];
+        a[1][0]=1,a[1][1]=0;
+        mul(a,b);
+    }
+    arr ans;
+    memcpy(ans,b,sizeof(b));
+    a[0][0]=C[0],a[0][1]=C[n-1],a[1][0]=1,a[1][1]=0;
+    mul(b,a);
+    memcpy(b,a,sizeof(a));
+    //cerr<<b[0][0]<<" "<<b[0][1]<<" "<<b[1][0]<<" "<<b[1][1]<<"\n";
+    build(1,0,n-1);
+    
+    ll last=n,yy=-1;int vv,ok=0;
+    for(i=0;i<m;i=j){
+        if(q[i].x>=K)break;
+        j=i;
+        //cerr<<last<<" "<<q[i].x<<"\n";
+        ll tt=(q[i].x-last)/n;
+        //DBG(tt)
+        vi res;
+        bool flag=false;
+        if(yy!=-1){
+            //DBG(yy)
+            upd(1,0,n-1,0,vv,1);
+            flag=true;
+        }
+        if(tt&&flag){
+            mul(t[1],ans);
+            tt--;flag=false;
+            upd(1,0,n-1,0,C[n-1],1);
+        }
+        if(tt){
+            arr cc;
+            pow(tt,cc);
+            mul(cc,ans);
+        }
+        ll pos=q[i].x/n*n+n;
+        //cerr<<last<<" "<<pos<<"\n";  
+        while(j<m&&q[j].x<pos){
+            int x=q[j].x%n;
+            if(x<n-1){
+                upd(1,0,n-1,x,q[j].y,0);
+                upd(1,0,n-1,(x+1)%n,q[j].y,1);
+            }
+            else upd(1,0,n-1,x,q[j].y,0);
+            res.pb(x);j++;
+        }
+        if(pos>=K){
+            //DBG(pos)
+            ok=1;arr cc;
+            query(1,0,n-1,0,(K-1)%n,cc);
+            mul(cc,ans);
+            break;
+        }
+        mul(t[1],ans);
+        last=pos;
+        for(k=0;k<res.size();k++){
+            //DBG(res[k])
+            if(res[k]<n-1){
+                upd(1,0,n-1,res[k],C[res[k]],0);
+                upd(1,0,n-1,(res[k]+1)%n,C[res[k]],1);
+            }
+            else upd(1,0,n-1,res[k],C[res[k]],0);
+        }
+        if(flag){
+            upd(1,0,n-1,0,C[n-1],1);
+        }
+        if(q[j-1].x%n==n-1){yy=q[j-1].x,vv=q[j-1].y;}
+        else yy=-1;
+    }
+    //DBG(ok)
+    if(!ok){
+        bool flag=false;
+        if(yy!=-1&&yy%n==n-1){
+            upd(1,0,n-1,0,vv,1);
+            flag=true;
+        }
+        if(K-last<=n){
+            arr cc;
+            query(1,0,n-1,0,(K-1)%n,cc);
+            mul(cc,ans);
+        }
+        else{
+        mul(t[1],ans);
+        if(flag){
+            upd(1,0,n-1,0,C[n-1],1);
+        }
+        ll tt=(K-n-last)/n;
+        //DBG(tt)
+        if(tt){
+            arr cc;
+            pow(tt,cc);
+            mul(cc,ans);
+        }
+        if(K%n){
+            arr cc;
+            query(1,0,n-1,0,(K-1)%n,cc);
+            mul(cc,ans);
+        }
+        }
+    }
+    printf("%d\n",ans[0][0]);
+    return 0;
+}

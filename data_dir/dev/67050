@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define sf scanf
+#define pf printf
+#define pb push_back
+#define mp make_pair
+#define IN freopen("transposition-115.txt","r",stdin)
+#define OUT freopen("dichromatic.out","w",stdout)
+#define FOR(i,a,b) for(i=a ; i<=b ; i++)
+#define DBG pf("Hi\n")
+#define INF 2000000000
+#define i64 long long int
+#define eps (1e-8)
+#define xx first
+#define yy second
+#define SZ(v) ((int)v.size())
+#define sq(x)  ((x)*(x))
+
+using namespace __gnu_pbds;
+using namespace std ;
+
+#define maxn 300005
+#define mod 1000000007LL
+
+typedef pair<int,int> pii ;
+typedef  long long int T ;
+
+pii tr[4*maxn] ;
+int lazy[4*maxn] , a[maxn] ;
+
+pii answer(pii a, pii b)
+{
+    if( a.xx<b.xx ) return a ;
+    if(b.xx<a.xx) return b ;
+    return mp( a.xx , a.yy+b.yy ) ;
+}
+
+void build(int cn, int b,int e)
+{
+    if(b==e)
+    {
+        tr[cn] = mp(b-1,1) ;
+        return ;
+    }
+    int lc = cn*2 , rc = cn*2+1 , m =(b+e)/2 ;
+
+    build(lc,b,m) ; build(rc,m+1,e) ;
+
+    tr[cn] = answer( tr[lc] , tr[rc] ) ;
+}
+void relax(int cn, int b, int e)
+{
+    tr[cn].xx += lazy[cn] ;
+    if( b!=e )
+    {
+        int lc = cn*2 , rc = cn*2+1 , m =(b+e)/2 ;
+        lazy[lc] += lazy[cn] ;
+        lazy[rc] += lazy[cn] ;
+    }
+    lazy[cn] = 0 ;
+}
+
+void update(int cn, int b, int e, int l , int r, int val)
+{
+    if(lazy[cn]!=0) relax(cn,b,e) ;
+    if( e<l || b>r ) return ;
+    if( b>=l && e<=r )
+    {
+        lazy[cn] += val ;
+        relax(cn,b,e) ;
+        return ;
+    }
+    int lc = cn*2 , rc = cn*2+1 , m = (b+e)/2 ;
+    update(lc,b,m,l,r,val) ; update(rc,m+1,e,l,r,val) ;
+    tr[cn] = answer( tr[lc] , tr[rc] ) ;
+}
+
+pii query(int cn, int b, int e, int l ,int r)
+{
+    if(lazy[cn]!=0) relax(cn,b,e) ;
+    if( e <l || b>r ) return mp(INF,0) ;
+    if( b>=l && e<=r ) return tr[cn] ;
+    int lc = cn*2 , rc = cn*2+1 , m = (b+e)/2 ;
+
+    return answer(  query(lc,b,m,l,r) , query(rc,m+1,e,l,r) ) ;
+}
+
+int last[maxn] ;
+
+int main()
+{
+    int n ;
+    scanf("%d",&n) ;
+
+    for(int i=1 ; i<=n ; i++) scanf("%d",&a[i]) ;
+
+    build(1,1,n) ;
+
+    for(int i=0 ;  i<=n ; i++ ) last[i] = 0 ;
+
+    stack < pii > st ;
+
+    st.push(mp(INF,0)) ;
+
+    int l = 1 , ans = 0 ;
+
+    for(int i=1 ; i<=n ; i++)
+    {
+        while( a[i] >= st.top().xx )
+        {
+            pii p = st.top() ;
+            st.pop() ;
+            update(  1,1,n, st.top().yy+1,p.yy , -p.xx ) ;
+        }
+        update(1,1,n,st.top().yy+1,i,a[i]) ;
+        st.push(mp(a[i],i)) ;
+
+ /*       printf("---\n") ;
+        for(int j=1 ; j<=i ; j++)
+        {
+            pii p = query(1,1,n,j,j) ;
+            printf("%d %d\n",p.xx,p.yy) ;
+        }
+        printf("---\n") ; */
+
+        l = max(l,last[a[i]]+1 ) ;
+
+        pii p = query(1,1,n,l,i) ;
+
+        if( p.xx==i )
+        {
+    //        printf("------%d\n",i) ;
+            ans += p.yy ;
+        }
+
+        last[ a[i] ] = i ;
+    }
+
+    printf("%d\n",ans) ;
+
+    return 0 ;
+}

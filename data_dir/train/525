@@ -1,0 +1,62 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 5;
+int tc;
+int n;
+int q[N], ans[N];
+bool vis[N];
+
+int main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    cin >> tc;
+    while (tc--) {
+        cin >> n;
+        for (int i = 1; i <= n; i++) {
+            cin >> q[i];
+            ans[i] = vis[i] = 0;
+        }
+        for (int i = 1; i <= n; i++) {
+            if (q[i] > q[i - 1]) {
+                vis[q[i]] = 1;
+                ans[i] = q[i];
+            }
+        }
+        int cur =  1;
+        for (int i = 1; i <= n; i++) {
+            if (ans[i] == 0) {
+                while (vis[cur]) cur++;
+                vis[cur] = 1;
+                ans[i] = cur;
+            }
+        }
+        bool flag = false;
+        for (int i = 1; i <= n; i++) {
+            if (!vis[i]) {
+                flag = true;
+                break;
+            }
+        }
+        int check = ans[1];
+        for (int i = 1; i <= n; i++) {
+            check = max(check, ans[i]);
+            if (check != q[i]) {
+                flag = true;
+                break;
+            }
+        }
+        if (flag) {
+            cout << -1 << "\n";
+            continue;
+        }
+        for (int i = 1; i <= n; i++) {
+            cout << ans[i] << (i == n ? '\n' : ' ');
+        }
+    }
+
+    return 0;
+}

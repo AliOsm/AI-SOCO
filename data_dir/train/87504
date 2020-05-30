@@ -1,0 +1,95 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+#define FTB(i,a,b) for(LL i=a,_b=b;i<=_b;i++)
+#define FT(i,a,b) for(LL i=a,_b=b;i<_b;i++)
+#define FGB(i,a,b) for(LL i=a,_b=b;i>=_b;i--)
+#define FG(i,a,b) for(LL i=a,_b=b;i>_b;i--)
+#define endl "\n"
+#define debug cout<<"debug\n"
+#define PB push_back
+#define mp make_pair
+#define fi first
+#define se second
+#define PI 3.1415926535897
+#define lbnd(f,s,gt) lower_bound(f,s,gt)
+#define ubnd(f,s,gt) upper_bound(f,s,gt)
+#define y1 aghksdmlsjdfjavljvlckdfmg
+#define lamtron(n) fixed<<setprecision(n)
+#define ALL(s) s.begin(),s.end()
+#define ONLINE_JUDGE gshysrthrrthbd
+
+template<class T> int getbit(T s, int i) { return (s >> i) & 1; }
+template<class T> T onbit(T s, int i) { return s | (T(1) << i); }
+template<class T> T offbit(T s, int i) { return s & (~(T(1) << i)); }
+template<class T> int cntbit(T s) { return __builtin_popcount(s);}
+template<class T> inline T gcd(T a, T b){ T r; while (b != 0) { r = a % b; a = b; b = r; } return a;}
+
+typedef double DB;
+typedef long long LL;
+typedef unsigned long long UL;
+typedef long double LD;
+typedef pair<LL,LL> II;
+typedef vector<LL> VI;
+typedef vector<II> VII;
+typedef vector<bool> VB;
+
+LL q,sld,val[4000005];
+LL trie[4000005][2];
+
+void query1(LL x){
+    LL now=0;
+    FGB(i,29,0){
+        LL bit=(x>>i)&1;
+        if(trie[now][bit]==0){
+            trie[now][bit]=++sld;
+        }
+        now=trie[now][bit];
+        val[now]++;
+    }
+}
+
+void query2(LL x){
+    LL now=0;
+    FGB(i,29,0){
+        LL bit=(x>>i)&1;
+        now=trie[now][bit];
+        val[now]--;
+    }
+}
+
+void query3(LL x){
+    LL now=0,res=0;
+    FGB(i,29,0){
+        LL bit=(x>>i)&1;
+        if(trie[now][1-bit]&&val[trie[now][1-bit]]){
+            res+=(1<<i);
+            now=trie[now][1-bit];
+        }
+        else now=trie[now][bit];
+    }
+    cout<<res<<endl;
+}
+
+int main(){
+    ios::sync_with_stdio(false);cin.tie(0);
+    #ifndef ONLINE_JUDGE
+    	freopen("input.txt","r",stdin);
+    	freopen("output.txt","w",stdout);
+    #endif
+    cin>>q;
+    query1(0);
+    while(q--){
+        char c;LL x;
+        cin>>c>>x;
+        if(c=='+') query1(x);
+        else if(c=='-') query2(x);
+        else query3(x);
+
+    }
+
+
+
+
+	return 0;
+}

@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int mod = 998244353;
+
+int add(int a, int b) {
+  return a + b - mod * (a + b >= mod);
+}
+
+int mul(int a, int b) {
+  return int(1ll * a * b % mod);
+}
+
+int power(int a, int x) {
+  if (x == 0) {
+    return 1;
+  }
+  return mul(power(mul(a, a), x >> 1), (x & 1 ? a : 1));
+}
+
+int divide(int a, int b) {
+  return mul(a, power(b, mod - 2));
+}
+
+int sub(int a, int b) {
+  return a - b + mod * (a < b);
+}
+
+int base = 1, max_base = -1, root = -1;
+vector<int> roots = {0, 1};
+
+void init() {
+  int tmp = mod - 1;
+  max_base = 0;
+  while ((tmp & 1) == 0) {
+    tmp >>= 1;
+    ++max_base;
+  }
+  root = 2;
+  while (true) {
+    if (power(root, 1 << max_base) == 1) {
+      if (power(root, 1 << (max_base - 1)) != 1) {
+        break;
+      }
+    }
+    ++root;
+  }
+}
+
+void ensure_base(int nbase) {
+  if (max_base == -1) {
+    init();
+  }
+  if (nbase <= base) {
+    return;
+  }
+  roots.resize(1 << nbase);
+  while (base < nbase) {
+    int z = power(root, 1 << (max_base - 1 - base));
+    for (int i = 1 << (base - 1); i < (1 << base); ++i) {
+      roots[i << 1] = roots[i];
+      roots[i << 1 | 1] = mul(roots[i], z);
+    }
+    ++base;
+  }
+}
+
+void fft(vector<int>& a) {
+  int n = a.size();
+  for (int i = 1, k = 0; i < n; ++i) {
+    for (int bit = n >> 1; (k ^= bit) < bit; bit >>= 1) {}
+    if (i < k) {
+      swap(a[i], a[k]);
+    }
+  }
+  for (int k = 1; k < n; k <<= 1) {
+    for (int i = 0; i < n; i += (k << 1)) {
+      for (int j = 0; j < k; ++j) {
+        int x = a[i + j], y = mul(a[i + j + k], roots[j + k]);
+        a[i + j] = add(x, y);
+        a[i + j + k] = sub(x, y);
+      }
+    }
+  }
+}
+
+vector<int> mul(vector<int> a, vector<int> b) {
+  int need = a.size() + b.size() - 1;
+  int nbase = 0;
+  while ((1 << nbase) < need) {
+    ++nbase;
+  }
+  ensure_base(nbase);
+  int sz = 1 << nbase;
+  bool eq = a == b;
+  a.resize(sz), b.resize(sz);
+  fft(a);
+  if (eq) {
+    b = a;
+  } else {
+    fft(b);
+  }
+  int inv = divide(1, sz);
+  for (int i = 0; i < sz; ++i) {
+    a[i] = mul(mul(a[i], b[i]), inv);
+  }
+  reverse(a.begin() + 1, a.end());
+  fft(a);
+  a.resize(need);
+  while (!a.empty() && a.back() == 0) {
+    a.pop_back();
+  }
+  return a;
+}
+
+int dig[10];
+
+vector<int> power(int x) {
+  if (x == 0) {
+    return {1};
+  }
+  auto sq = power(x >> 1);
+  sq = mul(sq, sq);
+  if ((x & 1) == 0) {
+    return sq;
+  }
+  vector<int> kek(sq.size() + 10);
+  for (int i = 0; i < sq.size(); ++i) {
+    for (int j = 0; j < 10; ++j) {
+      kek[i + j] = add(kek[i + j], mul(dig[j], sq[i]));
+    }
+  }
+  return kek;
+}
+
+int main() {
+  ios::sync_with_stdio(0);
+  cin.tie(0), cout.tie(0);
+
+  int n, k;
+  cin >> n >> k;
+  while (k--) {
+    int x;
+    cin >> x;
+    dig[x] = 1;
+  }
+  auto dp = power(n / 2);
+  int ans = 0;
+  for (int i = 0; i < dp.size(); ++i) {
+    ans = add(ans, mul(dp[i], dp[i]));
+  }
+  cout << ans;
+
+  return 0;
+}

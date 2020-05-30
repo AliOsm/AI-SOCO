@@ -1,0 +1,91 @@
+#include <iostream>
+#include <stdio.h>
+#include <algorithm>
+#include <queue>
+#include <map>
+#include <string.h>
+
+const int N=400010;
+const int inf=0x3f3f3f3f;
+
+using namespace std;
+
+int n,m,c;
+
+typedef long long ll;
+
+double dp[N],x[N],p[N];
+
+struct seg
+{
+	int l,r;
+	double mx,lm,rm,sm;
+	seg() {}
+	seg(int l,int r,double mx,double lm,double rm,double sm) :l(l),r(r),mx(mx),lm(lm),rm(rm),sm(sm) {}
+}tree[N*4];
+
+void update(int idx)
+{
+	tree[idx].sm=tree[idx<<1].sm+tree[idx<<1|1].sm;
+	tree[idx].lm=max(tree[idx<<1].sm+tree[idx<<1|1].lm,tree[idx<<1].lm);
+	tree[idx].rm=max(tree[idx<<1|1].sm+tree[idx<<1].rm,tree[idx<<1|1].rm);
+	tree[idx].mx=max(tree[idx<<1].mx,tree[idx<<1|1].mx);
+	tree[idx].mx=max(tree[idx].mx,tree[idx<<1].rm+tree[idx<<1|1].lm);
+	return ;
+}
+
+void b_tree(int l,int r,int idx)
+{
+	tree[idx]=seg(l,r,dp[l],dp[l],dp[l],dp[l]);
+	if(l==r) return ;
+	int mid=(l+r)>>1;
+	b_tree(l,mid,idx<<1);
+	b_tree(mid+1,r,idx<<1|1);
+	update(idx);
+}
+
+struct data
+{
+	double mx,lm,rm,sm;
+	data() {}
+	data(double mx,double lm,double rm,double sm) : mx(mx),lm(lm),rm(rm),sm(sm) {}
+};
+
+data query(int l,int r,int idx)
+{
+	if(tree[idx].l==l && tree[idx].r==r)
+		return data(tree[idx].mx,tree[idx].lm,tree[idx].rm,tree[idx].sm);
+	int mid=(tree[idx].l+tree[idx].r)>>1;
+	if(r<=mid) return query(l,r,idx<<1);
+	if(l>mid) return query(l,r,idx<<1|1);
+	data a=query(l,mid,idx<<1);
+	data b=query(mid+1,r,idx<<1|1);
+	data ret;
+	ret.sm=a.sm+b.sm;
+	ret.lm=max(a.sm+b.lm,a.lm);
+	ret.rm=max(b.sm+a.rm,b.rm);
+	ret.mx=max(max(a.mx,b.mx),a.rm+b.lm);
+	return ret;
+}
+
+int main()
+{
+	cin>>n>>m>>c;
+	for(int i=0;i<n;i++)
+		cin>>x[i];
+	for(int i=1;i<n;i++)
+		cin>>p[i];
+	for(int i=1;i<n;i++)
+		dp[i]=((x[i]-x[i-1])*0.5-c*p[i]*0.01);
+	double ret=0;
+	b_tree(1,n-1,1);
+	for(int i=0;i<m;i++)
+	{
+		int a,b;
+		cin>>a>>b;
+		ret+=max(0.0,query(a,b-1,1).mx);
+	}
+	printf("%.11lf\n",ret);
+	return 0;
+}
+

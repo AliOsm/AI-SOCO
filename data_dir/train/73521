@@ -1,0 +1,210 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#ifdef SG
+	#include <debug.h>
+#else
+	#define show(...)
+	#define debug(...)
+	#define deepen(...)
+	#define timer(...)
+#endif
+
+#define ARG4(_1,_2,_3,_4,...) _4
+
+#define forn3(i,l,r) for (int i = int(l); i < int(r); ++i)
+#define forn2(i,n) forn3 (i, 0, n)
+#define forn(...) ARG4(__VA_ARGS__, forn3, forn2) (__VA_ARGS__)
+
+#define ford3(i,l,r) for (int i = int(r) - 1; i >= int(l); --i)
+#define ford2(i,n) ford3 (i, 0, n)
+#define ford(...) ARG4(__VA_ARGS__, ford3, ford2) (__VA_ARGS__)
+
+#define ve vector
+#define pa pair
+#define tu tuple
+#define mp make_pair
+#define mt make_tuple
+#define pb push_back
+#define fs first
+#define sc second
+#define all(a) (a).begin(), (a).end()
+#define sz(a) ((int)(a).size())
+
+typedef long double ld;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef unsigned char uc;
+typedef pa<int, int> pii;
+typedef pa<int, ll> pil;
+typedef pa<ll, int> pli;
+typedef pa<ll, ll> pll;
+typedef ve<int> vi;
+
+const ld pi = 3.1415926535897932384626433832795l;
+
+template<typename T> inline auto sqr (T x) -> decltype(x * x) {return x * x;}
+template<typename T1, typename T2> inline bool umx (T1& a, T2 b) {if (a < b) {a = b; return 1;} return 0;}
+template<typename T1, typename T2> inline bool umn (T1& a, T2 b) {if (b < a) {a = b; return 1;} return 0;}
+
+const int N = 400100;
+
+struct Input {
+	int n, m;
+	int col[N];
+	int qtp[N];
+	int qcol[N];
+	int qv[N];
+	vi a[N];
+	
+	bool read () {
+		if (scanf("%d%d", &n, &m) != 2)
+			return 0;
+		forn(i, n) {
+			scanf("%d", &col[i]);
+			col[i]--;
+		}
+		forn(i, n - 1) {
+			int u, v;
+			scanf("%d%d", &u, &v);
+			u--, v--;
+			a[u].pb(v);
+			a[v].pb(u);
+		}
+		forn(i, m) {
+			scanf("%d", &qtp[i]);
+			qtp[i]--;
+			if (qtp[i] == 0) {
+				scanf("%d%d", &qv[i], &qcol[i]);
+				qv[i]--, qcol[i]--;
+			} else {
+				scanf("%d", &qv[i]);
+				qv[i]--;
+			}
+		}
+		return 1;
+	}
+
+	void init (const Input &input) {
+		*this = input;
+	}
+};
+
+struct Data: Input {
+	vi ans;
+	
+	void write () {
+		forn(i, sz(ans)) {
+			printf("%d\n", ans[i]);
+		}	
+	}
+	
+	virtual void solve () {}
+	
+	virtual void clear () {
+		*this = Data();
+	}
+};
+
+struct seg_tree {
+	ve<pa<bool, ll> > t;
+	int sz;
+		
+	seg_tree(){}
+	
+	seg_tree(int n) {
+		sz = 1;
+		while (sz < n) sz <<= 1;
+		t.assign(2 * sz, mp(false, 0ll));
+	}
+	
+	void push(int v) {
+		if (v >= sz || !t[v].fs) {
+			return;	
+		}
+		t[2 * v] = t[2 * v + 1] = t[v];
+		t[v].fs = false;
+	}
+	
+	void upd(int i, int x, int y, int l, int r, int c) {
+		push(i);
+		if (x > r || y < l)
+			return;
+		if (x >= l && y <= r) {
+			t[i] = mp(true, 1ll << c);
+			push(i);
+			return;
+		}
+		upd(2 * i, x, (x + y) >> 1, l, r, c);
+		upd(2 * i + 1, ((x + y) >> 1) + 1, y, l, r, c);
+		if (i < sz)
+			t[i].sc = t[2 * i].sc | t[2 * i + 1].sc;
+	}
+	
+	ll fnd(int i, int x, int y, int l, int r) {
+		push(i);
+		if (x > r || y < l)
+			return 0ll;
+		if (x >= l && y <= r) {
+			return t[i].sc;
+		}
+		return fnd(2 * i, x, (x + y) >> 1, l, r) | fnd(2 * i + 1, ((x + y) >> 1) + 1, y, l, r);
+	}
+};
+
+struct Solution: Data {
+	vi ord;	
+	int l[N];
+	int r[N];
+	seg_tree t;
+	
+	void dfs(int v, int pr) {
+		l[v] = sz(ord);
+		ord.pb(v);
+		forn(i, sz(a[v])) {
+			int to = a[v][i];
+			if (to != pr)
+				dfs(to, v);
+		}
+		t.upd(1, 0, t.sz - 1, l[v], l[v], col[v]);
+		r[v] = sz(ord) - 1;
+	}
+	
+	void solve () {
+		t = seg_tree(n);
+		dfs(0, -1);
+		forn(i, m) {
+			if (qtp[i] == 0) {
+				t.upd(1, 0, t.sz - 1, l[qv[i]], r[qv[i]], qcol[i]);
+			} else {
+				ans.pb(__builtin_popcountll(t.fnd(1, 0, t.sz - 1, l[qv[i]], r[qv[i]])));
+			}
+		}	
+	}
+	
+	void clear () {
+		*this = Solution();
+	}
+};
+
+Solution sol;
+
+int main () {
+	cout.setf(ios::showpoint | ios::fixed);
+	cout.precision(20);
+#ifdef SG
+	freopen((problemname + ".in").c_str(), "r", stdin);
+//	freopen((problemname + ".out").c_str(), "w", stdout);
+	while (sol.read()) {
+		sol.solve();
+		sol.write();
+		sol.clear();
+	}
+#else
+    sol.read();
+    sol.solve();
+	sol.write();
+#endif
+	return 0;
+}

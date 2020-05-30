@@ -1,0 +1,180 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define fora(i, n) for (int i = 0; i < n; ++i)
+#define forb(i, n) for (int i = 1; i<= n; ++i)
+#define forc(i, n) for (const auto &i : n)
+#define eb emplace_back
+#define pb push_back
+#define mp make_pair
+#define sz(x) (int)(x).size()
+#define all(x) begin(x), end(x)
+
+using ll = long long;
+using ld = long double;
+
+struct edge {
+	int from, to;
+	ll f, c;
+};
+
+vector<edge> edges;
+vector<vector<int>> adjlist;
+int s, t;
+vector<int> pt, dist;
+ll flow, lim;
+queue<int> q;
+
+int addEdge(int from, int to, ll c) {
+	int res = sz(edges);
+	adjlist[from].push_back((int)edges.size());
+	edges.push_back(edge{from, to, 0, c});
+	adjlist[to].push_back((int)edges.size());
+	edges.push_back(edge{to, from, 0, 0});
+	return res;
+}
+
+bool bfs() {
+	dist.assign(dist.size(), -1);
+	dist[t] = (int)adjlist.size() + 1;
+	q.push(t);
+	while (!q.empty() && dist[s] < 0) {
+		int cur = q.front(); q.pop();
+		for (unsigned int i = 0; i < adjlist[cur].size(); i++) {
+			int id = adjlist[cur][i], to = edges[id].to;
+			if (dist[to] < 0 && edges[id ^ 1].c - edges[id ^ 1].f >= lim) {
+				dist[to] = dist[cur] - 1;
+				q.push(to);
+			}
+		}
+	}
+	while (!q.empty()) q.pop();
+	return dist[s] >= 0;
+}
+
+bool dfs(int v, ll flow) {
+	if (flow == 0) return false;
+	if (v == t) return true;
+	for (; pt[v] < (int)adjlist[v].size(); pt[v]++) {
+		int id = adjlist[v][pt[v]], to = edges[id].to;
+		if (dist[to] == dist[v] + 1 && edges[id].c - edges[id].f >= flow) {
+			bool pushed = dfs(to, flow);
+			if (pushed) {
+				edges[id].f += flow;
+				edges[id ^ 1].f -= flow;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+ll maxFlow(int source, int target) {
+	s = source;
+	t = target;
+	flow = 0;
+	pt = vector<int>(adjlist.size());
+	dist = vector<int>(adjlist.size());
+	for (lim = (1ll << 62); lim >= 1;) {
+		if (!bfs()) {lim /= 2; continue;}
+		for (int i = 0; i < (int)adjlist.size(); i++) {
+			pt[i] = 0;
+		}
+		bool pushed;
+		while ((pushed = dfs(s, lim))) flow += lim;
+	}
+	return flow;
+}
+
+bool hasFlow(int id) {
+	return edges[id].f != 0;
+}
+
+struct redge {
+	int from, to;
+	int label;
+	int mF, mT, kF, kT;
+};
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	int t;
+	cin >> t;
+
+	fora(_, t) {
+		//clear edges, adjlist
+		edges.clear();
+
+		int n, m, k;
+		cin >> n >> m >> k;
+		adjlist = vector<vector<int>>(2 * n + m + 2);
+
+		vector<vector<int>> adj(n);
+		vector<redge> redges;
+
+		fora(i, m) {
+			int a, b;
+			cin >> a >> b;
+			--a; --b;
+			adj[a].pb(i);
+			adj[b].pb(i);
+			addEdge(0, i + 1, 1);
+			int mF = addEdge(i + 1, m + a + 1, 1);
+			int mT = addEdge(i + 1, m + b + 1, 1);
+			int kF = addEdge(i + 1, m + n + a + 1, 1);
+			int kT = addEdge(i + 1, m + n + b + 1, 1);
+			redges.pb(redge { a, b, i, mF, mT, kF, kT });
+		}
+
+		bool broken = false;
+		int sum = 0;
+		fora(i, n) {
+			if (sz(adj[i]) > 2 * k) { broken = true; break; }
+			int need = max(0, sz(adj[i]) - k);
+			addEdge(m + i + 1, m + 2 * n + 1, max(0, need));
+			addEdge(m + n + i + 1, m + 2 * n + 1, max(0, need));
+			sum += 2 * need;
+		}
+
+		if (broken) {
+			fora(i, m) cout << "0 ";
+			cout << '\n';
+			continue;
+		}
+
+		int flow = (int)maxFlow(0, m + 2 * n + 1);
+		//cout << flow << endl;
+
+		if (flow != sum) {
+			fora(i, m) cout << "0 ";
+			cout << '\n';
+			continue;
+		}
+
+		vector<vector<int>> keep(n), change(n);
+
+		fora(i, m) {
+			if (hasFlow(redges[i].mF))
+				keep[redges[i].from].pb(i);
+			if (hasFlow(redges[i].mT))
+				keep[redges[i].to].pb(i);
+			if (hasFlow(redges[i].kF))
+				change[redges[i].from].pb(i);
+			if (hasFlow(redges[i].kT))
+				change[redges[i].to].pb(i);
+		}
+
+		fora(i, n) {
+			int u = sz(change[i]);
+			fora(j, u) {
+				redges[change[i][j]].label = redges[keep[i][j]].label;
+			}
+		}
+
+		fora(i, m) cout << redges[i].label + 1 << " ";
+
+		cout << "\n";
+	}
+}

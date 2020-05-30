@@ -1,0 +1,30 @@
+#include <bits/stdc++.h>
+#define LL long long int
+using namespace std;
+int const MAXN = 1e5+9;
+int const MOD = 1e9 + 7;
+string s;
+int n;
+LL dp [MAXN];
+LL solve (int i){
+    if (i >= n - 1) return 1;
+    LL & ret = dp[i];
+    if (ret != -1) return ret;
+   if (s[i]== s[i+1] && (s[i]=='u' or s[i] == 'n')){
+       return ret = (solve (i+1) % MOD + solve(i+2) %MOD) %MOD;
+   }
+    return ret = solve(i+1)%MOD;
+}
+int main (){
+    ios_base::sync_with_stdio(0);
+    cin . tie (0), cout . tie (0);
+    cin >> s;
+    n = s.size();
+    memset(dp,-1,sizeof dp);
+    for (int i = 0 ;i < s.size() ;i++)
+        if (s[i] == 'm' or s[i] == 'w'){
+        cout << 0;
+        return 0;
+    }
+    cout<< solve (0);
+}

@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long LL;
+typedef vector<int> vi;
+typedef pair<int, int> pii;
+typedef vector<double> vd;
+#define pb push_back
+#define loop(i,n) for(int i = 0; i < n; i++)
+
+const int N = 2 * 1e5 + 5;
+const LL inf = 1e18 * 2ll;
+const int MX = 5 * 1e6 + 5;
+
+const int mod = 1e9 + 7;
+int n;
+vector<int> G[N];
+LL chOdd[N], chEven[N], treeSz[N], cnta[N], V[N];
+
+void dfs1(int u, int pa = -1) {
+    for (int v : G[u]) {
+        if (v == pa) continue;
+        dfs1(v, u);
+        chOdd[u] += chEven[v];
+        chEven[u] += chOdd[v];
+    }
+    chEven[u]++;
+    treeSz[u] = chEven[u] + chOdd[u];
+}
+
+LL res = 0;
+
+void add (LL& a, LL b) {
+    a += b;
+    if (a < 0) {
+        res += 1ll * mod * ((abs(a) / mod) + 1);
+    }
+    if (a >= mod) a %= mod;
+}
+
+LL dfs2(int u, int pa = -1, int cntPaOdd = 0, int cntPaEven = 0) {
+    int allOdd = 0, allEven = 0;
+    for (int v : G[u]) {
+        if (v == pa) continue;
+        /* Add paths coming from children of v-th subtree, passing through u */
+        add(res, 1ll * (n - treeSz[v]) * (chOdd[v] - chEven[v]) * V[u]);
+        allEven += chEven[v];
+        allOdd  += chOdd[v];
+    }
+    add(res, 1ll * (n - treeSz[u]) * V[u]);
+    for (int v : G[u]) {
+        if (v == pa) continue;
+        dfs2(v, u, cntPaEven + 1 + allOdd - chOdd[v], cntPaOdd + allEven - chEven[v]);
+    }
+    /* Add paths going from parents to this node */
+    add(res, 1ll * (treeSz[u]) * (cntPaEven + 1 - cntPaOdd) * V[u]);
+    return cnta[u];
+}
+
+int main() {
+#ifdef DEBUG
+    freopen("in.txt", "r", stdin);
+#endif
+    scanf("%d", &n);
+    loop(i, n) scanf("%lld", &V[i + 1]);
+    loop(i, n - 1) {
+        int u, v;
+        scanf("%d%d", &u, &v);
+        G[u].push_back(v);
+        G[v].push_back(u);
+    }
+    dfs1(1);
+    dfs2(1);
+    cout << res << endl;
+    return 0;
+}

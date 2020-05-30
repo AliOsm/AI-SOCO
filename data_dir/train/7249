@@ -1,0 +1,23 @@
+// In the name the Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+int main(void)
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);cout.tie(0);
+
+    int t;
+    cin >> t;
+    while(t--){
+
+        ll a , b;
+        cin >> a >> b;
+        cout << (ll)(a-1LL)*9LL+b << endl;
+    }
+
+    return 0;
+}

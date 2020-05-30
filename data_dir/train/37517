@@ -1,0 +1,174 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <iostream>
+using namespace std;
+#define MOD 1000000007
+
+char s[660000];
+
+int lc[660000];
+int sa[660000],lcp[660000];
+int tmp[660000],pos[660000];
+int dif;
+int N;
+
+bool scmp(int a,int b)
+{
+	if(pos[a] != pos[b])
+		return pos[a]<pos[b];
+	a += dif, b += dif;
+	if(a<N && b<N)
+		return pos[a]<pos[b];
+	return a>b;
+}
+
+void suffix()
+{
+	for(int i=0;i<N;i++)
+		sa[i] = i, pos[i] = s[i];
+	for(dif=1;tmp[N-1]<N-1;dif<<=1)
+	{
+		sort(sa,sa+N,scmp);
+		for(int i=1;i<N;i++)
+			tmp[i] = tmp[i-1]+scmp(sa[i-1],sa[i]);
+		for(int i=0;i<N;i++)
+			pos[sa[i]] = tmp[i];
+	}
+}
+
+void prefix()
+{
+	int k = 0;
+	for(int i=0;i<N;i++)
+	{
+		if(pos[i] != N-1)
+		{
+			for(int j=sa[pos[i]+1];s[i+k]==s[j+k];)
+				k++;
+			lcp[pos[i]] = k;
+			if(k>0)
+				k--;
+		}
+	}
+}
+
+int cid[660000],sz[660000];
+long long cnt[660000][3];
+
+void init(int n)
+{
+	for(int i=0;i<n;i++)
+	{
+		cid[i] = i, sz[i] = 1;
+		cnt[i][0] = cnt[i][1] = cnt[i][2] = 0;
+		if(lc[sa[i]] != -1)
+			cnt[i][lc[sa[i]]]++;
+	}
+}
+
+int find(int i)
+{
+	if(cid[i] == i) return i;
+	cid[i] = find(cid[i]);
+	return cid[i];
+}
+
+void join(int i,int j)
+{
+	int ri = find(i);
+	int rj = find(j);
+	if(ri == rj) return;
+	if(sz[ri] <= sz[rj])
+	{
+		cid[ri] = rj;
+		sz[rj] += sz[ri];
+		cnt[rj][0] += cnt[ri][0];
+		cnt[rj][1] += cnt[ri][1];
+		cnt[rj][2] += cnt[ri][2];
+	}
+	else
+	{
+		cid[rj] = ri;
+		sz[ri] += sz[rj];
+		cnt[ri][0] += cnt[rj][0];
+		cnt[ri][1] += cnt[rj][1];
+		cnt[ri][2] += cnt[rj][2];
+	}
+}
+
+int pid[660000];
+
+bool cmp(int a,int b)
+{
+	return lcp[a]>lcp[b];
+}
+
+long long ans[660000];
+int l1,l2,l3;
+
+int main()
+{
+	ios::sync_with_stdio(0);
+	cin >> s;
+	l1 = strlen(s);
+	s[l1+1] = '\0';
+	s[l1] = 'A';
+	cin >> s+strlen(s);
+	l2 = strlen(s);
+	s[l2+1] = '\0';
+	s[l2] = 'B';
+	cin >> s+strlen(s);
+	l3 = strlen(s);
+	N = strlen(s);
+	suffix();
+	prefix();
+	int c = 0;
+	for(int i=0;i<N;i++)
+	{
+		if(s[i]<'a')
+			lc[i] = -1, c++;
+		else
+			lc[i] = c;
+	}
+	init(N);
+	for(int i=0;i<N-1;i++)
+		pid[i] = i;
+	sort(pid,pid+N-1,cmp);
+	long long sm = 0;
+	l3 -= l2+1;
+	l2 -= l1+1;
+	int ki = 0;
+	long long cur;
+	for(int i=0;i<N-1;i++)
+	{
+		c = find(pid[i]);
+		cur = -(cnt[c][0]*cnt[c][1]*cnt[c][2]);
+		c = find(pid[i]+1);
+		cur = cur-(cnt[c][0]*cnt[c][1]*cnt[c][2]);
+		join(pid[i],pid[i]+1);
+		c = find(pid[i]);
+		cur = cur+(cnt[c][0]*cnt[c][1]*cnt[c][2]);
+		cur = ((cur%MOD)+MOD)%MOD;
+		ans[lcp[pid[i]]] = (ans[lcp[pid[i]]]+cur)%MOD;
+	}
+	for(int i=min(min(l1,l2),l3)-1;i>=1;i--)
+		ans[i] = (ans[i]+ans[i+1])%MOD;
+	for(int i=1;i<=min(min(l1,l2),l3);i++)
+		cout << ans[i] << ' ';
+/*	for(int i=0;i<N-1;i++)
+	{
+		c = find(pid[i]);
+		sm = (sm + MOD - (cnt[c][0]*cnt[c][1]*cnt[c][2])%MOD)%MOD;
+		c = find(pid[i]+1);
+		sm = (sm + MOD - (cnt[c][0]*cnt[c][1]*cnt[c][2])%MOD)%MOD;
+		join(pid[i],pid[i]+1);
+		c = find(pid[i]);
+		sm = (sm + (cnt[c][0]*cnt[c][1]*cnt[c][2]))%MOD;
+		ans[lcp[pid[i]]] = max(ans[lcp[pid[i]]],sm);
+	}
+	for(int i=1;i<=min(min(l1,l2),l3);i++)
+		cout << ans[i] << ' ';
+		*/
+	cout << '\n';
+}

@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+struct Ans {
+public:
+    bool Possible;
+    int K1;
+    int K2;
+    vector<int> Servers1;
+    vector<int> Servers2;
+    Ans()
+        : Possible(false)
+    {}
+    bool operator<(const Ans& other) {
+        return !other.Possible || (Possible && K1 + K2 < other.K1 + other.K2);
+    }
+};
+
+set<int> find_optimal_servers(vector<pair<double, int>> servers_with_id, int x1) {
+    int optimal_servers = 1;
+    while (
+        optimal_servers <= servers_with_id.size() &&
+        servers_with_id.end() - std::lower_bound(
+            servers_with_id.begin(),
+            servers_with_id.end(),
+            make_pair(x1 * 1.0 / optimal_servers, -1)
+        ) < optimal_servers) {
+        /*cout << servers_with_id.end() - std::lower_bound(
+            servers_with_id.begin(),
+            servers_with_id.end(),
+            make_pair(x1 * 1.0 / optimal_servers, -1)
+        ) << " " << optimal_servers << endl;*/
+        optimal_servers++;
+    }
+    /*cout << "Final " << x1 << " " << servers_with_id.end() - std::lower_bound(
+            servers_with_id.begin(),
+            servers_with_id.end(),
+            make_pair(x1 * 1.0 / optimal_servers, -1)
+        ) << " " << optimal_servers << endl;*/
+    if (optimal_servers <= servers_with_id.size()) {
+        auto pos = std::lower_bound(
+            servers_with_id.begin(),
+            servers_with_id.end(),
+            make_pair(x1 * 1.0 / optimal_servers, -1)
+        );
+        set<int> res;
+        for (;res.size() < optimal_servers; ++pos) {
+            res.insert(pos->second);
+        }
+        return res;
+    } else {
+        return set<int>();
+    }
+}
+
+Ans findbest(vector<int> servers, long long x1, long long x2) {
+    vector<pair<double, int>> servers_with_id(servers.size());
+    for (int i = 0; i < servers.size(); ++i) {
+        servers_with_id[i] = make_pair(servers[i], i + 1);
+    }
+    sort(servers_with_id.begin(), servers_with_id.end());
+    auto optimal_servers1 = find_optimal_servers(servers_with_id, x1);
+    vector<pair<double, int>> servers_with_id_fixed;
+    for (const auto& elem: servers_with_id) {
+        if (optimal_servers1.find(elem.second) == optimal_servers1.end()){
+            servers_with_id_fixed.push_back(elem);
+            // cout << "Add " << elem.first << " " << elem.second << endl;
+        }
+    }
+    auto optimal_servers2 = find_optimal_servers(servers_with_id_fixed, x2);
+    Ans result;
+    if (optimal_servers1.size() && optimal_servers2.size()){
+        result.Possible = true;
+    } else {
+        result.Possible = false;
+    }
+    result.K1 = optimal_servers1.size();
+    result.K2 = optimal_servers2.size();
+    result.Servers1 = std::vector<int>(optimal_servers1.begin(), optimal_servers1.end());
+    result.Servers2 = std::vector<int>(optimal_servers2.begin(), optimal_servers2.end());
+    return result;
+}
+
+int main()
+{
+    long long n, x1, x2;
+    cin >> n >> x1 >> x2;
+    vector<int> c(n);
+    for (auto &elem : c) {
+        cin >> elem;
+    }
+    auto res1 = findbest(c, x1, x2);
+    auto res2 = findbest(c, x2, x1);
+    if (!res1.Possible && !res2.Possible) {
+        cout << "No" << endl;
+    } else {
+        cout << "Yes" << endl;
+        if (res1 < res2) {
+            cout << res1.K1 << " " << res1.K2 << endl;
+            for (auto elem: res1.Servers1) {
+                cout << elem << " ";
+            }
+            cout << endl;
+            for (auto elem: res1.Servers2) {
+                cout << elem  << " ";
+            }
+            cout << endl;
+        } else {
+            cout << res2.K2 << " " << res2.K1 << endl;
+            for (auto elem: res2.Servers2) {
+                cout << elem << " ";
+            }
+            cout << endl;
+            for (auto elem: res2.Servers1) {
+                cout << elem << " ";
+            }
+            cout << endl;
+        }
+    }
+    return 0;
+}

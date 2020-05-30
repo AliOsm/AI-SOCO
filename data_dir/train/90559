@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pi;
+constexpr int inf = 0x3f3f3f3f;
+constexpr double EPS = 1e-15;
+constexpr double PI = atan(1) * 4;
+
+template <typename T> inline bool chmax(T& x, T y) {return x < y ? x = y, 1 : 0;}
+template <typename T> inline bool chmin(T& x, T y) {return x > y ? x = y, 1 : 0;}
+inline int LSB(int i) {return (i & -i);}
+
+constexpr int maxn = 1e5+5;
+
+struct ACauto{
+    ACauto* c[26];
+    ACauto* fail, *Next;
+    int id;
+
+    ACauto(){
+        memset(c, 0, sizeof(c));
+        fail = 0;
+        Next = 0;
+        id = 0;
+    }
+
+    ACauto* link(int i){
+        if (c[i]) return c[i];
+        else if (fail) return c[i] = fail->link(i);
+        else return this;
+    }
+
+    //Returns next reachable leaf node following failures, or root if there isn't any
+    ACauto* go(){
+        if (!fail) return this;
+        if (!Next) Next = fail->go();
+        return (id ? this : Next);
+    }
+} *root = new ACauto();
+
+void add(ACauto* node, string s, int idx){
+    int i;
+    for (char k : s){
+        i = k - 'a';
+        if (!node->c[i]) node->c[i] = new ACauto();
+        node = node->c[i];
+    }
+
+    node->id = idx;
+}
+
+void build(ACauto* node){
+    node->fail = 0;
+
+    queue <ACauto*> q;
+    q.push(node);
+    while (!q.empty()){
+        ACauto* t = q.front();
+        q.pop();
+
+        //Children's failures based on parent's failure
+        for (int i = 0; i < 26; i++){
+            if (t->c[i]){
+                ACauto* cur = t->fail;
+                while (cur && !cur->c[i]) cur = cur->fail;
+
+                //If current fail point is root
+                if (!cur) t->c[i]->fail = node;
+                else t->c[i]->fail = cur->c[i];
+
+                q.push(t->c[i]);
+            }
+        }
+    }
+}
+
+vector <int> pos[maxn];
+void solve(ACauto* node, string s){
+    int i;
+    for (int j = 0; j < s.length(); j++){
+        i = s[j] - 'a';
+        node = node->link(i);
+        ACauto* p = node;
+        while (p != root){
+            pos[p->id].push_back(j);
+            p = p->fail->go();
+        }
+    }
+}
+
+string s, t[maxn];
+int n, k[maxn];
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(NULL);
+
+    cin >> s >> n;
+    for (int i = 1; i <= n; i++){
+        cin >> k[i] >> t[i];
+        add(root, t[i], i);
+    }
+
+    build(root);
+    solve(root, s);
+    for (int i = 1; i <= n; i++){
+        if (pos[i].size() < k[i]){
+            printf("-1\n");
+            continue;
+        }
+
+        int best = inf;
+        for (int j = k[i] - 1; j < pos[i].size(); j++){
+            chmin(best, pos[i][j] - (pos[i][j - k[i] + 1] - (int)t[i].length()));
+        }
+
+        printf("%d\n", best);
+    }
+    return 0;
+}

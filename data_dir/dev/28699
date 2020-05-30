@@ -1,0 +1,305 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<long double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+
+const int maxn=(int)1e5+5;
+const ll mod=(ll)(1e9+7);
+ll fact[maxn],inv_fact[maxn],pow2[maxn];
+ld pi=2.0*acos(0.0);
+ll n,k;
+
+int mul(ll a,ll b)
+{
+	ll ret=(a*b);
+	
+	if(ret>=mod)
+	{
+		ret%=mod;
+	}
+	
+	return (int)ret;
+}
+
+int add(ll a,ll b)
+{
+	ll ret=a+b;
+	
+	if(ret>=mod)
+	{
+		ret%=mod;
+	}
+	
+	return (int)ret;
+}
+
+int poww(int a,int b)
+{
+	int x=1,y=a;
+	
+	while(b>0)
+	{
+		if(b%2==1)
+		{
+			x=mul(x,y);
+		}
+		
+		y=mul(y,y);b/=2;
+	}
+	
+	return x;
+}
+
+void build()
+{
+	fact[0]=1;
+	
+	for(int i=1;i<maxn;i++)
+	{
+		fact[i]=mul(fact[i-1],i);
+	}
+	
+	inv_fact[maxn-1]=poww(fact[maxn-1],mod-2);
+	
+	for(int i=maxn-2;i>=0;i--)
+	{
+		inv_fact[i]=mul(inv_fact[i+1],i+1);
+	}
+}
+
+int C(int n,int r)
+{
+	if(n<r || min(n,r)<0)
+	{
+		return 0;
+	}
+	
+	int val1=fact[n],val2=mul(inv_fact[r],inv_fact[n-r]);
+	
+	return mul(val1,val2);
+}
+
+void fft(vector<base> &a,bool invert)
+{
+	int n=a.size();
+	
+	for(int i=1,j=0;i<n;i++)
+	{
+		int bit=n>>1;
+		
+		for(;j>=bit;bit>>=1)
+		{
+			j-=bit;
+		}
+		
+		j+=bit;
+		
+		if(i<j) 
+		{
+			swap(a[i],a[j]);
+		}
+	}
+ 
+	for(int len=2;len<=n;len<<=1)
+	{
+		ld ang=(2.0*pi/len)*(invert?-1:1);
+			
+		base mul_factor(cos(ang),sin(ang));
+		
+		for(int i=0;i<n;i+=len)
+		{
+			base now(1,0);
+			
+			for(int j=0;j<len/2;j++)
+			{
+				base u=a[i+j],v=a[i+j+len/2]*now;
+				
+				a[i+j]=u+v;;a[i+j+len/2]=u-v;
+				
+				now*=mul_factor;
+			}
+		}
+	}
+	
+	if(invert)
+	{
+		for(int i=0;i<n;i++)
+		{
+			a[i]/=base(n,0);
+		}
+	}
+}
+
+vector<int> mult(vector<int> &a,vector<int> &b)
+{
+	int size=1;
+	
+	while(size<(int)min(a.size(),b.size()))
+	{
+		size*=2;
+	}
+	
+	size*=2;
+	
+	vector<base> fa(size),fb(size);
+	
+	int sq=(int)sqrt(mod)+10;
+	
+	for(int i=0;i<(int)a.size();i++)
+	{
+		fa[i]=(base(a[i]/sq,a[i]%sq));
+	}
+	
+	for(int i=0;i<(int)b.size();i++)
+	{
+		fb[i]=(base(b[i]/sq,b[i]%sq));
+	}
+	
+	fft(fa,0);fft(fb,0);vector<base> x(size),y(size),z(size);
+	
+	for(int i=0;i<size;i++)
+	{
+		base q1=fa[i]+conj(fa[(size-i)%size]),q2=fa[i]-conj(fa[(size-i)%size]);
+		
+		base a_0=(q1/base(2,0)),a_1=q2/base(0,2);
+		
+		q1=fb[i]+conj(fb[(size-i)%size]);q2=fb[i]-conj(fb[(size-i)%size]);
+		
+		base b_0=(q1/base(2,0)),b_1=q2/base(0,2);
+		
+		x[i]=a_0*b_0;
+		
+		y[i]=a_1*b_0+a_0*b_1;
+		
+		z[i]=a_1*b_1;
+	}
+	
+	fft(x,1);fft(y,1);fft(z,1);
+	
+	vector<int> ret;
+	
+	for(int i=0;i<size;i++)
+	{
+		ll a0b0=(ll)(x[i].real()+0.5)%mod,a1b0=(ll)(y[i].real()+0.5)%mod,a1b1=(ll)(z[i].real()+0.5)%mod;
+		
+		int square=mul(sq,sq);
+		
+		ret.pb(add(mul(square,a0b0),add(mul(sq,a1b0),a1b1)));
+	}
+	
+	while(ret.back()==0)
+	{
+		ret.pop_back();
+	}
+	
+	return ret;
+}
+
+vector<int> solve(vector<int> &dp,ll curr)
+{
+	vector<int> left(k+1),right(k+1);
+	
+	for(int i=0;i<=k;i++)
+	{
+		left[i]=mul(dp[i],mul(poww(2,i*curr),inv_fact[i]));
+		
+		right[i]=mul(dp[i],inv_fact[i]);
+	}
+	
+	vector<int> ret=mult(left,right);
+	
+	while(ret.size()>k+1)
+	{
+		ret.pop_back();
+	}
+	
+	for(int i=0;i<=k;i++)
+	{
+		ret[i]=mul(ret[i],fact[i]);
+	}
+	
+	return ret;
+}
+
+vector<int> zz(vector<int> &ret,vector<int> &dp,ll curr)
+{
+	vector<int> left(k+1),right(k+1);
+	
+	for(int i=0;i<=k;i++)
+	{
+		left[i]=mul(ret[i],mul(poww(2,i*curr),inv_fact[i]));
+		
+		right[i]=mul(dp[i],inv_fact[i]);
+	}
+	
+	vector<int> qq=mult(left,right);
+	
+	while(qq.size()>k+1)
+	{
+		qq.pop_back();
+	}
+	
+	for(int i=0;i<=k;i++)
+	{
+		qq[i]=mul(qq[i],fact[i]);
+	}
+	
+	return qq;
+}
+
+vector<int> go()
+{
+	vector<int> dp(k+1);int curr=1;
+	
+	for(int i=1;i<=k;i++)
+	{
+		dp[i]=1;
+	}
+	
+	vector<int> ret(k+1);ret[0]=1;
+	
+	while(n>0)
+	{
+		if(n%2==1)
+		{
+			ret=zz(ret,dp,curr);
+		}
+		
+		dp=solve(dp,curr);curr*=2;n/=2;
+	}
+	
+	return ret;
+}
+
+int main()
+{	
+	build();
+	
+	cin>>n>>k;
+	
+	if(n>k)
+	{
+		cout<<0<<endl;
+		
+		return 0;
+	}
+	
+	vector<int> ret=go();int res=0;
+	
+	for(int i=1;i<=k;i++)
+	{	
+		//cout<<i<<" "<<ret[i]<<endl;
+		
+		res=add(res,mul(C(k,i),ret[i]));
+	}
+	
+	cout<<res<<endl;return 0;
+}
+
+
+

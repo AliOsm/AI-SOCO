@@ -1,0 +1,211 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+#include <queue>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int INF = (int) 1.01e9;
+const ld EPS = 1e-9;
+
+void precalc() {
+}
+
+const int maxn = (int) 1e4 + 10;
+int n;
+int masks[maxn];
+
+bool read() {
+  if (scanf("%d", &n) < 1) {
+    return 0;
+  }
+  char s[5];
+  for (int i = 0; i < n; ++i) {
+    scanf("%s", s);
+    int mask = 0;
+    for (int j = 0; s[j]; ++j) {
+      int x = s[j] - 'a';
+      mask |= (1 << x);
+    }
+    masks[i] = mask;
+  }
+  return 1;
+}
+
+const int maxc = 24;
+
+int cnts[maxn];
+
+const int rmaxn = maxc * (maxc - 1) * (maxc - 2) / 6 + maxc * (maxc - 1) / 2 + maxc + 100;
+const int maxnk = rmaxn / 32 + 5;
+
+unsigned int mask[maxnk];
+int nk;
+
+unsigned int tmp[maxc][maxnk];
+unsigned int prec[maxc][maxnk];
+
+int sums1[maxnk][1 << 16];
+int sums2[maxnk][1 << 16];
+
+int getVal(int k, unsigned int part) {
+  //eprintf("getVal %d  %u =  %d\n", k, part, sums1[k][part & ((1 << 16) - 1)] + sums2[k][part >> 16]);
+  return sums1[k][part & ((1 << 16) - 1)] + sums2[k][part >> 16];
+}
+
+int res;
+
+int mcnts[maxn + 1];
+
+int cmask;
+
+void gen(int c, int sum) {
+  if (c == maxc) {
+    /*eprintf("sum = %d with ", sum);
+    for (int i = 0; i < maxc; ++i) {
+      if ((cmask >> i) & 1) {
+        eprintf(" %c", i + 'a');
+      }
+    }
+    eprintf("\n");
+    mcnts[sum] += 1;*/
+    res ^= (sum * sum);
+    return;
+  }
+  gen(c + 1, sum);
+
+  memcpy(tmp[c], mask, sizeof(mask[0]) * nk);
+  int nsum = sum;
+  for (int i = 0; i < nk; ++i) {
+    unsigned int npart = (mask[i] | prec[c][i]);
+    if (npart != mask[i]) {
+      nsum += getVal(i, npart) - getVal(i, mask[i]);
+      mask[i] = npart;
+    }
+  }
+  //if (nsum <= 1) {
+  //  eprintf("add %c\n", c + 'a');
+  //  cmask ^= (1 << c);
+  gen(c + 1, nsum);
+  //  cmask ^= (1 << c);
+  //  eprintf("back %c\n", c + 'a');
+  //}
+  memcpy(mask, tmp[c], sizeof(mask[0]) * nk);
+}
+void solve() {
+  sort(masks, masks + n);
+  int n0 = n;
+  n = 0;
+  for (int i = 0; i < n0;) {
+    int i0 = i;
+    while (i < n0 && masks[i] == masks[i0]) {
+      ++i;
+    }
+    cnts[n] = i - i0;
+    masks[n] = masks[i0];
+    ++n;
+  }
+
+  nk = (n + 31) / 32;
+  assert(nk <= maxnk);
+  for (int i = n; i < 32 * nk; ++i) {
+    cnts[i] = 0;
+  }
+
+  for (int c = 0; c < maxc; ++c) {
+    for (int i = 0; i < nk; ++i) {
+      prec[c][i] = 0;
+    }
+  }
+
+  for (int i = 0; i < n; ++i) {
+    for (int c = 0; c < maxc; ++c) {
+      if ((masks[i] >> c) & 1) {
+        prec[c][i / 32] |= (1u << (i & 31));
+        //eprintf("add to %c  %d\n", c + 'a', i);
+      }
+    }
+  }
+
+  for (int i = 0; i < nk; ++i) {
+    sums1[i][0] = sums2[i][0] = 0;
+    for (int mask = 1, g = -1; mask < (1 << 16); ++mask) {
+      if (!(mask & (mask - 1))) {
+        ++g;
+      }
+      sums1[i][mask] = sums1[i][mask ^ (1 << g)] + cnts[i * 32 + g];
+      sums2[i][mask] = sums2[i][mask ^ (1 << g)] + cnts[i * 32 + 16 + g];
+    }
+  }
+
+  for (int i = 0; i < nk; ++i) {
+    mask[i] = 0;
+  }
+  res = 0;
+  memset(mcnts, 0, sizeof(mcnts));
+  gen(0, 0);
+  for (int i = 0; i <= n; ++i) {
+    if (mcnts[i]) {
+      //eprintf("cnts[%d] = %d\n", i, mcnts[i]);
+    }
+  }
+  printf("%d\n", res);
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  precalc();
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+    //break;
+#ifdef DEBUG
+    eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

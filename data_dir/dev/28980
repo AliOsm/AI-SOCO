@@ -1,0 +1,195 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define MAX 250002
+
+int n;
+
+vector<pair<int,int> > v[MAX];
+
+bool cmp(pair<int,int> a,pair<int,int> b){
+	return v[a.first].size()<v[b.first].size();
+}
+
+long long int dp[MAX][2];
+vector<long long int> addi[MAX];
+
+int lim;
+int us[MAX];
+int u_s;
+struct st{
+	multiset<long long int> tp;
+	multiset<long long int> dw;
+	int lim;
+	long long int sm;
+	st(){
+		sm=0;
+	}
+	inline void normalize(){
+		while(dw.size()&&tp.size()<lim){
+			tp.insert(*dw.begin());
+			sm+=(*dw.begin());
+			dw.erase(dw.begin());
+		}
+		while(tp.size()>lim){
+			dw.insert(*tp.rbegin());
+			sm-=(*tp.rbegin());
+			tp.erase(prev(tp.end()));
+		}
+	}
+	inline void add(long long int x){
+		if(dw.size()!=0&&(*dw.begin())<=x){
+			dw.insert(x);
+		}
+		else{
+			tp.insert(x);
+			sm+=x;
+		}
+	}
+	inline void er(long long int x){
+		if(tp.find(x)!=tp.end()){
+			tp.erase(tp.find(x));
+			sm-=x;
+		}
+		else{
+			dw.erase(dw.find(x));
+		}
+	}
+	inline long long int gt(){
+		normalize();
+		if(lim!=tp.size()){
+			return LLONG_MAX/2LL;
+		}
+		if(tp.size()&&dw.size()){
+			if((*tp.rbegin())>(*dw.begin())){
+				cout<<(*tp.rbegin())<<" "<<(*dw.begin())<<endl;
+				exit(1);
+			}
+		}
+		return sm;
+	}
+};
+st pq[MAX];
+
+bool ini[MAX];
+int rig[MAX];
+
+inline void dfs(int b,int pr=-1){
+	if(ini[b]==false){
+		for(int i=0;i<v[b].size();i++){
+			pq[b].add(v[b][i].second);
+		}
+		rig[b]=v[b].size();
+		ini[b]=true;
+	}
+	us[b]=u_s;
+	long long int sm=0;
+	addi[b].clear();
+	int need1=v[b].size()-lim-1;
+	int need0=v[b].size()-lim;
+	int skip=0;
+	for(int i=v[b].size()-1;i>=0;i--){
+		if(v[v[b][i].first].size()<=lim){
+			if(i>rig[b]){
+				puts("fefefe");
+			}
+			break;
+		}
+		if(rig[b]>i){
+			rig[b]=i;
+			pq[b].er(v[b][i].second);
+		}
+		if(v[b][i].first==pr){
+			
+		}
+		else{
+			int go=v[b][i].first;
+			if(v[go].size()>lim){
+				dfs(go,b);
+				if(dp[go][0]>dp[go][1]+v[b][i].second){
+					sm+=dp[go][1]+v[b][i].second;
+					need1--;
+					need0--;
+					skip++;
+					continue;
+				}
+				sm+=dp[go][0];
+				addi[b].push_back(dp[go][1]+v[b][i].second-dp[go][0]);
+			}
+			else{
+				puts("er");
+			}
+		}
+	}
+	for(long long int z:addi[b]){
+		pq[b].add(z);
+	}
+	long long int im=0;
+	need0=max(need0,0);
+	need1=max(need1,0);
+	dp[b][1]=LLONG_MAX;
+	dp[b][0]=LLONG_MAX;
+	pq[b].lim=need1;
+	if(need1==0){
+		dp[b][1]=sm;
+	}
+	else{
+		dp[b][1]=sm+pq[b].gt();
+	}
+	pq[b].lim=need0;
+	if(need0==0){
+		dp[b][0]=sm;
+	}
+	else{
+		dp[b][0]=sm+pq[b].gt();
+	}
+	if(v[b].size()-(int)(pr!=-1)-skip!=pq[b].tp.size()+pq[b].dw.size()){
+		puts("eeeeeeee");
+	}
+	for(long long int z:addi[b]){
+		pq[b].er(z);
+	}
+}
+
+vector<int> lis;
+bool cm(int a,int b){
+	return v[a].size()>v[b].size();
+}
+vector<long long int> ret;
+int main(){
+	cin>>n;
+	for(int i=1;i<n;i++){
+		int a,b,c;
+		scanf("%d%d%d",&a,&b,&c);
+		a--;
+		b--;
+		v[a].push_back(make_pair(b,c));
+		v[b].push_back(make_pair(a,c));
+	}
+	for(int i=0;i<n;i++){
+		sort(v[i].begin(),v[i].end(),cmp);
+	}
+	for(int i=0;i<n;i++){
+		lis.push_back(i);
+	}
+	sort(lis.begin(),lis.end(),cm);
+	for(int i=n-1;i>=0;i--){
+		u_s++;
+		lim=i;
+		long long int outt=0;  //ans
+		for(int node:lis){
+			if(v[node].size()<=i)break;
+			if(us[node]==u_s)continue;
+			dfs(node);
+			outt+=dp[node][0];
+		}
+		ret.push_back(outt);
+	}
+	reverse(ret.begin(),ret.end());
+	for(int i=0;i<ret.size();i++){
+		if(i)printf(" ");
+		printf("%lld",ret[i]);
+	}
+	puts("");
+	return 0;
+}

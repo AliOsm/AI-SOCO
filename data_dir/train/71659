@@ -1,0 +1,161 @@
+#include <bits/stdc++.h>
+using namespace std;
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+const long long mod = 1000000007;
+
+
+const int mxN = 200010;
+pair<int,long long> tree[mxN<<2];
+long long C[mxN];
+pair<long long,int> CS[mxN];
+int N;
+
+void upd(int ind,long long val,int n = 1,int l = 0,int r = N) {
+	tree[n].first++;
+	tree[n].second += val;
+	if(l == r)
+		return;
+	int md = (l+r)>>1;
+	if(ind <= md)
+		upd(ind,val,n<<1,l,md);
+	else
+		upd(ind,val,n<<1|1,md+1,r);
+}
+
+pair<int,long long> get(int k,int n = 1,int l = 0,int r = N) {
+	if(k <= 0) {
+		return {0,0};
+	}
+	if(l == r || tree[n].first <= k) {
+		return tree[n];
+	}
+	int md = (l+r)>>1;
+	auto res = get(k,n<<1,l,md);
+	if(res.first < k) {
+		auto other = get(k-res.first,n<<1|1,md+1,r);
+		res.first += other.first;
+		res.second += other.second;
+	}
+	return res;
+}
+
+bool cmp(int a,int b) {
+	return C[a] < C[b];
+}
+
+void ad(int i) {
+	auto it = lower_bound(CS,CS+N,make_pair(C[i],i)) - CS;
+	upd(it,C[i]);
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	int M,K,a,b;
+	cin>>N>>M>>K;
+	for(int i = 1;i <= N;i++)
+		cin>>C[i],CS[i].first = C[i],CS[i].second = i;
+	sort(CS,CS+N);
+	cin>>a;
+	vector<int> ai(a);
+	for(int i = 0;i < a;i++) {
+		cin>>ai[i];
+	}
+	cin>>b;
+	vector<int> bi(b);
+	for(int i = 0;i < b;i++) {
+		cin>>bi[i];
+	}
+
+	{
+		if(min(a,b) < K || M < K) {
+			cout<<"-1\n";
+			return 0;
+		}
+	}
+	
+	{
+		sort(ai.begin(),ai.end());
+		sort(bi.begin(),bi.end());
+	}
+
+	vector<int> dbl,fs,sc;
+	long long dbls = 0,fss = 0,scs = 0;
+	for(int i = 0;i < a;i++) {
+		if(binary_search(bi.begin(),bi.end(),ai[i])) {
+			dbl.push_back(ai[i]);
+		} else {
+			fs.push_back(ai[i]);
+			fss += C[ai[i]];
+		}
+	}
+	for(int i = 0;i < b;i++) {
+		if(!binary_search(ai.begin(),ai.end(),bi[i]))
+			sc.push_back(bi[i]),scs += C[bi[i]];
+	}
+
+	for(int i = 1;i <= N;i++) {
+		if(binary_search(ai.begin(),ai.end(),i))
+			continue;
+		if(binary_search(bi.begin(),bi.end(),i))
+			continue;
+		ad(i);
+	}
+
+	{
+		sort(dbl.begin(),dbl.end(),cmp);
+		sort(fs.begin(),fs.end(),cmp);
+		sort(sc.begin(),sc.end(),cmp);
+		while((int)fs.size() > K) {
+			ad(fs.back());
+			fss -= C[fs.back()];
+			fs.pop_back();
+		}
+		while((int)sc.size() > K) {
+			ad(sc.back());
+			scs -= C[sc.back()];
+			sc.pop_back();
+		}
+	}
+
+	long long res = LLONG_MAX;
+	for(int i = 0;i <= (int)dbl.size();i++) {
+		auto other = get(M - i - sc.size() - fs.size());
+		if(other.first + i + (int)sc.size() + (int)fs.size() == M &&
+				i + (int)fs.size() >= K &&
+				i + (int)sc.size() >= K) {
+			res = min(res,other.second + scs + fss + dbls);
+		}
+		if(i < (int)dbl.size()) {
+			dbls += C[dbl[i]];
+			if(!fs.empty() && i + 1 + (int)fs.size() > K) {
+				ad(fs.back());
+				fss -= C[fs.back()];
+				fs.pop_back();
+			}
+			if(!sc.empty() && i + 1 + (int)sc.size() > K) {
+				ad(sc.back());
+				scs -= C[sc.back()];
+				sc.pop_back();
+			}
+		}
+	}
+	if(res == LLONG_MAX)
+		cout<<"-1\n";
+	else
+		cout<<res<<'\n';
+	return 0;
+}

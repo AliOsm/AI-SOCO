@@ -1,0 +1,249 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("no-stack-protector")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,popcnt,abm,mmx,tune=native")
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stdio.h>
+#include <cstdio>
+#include <math.h>
+#include <cmath>
+#include <string>
+#include <cstring>
+#include <queue>
+#include <deque>
+#include <random>
+#include <iomanip>
+#include <bitset>
+ 
+ 
+using namespace std;
+ 
+template<typename T> void uin(T &a, T b) {
+    if (b < a) {
+        a = b;
+    }
+}
+ 
+template<typename T> void uax(T &a, T b) {
+    if (b > a) {
+        a = b;
+    }
+}
+#define int long long
+#define left left228
+#define right right228
+#define prev prev228
+#define mp make_pair
+#define all(v) v.begin(), v.end()
+#define forn(i, n) for (int i = 0; i < (int)n; ++i)
+#define firn(i, n) for (int i = 1; i < (int)n; ++i)
+#define x first
+#define y second
+
+const int N = 228228;
+const int INF = 1e9 + 228;
+
+int k, n;
+vector<int> g[N];
+int dist[N];
+
+int far(int a) {
+    for (int i = 1; i <= n; ++i) {
+        dist[i] = INF;
+    }
+    dist[a] = 0;
+    vector<int> q; q.push_back(a);
+    for (int i = 0; i < (int)q.size(); ++i) {
+        int v = q[i];
+        for (int to : g[v]) {
+            if (dist[v] + 1 < dist[to]) {
+                dist[to] = dist[v] + 1;
+                q.push_back(to);
+            }
+        }
+    }
+    int mx = 0;
+    for (int i = 1; i <= n; ++i) {
+        if (dist[i] > dist[mx]) {
+            mx = i;
+        }
+    }
+    return mx;
+}
+
+vector<int> diA;
+vector<int> curv;
+
+void dfs(int v, int t, int par = -1) {
+    curv.push_back(v);
+    if (v == t) {
+        diA = curv;
+    } else {
+        for (int to : g[v]) {
+            if (to != par) {
+                dfs(to, t, v);
+            }
+        }
+    }
+    curv.pop_back();
+}
+
+vector<int> find_diametr() {
+    diA.clear();
+    int a = far(1);
+    int b = far(a);
+    dfs(a, b);
+    return diA;
+}
+
+int nxt(int a) {
+    ++a;
+    if (a > k) a = 1;
+    return a;
+}
+
+int pv(int a) {
+    --a;
+    if (!a) a = k;
+    return a;
+}
+
+int color[N], deep[N];
+bool blocked[N];
+
+
+void jfs(int v, int c, int delta, int par = -1) {
+    color[v] = c;
+    for (int to : g[v]) {
+        if (to == par) continue;
+        if (!blocked[to]) {
+            int nc = c;
+            if (delta == 1) nc = nxt(c);
+            else nc = pv(c);
+
+            jfs(to, nc, delta, v);
+        }
+    }
+}
+
+map< pair<int, int>, int> value;
+
+
+void DFS(int v, int par = -1) {
+    int sz = 0;
+    vector<int> sons;
+    for (int to : g[v]) {
+        if (to != par) {
+            DFS(to, v);
+            uax(deep[v], 1 + deep[to]);
+            ++sz;
+            sons.push_back(to);
+        }
+    }
+    vector<int> pref(sz + 1), suff(sz + 2);
+    for (int i = 1; i <= sz; ++i) {
+        pref[i] = max(pref[i - 1], deep[sons[i - 1]]);
+    }
+    for (int i = sz; i; --i) {
+        suff[i] = max(suff[i + 1], deep[sons[i - 1]]);
+    }
+    for (int i = 1; i <= sz; ++i) {
+        value[{v, sons[i - 1]}] = value[{sons[i - 1], v}] = max(pref[i - 1], suff[i + 1]) + (sz > 1 ? 1 : 0);
+    }
+}
+
+int up[N];
+
+void JFS(int v, int par = -1) 
+{
+    vector<int> sons;
+    for (int to : g[v]) {
+        if (to != par) {
+            sons.push_back(to);
+        }
+    }
+    sort(sons.begin(), sons.end(), [&] (int i, int j) {
+        return deep[i] > deep[j];
+    });
+    if (par == -1) {
+        if (sons.size() > 2) {
+            int a = deep[sons[0]], b = deep[sons[1]], c = deep[sons[2]];
+            if (a + b >= k - 1 && b + c >= k - 1 && a + c >= k - 1) {
+                cout << "No\n";
+                exit(0);
+            }
+        }
+    } else {
+        reverse(sons.begin(), sons.end());
+        uax(up[v], up[par] + 1);
+
+        uax(up[v], 1 + value[{par, v}]);
+        vector<int> kek;
+        int it = 3;
+        while(!sons.empty() && it--) {
+            kek.push_back(deep[sons.back()] + 1);
+            sons.pop_back();
+        }
+        kek.push_back(up[v]);
+        sort(kek.rbegin(), kek.rend());
+        if (kek.size() > 2) {
+            int a = kek[0], b = kek[1], c = kek[2];
+            if (a + b >= k - 1 && b + c >= k - 1 && a + c >= k - 1) {
+                cout << "No\n";
+                exit(0);
+            }
+        }
+    }
+    for (int to : g[v]) {
+        if (to != par) {
+            JFS(to, v);
+        }
+    }
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cin >> n >> k;
+    for (int i = 0; i < n - 1; ++i) {
+        int u, v;
+        cin >> u >> v;
+        g[u].push_back(v); g[v].push_back(u);
+    }
+    if (k > 2) {
+        DFS(1);
+        JFS(1);
+    }
+    vector<int> dia = find_diametr();
+    for (int i = 0; i < (int)dia.size(); ++i) {
+        color[dia[i]] = i % k + 1;
+        blocked[dia[i]] = 1;
+    }
+    for (int i = 0; i < (int)dia.size() / 2; ++i) {
+        for (int to : g[dia[i]]) {
+            if (!blocked[to]) {
+                jfs(to, pv(color[dia[i]]), -1);
+            }
+        }
+    }
+    for (int i = (int)dia.size() / 2; i < (int)dia.size(); ++i) {
+        for (int to : g[dia[i]]) {
+            if (!blocked[to]) {
+                jfs(to, nxt(color[dia[i]]), 1);
+            }
+        }
+    }
+    cout << "Yes\n";
+    for (int i = 1; i <= n; ++i) {
+        cout << color[i] << ' ';
+    }
+    cout << '\n';
+    return 0;
+}

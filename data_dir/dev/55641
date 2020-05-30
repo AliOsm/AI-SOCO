@@ -1,0 +1,132 @@
+//Be Name Khoda
+//no comment...
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+template <typename T> using ordered_set =  tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+template <typename T> using ordered_multiset =  tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+typedef long long ll;
+typedef long double ld;
+const int MOD = (int)1e9 + 7;
+const int MAXN = (int)1e5 + 7;
+const int infint = (int)1e9;
+const ll inf = (ll)1e18;
+ll root, visited[MAXN], visited2[MAXN], h[MAXN], par[MAXN][30], ans[MAXN];
+vector<pair<ll, ll> > G[MAXN];
+void dfs1(ll u, ll par)
+{
+	for (auto v : G[u])
+		if(v.first != par)
+		{
+			visited[v.first] = visited[u] + v.second;
+			dfs1(v.first, u);
+		}
+}
+void dfs2(ll u, ll par)
+{
+	for (auto v : G[u])
+		if(v.first != par)
+		{
+			visited2[v.first] = visited2[u] + v.second;
+			dfs2(v.first, u);
+		}
+}
+void dfs_par(ll v, ll p)
+{
+	for (auto u : G[v])
+		if(u.first != p)
+		{
+			h[u.first] = h[v] + 1;
+			par[u.first][0] = v;
+			dfs_par(u.first, v);
+		}
+}
+void dfs_part(ll u, ll par)
+{
+	for (auto v : G[u])
+		if(v.first != par)
+		{
+			dfs_part(v.first, u);
+			ans[u] += ans[v.first];
+		}
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	ll n;
+	cin >> n;
+	for (int i = 0; i < n - 1; i++)
+	{
+		ll u, v, w;
+		cin >> u >> v >> w;
+		G[u].push_back({v, w});
+		G[v].push_back({u, w});
+	}
+	//find diameter
+	visited[1] = 0;
+	dfs1(1, -1);
+	ll mx = 0, mx2 = 0;
+	for (int i = 1; i <= n; i++)
+		if(visited[i] > mx)
+			mx = visited[i], mx2 = i;
+	
+	visited2[mx2] = 0;
+	dfs2(mx2, -1);
+	mx = 0;
+	ll mx1 = 0;
+	for (int i = 1; i <= n; i++)
+		if(visited2[i] > mx)
+			mx = visited2[i], mx1 = i;
+	mx = -1;
+	memset(visited, 0, sizeof visited);
+	dfs1(mx1, -1);
+	
+	for (int i = 1; i <= n; i++)
+		if(max(visited[i], visited2[i]) < mx || mx == -1)
+			root = i, mx = max(visited[i], visited2[i]);
+	for (int i = 1; i <= n; i++)
+		visited[i] = max(visited[i], visited2[i]);
+	//preprocess
+	h[root] = 0;
+	for (int i = 0; (1 << i) <= n; i++)
+		for (int j = 1; j <= n; j++)
+			par[j][i] = -1;
+	dfs_par(root, -1);
+	for (int i = 1; (1 << i) <= n; i++)
+		for (int j = 1; j <= n; j++)
+			if(par[j][i - 1] != -1)
+				par[j][i] = par[par[j][i - 1]][i - 1];
+	ll q;
+	cin >> q;
+	for (int i = 0; i < q; i++)
+	{
+		ll l;
+		cin >> l;
+		memset(ans, 0, sizeof ans);
+		for (int j = 1; j <= n; j++)
+		{
+			ll lg = 0;
+			for (int k = 1; k <= h[j]; k *= 2)
+				lg++;
+			lg--;
+			ll now = l;
+			ll cur = j;
+			for (int k = lg; k >= 0; k--)
+			{
+				if(par[cur][k] != -1 && visited[cur] - visited[par[cur][k]] <= now)
+					now -= visited[cur] - visited[par[cur][k]], cur = par[cur][k];
+			}
+			ans[j]++;
+			if(par[cur][0] != -1)
+				ans[par[cur][0]]--;
+		}
+		dfs_part(root, -1);
+		ll cnt = 0;
+		for (int j = 1; j <= n; j++)
+			cnt = max(cnt, ans[j]);
+		cout << cnt << "\n";
+	}
+}

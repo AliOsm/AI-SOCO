@@ -1,0 +1,126 @@
+#include <bits/stdc++.h>
+
+#define all(x) x.begin(),x.end()
+#define mp make_pair
+#define pb push_back
+#define sz size()
+#define f first
+#define s second
+#define LL long long
+
+using namespace std;
+
+const int N = 1e5 + 7;
+const int mod = 1e9 + 7;
+
+int n, q, t[26][4 * N], sum[26][4 * N];
+string s;             
+
+void build(int x, int v, int l, int r) {
+  if(l == r) {
+    sum[x][v] = t[x][v] = ((s[l - 1] - 'a') == x);
+    return;
+  }
+  int mid = (l + r) >> 1;
+  build(x, v + v, l, mid);
+  build(x, v + v + 1, mid + 1, r);
+  t[x][v] = -1;
+  sum[x][v] = sum[x][v + v] + sum[x][v + v + 1];
+}
+
+void push(int x, int v, int Len) {
+  if(t[x][v] == -1) return;
+  t[x][v + v] = t[x][v];
+  t[x][v + v + 1] = t[x][v];
+  sum[x][v + v] = t[x][v] * ((Len + 1) / 2);
+  sum[x][v + v + 1] = t[x][v] * (Len / 2);
+  sum[x][v] = 0;
+  t[x][v] = -1;
+}
+
+void update(int x, int v, int l, int r, int L, int R, int val) {
+  if(r < L || R < l) return;
+  if(L <= l && r <= R) {
+    t[x][v] = val;
+    sum[x][v] = val * (r - l + 1);
+    return;
+  }
+  push(x, v, r - l + 1);
+  int mid = (l + r) >> 1;
+  update(x, v + v, l, mid, L, R, val);
+  update(x, v + v + 1, mid + 1, r, L, R, val);
+  sum[x][v] = sum[x][v + v] + sum[x][v + v + 1];
+}
+
+int get(int x, int v, int l, int r, int L, int R) {
+  if(r < L || R < l) return 0;
+  if(L <= l && r <= R) return sum[x][v];
+  push(x, v, r - l + 1);
+  int mid = (l + r) >> 1;
+  int res1 = get(x, v + v, l, mid, L, R);
+  int res2 = get(x, v + v + 1, mid + 1, r, L, R);
+  return res1 + res2;
+}
+
+int getpos(int x, int v, int l, int r, int pos) { 
+  if(l == r) return t[x][v];
+  push(x, v, r - l + 1);
+  int mid = (l + r) >> 1;
+  if(pos <= mid)
+    return getpos(x, v + v, l, mid, pos);
+  else
+    return getpos(x, v + v + 1, mid + 1, r, pos);
+}
+
+void walk(int x, int v, int l, int r) {
+  if(l == r) {
+    cout << t[x][v] << " ";
+    return;
+  }
+  push(x, v, r - l + 1);
+  int mid = (l + r) >> 1;
+  walk(x, v + v, l, mid);
+  walk(x, v + v + 1, mid + 1, r);
+}
+
+int main() { 
+  ios_base::sync_with_stdio(0), cin.tie(0);
+  #ifndef ONLINE_JUDGE
+    freopen("in", "r", stdin);
+    freopen("out", "w", stdout);
+  #endif
+    cin >> n >> q >> s;
+    for(int i = 0; i < 26; ++i) {
+      build(i, 1, 1, n);
+    }
+    int l, r, k, cnt, cur;
+    while(q--) {
+      cin >> l >> r >> k;
+      cnt = cur = 0;
+      if(k == 1) {
+        for(int i = 0; i < 26; ++i) {
+          cur = get(i, 1, 1, n, l, r);
+          update(i, 1, 1, n, l, r, 0);
+          update(i, 1, 1, n, l + cnt, l + cnt + cur - 1, 1);
+          cnt += cur;
+        } 
+      }
+      else {
+        for(int i = 25; i >= 0; --i) {
+          cur = get(i, 1, 1, n, l, r);
+          update(i, 1, 1, n, l, r, 0);
+          update(i, 1, 1, n, l + cnt, l + cnt + cur - 1, 1);          
+          cnt += cur;
+        }
+      }
+    }
+    for(int i = 1; i <= n; ++i) {
+      for(int j = 0; j < 26; ++j) {
+        if(getpos(j, 1, 1, n, i) == 1) {
+          cout << char(j + 'a');
+          break;
+        }
+      }
+    }
+  return 0;
+}

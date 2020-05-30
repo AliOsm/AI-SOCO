@@ -1,0 +1,132 @@
+#include <stdio.h>
+
+#define ll long long
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+struct sEdge {
+    int v, t;
+    int prev;
+} e[200009];
+int ee = 1;
+int first[100009];
+
+void AddEdge(int u, int v, int t)
+{
+    e[ee].v = v;
+    e[ee].t = t;
+    e[ee].prev = first[u];
+    first[u] = ee;
+    ee++;
+}
+
+ll d1[100009]; int p1[100009];
+ll d2[100009];
+ll maxDist[100009];
+
+void DFS1(int v, int p)
+{
+    for (int t = first[v]; t; t = e[t].prev) {
+        if (e[t].v == p) continue;
+        DFS1(e[t].v, v);
+        if (d1[v] < d1[ e[t].v ] + e[t].t) {
+            d2[v] = d1[v];
+            d1[v] = d1[ e[t].v ] + e[t].t;
+            p1[v] = e[t].v;
+        }
+        else if (d2[v] < d1[ e[t].v ] + e[t].t) {
+            d2[v] = d1[ e[t].v ] + e[t].t;
+        }
+    }
+}
+
+void DFS2(int v, int p, ll d)
+{
+    maxDist[v] = max(d, d1[v]);
+
+    for (int t = first[v]; t; t = e[t].prev) {
+        if (e[t].v == p) continue;
+
+        if (e[t].v == p1[v])
+            DFS2(e[t].v, v, max(d, d2[v]) + e[t].t);
+        else
+            DFS2(e[t].v, v, max(d, d1[v]) + e[t].t);
+    }
+}
+
+ll L;
+int add[100009];
+int sum[100009];
+
+int st[100009];
+int stSize = 0;
+
+void Solve(int v, int p)
+{
+    st[stSize++] = v;
+
+    int l = 0, r = stSize-1;
+    int b = v;
+    while (l <= r) {
+        int m = (l+r)/2;
+        if (maxDist[v] - maxDist[ st[m] ] > L) {
+            l = m+1;
+        }
+        else {
+            r = m-1;
+            b = st[m];
+        }
+    }
+
+    add[b]--;
+    add[v]++;
+
+    for (int t = first[v]; t; t = e[t].prev) {
+        if (e[t].v == p) continue;
+        Solve(e[t].v, v);
+    }
+
+    stSize--;
+}
+
+void Sum(int v, int p)
+{
+    sum[v] = 0;
+    for (int t = first[v]; t; t = e[t].prev) {
+        if (e[t].v == p) continue;
+        Sum(e[t].v, v);
+        sum[v] += sum[ e[t].v ] + add[ e[t].v ];
+        add[ e[t].v ] = 0;
+    }
+}
+
+int main()
+{
+    int n;
+    scanf("%d", &n);
+
+    for (int i = 0; i < n-1; i++) {
+        int u, v, t; scanf("%d %d %d", &u, &v, &t);
+        AddEdge(u, v, t);
+        AddEdge(v, u, t);
+    }
+
+    DFS1(1, -1);
+    DFS2(1, -1, 0);
+
+    int v = 1;
+    for (int i = 2; i <= n; i++) if (maxDist[i] < maxDist[v]) v = i;
+    //for (int i = 1; i <= n; i++) printf("%I64d ", maxDist[i]);
+
+    int q; scanf("%d", &q);
+
+    while (q--)
+    {
+        scanf("%I64d", &L);
+
+        Solve(v, 0);
+        Sum(v, 0);
+        int ans = sum[1];
+        for (int i = 2; i <= n; i++) if (sum[i] > ans) ans = sum[i];
+        printf("%d\n", ans+1);
+    }
+}

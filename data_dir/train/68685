@@ -1,0 +1,222 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define int long long
+typedef long long ll;
+#define fi first
+#define se second
+#define pii pair<int,int>
+#define endl '\n'
+#define fr(i, a, b) for(int i = a; i <= b; i++)
+#define sz(s) (int)s.size()
+#define y1 fdfbvfds
+typedef long double f80;
+#define all(x) x.begin(), x.end()
+
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+ll rand(ll l,ll r){
+    uniform_int_distribution<ll> uid(l, r);
+    return uid(rng);
+}
+
+// CHT Routine
+
+// NOTE : add lines in increasing order of slope
+struct line
+{
+  ll m, c;
+  line(ll _M = 0, ll _C = 0) : m(_M), c(_C) {}
+};
+struct cht
+{
+    vector<line> lines;
+    int pt;
+    void reset() { lines.clear(); pt = 0; }
+    f80 get_x(line l1, line l2)
+    { 
+        return (f80(1) * l1.c - l2.c) / (f80(1) * l2.m - l1.m);
+    }
+    bool bad(line l1, line l2, line l3)
+    {
+        f80 x12 = get_x(l1,l2);
+        f80 x13 = get_x(l1,l3);
+        return (x12 >= x13);
+    }
+    void add_line(ll M, ll C)
+    {
+        assert(pt == 0);
+        line l(M, C);
+        if(sz(lines) && lines.back().m == M){
+            if(lines.back().c >= C) return;
+            lines.pop_back();
+        }
+        while(sz(lines) >= 2 && bad(lines[sz(lines) - 2], lines[sz(lines) - 1], l))
+        lines.pop_back();
+        lines.pb(l);
+    }
+    ll eval(line L, ll x) { return (x * L.m + L.c); }
+    ll getMax(ll x)
+    {
+        if(pt >= sz(lines)) return -1;
+        while(pt + 1 < sz(lines) && eval(lines[pt + 1], x) > eval(lines[pt], x)) pt++;
+        return eval(lines[pt], x);
+    }
+};
+
+// END
+
+const int N = 2e5 + 5;
+const int BLK = 200;
+
+int a[N], b[N], c[N], d[N], st[N], en[N], tt;
+int max_neg[N], lz[N];
+vector<int> lol[N];
+cht A[N];
+int n, q;
+vector<int> g[N];
+
+int L(int idx) {
+    return (idx - 1) * BLK + 1;
+}
+
+int R(int idx) {
+    return min(n, idx * BLK);
+}
+
+int blk(int idx) {
+    return (idx - 1) / BLK + 1;
+}
+
+void dfs(int u,int p) {
+    c[u] += c[p];
+    d[u] += d[p];
+    st[u] = ++tt;
+    for(int v : g[u]) {
+        if(v != p) {
+            dfs(v, u);
+        }
+    }
+    en[u] = tt;
+}
+
+void build(int idx) {
+    max_neg[idx] = -1;
+    A[idx].reset();
+    for(int j = sz(lol[idx]) - 1; j >= 0; j--) {
+        int i = lol[idx][j];
+        a[i] += lz[idx];
+        if(a[i] < 0) {
+            A[idx].add_line(-b[i], -a[i] * b[i]);
+            if(max_neg[idx] == -1 || a[max_neg[idx]] < a[i])
+                max_neg[idx] = i;
+        }
+    }
+    for(int i : lol[idx]) {
+        if(a[i] >= 0) {
+            A[idx].add_line(b[i], a[i] * b[i]);
+        }
+    }
+    lz[idx] = 0;
+}
+
+void add_block(int idx,int x) {
+    lz[idx] += x;
+    if(max_neg[idx] != -1 && a[max_neg[idx]] + lz[idx] >= 0) {
+        build(idx);
+    }
+}
+
+void add(int l,int r,int x) {
+    if(blk(l) == blk(r)) {
+        fr(i, l, r) {
+            a[i] += x;
+        }
+        build(blk(l));
+        return;
+    }
+    fr(i, l, R(blk(l))) {
+        a[i] += x;
+    }
+    fr(i, L(blk(r)), r) {
+        a[i] += x;
+    }
+    build(blk(l));
+    build(blk(r));
+    for(int i = blk(l) + 1; i <= blk(r) - 1; i++) {
+        add_block(i, x);
+    }
+}
+
+int query_block(int idx) {
+    return A[idx].getMax(lz[idx]);
+}
+
+int query(int l,int r) {
+    int ans = 0;
+    if(blk(l) == blk(r)) {
+        int bk = blk(l);
+        fr(i, l, r)
+            ans = max(ans, abs(a[i] + lz[bk]) * b[i]);
+        return ans;
+    }
+    fr(i, l, R(blk(l))) {
+        ans = max(ans, abs(a[i] + lz[blk(l)]) * b[i]);
+    }
+    fr(i, L(blk(r)), r) {
+        ans = max(ans, abs(a[i] + lz[blk(r)]) * b[i]);
+    }
+    fr(i, blk(l) + 1, blk(r) - 1) {
+        ans = max(ans, query_block(i));
+    }
+    return ans;
+}
+
+signed main()
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    cin >> n >> q;
+    fr(i, 2, n) {
+        int u;
+        cin >> u;
+        g[u].pb(i);
+        g[i].pb(u);
+    }
+    fr(i, 1, n) {
+        lol[blk(i)].pb(i);
+    }
+    fr(i, 1, n) {
+        cin >> c[i];
+    }
+    fr(i, 1, n) {
+        cin >> d[i];
+    }
+    dfs(1, 0);
+    fr(i, 1, n) {
+        a[st[i]] = c[i];
+        b[st[i]] = abs(d[i]);
+    }
+    auto cmp = [&](const int &p, const int &q) {
+        return b[p] < b[q];
+    };
+    fr(i, 1, blk(n)) {
+        sort(all(lol[i]), cmp);
+    }
+    for(int i = 1; i <= blk(n); i++) {
+        build(i);
+    }
+    fr(i, 1, q) {
+        int t, u;
+        cin >> t >> u;
+        if(t == 1) {
+            int x;
+            cin >> x;
+            add(st[u], en[u], x);
+        }
+        else {
+            cout << query(st[u], en[u]) << endl;
+        }
+    }
+    return 0;
+}

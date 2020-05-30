@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N	1000
+#define M	1000
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+void slide(int *aa, int n, int k) {
+	static int qu[N];
+	int i, head, cnt;
+
+	head = cnt = 0;
+	for (i = 0; i < n; i++) {
+		while (cnt && aa[qu[head + cnt - 1]] >= aa[i])
+			cnt--;
+		qu[head + cnt++] = i;
+		if (i >= k - 1) {
+			aa[i - k + 1] = aa[qu[head]];
+			if (cnt && qu[head] == i - k + 1)
+				head++, cnt--;
+		}
+	}
+}
+
+long long bb[N][M];
+int n, m;
+
+int compare(const void *a, const void *b) {
+	int h1 = *(int *) a;
+	int h2 = *(int *) b;
+	long long x = bb[h1 / m][h1 % m];
+	long long y = bb[h2 / m][h2 % m];
+
+	return x == y ? h1 - h2 : x < y ? -1 : 1;
+}
+
+int main() {
+	static int aa[N][M], rr[M], cc[N], hh[N * M];
+	static long long pp[N + 1][M + 1];
+	static char bad[N][M];
+	int a, b, h, i, j, cnt;
+
+	scanf("%d%d%d%d", &n, &m, &a, &b);
+	for (i = 0; i < n; i++)
+		for (j = 0; j < m; j++) {
+			scanf("%d", &aa[i][j]);
+			pp[i][j] = aa[i][j];
+		}
+	for (i = n - 1; i >= 0; i--)
+		for (j = m - 1; j >= 0; j--)
+			pp[i][j] += pp[i][j + 1];
+	for (j = m - 1; j >= 0; j--)
+		for (i = n - 1; i >= 0; i--)
+			pp[i][j] += pp[i + 1][j];
+	for (i = 0; i < n; i++) {
+		for (j = 0; j < m; j++)
+			rr[j] = aa[i][j];
+		slide(rr, m, b);
+		for (j = 0; j + b <= m; j++)
+			aa[i][j] = rr[j];
+	}
+	m -= b - 1;
+	for (j = 0; j < m; j++) {
+		for (i = 0; i < n; i++)
+			cc[i] = aa[i][j];
+		slide(cc, n, a);
+		for (i = 0; i + a <= n; i++)
+			aa[i][j] = cc[i];
+	}
+	n -= a - 1;
+	for (i = 0; i < n; i++)
+		for (j = 0; j < m; j++)
+			bb[i][j] = pp[i][j] - pp[i + a][j] - pp[i][j + b] + pp[i + a][j + b]
+				- (long long) aa[i][j] * a * b;
+	for (h = 0; h < n * m; h++)
+		hh[h] = h;
+	qsort(hh, n * m, sizeof *hh, compare);
+	cnt = 0;
+	for (h = 0; h < n * m; h++) {
+		i = hh[h] / m, j = hh[h] % m;
+		if (!bad[i][j]) {
+			int il, jl, ir, jr;
+
+			hh[cnt++] = hh[h];
+			il = max(i - a + 1, 0), jl = max(j - b + 1, 0);
+			ir = min(i + a - 1, n - 1), jr = min(j + b - 1, m - 1);
+			for (i = il; i <= ir; i++)
+				for (j = jl; j <= jr; j++)
+					bad[i][j] = 1;
+		}
+	}
+	printf("%d\n", cnt);
+	for (h = 0; h < cnt; h++) {
+		i = hh[h] / m, j = hh[h] % m;
+		printf("%d %d %lld\n", i + 1, j + 1, bb[i][j]);
+	}
+	return 0;
+}

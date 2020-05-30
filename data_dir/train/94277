@@ -1,0 +1,74 @@
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+#define FOR(it, c) for(__typeof((c).begin()) it = (c).begin(); it != (c).end(); it++)
+#define SZ(c) ((int)(c).size())
+typedef long long LL;
+const int N = 100005;
+
+class Bit {
+	public:
+		LL bit[N];
+		int n;
+		void init(int _n) { n=_n; for(int i=0;i<=n;i++) bit[i] = 0; }
+		void add(int x, LL v) {while(x<=n) { bit[x] += v; x += x&-x; }}
+		LL ask(int x) { LL ret=0; while(x) { ret += bit[x]; x -= x&-x; } return ret;}
+		LL ask(int x, int y) { return ask(y)-ask(x-1); }
+} bitL, bitR, bitS;
+
+int x[N], v[N];
+int main(void) {
+	int n;
+	scanf("%d", &n);
+	for(int i=1;i<=n;i++) scanf("%d", &x[i]);
+	bitL.init(n); bitR.init(n); bitS.init(n);
+	for(int i=1;i<=n;i++) v[i] = x[i];
+	sort(v+1, v+n+1);
+	for(int i=1;i<=n;i++) bitL.add(i, v[i]*1LL*i);
+	for(int i=1;i<=n;i++) bitR.add(i, v[i]*1LL*(n+1-i));
+	for(int i=1;i<=n;i++) bitS.add(i, v[i]);
+	int m;
+	scanf("%d", &m);
+	while(m--) {
+		int t, s, d;
+		scanf("%d%d%d", &t, &s, &d);
+		if(t==1) {
+			int now = x[s]; x[s] += d;
+			int i = lower_bound(v+1, v+n+1, now) - v;
+			//printf("i=%d; v=%d; now=%d\n", i, v[i], now);
+
+			bitL.add(i, -v[i]*1LL*i); bitR.add(i, -v[i]*1LL*(n+1-i)); bitS.add(i, -v[i]);
+			v[i] += d;
+			while(i+1<=n && v[i] > v[i+1]) {
+				bitL.add(i+1, -v[i+1]*1LL*(i+1)); bitR.add(i+1, -v[i+1]*1LL*(n-i)); bitS.add(i+1, -v[i+1]);
+				swap(v[i], v[i+1]);
+				bitL.add(i, v[i]*1LL*i); bitR.add(i, v[i]*1LL*(n+1-i)); bitS.add(i, v[i]);
+				++i;
+			}
+			while(i>1 && v[i] < v[i-1]) {
+				bitL.add(i-1, -v[i-1]*1LL*(i-1)); bitR.add(i-1, -v[i-1]*1LL*(n+2-i)); bitS.add(i-1, -v[i-1]);
+				swap(v[i], v[i-1]);
+				bitL.add(i, v[i]*1LL*i); bitR.add(i, v[i]*1LL*(n+1-i)); bitS.add(i, v[i]);
+				--i;
+			}
+			bitL.add(i, v[i]*1LL*i); bitR.add(i, v[i]*1LL*(n+1-i)); bitS.add(i, v[i]);
+		} else {
+			int ql = s, qr = d;
+			int ll = lower_bound(v+1, v+n+1, ql) - v, rr = upper_bound(v+1, v+n+1, qr) - v-1;
+			if(ll>rr) { puts("0"); continue; }
+			int mm  = (ll + rr) / 2;
+			LL ans;
+			if((rr-ll+1)%2==1) {
+				ans = -2LL * (bitR.ask(ll, mm-1)-bitS.ask(ll,mm-1)*(n+1-(mm-1)-1)) + 2LL * (bitL.ask(mm+1, rr)-bitS.ask(mm+1,rr)*(mm));
+			} else {
+				ans = -2LL * (bitR.ask(ll, mm)-bitS.ask(ll,mm)*(n+1-mm-1)) + 2LL * (bitL.ask(mm+1, rr)-bitS.ask(mm+1,rr)*(mm)) - bitS.ask(mm+1,rr)+bitS.ask(ll,mm);
+			}
+			printf("%I64d\n", ans);
+		}
+	}
+	return 0;
+}

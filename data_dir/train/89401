@@ -1,0 +1,100 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5+7;
+int id[2*N], col[2*N];
+bool vis[2*N];
+vector<int> adj[2*N];
+
+vector<pair<int, int>> queries;
+vector<int> comp[2*N];
+int compid = 0;
+
+void dfs(int u) {
+    comp[compid].push_back(id[u]);
+    vis[u] = 1;
+    for (int v: adj[u])
+        if (!vis[v])
+            dfs(v);
+}
+
+int nodeid = 0;
+map<pair<int, int>, int> mp;
+
+int get(int u, int c) {
+    if (mp.count({u, c}) == 0) {
+        mp[{u, c}] = ++nodeid;
+        id[nodeid] = u;
+        col[nodeid] = c;
+    }
+    return mp[{u, c}];
+}
+
+const int RT = 100, K = (2*N)/RT + 20;
+int rtcnt = 0;
+bool on[K][N];
+map<pair<int, int>, vector<int>> qpos;
+int ans[N];
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    int n, m;
+    cin>>n>>m;
+
+
+    for (int i=1; i<=m; i++) {
+        int u, v, c;
+        cin>>u>>v>>c;
+
+        int a = get(u, c);
+        int b = get(v, c);
+
+        adj[a].push_back(b);
+        adj[b].push_back(a);
+
+        //cout<<"--->"<<a<<" "<<b<<endl;
+    }
+
+    int q;
+    cin>>q;
+    for (int i=0; i<q; i++) {
+        int u, v;
+        cin>>u>>v;
+        if (u>v)    swap(u, v);
+        queries.push_back({u, v});
+        qpos[{u, v}].push_back(i);
+    }
+
+    for (int i=1; i<=nodeid; i++)
+        if (!vis[i]) {
+            compid++;
+            dfs(i);
+        }
+
+    for (int i=1; i<=compid; i++) {
+        if (comp[i].size() > RT) {
+            int id = ++rtcnt;
+            for (int u: comp[i])
+                on[id][u]=1;
+            continue;
+        }
+       // for (int v: comp[i])    cout<<v<<" "; cout<<endl;
+
+        for (int j=0; j<comp[i].size(); j++)
+            for (int k=j+1; k< comp[i].size(); k++) {
+                int jj = comp[i][j], kk = comp[i][k];
+                if (jj>kk)  swap(jj, kk);
+                if (qpos.count({jj, kk}) == 0) continue;
+                for (int id: qpos[{jj, kk}])
+                    ans[id]++;
+            }
+    }
+
+    for (int i=0; i<q; i++) {
+        for (int j=1; j<=rtcnt; j++)
+            if (on[j][queries[i].first] && on[j][queries[i].second])
+                ans[i]++;
+        cout<<ans[i]<<"\n";
+    }
+}

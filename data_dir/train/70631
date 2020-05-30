@@ -1,0 +1,83 @@
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#include <numeric>
+
+using LL = long long;
+
+struct Point {
+  int x, y;
+  int quad() const { return y == 0 ? x > 0 : y > 0; }
+};
+
+const int kN = 2000 + 5;
+int n;
+LL s;
+Point points[kN];
+int answer[3];
+int order[kN], pos[kN];
+
+Point operator - (const Point& lhs, const Point& rhs) {
+  return Point{lhs.x - rhs.x, lhs.y - rhs.y};
+}
+
+LL det(const Point &lhs, const Point &rhs) {
+  return lhs.x * 1LL * rhs.y - rhs.x * 1LL * lhs.y;
+}
+
+bool work() {
+  std::vector<std::pair<int, int>> events;
+  for (int i = 0; i < n; ++ i) {
+    for (int j = 0; j < n; ++ j) if (i != j) {
+      events.emplace_back(i, j);
+    }
+  }
+  std::sort(events.begin(), events.end(), [](const std::pair<int, int>& lhs, const std::pair<int, int>& rhs) {
+    const Point a = points[lhs.second] - points[lhs.first];
+    const Point b = points[rhs.second] - points[rhs.first];
+    if (a.quad() != b.quad()) {
+      return a.quad() < b.quad();
+    }
+    return det(a, b) > 0;
+  });
+  std::iota(order, order + n, 0);
+  std::sort(order, order + n, [](int lhs, int rhs) {
+    if (points[lhs].y == points[rhs].y)
+      return points[lhs].x < points[rhs].x;
+    return points[lhs].y < points[rhs].y;
+  });
+  for (int i = 0; i < n; ++ i)
+    pos[order[i]] = i;
+  for (const auto& event : events) {
+    int i = event.first;
+    int j = event.second;
+    int p = std::lower_bound(order + pos[i], order + n, s, [i, j](int k, LL s) {
+      return det(points[k] - points[i], points[j] - points[i]) < 2 * s;
+    }) - order;
+    if (p < n && det(points[order[p]] - points[i], points[j] - points[i]) == 2 * s) {
+        answer[0] = i;
+        answer[1] = j;
+        answer[2] = order[p];
+        return true;
+    }
+    std::swap(order[pos[i]], order[pos[j]]);
+    std::swap(pos[i], pos[j]);
+  }
+  return false;
+}
+
+int main() {
+  scanf("%d%lld", &n, &s);
+  for (int i = 0; i < n; ++ i) {
+    scanf("%d%d", &points[i].x, &points[i].y);
+  }
+  if (!work()) {
+    puts("No");
+  } else {
+    puts("Yes");
+    for (int i = 0; i < 3; ++ i) {
+      printf("%d %d\n", points[answer[i]].x, points[answer[i]].y);
+    }
+  }
+}

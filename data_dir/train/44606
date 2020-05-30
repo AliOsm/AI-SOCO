@@ -1,0 +1,96 @@
+
+// In the name of God
+
+#include <bits/stdc++.h>
+
+using namespace std;
+#define Size(x) ((int)(x).size())
+#define pb push_back
+typedef long long ll;
+typedef pair<int,int>pii;
+const int INF = 1e9 + 10 , MN = 1e5 + 10 , MOD = 95542721;
+
+int n ,arr[MN] , lz[MN<<2] , seg[48][MN<<2];
+
+int bpw(int a,int b,int mod){
+	if(!b) return 1;
+	int t = bpw(a , b/2 , mod);
+	t = 1ll * t * t % mod;
+	if(b & 1) return 1ll * a * t % mod;
+	return t;
+}
+
+void ok(int &x,int mod){
+	while(x >= mod) x -= mod;
+}
+
+void build(int id,int b,int e){
+	if(e - b == 1){
+		for(int i=0;i<48;++i){
+			int x = bpw(3 , i , MOD-1);
+			seg[i][id] = bpw(arr[b] , x , MOD);
+		}
+		return;
+	}
+	int mid = b+e>>1;
+	build(id<<1 , b , mid) , build(id<<1|1 , mid , e);
+	for(int i=0;i<48;++i)
+		seg[i][id] = seg[i][id<<1] + seg[i][id<<1|1] , ok(seg[i][id] , MOD);
+}
+
+int T[48];
+
+void upd2(int id,int v){
+	for(int i=0;i<48;++i)
+		T[i] = seg[(i + v)%48][id];
+	for(int i=0;i<48;++i)
+		seg[i][id] = T[i];	
+}
+
+void shift(int id){
+	upd2(id<<1 , lz[id]) , upd2(id<<1|1 , lz[id]);
+	lz[id<<1] += lz[id] , lz[id<<1|1] += lz[id];
+	ok(lz[id<<1] , 48) , ok(lz[id<<1|1] , 48);
+	lz[id] = 0;
+}
+
+void upd(int id,int b,int e,int l,int r){
+	if(r <= b || e <= l) return;
+	if(l <= b && e <= r){
+		++lz[id] , ok(lz[id] , 48);
+		upd2(id , 1);
+		return;
+	}
+	shift(id);
+	int mid = b+e>>1;
+	upd(id<<1 , b , mid , l , r) , upd(id<<1|1, mid , e , l , r);
+	for(int i=0;i<48;++i)
+		seg[i][id] = seg[i][id<<1] + seg[i][id<<1|1] , ok(seg[i][id] , MOD);
+}
+
+int get(int id,int b,int e,int l,int r){
+	if(r <= b || e <= l) return 0;
+	if(l <= b && e <= r)
+		return seg[0][id];
+	shift(id);	
+	int mid = b+e>>1;
+	return (get(id<<1 , b , mid , l , r) + get(id<<1|1 , mid , e , l , r))%MOD;
+}
+
+int main()
+{
+	ios_base :: sync_with_stdio(false) ,cin.tie(0) , cout.tie(0);
+	cin >> n;
+	for(int i=0;i<n;++i) cin >> arr[i];
+	build(1 , 0 , n);
+	int q;cin>>q;
+	while(q--){
+		int tp,l,r;
+		cin >> tp >> l >> r;
+		l--;
+		if(tp == 1) cout << get(1 , 0 , n , l , r) << '\n';
+		else upd(1 , 0 , n , l , r);	
+	}
+	return 0;
+}
+

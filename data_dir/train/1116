@@ -1,0 +1,163 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef pair<int, int> PII;
+
+bool valid(PII x, int round) {
+    if (x.first < x.second) swap(x.first, x.second);
+    int lim = (round == 5 ? 15 : 25);
+    if (x.first < lim)  return false;
+    if (x.first == lim) return x.second <= lim-2;
+    return x.first - x.second == 2;
+}
+
+const int N = 200;
+vector<PII> getpairs (int round) {
+    vector<PII> ans;
+    for (int i=0; i<=N; i++)
+        for (int j=0; j<=N; j++) {
+            PII pr = {j, i};
+            if (valid(pr, round))
+                ans.push_back(pr);
+        }
+    return ans;
+}
+
+vector<PII> rounds[10];
+
+ostream& operator<< (ostream& os, PII pr) {
+    return os << pr.first<<":"<<pr.second;
+}
+
+PII bad = {-1, -1};
+PII dp[4][4][N+1][N+1];
+
+void calc() {
+
+    for (int i=0; i<4; i++)
+        for (int j=0; j<4; j++)
+            for (int k=0; k<=N; k++)
+                for (int l=0; l<=N; l++)
+                    dp[i][j][k][l] = bad;
+
+    for (int i=1; i<=5; i++)
+        rounds[i] = getpairs(i);
+
+
+    for (PII pr: rounds[1])
+        if (pr.first > pr.second)   dp[1][0][pr.first][pr.second] = pr;
+        else                        dp[0][1][pr.first][pr.second] = pr;
+
+
+    for (int round = 2; round <= 5; round++) {
+        for (int a = 0; a<=round && a<=3; a++) {
+            int b = round - a;
+            if (b>3)    continue;
+
+            for (int pa = 0; pa<=N; pa++) {
+                for (int pb = 0; pb<=N; pb++) {
+                    for (PII pr: rounds[round]) {
+
+                        int prea = a;
+                        int preb = b;
+                        if (pr.first > pr.second)   prea--;
+                        else                        preb--;
+
+                        if (prea ==3 || preb == 3)  continue;
+
+                        int prepa = pa - pr.first;
+                        int prepb = pb - pr.second;
+
+                        if (    prea < 0 || preb < 0 || prepa < 0 || prepb < 0
+                            ||  dp[prea][preb][prepa][prepb] == bad)   continue;
+
+                        dp[a][b][pa][pb] = pr;
+                    }
+                }
+            }
+        }
+    }
+}
+
+vector<PII> getsolution(int a, int b, int pa, int pb) {
+    PII pr = dp[a][b][pa][pb];
+    if (a==0 && b==0 && pa==0 && pb == 0) return vector<PII>();
+    if (pr == bad)    return vector<PII>();
+
+    if (pr.first > pr.second)    a--;
+    else                         b--;
+    pa -= pr.first;
+    pb -= pr.second;
+
+    vector<PII> ans = getsolution(a, b, pa, pb);
+    ans.push_back(pr);
+    return ans;
+}
+
+vector<PII> order = {{3, 0}, {3, 1}, {3, 2}, {2, 3}, {1, 3}, {0, 3}};
+
+void correct(vector<PII> &sol) {
+    if (sol.size() == 3)    return;
+
+    int ca = 0, cb = 0;
+    for (PII pr: sol)
+        if (pr.first > pr.second)   ca++;
+        else                        cb++;
+
+    assert(ca == 3 || cb == 3);
+    if (ca == 3) {
+        for (int i=0; i<sol.size(); i++)
+            if (sol[i].first > sol[i].second) {
+                swap(sol[i], sol[sol.size()-1]);
+                break;
+            }
+    }
+    else if (cb == 3) {
+        for (int i=0; i<sol.size(); i++)
+            if (sol[i].first < sol[i].second) {
+                swap(sol[i], sol[sol.size()-1]);
+                break;
+            }
+    }
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    calc();
+    int m;
+    cin>>m;
+
+//    while (true) {
+//        int a, b, pa, pb;
+//        cin>>a>>b>>pa>>pb;
+//        cout<<dp[a][b][pa][pb]<<endl;
+//        for (PII pr: getsolution(a,b,pa,pb))    cout<<pr<<" ";
+//        cout<<endl;
+//    }
+
+    while (m--) {
+        int x, y;
+        cin>>x>>y;
+
+        bool found = false;
+        for (PII st: order) {
+            vector<PII> sol = getsolution(st.first, st.second, x, y);
+            if (sol.empty())    continue;
+
+            found = true;
+            cout<<st<<"\n";
+//            correct(sol);
+            for (PII pr: sol)   cout<<pr<<" ";
+            cout<<"\n";
+            break;
+        }
+        if (!found) cout<<"Impossible"<<"\n";
+//        cout.flush();
+    }
+}
+
+
+
+

@@ -1,0 +1,122 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> PI;
+const int MAX_N=100010;
+int block_size,block_idx[MAX_N];
+int a[MAX_N],pre_val[MAX_N],ans[MAX_N];
+struct Query{
+	int l,r,x,idx;
+	Query(int _l=0,int _r=0,int _x=0,int _idx=0):l(_l),r(_r),x(_x),idx(_idx){}
+	inline bool operator<(const Query& rhs) const{
+		if(block_idx[l]!=block_idx[rhs.l]) return block_idx[l]<block_idx[rhs.l];
+		if(block_idx[r]!=block_idx[rhs.r]) return block_idx[r]<block_idx[rhs.r];
+		return x<rhs.x;
+	}
+};
+struct Update{
+	int pos,ch,ori;
+	Update(int _pos=0,int _ch=0,int _ori=0):pos(_pos),ch(_ch),ori(_ori){}
+};
+vector<int> vs;
+vector<Query> qry;
+vector<Update> upd;
+bool inSet[MAX_N];
+int cnt[MAX_N*2],dic[MAX_N];
+inline void change(int pos,int val){
+	if(inSet[pos]){
+		dic[cnt[a[pos]]]--;
+		cnt[a[pos]]--;
+		dic[cnt[a[pos]]]++;
+	}
+	a[pos]=val;
+	if(inSet[pos]){
+		dic[cnt[a[pos]]]--;
+		cnt[a[pos]]++;
+		dic[cnt[a[pos]]]++;
+	}
+}
+inline void update(int pos,bool ins){
+	if(ins){
+		inSet[pos]=true;
+		dic[cnt[a[pos]]]--;
+		cnt[a[pos]]++;
+		dic[cnt[a[pos]]]++;
+	}else{
+		inSet[pos]=false;
+		dic[cnt[a[pos]]]--;
+		cnt[a[pos]]--;
+		dic[cnt[a[pos]]]++;
+	}
+}
+inline int calc_ans(){
+	for(int i=0;;i++)
+		if(dic[i]==0) return i;
+}
+int main(){
+	int n,q,opt,l,r,p,x;
+	scanf("%d%d",&n,&q);
+	qry.reserve(q+5);
+	upd.reserve(q+5);
+	vs.reserve(n+q+5);
+	block_size=(int)ceil(pow(n,2.0/3.0));
+	for(int i=1;i<=n;i++){
+		scanf("%d",a+i);
+		pre_val[i]=a[i];
+		vs.push_back(a[i]);
+		block_idx[i]=(i-1)/block_size;
+	}
+	vs.push_back(0);
+	int ans_idx=0;
+	for(int i=1;i<=q;i++){
+		scanf("%d",&opt);
+		if(opt==1){
+			scanf("%d%d",&l,&r);
+			qry.push_back(Query(l,r,(int)upd.size(),++ans_idx));
+		}else{
+			scanf("%d%d",&p,&x);
+			upd.push_back(Update(p,x,pre_val[p]));
+			pre_val[p]=x;
+			vs.push_back(x);
+		}
+	}
+	sort(vs.begin(),vs.end());
+	sort(qry.begin(),qry.end());
+	vs.erase(unique(vs.begin(),vs.end()),vs.end());
+	for(int i=1;i<=n;i++)
+		a[i]=lower_bound(vs.begin(),vs.end(),a[i])-vs.begin();
+	for(int i=0;i<(int)upd.size();i++){
+		upd[i].ch=lower_bound(vs.begin(),vs.end(),upd[i].ch)-vs.begin();
+		upd[i].ori=lower_bound(vs.begin(),vs.end(),upd[i].ori)-vs.begin();
+	}
+	l=1,r=0;
+	int upd_idx=0;
+	dic[0]=(int)vs.size();
+	for(int i=0;i<(int)qry.size();i++){
+		if(upd_idx<qry[i].x)
+			for(int j=upd_idx+1;j<=qry[i].x;j++)
+				change(upd[j-1].pos,upd[j-1].ch);
+		else
+			for(int j=upd_idx;j>qry[i].x;j--)
+				change(upd[j-1].pos,upd[j-1].ori);
+		if(r<qry[i].r)
+			for(int j=r+1;j<=qry[i].r;j++)
+				update(j,true);
+		if(l>qry[i].l)
+			for(int j=l-1;j>=qry[i].l;j--)
+				update(j,true);
+		if(r>qry[i].r)
+			for(int j=r;j>qry[i].r;j--)
+				update(j,false);
+		if(l<qry[i].l)
+			for(int j=l;j<qry[i].l;j++)
+				update(j,false);
+		l=qry[i].l;
+		r=qry[i].r;
+		upd_idx=qry[i].x;
+		ans[qry[i].idx]=calc_ans();
+	}
+	for(int i=1;i<=ans_idx;i++)
+		printf("%d\n",ans[i]);
+	return 0;
+}

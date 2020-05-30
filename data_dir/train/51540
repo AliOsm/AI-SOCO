@@ -1,0 +1,220 @@
+// Written by HadronWave 
+// P.S. Contains too many bugs.
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+//-I\O-------------
+
+#include <cstring>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+//-C-libraries------
+
+#include <stack>
+#include <deque>
+#include <queue>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+//-Structs-----------
+
+#include <algorithm>
+#include <functional>
+//-Other-------------
+
+using namespace std;
+//-Using-------------
+
+
+typedef long long ll;
+typedef pair<int,int> pr;
+//-Typedefs----------
+
+
+#define double long double
+//-Define------------
+
+const ll mod7 = 1000000007;
+const ll mod9 = 1000000009;
+const int linf = 2000000000;
+const ll llinf = 1000000000000000000ll;
+//-Const-------------
+
+
+
+ifstream in("trains.in");
+ofstream out("trains.out");
+
+
+
+struct edge{
+    int from;
+    int to;
+    edge(int f,int t):from(f),to(t){}
+};
+
+vector<int> Fst[100001];
+vector<int> Scnd[100001];
+
+vector<edge> edges;
+set<int> bridges;
+
+int Time[100001],Total[100001];
+bool used[100001];
+
+int n,m;
+int timer = 0;
+
+void dfs(int v, int p = 0){
+    Time[v] = timer; ++timer;
+    Total[v] = Time[v];
+    used[v] = true;
+    for(int i=0;i<Fst[v].size();++i){
+        int num = Fst[v][i];
+        int to = edges[num].to;
+        if(to==v) to = edges[num].from;
+        
+        if(to==p)continue;
+        
+        if(!used[to]){
+            dfs(to,v);
+            Total[v] = min(Total[v],Total[to]);
+            
+            if(Total[to]>Time[v]){
+                bridges.insert(num);
+            }
+            
+        }else{
+            Total[v] = min(Total[v],Time[to]);
+        } 
+    }   
+}
+
+vector<int> comps[100001];
+int sz = 0;
+int whatc[100001];
+
+void makenew(){
+    for(int i=1;i<=n;++i){
+        used[i] = false;
+    }
+    
+    for(int i=1;i<=n;++i){
+        if(!used[i])
+        {
+            ++sz;
+            used[i] = true;
+            queue<int> q;
+            q.push(i);
+            while(!q.empty()){
+                int cur = q.front(); q.pop();
+                comps[sz].push_back(cur);
+                whatc[cur] = sz;
+                for(int i=0;i<Fst[cur].size();++i){
+                    int num = Fst[cur][i];
+                    if(bridges.find(num)!=bridges.end())continue;
+                    int to = edges[num].to;
+                    if(to == cur) to = edges[num].from;
+                    if(!used[to]){
+                        used[to] = true;
+                        q.push(to);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+int depth[100001];
+int anc[100001][20];
+int goin[100001],goout[100001];
+int root = 1;
+int h;
+void calc(int v,int p){
+    if(v!=root) depth[v] = depth[p]+1;
+    anc[v][0] = p;
+    goin[v] = timer; ++timer;
+    for(int i=0;i<=h;++i)
+        anc[v][i+1] = anc[anc[v][i]][i];
+    
+    for(int i=0;i<Scnd[v].size();++i){
+        int num = Scnd[v][i];
+        int to = whatc[edges[num].from];
+        if(to==v) to = whatc[edges[num].to];
+        if(to==p) continue;
+        calc(to,v);
+    }
+    goout[v] = timer;++timer;
+}
+
+
+bool ancestor(int a,int b){
+    return (goin[a]<=goin[b] && goout[b]<=goout[a]);
+}
+
+int lca(int a,int b){
+    if(ancestor(a,b))return a;
+    if(ancestor(b,a))return b;
+    int l = h;
+    while(l>=0){
+        if(!ancestor(anc[a][l],b))
+            a = anc[a][l];
+        --l;
+    }
+    return anc[a][0];
+}
+
+int answer(int a,int b){
+    a = whatc[a];b=whatc[b];
+    int c = lca(a,b);
+    return depth[a]+depth[b]-2*depth[c];
+}
+
+int main(){
+    int a,b;
+    ios::sync_with_stdio(false);
+    cin >> n >> m;
+    for(int i=0;i<m;++i){
+        cin >> a >> b;
+        Fst[a].push_back(edges.size());
+        Fst[b].push_back(edges.size());
+        edges.push_back(edge(a,b));
+    }
+    for(int i=1;i<=n;++i){
+        if(!used[i])
+            dfs(i);
+    }
+    
+    makenew();
+    
+    set<int>::iterator it = bridges.begin();
+    for(;it!=bridges.end();++it){
+        int num = *it;
+        int f1 = edges[num].from,f2 = edges[num].to;
+        f1 = whatc[f1];
+        f2 = whatc[f2];
+        Scnd[f1].push_back(num);
+        Scnd[f2].push_back(num);
+    }
+    depth[root] = 0;
+    timer = 0;
+    for(int i=0;;++i){
+        if((1<<i)>n) break;
+        h = i;
+    }
+    calc(root,root);
+    int k;
+    cin >> k;
+    for(int i=0;i<k;++i){
+        cin >> a >> b;
+        cout << answer(a,b) << endl;
+    }
+    
+    // Goodbye and good luck!
+    return 0;
+}

@@ -1,0 +1,96 @@
+#include <iostream>
+
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+#define MAXN 104
+
+int N;
+int X[MAXN], Y[MAXN];
+
+struct Edge {
+   int u, v;
+   int cost;
+   Edge(int _u, int _v, int _cost) : u(_u), v(_v), cost(_cost) {}
+   bool operator<(const Edge& e) const {
+      if (cost != e.cost) return cost < e.cost;
+      if (u != e.u) return u < e.u;
+      return v < e.v;
+   }
+};
+
+class DisjointSet {
+   size_t _n;
+   size_t _size;
+public:
+   vector<int>    parent;
+   vector<size_t> rank;
+
+   DisjointSet(size_t n);
+   size_t size() const;
+   int find_rep(int u);
+   bool union_rep(int u, int v);
+};
+
+DisjointSet::DisjointSet(size_t n)
+   : _n(n), _size(n), parent(n, -1), rank(n, 0) {}
+
+inline size_t DisjointSet::size() const {
+   return _size;
+}
+
+int DisjointSet::find_rep(int u) {
+// path compression
+   return parent[u] < 0 ? u : parent[u] = find_rep(parent[u]);
+}
+
+bool DisjointSet::union_rep(int u, int v) {
+   int u_root = find_rep(u);
+   int v_root = find_rep(v);
+   if (u_root == v_root)
+      return false;
+   if (rank[u_root] > rank[v_root])
+      parent[v_root] = u_root;
+   else {
+      parent[u_root] = v_root;
+      if (rank[u_root] == rank[v_root])
+         rank[v_root] = rank[u_root] + 1;
+   }
+   --_size;
+   return true;
+}
+
+int main(int argc, char* argv[]) {
+   ios_base::sync_with_stdio(false); 
+
+   cin >> N;
+   for (int i = 0; i < N; ++i)
+      cin >> X[i] >> Y[i];
+
+   vector<Edge> edges;
+   REP(u, N) FOR(v, u+1, N-1) {
+      if (X[u] == X[v] || Y[u] == Y[v])
+         edges.push_back(Edge(u, v, 0));
+      else
+         edges.push_back(Edge(u, v, 1));
+   }
+   sort(edges.begin(), edges.end());
+
+   DisjointSet ds(N);
+   int cost = 0;
+   for (int j = 0; j < edges.size() && ds.size() > 1; ++j) {
+      if (ds.union_rep(edges[j].u, edges[j].v))
+         cost += edges[j].cost;
+   }
+
+   cout << cost << endl;
+
+   return 0;
+}

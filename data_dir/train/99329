@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+#include <ext/hash_map>
+using namespace std;
+using namespace __gnu_cxx;
+
+#define EPS      1e-15
+#define F        first
+#define S        second
+#define pi       acos(-1)
+#define ll       long long
+#define oo       0x3f3f3f3f
+#define sz(x)    (int)x.size()
+#define sc(x)    scanf("%d",&x)
+#define all(x)   x.begin(),x.end()
+#define rall(x)  x.rbegin(),x.rend()
+
+int n;
+string tmp;
+int arr[1010][1010];
+const int mod=1000000007;
+
+bool nonZ[1010][1010];
+
+int nor1[1010][1010]; // up
+int nor2[1010][1010]; // down
+int nor3[1010][1010]; // left
+int nor4[1010][1010]; // right
+
+int cro1[1010][1010]; // up right
+int cro2[1010][1010]; // down left
+int cro3[1010][1010]; // down right
+int cro4[1010][1010]; // up left
+
+long double lg1[1010][1010]; // up down
+long double lg2[1010][1010]; // left right
+long double lg3[1010][1010]; // up right => down left
+long double lg4[1010][1010]; // up left => down right
+
+long double _log10(int x){
+  return (x<=1?0:log2(x));
+}
+
+void init(){
+  for(int i=1;i<=n;i++)
+    for(int j=1;j<=n;j++)
+      nonZ[i][j]=(arr[i][j]>0);
+
+  for(int i=1;i<=n;i++)
+    for(int j=1;j<=n;j++)
+      nor1[i][j]=(nor1[i-1][j]+1)*nonZ[i][j];
+  for(int i=n;i>=1;i--)
+    for(int j=1;j<=n;j++)
+      nor2[i][j]=(nor2[i+1][j]+1)*nonZ[i][j];
+  for(int i=1;i<=n;i++)
+    for(int j=1;j<=n;j++)
+      nor3[i][j]=(nor3[i][j-1]+1)*nonZ[i][j];
+  for(int i=1;i<=n;i++)
+    for(int j=n;j>=1;j--)
+      nor4[i][j]=(nor4[i][j+1]+1)*nonZ[i][j];
+
+  for(int i=1;i<=n;i++)
+    for(int j=1;j<=n;j++){
+      cro1[i][j]=(cro1[i-1][j+1]+1)*nonZ[i][j];
+      cro4[i][j]=(cro4[i-1][j-1]+1)*nonZ[i][j];
+    }
+  for(int i=n;i>=1;i--)
+    for(int j=1;j<=n;j++){
+      cro2[i][j]=(cro2[i+1][j-1]+1)*nonZ[i][j];
+      cro3[i][j]=(cro3[i+1][j+1]+1)*nonZ[i][j];
+    }
+
+  /////////////////////////////////////////////
+
+  for(int i=1;i<=n;i++)
+    for(int j=1;j<=n;j++){
+      lg1[i][j]=_log10(arr[i][j])+lg1[i-1][j];
+      lg2[i][j]=_log10(arr[i][j])+lg2[i][j-1];
+      lg3[i][j]=_log10(arr[i][j])+lg3[i-1][j+1];
+      lg4[i][j]=_log10(arr[i][j])+lg4[i-1][j-1];
+    }
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+  freopen("input.txt", "r", stdin);
+  //freopen("output.txt", "w", stdout);
+#endif
+  scanf("%d",&n);
+  for(int i=1;i<=n;i++){
+    cin>>tmp;
+    for(int j=0;j<n;j++)
+      arr[i][j+1]=tmp[j]-'0';
+  }
+  init();
+  long double ans=0;
+  int x=1,y=1,type=1;
+  for(int i=1;i<=n;i++)
+    for(int j=1;j<=n;j++){
+      if(arr[i][j]==0)continue;
+      int mnLen;
+      long double cur;
+      // for normal
+      mnLen=min(min(nor1[i][j],nor2[i][j]),min(nor3[i][j],nor4[i][j]));
+      cur=_log10(arr[i][j]);
+      cur+=lg1[i-1][j]-lg1[i-mnLen][j];
+      cur+=lg1[i+mnLen-1][j]-lg1[i][j];
+      cur+=lg2[i][j-1]-lg2[i][j-mnLen];
+      cur+=lg2[i][j+mnLen-1]-lg2[i][j];
+      if(cur-ans>EPS){
+        x=i,y=j,type=1;
+        ans=cur;
+      }
+      // for cross
+      mnLen=min(min(cro1[i][j],cro2[i][j]),min(cro3[i][j],cro4[i][j]));
+      cur=_log10(arr[i][j]);
+      cur+=lg3[i-1][j+1]-lg3[i-mnLen][j+mnLen];
+      cur+=lg3[i+mnLen-1][j-mnLen+1]-lg3[i][j];
+      cur+=lg4[i-1][j-1]-lg4[i-mnLen][j-mnLen];
+      cur+=lg4[i+mnLen-1][j+mnLen-1]-lg4[i][j];
+      if(cur-ans>EPS){
+        x=i,y=j,type=2;
+        ans=cur;
+      }
+    }
+  if(ans==0){
+    for(int i=1;i<=n;i++)
+      for(int j=1;j<=n;j++)
+        if(arr[i][j]==1)return puts("1");
+    return puts("0");
+  }
+  int res=1;
+  vector<int> dig;
+  if(type==1){
+    int mnLen=min(min(nor1[x][y],nor2[x][y]),min(nor3[x][y],nor4[x][y]));
+    dig.push_back(arr[x][y]);
+    for(int i=x-1;i>x-mnLen;i--)dig.push_back(arr[i][y]);
+    for(int i=x+1;i<x+mnLen;i++)dig.push_back(arr[i][y]);
+    for(int j=y-1;j>y-mnLen;j--)dig.push_back(arr[x][j]);
+    for(int j=y+1;j<y+mnLen;j++)dig.push_back(arr[x][j]);
+  }else{
+    int mnLen=min(min(cro1[x][y],cro2[x][y]),min(cro3[x][y],cro4[x][y]));
+    dig.push_back(arr[x][y]);
+    for(int i=x-1,j=y+1;i>x-mnLen&&j<y+mnLen;i--,j++)dig.push_back(arr[i][j]);
+    for(int i=x+1,j=y-1;i<x+mnLen&&j>y-mnLen;i++,j--)dig.push_back(arr[i][j]);
+    for(int i=x-1,j=y-1;i>x-mnLen&&j>y-mnLen;i--,j--)dig.push_back(arr[i][j]);
+    for(int i=x+1,j=y+1;i<x+mnLen&&j<y+mnLen;i++,j++)dig.push_back(arr[i][j]);
+  }
+  for(int i=0;i<sz(dig);i++){
+    res=(res*1LL*dig[i])%mod;
+  }
+  cout<<res<<endl;
+}

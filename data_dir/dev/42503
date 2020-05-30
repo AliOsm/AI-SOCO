@@ -1,0 +1,200 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MAX 200005
+#define MAX_LOG 25
+#define ll long long
+typedef pair<ll, pair<pair<ll, ll>, ll> > PII;
+ll table[MAX][MAX_LOG], cost[MAX][MAX_LOG], par[MAX], lvl[MAX], temp[MAX], idx[MAX][MAX_LOG];
+priority_queue<PII, vector<PII>, greater<PII> > pq;
+vector<pair<ll, ll> > adj[MAX];
+bool onMST[MAX];
+ll mins = 1e18, mins_id = -1, temp2[MAX], budget, baad = -1;
+ll grp[MAX], sum = 0, ans = 0, w[MAX], c[MAX], n, m;
+pair<ll, ll> edge[MAX];
+
+void reset()
+{
+    memset(table, -1, sizeof table);
+    memset(cost, 0, sizeof cost);
+    memset(par, -1, sizeof par);
+    memset(onMST, false, sizeof onMST);
+    for(ll i=0; i<MAX; i++) grp[i] = i;
+}
+
+ll findParent(ll u)
+{
+    if(u == grp[u]) return u;
+    return grp[u] = findParent(grp[u]);
+}
+
+void unions(ll u, ll v)
+{
+    ll p = findParent(u);
+    ll q = findParent(v);
+    grp[p] = q;
+}
+
+bool check(ll u, ll v)
+{
+    ll p = findParent(u);
+    ll q = findParent(v);
+    return (p!=q);
+}
+
+void MST()
+{
+    while(!pq.empty()){
+        PII tp = pq.top();
+        pq.pop();
+        ll u = tp.second.first.first;
+        ll v = tp.second.first.second;
+        ll id = tp.second.second;
+        if(check(u, v)){
+            unions(u, v);
+            adj[u].push_back(make_pair(v, id));
+            adj[v].push_back(make_pair(u, id));
+            onMST[id] = true;
+            sum += w[id];
+            if(c[id] < mins){
+                mins = c[id];
+                mins_id = id;
+            }
+        }
+    }
+}
+
+void dfs(int u, int p, int cst, int wh)
+{
+    if(p == -1) lvl[u] = 0;
+    else lvl[u] = lvl[p]+1;
+    par[u] = p;
+    temp[u] = cst;
+    temp2[u] = wh;
+    for(ll i=0; i<adj[u].size(); i++){
+        ll v = adj[u][i].first;
+        ll id = adj[u][i].second;
+        if(v != p){
+            dfs(v, u, w[id], id);
+        }
+    }
+}
+
+void pre()
+{
+    for(ll i=1; i<=n; i++){
+        table[i][0] = par[i];
+        cost[i][0] = temp[i];
+        idx[i][0] = temp2[i];
+    }
+    for(ll j=1; j<MAX_LOG; j++){
+        for(ll i=1; i<=n; i++){
+            if(table[i][j-1] != -1){
+                if(cost[i][j-1] > cost[table[i][j-1]][j-1]){
+                    cost[i][j] = cost[i][j-1];
+                    idx[i][j] = idx[i][j-1];
+                }
+                else {
+                    cost[i][j] = cost[table[i][j-1]][j-1];
+                    idx[i][j] = idx[table[i][j-1]][j-1];
+                }
+                table[i][j] = table[table[i][j-1]][j-1];
+            }
+        }
+    }
+}
+
+ll findLCA(ll u, ll v)
+{
+    ll max_w = 0, max_id = -1;
+    if(lvl[u] > lvl[v]) swap(u, v);
+    ll diff = lvl[v]-lvl[u];
+    for(ll i=0; i<MAX_LOG; i++){
+        if(diff&(1<<i)){
+            if(cost[v][i] > max_w){
+                max_w = cost[v][i];
+                max_id = idx[v][i];
+            }
+            v = table[v][i];
+        }
+    }
+    if(u == v) return max_id;
+    for(ll i=MAX_LOG-1; i>=0; i--){
+        if(table[u][i] != -1 && table[u][i]!=table[v][i]){
+            if(cost[u][i]>max_w){
+                max_w = cost[u][i];
+                max_id = idx[u][i];
+            }
+            u = table[u][i];
+            if(cost[v][i]>max_w){
+                max_w = cost[v][i];
+                max_id = idx[v][i];
+            }
+            v = table[v][i];
+        }
+    }
+    if(cost[u][0]>max_w){
+        max_w = cost[u][0];
+        max_id = idx[u][0];
+    }
+    if(cost[v][0]>max_w){
+        max_w = cost[v][0];
+        max_id = idx[v][0];
+    }
+    return max_id;
+}
+
+int main()
+{
+    reset();
+    scanf("%lld %lld", &n, &m);
+    for(ll i=1; i<=m; i++) scanf("%lld", &w[i]);
+    for(ll i=1; i<=m; i++) scanf("%lld", &c[i]);
+    for(ll i=1; i<=m; i++){
+        ll u, v;
+        scanf("%lld %lld", &u, &v);
+        pair<ll, ll> P = make_pair(u, v);
+        pq.push(make_pair(w[i], make_pair(P, i)));
+        edge[i] = make_pair(u, v);
+    }
+    scanf("%lld", &budget);
+    MST();
+    dfs(1, -1, 0, 0);
+    pre();
+    ans = sum - budget/c[mins_id];
+    bool flag = false;
+    for(ll i=1; i<=m; i++){
+        ll u = edge[i].first, v = edge[i].second;
+        if(onMST[i]) continue;
+        ll todlt = findLCA(u, v);
+        ll val = sum - w[todlt] + w[i] - budget/c[i];
+        if(val < ans){
+            flag = true;
+            ans = val;
+            baad = todlt;
+            mins_id = i;
+        }
+    }
+    if(flag == false){
+        printf("%lld\n", ans);
+        for(ll i=1; i<=m; i++){
+            if(onMST[i] == false) continue;
+            if(mins_id == i) printf("%lld %lld\n", i, w[i]-budget/c[i]);
+            else printf("%lld %lld\n", i, w[i]);
+        }
+    }
+    else {
+        printf("%lld\n", ans);
+        for(ll i=1; i<=m; i++){
+            if(onMST[i]){
+                if(i != baad) printf("%lld %lld\n", i, w[i]);
+            }
+            else {
+                if(mins_id == i) printf("%lld %lld\n", i, w[i]-budget/c[i]);
+            }
+        }
+    }
+}
+
+

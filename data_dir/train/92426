@@ -1,0 +1,140 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int kMaxLength = 10;
+const int kMaxNumvertices = 1e5;
+const int kLog = 17;
+
+using Tuple = set <int>;
+
+Tuple union_tupple(const Tuple& first, const Tuple& second) {
+  Tuple result_;
+  auto it_1 = first.begin();
+  auto it_2 = second.begin();
+  while (it_1 != first.end() || it_2 != second.end()) {
+    if (result_.size() == kMaxLength)
+      break;
+    if (it_1 == first.end()) {
+      result_.insert(*it_2);
+      it_2++;
+      continue;
+    }
+    if (it_2 == second.end()) {
+      result_.insert(*it_1);
+      it_1++;
+      continue;
+    }
+    if (*it_1 <= *it_2) {
+      result_.insert(*it_1);
+      it_1++;
+    } else {
+      result_.insert(*it_2);
+      it_2++;
+    }
+  }
+  return result_;
+}
+
+Tuple value[kMaxNumvertices][kLog];
+int tin[kMaxNumvertices], tout[kMaxNumvertices];
+int timer;
+bool used[kMaxNumvertices];
+Tuple values[kMaxNumvertices];
+vector < int > g[kMaxNumvertices];
+int height[kMaxNumvertices];
+int parent[kMaxNumvertices][kLog];
+
+void dfs(int v, int p) {
+  used[v] = true;
+  tin[v] = ++timer;
+  value[v][0] = values[v];
+  parent[v][0] = p;
+  for (int i = 1; i < kLog; ++i) {
+    parent[v][i] = parent[parent[v][i - 1]][i - 1];
+    value[v][i] = union_tupple(value[v][i - 1], value[parent[v][i - 1]][i - 1]);
+  }
+  for (const auto& u : g[v]) {
+    if (!used[u]) {
+      height[u] = height[v] + 1;
+      dfs(u, v);
+    }
+  }
+  tout[v] = ++timer;
+}
+
+bool upper(int a, int b) {
+  return (tin[a] <= tin[b] && tout[b] <= tout[a]);
+}
+
+int lca(int u, int v) {
+  if (upper(u, v))
+    return u;
+  if (upper(v, u))
+    return v;
+  for (int i = kLog - 1; i >= 0; i--) {
+    if (!upper(parent[u][i], v))
+      u = parent[u][i];
+  }
+  return parent[u][0];
+}
+
+Tuple up(int st, int fin) {
+  Tuple ret = value[fin][0];
+  while (st != fin) {
+    for (int i = 0; i <= kLog; i++) {
+      if (height[fin] + (1 << i) > height[st]) {
+        ret = union_tupple(ret, value[st][i - 1]);
+        st = parent[st][i - 1];
+        break;
+      }
+    }
+  }
+  return ret;
+}
+
+
+int main() {
+  ios_base :: sync_with_stdio(false);
+  cin.tie(0);
+  int n = 0;
+  int m = 0;
+  int q = 0;
+  cin >> n >> m >> q;
+  for (int i = 0; i < n - 1; ++i) {
+    int u, v;
+    cin >> u >> v;
+    u--; v--;
+    g[v].push_back(u);
+    g[u].push_back(v);
+  }
+  for (int i = 0; i < m; ++i) {
+    int pos_ = 0;
+    cin >> pos_;
+    values[pos_ - 1].insert(i + 1);
+  }
+  for (int i = 0; i < n; i++) {
+    while (values[i].size() > kMaxLength) {
+      auto it = values[i].end();
+      it--;
+      values[i].erase(it);
+    }
+  }
+  dfs(0, 0);
+  while (q--) {
+    int u, v, len;
+    cin >> u >> v >> len;
+    u--; v--;
+    int lca_ = lca(u, v);
+    auto ans = union_tupple(up(u, lca_), up(v, lca_));
+    cout << min(len, (int)ans.size());
+    for (int x: ans) {
+      cout << " " << x;
+      len--;
+      if (len == 0)
+        break;
+    }
+    cout << endl;
+  }
+  return 0;
+}

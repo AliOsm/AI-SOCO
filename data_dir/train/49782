@@ -1,0 +1,163 @@
+//be naame khodaa
+
+#include <bits/stdc++.h>
+
+typedef long long ll;
+
+const int maxn = 300005;
+
+using namespace std;
+
+int Log[maxn];
+ll SPL[maxn][20], SPR[maxn][20];
+ll sum[maxn], h[maxn], d[maxn], L[maxn], R[maxn];
+stack <int> s;
+
+ll Min(int l, int r)
+{
+	int L = Log[r-l+1];
+	return min(SPL[l][L], SPL[r-(1 << L)+1][L]);
+}
+
+ll Max(int l, int r)
+{
+	int L = Log[r-l+1];
+	return max(SPR[l][L], SPR[r-(1 << L)+1][L]);
+}
+
+ll solve(int a, int b)
+{
+	int l = a, hi = b, l2 = a, hi2 = b;
+	int st, e, st2, e2;
+	while (hi-l > 1)
+	{
+		int m = (l+hi)/2;
+		if (Max(a+1, m) > b)
+			hi = m;
+		else
+			l = m;
+	}
+	e = hi;
+	l = a, hi = e;
+	while (hi2-l2 > 1)
+	{
+		int m = (l2+hi2)/2;
+		if (Min(m, b-1) < a)
+			l2 = m;
+		else
+			hi2 = m;		
+	}
+	st2 = l2;
+	l2 = st2, hi2 = b;
+	while (hi-l > 1)
+	{
+		int m = (l+hi)/2;
+		if (Min(m, e-1) < a)
+			l = m;
+		else
+			hi = m;
+	}
+	st = l;
+	while (hi2-l2 > 1)
+	{
+		int m = (l2+hi2)/2;
+		if (Max(st2+1, m) > b)
+			hi2 = m;
+		else
+			l2 = m;
+	}
+	e2 = hi2;
+	return max(sum[e]-sum[st]+h[e]+h[st], sum[e2]-sum[st2]+h[e2]+h[st2]);
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	for (int i = 0; i < 17; i++)
+		Log[(1 << i)] = i;
+	for (int i = 1; i <= 200000; i++)
+	{
+		if (Log[i]) continue;
+		Log[i] = Log[i-1];
+	}
+	int n, m;
+	cin >> n >> m;
+	for (int i = 0; i < n; i++)
+		cin >> d[i];
+	for (int i = 0; i < n; i++)
+	{
+		cin >> h[i]; 
+		h[i] *= 2;
+	}
+	for (int i = n; i < 2*n; i++)
+		d[i] = d[i-n], h[i] = h[i-n];
+
+	for (int i = 2*n-1; i >= 0; i--)
+	{
+		if (i+1 < 2*n) sum[i] = sum[i+1] + d[i];
+		while (!s.empty())
+		{
+			int x = s.top();
+			if (h[i] >= sum[i]-sum[x]+h[x])
+				s.pop();
+			else
+				break;
+		}
+		if (s.empty())
+			R[i] = 2*n;
+		else
+			R[i] = s.top();
+		s.push(i);
+	}
+
+	while (!s.empty()) s.pop();
+	fill(sum, sum + 2*n, 0);
+
+	for (int i = 0; i < 2*n; i++)
+	{
+		if (i) sum[i] = sum[i-1] + d[i-1];
+		while (!s.empty())
+		{
+			int x = s.top();
+			if (h[i] >= sum[i]-sum[x]+h[x])
+				s.pop();
+			else
+				break;
+		}
+		if (s.empty())
+			L[i] = -1;
+		else
+			L[i] = s.top();
+		s.push(i);
+	}
+
+	for (int i = 0; i < 2*n; i++)
+		SPR[i][0] = R[i], SPL[i][0] = L[i];
+	for (int i = 1; i <= 17; i++)
+		for (int j = 0; j < 2*n; j++)
+		{
+			int x = j + (1 << (i-1));
+			SPR[j][i] = max(SPR[j][i-1], (x < 2*n) ? SPR[x][i-1] : 0);
+			SPL[j][i] = min(SPL[j][i-1], (x < 2*n) ? SPL[x][i-1] : 2*n);
+		}
+
+	while (m--)
+	{
+		int a, b;
+		cin >> a >> b;
+		a--; b--;
+		if (a > b)
+		{
+			swap(a, b);
+			a++; b--;
+		}
+		else
+		{
+			int tmp = a;
+			a = b+1;
+			b = n+tmp-1;
+		}
+		cout << solve(a, b) << endl;
+	}
+    return 0;
+}

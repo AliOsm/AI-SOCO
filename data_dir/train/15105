@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+struct Node {
+	int s, e, m;
+	//covers s,e;
+	ll sum;
+	ll lazy;
+	ll mini;
+	Node *l, *r;
+	
+	Node(int a, int b) {
+		s = a;
+		e = b;
+		sum = 0;
+		lazy = 0;
+		mini = 0;
+		if (s != e) {
+			m = (s+e)/2;
+			l = new Node(s,m);
+			r = new Node(m+1,e);
+		}
+		else {
+			l = NULL;
+			r = NULL;
+		}
+	}
+
+	void push() {
+		if (s != e) {
+			l->lazy += lazy;
+			l->sum += (l->e - l->s + 1) * lazy;
+			l->mini += lazy;
+
+			r->lazy += lazy;
+			r->sum += (r->e - r->s + 1) * lazy;
+			r->mini += lazy;
+		}
+		lazy = 0;
+	}
+
+	void add(int st, int en, ll x) {
+		//lazy: already accounted for in your own node, not the childs nodes
+		if (st <= s && e <= en) {
+			lazy += x;
+			sum += (e - s + 1) * x;
+			mini += x;
+			return;
+		}
+		push();
+		if (st <= m) {
+			l->add(st,en,x);
+		}
+		if (en > m) {
+			r->add(st,en,x);
+		}
+		sum = l->sum + r->sum;
+		mini = min(l->mini,r->mini);
+	}
+
+	ll getmini(int st, int en) {
+		push();
+		//if completely included
+		if (st <= s && e <= en) {
+			return mini;
+		}
+		ll ret = 1000000000000000000;
+		if (st <= m) {
+			ret = min(ret,l->getmini(st,en));
+		}
+		if (en > m) {
+			ret = min(ret,r->getmini(st,en));
+		}
+		return ret;
+	}	
+
+	ll getsum(int st, int en) {
+		push();
+		//if completely included
+		if (st <= s && e <= en) {
+			return sum;
+		}
+		ll ret = 0;
+		if (st <= m) {
+			ret += l->getsum(st,en);
+		}
+		if (en > m) {
+			ret += r->getsum(st,en);
+		}
+		return ret;
+	}
+};
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int t; cin >> t;
+    while (t--) {
+        int n, T, a, b;
+        cin >> n >> T >> a >> b;
+        vector<int> hard(n);
+        vector<int> time(n); //time to start this
+        ll easy_man = 0, hard_man = 0, easy_ex = 0, hard_ex = 0;
+        for (int i = 0; i < n; i++) {
+            cin >> hard[i];
+            if (hard[i]) hard_ex++;
+            else easy_ex++;
+        }
+        map<int,vector<int>> mp;
+        for (int i = 0; i < n; i++) {
+            cin >> time[i];
+            mp[time[i]].push_back(i);
+        }
+        mp[T+1].push_back(n);
+        int ans = 0;
+        for (auto p: mp) {
+            ll t = p.first-1;
+            t -= easy_man*a + hard_man*b;
+            if (t >= 0) {
+                int tr = easy_man + hard_man;
+                ll add = min(easy_ex,t/a);
+                t -= a*add;
+                tr += add;
+                add = min(hard_ex,t/b);
+                tr += add;
+                ans = max(ans,tr);
+            }
+            for (int i: p.second) {
+                if (hard[i]) {
+                    hard_ex--;
+                    hard_man++;
+                }
+                else {
+                    easy_ex--;
+                    easy_man++;
+                }
+            }
+        }
+        cout << ans << '\n';
+    }
+}

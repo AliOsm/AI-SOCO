@@ -1,0 +1,127 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int MOD = 1e9 + 7;
+const int MAXN = (int)1e5 + 7;
+const int infint = (int)1e9;
+const ll inf = (ll)1e18;
+struct node{
+	int mn, ted;
+} seg[4 * MAXN];
+int n, m, st[MAXN], ft[MAXN], tme = 0, ans[MAXN], lazy[4 * MAXN];
+vector<int> G[MAXN], qu[MAXN];
+void dfs_pre(int u, int p)
+{
+	st[u] = tme;
+	for (auto v : G[u])
+		if(v != p)	
+		{
+			tme++;
+			dfs_pre(v, u);
+		}
+	ft[u] = tme;
+}
+void pull(int node)
+{
+	if(seg[node << 1].mn <= seg[node << 1 | 1].mn)
+		seg[node] = seg[node << 1];
+	else
+		seg[node] = seg[node << 1 | 1];
+	if(seg[node << 1].mn == seg[node << 1 | 1].mn)
+		seg[node].ted += seg[node << 1 | 1].ted;
+}
+void build(int node, int st, int en)
+{
+	if(en - st < 2)
+	{
+		seg[node].mn = 0, seg[node].ted = 1;
+		return;
+	}
+	int mid = (st + en) >> 1;
+	build(node << 1, st, mid);
+	build(node << 1 | 1, mid, en);
+	pull(node);
+}
+void upd(int node, int st, int en, int x)
+{
+	seg[node].mn += x;
+	lazy[node] += x;
+	return;
+}
+void shift(int node, int st, int en)
+{
+	int mid = (st + en) >> 1;
+	upd(node << 1, st, mid, lazy[node]);
+	upd(node << 1 | 1, mid, en, lazy[node]);
+	lazy[node] = 0; //passing is done.
+}
+void update(int node, int st, int en, int l, int r, int x)
+{
+	if(st >= r || l >= en)
+		return;
+	if(l <= st && en <= r)
+	{
+		upd(node, st, en, x);
+		return;
+	}
+	int mid = (st + en) >> 1;
+	shift(node, st, en);
+	update(node << 1, st, mid, l, r, x);
+	update(node << 1 | 1, mid, en, l, r, x);
+	pull(node);
+}
+int get(int node, int st, int en, int l, int r)
+{
+	if(st >= r || l >= en)
+		return infint;
+	if(l <= st && en <= r)
+		return seg[node].mn;
+	int mid = (st + en) >> 1;
+	shift(node, st, en);
+	return min(get(node << 1, st, mid, l, r), get(node << 1 | 1, mid, en, l, r));
+}
+int calc()
+{
+	int mn = seg[1].mn, cnt = n;
+	if(mn == 0)
+		cnt -= seg[1].ted;
+	return cnt;
+}
+void dfs_seg(int u, int p)
+{
+	for (auto t : qu[u])
+		update(1, 0, n, st[t], ft[t] + 1, 1);
+	ans[u] = max(0, calc() - 1);
+	for (auto v : G[u])
+		if(v != p)
+			dfs_seg(v, u);
+	for (auto t : qu[u])
+		update(1, 0, n, st[t], ft[t] + 1, -1);
+}
+int main()
+{
+    ios::sync_with_stdio(false);
+    cin.tie(0); cout.tie(0);
+    cin >> n >> m;
+    for (int i = 0; i < n - 1; i++)
+    {
+    	int u, v;
+    	cin >> u >> v;
+    	G[u].push_back(v);
+    	G[v].push_back(u);
+	}
+	dfs_pre(1, -1);
+	for (int i = 0; i < m; i++)
+	{
+		int a, b;
+		cin >> a >> b;
+		qu[a].push_back(b);
+		qu[b].push_back(a);
+		qu[a].push_back(a);
+		qu[b].push_back(b);
+	}
+	build(1, 0, n);
+	dfs_seg(1, -1);
+	for (int i = 1; i <= n; i++)
+		cout << ans[i] << " ";
+}

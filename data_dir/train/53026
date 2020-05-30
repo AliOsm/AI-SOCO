@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <vector>
+#include <map>
+#define pb push_back
+#define lli long long int
+using namespace std;
+
+const int MOD = 1000000007;
+const int MAX_LUCKY = 1025;
+const int MAXN = (int)1e5 + 5;
+
+map<int, int> mapa;
+vector <int> v;
+int unlucky = 0;
+
+lli dp[MAX_LUCKY][MAX_LUCKY];
+lli fat[MAXN];
+int k;
+
+bool is_lucky(int x) {
+    while(x > 0) {
+        if ((x % 10) != 4 && (x % 10) != 7) {
+            return false;
+        }
+        x /= 10;
+    }
+    return true;
+}
+
+void gcd(lli a, lli b, lli &x, lli &y) {
+    if (!b) {
+        x = 1;
+        y = 0;
+        return;
+    }
+    gcd(b, a % b, y, x);
+    y -= (a / b) * x;
+    return;
+}
+
+lli get_inv(lli a) {
+    lli x;
+    lli y;
+
+    gcd(a, MOD, x, y);
+    return ((x % MOD) + MOD) % MOD;
+}
+
+lli choose(int n, int k) {
+    if (k < 0 || n < k) {
+        return 0;
+    }
+    lli num = fat[n];
+    lli den = (fat[n - k] * fat[k]) % MOD;
+
+    lli inv = get_inv(den);
+    return ((num * inv) % MOD);
+}
+
+lli solve(int pos, int in_seq) {
+    if (pos >= (int)v.size()) {
+        return choose(unlucky, k - in_seq);
+    }
+
+    if (dp[pos][in_seq] != -1) {
+        return dp[pos][in_seq];
+    }
+
+    lli aux = (v[pos] * solve(pos + 1, in_seq + 1)) % MOD;
+    aux = (aux + solve(pos + 1, in_seq)) % MOD;
+
+    dp[pos][in_seq] = aux;
+    return aux;
+}
+
+int main(void) {
+    int n;
+    int a;
+
+    /*int counter = 0;
+    for (int i = 1; i <= 1e9; i++) {
+        if (is_lucky(i)) {
+            counter++;
+        }
+    }
+    printf("counter = %d\n", counter); */
+
+    fat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        fat[i] = (fat[i - 1] * i) % MOD;
+    }
+
+    scanf(" %d %d", &n, &k);
+    for (int i = 0; i < n; i++) {
+        scanf(" %d", &a);
+        mapa[a]++;
+    }
+
+    for (map<int, int>::iterator it = mapa.begin(); it != mapa.end(); it++) {
+        if (is_lucky(it->first)) {
+            v.pb(it->second);
+        } else {
+            unlucky += it->second;
+        }
+    }
+
+    for (int i = 0; i < (int)v.size(); i++) {
+        for (int j = 0; j <= (int)v.size(); j++) {
+            dp[i][j] = -1;
+        }
+    }
+
+    lli ways = solve(0, 0);
+    printf("%lld\n", ways);
+
+    return 0;
+}

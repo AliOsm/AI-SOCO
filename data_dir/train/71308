@@ -1,0 +1,109 @@
+#include<bits/stdc++.h> 
+#define IOS ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define max(a,b) (a>b?a:b)
+#define min(a,b) (a<b?a:b)
+#define ll long long
+#define INF 2000000000
+#define INF2 2000000000000000000
+
+using namespace std;
+
+pair<int,int>arr[300001];
+int n,R;
+int tree[20000001];
+int lazy[20000001];
+map<int,vector<pair<int,int>>>start;
+map<int,vector<pair<int,int>>>finish;
+
+void update(int node,int s,int e, int l,int r,int val)
+{
+	if(lazy[node])
+	{
+		tree[node] += lazy[node];
+		if(s != e)
+		{
+			lazy[2*node]+=lazy[node];
+			lazy[2*node+1]+=lazy[node];
+		}
+		lazy[node] = 0;
+	}
+	if(s > e or s> r or e <l or l > r)
+		return;
+	if(s >= l && e <=r)
+	{
+		tree[node] += val;
+		if(s != e)
+		{
+			lazy[2*node] += val;
+			lazy[2*node+1] += val;
+		}
+		return;
+	}
+	int mid = (s+e)/2;
+	update(2*node,s,mid,l,r,val);
+	update(2*node+1,mid+1,e,l,r,val);
+	tree[node] = max(tree[2*node], tree[2*node+1]);
+}
+
+int query(int node, int s, int e, int l, int r)
+{
+	if(s > e or s > r or e < l or l > r)
+		return 0;
+	if(lazy[node])
+	{
+		tree[node] += lazy[node];
+		if(s != e)
+		{
+			lazy[2*node] += lazy[node];
+			lazy[2*node + 1] += lazy[node];
+		}
+		lazy[node] = 0;
+	}
+	if(s >= l && e <= r)
+		return tree[node];
+	int mid = (s+e)/2;
+	int p = query(2*node,s,mid,l,r);
+	int q = query(2*node+1,mid+1,e,l,r);
+	return max(p,q);
+}
+
+int main()
+{
+    IOS;
+    #ifndef ONLINE_JUDGE
+        freopen("input.txt", "r", stdin);
+        freopen("output.txt", "w", stdout);
+    #endif
+	cin >> n >> R;
+	int offsetx = 0, offsety = 0;
+	for(int i = 1; i <= n; i++)
+	{
+		cin >> arr[i].first >> arr[i].second;
+		arr[i] = {arr[i].first - arr[i].second, arr[i].first + arr[i].second};
+		offsetx = max(offsetx, 1 - arr[i].first);
+		offsety = max(offsety, 1 - arr[i].second);
+	}
+	set<int>keys;
+	for(int i = 1; i <= n; i++)
+	{
+		arr[i].first += offsetx;
+		arr[i].second += offsety;
+		start[arr[i].second].push_back({arr[i].first, arr[i].first + 2*R});
+		finish[arr[i].second + 2*R].push_back({arr[i].first, arr[i].first + 2*R});
+		keys.insert(arr[i].second);
+		keys.insert(arr[i].second + 2*R);
+	}
+	
+	int maxim = 0;
+	int N = 6000004;
+	for(auto i:keys)
+	{
+
+		for(auto it: start[i])
+			update(1,1,N,it.first, it.second, 1);
+		maxim = max(maxim, query(1,1,N,1,N));
+		for(auto it:finish[i])
+			update(1,1,N,it.first,it.second, -1);
+	}
+	cout << maxim;
+}

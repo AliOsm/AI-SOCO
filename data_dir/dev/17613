@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef complex<ll> point;
+#define F first
+#define S second
+
+struct segment_tree
+{
+    int n;
+    vector<ll> a;
+
+    segment_tree(int n) : n(n), a(2 * n) {}
+
+    void update(int p, ll v)
+    {
+        for (a[p += n] = v; p /= 2;)
+            a[p] = min(a[2 * p], a[2 * p + 1]);
+    }
+
+    ll query(int l, int r)
+    {
+        ll g = numeric_limits<ll>::max();
+
+        for (l += n, r += n; l < r; l /= 2, r /= 2)
+        {
+            if (l & 1) g = min(g, a[l++]);
+            if (r & 1) g = min(g, a[--r]);
+        }
+
+        return g;
+    }
+};
+
+struct info
+{
+	int in, out, dp;
+};
+
+const int mod = 1e9+7;
+
+void add(int &x, int y)
+{
+	x += y;
+	if (x >= mod)
+		x -= mod;
+}
+
+int main()
+{
+	#ifdef DGC
+		freopen("a.txt", "r", stdin);
+		//freopen("b.txt", "w", stdout);
+	#endif
+
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int n;
+	cin >> n;
+	vector<info> a(n);
+	for (auto &i : a) cin >> i.out >> i.in;
+
+	sort(a.begin(), a.end(), [](const info &x, const info &y){ return x.in < y.in; });
+	int maxin = a.back().in;
+
+	vector<int> nxt(n);
+	nxt[n-1] = n-1;
+	for (int i = n-2; i >= 0; --i)
+	{
+		int p = lower_bound(a.begin(), a.end(), a[i].out, [](info y, int x){ return y.in < x; }) - a.begin();
+		nxt[i] = min(nxt[i+1], p-1);
+	}
+
+	segment_tree st(n);
+	for (int i = n-1; i >= 0; --i)
+	{
+		ll v = (a[i].out > a.back().in) ? a[i].in : numeric_limits<ll>::max();
+
+		int p = lower_bound(a.begin(), a.end(), a[i].out, [](info y, int x){ return y.in < x; }) - a.begin();
+		if (p < n)
+			v = min(v, min(v, a[i].in - a[i].out + st.query(p, nxt[p]+1)));
+
+		st.update(i, v);
+		a[i].dp = v;
+	}
+
+	sort(a.begin(), a.end(), [](const info &x, const info &y){ return x.out < y.out; });
+
+	nxt[0] = 0;
+	for (int i = 1; i < n; ++i)
+	{
+		int p = upper_bound(a.begin(), a.end(), a[i].in, [](int x, info y){ return y.out > x; }) - a.begin();
+		nxt[i] = max(nxt[i-1], p);
+	}
+
+	map<int, vector<pair<int, int>>> dps;
+
+	auto insert = [&](int c, int p, int v)
+	{
+		if (!dps[c].empty()) add(v, dps[c].back().S);
+		dps[c].push_back({ p, v });
+	};
+
+	auto get = [&](int c, int i, int j)
+	{
+		if (!dps.count(c)) return 0;
+
+		int p = upper_bound(dps[c].begin(), dps[c].end(), j, [](int x, pair<int, int> y){ return y.F > x; }) - dps[c].begin();
+		if (p == 0) return 0;
+
+		int v = dps[c][p-1].S;
+
+		p = lower_bound(dps[c].begin(), dps[c].end(), i, [](pair<int, int> y, int x){ return y.F < x; }) - dps[c].begin();
+		if (p > 0) add(v, mod-dps[c][p-1].S);
+
+		return v;
+	};
+
+	int best = 2e9;
+	for (int i = 0; i < n; ++i)
+		if (a[i].in < a[0].out)
+			best = min(best, a[i].dp);
+
+	for (int i = 0; i < n; ++i)
+	{
+		if (a[i].in < a[0].out && best == a[i].dp)
+			insert(a[i].in - a[i].out, i, 1);
+		else
+		{
+			int p = upper_bound(a.begin(), a.end(), a[i].in, [](int x, info y){ return y.out > x; }) - a.begin() - 1;
+			if (p >= 0)
+			{
+				int c = best - a[i].dp;
+				a[i].dp = get(c, nxt[p], p);
+				insert(c + a[i].in - a[i].out, i, a[i].dp);
+			}
+		}
+	}
+
+	int ans = 0;
+	for (int i = 0; i < n; ++i)
+		if (a[i].out > maxin)
+			add(ans, get(best - a[i].out, i, i));
+
+	cout << ans << "\n";
+
+	return 0;
+}

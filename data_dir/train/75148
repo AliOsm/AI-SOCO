@@ -1,0 +1,138 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef struct Treap * Arbore;
+typedef pair <Arbore, Arbore> Paa;
+Arbore NIL;
+struct Treap {
+    int val, g, prio, valprim, lazy;
+    Arbore st, dr;
+    Treap(int val) : val(val), g(1), prio(rand()), valprim(val), lazy(0), st(NIL), dr(NIL) { }
+};
+void pass_lazy(Arbore q)
+{
+    q->val += q->lazy;
+    q->valprim += q->lazy;
+    q->st->lazy += q->lazy;
+    q->dr->lazy += q->lazy;
+    q->lazy = 0;
+}
+void recalc(Arbore q)
+{
+    q->g = q->st->g + q->dr->g + 1;
+    if (q->st == NIL)
+        q->valprim = q->val;
+    else
+        q->valprim = q->st->valprim + q->st->lazy;
+}
+Arbore join(Arbore a, Arbore b)
+{
+    if (a == NIL)
+        return b;
+    if (b == NIL)
+        return a;
+    pass_lazy(a);
+    pass_lazy(b);
+    if (a->prio > b->prio) {
+        a->dr = join(a->dr, b);
+        recalc(a);
+        return a;
+    }
+    b->st = join(a, b->st);
+    recalc(b);
+    return b;
+}
+Paa split(Arbore a, int poz)
+{ /// sa fie poz lucruri in st
+    if (a == NIL)
+        return { NIL, NIL };
+    pass_lazy(a);
+    if (poz <= a->st->g) {
+        Paa x = split(a->st, poz);
+        a->st = NIL;
+        recalc(a);
+        return { x.first, join(x.second, a) };
+    }
+    Paa x = split(a->dr, poz - a->st->g - 1);
+    a->dr = NIL;
+    recalc(a);
+    return { join(a, x.first), x.second };
+}
+Arbore add(Arbore k, int x, int poz)
+{
+    x -= poz;
+    Paa q = split(k, poz);
+    Arbore n = new Treap(x);
+    q.first->lazy++;
+    return join(join(q.first, n), q.second);
+}
+int find_where(Arbore k, int val)
+{
+    pass_lazy(k);
+    if (k == NIL)
+        return 0;
+    if (val - k->st->g <= k->val)
+        return find_where(k->st, val);
+    return k->st->g + 1 + find_where(k->dr, val - k->st->g - 1);
+}
+
+vector <int> sir;
+void get_secv(Arbore k)
+{
+    pass_lazy(k);
+    if (k == NIL)
+        return;
+    get_secv(k->st);
+    sir.push_back(k->val);
+    get_secv(k->dr);
+}
+
+int main()
+{
+    srand(time(0));
+    NIL = new Treap(0);
+    NIL->g = 0;
+    NIL->st = NIL->dr = NIL;
+
+    vector <int> v;
+    int n;
+    cin >> n;
+    v.resize(n);
+
+    for (auto & i : v)
+        cin >> i;
+    reverse(v.begin(), v.end());
+
+    Arbore k = NIL;
+
+    for (auto i : v) {
+        int poz = find_where(k, i);
+        k = add(k, i, poz);
+    }
+
+    get_secv(k);
+
+    for (int i(0); i < sir.size() - 1; i++) {
+        if (sir[i] > sir[i + 1]) {
+            cout << ":(\n";
+            return 0;
+        }
+    }
+    for (auto i : sir)
+        cout << i << ' ';
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

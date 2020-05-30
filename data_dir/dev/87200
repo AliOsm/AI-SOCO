@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int mod = 998244353;
+const int S = 5001;
+const int N = 101;
+const int M = 51;
+int n, m;
+
+int sum0;
+int sum1;
+
+int li[N];
+int ar[N];
+int inv[S];
+
+int fpow(int b, int p = mod - 2) {
+    ll res = 1;
+    ll pow = b;
+    while(p) {
+        if(p & 1) {
+            res *= pow;
+            res %= mod;
+        }
+        pow *= pow;
+        pow %= mod;
+        p >>= 1;
+    }
+    return res;
+}
+
+struct Mod {
+    int val;
+    Mod() {}
+    Mod(int val): val(val) {}
+
+    Mod operator + (const Mod &p) {
+        return Mod((1ll * val + p.val + mod) % mod);
+    }
+
+    Mod operator - (const Mod &p) {
+        return Mod((1ll * val - p.val + mod) % mod);
+    }
+
+    Mod operator * (const Mod &p) {
+        return Mod(1ll * val * p.val % mod);
+    }
+
+    Mod operator / (const Mod &p) {
+        return Mod(1ll * val * inv[p.val] % mod);
+    }
+} dp[M][N][M][M];
+
+void input() {
+    cin >> n >> m;
+    for(int i = 1; i <= n; ++i) {
+        cin >> li[i];
+    }
+    for(int i = 1; i <= n; ++i) {
+        cin >> ar[i];
+        if(li[i]) {
+            sum1 += ar[i];
+        } else {
+            sum0 += ar[i];
+        }
+    }
+}
+
+Mod calc(int i, int j, int k, int l) {
+    if(k == m) {
+        return Mod(j);
+    }
+    if(dp[i][j][k][l].val != -1) {
+        return dp[i][j][k][l].val;
+    }
+    int x = abs(ar[i] - j);
+    Mod s0 = Mod(sum0 - (k - l - x) - (li[i]? 0: ar[i]));
+    Mod s1 = Mod(sum1 + l - (li[i]? ar[i]: 0));
+    Mod sum = Mod(s0 + s1 + j);
+    Mod res = Mod(0);
+    if(li[i]) {
+        res = res + (Mod(j) / sum * calc(i, j + 1, k + 1, l));
+    } else if(j) {
+        res = res + (Mod(j) / sum * calc(i, j - 1, k + 1, l));
+    }
+    if(s0.val) {
+        res = res + (s0 / sum * calc(i, j, k + 1, l));
+    }
+    if(s1.val) {
+        res = res + (s1 / sum * calc(i, j, k + 1, l + 1));
+    }
+    return dp[i][j][k][l] = res;
+}
+
+void solve() {
+    fill(dp[0][0][0], dp[M][0][0], -1);
+    for(int i = 1; i < S; ++i) {
+        inv[i] = fpow(i);
+    }
+    for(int i = 1; i <= n; ++i) {
+        cout << calc(i, ar[i], 0, 0).val << "\n";
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

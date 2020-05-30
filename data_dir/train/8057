@@ -1,0 +1,178 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 10005;
+const int L = 20;
+int n, lgx, ans;
+
+int acp[N];
+int bcp[N];
+int ocp[N];
+int cnt[N];
+int p[N][L];
+int s[N];
+int a[N];
+int b[N];
+int o[N];
+
+string x;
+string y;
+string t;
+
+vec <int> indx;
+vec <int> indy;
+
+void input() {
+    cin >> x;
+    cin >> y;
+    x = x + "#";
+    t = x + y;
+    n = len(t);
+    for(int i = 0; i < n; ++i) {
+        p[i][0] = t[i];
+    }
+}
+
+int lcp(int i, int j) {
+    i = s[i];
+    j = s[j];
+    int res = 0;
+    for(int k = lgx; k >= 0 && i < n && j < n; --k) {
+        if(p[i][k] == p[j][k]) {
+            i += 1 << k;
+            j += 1 << k;
+            res += 1 << k;
+        }
+    }
+    return res;
+}
+
+void counting_sort(int a[], int b[], int o[]) {
+    fill(cnt, cnt + N, 0);
+    for(int i = 0; i < n; ++i) {
+        cnt[a[i]]++;
+    }
+    for(int i = 1; i < N; ++i) {
+        cnt[i] += cnt[i - 1];
+    }
+    for(int i = n - 1; i >= 0; --i) {
+        int ind = --cnt[a[i]];
+        acp[ind] = a[i];
+        bcp[ind] = b[i];
+        ocp[ind] = o[i];
+    }
+    copy(acp, acp + N, a);
+    copy(bcp, bcp + N, b);
+    copy(ocp, ocp + N, o);
+}
+
+void radix_sort() {
+    counting_sort(b, a, o);
+    counting_sort(a, b, o);
+}
+
+int unique(int x, vec <int> &ind) {
+    int res = 0;
+    auto it = lb(all(ind), x);
+    if(it != ind.begin()) {
+        res = max(res, lcp(x, *prev(it)));
+    }
+    if(next(it) != ind.end()) {
+        res = max(res, lcp(x, *next(it)));
+    }
+    return res + 1;
+}
+
+int test(int x, int y) {
+    int mxm = lcp(x, y);
+    int mnm = max(unique(x, indx), unique(y, indy));
+    if(mnm <= mxm) {
+        return mnm;
+    } else {
+        return inf;
+    }
+}
+
+void solve() {
+    for(int i = 1, j = 1; j <= n; ++i, j <<= 1) {
+        for(int k = 0; k < n; ++k) {
+            a[k] = p[k][i - 1] + 1;
+            b[k] = (k + j < n? p[k + j][i - 1]: -1) + 1;
+            o[k] = k;
+        }
+        radix_sort();
+        p[o[0]][i] = 0;
+        for(int k = 1; k < n; ++k) {
+            p[o[k]][i] = mp(a[k], b[k]) == mp(a[k - 1], b[k - 1])? p[o[k - 1]][i]: k;
+        }
+        lgx = i;
+    }
+    for(int i = 0; i < n; ++i) {
+        s[p[i][lgx]] = i;
+    }
+    for(int i = 1; i < n; ++i) {
+        if(s[i] >= len(x)) {
+            indy.pb(i);
+        } else {
+            indx.pb(i);
+        }
+    }
+    ans = inf;
+    for(int e: indx) {
+        auto it = lb(all(indy), e);
+        if(it != indy.end()) {
+            ans = min(ans, test(e, *it));
+        }
+        if(it != indy.begin()) {
+            ans = min(ans, test(e, *prev(it)));
+        }
+    }
+    if(ans == inf) {
+        cout << "-1\n";
+    } else {
+        cout << ans << "\n";
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

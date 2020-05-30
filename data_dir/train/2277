@@ -1,0 +1,281 @@
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <math.h>
+#include <vector>
+
+typedef unsigned long long  uint64_t;
+typedef   signed long long  int64_t;
+typedef unsigned long       uint32_t;
+typedef   signed long       int32_t;
+typedef unsigned short      uint16_t;
+typedef   signed short      int16_t;
+typedef unsigned char       uint8_t;
+typedef   signed char       int8_t;
+
+
+using std::cout;
+using std::endl;
+using std::cin;
+
+enum eEvent {wins, sell, busy};
+
+struct Day
+{
+    eEvent ev;
+    uint16_t x;
+
+    Day(const eEvent evP, const uint16_t xP): ev(evP), x(xP) {}
+};
+
+typedef std::vector<Day> DayVector;
+typedef std::vector<uint16_t> Uint16Vector;
+typedef std::vector<uint32_t> Uint32Vector;
+
+template<typename T>
+inline std::string ToString(const T val)
+{
+    std::ostringstream ostr;
+    ostr << val;
+    return ostr.str();
+}
+
+template<uint32_t BASE>
+class LongNumTmpt
+{   
+    Uint32Vector data;
+
+public:    
+    explicit LongNumTmpt(const uint32_t x)
+    {   
+        if (x != 0)
+        {
+            uint32_t x_ = x;
+            while (x_ != 0)
+            {
+                data.push_back(x_ % BASE);
+                x_ = x_ / BASE;
+            }
+        }
+        else
+        {
+            data.push_back(0);
+        }
+    }
+
+    LongNumTmpt& operator+=(const LongNumTmpt& x)
+    {        
+        const size_t imax = this->data.size();
+        const size_t jmax = x.data.size();
+
+        size_t idx = 0;
+        uint32_t carry = 0;
+
+        while (idx < imax || idx < jmax || carry != 0)
+        {
+            uint32_t res = carry;
+            if (idx < imax && idx < jmax)
+            {
+                res += this->data[idx] + x.data[idx];
+                this->data[idx] = res % BASE;
+            }
+            else if (idx >= imax && idx >= jmax)
+            {
+                // only carry +
+                this->data.push_back(res % BASE);
+            }
+            else if (idx >= imax)
+            {
+                res += x.data[idx];
+                this->data.push_back(res % BASE);
+            }
+            else if (idx >= jmax)
+            {
+                res += this->data[idx];
+                this->data[idx] = res % BASE;
+            }
+
+            idx++;
+            carry = res / BASE;            
+        }
+        return *this;
+    }
+
+    // x < BASE
+    LongNumTmpt& operator*=(const uint32_t x)
+    {
+        const size_t imax = this->data.size();
+
+        size_t idx = 0;
+        uint32_t carry = 0;
+
+        while (idx < imax || carry != 0)
+        {
+            uint32_t res = carry;
+            if (idx < imax)
+            {
+                res += this->data[idx] * x;
+                this->data[idx] = res % BASE;
+            }
+            else
+            {
+                this->data.push_back(res % BASE);
+            }
+            carry = res / BASE;
+            idx++;
+        }
+
+        return *this;
+    }
+
+    std::string ToString() const
+    {
+        std::string res;
+
+        for (size_t i = 0; i < this->data.size(); i++)
+        {
+
+            res = ::ToString(data[i]) + res;
+        }
+
+        return res;
+    }
+};
+
+template<uint32_t BASE>
+inline std::string ToString(const LongNumTmpt<BASE> val)
+{
+    return val.ToString();
+}
+
+
+typedef LongNumTmpt<10>      LongNum;
+typedef std::vector<LongNum> LongNumVector;
+
+bool Solve()
+{
+    uint32_t n;
+    cin >> n;
+
+    if (!cin)
+        return false;
+
+    DayVector days;
+    days.reserve(n);   
+
+    for (uint32_t i = 0; i < n; i++)
+    {
+        std::string sEvent;
+        uint16_t x;
+
+        cin >> sEvent >> x;
+
+        if (sEvent == "win") 
+        {
+            days.push_back(Day(wins, x));
+        }
+        else if (sEvent == "sell")
+        {
+            days.push_back(Day(sell, x));
+        }        
+    }
+
+    Uint16Vector optSells;
+    bool bEmpty = false;
+
+    while (!bEmpty)
+    {
+        bool bSellFound = false;
+        size_t bestSellIdx = 0;        
+        for (size_t i = 0; i < days.size(); i++)
+        {
+            if (days[i].ev == sell)
+            {
+                if (!bSellFound)
+                {
+                    bestSellIdx = i;
+                    bSellFound = true;
+                }
+                else if (days[bestSellIdx].x < days[i].x)
+                {
+                    bestSellIdx = i;
+                }
+            }
+        }
+
+        if (bSellFound)
+        {            
+            bool bFlashWon = false;
+            size_t wonIdx = 0;
+            size_t i = bestSellIdx;
+            while (i > 0 && !bFlashWon)
+            {
+                i--;
+                if (days[i].ev == wins && days[i].x == days[bestSellIdx].x)
+                {
+                    bFlashWon = true;
+                    wonIdx = i;
+                }
+                else if (days[i].ev == busy)
+                {
+                    break;
+                }
+            }
+
+            if (bFlashWon)
+            {
+                optSells.push_back(days[bestSellIdx].x);
+                for (size_t i = wonIdx; i <= bestSellIdx; i++)
+                {
+                    days[i].ev = busy;
+                }
+            }
+            else
+            {
+                days.erase(days.begin() + bestSellIdx);
+            }
+        }        
+
+        bEmpty = !bSellFound;
+    }
+
+    if (!optSells.empty())
+    {
+        uint16_t maxX = optSells[0];
+        for (size_t i = 1; i < optSells.size(); i++)
+        {
+            maxX = std::max(maxX, optSells[i]);
+        }
+
+        LongNumVector pows2;
+        LongNum curPow(1);
+        pows2.push_back(curPow);
+        for (uint16_t x = 1; x <= maxX; x++)
+        {
+            curPow *= 2;
+            pows2.push_back(curPow);
+        }
+
+        LongNum ans(0);        
+        for (size_t i = 0; i < optSells.size(); i++)
+        {
+            ans += pows2[optSells[i]];
+        }
+
+        cout << ans.ToString();
+    }
+    else
+    {
+        cout << 0;
+    }
+    cout << endl;
+
+    return true;
+}
+
+int main()
+{
+    while(Solve()) {}
+}

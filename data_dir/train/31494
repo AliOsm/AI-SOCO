@@ -1,0 +1,194 @@
+#include <algorithm>
+#include <bitset>
+#include <cassert>
+#include <cctype>
+#include <climits>
+#include <cmath>
+#include <complex>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <deque>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <valarray>
+#include <vector>
+
+#define EPS 1e-9
+#define INF 1070000000LL
+#define MOD 1000000007LL
+#define fir first
+#define foreach(it,X) for(__typeof((X).begin()) it=(X).begin();it!=(X).end();it++)
+#define ite iterator
+#define mp make_pair
+#define rep(i,n) rep2(i,0,n)
+#define rep2(i,m,n) for(int i=m;i<(n);i++)
+#define pb push_back
+#define sec second
+#define sz(x) ((int)x.size())
+
+using namespace std;
+
+struct timer{
+	time_t start;
+	timer(){start=clock();}
+	~timer(){cerr<<1.*(clock()-start)/CLOCKS_PER_SEC<<" secs"<<endl;}
+};
+
+typedef istringstream iss;
+typedef long long ll;
+typedef pair<int,int> pi;
+typedef stringstream sst;
+typedef vector<int> vi;
+
+#define PI 3.14159265358979323846
+
+#define curr(P, i) P[(i) % P.size()]
+#define next(P, i) P[(i+1) % P.size()]
+#define prev(P, i) P[(i+P.size()-1) % P.size()]
+#define diff(P, i) (next(P,i) - curr(P,i))
+#define EQ(x,y) (abs((x)-(y))<EPS)
+#define GE(x,y) ((x)+EPS>(y))
+#define LE(x,y) ((x)<(y)+EPS)
+enum { OUT, ON, IN };
+
+typedef complex<double> P;
+typedef vector<P> G;
+
+namespace std{
+  bool operator < (const P& a, const P& b) {
+    return real(a) != real(b) ? real(a) < real(b) : imag(a) < imag(b);
+  }
+}
+
+double cross(const P& a, const P& b) {
+  return imag(conj(a)*b);
+}
+double dot(const P& a, const P& b) {
+  return real(conj(a)*b);
+}
+
+struct L : public vector<P> {
+  L(){}
+  L(const P &a, const P &b) {
+    push_back(a); push_back(b);
+  }
+};
+
+struct C {
+  P p; double r;
+  C(const P &p, double r) : p(p), r(r) { }
+};
+
+int ccw(P a, P b, P c) {
+  b -= a; c -= a;
+  if (cross(b, c) > EPS)   return +1;       // counter clockwise
+  if (cross(b, c) < EPS)   return -1;       // clockwise
+  if (dot(b, c) < EPS)     return +2;       // c--a--b on line
+  if (norm(b) < norm(c)) return -2;       // a--b--c on line
+  return 0;
+}
+
+bool intersectLL(const L &l, const L &m) {
+  return abs(cross(l[1]-l[0], m[1]-m[0])) > EPS || // non-parallel
+         abs(cross(l[1]-l[0], m[0]-l[0])) < EPS;   // same line
+}
+bool intersectLS(const L &l, const L &s) {
+  return cross(l[1]-l[0], s[0]-l[0])*       // s[0] is left of l
+         cross(l[1]-l[0], s[1]-l[0]) < EPS; // s[1] is right of l
+}
+bool intersectLP(const L &l, const P &p) {
+  return abs(cross(l[1]-p, l[0]-p)) < EPS;
+}
+bool intersectSS(const L &s, const L &t) {
+  return ccw(s[0],s[1],t[0])*ccw(s[0],s[1],t[1]) <= 0 &&
+         ccw(t[0],t[1],s[0])*ccw(t[0],t[1],s[1]) <= 0;
+}
+bool intersectSP(const L &s, const P &p) {
+  return abs(s[0]-p)+abs(s[1]-p)-abs(s[1]-s[0]) < EPS; // triangle inequality
+}
+
+P projection(const L &l, const P &p) {
+  double t = dot(p-l[0], l[0]-l[1]) / norm(l[0]-l[1]);
+  return l[0] + t*(l[0]-l[1]);
+}
+P reflection(const L &l, const P &p) {
+  return p + 2.0 * (projection(l, p) - p);
+}
+double distanceLP(const L &l, const P &p) {
+  return abs(p - projection(l, p));
+}
+double distanceLL(const L &l, const L &m) {
+  return intersectLL(l, m) ? 0 : distanceLP(l, m[0]);
+}
+double distanceLS(const L &l, const L &s) {
+  if (intersectLS(l, s)) return 0;
+  return min(distanceLP(l, s[0]), distanceLP(l, s[1]));
+}
+double distanceSP(const L &s, const P &p) {
+  const P r = projection(s, p);
+  if (intersectSP(s, r)) return abs(r - p);
+  return min(abs(s[0] - p), abs(s[1] - p));
+}
+double distanceSS(const L &s, const L &t) {
+  if (intersectSS(s, t)) return 0;
+  return min(min(distanceSP(s, t[0]), distanceSP(s, t[1])),
+             min(distanceSP(t, s[0]), distanceSP(t, s[1])));
+}
+P crosspoint(const L &l, const L &m) {
+  double A = cross(l[1] - l[0], m[1] - m[0]);
+  double B = cross(l[1] - l[0], l[1] - m[0]);
+  if (abs(A) < EPS && abs(B) < EPS) return m[0]; // same line
+  if (abs(A) < EPS) assert(false); // !!!PRECONDITION NOT SATISFIED!!!
+  return m[0] + B / A * (m[1] - m[0]);
+}
+
+int n;
+P p[111];
+set<P> S;
+
+int main(){
+	cin.tie(0);
+	ios_base::sync_with_stdio(0);
+	
+	cout<<setprecision(16);
+	cin>>n;
+	rep(i,n)cin>>p[i].real()>>p[i].imag(),S.insert(p[i]);
+	double ans=-1;
+	
+	rep(i,n)rep2(j,i+1,n)rep2(k,j+1,n){
+		P ab=p[j]-p[i],bc=p[k]-p[j],ca=p[i]-p[k];
+		if(dot(ab,-ca)<EPS || dot(bc,-ab)<EPS || dot(ca,-bc)<EPS)continue;
+		P m1=(p[i]+p[j])/2.,m2=(p[j]+p[k])/2.;
+		L l1=L(m1,m1+ab*P(0,1));
+		L l2=L(m2,m2+bc*P(0,1));
+		P P=crosspoint(l1,l2);
+		double t=abs(p[i]-P);
+		//if(t <= ans)continue;
+		rep(l,n)if(abs(p[l]-P) < t - EPS)goto fail;
+		ans=max(ans,t);//ans=t;
+		fail:;
+	}
+	
+	rep(i,n)rep2(j,i+1,n){
+		if(p[i].real()==p[j].real() || p[i].imag()==p[j].imag())continue;
+		if(!S.count(P(p[i].real(),p[j].imag())) ||
+			!S.count(P(p[j].real(),p[i].imag())))continue;
+		double t=abs((p[i]-p[j])/2.);
+		//if(t <= ans)continue;
+		P P=((p[i]+p[j])/2.);
+		rep(l,n)if(abs(p[l]-P) < t - EPS)goto fail2;
+		ans=max(ans,t);//ans=t;
+		fail2:;
+	}
+	cout<<setprecision(16)<<ans;
+}

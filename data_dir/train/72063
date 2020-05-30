@@ -1,0 +1,91 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+const int N = 5e5 + 5;
+vector<pair<int, int>> adj[N];
+int parent[N][22];
+long long cost[N][22];
+void build(int node, int p, int c) {
+	parent[node][0] = p;
+	cost[node][0] = c;
+	for (int i = 1; i < 22; ++i) {
+		parent[node][i] = parent[parent[node][i - 1]][i - 1];
+		cost[node][i] = cost[parent[node][i - 1]][i - 1] + cost[node][i - 1];
+	}
+	for (auto child: adj[node]) {
+		if (child.first == p)
+			continue;
+		build(child.first, node, child.second);
+	}
+}
+pair<int, long long> get(int from, int to) {
+	int j = 0;
+	long long c = 0;
+	while (to) {
+		if (to % 2) {
+			c += cost[from][j];
+			from = parent[from][j];
+		}
+		to /= 2;
+		++j;
+	}
+	return {from, c};
+}
+int lineSweep[N];
+bool vis[N];
+priority_queue<pair<int, int>> depth;
+void go(int node, int p, int d) {
+	depth.push({d, node});
+	for (auto child: adj[node]) {
+		if (child.first == p)
+			continue;
+		go(child.first, node, d + 1);
+	}
+}
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.in", "r", stdin);
+#endif
+	int n, a[N];
+	scanf("%d", &n);
+	for (int i = 1; i <= n; ++i)
+		scanf("%d", a + i);
+	for (int node = 2; node <= n; ++node) {
+		int p, c;
+		scanf("%d %d", &p, &c);
+		adj[node].push_back({p, c});
+		adj[p].push_back({node, c});
+	}
+	build(1, 0, 0);
+	for (int node = 1; node <= n; ++node) {
+		int lower = 1, upper = n, ret = -1;
+		while (lower <= upper) {
+			int mid = (lower + upper) / 2;
+			auto path = get(node, mid);
+			if (!path.first || path.second > a[node]) {
+				upper = mid - 1;
+			} else {
+				ret = path.first;
+				lower = mid + 1;
+			}
+		}
+		if (ret != -1) {
+			++lineSweep[parent[node][0]];
+			--lineSweep[parent[ret][0]];
+		}
+	}
+	go(1, 0, 1);
+	while (depth.size()) {
+		auto cur = depth.top();
+		depth.pop();
+		if (vis[cur.second]++)
+			continue;
+		lineSweep[parent[cur.second][0]] += lineSweep[cur.second];
+		if (cur.first)
+			depth.push({cur.first - 1, parent[cur.second][0]});
+	}
+	for (int i = 1; i <= n; ++i)
+		printf("%d ", lineSweep[i]);
+	printf("\n");
+	return 0;
+}

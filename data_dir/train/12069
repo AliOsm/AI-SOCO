@@ -1,0 +1,37 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 40001;
+
+int is[N];
+int p[N], sz = 0;
+
+inline void sieve(int tp) {
+  for(int i = 2; i <= tp; ++i) {
+    if(!is[i]) {
+      p[sz++] = i;
+      for(int j = 2; j * i <= tp; ++j) is[i * j] = 1;
+    }
+  }
+}
+
+inline bool isPrime(int x) {
+  for(int i = 0; i < sz; ++i) {
+    if(x % p[i] == 0) return false;
+  }
+  return true;
+}
+
+int main() {
+  int p, y; scanf("%d %d", &p, &y);
+  sieve(min(40000, p));
+  for(int i = y; i > p; --i) {
+    if(isPrime(i)) {
+      printf("%d\n", i);
+      return 0;
+    }
+  }
+  puts("-1");
+  return 0;
+}

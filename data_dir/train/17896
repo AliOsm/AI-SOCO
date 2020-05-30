@@ -1,0 +1,133 @@
+#include <iostream>
+#include <cstring>
+using namespace std;
+
+typedef unsigned char uc;
+
+struct seg_tree
+{
+    int pow2;
+    uc* A;
+
+    seg_tree(int n)
+    {
+        pow2=1;
+        while(pow2<n) pow2*=2;
+        A=new uc[pow2*2];
+        memset(A, 0, pow2*2*sizeof(uc));
+    }
+
+    uc query(int ind)
+    {
+        ind+=pow2;
+        uc result=0;
+        while(ind>=1)
+        {
+            result^=A[ind];
+            ind>>=1;
+        }
+        return result;
+    }
+
+    void flip(int L, int R)
+    {
+        flip(L, R, 1, 0, pow2-1);
+    }
+
+    void flip(int L, int R, int ind, int LB, int RB)
+    {
+        if(L>R) return;
+        if(LB==L && R==RB)
+        {
+            A[ind]^=1;
+            return;
+        }
+        int MB=(LB+RB)>>1;
+        flip(L, min(R, MB), ind*2, LB, MB);
+        flip(max(MB+1, L), R, ind*2+1, MB+1, RB);
+    }
+
+    ~seg_tree()
+    {
+        delete[] A;
+    }
+};
+
+const int MAXN=2000+9;
+uc orig_field[MAXN][MAXN];
+seg_tree* seg_row[MAXN];
+seg_tree* seg_col[MAXN];
+int n;
+
+int solve(void)
+{
+    for(int i=0; i<n; i++)
+    {
+        seg_row[i]=new seg_tree(n);
+        seg_col[i]=new seg_tree(n);
+    }
+
+    int result=0;
+    for(int d=n-1; d>=0; d--)
+    {
+        uc xor_1=0;
+        for(int i=0; i<d; i++)
+        {
+            uc val=orig_field[i][d]^seg_row[i]->query(d)^seg_col[d]->query(i)^xor_1;
+            if(val)
+            {
+                seg_row[i]->flip(i, d);
+                //seg_col[d]->flip(i, d);
+                xor_1^=1;
+                result++;
+            }
+        }
+
+        uc xor_2=0;
+        for(int j=0; j<=d; j++)
+        {
+            uc val=orig_field[d][j]^seg_row[d]->query(j)^seg_col[j]->query(d)^xor_2;
+            if(j==d) val^=xor_1;
+
+            if(val)
+            {
+                xor_2^=1;
+                //seg_row[d]->flip(j, d);
+                seg_col[j]->flip(j, d);
+                result++;
+            }
+        }
+    }
+
+
+    for(int i=0; i<n; i++)
+    {
+        delete seg_row[i];
+        delete seg_col[i];
+    }
+
+    return result;
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin >> n;
+    for(int i=0; i<n; i++) cin >> orig_field[i];
+
+    /*
+    for(int i=0; i<n; i++)
+    {
+        cin.ignore(5, '\n');
+        for(int j=0; j<n; j++)
+        {
+            cin >> c;
+            orig_field[i][j]=c-'0';
+        }
+    }
+    */
+    for(int i=0; i<n; i++) for(int j=0; j<n; j++) orig_field[i][j]-='0';
+    cout << solve();
+    return 0;
+}

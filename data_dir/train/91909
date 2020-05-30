@@ -1,0 +1,213 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int INF = 1e9 + 239;
+
+struct Dsu {
+    int sz;
+    vector<int> p;
+    vector<int> rank;
+    
+    int get(int x) {
+        if (p[x] != x) {
+            p[x] = get(p[x]);
+        }
+        return p[x];
+    }
+    
+    void merge(int a, int b) {
+        a = get(a);
+        b = get(b);
+        if (a != b) {
+            if (rank[a] < rank[b]) {
+                swap(a, b);
+            }
+            p[b] = a;
+            if (rank[a] == rank[b]) {
+                rank[a]++;
+            }
+        }
+    }
+    
+    Dsu(int sz_)  {
+        sz = sz_;
+        p.resize(sz);
+        for (int i = 0; i < sz; i++) {
+            p[i] = i;
+        }
+        rank.resize(sz);
+    }
+};
+
+struct Edge {
+    int u;
+    int v;
+    int c;
+    bool in_mst;
+    
+    Edge() {
+        u = -1;
+        v = -1;
+        c = -1;
+        in_mst = false;
+    }
+    
+    Edge(int u_, int v_, int c_) {
+        u = u_;
+        v = v_;
+        c = c_;
+        in_mst = false;
+    }
+    
+    bool operator <(const Edge &other) const {
+        return c < other.c;
+    }
+};
+
+struct Hui {
+    const int LIM = 25;
+    
+    int sz;
+    vector<vector<pair<int, int>>> g;
+    vector<vector<int>> up;
+    vector<vector<int>> mx;
+    vector<int> tin;
+    vector<int> h;
+    vector<int> used;
+    vector<int> tout;
+
+    int timer = 0;
+    
+    void dfs(int cur, int who, int p, int d) {
+//        cerr << "in " << cur + 1 << endl;
+        up[0][cur] = p;
+        mx[0][cur] = who;
+        tin[cur] = timer;
+        timer++;
+        h[cur] = d;
+        used[cur] = 1;
+        for (auto [t, w] : g[cur]) {
+            if (!used[t]) {
+                dfs(t, w, cur, d + 1);
+            }
+        }
+        tout[cur] = timer;
+        timer++;
+    }
+    
+    void init_up() {
+        for (int i = 1; i < LIM; i++) {
+            for (int j = 0; j < sz; j++) {
+                auto tmp = up[i - 1][j];
+                if (tmp != -1) {
+                    up[i][j] = up[i - 1][tmp];
+                    mx[i][j] = max(mx[i - 1][j], mx[i - 1][tmp]);
+                }
+            }
+        }
+    }
+    
+    bool parent(int a, int b) {
+        return tin[a] <= tin[b] && tout[a] >= tout[b];
+    }
+    
+    int lca(int a, int b) {
+        if (parent(a, b)) {
+            return a;
+        } else if (parent(b, a)) {
+            return b;
+        } else {
+            for (int i = LIM - 1; i >= 0; i--) {
+                int cand = up[i][a];
+                if (cand != -1 && !parent(cand, b)) {
+                    a = cand;
+                }
+            }
+            return up[0][a];
+        }
+    }
+    
+    int get_up(int v, int h) {
+        int ans = -INF;
+        for (int i = LIM - 1; i >= 0; i--) {
+            if ((h >> i) & 1) {
+                ans = max(ans, mx[i][v]);
+                v = up[i][v];
+            }
+        }
+        return ans;
+    }
+    
+    int max_path(int a, int b) {
+        auto l = lca(a, b);
+        auto f = get_up(a, h[a] - h[l]);
+        auto s = get_up(b, h[b] - h[l]);
+        return max(f, s);
+    }
+    
+    Hui(const vector<vector<pair<int, int>>> &g_) {
+        sz = (int)g_.size();
+        g = g_;
+        up.resize(LIM, vector<int> (sz));
+        mx.resize(LIM, vector<int> (sz, -INF));
+        tin.resize(sz);
+        h.resize(sz);
+        used.resize(sz);
+        tout.resize(sz);
+        dfs(0, -1, -1, 0);
+        init_up();
+    }
+};
+
+void kr(int n, vector<Edge> &edges) {
+    Dsu d(n);
+    sort(edges.begin(), edges.end());
+    for (auto &t : edges) {
+        if (d.get(t.u) != d.get(t.v)) {
+//            cerr << t.u + 1 << ' ' << t.v + 1 << ' ' << t.c << endl;
+            d.merge(t.u, t.v);
+            t.in_mst = true;
+        }
+    }
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    #ifdef LOCAL
+    assert(freopen("input.txt", "r", stdin));
+    assert(freopen("output.txt", "w", stdout));
+    #endif
+    
+    int n, m;
+    cin >> n >> m;
+    vector<Edge> edges(m);
+    for (int i = 0; i < m; i++) {
+        int u, v, c;
+        cin >> u >> v >> c;
+        u--;
+        v--;
+        edges[i] = Edge(u, v, c);
+    }
+    kr(n, edges);
+    vector<vector<pair<int, int>>> g(n);
+    for (auto t : edges) {
+        if (t.in_mst) {
+            g[t.u].push_back({t.v, t.c});
+            g[t.v].push_back({t.u, t.c});
+        }
+    }
+    Hui hui(g);
+    int ans = 0;
+    for (auto t : edges) {
+        if (!t.in_mst) {
+            auto cost = hui.max_path(t.u, t.v);
+            if (cost == t.c) {
+                ans++;
+            }
+        }
+    }
+    cout << ans;
+}

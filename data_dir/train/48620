@@ -1,0 +1,356 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <set>
+#include <map>
+#include <list>
+#include <queue>
+#include <cmath>
+#include <stack>
+#include <ctime>
+#include <string>
+#include <cstdio>
+#include <vector>
+#include <bitset>
+#include <cstring>
+#include <numeric>
+#include <iostream>
+#include <algorithm>
+#include <functional>
+#include <unordered_map>
+#include <unordered_set>
+
+using namespace std;
+
+/// Definitions
+typedef long long			LL;
+typedef unsigned long long	ULL;
+typedef long double			LD;
+typedef unsigned int		UI;
+typedef pair<int, int>		PII;
+typedef tuple<int, int, int> T3I;
+typedef vector<int>			VI;
+
+// #define FILE
+// #define PRECISION   5
+#define fr          first
+#define sc          second
+#define mp          make_pair
+#define pb          push_back
+#define sz(x)       (int)(x).size()
+#define all(x)      (x).begin(), (x).end()
+#define f(i,a,b)    for (int i = a; i < b; ++i)
+#define r(i,a,b)    for (int i = a - 1; i >= b; --i)
+#define loop(n)     f(_, 0, n)
+#define g(x, pos)	get<pos>(x)
+
+/// Constants
+const LL    INF64 = 1000000000000000000;
+const LL    BigPrime = 252097800623;
+const LD    LDINF = 1000000000000;
+const LL    Mmod = 998244353;
+const LL    INF = 1000000000;
+const LL    Mod = 1000000007;
+const LD    PI = acosl(-1.);
+const LD    Eps = 10e-10;
+const LL    Prime = 131;
+const UI    N = 1000005;
+const UI	Len = 5005;
+/// ----------------------------------------------------
+/// ----------------------------------------------------
+
+int n, m;
+int a[N], b[N], c[N];
+
+int parent[N], sz[N];
+bool used[N];
+
+int findher(int v) {
+	if (v == parent[v])return v;
+	return parent[v] = findher(parent[v]);
+}
+
+void tmerge(int a, int b) {
+	a = findher(a);
+	b = findher(b);
+	if (sz[a] < sz[b]) swap(a, b);
+	parent[b] = a;
+	sz[a] += sz[b];
+}
+
+int nxt[N], order[N];
+vector < pair<int, int> > g[N] , gg[N];
+
+void hld(int v,int p) {
+	order[v] = 1;
+	for (int i = 0; i < (int)g[v].size(); i++) {
+		int to = g[v][i].first;
+		int id = g[v][i].second;
+		if (to == p)continue;
+		hld(to , v);
+		order[v] += order[to];
+		if (order[to] > order[g[v][0].first]) {
+			swap(g[v][0], g[v][i]);
+		}
+	}
+}
+
+int tin[N], tout[N], timer;
+int papa[N], val[N], mas[N];
+
+int dp[100005][22];
+
+void dfs(int v, int p) {
+	tin[v] = ++timer;
+	dp[v][0] = p;
+	for (int i = 1; i <= 20; i++)
+		dp[v][i] = dp[dp[v][i - 1]][i - 1];
+	for (int i = 0; i < (int)g[v].size(); i++) {
+		int to = g[v][i].first;
+		int id = g[v][i].second;
+		if (to == p)continue;
+		papa[to] = v;
+		val[to] = c[id];
+		nxt[to] = (i == 0) ? nxt[v] : to;
+		dfs(to, v);
+	}
+	tout[v] = timer;
+}
+
+bool check(int x, int y) {
+	return tin[x] <= tin[y] && tout[x] >= tout[y];
+}
+
+int lca(int a, int b) {
+	if (check(a, b))return a;
+	if (check(b, a))return b;
+	for (int i = 20; i >= 0; i--) {
+		if (check(dp[a][i], b) == false) {
+			a = dp[a][i];
+		}
+	}
+	return dp[a][0];
+}
+
+int pat[N];
+
+/////////////////////////////////////////////////////////
+
+int t[4 * N], d[4 * N];
+
+void build(int v, int s, int e) {
+	d[v] = -1;
+	t[v] = INF;
+	if (s == e)return;
+	int m = (s + e) / 2;
+	build(2 * v, s, m);
+	build(2 * v + 1, m + 1, e);
+}
+
+void push(int v, int s, int e) {
+	if (d[v] == -1)return;
+	t[v] = min(t[v], d[v]);
+	if (s != e) {
+		if (d[2 * v] == -1 || d[v] < d[2 * v])
+			d[2 * v] = d[v];
+		if (d[2 * v + 1] == -1 || d[v] < d[2 * v + 1])
+			d[2 * v + 1] = d[v];
+	}
+	d[v] = -1;
+}
+
+void update(int v,int s,int e,int l,int r,int delta){
+	push(v, s, e);
+	if (l > r)return;
+	if (s == l && e == r) {
+		if (d[v] == -1 || delta < d[v]) d[v] = delta;
+		push(v, s, e);
+		return;
+	}
+	int m = (s + e) / 2;
+	update(2 * v, s, m, l, min(r, m), delta);
+	update(2 * v + 1, m + 1, e, max(m + 1, l), r, delta);
+	t[v] = min(t[2 * v], t[2 * v + 1]);
+}
+
+void update(int a, int b, int c) {
+	while (tin[nxt[a]] > tin[b]) {
+		//cout << tin[nxt[a]] << " " << tin[a] << endl;
+		update(1, 1, n, tin[nxt[a]], tin[a], c);
+		a = papa[nxt[a]];
+	}
+	//cout << tin[b] + 1 << " " << tin[a] << endl;
+	update(1, 1, n, tin[b] + 1, tin[a], c);
+}
+
+int get(int v, int s, int e, int pos) {
+	push(v, s, e);
+	if (s == e)return t[v];
+	int m = (s + e) / 2;
+	if (pos <= m)return get(2 * v, s, m, pos);
+	return get(2 * v + 1, m + 1, e, pos);
+}
+
+/////////////////////////////////////////////////////////
+
+int tt[4 * N];
+
+void bld(int v, int s, int e) {
+	if (s == e) {
+		tt[v] = mas[s];
+		return;
+	}
+	int m = (s + e) / 2;
+	bld(2 * v, s, m);
+	bld(2 * v + 1, m + 1, e);
+	tt[v] = max(tt[2 * v], tt[2 * v + 1]);
+}
+
+int query(int v, int s, int e, int l, int r) {
+	if (l > r)return 0;
+	if (s == l && e == r)return tt[v];
+	int m = (s + e) / 2;
+	return max(query(2 * v, s, m, l, min(r, m)), query(2 * v + 1, m + 1, e, max(m + 1, l), r));
+}
+
+int query(int a, int b) {
+	int answ = 0;
+	while (tin[nxt[a]] > tin[b]) {
+		answ = max(answ, query(1, 1, n, tin[nxt[a]], tin[a]));
+		a = papa[nxt[a]];
+	}
+	answ = max(answ, query(1, 1, n, tin[b] + 1, tin[a]));
+	return answ;
+}
+
+/////////////////////////////////////////////////////////
+
+void solve(int v, int p) {
+	for (int i = 0; i < (int)gg[v].size(); i++) {
+		int to = gg[v][i].first;
+		int id = gg[v][i].second;
+		if (tin[to] > tin[v])continue;
+		int a = to, b = v, her = lca(a,b);
+		update(a, her, c[id]);
+		update(b, her, c[id]);
+		pat[id] = max(query(b, her) , query(a, her));
+	}
+	for (int i = 0; i < (int)g[v].size(); i++) {
+		int to = g[v][i].first;
+		int id = g[v][i].second;
+		if (to == p)continue;
+		solve(to, v);
+	}
+}
+
+void solve1() {
+	cin >> n >> m;
+	vector < pair<int, int> > G;
+	for (int i = 1; i <= m; i++) {
+		scanf("%d%d%d", &a[i], &b[i], &c[i]);
+		G.push_back(make_pair(c[i], i));
+	}
+	sort(G.begin(), G.end());
+	for (int i = 1; i <= n; i++) {
+		parent[i] = i;
+		sz[i] = 1;
+	}
+	for (int i = 0; i < (int)G.size(); i++) {
+		int id = G[i].second;
+		int a = ::a[id], b = ::b[id];
+		if (findher(a) != findher(b)) {
+			used[id] = true;
+			tmerge(a, b);
+		}
+	}
+	for (int i = 1; i <= m; i++) {
+		if (used[i] == false) {
+			gg[a[i]].push_back(make_pair(b[i], i));
+			gg[b[i]].push_back(make_pair(a[i], i));
+		}
+		else {
+			g[a[i]].push_back(make_pair(b[i], i));
+			g[b[i]].push_back(make_pair(a[i], i));
+		}
+	}
+	hld(1, -1);
+	for (int i = 1; i <= n; i++) {
+		nxt[i] = i;
+	}
+	dfs(1, 1);
+	///
+	for (int i = 1; i <= n; i++) {
+		mas[tin[i]] = val[i];
+	}
+	build(1, 1, n);
+	bld(1, 1, n);
+	///
+	solve(1, -1);
+	for (int i = 1; i <= m; i++) {
+		if (used[i]) {
+			if (a[i] != papa[b[i]])
+				swap(a[i], b[i]);
+ 			printf("%d\n", get(1, 1, n, tin[b[i]]));
+		}
+		else {
+			printf("%d\n", pat[i]);
+		}
+	}
+}
+
+/*struct point {
+	int x;
+	int y;
+} p[N];
+
+map<int, int> c;
+
+bool cmp(point a, point b) {
+	return a.x + a.y < b.x + b.y;
+}
+
+void solve()
+{
+	int n, r;
+	scanf("%d%d", &n, &r);
+	for (int i = 0; i < n; ++i) {
+		scanf("%d%d", &p[i].x, &p[i].y);
+		c[p[i].x - p[i].y] = 1;
+	}
+	int cnt = 0;
+	for (auto& it : c) {
+		it.second = ++cnt;
+	}
+	sort(p, p + n, cmp);
+	int ans = 0, j = 0;
+	for (int i = 0; i < n; ++i) {
+		update(1, 1, n, c[p[i].x - p[i].y], 1);
+		while (p[j].x + p[j].y < p[i].x + p[i].y - 2 * r) {
+			update(1, 1, n, c[p[j].x - p[j].y], -1);
+			++j;
+		}
+	}
+}*/
+
+
+int main()
+{
+#ifdef FILE
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+#ifdef PRECISION
+	cout.setf(ios::fixed);
+	cout.precision(PRECISION);
+#endif
+
+	int testcases = 1;
+	// scanf("%d", &testcases);
+	loop(testcases) {
+//		input();
+		//clock_t start = clock();
+		//solve();
+		solve1();
+		//printf("---------------------\n%.5f seconds\n---------------------\n", (clock() - start + 0.) / CLOCKS_PER_SEC);
+	}
+
+	return 0;
+}

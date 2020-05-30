@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+struct node {
+	int lft[11], rgt[11], sets;
+
+	node() {
+		memset(lft, -1, sizeof lft);
+		memset(rgt, -1, sizeof rgt);
+		sets = 0;
+	}
+
+	void unite(int x, int y) {
+		sets--;
+		fori(i, 1, 11) {
+			if(lft[i] == x) {
+				lft[i] = y;
+			}
+			if(rgt[i] == x) {
+				rgt[i] = y;
+			}
+		}
+	}
+};
+
+const int MAX_M = 1e5 + 5;
+const int MAX_N = 15;
+node st[4 * MAX_M];
+int grid[MAX_N][MAX_M];
+int n, m, q;
+
+node merge(node a, node b, int l, int r) {
+	node c;
+	fori(i, 1, n + 1) {
+		c.lft[i] = a.lft[i];
+		c.rgt[i] = b.rgt[i];
+	}
+	c.sets = a.sets + b.sets;
+	fori(i, 1, n + 1) {
+		if(grid[i][l] == grid[i][r]) {
+			if(a.rgt[i] != b.lft[i]) {
+				c.unite(a.rgt[i], b.lft[i]);
+				a.unite(a.rgt[i], b.lft[i]);
+			}
+		}
+	}
+	return c;
+}
+
+void build(int p, int l, int r) {
+	if(l == r) {
+		fori(i, 1, n + 1) {
+			st[p].lft[i] = st[p].rgt[i] = (l - 1) * n + i;
+		}
+		st[p].sets = n;
+		fori(i, 2, n + 1) {
+			if(grid[i][l] == grid[i - 1][l]) {
+				st[p].unite(st[p].lft[i], st[p].rgt[i - 1]);
+			}
+		}
+		return;
+	}
+	int mid = (l + r) / 2;
+	build(p * 2, l, mid);
+	build(p * 2 + 1, mid + 1, r);
+	st[p] = merge(st[p * 2], st[p * 2 + 1], mid, mid + 1);
+}
+
+node query(int p, int l, int r, int i, int j) {
+	if(l >= i && j >= r) {
+		return st[p];
+	}
+	int mid = (l + r) / 2;
+	node ret;
+	if(mid >= j) {
+		ret = query(p * 2, l, mid, i, j);
+	}
+	else if(mid < i) {
+		ret = query(p * 2 + 1, mid + 1, r, i, j);
+	}
+	else {
+		ret = merge(query(p * 2, l, mid, i, j), query(p * 2 + 1, mid + 1, r, i, j), mid, mid + 1);
+	}
+	return ret;
+}
+
+int main() {
+	scanf("%d %d %d", &n, &m, &q);
+	fori(i, 1, n + 1) {
+		fori(j, 1, m + 1) {
+			scanf("%d", &grid[i][j]);
+		}
+	}
+
+	build(1, 1, m);
+
+	fori(t, 0, q) {
+		int l, r;
+		scanf("%d %d", &l, &r);
+		printf("%d\n", query(1, 1, m, l, r).sets);
+	}
+
+	return 0;
+}
+

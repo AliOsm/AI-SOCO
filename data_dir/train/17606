@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int DMAX = 2010, NMAX = 16;
+bitset <DMAX> dp[1 << NMAX];
+int n, k;
+int a[NMAX];
+
+void calc_dp()
+{
+	dp[0][0] = 1;
+	for (int mask = 0; mask < (1 << n); mask++) {
+		for (int i = DMAX - 1; i >= 1; i--)
+			if (dp[mask][i] && i % k == 0)
+				dp[mask][i / k] = 1;
+		
+		for (int i = 0; i < n; i++)
+			if ((mask & (1 << i)) == 0)
+				dp[mask + (1 << i)] |= (dp[mask] << a[i]);
+	}
+}
+
+vector <pair <int, int>> backprop()
+{
+	/// cum ajung din (0, 0) in ((1 << n) - 1, 1)
+	vector <int> b(n);
+	int mask = (1 << n) - 1, s = 1;
+
+	while (mask) {
+		assert(dp[mask][s]);
+		if (s * k < DMAX && dp[mask][s * k]) {
+			s *= k;
+			for (int i = 0; i < n; i++)
+				if (mask & (1 << i))
+					b[i]++;
+		}
+		else {
+			/// incerc sa ii dau push in sus
+			int rem = -1;
+			for (int i = 0; i < n; i++)
+				if ((mask & (1 << i)) != 0 && s >= a[i] && dp[mask - (1 << i)][s - a[i]])
+					rem = i;
+			
+			assert(rem != -1);
+			s -= a[rem], mask -= (1 << rem);
+		}
+	}
+
+	/// acum am obtinut sirul b, trebuie din el sa imi scot operatiile
+	vector <pair <int, int>> ops;
+	multiset <pair <int, int>> vals;
+	for (int i = 0; i < n; i++)
+		vals.insert({ b[i], a[i] });
+
+	while ((int)vals.size() != 1) {
+		auto nr1 = *prev(vals.end()), nr2 = *prev(prev(vals.end()));
+		vals.erase(prev(vals.end()));
+		vals.erase(prev(vals.end()));
+		
+		assert(nr1.first == nr2.first);
+
+		ops.push_back({ nr1.second, nr2.second });
+		nr1.second += nr2.second;
+		while (nr1.second % k == 0)
+			nr1.second /= k, nr1.first--;
+		vals.insert(nr1);
+	}
+
+	return ops;
+}
+
+int main()
+{
+	cin >> n >> k;
+
+	for (int i = 0; i < n; i++)
+		cin >> a[i];
+
+	calc_dp();
+
+	if (dp[(1 << n) - 1][1] == 0)
+		cout << "NO\n";
+	else {
+		cout << "YES\n";
+		auto v = backprop();
+		for (auto i : v)
+			cout << i.first << ' ' << i.second << '\n';
+	}
+	return 0;
+}

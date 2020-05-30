@@ -1,0 +1,362 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <set>
+#include <algorithm>
+
+using namespace std;
+
+typedef size_t index_t;
+typedef vector< index_t > index_vector;
+
+typedef vector< char > bool_vector;
+
+typedef int mask_t;
+
+#define safe_forin(i,n) for (int (i) = 0, __size = (n); (i) < __size; ++(i))
+#define forin(i,n) for (index_t (i) = 0, __size = (n); (i) < __size; ++(i))
+#define all(x) (x).begin(), (x).end()
+
+#define self (*this)
+
+#define zero_bit(x) ((x) & 1)
+#define is_even(x) (zero_bit(x) == 0)
+#define is_odd(x) (zero_bit(x) == 1)
+
+#define space ' '
+#define nl '\n'
+#define newline cout << nl;
+	
+int read_int()
+{
+	int value;
+	cin >> value;
+	
+	return value;
+}
+
+template < class T > 
+void println(const T & value)
+{
+	cout << value << nl;
+}
+
+template < class T >
+void print_vector(const vector< T > & values)
+{
+	forin(i, values.size())
+		cout << values[i] << space;
+		
+	newline;
+}
+
+void print_indexes(const index_vector & indexes)
+{
+	forin(i, indexes.size())
+		cout << indexes[i] + 1 << space;
+	
+	newline;
+}
+
+bool check_index(const index_t index, const size_t size)
+{
+	return (0 <= index && index < size);
+}
+
+bool check_indexes(
+	const index_t x, const size_t x_size, 
+	const index_t y, const size_t y_size)
+{
+	return check_index(x, x_size) && check_index(y, y_size);
+}
+
+mask_t set_bit(mask_t & mask, const index_t bit_index)
+{
+	return mask = (mask | (1 << bit_index));
+}
+
+typedef unsigned int modulo_t;
+typedef vector< modulo_t > modulo_vector;
+
+const modulo_t MODULO = 1000 * 1000 * 1000 + 9;
+
+inline modulo_t add(modulo_t a, modulo_t b)
+{
+	return (a + b) % MODULO;
+}
+
+inline modulo_t multiply(modulo_t a, modulo_t b)
+{
+	return static_cast< modulo_t >((a * 1LL * b) % MODULO);
+}
+
+typedef long long fib_base;
+typedef vector< fib_base > fib_base_vector;
+
+const unsigned long long SHIFT = 32;
+const unsigned long long FIRST_MASK = (1LL << SHIFT) - 1;
+
+#define first(x) ((x) & FIRST_MASK)
+#define second(x) ((x) >> SHIFT)
+#define make_base(x, y) ((x) | (static_cast< long long >(y) << SHIFT))
+
+fib_base add_base(const fib_base & changed_base, const fib_base & added_base)
+{
+	modulo_t first_value = add(first(changed_base), first(added_base));
+	modulo_t second_value = add(second(changed_base), second(added_base));
+	
+	return make_base(first_value, second_value);
+}
+
+static const fib_base BASE = make_base(1LL, 0LL);
+static const fib_base EMPTY_BASE = 0;
+
+inline index_t min(const index_t a, const index_t b)
+{
+	return (a < b ? a : b);
+}
+
+inline index_t max(const index_t a, const index_t b)
+{
+	return (a > b ? a : b);
+}
+
+class Segment_tree
+{
+	typedef index_t vertex_t;	
+	typedef vector< size_t > size_vector;
+	
+	private:
+		static const vertex_t ROOT = 1;
+		
+		const size_t array_size, tree_size;
+		
+		size_vector v_sizes;
+		
+		fib_base_vector bases;
+		modulo_vector sums;
+	
+		modulo_vector fibs;
+		fib_base_vector base_powers;
+		
+		modulo_t shifted_value(const index_t shift, const fib_base & base_values)
+		{
+			modulo_t base_first = first(base_values);
+			modulo_t base_second = second(base_values);
+			
+			modulo_t value = add(multiply(fibs[shift+2], base_first), multiply(fibs[shift+1], base_second));
+			return value;
+		}
+		
+		fib_base shift_base(const index_t shift, const fib_base & base_values)
+		{
+			modulo_t shifted_first = shifted_value(shift, base_values);
+			modulo_t shifted_second = shifted_value(shift - 1, base_values);
+			
+			return make_base(shifted_first, shifted_second);
+		}
+		
+		modulo_t get_segment_sum(const size_t segment_size, const fib_base & base_values)
+		{
+			modulo_t fib_large = shifted_value(segment_size + 1, base_values);
+			modulo_t fib_small = add(first(base_values), second(base_values));
+			
+			modulo_t sum = add(fib_large, MODULO - fib_small);
+			return sum;
+		}
+		
+		modulo_t build_tree(const vertex_t v, const index_t left, const index_t right, const modulo_vector & array)
+		{
+			if (left == right)
+			{
+				v_sizes[v] = 1;
+				return (sums[v] = array[left]);
+			}
+			else
+			{
+				index_t mid = ((left + right) >> 1);
+				
+				index_t v_left = (v << 1);
+				index_t v_right = (v_left + 1);
+				
+				modulo_t left_sum = build_tree(v_left, left, mid, array);
+				modulo_t right_sum = build_tree(v_right, mid + 1, right, array);
+				
+				v_sizes[v] = v_sizes[v_left] + v_sizes[v_right];
+				
+				return (sums[v] = add(left_sum, right_sum));
+			}
+		}
+		
+		void push(const vertex_t v, const vertex_t v_left, const vertex_t v_right)
+		{
+			fib_base vertex_base = bases[v];
+			
+			if (vertex_base != 0)
+			{
+				fib_base left_base = bases[v_left];
+				fib_base right_base = bases[v_right];
+				
+				size_t left_size = v_sizes[v_left];
+				
+				bases[v_left] = add_base(left_base, vertex_base);
+				bases[v_right] = add_base(right_base, shift_base(left_size, vertex_base));
+				
+				bases[v] = EMPTY_BASE;	
+			}
+		}
+		
+		void update(const vertex_t v, const vertex_t v_left, const vertex_t v_right)
+		{
+			fib_base left_base = bases[v_left];
+			size_t left_size = v_sizes[v_left];
+			
+			fib_base right_base = bases[v_right];
+			size_t right_size = v_sizes[v_right];
+			
+			modulo_t left_sum = add(sums[v_left], get_segment_sum(left_size, left_base));
+			modulo_t right_sum = add(sums[v_right], get_segment_sum(right_size, right_base));
+			
+			sums[v] = add(left_sum, right_sum);
+		}
+		
+		modulo_t add_segment(
+			const vertex_t v, const index_t left, const index_t right, 
+			const index_t left_index, const index_t right_index, const index_t base_power)
+		{
+			if (right_index < left || right < left_index)
+				return 0;
+			
+			if (left == left_index && right_index == right)
+			{
+				fib_base base = base_powers[base_power];
+				bases[v] = add_base(bases[v], base);
+			}
+			else
+			{
+				vertex_t v_left = (v << 1);
+				vertex_t v_right = (v_left + 1);
+				
+				index_t mid = ((left + right) >> 1);
+				
+				push(v, v_left, v_right);
+				
+				if (right_index <= mid)
+					add_segment(v_left, left, mid, left_index, right_index, base_power);
+				else if (left_index >= mid + 1)
+					add_segment(v_right, mid + 1, right, left_index, right_index, base_power);
+				else
+				{
+					size_t left_part_size = (mid - left_index + 1);
+					
+					add_segment(v_left, left, mid, left_index, mid, base_power);
+					add_segment(v_right, mid + 1, right, mid + 1, right_index, base_power + left_part_size);
+				}
+				
+				update(v, v_left, v_right);
+			}
+			
+			return sums[v];
+		}
+	
+		modulo_t const get_segment(
+			const vertex_t v, const index_t left, const index_t right, 
+			const index_t left_index, const index_t right_index)
+		{
+			if (right_index < left || right < left_index)
+				return 0;
+			
+			modulo_t segment_sum = 0;
+			
+			if (left == left_index && right_index == right)
+			{
+				segment_sum = add(segment_sum, sums[v]);
+				
+				size_t v_size = v_sizes[v];
+				segment_sum = add(segment_sum, get_segment_sum(v_size, bases[v]));
+			}
+			else
+			{
+				vertex_t v_left = (v << 1);
+				vertex_t v_right = (v_left + 1);
+				
+				index_t mid = ((left + right) >> 1);
+				
+				push(v, v_left, v_right);
+				
+				modulo_t left_sum = get_segment(v_left, left, mid, left_index, min(mid, right_index));
+				modulo_t right_sum = get_segment(v_right, mid + 1, right, max(left_index, mid + 1), right_index);
+				
+				segment_sum = add(segment_sum, add(left_sum, right_sum));
+				
+				update(v, v_left, v_right);
+			}
+			
+			return segment_sum;
+		}
+	
+	public:
+		Segment_tree(const modulo_vector & array)
+		: array_size(array.size())
+		, tree_size(array_size << 2)
+		, v_sizes(tree_size)
+		, bases(tree_size)
+		, sums(tree_size)
+		, fibs(array_size + 10)
+		, base_powers(fibs.size())
+		{
+			fibs[0] = 1;
+			fibs[1] = 0;
+			
+			for (index_t fib_index = 2; fib_index < fibs.size(); ++fib_index)
+				fibs[fib_index] = add(fibs[fib_index - 1], fibs[fib_index - 2]);
+		
+			forin (power, fibs.size())
+				base_powers[power] = shift_base(power, BASE);
+			
+			build_tree(ROOT, 0, array_size - 1, array);
+		}
+		
+		void add_segment(const index_t left, const index_t right)
+		{
+			add_segment(ROOT, 0, array_size - 1, left, right, 0);
+		}
+		
+		modulo_t const get_segment(const index_t left, const index_t right)
+		{
+			modulo_t sum = get_segment(ROOT, 0, array_size - 1, left, right);
+			return sum;
+		}
+};
+
+typedef int operation_t;
+const operation_t ADD = 1, PRINT_SUM = 2;
+
+int main()
+{
+	cin.sync_with_stdio(0);
+	cin.tie(0);
+	
+	const size_t n = read_int();
+	size_t queries_count = read_int();
+	
+	modulo_vector array(n);
+	forin(i, n)
+		array[i] = read_int();
+	
+	Segment_tree tree(array);
+	
+	while (queries_count --> 0) 
+	{
+		operation_t operation = read_int();
+		index_t left = read_int() - 1;
+		index_t right = read_int() - 1;
+		
+		if (operation == ADD)
+			tree.add_segment(left, right);
+		else
+			println(tree.get_segment(left, right));
+	}
+	
+	return 0;
+}

@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int dp[21][21][1<<8], tot, good;
+int p[10][2], v[10];
+char s[30][30];
+int wayx[10] = {-1, 0, 1, 0};
+int wayy[10] = {0, -1, 0, 1};
+
+struct Node {
+    int x, y, s;
+    Node(): x(0), y(0), s(0) {}
+    Node(int a, int b, int c): x(a), y(b), s(c) {}
+};
+queue <Node> q;
+
+int ck(int ps, int x, int y) {
+    for (int i = 0; i < tot; i++) {
+        if (p[i][0] == x && p[i][1] > y) ps ^= (1<<i);
+    }
+    return ps;
+}
+
+void ins(Node ne, int now) {
+    if (dp[ne.x][ne.y][ne.s] == -1) {
+        dp[ne.x][ne.y][ne.s] = now;
+        q.push(ne);
+    }
+}
+
+bool ok(int s) {
+    for (int i = good; i < tot; i++) {
+        if (s & (1<<i)) return false;
+    }
+    return true;
+}
+
+int val(int s) {
+    int ans = 0;
+    for (int i = 0; i < good; i++)
+        if (s & (1<<i)) ans += v[i];
+    return ans;
+}
+
+
+int main() {
+    int n, m;
+    scanf("%d%d", &n, &m);
+    memset(p, -1, sizeof(p));
+    int sx = 0, sy = 0;
+    tot = good = 0;
+    for (int i = 0; i < n; i++) {
+        scanf("%s", s[i]);
+        for (int j = 0; j < m; j++) {
+            if (s[i][j] == 'S') {
+                sx = i;
+                sy = j;
+            } else if (s[i][j] >= '1' && s[i][j] <= '8') {
+                p[s[i][j] - '1'][0] = i;
+                p[s[i][j] - '1'][1] = j;
+                tot++;
+            }
+        }
+    }
+    good = tot;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            if (s[i][j] == 'B') {
+                p[tot][0] = i;
+                p[tot][1] = j;
+                tot++;
+            }
+        }
+    }
+    for (int i = 0; i < good; i++)
+        scanf("%d", &v[i]);
+    memset(dp, -1, sizeof(dp));
+    Node ne = Node(sx, sy, 0);
+    ins(ne, 0);
+    int ans = 0;
+    while (!q.empty()) {
+        Node hh = q.front();
+        if (hh.x == sx && hh.y == sy && ok(hh.s)) {
+            ans = max(ans, val(hh.s) - dp[hh.x][hh.y][hh.s]);
+        }
+        q.pop();
+        for (int i = 0; i < 4; i++) {
+            int tx = hh.x + wayx[i];
+            int ty = hh.y + wayy[i];
+            if (tx < 0 || tx >= n || ty < 0 || ty >= m || (s[tx][ty] != 'S' && s[tx][ty] != '.')) continue;
+            Node ne;
+            if (i == 0) {
+                ne = Node(tx, ty, ck(hh.s, hh.x, hh.y));
+            }
+            else if (i == 2) {
+                ne = Node(tx, ty, ck(hh.s, tx, ty));
+            }
+            else
+                ne = Node(tx, ty, hh.s);
+            ins(ne, dp[hh.x][hh.y][hh.s] + 1);
+        }
+    }
+    printf("%d\n", ans);
+    return 0;
+}

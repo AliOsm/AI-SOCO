@@ -1,0 +1,161 @@
+
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <stack>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <set>
+#include <cstdlib>
+#include <bitset>
+#include <tuple>
+#include <assert.h>
+#include <deque>
+#include <bitset>
+#include <iomanip>
+#include <limits>
+#include <chrono>
+#include <random>
+#include <array>
+#include <unordered_map>
+#include <functional>
+#include <complex>
+
+template<class T> inline bool chmax(T& a, T b) { if (a < b) { a = b; return 1; } return 0; }
+template<class T> inline bool chmin(T& a, T b) { if (a > b) { a = b; return 1; } return 0; }
+
+constexpr long long MAX = 5100000;
+constexpr long long INF = 1LL << 60;
+constexpr int inf = 1 << 28;
+constexpr long long mod = 1000000007LL;
+//constexpr long long mod = 998244353LL;
+
+using namespace std;
+typedef unsigned long long ull;
+typedef long long ll;
+
+template< typename Monoid, typename OperatorMonoid = Monoid >
+struct LazySegmentTree {
+    using F = function< Monoid(Monoid, Monoid) >;
+    using G = function< Monoid(Monoid, OperatorMonoid) >;
+    using H = function< OperatorMonoid(OperatorMonoid, OperatorMonoid) >;
+
+    int sz, height;
+    vector< Monoid > data;
+    vector< OperatorMonoid > lazy;
+    const F f;
+    const G g;
+    const H h;
+    const Monoid M1;
+    const OperatorMonoid OM0;
+
+
+    LazySegmentTree(int n, const F f, const G g, const H h,
+        const Monoid& M1, const OperatorMonoid OM0)
+        : f(f), g(g), h(h), M1(M1), OM0(OM0) {
+        sz = 1;
+        height = 0;
+        while (sz < n) sz <<= 1, height++;
+        data.assign(2 * sz, M1);
+        lazy.assign(2 * sz, OM0);
+    }
+
+    void set(int k, const Monoid& x) {
+        data[k + sz] = x;
+    }
+
+    void build() {
+        for (int k = sz - 1; k > 0; k--) {
+            data[k] = f(data[2 * k + 0], data[2 * k + 1]);
+        }
+    }
+
+    inline void propagate(int k) {
+        if (lazy[k] != OM0) {
+            lazy[2 * k + 0] = h(lazy[2 * k + 0], lazy[k]);
+            lazy[2 * k + 1] = h(lazy[2 * k + 1], lazy[k]);
+            data[k] = reflect(k);
+            lazy[k] = OM0;
+        }
+    }
+
+    inline Monoid reflect(int k) {
+        return lazy[k] == OM0 ? data[k] : g(data[k], lazy[k]);
+    }
+
+    inline void recalc(int k) {
+        while (k >>= 1) data[k] = f(reflect(2 * k + 0), reflect(2 * k + 1));
+    }
+
+    inline void thrust(int k) {
+        for (int i = height; i > 0; i--) propagate(k >> i);
+    }
+
+    void update(int a, int b, const OperatorMonoid& x) {
+        thrust(a += sz);
+        thrust(b += sz - 1);
+        for (int l = a, r = b + 1; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) lazy[l] = h(lazy[l], x), ++l;
+            if (r & 1) --r, lazy[r] = h(lazy[r], x);
+        }
+        recalc(a);
+        recalc(b);
+    }
+
+    Monoid query(int a, int b) {
+        thrust(a += sz);
+        thrust(b += sz - 1);
+        Monoid L = M1, R = M1;
+        for (int l = a, r = b + 1; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) L = f(L, reflect(l++));
+            if (r & 1) R = f(reflect(--r), R);
+        }
+        return f(L, R);
+    }
+
+    Monoid operator[](const int& k) {
+        return query(k, k + 1);
+    }
+
+};
+
+ll f(ll a, ll b) {
+    return min(a, b);
+}
+
+ll g(ll a, ll b) {
+    return a + b;
+}
+int main()
+{
+	/*
+	cin.tie(nullptr);
+	ios::sync_with_stdio(false);
+	*/
+	ll n; scanf("%lld", &n);
+	vector<ll> p(n); for (int i = 0; i < n; i++) scanf("%lld", &p[i]), p[i]--;
+	vector<ll> a(n); for (int i = 0; i < n; i++) scanf("%lld", &a[p[i]]);
+    LazySegmentTree<ll, ll> lsg(n + 1, f, g, g, INF, 0);
+    ll sum = 0;
+    lsg.set(0, 0);
+    for (int i = 0; i < n; i++) {
+        sum += a[i];
+        lsg.set(i + 1, sum);
+    }
+    lsg.build();
+    ll res = INF;
+    for (int i = 0; i < n - 1; i++) {
+        lsg.update(0, p[i] + 1, a[p[i]]);
+        if(p[i] + 1 < n + 1) lsg.update(p[i] + 1, n + 1, -a[p[i]]);
+        //cout << lsg.query(0, n + 1) << endl;
+        chmin(res, lsg.query(0, n + 1));
+    }
+    cout << res << endl;
+	return 0;
+	/*
+		おまじないを使ったらscanfとprintf関連注意！！！！！！！！！！！！
+	*/
+}

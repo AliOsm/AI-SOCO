@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int calc(const vector<string> &a, const vector<string> &b) {
+    int n = a.size();
+    int m = a.front().length();
+    int ret = 0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            ret += a[i][j] != b[i][j];
+        }
+    }
+    return ret;
+}
+
+struct Edge {
+    int f, t, c;
+    Edge(){}
+    Edge(int f, int t, int c) : f(f), t(t), c(c) {}
+    bool operator < (const Edge &e) const {
+        return c < e.c;
+    }
+};
+
+vector<int> p;
+vector<int> sz;
+
+int get(int a) {
+    if (p[a] == a) {
+        return a;
+    }
+    return p[a] = get(p[a]);
+}
+
+bool unite(int a, int b) {
+    a = get(a);
+    b = get(b);
+
+    if (a == b) {
+        return false;
+    }
+    if (sz[a] > sz[b]) {
+        p[b] = a;
+        sz[a] += sz[b];
+    } else {
+        p[a] = b;
+        sz[b] += sz[a];
+    }
+    return true;
+}
+
+vector<vector<int> > g;
+vector<int> par;
+
+void dfs(int v, int p = -1) {
+    par[v] = p;
+    cout << v + 1 << " " << p + 1 << "\n";
+    for (int to : g[v]) {
+        if (to == p) {
+            continue;
+        }
+        dfs(to, v);
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+
+    int n, m, k, w;
+    cin >> n >> m >> k >> w;
+
+    vector<string> ls[k];
+    for (int i = 0; i < k; ++i) {
+        ls[i].resize(n);
+        for (int j = 0; j < n; ++j) {
+            cin >> ls[i][j];
+        }
+    }
+
+    int dist[k][k];
+    memset(dist, 0, sizeof(dist));
+    for (int i = 0; i < k; ++i) {
+        for (int j = i + 1; j < k; ++j) {
+            dist[i][j] = dist[j][i] = calc(ls[i], ls[j]);
+        }
+    }
+
+    vector<Edge> e;
+    for (int i = 0; i < k; ++i) {
+        for (int j = i + 1; j < k; ++j) {
+            if (dist[i][j] * w < n * m) {
+                e.push_back(Edge(i, j, dist[i][j] * w));
+            }
+        }
+    }
+
+    p.resize(k);
+    sz.assign(k, 1);
+    g.assign(k, vector<int>());
+    for (int i = 0; i < k; ++i) {
+        p[i] = i;
+    }
+
+    sort(e.begin(), e.end());
+
+    long long ans = 0;
+    for (int i = 0; i < (int)e.size(); ++i) {
+        if (unite(e[i].f, e[i].t)) {
+            ans += e[i].c;
+            g[e[i].f].push_back(e[i].t);
+            g[e[i].t].push_back(e[i].f);
+        }
+    }
+
+    set<int> ss;
+    for (int i = 0; i < k; ++i) {
+        ss.insert(get(i));
+    }
+    ans += ss.size() * n * m;
+    cout << ans << endl;
+
+    par.assign(k, -2);
+    for (int i = 0; i < k; ++i) {
+        if (par[i] == -2) {
+            dfs(i);
+        }
+    }
+    return 0;
+}

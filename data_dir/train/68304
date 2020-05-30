@@ -1,0 +1,140 @@
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#define N 2005
+#define LOG 13
+#define INF 1000000005
+
+using namespace std;
+
+int n;
+int a[N][N];
+bool used[N];
+int mn[N];
+int pr[N];
+vector<int> e[N];
+int tin[N], tout[N];
+int timer;
+int d[N][N];
+bool res = true;
+int lca[N][N];
+
+void dfsPr(int v, int pr = -1) {
+    tin[v] = ++timer;
+    for (int i = 0; i < (int)e[v].size(); ++i) {
+        int to = e[v][i];
+        if (to != pr) {
+            dfsPr(to, v);
+        }
+    }
+    tout[v] = ++timer;
+}
+
+bool isPr(int a, int b) {
+    return (tin[a] <= tin[b]) && (tout[a] >= tout[b]);
+}
+
+void dfsLCA(int v, int pr = 0) {
+    if (pr == v) {
+        for (int to = 0; to < n; ++to) {
+            lca[to][v] = lca[v][to] = v;
+        }
+    } else {
+        for (int to = 0; to < n; ++to) {
+            lca[v][to] = lca[to][v] = (isPr(v, to) ? v : lca[pr][to]);
+        }
+    }
+    for (int i = 0; i < (int)e[v].size(); ++i) {
+        int to = e[v][i];
+        if (to != pr) {
+            dfsLCA(to, v);
+        }
+    }
+}
+
+int main() {
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+    scanf("%d", &n);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            scanf("%d", &a[i][j]);
+            if (j < i) {
+                res &= (a[i][j] == a[j][i]);
+            }
+        }
+        res &= (a[i][i] == 0);
+    }
+    if (!res) {
+        cout << "NO\n";
+        return 0;
+    }
+    for (int i = 0; i < n; ++i) {
+        mn[i] = INF;
+        pr[i] = -1;
+    }
+    pr[0] = 0;
+    mn[0] = 0;
+    for (int i = 0; i < n; ++i) {
+        int v = -1;
+        for (int j = 0; j < n; ++j) {
+            if (!used[j] && (v == -1 || mn[j] < mn[v])) {
+                v = j;
+            }
+        }
+        used[v] = true;
+        for (int to = 0; to < n; ++to) {
+            if (a[v][to] < mn[to] && !used[to]) {
+                mn[to] = a[v][to];
+                pr[to] = v;
+            }
+        }
+    }
+    for (int i = 1; i < n; ++i) {
+        e[i].push_back(pr[i]);
+        e[pr[i]].push_back(i);
+    }
+    dfsPr(0);
+    dfsLCA(0);
+    for (int v = 0; v < n; ++v) {
+        int sum = 0;
+        int u = v;
+        while (u != pr[u]) {
+            d[v][u] = d[u][v] = sum;
+            sum += a[u][pr[u]];
+            u = pr[u];
+        }
+        d[u][v] = d[v][u] = sum;
+    }
+    /*for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            cerr << d[i][j] << " ";
+        }
+        cerr << "\n";
+    }*/
+    for (int v = 0; v < n; ++v) {
+        for (int u = 0; u < n; ++u) {
+            if (!isPr(u, v) && !isPr(v, u)) {
+                int pr = lca[v][u];
+                d[u][v] = d[v][u] = d[pr][u] + d[pr][v];
+            }
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            res &= (d[i][j] == a[i][j]);
+            res &= (i == j || d[i][j] > 0);
+        }
+    }
+    /*for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            cerr << d[i][j] << " ";
+        }
+        cerr << "\n";
+    }*/
+    printf("%s\n", res ? "YES" : "NO");
+    return 0;
+}

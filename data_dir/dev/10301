@@ -1,0 +1,109 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef pair<LL, LL> PLL;
+
+const int N = 1e5+7;
+LL a[N], k[N];
+LL INF = 1e18+7;
+
+LL sumk(int l, int r) {
+    return k[r] - k[l-1];
+}
+
+PLL tr[4*N];
+LL lz[4*N];
+
+PLL combine(PLL l, PLL r) {
+    return PLL(l.first+r.first, max(l.second, r.second));
+}
+
+void build(int u, int st, int en) {
+    if (st == en)   tr[u] = {a[st], a[st]};
+    else {
+        int mid = (st+en)/2;
+        build(2*u, st, mid);
+        build(2*u+1, mid+1, en);
+        tr[u] = combine(tr[2*u], tr[2*u+1]);
+    }
+    lz[u] = -INF;
+}
+
+void propagate(int u, int st, int en) {
+    if (lz[u] == -INF)  return;
+    tr[u] = {(en-st+1)*lz[u], lz[u]};
+    if (st != en)   lz[2*u] = lz[2*u+1] = lz[u];
+    lz[u] = -INF;
+}
+
+void update(int u, int st, int en, int l, int r, LL x) {
+    propagate(u, st, en);
+    if (r<st || en < l) return;
+    else if (l<=st && en<=r)     lz[u] = x, propagate(u, st, en);
+    else {
+        int mid = (st+en)/2;
+        update(2*u, st, mid, l, r, x);
+        update(2*u+1, mid+1, en, l, r, x);
+        tr[u] = combine(tr[2*u], tr[2*u+1]);
+    }
+}
+
+
+PLL query(int u, int st, int en, int l, int r) {
+    propagate(u, st, en);
+    if (r<st || en < l)         return {0, -INF};
+    else if (l<=st && en<=r)    return tr[u];
+    else {
+        int mid = (st+en)/2;
+        return combine(query(2*u, st, mid, l, r), query(2*u+1, mid+1, en, l, r));
+    }
+}
+
+int find(int u, int st, int en, LL x) {
+    propagate(u, st, en);
+    if (tr[u].second < x)   return -1;
+    if (st == en)           return st;
+
+    int mid = (st+en)/2;
+    int ans = find(2*u, st, mid, x);
+    if (ans != -1)  return ans;
+    return find(2*u+1, mid+1, en, x);
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n;
+    cin>>n;
+
+    for (int i=1; i<=n; i++)    cin>>a[i];
+    for (int i=2; i<=n; i++)    cin>>k[i];
+    for (int i=2; i<=n; i++)    k[i] += k[i-1];
+    for (int i=1; i<=n; i++)    a[i] -= k[i];
+    for (int i=2; i<=n; i++)    k[i] += k[i-1];
+
+    build(1, 1, n);
+
+    int q;
+    cin>>q;
+
+    while (q--) {
+        char c;
+        int a, b;
+        cin>>c>>a>>b;
+
+        if (c=='s') {
+            LL ans = query(1,1,n,a,b).first + sumk(a,b);
+            cout<<ans<<"\n";
+        }
+        else {
+            if (b==0)   continue;
+            LL val = query(1,1,n,a,a).first + b;
+            int idx = find(1,1,n,val);
+            if (idx == -1)  idx = n+1;
+            update(1,1,n, a, idx-1, val);
+        }
+    }
+}

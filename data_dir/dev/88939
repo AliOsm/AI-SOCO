@@ -1,0 +1,177 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const int MX = 200005;
+const int MD = 998244353;
+
+void add(int& a, int b) {
+	a += b;
+	if (a >= MD) a -= MD;
+}
+void sub(int& a, int b) {
+	a -= b;
+	if (a < 0) a += MD;
+}
+int mod_sum(int a, int b) {
+	a += b;
+	if (a >= MD) a -= MD;
+	return a;
+}
+int mod_mult(ll a, ll b) {
+	return (a * b) % MD;
+}
+int exp(int a, int b) {
+	int res = 1;
+	while (b) {
+		if (b & 1) res = mod_mult(res, a);
+		a = mod_mult(a, a);
+		b /= 2;
+	}
+	return res;
+}
+int inv(int a) {
+	return exp(a, MD - 2);
+}
+
+int p[MX];
+
+struct DATA {
+	int s, m;
+};
+DATA recalc(DATA L, DATA R) {
+	DATA res;
+	res.m = mod_mult(L.m, R.m);
+	res.s = mod_sum(mod_mult(L.s, R.m), R.s);
+	return res;
+}
+
+struct {
+	int L, R;
+	int pl, pr;
+	DATA d;
+} T[2 * MX];
+int tsz = 0;
+
+int buildTree(int L, int R)
+{
+	int cur = tsz++;
+	T[cur].L = L;
+	T[cur].R = R;
+	if (L < R) {
+		T[cur].pl = buildTree(L, (L+R)/2);
+		T[cur].pr = buildTree((L+R)/2+1, R);
+		T[cur].d = recalc(T[ T[cur].pl ].d, T[ T[cur].pr ].d);
+	}
+	else {
+		T[cur].d.m = inv(p[L]);
+		T[cur].d.s = inv(p[L]);
+	}
+	return cur;
+}
+DATA get(int L, int R, int cur)
+{
+	if (L <= T[cur].L && R >= T[cur].R) return T[cur].d;
+	
+	DATA d;
+	bool any = false;
+	if (L <= T[ T[cur].pl ].R) {
+		d = get(L, R, T[cur].pl);
+		any = true;
+	}
+	if (R >= T[ T[cur].pr ].L) {
+		DATA tmp = get(L, R, T[cur].pr);
+		if (any) d = recalc(d, tmp);
+		else d = tmp;
+	}
+	return d;
+}
+
+int fwt[MX];
+void fwt_add(int i, int d) {
+	while (i < MX) {
+		fwt[i] += d;
+		i += i & -i;
+	}
+}
+int fwt_get(int i) {
+	int res = 0;
+	while (i) {
+		res += fwt[i];
+		i -= i & -i;
+	}
+	return res;
+}
+int fwt_get_kth(int k) {
+	int res = 0;
+	for (int i = 19; i >= 0; i--) {
+		if (res + (1 << i) < MX && fwt[res + (1 << i)] < k) {
+			res += (1 << i);
+			k -= fwt[res];
+		}
+	}
+	return res + 1;
+}
+
+bool toggled[MX];
+
+int main()
+{
+	int n, q;
+	ignore = scanf("%d %d", &n, &q);
+	
+	int inv_100 = inv(100);
+	
+	for (int i = 1; i <= n; i++) {
+		ignore = scanf("%d", p + i);
+		p[i] = mod_mult(p[i], inv_100);
+	}
+
+	int rt = buildTree(1, n);
+
+	toggled[1] = true;
+	fwt_add(1, 1);
+	fwt_add(n + 1, 1);
+	
+	int res = T[rt].d.s;
+	
+	while (q--) {
+		int i;
+		ignore = scanf("%d", &i);
+		
+		if (!toggled[i]) {
+			int k = fwt_get(i);
+			
+			int L = fwt_get_kth(k);
+			int R = fwt_get_kth(k + 1) - 1;
+			
+			DATA LL = get(L, i - 1, rt);
+			DATA RR = get(i, R, rt);
+
+			sub(res, recalc(LL, RR).s);
+			add(res, LL.s);
+			add(res, RR.s);
+			
+			toggled[i] = true;
+			fwt_add(i, 1);
+		}
+		else {
+			int k = fwt_get(i);
+			
+			int L = fwt_get_kth(k - 1);
+			int R = fwt_get_kth(k + 1) - 1;
+			
+			DATA LL = get(L, i - 1, rt);
+			DATA RR = get(i, R, rt);
+			
+			add(res, recalc(LL, RR).s);
+			sub(res, LL.s);
+			sub(res, RR.s);
+			
+			toggled[i] = false;
+			fwt_add(i, -1);
+		}
+		
+		printf("%d\n", res);
+	}
+}

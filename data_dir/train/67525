@@ -1,0 +1,219 @@
+#include <bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+
+using namespace std ;
+using namespace __gnu_pbds;
+
+template <typename T> // *s.find_by_order(0), s.order_of_key(2) ;
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+#define reMin(a, b) a = min(a, b)
+#define reMax(a, b) a = max(a, b)
+
+#define lint long long
+#define pb push_back
+#define sz(x) (int)x.size()
+#define all(x) begin(x), end(x)
+#define SET(x, val) memset(x, val, sizeof(x))
+#define fastio ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0)
+
+typedef vector < int > vi ;
+typedef pair < int, int > pii ;
+
+const int MOD = 998244353 ;
+const lint INF = 1e18 ;
+const int N = 3e6 + 2;
+
+namespace FFT {
+#define fore(i, a, b) for(int i = (int)(a); i <= (int)(b); ++i)
+#define forn(i, n) for(int i = 0; i < (int)(n); ++i)
+    typedef long double ld;
+    const double PI = acos(-1);
+    struct base {
+        typedef double T; T re, im;
+        base() :re(0), im(0) {}
+        base(T re) :re(re), im(0) {}
+        base(T re, T im) :re(re), im(im) {}
+        base operator + (const base& o) const { return base(re + o.re, im + o.im); }
+        base operator - (const base& o) const { return base(re - o.re, im - o.im); }
+        base operator * (const base& o) const { return base(re * o.re - im * o.im, re * o.im + im * o.re); }
+        base operator * (ld k) const { return base(re * k, im * k) ;}
+        base conj() const { return base(re, -im); }
+    };
+    const int N = 20;
+    const int MAXN = (1<<N);
+    base w[MAXN];
+    base f1[MAXN];
+    lint rev[MAXN];
+    void build_rev(int k) {
+        static int rk = -1;
+        if( k == rk )return ; rk = k;
+        fore(i, 1, (1<<k) ) {
+            lint j = rev[i-1], t = k-1;
+            while( t >= 0 && ((j>>t)&1) ) { j ^= 1 << t; --t; }
+            if( t >= 0 ) { j ^= 1 << t; --t; }
+            rev[i] = j;
+        }
+    }
+    void fft(base *a, int k) {
+        build_rev(k); int n = 1 << k;
+        forn(i, n) if( rev[i] > i ) swap(a[i], a[rev[i]]);
+        for(int l = 2, ll = 1; l <= n; l += l, ll += ll) {
+            if( w[ll].re == 0 && w[ll].im == 0 ) {
+                ld angle = PI / ll;
+                base ww( cosl(angle), sinl(angle) );
+                if( ll > 1 ) for(int j = 0; j < ll; ++j) {
+                    if( j & 1 ) w[ll + j] = w[(ll+j)/2] * ww;
+                    else w[ll + j] = w[(ll+j)/2];
+                } else w[ll] = base(1, 0);
+            }
+            for(int i = 0; i < n; i += l) forn(j, ll) {
+                base v = a[i + j], u = a[i + j + ll] * w[ll + j];
+                a[i + j] = v + u; a[i + j + ll] = v - u;
+            }
+        }
+    }
+    vi mul(const vi& a, const vi& b) {
+        int k = 1;
+        while( (1<<k) < (sz(a) + sz(b)) ) ++k;
+        int n = (1<<k);
+        forn(i, n) f1[i] = base(0,0);
+        forn(i, a.size()) f1[i] = f1[i] + base(a[i], 0);
+        forn(i, b.size()) f1[i] = f1[i] + base(0, b[i]);
+        fft(f1, k);
+        forn(i, 1 + n/2) {
+            base p = f1[i] + f1[(n-i)%n].conj();
+            base _q = f1[(n-i)%n] - f1[i].conj();
+            base q(_q.im, _q.re);
+            f1[i] = (p * q) * 0.25;
+            if( i > 0 ) f1[(n - i)] = f1[i].conj();
+        }
+        forn(i, n) f1[i] = f1[i].conj();
+        fft(f1, k);
+        vi r(sz(a) + sz(b)); lint xx ;
+        forn(i, sz(r) ) {
+            xx = (lint) (f1[i].re / n + 0.5) ; xx %= MOD ;
+            r[i] = xx ;
+        }
+        return r;
+    }
+}
+
+/*
+const int mod=998244353;
+const int root=267099868;
+const int root_1=382752275;
+const int root_pw=1<<22;
+*/
+
+const int mod = 998244353;
+const int root = 973800541;
+const int root_1 = 595374802;
+const int root_pw = 1 << 20;
+
+inline int modpow(lint base, int exp, int modulo = MOD) {
+  base %= modulo;
+  lint result = 1;
+  while (exp > 0) {
+    if (exp & 1) result = (result * base) % modulo;
+    base = (base * base) % modulo;
+    exp >>= 1;
+  }
+  return result;
+}
+
+inline int _mul(int x, int y)
+{
+    lint ans = x ; ans *= y ;
+    return ans % MOD ;
+}
+
+inline void fft(vector<int> & a, bool invert) {
+    int n = a.size();
+    assert(n <= root_pw);
+
+    for (int i = 1, j = 0; i < n; i++) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1)
+            j ^= bit;
+        j ^= bit;
+
+        if (i < j)
+            swap(a[i], a[j]);
+    }
+
+    for (int len = 2; len <= n; len <<= 1) {
+        int wlen = invert ? root_1 : root;
+        for (int i = len; i < root_pw; i <<= 1)
+            wlen = _mul(wlen, wlen);
+
+        for (int i = 0; i < n; i += len) {
+            int w = 1;
+            for (int j = 0; j < len / 2; j++) {
+                int u = a[i+j], v = _mul(a[i+j+len/2], w);
+                a[i+j] = u + v < mod ? u + v : u + v - mod;
+                a[i+j+len/2] = u - v >= 0 ? u - v : u - v + mod;
+                w = _mul(w, wlen);
+            }
+        }
+    }
+    if (invert) {
+        int n_1 = modpow(n, mod - 2);
+        for (int & x : a)
+            x = _mul(x, n_1);
+    }
+}
+
+inline void multiply(vector<int> const& a, vector<int> const& b, vector < int > & result) {
+    vector<int> fa(a.begin(), a.end()), fb(b.begin(), b.end());
+    int n = 1;
+    while (n < a.size() + b.size())
+        n <<= 1;
+
+    fa.resize(n); fb.resize(n); result.resize(n);
+
+    fft(fa, false);
+    fft(fb, false);
+    for (int i = 0; i < n; i++)
+        fa[i] = _mul(fa[i], fb[i]);
+    fft(fa, true);
+
+    for (int i = 0; i < n; i++)
+        result[i] = fa[i]  ;
+}
+
+int n, m, k ;
+int cnt[N] ;
+
+int main()
+{
+    fastio; cin >> n ;
+     SET(cnt, 0); int x ;
+    for(int i = 0; i < n; i++) {
+         cin >> x ;
+         cnt[x]++ ;
+    }
+    struct CMP {
+    	bool operator()(const vi& a, const vi& b) { return a.size() > b.size(); }
+    };
+    priority_queue < vi, vector < vi >, CMP > pq ;
+    vi cur, nxt, prod ;
+
+    for(int i = 1; i < N; i++) {
+        if(!cnt[i]) continue ;
+        cur.resize(cnt[i] + 1);
+        for(int j = 0; j <= cnt[i]; j++)
+            cur[j] = 1 ;
+        pq.push(cur);
+    }
+
+    while(sz(pq) > 1) {
+        cur = pq.top(); pq.pop();
+        nxt = pq.top(); pq.pop();
+        multiply(cur, nxt, prod); // prod = FFT :: mul(cur, nxt);
+        pq.push(prod);
+    }
+    prod = pq.top(); pq.pop();
+    cout << prod[n/2] ;
+}

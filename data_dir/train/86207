@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+
+const int N = 35010;
+int arr[N], dp[N][55], pre[N], last[N];
+
+int tree[4 * N];
+int lazy[4 * N];
+
+void propagate(int node, int l, int r)
+{
+    tree[node] += lazy[node];
+    if(l != r)
+    {
+        lazy[(node << 1)] += lazy[node];
+        lazy[(node << 1) + 1] += lazy[node];
+    }
+    lazy[node] = 0;
+}
+
+void update(int node, int l, int r, int s, int e, int val)
+{
+    if(l > r || s > e)
+        return;
+    propagate(node, l, r);
+    if(l > e || s > r)
+        return;
+    if(s <= l && r <= e)
+    {
+        lazy[node] += val;
+        propagate(node, l, r);
+        return;
+    }
+    int mid = (l + r) >> 1;
+    update((node << 1), l, mid, s, e, val);
+    update((node << 1) + 1, mid + 1, r, s, e, val);
+    tree[node] = max(tree[(node << 1)], tree[(node << 1) + 1]);
+}
+
+int get(int node, int l, int r, int s, int e)
+{
+    if(l > r || s > e || l > e || s > r)
+        return 0;
+    propagate(node, l, r);
+    if(s <= l && r <= e)
+        return tree[node];
+    int mid = (l + r) >> 1;
+    return max(get((node << 1), l, mid, s, e), get((node << 1) + 1, mid + 1, r, s, e));
+}
+int main()
+{
+    ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+    int n, k;
+    cin >> n >> k;
+    for(int i = 1; i <= n; i++)
+    {
+        cin >> arr[i];
+        pre[i] = last[arr[i]];
+        last[arr[i]] = i;
+    }
+    set<int> sett;
+    for(int i = 1; i <= n; i++)
+    {
+        sett.insert(arr[i]);
+        dp[i][1] = sett.size();
+        update(1, 1, n, i, i, dp[i][1]);
+    }
+    for(int j = 2; j <= k; j++)
+    {
+        for(int i = 1; i <= n; i++)
+        {
+            update(1, 1, n, pre[i], i - 1, 1);
+            dp[i][j] = get(1, 1, n, 1, i - 1);
+        }
+        memset(tree, 0, sizeof tree);
+        memset(lazy, 0, sizeof lazy);
+        for(int i = 1; i <= n; i++)
+            update(1, 1, n, i, i, dp[i][j]);
+    }
+    cout << dp[n][k];
+}

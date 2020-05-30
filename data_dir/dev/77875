@@ -1,0 +1,51 @@
+// In the name the Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+vector<int>v;
+set<int> ans;
+bool vis[505][505][505];
+int n , k;
+
+void f(int i , int tot , int sum)
+{
+    if(i==n){
+
+        if(tot==k){
+
+            ans.insert(sum);
+        }
+        return ;
+    }
+    if(vis[i][tot][sum]==true)return ;
+    vis[i][tot][sum] = true;
+
+    if(tot+v[i]<=k){
+
+        f(i+1 , tot+v[i] , sum);
+        f(i+1 , tot+v[i] , sum+v[i]);
+    }
+    f(i+1 , tot , sum);
+}
+
+int main(void)
+{
+    scanf("%d %d",&n , &k);
+    for(int i=0;i<n;i++){
+
+        int in;
+        scanf("%d",&in);
+        v.push_back(in);
+    }
+
+    memset(vis , false , sizeof(vis));
+    f(0 , 0 , 0);
+
+    printf("%d\n",(int)ans.size());
+    for(auto it : ans)printf("%d ",it);
+
+    return 0;
+}

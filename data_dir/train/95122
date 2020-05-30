@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define IO ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0)
+using namespace std;
+
+struct MaximumMatching
+{
+    vector<int> m1, m2, seen;
+    vector<vector<int> > g;
+    int seen_id;
+
+    MaximumMatching(int numNodesLeft, int numNodesRight)
+    {
+        g = vector<vector<int> >(numNodesLeft, vector<int>());
+        m1 = vector<int>(numNodesLeft, -1);
+        m2 = vector<int>(numNodesRight, -1);
+        seen_id = 0;
+        seen = vector<int>(numNodesRight, 0);
+    }
+
+    void addEdge(int leftNode, int rightNode)
+    {
+        assert(leftNode < int(m1.size()));
+        assert(rightNode < int(m2.size()));
+        g[leftNode].push_back(rightNode);
+    }
+
+    int getMaxMatching()
+    {
+        int ans = 0;
+        for(int node = 0; node < int(m1.size()); node++)
+        {
+            seen_id++;
+            if(dfs(node))
+                ans++;
+        }
+        return ans;
+    }
+
+    bool dfs(int node)
+    {
+        for(int i = 0; i < int(g[node].size()); i++)
+        {
+            int child = g[node][i];
+            if(m2[child] == -1)
+            {
+                m2[child] = node;
+                m1[node] = child;
+                return true;
+            }
+            if(seen[child] == seen_id)
+                continue;
+            seen[child] = seen_id;
+            int enemy = m2[child];
+            m1[enemy] = -1;
+            m1[node] = child;
+            m2[child] = node;
+            if(dfs(enemy))
+                return true;
+            m1[enemy] = child;
+            m1[node] = -1;
+            m2[child] = enemy;
+        }
+        return false;
+    }
+
+};
+
+const int N = 205, V = 605, mx = 1731320;
+int v, e, n, k, st[N], f[V][V];
+
+bool check(int t)
+{
+    MaximumMatching mm(n + 1, v + 1);
+    for(int i = 1; i <= n; i++)
+    {
+        for(int j = 1; j <= v; j++)
+        {
+            if(f[st[i]][j] > t)
+                continue;
+            mm.addEdge(i, j);
+        }
+    }
+    return mm.getMaxMatching() >= k;
+}
+
+int BS()
+{
+    int l = 0, r = mx, mid, ret = mx;
+    while(l <= r)
+    {
+        mid = (l + r) / 2;
+        if(check(mid))
+            r = mid - 1, ret = mid;
+        else
+            l = mid + 1;
+    }
+    return ret;
+}
+
+int main()
+{
+    IO;
+    cin >> v >> e >> n >> k;
+    for(int i = 1; i <= v; i++)
+        for(int j = 1; j <= v; j++)
+            f[i][j] = (i == j ? 0 : 1e9);
+    for(int i = 1; i <= n; i++)
+        cin >> st[i];
+    for(int i = 0; i < e; i++)
+    {
+        int a, b, w;
+        cin >> a >> b >> w;
+        f[a][b] = min(f[a][b], w);
+        f[b][a] = min(f[b][a], w);
+    }
+    for(int k = 1; k <= v; k++)
+        for(int i = 1; i <= v; i++)
+            for(int j = 1; j <= v; j++)
+                f[i][j] = min(f[i][j], f[i][k] + f[k][j]);
+    int ans = BS();
+    if(ans >= mx)
+        ans = -1;
+    cout << ans;
+}

@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+typedef long long ll;
+
+using namespace std;
+
+int tree[1 << 23], lazy[1 << 23];
+
+void build(int i, int l, int r) {
+	//	cerr << i << ' ' << l << ' ' << r << endl;
+	lazy[i] = 0; tree[i] = l;
+	if (l == r)return;
+	int mid = l + (r - l) / 2;
+	build(i * 2, l, mid);
+	build(i * 2 + 1, mid + 1, r);
+}
+
+void propagate(int i, int l, int r) {
+	if(lazy[i])
+		tree[i] += lazy[i];
+	if(l != r)
+		lazy[i * 2] += lazy[i], lazy[i * 2 + 1] += lazy[i];
+	lazy[i] = 0;
+}
+
+void update(int i, int l, int r, int a, int b, int v) {
+	propagate(i, l, r);
+	if(l > b || r < a)
+		return;
+	if(l >= a && r <= b){
+		lazy[i] += v;
+		propagate(i, l, r);
+		return;
+	}
+	int mid = l + (r - l) / 2;
+	update(i * 2, l, mid, a, b, v);
+	update(i * 2 + 1, mid + 1, r, a, b, v);
+	tree[i] = min(tree[i * 2], tree[i * 2 + 1]);
+}
+
+int getMin(int i, int l, int r, int a, int b) {
+	propagate(i, l, r);
+	if(l > b || r < a)
+		return 1e9;
+	if(l >= a && r <= b)
+		return tree[i];
+	int mid = l + (r - l) / 2;
+	return min(getMin(i * 2, l, mid, a, b), getMin(i * 2 + 1, mid + 1, r, a, b));
+}
+
+priority_queue<int>q;
+void addToNotNegative(int index) {
+	update(1, -(1 << 19), (1 << 19), -(1 << 19), index - 1, 1);
+}
+
+void addToPrefix(int index) {
+	if(index >= 0) {
+		addToNotNegative(index);
+		return;
+	}
+	q.push(index);
+	while(!q.empty() && q.size() > abs(q.top()))
+		addToNotNegative(q.top()), q.pop();
+}
+
+int main() {
+	//	ios_base::sync_with_stdio(false);
+	//	cin.tie(nullptr);
+	build(1, -(1 << 19), (1 << 19));
+	int n; scanf("%d", &n);
+	vector<int>a(n);
+	for(int i = 0;i < n;i++)
+		scanf("%d", &a[i]);
+	int res = 0;
+	for(int i = 0; i < n; i++) {
+		addToPrefix(a[i]);
+		res = getMin(1, -(1 << 19), (1 << 19), -q.size(), (1 << 19));
+		printf("%d\n", res);
+	}
+
+	return 0;
+}

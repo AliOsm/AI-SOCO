@@ -1,0 +1,171 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <stack>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+#include <stdlib.h>
+#include <sstream>
+#include <assert.h>
+#include <memory.h>
+#include <complex>
+#include <time.h>
+#pragma comment(linker, "/STACK:100000000")
+using namespace std;
+
+#define mp make_pair
+#define pb push_back
+#define ll long long
+#define sz(x) (int)(x).size()
+
+vector<pair<int, int> > v[100100];
+int tin[100100];
+int tout[100100];
+int fup[100100];
+int ttt = 0;
+bool vis[100100];
+bool br[100100];
+
+void dfs(int s, int lst = -1) {
+	tin[s] = ++ttt;
+	fup[s] = tin[s];
+	vis[s] = true;
+	
+	for(int i = 0; i < sz(v[s]); i++) {
+		int nxt = v[s][i].first;
+		if(nxt == lst) continue;
+
+		if(!vis[nxt]) dfs(nxt, s);
+		fup[s] = min(fup[s], fup[nxt]);
+		if(fup[nxt] > tin[s]) br[v[s][i].second] = true;
+	}
+
+	tout[s] = ++ttt;
+}
+
+int cid[100100];
+vector<int> comp[100100];
+
+void go(int s, int c) {
+	vis[s] = true;
+	cid[s] = c;
+	comp[c].pb(s);
+	for(int i = 0; i < sz(v[s]); i++) {
+		int nxt = v[s][i].first;
+		int b = v[s][i].second;
+		if(vis[nxt] || br[b]) continue;
+		go(v[s][i].first, c);
+	}
+}
+int matrix[999][999];
+
+int matrix2[999][999];
+
+//int num[100100];
+int ord[100100];
+int cntnum = 0;
+bool vis2[100100];
+
+void go2(int s) {
+	vis[s] = true;
+	//num[s] = ++cntnum;
+	if(!vis2[cid[s]])ord[cntnum++] = cid[s], vis2[cid[s]] = true;
+	for(int i = 0; i < sz(v[s]); i++) {
+		int nxt = v[s][i].first;
+		if(cid[nxt] != cid[s]) {
+			matrix2[cid[nxt]][cid[s]] = 1;
+			matrix2[cid[s]][cid[nxt]] = 1;
+		}
+		if(!vis[nxt]) go2(nxt);
+	}
+}
+
+
+int main() {
+    //freopen("input.txt","rt",stdin);
+    //freopen("cyclic.in","rt",stdin);
+    //freopen("cyclic.out","wt",stdout);
+
+	int n;
+	scanf("%d", &n);
+	if(n == 2) {
+		printf("-1");
+		return 0;
+	}
+
+	int m;
+	scanf("%d", &m);
+	for(int i = 0; i < m; i++) {
+		int a, b;
+		scanf("%d %d", &a, &b);
+		v[a].pb(mp(b, i));
+		v[b].pb(mp(a, i));
+		matrix[a][b] = matrix[b][a] = 1;
+	}
+
+	dfs(1);
+
+	int cnt = 0;
+	memset(vis, 0, sizeof(vis));
+	for(int i = 1; i <= n; i++) {
+		if(!vis[i]) go(i, cnt++);
+	}
+	if(cnt == 1) {
+		printf("0");
+		return 0;
+	}
+	if(cnt == 2) {
+		for(int i = 1; i <= n; i++) {
+			for(int j = 1; j <= n; j++) {
+				if(cid[i] != cid[j] && !matrix[i][j] ) {
+					printf("1\n");
+					printf("%d %d\n", i, j);
+					return 0;
+				}
+			}
+		}
+	}
+	int t = 0;
+	memset(vis, 0, sizeof(vis));
+	go2(1);
+	vector<int> wtf;
+
+
+	for(int i = 0; i < cnt; i++) {
+		int idx = ord[i];
+		int xxx = 0;
+		for(int j = 0; j < cnt; j++) {
+			if(matrix2[idx][j] == 1) xxx++;
+		}
+		if(xxx == 1) wtf.pb(idx);
+	}
+
+	printf("%d\n", (sz(wtf) + 1) / 2);
+
+	for(int i = 0; i < (sz(wtf)+1)/2; i++) {
+		int c1 = wtf[i];
+		int c2 = wtf[(i + sz(wtf)/2)%sz(wtf)];
+		int a = -1, b = -1;
+		for(int j = 0; j < sz(comp[c1]); j++) {
+			for(int k = 0; k < sz(comp[c2]); k++) {
+				if(!matrix[comp[c1][j]][comp[c2][k]]) {
+					a = comp[c1][j];
+					b = comp[c2][k];
+					j = 1e9;
+					k = 1e9;
+					break;
+				}
+			}
+		}
+		if(a == -1 || b == -1) assert(0);
+		printf("%d %d\n", a, b);
+	}
+
+
+    return 0;
+}

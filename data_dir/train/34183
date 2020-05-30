@@ -1,0 +1,139 @@
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <iomanip>
+#include <climits>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+
+#define gcd __gcd
+#define foreach(it,x) for(__typeof(x.begin()) it = x.begin() ; it!=x.end() ; it++ )
+
+#ifdef KAZAR
+    #define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#else
+    #define eprintf(...)
+#endif
+
+using namespace std;
+
+const int inf = (int)1e9 + 5757;
+const long long Linf = (long long)1e18 + 5757;
+
+template<class T> inline void umax(T &a,T b){if(a<b) a = b;}
+template<class T> inline void umin(T &a,T b){if(a>b) a = b;}
+template<class T> inline T abs(T a){return a>0 ? a : -a;}
+template<class T> inline T lcm(T a,T b){return a/gcd(a,b)*b;}
+
+inline int read(){int x;scanf(" %d",&x);return x;}
+
+const int N = 373737;
+
+vector<int> vals;
+int a[N];
+
+class fenwick{
+public:
+    long long f[N];
+    fenwick(){
+        for(int i = 0; i < N; i++)
+            f[i] = 0ll;
+    }
+    long long Less(int x){
+        x = lower_bound(vals.begin(), vals.end(), x) - vals.begin();
+        x += 5;
+        long long res = 0ll;
+        while(x > 0){
+            res += f[x];
+            x -= x & -x;
+        }
+        return res;
+    }
+    long long Greater(int x){
+        long long res = 0ll;
+        for(int i = N - 1; i > 0; i -= i & -i) res += f[i];
+        res -= Less(x);
+        return res;
+    }
+    void put(int x,int by){
+        x = lower_bound(vals.begin(), vals.end(), x) - vals.begin() + 1;
+        x += 5;
+        while(x < N){
+            f[x] += by;
+            x += x & -x;
+        }
+    }
+};
+
+fenwick cnt, sum;
+
+long long cur = 0ll;
+
+void insert(int x){
+    cur += (long long)cnt.Less(x) * x - sum.Less(x);
+    cur += sum.Greater(x) - (long long)cnt.Greater(x) * x;
+    cnt.put(x, 1);
+    sum.put(x, x);
+}
+
+void remove(int x){
+    cur -= (long long)cnt.Less(x) * x - sum.Less(x);
+    cur -= sum.Greater(x) - (long long)cnt.Greater(x) * x;
+    cnt.put(x, -1);
+    sum.put(x, -x);
+}
+
+int main(){
+
+#ifdef KAZAR
+    freopen("f.i","r",stdin);
+    freopen("f.cik","w",stdout);
+    freopen("error","w",stderr);
+#endif
+
+    int n = read();
+    map<int, int> where;
+
+    for(int i = 1; i <= n; i++){
+        a[i] = read();
+        vals.push_back(a[i]);
+        where[a[i]] = i;
+    }
+
+    int k = read();
+
+    sort(a + 1,a + 1 + n);
+
+    sort(vals.begin(), vals.end());
+    vals.erase(unique(vals.begin(), vals.end()), vals.end());
+
+    for(int i = 1; i < k; i++){
+        insert(a[i]);
+    }
+
+    long long ans = 1ll << 62;
+    int idx = 0;
+
+    for(int i = k; i <= n; i++){
+        insert(a[i]);
+        if(ans > cur){
+            ans = cur;
+            idx = i;
+        }
+        remove(a[i - k + 1]);
+    }
+
+    for(int i = idx - k + 1; i <= idx; i++)
+        printf("%d ",where[a[i]]);
+
+    return 0;
+}

@@ -1,0 +1,288 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+    AssertsCounter(): counter(0) {}
+    ~AssertsCounter() { std::cout << std::endl << "DIAG: " << (counter == 0 ? "OK" : "!!!") << " Asserts count: " << counter << std::endl; }
+    void Increment() { counter++; }
+    uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cout << "ASSERT FAILED: '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+typedef std::pair<char, char> pair_char_t;
+typedef std::vector<pair_char_t> vector_pair_char_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> inline std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+    return ist;
+}
+
+template<typename T> inline std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+    return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+bool TryGetNewPair(const string8_t& sl, const string8_t& sr, char& cLess, char& cGreater)
+{
+    cLess = '0';
+    cGreater = '0';
+    const size_t minLen = std::min(sl.size(), sr.size());
+    for (size_t i = 0; i < minLen; i++)
+    {
+        const char cl = sl[i];
+        const char cr = sr[i];
+        if (cl != cr)
+        {
+            cLess = cl;
+            cGreater = cr;
+            return true;
+        }
+    }
+    return sl.size() < sr.size();
+}
+
+bool TryFindTheLeast(const vector_pair_char_t& lessPairs, char& leastChar)
+{
+    std::set<char> allChars;
+    for (size_t i = 0; i < lessPairs.size(); i++)
+    {
+        allChars.insert(lessPairs[i].first);
+        allChars.insert(lessPairs[i].second);
+    }
+
+    for (std::set<char>::const_iterator pc = allChars.begin(); pc != allChars.end(); pc++)
+    {
+        const char ch = *pc;
+        if (std::find_if(lessPairs.begin(), lessPairs.end(), [&ch](const pair_char_t& p) { return p.second == ch; } ) == lessPairs.end())
+        {
+            leastChar = ch;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TryArrange(const vector_string8_t& s, string8_t& order)
+{
+    const size_t n = s.size();
+
+    vector_pair_char_t lessPairs;
+    
+    for (size_t i = 0; i < n; i++)
+    {
+        for (size_t j = i + 1; j < n; j++)
+        {
+            char cl, cr;
+            if (!TryGetNewPair(s[i], s[j], cl, cr))
+                return false;
+            if (cl != cr)
+                lessPairs.push_back(pair_char_t(cl, cr));
+        }
+    }
+
+    order.clear();
+    while (!lessPairs.empty())
+    {
+        char leastChar = '0';
+        if (TryFindTheLeast(lessPairs, leastChar))
+        {
+            LOCAL_ASSERT(leastChar != '0');
+            LOCAL_ASSERT(order.find(leastChar) == string8_t::npos);
+            order.push_back(leastChar);
+            lessPairs.erase(std::remove_if(lessPairs.begin(), lessPairs.end(), [&leastChar](const pair_char_t& p) { return p.first == leastChar || p.second == leastChar; }), lessPairs.end());
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    for (char ch = 'a'; ch <= 'z'; ch++)
+    {
+        if (order.find(ch) == string8_t::npos)
+            order += ch;
+    }
+
+    return true;
+}
+
+#if LOCAL_TEST
+bool IsLess(const string8_t& sl, const string8_t& sr, const string8_t& order)
+{
+    const size_t minLen = std::min(sl.size(), sr.size());
+    for (size_t i = 0; i < minLen; i++)
+    {
+        if (sl[i] == sr[i])
+            continue;
+        const size_t l = order.find(sl[i]);
+        const size_t r = order.find(sr[i]);
+        LOCAL_ASSERT(l != string8_t::npos);
+        LOCAL_ASSERT(r != string8_t::npos);
+        return l < r;
+    }
+    return sl.size() < sr.size();
+}
+
+void CheckAnswer(const vector_string8_t& s, const string8_t& order)
+{
+    LOCAL_ASSERT(order.size() == 26);
+    std::set<char> orderSet(order.begin(), order.end());
+    LOCAL_ASSERT(orderSet.size() == 26);
+
+    for (size_t i = 0; i < s.size(); i++)
+    {
+        for (size_t j = i + 1; j < s.size(); j++)
+        {
+            LOCAL_ASSERT(IsLess(s[i], s[j], order));
+        }
+    }
+}
+#endif
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; (void)sw;
+
+    // 
+    size_t n;
+    ist >> n;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+#if LOCAL_TEST
+    ost << std::endl << "Next test" << std::endl;
+#endif
+
+    // 
+    vector_string8_t s(n);
+    ist >> s;
+
+    string8_t order;
+    if (TryArrange(s, order))
+    {
+        ost << order << std::endl;
+#if LOCAL_TEST
+        CheckAnswer(s, order);
+#endif
+    }
+    else
+    {
+        ost << "Impossible" << std::endl;
+    }
+
+    return multipleTestMode;
+}
+
+int main(int argc, const char *argv[])
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

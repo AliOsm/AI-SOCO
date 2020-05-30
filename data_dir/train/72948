@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1234567;
+
+char s[N];
+
+struct suffix_automata {
+  struct state {
+    int len;
+    int link;
+    int cnt = 0;
+    map<char, int> next;
+  } st[N];
+
+  int last, sz;
+
+  suffix_automata() {
+    last = 0;
+    sz = 1;
+    st[last].link = -1;
+    st[last].len = 0;
+  }
+
+  void add(char c) {
+    int cur = sz++;
+    st[cur].cnt = 1;
+    st[cur].len = st[last].len + 1;
+    int p;
+    for (p = last; p > -1 && !st[p].next.count(c); p = st[p].link) {
+      st[p].next[c] = cur;
+    }
+    if (p == -1) {
+      st[cur].link = 0;
+    } else {
+      int q = st[p].next[c];
+      if (st[p].len + 1 == st[q].len) {
+        st[cur].link = q;
+      } else {
+        int clone = sz++;
+        st[clone].len = st[p].len + 1;
+        st[clone].link = st[q].link;
+        st[clone].next = st[q].next;
+        for (; p > -1 && st[p].next[c] == q; p = st[p].link) {
+          st[p].next[c] = clone;
+        }
+        st[cur].link = st[q].link = clone;
+      }
+    }
+    last = cur;
+  }
+
+  long long solve() {
+    vector<int> p(sz);
+    for (int i = 0; i < sz; i++) p[i] = i;
+    sort(p.begin(), p.end(), [&](const int i, const int j) {
+      return st[i].len > st[j].len;
+    });
+    for (int i = 0; i < sz; i++) {
+      int link = st[p[i]].link;
+      st[link].cnt += st[p[i]].cnt;
+    }
+    long long ret = 0;
+    for (int i = 1; i < sz; i++) {
+      int link = st[i].link;
+      ret += (long long) (st[i].len - st[link].len) * st[i].cnt * (st[i].cnt + 1) / 2;
+    }
+    return ret;
+  }
+      
+
+} automata;
+
+int main() {
+  scanf("%s", s);
+  for (int i = 0; s[i]; i++) {
+    automata.add(s[i]);
+  }
+  long long ans = automata.solve();
+  printf("%lld\n", ans);
+  return 0;
+}

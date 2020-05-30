@@ -1,0 +1,133 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef complex<double> point;
+#define F first
+#define S second
+
+struct segment_tree
+{
+    int n;
+    vector<pair<int, int>> st;
+    vector<int> lz;
+
+    segment_tree(int n) : n(n), st(4 * n), lz(4 * n) {}
+
+    void build(int cur, int b, int e, vector<int> &a)
+    {
+    	if (b+1 == e)
+    	{
+    		st[cur] = { a[b], b };
+    		return;
+    	}
+    	int m = (b+e) >> 1;
+		build(cur<<1, b, m, a);
+		build(cur<<1|1, m, e, a);
+        st[cur] = min(st[cur<<1], st[cur<<1|1]);
+    }
+
+    void push(int cur)
+    {
+    	if (lz[cur] != 0)
+    	{
+        	st[cur<<1].F += lz[cur];
+        	lz[cur<<1] += lz[cur];
+        	st[cur<<1|1].F += lz[cur];
+        	lz[cur<<1|1] += lz[cur];
+        	lz[cur] = 0;
+    	}
+    }
+
+    void update(int cur, int b, int e, int l, int r, int x)
+    {
+        if (l <= b && e <= r)
+        {
+        	st[cur].F += x;
+        	lz[cur] += x;
+        	return;
+        }
+
+        push(cur);
+        int m = (b+e) >> 1;
+        if (l < m)
+        	update(cur<<1, b, m, l, r, x);
+        if (m < r)
+        	update(cur<<1|1, m, e, l, r, x);
+        st[cur] = min(st[cur<<1], st[cur<<1|1]);
+    }
+};
+
+int main()
+{
+	#ifdef DGC
+		//freopen("a.txt", "r", stdin);
+		//freopen("b.txt", "w", stdout);
+	#endif
+
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int t;
+	cin >> t;
+	while (t--)
+	{
+		int n;
+		cin >> n;
+		vector<int> nxt(n);
+		vector<vector<pair<int, int>>> adj(n);
+		for (auto &x : nxt)
+		{
+			cin >> x;
+			if (x > -1)
+			{
+				--x;
+				int p = &x-&nxt[0];
+				if (x < n)
+					adj[x].push_back({ p, p });
+				if (p+1 < x)
+					adj[p].push_back({ p+1, x-1 });
+			}
+		}
+
+		vector<int> sum(n+1);
+		for (int u = 0; u < n; ++u)
+			for (auto v : adj[u])
+				++sum[v.F], --sum[v.S+1];
+
+		for (int i = 1; i < n; ++i)
+			sum[i] += sum[i-1];
+
+		segment_tree st(n);
+		st.build(1, 0, n, sum);
+
+		vector<int> ord;
+
+		while (st.st[1].F == 0)
+		{
+			int u = st.st[1].S;
+			st.update(1, 0, n, u, u+1, 1e7);
+			ord.push_back(u);
+
+			for (auto v : adj[u])
+				st.update(1, 0, n, v.F, v.S+1, -1);
+		}
+
+		if (ord.size() != n)
+		{
+			cout << "-1\n";
+			continue;
+		}
+
+		int pt = n;
+		vector<int> ans(n);
+		for (auto u : ord)
+			ans[u] = pt--;
+
+		for (auto &i : ans)
+			cout << i << " \n"[&i==&ans.back()];
+	}
+
+	return 0;
+}

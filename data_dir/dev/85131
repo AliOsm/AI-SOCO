@@ -1,0 +1,102 @@
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <array>
+
+constexpr int MOD = 5;
+
+struct modint {
+    int n;
+    modint(int n = 0) : n(n) {}
+};
+
+std::string input() {
+    static char buf[1000];
+    scanf("%s", buf);
+    return std::string(buf);
+}
+
+modint inv[5];
+
+modint operator+(modint a, modint b) { return modint((a.n += b.n) >= MOD ? a.n - MOD : a.n); }
+modint operator-(modint a, modint b) { return modint((a.n -= b.n) < 0 ? a.n + MOD : a.n); }
+modint operator*(modint a, modint b) { return modint(1LL * a.n * b.n % MOD); }
+modint operator/(modint a, modint b) { return a * inv[b.n]; }
+modint &operator+=(modint &a, modint b) { return a = a + b; }
+modint &operator-=(modint &a, modint b) { return a = a - b; }
+modint &operator*=(modint &a, modint b) { return a = a * b; }
+modint &operator/=(modint &a, modint b) { return a = a / b; }
+
+int main() {
+    inv[1] = 1;
+    for (int i = 2; i < MOD; i++) {
+        inv[i] = inv[MOD % i] * (MOD - MOD / i);
+    }
+
+    int n, m;
+    std::cin >> n >> m;
+
+    static modint a[500][800];
+
+    for (int i = 0; i < n; i++) {
+        std::string s = input();
+        for (int j = 0; j < m; j++) {
+            a[j][i] = s[j] - 'a';
+        }
+    }
+    int q;
+    std::cin >> q;
+    for (int i = 0; i < q; i++) {
+        std::string s = input();
+        for (int j = 0; j < m; j++) {
+            a[j][i + n] = s[j] - 'a';
+        }
+    }
+
+    const int h = m;
+    const int w = n + q;
+    int r = 0;
+    for (int j = 0; j < n && r < h; j++) {
+        int p = r;
+        for (int i = r; i < h; i++) {
+            if (a[i][j].n != 0) {
+                p = i;
+                break;
+            }
+        }
+        std::swap(a[p], a[r]);
+        if (a[r][j].n == 0) continue;
+        for (int jj = j + 1; jj < w; jj++) {
+            a[r][jj] /= a[r][j];
+        }
+        a[r][j] = 1;
+        for (int ii = 0; ii < h; ii++) {
+            if (ii != r) {
+                for (int jj = j + 1; jj < w; jj++) {
+                    a[ii][jj].n += 25 - a[ii][j].n * a[r][jj].n;
+                    a[ii][jj].n %= MOD;
+                }
+                a[ii][j] = 0;
+            }
+        }
+        r++;
+    }
+
+    constexpr long long MOD2 = 1e9 + 7;
+    long long pw = 1;
+    for (int i = 0; i < n - r; i++) {
+        pw *= 5;
+        pw %= MOD2;
+    }
+
+    for (int j = 0; j < q; j++) {
+        long long ans = pw;
+        for (int i = r; i < m; i++) {
+            if (a[i][j + n].n != 0) {
+                ans = 0;
+            }
+        }
+        printf("%d\n", (int)ans);
+    }
+}

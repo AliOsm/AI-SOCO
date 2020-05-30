@@ -1,0 +1,189 @@
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <cmath>
+#include <cstdio>
+#include <string>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <bitset>
+#include <random>
+#include <ctime>
+#include <utility>
+#include <fstream>
+#include <queue>
+#include <deque>
+ 
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("no-stack-protector")
+#pragma GCC optimize("fast-math")
+#pragma GCC optimize("vpt")
+#pragma GCC optimize("unroll-loops")
+#pragma comment(linker, "/STACK:256000000")
+#pragma warning(disable:4996)
+ 
+using namespace std;
+ 
+typedef long long ll;
+typedef long double ld;
+ 
+const ld pi = 3.14159265358979323846264;
+const char el = '\n';
+//const int inf = 1000'000'000;
+const ll llinf = 1e18, mod = 1000'000'007;
+ 
+#define forn(i, n) for (int i = 0; i < (int)n; ++i)
+#define firn(i, n) for (int i = 1; i < (int)n; ++i)
+#define all(v) v.begin(), v.end()
+#define x first
+#define y second
+ 
+template<typename T> bool uin(T &a, T b) { if (b < a) { a = b; return 1; } return 0; }
+template<typename T> bool uax(T &a, T b) { if (b > a) { a = b; return 1; } return 0; }
+template<class iterator> void output(iterator begin, iterator end, char p = ' ', ostream &out = cout) { while (begin != end) { out << (*begin) << p; begin++; } out << el; }
+template<class T> void output(T x, char p = ' ', ostream &out = cout) { output(all(x), p, out); }
+ 
+mt19937 rnd(time(NULL));
+
+#define int long long
+
+const int N = 100 * 1000 + 228;
+
+vector<int> g[N];
+map<int, int> box;
+int sum[N], sz[N];
+bool used[N];
+pair<int, int> to[N];
+bool exist[(1 << 15) + 3];
+vector< pair<int, int>> trans[(1 << 15) + 3];
+
+bool dp[(1 << 15) + 3];
+pair<int, int> go[N];
+int pv[(1 << 15) + 3];
+
+signed main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(NULL);
+    int k;
+    cin >> k;
+    int T = 0;
+    for (int i = 1; i <= k; ++i) {
+        cin >> sz[i];
+        sum[i] = 0;
+        for (int j = 0; j < sz[i]; ++j) {
+            int x;
+            cin >> x;
+            T += x;
+            sum[i] += x;
+            g[i].push_back(x);
+            box[x] = i;
+        }
+    }
+    if (abs(T) % k != 0) {
+        cout << "No\n";
+        return 0;
+    }
+    T = T / k;
+    for (int b = 1; b <= k; ++b) {
+        if (sum[b] != T) {
+
+            for (int start : g[b]) {
+                for (int i = 1; i <= k; ++i) {
+                    used[i] = 0;
+                    to[i] = {0, 0};
+                }
+                bool OK = 1;
+                // x -> mycopka
+                // sum[b] - x + y == T
+                // y = T + x - sum[b];
+                int x = start;
+                int y = T + x - sum[b];
+                int cur = b;
+                vector<int> guys;
+                while (1) {
+                    used[cur] = 1;
+                    int bx = box[y];
+                    if (!bx) {
+                        OK = 0;
+                        break;
+                    }
+                    to[bx] = {cur, y};
+                    cur = bx;
+                    guys.push_back(cur);
+                    x = y;
+                    y = T + x - sum[cur];
+                    if (cur == b) {
+                        if (x == start) {
+                            // eeeeeee
+                            int cur_mask = 0;
+                            for (int i : guys) {
+                                cur_mask += (1 << (i - 1));
+                            }
+                            if (exist[cur_mask]) break;
+                            exist[cur_mask] = 1;
+                            trans[cur_mask].clear();
+                            sort(guys.begin(), guys.end());
+                            for (int i : guys) {
+                                trans[cur_mask].push_back(to[i]);
+                            }
+                            break;
+                        } else {
+                            OK = 0;
+                            break;
+                        }
+                    } else {
+                        if (used[cur]) {
+                            OK = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            exist[1 << (b - 1)] = 1;
+
+            trans[1 << (b - 1)] = {{b, g[b][0]}};
+            // msks.push_back(1 << (b - 1));
+            // trans.push_back({{1, b}});
+        }
+    }
+    dp[0] = 1;
+    for (int mask = 1; mask < (1 << k); ++mask) {
+        for (int submask = mask; submask > 0; submask = (submask - 1) & mask) {
+            if (exist[submask] && dp[mask ^ submask]) {
+                dp[mask] = 1;
+                pv[mask] = submask;
+                break;
+            }
+        }
+    }
+    if (!dp[(1 << k) - 1]) {
+        cout << "No\n";
+    } else {
+        cout << "Yes\n";
+        int mask = (1 << k) - 1;
+        while (mask) {
+            int sub = pv[mask];
+            mask ^= sub;
+            int j = 0;
+            for (int i = 0; i < k; ++i) {
+                if ((sub >> i) & 1) {
+                    go[i + 1] = trans[sub][j];
+                    ++j;
+                }
+            }
+        }
+        for (int i = 1; i <= k; ++i) {
+            cout << go[i].second << ' ' << go[i].first << '\n';
+        }
+    }
+    return 0;
+}
+/*
+<>>><<><<<<<>>><
+0 3 2 1 0 1 2 0 1 2 3 4 5 2 1 0 1
+0 3 2 1 0 1 2 0 1 2 3 4 5 3 2 0 1 
+
+*/

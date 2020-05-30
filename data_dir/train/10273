@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+using namespace std;
+#include <ext/pb_ds/assoc_container.hpp> 
+#include <ext/pb_ds/tree_policy.hpp> 
+using namespace __gnu_pbds;   
+#define ordered_set tree<int, null_type,less<int>, rb_tree_tag,tree_order_statistics_node_update> 
+#define ll long long int
+#define ld double
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+#define all(a) a.begin(),a.end()
+#define sz(a) (ll)(a.size())
+const ll M=5e5+5;
+std::vector<ll> vtr[M];
+ll pt[M],n,wt[M],val[M],seg[4*M],L[M],R[M],ans[M],sub[M],lazy[4*M];
+std::vector<ll> Q[M];
+void dfs(ll x,ll w)
+{
+    if(sz(vtr[x])==0)
+        val[x]=w;
+    else
+        val[x]=1e16;
+    sub[x]=1;
+    for(ll i=0;i<sz(vtr[x]);i++)
+    {
+        ll u=vtr[x][i];
+        dfs(u,w+wt[u]);
+        sub[x]+=sub[u];
+    }
+}
+void build(ll i,ll s,ll e)
+{
+    if(s==e)
+    {
+        seg[i]=val[s];
+        return;
+    }
+    ll m=(s+e)/2;
+    build(2*i,s,m);
+    build(2*i+1,m+1,e);
+    seg[i]=min(seg[2*i],seg[2*i+1]);
+}
+void update(ll i,ll s,ll e,ll l,ll r,ll x)
+{
+    if(lazy[i])
+    {
+        seg[i]=seg[i]+lazy[i];
+        if(s!=e)
+        {
+            lazy[2*i]+=lazy[i];
+            lazy[2*i+1]+=lazy[i];
+        }
+        lazy[i]=0;
+    }
+    if(s>r || l>e)
+        return;
+    if(s>=l && e<=r)
+    {
+        seg[i]=seg[i]+x;
+        if(s!=e)
+        {
+            lazy[2*i]+=x;
+            lazy[2*i+1]+=x;
+        }
+        return;
+    }
+    ll m=(s+e)/2;
+    update(2*i,s,m,l,r,x);
+    update(2*i+1,m+1,e,l,r,x);
+    seg[i]=min(seg[2*i],seg[2*i+1]);
+}
+ll query(ll i,ll s,ll e,ll l,ll r)
+{
+    if(lazy[i])
+    {
+        seg[i]=seg[i]+lazy[i];
+        if(s!=e)
+        {
+            lazy[2*i]+=lazy[i];
+            lazy[2*i+1]+=lazy[i];
+        }
+        lazy[i]=0;
+    }
+    if(s>r || l>e)
+        return 1e16;
+    if(s>=l && e<=r)
+        return seg[i];
+    ll m=(s+e)/2;
+    return min(query(2*i,s,m,l,r),query(2*i+1,m+1,e,l,r));
+}
+void solve(ll x)
+{
+    for(ll i=0;i<sz(Q[x]);i++)
+    {
+        ll z=Q[x][i];
+        ll l=L[z];
+        ll r=R[z];
+        ans[z]=query(1,1,n,l,r);
+    }
+    for(ll i=0;i<sz(vtr[x]);i++)
+    {
+        ll u=vtr[x][i];
+        update(1,1,n,u,u+sub[u]-1,-wt[u]);
+        update(1,1,n,1,u-1,wt[u]);
+        update(1,1,n,u+sub[u],n,wt[u]);
+        solve(u);
+        update(1,1,n,u,u+sub[u]-1,wt[u]);
+        update(1,1,n,1,u-1,-wt[u]);
+        update(1,1,n,u+sub[u],n,-wt[u]);
+    }
+}
+int main()
+{
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+    ll q,v;
+    cin>>n>>q;
+    for(ll i=2;i<=n;i++)
+    {
+        cin>>pt[i]>>wt[i];
+        vtr[pt[i]].pb(i);
+    }
+    dfs(1,0);
+    build(1,1,n);
+    for(ll i=1;i<=q;i++)
+    {
+        cin>>v>>L[i]>>R[i];
+        Q[v].pb(i);
+    }
+    solve(1);
+    for(ll i=1;i<=q;i++)
+        cout<<ans[i]<<"\n";
+    return 0;
+}

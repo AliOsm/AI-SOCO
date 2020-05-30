@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = (int)2e5 + 12;
+vector<int> g[maxn];
+struct tree{
+int t[4 * maxn], lz[4 * maxn];
+	inline void push(int v, int tl, int tr){
+		
+		if(lz[v] !=	 0){
+			t[v] += lz[v];
+			
+			if(tl != tr){
+				lz[v + v] += lz[v];
+				lz[v + v + 1] += lz[v];
+			}
+			lz[v] = 0;
+		}
+	}
+	
+	void upd(int v, int tl, int tr, int l, int r, int val){
+		push(v, tl, tr);
+		
+		if(l > r)
+			return ;
+		
+		if(tl == l && tr == r){
+			lz[v] = val;
+			push(v, tl, tr);
+			return ;
+		}
+		
+		int tm = (tl + tr) >> 1;
+		upd(v + v, tl, tm, l, min(r, tm), val);
+		upd(v + v + 1, tm + 1, tr, max(l, tm + 1), r, val);
+		t[v] = min(t[v + v], t[v + v + 1]);
+	}
+	
+	int get(int v, int tl, int tr, int l, int r){
+		push(v, tl, tr);
+		if(l > r)
+			return INT_MAX;
+		if(tl == l && tr == r)
+			return t[v];
+		int tm = (tl + tr) >> 1;
+		return 	min(get(v + v, tl, tm, l, min(r, tm)), get(v + v + 1, tm + 1, tr, max(l, tm + 1), r));
+	}
+}tak, jup;
+int b[maxn], c[maxn], r, n, pos[maxn], d[maxn], lvl[maxn], len[maxn], cnt, used[maxn];
+int dfs(int v){
+	b[++r] = v;
+	pos[v] = r;
+	used[v] = true;
+	int cur = cnt;
+	cnt++;          
+	for(int i = 0; i < g[v].size(); i++){
+		int to = g[v][i];
+		if(!used[to]){
+			lvl[to] = lvl[v] + 1;
+			dfs(to);
+		}
+	}
+	len[v] = max(1, cnt - cur);
+}
+int main () {
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	int m;
+	cin >> n >> m;
+	for(int i = 1; i <= n; i++)
+		cin >> d[i];
+	for(int i = 1; i < n; i++){
+		int u, v;
+		cin >> u >> v;
+		g[u].push_back(v);
+		g[v].push_back(u);
+	}
+	lvl[1] = 1;
+	dfs(1);
+	for(int i = 1; i <= n; i++){
+		c[i] = d[pos[i]];
+	}
+	for(int i = 1; i <= m; i++){
+		int t, l, r;
+		cin >> t >> l;
+		if(t == 1){
+			cin >> r;
+			if(lvl[l] % 2 == 1){
+				tak.upd(1, 1, n, pos[l], pos[l] + len[l] - 1, r);
+				jup.upd(1, 1, n, pos[l], pos[l] + len[l] - 1, -r);
+			}
+			else{
+				tak.upd(1, 1, n, pos[l], pos[l] + len[l] - 1, -r);
+				jup.upd(1, 1, n, pos[l], pos[l] + len[l] - 1, +r);
+			}
+		}
+		else{
+			int v = l;
+			cout << (lvl[v] % 2 ? tak.get(1, 1, n, pos[v], pos[v]): jup.get(1, 1, n, pos[v], pos[v])) + d[v] << endl;
+		}
+	}
+}

@@ -1,0 +1,180 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef vector<ll> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<ll, ll> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const int di[] = { -1, 0, 1, 0, -1, 1, 1, -1 };
+const int dj[] = { 0, 1, 0, -1, -1, 1, -1, 1 };
+const ll MOD = 1e9 + 9;
+const ll INF = 1e9;
+const long double EPS = 1e-7;
+#define all(n) n.begin(),n.end()
+
+vll fib(3e5 + 5);
+
+void initFib() {
+	fib[1] = 1;
+	for (int i = 2; i < 3e5 + 5; i++) {
+		fib[i] = fib[i - 1] + fib[i - 2];
+		fib[i] %= MOD;
+	}
+}
+
+inline ll G(ll a, ll b, ll i) {
+	if (i == 1) return a;
+	if (i == 2) return b;
+	return ((a * fib[i - 2]) % MOD + (b * fib[i - 1]) % MOD) % MOD;
+}
+
+inline ll Gsum(ll a, ll b, ll i) {
+	ll ret = G(a, b, i + 2) - G(a, b, 2);
+	while (ret < 0) ret += MOD;
+	return ret;
+}
+
+class SegmentTree {
+private:
+	vll st, A, lazyA, lazyB;
+	int n;
+	inline int left(int p) { return p << 1; }
+	inline int right(int p) { return (p << 1) + 1; }
+	inline int mid(int a, int b) { return (a + b) / 2; }
+
+	void build(int p, int L, int R) {
+		if (L == R)
+			st[p] = A[L];
+		else {
+			build(left(p), L, (L + R) / 2);
+			build(right(p), (L + R) / 2 + 1, R);
+			ll p1 = st[left(p)], p2 = st[right(p)];
+			st[p] = (p1 + p2) % MOD;
+		}
+	}
+
+	ll query(int p, int L, int R, int i, int j) {
+		if (i > R || j < L) return 0; //-1; // current segment outside query range
+
+		if (lazyA[p]) {
+			ll a = lazyA[p], b = lazyB[p];
+			st[p] += Gsum(a, b, R - L + 1);
+			st[p] %= MOD;
+
+			if (L != R) {
+				lazyA[left(p)] += a;
+				lazyB[left(p)] += b;
+				lazyA[right(p)] += G(a, b, (R - L) / 2 + 2);
+				lazyB[right(p)] += G(a, b, (R - L) / 2 + 3);
+				lazyA[left(p)] %= MOD;
+				lazyB[left(p)] %= MOD;
+				lazyA[right(p)] %= MOD;
+				lazyB[right(p)] %= MOD;
+			}
+			else A[L] += a, A[L] %= MOD;
+
+			lazyA[p] = lazyB[p] = 0;
+		}
+
+		if (L >= i && R <= j) return st[p];               // inside query range
+
+		ll p1 = query(left(p), L, (L + R) / 2, i, j);
+		ll p2 = query(right(p), (L + R) / 2 + 1, R, i, j);
+
+		// if (p1 == -1) return p2;   // if we try to access segment outside query
+		// if (p2 == -1) return p1;                               // same as above
+		return (p1 + p2) % MOD;
+	}
+
+	ll update(int p, int L, int R, int i, int j) {
+		if (lazyA[p]) {
+			ll a = lazyA[p], b = lazyB[p];
+			st[p] += Gsum(a, b, R - L + 1);
+			st[p] %= MOD;
+
+			if (L != R) {
+				lazyA[left(p)] += a;
+				lazyB[left(p)] += b;
+				lazyA[right(p)] += G(a, b, (R - L) / 2 + 2);
+				lazyB[right(p)] += G(a, b, (R - L) / 2 + 3);
+				lazyA[left(p)] %= MOD;
+				lazyB[left(p)] %= MOD;
+				lazyA[right(p)] %= MOD;
+				lazyB[right(p)] %= MOD;
+			}
+			else A[L] += a, A[L] %= MOD;
+
+			lazyA[p] = lazyB[p] = 0;
+		}
+
+		// if the current interval does not intersect 
+		// the update interval, return this st node value!
+		if (i > R || j < L)
+			return st[p];
+
+		if (i <= L && R <= j) { // Segment fully within range
+			ll a = fib[L - i + 1], b = fib[L - i + 2];
+			st[p] += Gsum(a, b, R - L + 1);
+			st[p] %= MOD;
+
+			if (L != R) {
+				lazyA[left(p)] += a;
+				lazyB[left(p)] += b;
+				lazyA[right(p)] += G(a, b, (R - L) / 2 + 2);
+				lazyB[right(p)] += G(a, b, (R - L) / 2 + 3);
+				lazyA[left(p)] %= MOD;
+				lazyB[left(p)] %= MOD;
+				lazyA[right(p)] %= MOD;
+				lazyB[right(p)] %= MOD;
+			}
+			else A[L] += a, A[L] %= MOD;
+
+			return st[p];
+		}
+
+		ll p1 = update(left(p), L, (L + R) / 2, i, j);
+		ll p2 = update(right(p), (L + R) / 2 + 1, R, i, j);
+
+		return st[p] = (p1 + p2) % MOD;
+	}
+
+public:
+	SegmentTree(const vi &_A) {
+		A = _A; n = (int)A.size();
+		st.assign(4 * n, 0);
+		lazyA = lazyB = st;
+		build(1, 0, n - 1);
+	}
+
+	ll query(int i, int j) { return query(1, 0, n - 1, i, j); }   // overloading
+
+	void update(int i, int j) {
+		update(1, 0, n - 1, i, j);
+	}
+};
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(0);
+	initFib();
+	int n, m; cin >> n >> m;
+	vi num(n);
+	for (int i = 0; i < n; i++) {
+		cin >> num[i];
+	}
+
+	SegmentTree sgt(num);
+	while (m--) {
+		int t, l, r; cin >> t >> l >> r;
+		l--, r--;
+
+		if (t == 1)
+			sgt.update(l, r);
+		else
+			cout << sgt.query(l, r) << endl;
+	}
+
+	cin.ignore(), cin.get();
+}

@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int nth_bit(int64_t num, int n){
+    return (num >> n) & 1;
+}
+
+const int64_t MOD = 1e9+7;
+void add(int64_t& a, int64_t b){
+    a = (a+b) % MOD;
+}
+void mul(int64_t& a, int64_t b){
+    a = a*b % MOD;
+}
+
+int main(){
+    int N, M;
+    cin >> N >> M;
+    vector<pair<int, int>> es(M);
+    for(int i=0; i<M; i++) cin >> es[i].first >> es[i].second;
+
+    vector<vector<pair<int, int>>> cand;
+    for(int b=1; b<(1<<M); b++){
+        vector<int> ids;
+        for(int i=0; i<M; i++) if(nth_bit(b, i)) ids.push_back(i);
+        int sz = ids.size();
+        do{
+            for(int x=0; x<(1<<sz); x++){
+                vector<pair<int, int>> res;
+                for(int i=0; i<sz; i++){
+                    auto p = es[ids[i]];
+                    if(nth_bit(x, i)) swap(p.first, p.second);
+                    res.push_back(p);
+                }
+                cand.push_back(res);
+            }
+        }while(next_permutation(ids.begin(), ids.end()));
+    }
+
+    auto lca = [](int a, int b){
+        while(a != b){
+            if(a > b) swap(a, b);
+            b >>= 1;
+        }
+        return a;
+    };
+    auto path = [&](int a, int b){
+        int l = lca(a, b);
+        vector<int> res1, res2;
+        while(a != l){
+            res1.push_back(a);
+            a >>= 1;
+        }
+        while(b != l){
+            res2.push_back(b);
+            b >>= 1;
+        }
+        res1.push_back(l);
+        reverse(res2.begin(), res2.end());
+        for(int v : res2) res1.push_back(v);
+        return res1;
+    };
+    auto calc_lower = [&](int a){
+        int res = 0;
+        int mn = a, mx = a;
+        while(mn <= N){
+            res += mx-mn+1;
+            mn *= 2;
+            mx = min(N, mx*2+1);
+        }
+        return res;
+    };
+    auto calc_mp = [&](set<int>& V){
+        map<int, int> res;
+        for(auto it = V.rbegin(); it != V.rend(); it++){
+            int v = *it;
+            int num = calc_lower(v);
+            res[v] = num;
+            v >>= 1;
+            while(v > 0 && !V.count(v)){
+                res[v] += num;
+                v >>= 1;
+            }
+        }
+        return res;
+    };
+
+    int64_t ans = int64_t(N)*N % MOD;
+
+    for(auto& V : cand){
+        int sz = V.size();
+        int s = V[0].first, t = V[sz-1].second;
+        if(s < t) swap(s, t);
+        map<int, int> mp;
+        mp[s]++;
+        mp[t]++;
+        for(int i=0; i<sz-1; i++){
+            auto v = path(V[i].second, V[i+1].first);
+            for(int a : v) mp[a]++;
+        }
+        bool ok = true;
+        for(auto& p : mp) if(p.second > 1) ok = false;
+        if(!ok) continue;
+        set<int> ng_base;
+        for(auto& p : mp) ng_base.insert(p.first);
+
+        auto st_path = path(s, t);
+        int len = st_path.size();
+        int l = lca(s, t);
+
+        // if(V.size() > 1 && V[0].first == s){
+        //     cerr << "----\n";
+        //     for(int a : st_path) cerr << a << " ";
+        //     cerr << endl;
+        // }
+        for(int k=0; k<len-1; k++){
+            if(k > 0 && ng_base.count(st_path[k])) break;
+            ng_base.insert(st_path[k]);
+            auto ng_mp = calc_mp(ng_base);
+            int64_t vs = 1;
+            if(st_path[k] != l){
+                int ps = st_path[k];
+                int ng = st_path[k+1];
+                for(int i : {2*ps , 2*ps+1}) if(i != ng) vs += calc_lower(i) - ng_mp[i];
+            }else{
+                int ps = st_path[k];
+                while(ps > 1 && !ng_base.count(ps>>1)) ps >>= 1;
+                vs += calc_lower(ps) - ng_mp[ps];
+            }
+            int pt = t;
+            int64_t vt = 1;
+            for(int i : {2*pt , 2*pt+1}) vt += calc_lower(i) - ng_mp[i];
+            while(pt > 1 && !ng_base.count(pt>>1)) pt >>= 1;
+            vt += calc_lower(pt) - ng_mp[pt];
+
+            // if(V.size() > 1 && V[0].first == s) cerr << st_path[k] << vs << vt << pt << ng_mp[pt] << endl;
+            add(ans, vs*vt);
+        }
+        // if(V.size() > 1 && V[0].first == s){
+        //     cerr << "----\n";
+        // }
+    }
+    cout << ans << endl;
+    return 0;
+}

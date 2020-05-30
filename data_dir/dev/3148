@@ -1,0 +1,136 @@
+
+/* [ I am working on improving my english ]
+
+	use union find for save connected components details , number of nodes and edges
+	
+	repeat this :
+		suppose x as an CC that has edges >= nodes , y as an CC that has edges < nodes
+		if there is no such x quit
+		find cycle in x and delete one of it's edges and connect one of the deleted edge's nodes to y
+		update graph and union find
+*/
+
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long int lli;
+#define mp make_pair
+
+#define vi vector<int>
+class UnionFind 
+{ 
+public:
+	vi p, rank , edges;
+	
+	UnionFind(int N) 
+	{ 
+		rank.assign(N, 1);
+		edges.assign(N, 0);
+		p.assign(N, 0); 
+		for (int i = 0; i < N; i++) p[i] = i; 
+	}
+	
+	void unionSet(int i, int j) 
+	{
+		int x = findSet(i), y = findSet(j);
+		if ( x != y ) 
+		{
+			if (rank[x] > rank[y]) swap(x,y);
+			p[x] = y;
+			rank[y] += rank[x];
+			edges[y] += edges[x];
+		}
+		edges[y]++;
+	}
+	
+	int findSet(int i) { return (p[i] == i) ? i : (p[i] = findSet(p[i])); }
+	bool isSameSet(int i, int j) { return findSet(i) == findSet(j); }
+};
+#undef vi
+
+int n;
+vector<int> v[1123];
+bool f[1123];
+
+pair<int,int> dfs( int x , int p , bool& found )		// find an edge in one of the cycles
+{
+	if ( f[x] == true )
+	{
+		found = true;
+		return make_pair( x , p );
+	}
+	
+	f[x] = true;
+	
+	int sx = v[x].size();
+	for ( int i=0 ; i<sx ; i++ )
+	{
+		int y = v[x][i];
+		if ( y != p ) 
+		{
+			pair<int,int> t = dfs( y , x , found );
+			if ( found == true ) return t;
+		}
+	}
+	
+	return mp( 0 , 0 );
+}
+
+pair<int,int> findCycleEdge( int x )
+{
+	for ( int i=1 ; i<=n ; i++ ) f[i] = false;
+	bool found = false;
+	return dfs( x , x , found );
+}
+
+int main()
+{
+	cin>>n;
+	UnionFind u(n+1);
+	for ( int i=1 ; i<n ; i++ )
+	{
+		int x , y; cin>>x>>y;
+		v[x].push_back( y );
+		v[y].push_back( x );
+		u.unionSet( x , y );		// note that we have kept the number of edges in each CC in union find
+	}
+	
+	vector< pair< pair<int,int> , pair<int,int> > > ans;
+	while ( true )
+	{
+		int more = -1 , less = -1;
+		
+		for ( int i=1 ; i<=n ; i++ )			// find an x=more and y=less ( mentioned above )
+		{
+			int r = u.findSet( i );
+			if ( u.edges[r] >= u.rank[r] )
+				more = r;
+			else
+				less = r;
+		}
+		
+		if ( more == -1 ) break;
+		
+		pair<int,int> c = findCycleEdge( more );	// find cycle
+		
+		// delete cycle
+		int v1 = c.first , v2 = c.second;
+		for ( int i=0 ; i<v[v1].size() ; i++ ) if ( v[v1][i] == v2 ) { v[v1].erase( v[v1].begin() + i ); }
+		for ( int i=0 ; i<v[v2].size() ; i++ ) if ( v[v2][i] == v1 ) { v[v2].erase( v[v2].begin() + i ); }
+		int r = u.findSet( v1 );
+		u.edges[r]--;
+		
+		// connect more to less
+		v[v1].push_back( less );
+		v[less].push_back( v1 );
+		u.unionSet( r , less );
+		
+		ans.push_back( mp( mp(v1 , v2) , mp(v1 , less) ) );
+	}
+	
+	int as = ans.size();
+	cout<<as<<"\n";
+	for ( int i=0 ; i<as ; i++ )
+		cout<<ans[i].first.first<<" "<<ans[i].first.second<<" "<<ans[i].second.first<<" "<<ans[i].second.second<<"\n";
+	
+	return 0;
+}

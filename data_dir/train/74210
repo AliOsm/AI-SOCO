@@ -1,0 +1,156 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef unsigned long long ull;
+const ull mod=(1ull<<61)-1,base=233;
+inline ull mult(ull a,ull b)
+{
+	ull l1=(unsigned int)a,h1=a>>32,l2=(unsigned int)b,h2=b>>32;
+	ull l=l1*l2,m=l1*h2+l2*h1,h=h1*h2;
+	ull ret=(l&mod)+(l>>61)+(h<<3)+(m>>29)+(m<<35>>3)+1;
+	ret=(ret&mod)+(ret>>61);
+	ret=(ret&mod)+(ret>>61);
+	return ret-1;
+}
+inline ull add(ull a,ull b)
+{
+	if((a+=b)>=mod)a-=mod;
+	return a;
+}
+inline ull dec(ull a,ull b)
+{
+	return add(a,mod-b);
+}
+ull hs[100010][110],pw[100010];
+int n,Q,st[100010][17],dep[100010];
+char fc[100010];
+inline int lca(int x,int y)
+{
+	if(dep[x]<dep[y])swap(x,y);
+	for(int i=16;i>=0;i--)
+		if(dep[st[x][i]]>=dep[y])x=st[x][i];
+	if(x==y)return x;
+	for(int i=16;i>=0;i--)
+		if(st[x][i]!=st[y][i])x=st[x][i],y=st[y][i];
+	return st[x][0];
+}
+inline int jump(int p,int t)
+{
+	for(int i=16;i>=0;i--)if((t>>i)&1)p=st[p][i];
+	return p;
+}
+int ans[100010];
+vector<pair<int,int> > q[100010];
+vector<pair<int,char> > v[100010];
+unordered_map<ull,int> cnt;
+string s[200010];
+ull vl[200010];
+int len[200010];
+void dfs1(int np,int fath,char ic)
+{
+	dep[np]=dep[fath]+1;
+	st[np][0]=fath;
+	fc[np]=ic;
+	for(int i=1;i<17;i++)st[np][i]=st[st[np][i-1]][i-1];
+	hs[np][0]=0;
+	for(int i=1;i<=100&&i<dep[np];i++)hs[np][i]=add(mult(ic-'a'+1,pw[i-1]),hs[fath][i-1]);
+	for(auto &x:v[np])
+	{
+		if(x.first==fath)continue;
+		dfs1(x.first,np,x.second);
+	}
+}
+inline ull gethash(const string &s)
+{
+	ull h=0;
+	for(int i=0;i<s.size();i++)
+		h=add(mult(h,base),s[i]-'a'+1);
+	return h;
+}
+int cmp(const vector<char> &a,ull key,int len)
+{
+	if(a.size()<len)return 0;
+	ull h=0;
+	int ret=0;
+	for(int i=0;i<len-1;i++)h=add(mult(h,base),a[i]-'a'+1);
+	for(int i=len-1;i<a.size();i++)
+	{
+		h=add(mult(h,base),a[i]-'a'+1);
+		ret+=(h==key);
+		h=dec(h,mult(pw[len-1],a[i-len+1]-'a'+1));
+	}
+	return ret;
+}
+void dfs2(int np,int fath,int l)
+{
+	if(dep[np]>l)cnt[hs[np][l]]++;
+//	for(int i=1;i<dep[np]&&i<=100;i++)cnt[hs[np][i]]++;
+	for(auto &x:q[np])
+	{
+		if(len[x.first]==l)
+		{
+			if(x.second==1)ans[x.first>>1]+=cnt[vl[x.first]];
+			else ans[x.first>>1]-=cnt[vl[x.first]];
+		}
+	}
+	for(auto &x:v[np])
+		if(x.first!=fath)dfs2(x.first,np,l);
+	if(dep[np]>l)cnt[hs[np][l]]--;
+}
+int main()
+{
+	scanf("%d",&n);
+	for(int i=1;i<n;i++)
+	{
+		int a,b;
+		char s[5];
+		scanf("%d%d%s",&a,&b,s);
+		v[a].push_back(make_pair(b,s[0]));
+		v[b].push_back(make_pair(a,s[0]));
+	}
+	pw[0]=1;
+	for(int i=1;i<=100;i++)pw[i]=mult(pw[i-1],base);
+	dfs1(1,0,'a');
+	scanf("%d",&Q);
+	for(int i=1,a,b;i<=Q;i++)
+	{
+		scanf("%d%d",&a,&b);
+		cin>>s[i*2];
+		int cl=s[i*2].size();
+		s[i*2+1]=s[i*2];
+		reverse(s[i*2+1].begin(),s[i*2+1].end());
+		vl[i*2]=gethash(s[i*2]);
+		vl[i*2+1]=gethash(s[i*2+1]);
+		len[i*2]=s[i*2].size();
+		len[i*2+1]=s[i*2+1].size();
+		int L=lca(a,b);
+		vector<char> v1,v2;
+		int p;
+		if(dep[a]-dep[L]<cl-1)p=a;
+		else p=jump(a,dep[a]-dep[L]-(cl-1));
+		if(a!=p)
+		{
+			q[a].push_back(make_pair(i*2,1));
+			q[p].push_back(make_pair(i*2,-1));
+		}
+		while(p!=L)v1.push_back(fc[p]),p=st[p][0];
+		if(dep[b]-dep[L]<cl)p=b;
+		else p=jump(b,dep[b]-dep[L]-(cl-1));
+		if(b!=p)
+		{
+			q[b].push_back(make_pair(i*2+1,1));
+			q[p].push_back(make_pair(i*2+1,-1));
+		}
+		while(p!=L)v2.push_back(fc[p]),p=st[p][0];
+		reverse(v2.begin(),v2.end());
+		v1.insert(v1.end(),v2.begin(),v2.end());
+		ans[i]=cmp(v1,vl[i<<1],s[i*2].size());
+	}
+	for(int i=1;i<=100;i++)
+	{
+		cnt.clear();
+		dfs2(1,0,i);
+	}
+//	dfs2(1,0);
+	for(int i=1;i<=Q;i++)printf("%d\n",ans[i]);
+	return 0;
+}

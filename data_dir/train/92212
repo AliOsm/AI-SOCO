@@ -1,0 +1,150 @@
+#include <bits/stdc++.h>
+#define LL long long
+#define PLL pair<LL, LL>
+using namespace std;
+
+struct line{
+	long long m , c;
+	double xleft;
+	bool type;
+	line(long long _m , long long _c){
+		m = _m;
+		c = _c;
+		type = 0;
+	}
+	bool operator < (const line &other) const{
+		if(other.type){
+			return xleft < other.xleft;
+		}
+		return m > other.m;
+	}
+};
+double meet(line x , line y){
+	return 1.0 * (y.c - x.c) / (x.m - y.m);
+}
+struct cht{     /// stores the lower hull of lines
+	set < line > hull;
+	cht(){
+		hull.clear();
+	}
+	typedef set < line > :: iterator ite;
+	bool hasleft(ite node){
+		return node != hull.begin();
+	}
+	bool hasright(ite node){
+		return node != prev(hull.end());
+	}
+	void updateborder(ite node){
+		if(hasright(node)){
+			line temp = *next(node);
+			hull.erase(temp);
+			temp.xleft = meet(*node , temp);
+			hull.insert(temp);
+		}
+		if(hasleft(node)){
+			line temp = *node;
+			temp.xleft = meet(*prev(node) , temp);
+			hull.erase(node);
+			hull.insert(temp);
+		}
+		else{
+			line temp = *node;
+			hull.erase(node);
+			temp.xleft = -2e18;
+			hull.insert(temp);
+		}
+	}
+	bool useless(line left , line middle , line right){
+		return meet(left , middle) > meet(middle , right);
+	}
+	bool useless(ite node){
+		if(hasleft(node) && hasright(node)){
+			return useless(*prev(node) , *node , *next(node));
+		}
+		return 0;
+	}
+	void addline(long long m , long long c){
+        //cout<<"--->"<<m<<" "<<c<<endl;
+		line temp = line(m, c);
+		auto it = hull.lower_bound(temp);
+		if(it != hull.end() && it -> m == m){
+			if(it -> c > c){
+				hull.erase(it);
+			}
+			else{
+				return;
+			}
+		}
+		hull.insert(temp);
+		it = hull.find(temp);
+		if(useless(it)){
+			hull.erase(it);
+			return;
+		}
+		while(hasleft(it) && useless(prev(it))){
+			hull.erase(prev(it));
+		}
+		while(hasright(it) && useless(next(it))){
+			hull.erase(next(it));
+		}
+		updateborder(it);
+	}
+	long long getbest(long long x){
+		if(hull.empty()){
+			return -2e18;
+		}
+
+		line query(0 , 0);
+		query.xleft = x;
+		query.type = 1;
+
+		auto it = hull.lower_bound(query);
+		it = prev(it);
+		return it -> m * x + it -> c;
+	}
+};
+
+const int N = 1e6+7;
+LL x[N], y[N], a[N];
+LL dp[N];
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n;
+    cin>>n;
+
+    vector<pair<PLL, LL>> input;
+    for (int i=0; i<n; i++) {
+        LL x, y, a;
+        cin>>x>>y>>a;
+        input.push_back({{x, y}, a});
+    }
+
+    sort(input.begin(), input.end());
+
+    for (int i=1; i<=n; i++) {
+        x[i] = input[i-1].first.first;
+        y[i] = input[i-1].first.second;
+        a[i] = input[i-1].second;
+        a[i] = x[i] * y[i] - a[i];
+    }
+
+    dp[0] = 0;
+    cht CHT;
+    CHT.addline(0, 0);
+    for (int i=1; i<=n; i++) {
+        LL q = -CHT.getbest(-y[i]);
+        dp[i] = q + a[i];
+        //cout<<i<<" "<<x[i]<<" "<<y[i]<<" "<<a[i]<<" "<<dp[i]<<" "<<q<<endl;
+        CHT.addline(-x[i], -dp[i]);
+    }
+
+    LL ans = 0;
+    for (int i=1; i<=n; i++)
+        ans = max(ans, dp[i]);
+
+    cout<<ans<<endl;
+}

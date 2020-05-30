@@ -1,0 +1,113 @@
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+#define lowbit(x) ((x)&(-(x)))
+#define rep(i,n) for(int i=0;i<n;i++)
+#define ACM int l,int r,int rt
+#define lson l,m,rt<<1
+#define rson m+1,r,rt<<1|1
+const int maxn = 100010;
+const int mod = 1000000007;
+int N , K;
+struct Node {
+   int lead,age;
+   int L,R;
+   int id ;
+   bool operator < (const Node & cmp) const {
+      return lead < cmp.lead;
+   }
+}Man[maxn];
+struct Query {
+   int lim; //the lead value must over the limit for every query
+   int L , R;
+   int id ;
+   bool operator  < (const Query & cmp) const{
+      return lim < cmp.lim;
+   }
+}Ask[maxn];
+/*prepare for this problem*/
+int ans[maxn];
+int val[maxn]; // val[i] : the maximum people in the group of leader i
+int AG[3 * maxn];
+int T_Age; // tot ages for discreate
+int Get_id(int age) {
+  return lower_bound(AG,AG+T_Age,age) - AG;
+}
+/*solve this problem*/
+// ~  Binary indexed tree
+int c[3 * maxn];
+void update(int x)  {
+  for(;x < T_Age + 10; x += lowbit(x)) c[x] ++;
+}
+int sum(int x) {
+  int ans = 0;
+  for(; x ; x -= lowbit(x)) ans += c[x];
+  return ans ;
+}
+//~ segment tree
+int Mx[(maxn*3) <<  2];
+void update(int p,int val,ACM) {
+  Mx[rt] = max(Mx[rt] , val) ;
+  if(l != r)  {
+     int m = l + r >> 1;
+     if(p <= m) update(p,val,lson);
+     else update(p,val,rson);
+  }
+}
+int query(int L,int R,ACM) {
+  if(L <=l && r <= R) {
+    return Mx[rt];
+  }
+  int m = l + r >> 1;
+  int ans = 0;
+  if(L <= m) ans = max(ans , query(L,R,lson));
+  if(R >  m) ans = max(ans , query(L,R,rson));
+  return ans;
+}
+void Initial(){
+     rep(i,N) {
+      update(Get_id(Man[i].age) + 1) ;
+      val[Man[i].id] = sum( Get_id(Man[i].R) + 1 ) - sum( Get_id( Man[i].L )  );
+     }
+}
+void Solve(int Q) {
+     int pt = N - 1;
+     for(int i = Q - 1; i >= 0; i --) {
+      while(pt >= 0 && Man[pt].lead >= Ask[i].lim) {
+        update(Get_id(Man[pt].age) , val[Man[pt].id] , 0 , T_Age - 1 , 1 );
+        pt -- ;
+      }
+      ans[Ask[i].id] = ( Ask[i].L <= Ask[i].R ) ? query(Get_id (Ask[i].L) , Get_id (Ask[i].R) , 0 , T_Age - 1 , 1) : -1;
+     }
+     rep(i,Q) if(!ans[i]) puts("-1");
+     else printf("%d\n",ans[i]);
+}
+int main()
+{
+  scanf("%d%d",&N,&K);
+  rep(i,N) scanf("%d",&Man[i].lead);
+  rep(i,N) {
+    scanf("%d",&Man[i].age);
+    Man[i].id = i;
+    AG[T_Age ++ ] = Man[i].age ;
+    Man[i].L = AG[T_Age ++ ] = Man[i].age - K;
+    Man[i].R = AG[T_Age ++ ] = Man[i].age + K;
+  }
+  int q,x,y;
+  scanf("%d",&q);
+  rep(i,q)  {
+    scanf("%d%d",&x,&y); x-- ; y--;
+    Ask[i].id  = i;
+    Ask[i].lim = max(Man[x].lead,Man[y].lead);
+    Ask[i].L = max(Man[x].L,Man[y].L);
+    Ask[i].R = min(Man[x].R,Man[y].R);
+  }
+  sort(AG,AG+T_Age); sort(Man,Man+N);  sort(Ask,Ask+q);
+  T_Age = unique(AG,AG+T_Age) - AG;
+  Initial();
+  Solve(q);
+  return 0;
+}

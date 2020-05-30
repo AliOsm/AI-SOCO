@@ -1,0 +1,152 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstdio>
+#include <fstream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <cstring>
+#include <cassert>
+#include <memory>
+#include <chrono>
+#include <bitset>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+#define rep(i,a,n) for (int i=(a);i<(n);i++)
+#define per(i,n,a) for (int i=(n)-1;i>=(a);i--)
+#define pb push_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define fi first
+#define se second
+
+typedef long long ll;
+typedef long double ld;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<ll,ll> pll;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+
+const int maxn=(int)4e5+10;
+const int inf=(int)1e9+5;
+const int mod=(int)1e6+3;
+const ll llinf=(ll)1e18+5;
+const ld pi=acos(-1.0);
+
+int t[4*maxn];
+
+void upd(int v,int idx,int val,int tl,int tr){
+    if(tl==tr)return void(t[v]=val);
+    int tm=(tl+tr)/2;
+    if(idx<=tm)upd(v+v,idx,val,tl,tm);
+    else upd(v+v+1,idx,val,tm+1,tr);
+    t[v]=max(t[v+v],t[v+v+1]);
+}
+
+int get(int v,int l,int r,int tl,int tr){
+    if(tl>r||tr<l||l>r)return -inf;
+    if(l<=tl&&tr<=r)return t[v];
+    return max(get(v+v,l,r,tl,(tl+tr)/2),get(v+v+1,l,r,(tl+tr)/2+1,tr));
+}
+
+int n;
+vector<int> g[maxn];
+
+int sz[maxn];
+int lhf[maxn];
+bool ok[maxn];
+
+int l[maxn];
+int r[maxn];
+int timer=0;
+
+void dfs(int v,int par=-1){
+    l[v]=timer++;
+    sz[v]=1;
+    lhf[v]=-1;
+    for(int x:g[v]){
+        if(x==par)continue;
+        dfs(x,v);
+        sz[v]+=sz[x];
+        lhf[v]=max(lhf[v],lhf[x]);
+        if(sz[x]<=n/2)lhf[v]=max(lhf[v],sz[x]);
+    }
+    for(int x:g[v]){
+        if(sz[x]>n/2&&x!=par){
+            ok[v]=(lhf[x]!=-1&&sz[x]-n/2<=lhf[x]);
+        }
+    }
+    if(sz[v]<=n/2)upd(1,l[v],sz[v],0,n-1);
+    r[v]=l[v]+sz[v]-1;
+}
+
+multiset <int> q;
+
+void dfs2(int v,int par=-1){
+    upd(1,l[v],-inf,0,n-1);
+
+    if(n-sz[v]>n/2){
+        ok[v]=false;
+        int c=max(get(1,0,l[v]-1,0,n-1),get(1,r[v]+1,n-1,0,n-1));
+        if(c!=-inf)ok[v]|=(n-sz[v]-n/2<=c);
+        if(!q.empty()){
+            ok[v]|=*q.begin()-sz[v]<=n/2;
+        }
+    }
+
+    for(int x:g[v]){
+        if(x==par)continue;
+        if(n-sz[x]<=n/2)q.insert(sz[x]);
+        dfs2(x,v);
+        if(n-sz[x]<=n/2)q.erase(q.find(sz[x]));
+    }
+    if(sz[v]<=n/2)upd(1,l[v],sz[v],0,n-1);
+}
+
+int main() {
+
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+
+    fill(t,t+4*maxn,-inf);
+
+    n=nextInt<int>();
+    for(int i=0;i<n-1;++i){
+        int x,y;
+        x=nextInt<int>(),y=nextInt<int>();
+        g[x].pb(y),g[y].pb(x);
+    }
+
+    rep(i,1,n+1)ok[i]=true;
+    dfs(1);
+    dfs2(1);
+
+    rep(i,1,n+1){
+        printf("%d ",ok[i]);
+    }
+    return 0;
+}

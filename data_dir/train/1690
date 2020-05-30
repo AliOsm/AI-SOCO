@@ -1,0 +1,204 @@
+//#pragma comment(linker, "/stack:200000000")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma GCC optimize("unroll-loops")
+
+#include <stdio.h>
+#include <bits/stdc++.h>
+
+#define uint unsigned int
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define rep(i, l, r) for (int i = l; i < r; i++)
+#define repb(i, r, l) for (int i = r; i > l; i--)
+#define sz(a) (int)a.size()
+#define fi first
+#define se second
+#define mp(a, b) make_pair(a, b)
+
+using namespace std;
+
+inline void setmin(int &x, int y) { if (y < x) x = y; }
+inline void setmax(int &x, int y) { if (y > x) x = y; }
+inline void setmin(ll &x, ll y) { if (y < x) x = y; }
+inline void setmax(ll &x, ll y) { if (y > x) x = y; }
+
+const int N = 100000;
+const int inf = (int)1e9 + 1;
+const ll big = (ll)1e18 + 1;
+const int P = 239;
+const int MOD = (int)1e9 + 7;
+const int MOD1 = (int)1e9 + 9;
+const double eps = 1e-9;
+const double pi = atan2(0, -1);
+const int ABC = 26;
+
+int cnt_v;
+pair<int, int> tree[N * 4];
+int add[N * 4];
+
+void build(int n)
+{
+    cnt_v = 1;
+    while (cnt_v < n)
+        cnt_v <<= 1;
+    fill(tree, tree + cnt_v * 2 - 1, mp(-inf, -1));
+    rep(i, 0, n)
+        tree[cnt_v - 1 + i] = {-inf, i};
+    repb(i, cnt_v - 2, -1)
+        tree[i] = max(tree[i * 2 + 1], tree[i * 2 + 2]);
+}
+
+void push(int x)
+{
+    tree[x * 2 + 1].fi = max(-inf, tree[x * 2 + 1].fi + add[x]);
+    add[x * 2 + 1] = max(-inf, add[x * 2 + 1] + add[x]);
+    tree[x * 2 + 2].fi = max(-inf, tree[x * 2 + 2].fi + add[x]);
+    add[x * 2 + 2] = max(-inf, add[x * 2 + 2] + add[x]);
+    add[x] = 0;
+}
+
+void upd_elem(int x, int lx, int rx, int p, int v)
+{
+    if (rx - lx == 1)
+        tree[x] = {v, p};
+    else
+    {
+        push(x);
+        if (p < (lx + rx) / 2)
+            upd_elem(x * 2 + 1, lx, (lx + rx) / 2, p, v);
+        else
+            upd_elem(x * 2 + 2, (lx + rx) / 2, rx, p, v);
+        tree[x] = max(tree[x * 2 + 1], tree[x * 2 + 2]);
+    }
+}
+
+void upd(int x, int lx, int rx, int l, int r, int v)
+{
+    if (lx >= r || l >= rx)
+        return;
+    else if (lx >= l && rx <= r)
+    {
+        tree[x].fi = max(-inf, tree[x].fi + v);
+        add[x] = max(-inf, add[x] + v);
+    }
+    else
+    {
+        push(x);
+        upd(x * 2 + 1, lx, (lx + rx) / 2, l, r, v);
+        upd(x * 2 + 2, (lx + rx) / 2, rx, l, r, v);
+        tree[x] = max(tree[x * 2 + 1], tree[x * 2 + 2]);
+    }
+}
+
+void merge(set<int> &a, set<int> &b)
+{
+    if (sz(b) > sz(a))
+        a.swap(b);
+    for (int i : b)
+        a.insert(i);
+}
+
+int main()
+{
+    //freopen("a.in", "r", stdin);
+    //freopen("a.out", "w", stdout);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.precision(20);
+    cout << fixed;
+    //ll TL = 0.95 * CLOCKS_PER_SEC;
+    //clock_t time = clock();
+    int n, m;
+    cin >> n >> m;
+    map<int, int> m1, m2;
+    rep(i, 0, n)
+    {
+        int x;
+        cin >> x;
+        m1[x]++;
+    }
+    rep(i, 0, n)
+    {
+        int x;
+        cin >> x;
+        m2[x]++;
+    }
+    set<int> in[m];
+    build(m);
+    for (auto it : m1)
+    {
+        auto it1 = m2.upper_bound((m - 1) - it.fi);
+        if (it1 == m2.begin())
+            continue;
+        it1--;
+        upd_elem(0, 0, cnt_v, it.fi, it.fi + it1->fi);
+        in[it1->fi].insert(it.fi);
+    }
+    while (sz(m1) > 0)
+    {
+        auto p = tree[0];
+        auto it = --m1.end(), it1 = --m2.end();
+        //cout << p.fi << " " << p.se << "\n";
+        //cout << it->fi << " " << it1->fi << "\n";
+        int x, y;
+        if ((it->fi + it1->fi) % m >= p.fi)
+        {
+            x = it->fi;
+            y = it1->fi;
+        }
+        else
+        {
+            x = p.se;
+            y = p.fi - p.se;
+        }
+        //cout << x << " " << y << "\n";
+        int d = min(m1[x], m2[y]);
+        //if (d == 0)
+        //    break;
+        rep(i, 0, d)
+            cout << (x + y) % m << " ";
+        //cout << endl;
+        m1[x] -= d;
+        if (m1[x] == 0)
+        {
+            it1 = m2.upper_bound((m - 1) - x);
+            if (it1 != m2.begin())
+            {
+                it1--;
+                in[it1->fi].erase(x);
+            }
+            upd_elem(0, 0, cnt_v, x, -inf);
+            m1.erase(x);
+        }
+        m2[y] -= d;
+        if (m2[y] == 0)
+        {
+            it1 = m2.find(y);
+            if (it1 != m2.begin())
+            {
+                it1--;
+                int del = y - it1->fi;
+                if (sz(in[y]) > 0)
+                {
+                    int l = *in[y].begin(), r = *--in[y].end();
+                    upd(0, 0, cnt_v, l, r + 1, -del);
+                }
+                merge(in[it1->fi], in[y]);
+            }
+            else
+            {
+                if (sz(in[y]) > 0)
+                {
+                    int l = *in[y].begin(), r = *--in[y].end();
+                    upd(0, 0, cnt_v, l, r + 1, -inf);
+                }
+            }
+            m2.erase(y);
+        }
+        //cout << sz(m1) << " " << sz(m2) << "\n";
+    }
+    cout << "\n";
+    return 0;
+}

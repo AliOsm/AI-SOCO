@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+#define T long long
+
+using namespace std;
+
+struct point
+{
+    T x, y, index;
+
+    point(T x, T y, T index): x(x), y(y), index(index){}
+
+    T operator* (const point p) {   // dot
+        return x * p.x + y * p.y;
+    }
+
+    T operator^ (const point p) {   // cross
+        return x * p.y - y * p.x;
+    }
+
+    bool operator< (const point p) const {
+        return make_pair(x, y) < make_pair(p.x, p.y);
+    }
+
+    bool operator== (const point p) const {
+        return x == p.x && y == p.y;
+    }
+
+    bool operator!= (const point p) const {
+        return !(*this == p);
+    }
+
+    point operator* (T scale) {
+        return point(scale * x, scale * y, index);
+    }
+
+    point operator+ (const point p) {
+        return point(x + p.x, y + p.y, index);
+    }
+
+    point operator- (const point p) {
+        return point(x - p.x, y - p.y, index);
+    }
+
+    T norm() {
+        return (*this) * (*this);
+    }
+};
+
+bool half(point p) { 
+    assert(p.x != 0 || p.y != 0); // the argument of (0,0) is undefined
+    return p.x > 0 || (p.x == 0 && p.y > 0);
+}
+
+void polarSort(vector<point> &v, int L, int R) {
+    sort(v.begin() + L, v.begin() + R, [](point v, point w) {
+        return make_tuple(half(v), 0, v.norm()) <
+            make_tuple(half(w), (v ^ w), w.norm());
+    });
+}
+
+const int N = 1515;
+
+int n;
+int Ans[N];
+int Sub[N];
+
+vector <point> pts;
+vector <int> Tree[N];
+
+int DFS(int u, int p) {
+    Sub[u] = 1;
+    for (auto v : Tree[u]) if (v != p)
+        Sub[u] += DFS(v, u);
+    return Sub[u];
+}
+
+void PaintTree(int u, int p, int L, int R)
+{
+    int idx = L;
+    for (int i = L; i <= R; i++)
+        if (pts[idx].y < pts[i].y) idx = i;
+
+    swap(pts[L], pts[idx]);
+
+    Ans[pts[L].index] = u;
+
+    for (int i = L + 1; i <= R; i++) 
+        pts[i] = pts[i] - pts[L];
+
+    polarSort(pts, L + 1, R + 1);
+
+    int pre = 0;
+    for (auto v : Tree[u]) if (v != p) {
+        PaintTree(v, u, L + pre + 1, L + pre + Sub[v]);
+        pre += Sub[v];
+    }
+}
+
+int getCentroid(int u, int p) {
+    for (int v : Tree[u]) 
+        if (v != p && Sub[v] > n / 2)
+            return getCentroid(v, u);
+    return u;
+}
+
+int main()
+{
+    scanf("%d", &n);
+    for (int i = 1; i < n; i++) {
+        int u, v;   scanf("%d%d", &u, &v);
+        Tree[u].push_back(v);
+        Tree[v].push_back(u);
+    }
+
+    for (int i = 0; i < n; i++) {
+        int x, y;   scanf("%d%d", &x, &y);
+        pts.push_back(point(x, y, i + 1));
+    }
+
+    int Root = getCentroid(1, 0);
+    DFS(Root, 0);
+    PaintTree(Root, 0, 0, n - 1);
+
+    for (int i = 1; i <= n; i++)
+        printf("%d ", Ans[i]);
+    puts("");
+
+    return 0;
+}

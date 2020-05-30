@@ -1,0 +1,209 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cassert>
+#include <limits.h>
+ 
+using namespace std;
+ 
+#define rep(i,n) for(int i=0;i<n;i++)
+#define ll long long int
+#define f first
+#define s second
+#define pi pair<ll,ll>
+#define pii pair<pi,ll>
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define pb push_back
+#define rep(i,n) for(int i=0;i<n;i++)
+#define fr freopen("source.txt","r",stdin),freopen("output.txt","w",stdout)
+using namespace std;
+
+vector<pi>g[200011];
+ll w[200011];
+ll c[200011];
+int u[200011];
+int v[200011];
+bool taken[200011];
+int pa[200011];
+int sz[200011];
+
+bool func(int a,int b) {
+    return w[a] < w[b];
+}
+int f(int x) {
+    if(x==pa[x]) return x;
+    return pa[x] = f(pa[x]);
+}
+void join(int a,int b) {
+    a = f(a);
+    b = f(b);
+    if(sz[a]<sz[b]) swap(a, b);
+    sz[a]+=sz[b];
+    pa[b]=a;
+}
+int dp[200011][21];
+ll sdp[200011][21];
+int d[200011];
+
+void dfs(int v,int p,int x) {
+    dp[v][0] = p;
+    sdp[v][0] = x;
+    d[v] = d[p] + 1;
+    rep(i,g[v].size()) {
+        if(g[v][i].f != p) {
+            dfs(g[v][i].f, v,w[g[v][i].s]);
+        }
+    }
+}
+
+int lca(int u,int v) {
+    if(d[u]<d[v]) swap(u, v);
+    int diff = d[u]-d[v];
+    rep(i,20){
+        if(diff&(1<<i)){
+            u = dp[u][i];
+        }
+    }
+    if(u!=v) {
+        for(int i=19;i>=0;i--){
+            if(dp[u][i]!=dp[v][i]) {
+                u = dp[u][i];
+                v = dp[v][i];
+            }
+        }
+        u = dp[u][0];
+    }
+    return u;
+}
+ll calc(int u,int v) {
+
+    ll val = 0;
+    if(d[u]<d[v]) swap(u, v);
+    int diff = d[u] - d[v];
+    rep(i,20) {
+        if(diff&(1<<i)) {
+            val = max(val,sdp[u][i]);
+            u = dp[u][i];
+        }
+    }
+    if(u!=v) {
+        for(int i=19;i>=0;i--){
+            if(dp[u][i]!=dp[v][i]) {
+                val = max(val,sdp[u][i]);
+                val = max(val,sdp[v][i]);
+                u = dp[u][i];
+                v = dp[v][i];
+            }
+        }
+        val=max(val,sdp[u][0]);
+        val=max(val,sdp[v][0]);
+    }
+    return val;
+}
+int main() {
+    int n,m;
+    cin >> n >> m;
+
+    for(int i=1;i<=n;i++) {
+        pa[i] = i;
+        sz[i] = 1;
+    }
+
+    rep(i,m){
+        cin >> w[i];
+    }
+    rep(i,m) {
+        cin >> c[i];
+    }
+
+    vector<int>E;
+    rep(i,m) {
+        cin >> u[i] >> v[i];
+        E.pb(i);
+    }
+
+    sort(E.begin(),E.end(),func);
+
+    vector<int>T;
+    int x;
+    ll cur=0;
+    rep(i,E.size()) {
+        x = E[i];
+        if(f(u[x])!=f(v[x])){
+            join(u[x],v[x]);
+            cur+=w[x];
+            taken[x]=1;
+            g[u[x]].pb(mp(v[x],x));
+            g[v[x]].pb(mp(u[x],x));
+        }   
+    }
+    dfs(1,0,0);
+    for(int i=1;i<20;i++){
+        for(int j=1;j<=n;j++){
+            dp[j][i] = dp[dp[j][i-1]][i-1];
+            sdp[j][i] = max( sdp[j][i-1],sdp[dp[j][i-1]][i-1] );
+        }
+    }
+    ll S;
+    cin >> S;
+    ll ans = 1e18;
+    int ind;
+    for(int i=0;i<m;i++){
+        if(taken[i]){
+            if(ans> cur-S/c[i]) {
+                ans = cur-S/c[i];
+                ind = i;
+            }
+        }
+        else{
+
+            ll val = calc(u[i],v[i]);
+            ll now = cur-val+w[i];
+            if(ans > now-S/c[i]) {
+                ans = now-S/c[i];
+                ind = i;
+            }
+        }
+    }
+    cout << ans << "\n";
+    for(int i=1;i<=n;i++) {
+        sz[i] = 1;
+        pa[i] = i;
+    }
+    join(u[ind],v[ind]);
+    T.clear();
+    T.pb(ind);
+    rep(i,E.size()){
+        x = E[i];
+        if(f(u[x])!=f(v[x])){
+            join(u[x],v[x]);
+            T.pb(x);
+        }   
+    }
+    ind = 0;
+    rep(i,T.size()) {
+        if(c[T[i]]< c[T[ind]]) {
+            ind = i;
+        }
+    }
+    w[T[ind]]-=S/c[T[ind]];
+    rep(i,T.size()) {
+        cout << T[i]+1 << " " << w[T[i]] << "\n";
+    }   
+}

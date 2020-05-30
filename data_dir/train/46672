@@ -1,0 +1,154 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for(int i = x; i < (int)(n); ++i)
+
+int const N = 200000;
+double const eps = 1e-7;
+double l, r;
+
+struct P{
+	double x, y;
+	P(){}
+	P(double a, double b):x(a), y(b) {}
+	void sc() { scanf("%lf%lf", &x, &y); }
+	P operator -(P const &o)const { return P(x - o.x, y - o.y); }
+	double operator |(P const &o)const { return x * o.y - o.x * y; }
+	void pr()const { printf("%lf %lf\n", x, y); }
+};
+
+pair<double, P> p[N];
+
+bool cmpp(pair<double, P> const &a, pair<double, P> const &b) { return a.first < b.first; }
+inline bool eq(double a, double b) { return abs(a - b) < eps; }
+int gcd(int a, int b) { return b ? gcd(b, a % b) : a; }
+
+struct L{
+	double a, b;
+	L(){}
+	L(P const &p1, P const &p2) {
+		P d = p1 - p2;
+		a = d.y / d.x;
+		b = p1.y - a * p1.x;
+	}
+	bool operator <(L const &o)const { return eq(a, o.a) ? b < o.b : a < o.a; }
+	bool operator >(L const &o)const { return eq(a, o.a) ? b > o.b : a > o.a; }
+	double operator |(L const &o)const { return (o.b - b) / (a - o.a); }
+	double operator ()(double x) { return a * x + b; }
+};
+
+vector<L> uhc, lhc;
+vector<pair<L, double> > uh, lh;
+
+inline void ad(vector<pair<L, double> > &v, L const &l){
+	while (v.size() >= 2 && ((eq(v.back().first.a, l.a)) || ((l | v.back().first) <= v[v.size() - 2].second)))v.pop_back();
+	if (v.size() > 1)v.back().second = v.back().first | l;
+	v.push_back(make_pair(l, r));
+}
+
+vector<pair<L, double> > bh(vector<L> const &v){
+	vector<pair<L, double> > an(1, make_pair(L(), l));
+	f(i, 0, v.size())ad(an, v[i]);
+	while (an[an.size() - 2].second >= r)an.pop_back();
+	an.back().second = r;
+	return an;
+}
+
+void ad(P const &p1, P const &p2){
+	if (eq(p1.x, p2.x)){
+		if (p2.y < p1.y)l = max(l, p1.x);
+		else r = min(r, p1.x);
+		return;
+	}
+	if (p2.x < p1.x)uhc.push_back(L(p1, p2));
+	else lhc.push_back(L(p1, p2));
+}
+
+inline int inc(int j, int n) { return j + 1 == n ? 1 : j + 1; }
+int getInt(double x) { return x < 0 ? x - 0.5 : x + 0.5; }
+
+bool sad(P const &a, P const &b){
+	pair<int, int> x = make_pair(getInt(a.x), getInt(a.y)), y = make_pair(getInt(b.x), getInt(b.y));
+	int g = gcd(abs(x.first), abs(x.second));
+	x.first /= g;
+	x.second /= g;
+	g = gcd(abs(y.first), abs(y.second));
+	y.first /= g;
+	y.second /= g;
+	if (x.first != y.first)y.first = -y.first, y.second = -y.second;
+	return x == y;
+}
+
+void solve(){
+	uhc.clear();
+	lhc.clear();
+	
+	int n;
+	scanf("%d", &n);
+	f(i, 0, n)p[i].second.sc();
+	l = -p[0].second.x - 1e6;
+	r = 1e6 - p[0].second.x;
+	f(i, 1, n){
+		p[i].second = p[i].second - p[0].second;
+		p[i].first = atan2(p[i].second.y, p[i].second.x);
+	}
+	sort(p + 1, p + n, cmpp);
+	f(i, 2, n)if (sad(p[i - 1].second, p[i].second)) { printf("0.0\n"); return; }
+	ad(P(2, 1e6 - p[0].second.y), P(1, 1e6 - p[0].second.y));
+	ad(P(0, -p[0].second.y - 1e6), P(1, -p[0].second.y - 1e6));
+	p[0].second = P(0.0, 0.0);
+	f(i, 1, n){
+		int j = i - 1 ? i - 1 : n - 1;
+		if ((p[i].second - p[j].second | p[0].second - p[j].second) > -eps)ad(p[j].second, p[i].second);
+	}
+	int j = 1;
+	f(i, 1, n){
+		while (inc(j, n) != i && (p[inc(j, n)].second - p[i].second | p[0].second - p[i].second) > -eps)j = inc(j, n);
+		if (i == j) { ++j; continue; }
+		if (sad(p[i].second, p[j].second)) { printf("0.0\n"); return; }
+		ad(p[i].second, p[j].second);
+	}
+	
+	sort(uhc.begin(), uhc.end(), greater<L>());
+	uh = bh(uhc);
+	sort(lhc.begin(), lhc.end());
+	lh = bh(lhc);
+	
+	int us = 1, ls = 1;
+	while (uh[us].first.a - lh[ls].first.a > eps){
+		double x = uh[us].first | lh[ls].first;
+		bool ok = false;
+		if (uh[us].second <= x)++us, ok = true;
+		if (lh[ls].second <= x)++ls, ok = true;
+		if (!ok)break;
+	}
+	
+	while (lh.back().first.a - uh.back().first.a > eps){
+		double x = uh.back().first | lh.back().first;
+		bool ok = false;
+		if (uh[uh.size() - 2].second >= x)uh.pop_back(), ok = true;
+		if (lh[lh.size() - 2].second >= x)lh.pop_back(), ok = true;
+		if (!ok)break;
+	}
+	
+	if (uh[us].first.a - lh[ls].first.a > eps)l = max(l, uh[us].first | lh[ls].first);
+	if (lh.back().first.a - uh.back().first.a > eps)r = min(r, uh.back().first | lh.back().first);
+	
+	double an = 0.0;
+	f(i, us, uh.size()){
+		double a = max(l, uh[i - 1].second), b = min(r, uh[i].second);
+		an += (b - a) * uh[i].first((b + a) * 0.5);
+	}
+	f(i, ls, lh.size()){
+		double a = max(l, lh[i - 1].second), b = min(r, lh[i].second);
+		an -= (b - a) * lh[i].first((b + a) * 0.5);
+	}
+	
+	printf("%.7lf\n", an);
+}
+
+int main(){
+	int t;
+	scanf("%d", &t);
+	while (t--)solve();
+}

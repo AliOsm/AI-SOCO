@@ -1,0 +1,289 @@
+//let's do it
+ #include <iostream>
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long int
+#define inf 2000000000
+#define mod 1000000007
+#define pb push_back
+#define mp make_pair
+#define all(v) v.begin(),v.end()
+#define S second
+#define F first
+#define boost1 ios::sync_with_stdio(false);
+#define boost2 cin.tie(0);
+#define mem(a,val) memset(a,val,sizeof a)
+#define endl "\n"
+#define maxn 200005
+
+int n,m,tree[4*maxn],lazy[4*maxn],h[maxn],size[maxn],sz,pos,par[maxn][25],maxi[maxn][25],chainno,chainhead[maxn],chainindex[maxn],posinbasearray[maxn],dsu_par[maxn],in_mst[maxn],ans[maxn];
+vector<pair<int,int> >mst_tree[maxn];
+vector<pair<pair<int,int>,pair<int,int> > >edges;
+
+int find(int x)
+{
+	if(dsu_par[x]==x)
+	return x;
+	return dsu_par[x]=find(dsu_par[x]);
+}
+void build(int node,int a,int b)
+{
+	tree[node]=inf;
+	lazy[node]=inf;
+	if(a==b)
+	return;
+	int mid=(a+b)/2;
+	build(2*node,a,mid);
+	build(2*node+1,mid+1,b);
+}
+void update(int node,int a,int b,int l,int r,int val)
+{
+	if(lazy[node]!=inf)
+	{
+		tree[node]=min(tree[node],lazy[node]);
+		if(a!=b)
+		{
+			lazy[2*node]=min(lazy[2*node],lazy[node]);
+			lazy[2*node+1]=min(lazy[2*node+1],lazy[node]);
+		}
+		lazy[node]=inf;
+	}
+	if(a>b || a>r || b<l)
+	return;
+	if(a>=l && b<=r)
+	{
+		tree[node]=min(tree[node],val);
+		if(a!=b)
+		{
+			lazy[2*node]=min(lazy[2*node],val);
+			lazy[2*node+1]=min(lazy[2*node+1],val);
+		}
+		return;
+	}
+	int mid=(a+b)/2;
+	update(2*node,a,mid,l,r,val);
+	update(2*node+1,mid+1,b,l,r,val);
+	tree[node]=min(tree[2*node],tree[2*node+1]);
+}
+int query(int node,int a,int b,int l,int r)
+{
+	if(lazy[node]!=inf)
+	{
+		tree[node]=min(tree[node],lazy[node]);
+		if(a!=b)
+		{
+			lazy[2*node]=min(lazy[2*node],lazy[node]);
+			lazy[2*node+1]=min(lazy[2*node+1],lazy[node]);
+		}
+		lazy[node]=inf;
+	}
+	if(a>b || a>r || b<l)
+	return inf;
+	if(a>=l && b<=r)
+	return tree[node];
+	int mid=(a+b)/2;
+	return min(query(2*node,a,mid,l,r),query(2*node+1,mid+1,b,l,r));
+}
+void dfs1(int cur,int p,int wt)
+{
+	if(p!=-1)
+	h[cur]=h[p]+1;
+	else
+	h[cur]=h[p];
+	par[cur][0]=p;
+	maxi[cur][0]=wt;
+	size[cur]=1;
+	for(int i=1;i<20;i++)
+	{
+		if(par[cur][i-1]!=-1)
+		{
+			par[cur][i]=par[par[cur][i-1]][i-1];
+			maxi[cur][i]=max(maxi[cur][i-1],maxi[par[cur][i-1]][i-1]);
+		}
+	}
+	for(int i=0;i<mst_tree[cur].size();i++)
+	{
+		int x=mst_tree[cur][i].F;
+		int y=mst_tree[cur][i].S;
+		if(x==p)
+		continue;
+		dfs1(x,cur,y);
+		size[cur]+=size[x];
+	}
+}
+int lca(int v,int u)
+{ 
+	if(h[v]<h[u])swap(v,u); 
+	for(int i=20-1;i>=0;i--)
+	{ 
+		if(par[v][i]!=-1&&h[par[v][i]] >=h[u])
+		{ 
+			v=par[v][i];
+		} 
+	} 
+	if(v==u)
+	return u;
+	for(int i=20-1;i>=0;i--)
+	{ 
+		if(par[v][i]-par[u][i]) 
+		v=par[v][i],u=par[u][i];
+	} 
+	return par[v][0];
+}
+int get_max_on_anc_path(int child,int parent)
+{
+	if(child==parent)
+	return 0;
+	int ans=0;
+	for(int i=20-1;i>=0;i--)
+	{
+		if(par[child][i]!=-1 && h[par[child][i]]>=h[parent])
+		{
+			ans=max(ans,maxi[child][i]);
+			child=par[child][i];
+		}
+	}
+	assert(child==parent);
+	return ans;
+}
+int get_max_on_path(int x,int y)
+{
+	int lc=lca(x,y);
+	return max(get_max_on_anc_path(x,lc),get_max_on_anc_path(y,lc));
+}
+void hld(int cur,int p,int wt)
+{
+	if(chainhead[chainno]==-1)
+	chainhead[chainno]=cur;
+	posinbasearray[cur]=pos;
+	pos++;
+	chainindex[cur]=chainno;
+	int sc=0;
+	int cost;
+	for(int i=0;i<mst_tree[cur].size();i++)
+	{
+		if(mst_tree[cur][i].F==p)
+		continue;
+		if(size[mst_tree[cur][i].F]>size[sc])
+		{
+			sc=mst_tree[cur][i].F;
+			cost=mst_tree[cur][i].S;
+		}	
+	}
+	if(sc)
+	hld(sc,cur,cost);
+	for(int i=0;i<mst_tree[cur].size();i++)
+	{
+		if(mst_tree[cur][i].F==p || mst_tree[cur][i].F==sc)
+		continue;
+		chainno++;
+		hld(mst_tree[cur][i].F,cur,mst_tree[cur][i].S);
+	}
+}
+void update_path(int child,int parent,int val)
+{
+	int parent_chain=chainindex[parent];
+	while(1)
+	{
+		int child_chain=chainindex[child];
+		if(child_chain==parent_chain)
+		{
+			update(1,1,sz,posinbasearray[parent]+1,posinbasearray[child],val);
+			break;
+		}
+		update(1,1,sz,posinbasearray[chainhead[child_chain]],posinbasearray[child],val);
+		child=chainhead[child_chain];
+		child=par[child][0];
+	}
+}
+int main()
+{
+	boost1;boost2;
+	int i,j,x,y,xp,yp,z,id,lc;
+	mem(par,-1);
+	cin>>n>>m;
+	for(i=0;i<=n;i++)
+	chainhead[i]=-1;
+	for(i=1;i<=m;i++)
+	{
+		cin>>x>>y>>z;
+		edges.pb({{z,i},{x,y}});
+	}
+	sort(all(edges));
+	for(i=1;i<=n;i++)
+	dsu_par[i]=i;
+	for(auto it:edges)
+	{
+		x=it.S.F;
+		y=it.S.S;
+		z=it.F.F;
+		id=it.F.S;
+		xp=find(x);
+		yp=find(y);
+		if(xp==yp)
+		in_mst[id]=0;
+		else
+		{
+			in_mst[id]=1;
+			dsu_par[xp]=yp;
+			mst_tree[x].pb({y,z});
+			mst_tree[y].pb({x,z});
+		}
+	}
+	/*cout<<endl;
+	for(auto it:edges)
+	{
+		x=it.S.F;
+		y=it.S.S;
+		z=it.F.F;
+		id=it.F.S;
+		cout<<x<<" "<<y<<" "<<z<<" "<<id<<" "<<in_mst[id]<<endl;
+	}*/
+	dfs1(1,-1,0);
+	for(auto it:edges)
+	{
+		x=it.S.F;
+		y=it.S.S;
+		z=it.F.F;
+		id=it.F.S;
+		if(in_mst[id])
+		continue;
+		ans[id]=get_max_on_path(x,y);
+	}
+	pos=1;
+	chainno=1;
+	hld(1,-1,0);
+	sz=pos-1;
+	build(1,1,sz);
+	for(auto it:edges)
+	{
+		x=it.S.F;
+		y=it.S.S;
+		z=it.F.F;
+		id=it.F.S;
+		if(in_mst[id])
+		continue;
+		lc=lca(x,y);
+		update_path(x,lc,z);
+		update_path(y,lc,z);
+	}
+	for(auto it:edges)
+	{
+		x=it.S.F;
+		y=it.S.S;
+		z=it.F.F;
+		id=it.F.S;
+		if(!in_mst[id])
+		continue;
+		if(h[x]>h[y])
+		swap(x,y);
+		ans[id]=query(1,1,sz,posinbasearray[y],posinbasearray[y]);
+	}
+	for(i=1;i<=m;i++)
+	{
+		if(ans[i]==inf)
+		ans[i]=0;
+		cout<<ans[i]-1<<" ";
+	}
+	return 0;
+}

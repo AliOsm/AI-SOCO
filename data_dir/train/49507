@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int const N = 111;
+
+bool dp[N][N];
+int back[N][N];
+pair<int, int> whos[N];
+int sender[N];
+string text[N];
+set<int> blocked[N];
+string names[N];
+
+bool is_uc(char x) {
+    return isdigit(x) || isupper(x) || islower(x);
+}
+
+int ans[N];
+
+void solve() {
+    int n;
+    cin >> n;
+    map<string, int> index;
+    index["?"] = -1;
+    for (int i = 0; i < n; ++i) {
+        cin >> names[i];
+        index[names[i]] = i;
+    }
+    int m;
+    cin >> m;
+    { string tmp; getline(cin, tmp); }
+    for (int i = 0; i < m; ++i) {
+        string line;
+        getline(cin, line);
+        int pos = line.find(':');
+        sender[i] = index[line.substr(0, pos)];
+        text[i] = line.substr(pos + 1);
+        blocked[i].clear();
+        for (int x = 0; x < (int)text[i].size(); ++x) {
+            if (!is_uc(text[i][x]))
+                continue;
+            int y = x;
+            while (y < (int)text[i].size() && is_uc(text[i][y]))
+                ++y;
+            auto it = index.find(text[i].substr(x, y - x));
+            if (it != index.end())
+                blocked[i].insert(it->second);
+            x = y;
+        }
+    }
+    fill(dp[0], dp[0] + n, true);
+    whos[0] = {n, n};
+    for (int i = 0; i < m; ++i) {
+        fill(dp[i + 1], dp[i + 1] + n, false);
+        whos[i + 1] = {-1, -1};
+        if (sender[i] != -1) {
+            int x = sender[i];
+            int prev = whos[i].first;
+            if (prev == x)
+                prev = whos[i].second;
+            if (prev >= 0) {
+                dp[i + 1][x] = true;
+                back[i + 1][x] = prev;
+                whos[i + 1].first = x;
+            }
+            continue;
+        }
+        for (int x = 0; x < n; ++x) {
+            if (blocked[i].find(x) != blocked[i].end())
+                continue;
+            int prev = whos[i].first;
+            if (prev == x)
+                prev = whos[i].second;
+            if (prev >= 0) {
+                dp[i + 1][x] = true;
+                back[i + 1][x] = prev;
+                if (whos[i + 1].first < 0)
+                    whos[i + 1].first = x;
+                else
+                    whos[i + 1].second = x;
+            }
+        }
+    }
+    int last = -1;
+    for (int i = 0; i < n; ++i)
+        if (dp[m][i])
+            last = i;
+    if (last < 0) {
+        cout << "Impossible" << '\n';
+        return;
+    }
+    {
+        ans[m - 1] = last;
+        for (int i = m - 2; i >= 0; --i) {
+            ans[i] = back[i + 2][ans[i + 1]];
+        }
+    }
+    for (int i = 0; i < m; ++i) {
+        cout << names[ans[i]] << ":" << text[i] << '\n';
+    }
+}
+
+int main() {
+    int t;
+    cin >> t;
+    while (t--)
+        solve();
+}

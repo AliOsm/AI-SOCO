@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 10, D = 18;
+
+int u[N], v[N];
+
+struct Edge {
+  int to, nxt;
+};
+
+struct Graph {
+  int n, tot, head[N];
+  Edge edge[N << 1];
+  void init(int _n) {
+    n = _n;
+    tot = 0;
+    memset(head, -1, sizeof(head));
+  }
+  void addedge(int u, int v) {
+    edge[tot].to = v;
+    edge[tot].nxt = head[u];
+    head[u] = tot++;
+  }
+} g, h;
+
+struct Tarjan {
+  int low[N], dfn[N], stk[N], belong[N];
+  int idx, top, block;
+  bool vis[N], ins[N];
+  void dfs(int u, int p, Graph &g) {
+    vis[u] = 1;
+    int v;
+    low[u] = dfn[u] = ++idx;
+    stk[top++] = u;
+    ins[u] = 1;
+    for (int i = g.head[u]; ~i; i = g.edge[i].nxt) {
+      if (i == (p ^ 1)) continue;
+      v = g.edge[i].to;
+      if (!dfn[v]) {
+        dfs(v, i, g);
+        if (low[u] > low[v]) low[u] = low[v];
+      } else if (ins[v] && low[u] > dfn[v])
+        low[u] = dfn[v];
+    }
+    if (low[u] == dfn[u]) {
+      block++;
+      do {
+        v = stk[--top];
+        ins[v] = 0;
+        belong[v] = block;
+      } while (v != u);
+    }
+  }
+  void solve(Graph &g) {
+    memset(dfn, 0, sizeof(dfn));
+    memset(vis, 0, sizeof(vis));
+    memset(ins, 0, sizeof(ins));
+    idx = top = block = 0;
+    for (int i = 1; i <= g.n; ++i)
+      if (!vis[i]) dfs(i, -1, g);
+  }
+} t;
+
+bool vis[N];
+int fa[N][D], dep[N], up[N], dw[N];
+
+void dfs1(int u, int p) {
+  vis[u] = 1, fa[u][0] = p, dep[u] = dep[p] + 1;
+  for (int i = 1; i < D; ++i)
+    fa[u][i] = fa[fa[u][i - 1]][i - 1];
+  for (int i = h.head[u]; ~i; i = h.edge[i].nxt) {
+    int v = h.edge[i].to;
+    if (vis[v]) continue;
+    dfs1(v, u);
+  }
+}
+
+int lca(int u, int v) {
+  if (dep[u] < dep[v]) swap(u, v);
+  for (int i = dep[u] - dep[v], j = 0; i; i >>= 1, ++j) {
+    if (i & 1) u = fa[u][j];
+  }
+  if (u == v) return u;
+  for (int i = D - 1; i >= 0; --i)
+    if (fa[u][i] != fa[v][i])
+      u = fa[u][i], v = fa[v][i];
+  return fa[u][0];
+}
+
+void fail() {
+  puts("No");
+  exit(0);
+}
+
+void dfs2(int u) {
+  vis[u] = 1;
+  for (int i = h.head[u]; ~i; i = h.edge[i].nxt) {
+    int v = h.edge[i].to;
+    if (vis[v]) continue;
+    dfs2(v);
+    up[u] += up[v];
+    dw[u] += dw[v];
+  }
+  if (up[u] && dw[u]) fail();
+}
+
+int main() {
+  int n, m, q;
+  scanf("%d%d%d", &n, &m, &q);
+  g.init(n);
+  for (int i = 1; i <= m; ++i) scanf("%d%d", u + i, v + i);
+  for (int i = 1; i <= m; ++i) {
+    g.addedge(u[i], v[i]);
+    g.addedge(v[i], u[i]);
+  }
+  t.solve(g);
+  h.init(t.block);
+  for (int i = 1; i <= m; ++i) {
+    // bu hui you chong bian , fou ze shuang lian tong
+    h.addedge(t.belong[u[i]], t.belong[v[i]]);
+    h.addedge(t.belong[v[i]], t.belong[u[i]]);
+  }
+  memset(vis, 0, sizeof(vis));
+  for (int i = 1; i <= h.n; ++i)
+    if (!vis[i]) dfs1(i, 0);
+  for (int i = 1; i <= q; ++i) {
+    int s, d;
+    scanf("%d%d", &s, &d);
+    s = t.belong[s], d = t.belong[d];
+    int p = lca(s, d);
+    if (!p) fail();
+    up[s]++, up[p]--;
+    dw[d]++, dw[p]--;
+  }
+  memset(vis, 0, sizeof(vis));
+  for (int i = 1; i <= h.n; ++i) if (!vis[i]) dfs2(i);
+  puts("Yes");
+  return 0;
+}

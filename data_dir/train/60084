@@ -1,0 +1,210 @@
+#define  _CRT_SECURE_NO_WARNINGS
+#include <algorithm>
+#include <string>
+#include <map>
+#include <set>
+#include <vector>
+#include <functional>
+#include <utility>
+#include <queue>
+#include <memory>
+#include <stdint.h>
+#include <stdio.h>
+using namespace std;
+
+struct tree
+{
+    vector<int64_t> t;
+    vector<int64_t> d;
+    vector<bool> c;
+    tree(int n)
+        : t(4 * n)
+        , d(4 * n)
+        , c(4 * n)
+    {
+    }
+
+    void push(int v)
+    {
+        if (c[v])
+        {
+            c[2 * v + 1] = true;
+            t[2 * v + 1] = 0;
+            d[2 * v + 1] = 0;
+
+            c[2 * v + 2] = true;
+            t[2 * v + 2] = 0;
+            d[2 * v + 2] = 0;
+
+            c[v] = false;
+        }
+    }
+
+    void clear(int v, int l, int r, int ql, int qr)
+    {
+        if (l == ql && r == qr)
+        {
+            c[v] = true;
+            t[v] = 0;
+            d[v] = 0;
+        }
+        else
+        {
+            push(v);
+            int m = (l + r) / 2;
+            if (ql < m)
+                clear(2 * v + 1, l, m, ql, min(qr, m));
+            if (qr > m)
+                clear(2 * v + 2, m, r, max(m, ql), qr);
+        }
+    }
+
+    void modify(int v, int l, int r, int pos, int64_t val)
+    {
+        if (r - l == 1)
+        {
+            t[v] += val;
+            d[v] += pos * val;
+        }
+        else
+        {
+            push(v);
+            int m = (l + r) / 2;
+            if (pos < m)
+                modify(2 * v + 1, l, m, pos, val);
+            else
+                modify(2 * v + 2, m, r, pos, val);
+            t[v] = t[2 * v + 1] + t[2 * v + 2];
+            d[v] = d[2 * v + 1] + d[2 * v + 2];
+        }
+    }
+
+    pair<int64_t, pair<int64_t, int64_t> > query(int v, int l, int r, int64_t k)
+    {
+        if (r - l == 1)
+        {
+            return make_pair(t[v], make_pair(d[v], r));
+        }
+        else
+        {
+            int m = (l + r) / 2;
+            int64_t e = t[2 * v + 1];
+            if (e >= k)
+            {
+                return query(2 * v + 1, l, m, k);
+            }
+            else
+            {
+                auto res = query(2 * v + 2, m, r, k - e);
+                res.first += e;
+                res.second.first += d[2 * v + 1];
+                return res;
+            }
+        }
+    }
+};
+
+struct solution
+{
+    vector<vector<int>> g;
+    vector<vector<pair<int, int>>> shops;
+    int n, m;
+    int mx;
+
+    std::unique_ptr<tree> seg;
+
+    int get(int c, int r, int a)
+    {
+        queue<int> q;
+        q.push(c);
+        int inf = 1000 * 1000 * 1000;
+        vector<int> d(n, inf);
+        d[c] = 0;
+        vector<vector<int>> h(n + 1);
+        h[d[c]].push_back(c);
+        while (!q.empty())
+        {
+            int v = q.front();
+            q.pop();
+            for (int i = 0; i < (int)g[v].size(); ++i)
+            {
+                int to = g[v][i];
+                if (d[to] > d[v] + 1)
+                {
+                    d[to] = d[v] + 1;
+                    h[d[to]].push_back(to);
+                    q.push(to);
+                }
+            }
+        }
+        seg->clear(0, 0, mx + 1, 0, mx + 1);
+        int64_t cnt = 0;
+        for (int i = 0; i < (int)h.size(); ++i)
+        {
+            for (int j = 0; j < (int)h[i].size(); ++j)
+            {
+                int v = h[i][j];
+                for (int u = 0; u < (int)shops[v].size(); ++u)
+                {
+                    seg->modify(0, 0, mx + 1, shops[v][u].second, shops[v][u].first);
+                    cnt += shops[v][u].first;
+                }
+            }
+            if (cnt < r)
+                continue;
+            auto ans = seg->query(0, 0, mx + 1, r);
+            if (ans.first >= r)
+            {
+                int64_t oth = ans.first - r;
+                int64_t price = ans.second.first - oth * (ans.second.second - 1);
+                if (price <= a)
+                    return i;
+            }
+        }
+        return -1;
+    }
+
+    void solve()
+    {
+        mx = 0;
+        scanf("%d%d", &n, &m);
+        g.resize(n);
+        for (int i = 0; i < m; ++i)
+        {
+            int a, b;
+            scanf("%d%d", &a, &b);
+            --a, --b;
+            g[a].push_back(b);
+            g[b].push_back(a);
+        }
+        int w;
+        scanf("%d", &w);
+        shops.resize(n);
+        for (int i = 0; i < w; ++i)
+        {
+            int c, k, p;
+            scanf("%d%d%d", &c, &k, &p);
+            --c;
+            shops[c].push_back(make_pair(k, p));
+            mx = max(mx, p);
+        }
+        seg.reset(new tree(mx + 1));
+        int q;
+        scanf("%d", &q);
+        for (int i = 0; i < q; ++i)
+        {
+            int c, r, a;
+            scanf("%d%d%d", &c, &r, &a);
+            --c;
+            int ans = get(c, r, a);
+            printf("%d\n", ans);
+        }
+    }
+};
+
+int main(void)
+{
+    //std::ios::basic_ios::sync_with_stdio(false);
+    solution().solve();
+    return 0;
+}

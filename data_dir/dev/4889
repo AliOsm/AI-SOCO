@@ -1,0 +1,395 @@
+#include <string>
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <set>
+#include <map>
+#include <hash_set>
+#include <hash_map>
+#include <algorithm>
+#include <functional>
+#include <cstdio>
+
+typedef unsigned long long  uint64_t;
+typedef   signed long long  int64_t;
+typedef unsigned long       uint32_t;
+typedef   signed long       int32_t;
+typedef unsigned short      uint16_t;
+typedef   signed short      int16_t;
+typedef unsigned char       uint8_t;
+typedef   signed char       int8_t;
+
+typedef std::string string8_t;
+
+typedef std::vector<int32_t>        IntVector;
+typedef std::vector<IntVector>      IntVector2d;
+
+typedef std::vector<size_t>         SizeTVector;
+typedef std::vector<SizeTVector>    SizeTVector2d;
+
+typedef std::set<size_t>            SizeTSet;
+typedef stdext::hash_set<size_t>    SizeTHashSet;
+
+template <typename T>
+inline T ABS(const T v) {return v > 0 ? v : (-v);}
+
+template <typename T>
+inline T MIN(const T v1, const T v2) {return v1 < v2 ? v1 : v2;}
+
+// Test-specific stuff
+
+#if !defined(ONLINE_JUDGE)
+#endif // !defined(ONLINE_JUDGE)
+
+#if !defined(ONLINE_JUDGE)
+#include <windows.h>
+#endif //!defined(ONLINE_JUDGE)
+
+
+void Prepare()
+{
+#if !defined(ONLINE_JUDGE)
+    SetProcessAffinityMask(GetCurrentProcess(), 1);
+#endif //!defined(ONLINE_JUDGE)
+}
+
+class StopWatchEx
+{
+public:
+    StopWatchEx();
+    ~StopWatchEx();
+
+private:
+    struct Data;    
+    Data *pData;
+};
+
+struct StopWatchEx::Data
+{
+#if !defined(ONLINE_JUDGE)
+    FILETIME timeStartSystem;
+    FILETIME timeStartUser;
+#endif //!defined(ONLINE_JUDGE)
+};
+
+StopWatchEx::StopWatchEx()
+{
+#if !defined(ONLINE_JUDGE)
+    pData = new Data();
+    FILETIME dummy;
+    GetProcessTimes(GetCurrentProcess(), &dummy, &dummy, &dummy, &pData->timeStartUser);
+    GetSystemTimeAsFileTime(&pData->timeStartSystem);
+#endif //!defined(ONLINE_JUDGE)
+}
+
+#if !defined(ONLINE_JUDGE)
+ULONGLONG FileTimeToU64(const FILETIME& time)
+{
+    return ((ULONGLONG)time.dwHighDateTime << 32) | time.dwLowDateTime;
+}
+
+ULONGLONG GetTimeDiffMs(const FILETIME& first, const FILETIME& second)
+{
+    return ((FileTimeToU64(first) - FileTimeToU64(second)) + 9999) / 10000;
+}
+#endif // !defined(ONLINE_JUDGE)
+
+StopWatchEx::~StopWatchEx()
+{
+#if !defined(ONLINE_JUDGE)
+    FILETIME timeCreated;
+    FILETIME timeStopUser;
+    FILETIME dummy;
+    GetProcessTimes(GetCurrentProcess(), &timeCreated, &dummy, &dummy, &timeStopUser);
+
+    FILETIME timeCurrent;
+    GetSystemTimeAsFileTime(&timeCurrent);
+
+    //std::cout << std::setw(20) << "Total process = " << GetTimeDiffMs(timeCurrent, timeCreated) << " ms" << std::endl;
+    std::cout << std::setw(20) << "UserTime diff = " << GetTimeDiffMs(timeStopUser, pData->timeStartUser) << " ms" << std::endl;
+    std::cout << std::setw(20) << "SysTime diff = " << GetTimeDiffMs(timeCurrent, pData->timeStartSystem) << " ms" << std::endl;
+    std::cout << std::endl;
+
+    delete pData;
+#endif //!defined(ONLINE_JUDGE)
+}
+
+typedef uint32_t id_t;
+typedef uint32_t hash_t;
+
+struct Command
+{
+    enum CommandType
+    {
+        CommandAdd,
+        CommandRemove
+    };
+
+    CommandType type;
+    id_t id;
+    hash_t hashValue;
+
+    Command(): type(CommandAdd), id(0), hashValue(0) {}
+};
+
+typedef std::vector<Command> CommandVector;
+typedef std::vector<hash_t> HashVector;
+typedef std::vector<std::vector<hash_t> > HashVectorVector;
+typedef std::set<size_t> SizeTSet;
+typedef std::vector<SizeTSet> SizeTSetVector;
+typedef stdext::hash_map<id_t, hash_t> IdToHashMap;
+typedef stdext::hash_map<hash_t, size_t> HashToIdxMap;
+typedef std::vector<HashToIdxMap> HashToIdxMapVector;
+
+
+hash_t FindNOD(const hash_t aIn, const hash_t bIn)
+{
+    hash_t a = aIn;
+    hash_t b = bIn;
+
+    if (a < b) { std::swap(a, b); }
+
+    while (b != 0)
+    {
+        const hash_t remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+
+    return a;
+}
+
+void GetDomains(const hash_t h, const hash_t m, HashVectorVector& domains, HashToIdxMapVector& hashToIndexMapping)
+{
+    const size_t domainSize = h / FindNOD(h, m);
+    const size_t domainsCount = h / domainSize; 
+
+    HashVectorVector(domainsCount, HashVector(domainSize)).swap(domains);
+    HashToIdxMapVector(domainsCount).swap(hashToIndexMapping);
+
+    for (size_t domainId = 0; domainId < domainsCount; domainId++)
+    {
+        HashVector& domain = domains[domainId];
+        domain.resize(domainSize);
+
+        HashToIdxMap& mapping = hashToIndexMapping[domainId];
+
+        hash_t hashValue = (hash_t)domainId;
+        for (size_t valueId = 0; valueId < domainSize; valueId++)
+        {
+            domain[valueId] = hashValue;
+            mapping[hashValue] = valueId;
+            hashValue += m;
+            hashValue %= h;
+        }
+    }
+}
+
+void InitializeFreeCells(const HashVectorVector& domains, SizeTSetVector& indexSets)
+{
+    SizeTSetVector(domains.size()).swap(indexSets);
+
+    for (size_t k = 0; k < domains.size(); k++)
+    {
+        for (size_t i = 0; i < domains[0].size(); i++)
+        {
+            indexSets[k].insert(i);
+        }
+    }
+}
+
+size_t GetDomainId(const size_t domainsCount, const size_t hashValue)
+{
+    return hashValue % domainsCount;
+}
+
+hash_t GetGlobalPosition(const size_t domainSize, const size_t domainId, const size_t hashPosition)
+{
+    return (hash_t)(domainSize * domainId + hashPosition);
+}
+
+size_t GetLocalPosition(const size_t domainSize, const hash_t globalPosition)
+{
+    return globalPosition % domainSize;
+}
+
+uint64_t GetCollisionsCount(const hash_t h, const hash_t m, const CommandVector& commands)
+{
+    HashVectorVector domains;
+    HashToIdxMapVector hashToIndexMapping;
+
+    GetDomains(h, m, domains, hashToIndexMapping);
+
+    const size_t domainsCount = domains.size();
+    const size_t domainSize = domains[0].size();
+
+    SizeTSetVector freeCellsDomains;
+    InitializeFreeCells(domains, freeCellsDomains);
+
+    IdToHashMap mappingIdToIndex;
+
+    uint64_t collisionsCount = 0;
+
+    for (size_t i = 0; i < commands.size(); i++)
+    {
+        const Command& command = commands[i];
+
+        switch(command.type)
+        {
+        case Command::CommandAdd:
+            {
+                const hash_t hashValue = command.hashValue;
+                const id_t id = command.id;
+                
+                const size_t domainId = GetDomainId(domainsCount, hashValue);
+                const size_t hashPosition = hashToIndexMapping[domainId][hashValue];
+                SizeTSet& freeCells = freeCellsDomains[domainId];
+
+                uint64_t collisionsAdded = 0;
+                size_t insertedHashPosition = 0;
+
+                const SizeTSet::const_iterator afterInsertIterator = freeCells.lower_bound(hashPosition);
+                if (afterInsertIterator != freeCells.end())
+                {
+                    insertedHashPosition = *afterInsertIterator;
+                    collisionsAdded = insertedHashPosition - hashPosition;
+                }
+                else
+                {
+                    const SizeTSet::const_iterator beforeInsertIterator = freeCells.begin();
+                    insertedHashPosition = *beforeInsertIterator;
+                    collisionsAdded = domainSize + insertedHashPosition - hashPosition;
+                }
+
+                freeCells.erase(insertedHashPosition);
+                mappingIdToIndex[id] = GetGlobalPosition(domainSize, domainId, insertedHashPosition);
+                collisionsCount += collisionsAdded;
+
+                break;
+            }
+        case Command::CommandRemove:
+            {
+                const id_t id = command.id;
+                const hash_t globalHashPosition = mappingIdToIndex[id];
+                const size_t domainId = globalHashPosition / domainSize;
+                const size_t localHashPosition = GetLocalPosition(domainSize, globalHashPosition);
+                SizeTSet& freeCells = freeCellsDomains[domainId];
+                freeCells.insert(localHashPosition);
+                break;
+            }
+        }
+    }
+
+    return collisionsCount;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, bool multipleTestMode)
+{
+    StopWatchEx sw;
+
+    // first input operation
+    //
+    hash_t h, m;
+    size_t n;
+    ist >> h >> m >> n;
+
+    // /////////////////////
+
+    if (multipleTestMode && !ist)
+    {
+        return false;
+    }
+
+    // other input operation and calculations
+    //
+    CommandVector commands;
+    for (size_t i = 0; i < n; i++)
+    {
+        Command command;
+        string8_t opcode;
+        ist >> opcode >> command.id;
+
+        if (opcode == "+")
+        {
+            command.type = Command::CommandAdd;
+            ist >> command.hashValue;
+        }
+        else
+        {
+            command.type = Command::CommandRemove;
+        }
+
+        commands.push_back(command);
+    }
+
+    const uint64_t ans = GetCollisionsCount(h, m, commands);
+    ost << ans << std::endl;
+
+    // /////////////////////
+
+    return multipleTestMode;
+}
+
+bool SolveAlt(bool multipleTestMode)
+{
+    StopWatchEx sw;
+
+    // first input operation
+    //
+    hash_t h, m;
+    uint32_t n;
+
+    const int readValuesCount = scanf("%u %u %u\n", &h, &m, &n);
+
+    // /////////////////////
+
+    if (multipleTestMode && readValuesCount != 3)
+    {
+        return false;
+    }
+
+    // other input operation and calculations
+    //
+    CommandVector commands;
+    for (uint32_t i = 0; i < n; i++)
+    {
+        Command command;
+    
+        char opcode;
+        scanf("%c", &opcode);
+        
+        if (opcode == '+')
+        {
+            command.type = Command::CommandAdd;
+            scanf("%u %u\n", &command.id, &command.hashValue);
+            
+        }
+        else if (opcode == '-')
+        {
+            command.type = Command::CommandRemove;
+            scanf("%u\n", &command.id);
+        }
+
+        commands.push_back(command);
+    }
+
+    const uint64_t ans = GetCollisionsCount(h, m, commands);
+    std::cout << ans << std::endl;
+
+    // /////////////////////
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    Prepare();
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if 0
+    Solve(ist, ost, false);
+#else
+    //while(Solve(ist, ost, true)) {};
+    while(SolveAlt(true)) {};
+#endif
+}

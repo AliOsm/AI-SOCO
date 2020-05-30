@@ -1,0 +1,44 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 5e5 + 5;
+
+long long a[N];
+char s[N];
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  for(int i = 0; i < n; i++) {
+    scanf("%d", a + i);
+  }
+  scanf("%s", s);
+  long long ori = 0;
+  for(int i = 0; i < n; i++) {
+    if(s[i] == 'B') {
+      ori += a[i];
+    }
+  }
+  long long ans = ori;
+  long long now = ori;
+  for(int i = 0; i < n; i++) {
+    if(s[i] == 'B') {
+      now -= a[i];
+    } else {
+      now += a[i];
+    }
+    ans = max(ans, now);
+  }
+  now = ori;
+  for(int i = n - 1; i >= 0; i--) {
+    if(s[i] == 'B') {
+      now -= a[i];
+    } else {
+      now += a[i];
+    }
+    ans = max(ans, now);
+  }
+  cout << ans << endl;
+  return 0;
+}

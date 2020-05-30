@@ -1,0 +1,161 @@
+#include <iostream>
+#include <cstdio>
+#include <algorithm>
+#include <cmath>
+#include <string>
+#include <vector>
+#include <stack>
+#include <queue>
+#include <set>
+#include <cstring>
+#include <map>
+#include <cstdlib>
+#include <ctime>
+#include <cassert>
+#include <bitset>
+#define f first
+#define s second
+#define ll long long
+#define ull unsigned long long
+#define mp make_pair
+#define pb push_back
+#define vi vector <int>
+#define ld long double
+#define pii pair<int, int>
+using namespace std;
+
+const int maxn = 10000000;
+
+int dl[maxn];
+int pr[maxn], prsz;
+int upper[maxn];
+int nm[maxn];
+int pos[maxn], obr[maxn], lst[maxn];
+int fenv[maxn];
+
+void add(int u) {
+	for(; u < maxn; u |= u + 1) {
+		fenv[u]++;
+	}
+}
+int getsum(int u) {
+	int ret = 0;
+	for(; u >= 0; u &= u + 1, u--) {
+		ret += fenv[u];
+	}
+	return(ret);
+}
+
+pair<ll, ll> pa[maxn];
+int pasz, paidx[maxn];
+ll ans[maxn];
+
+void getzap(ll n, ll i) {
+	if(n < maxn || i == 0) {
+		paidx[pasz] = pasz;
+		pa[pasz++] = mp(n, i);
+		return;
+	}
+	getzap(n, i - 1);
+	getzap(n / pr[i - 1], i - 1);
+}
+
+ll getans(ll n, ll i) {
+	if(n < maxn || i == 0) {
+		return(ans[pasz++]);
+	}
+	ll val1 = getans(n, i - 1);
+	ll val2 = getans(n / pr[i - 1], i - 1);
+	return(val1 - val2);
+}
+
+bool cmpdl(int a, int b) {
+	return(dl[a] > dl[b]);
+}
+bool cmppa(int a, int b) {
+	return(pa[a] < pa[b]);
+}
+
+int main() {
+
+	for(int i = 2; i < maxn; i += 2) {
+		dl[i] = 2;
+	}
+	pr[prsz++] = 2;
+	for(int i = 3; i < maxn; i += 2) {
+		if(dl[i] == 0) {
+			dl[i] = i;
+			nm[i] = prsz;
+			pr[prsz++] = i;
+		}
+		for(int j = 1; j < prsz && pr[j] <= dl[i]; j++) {
+			if(pr[j] * 1ll * i < maxn) {
+				dl[pr[j] * 1ll * i] = pr[j];
+			} else {
+				break;
+			}
+		}
+	}
+
+	for(int i = 2; i < maxn; i++) {
+		pos[i] = i;
+	}
+	sort(&pos[2], &pos[maxn], cmpdl);
+	for(int i = 2, f = prsz - 1; i < maxn; i++) {
+		while(dl[pos[i]] != pr[f]) {
+			f--;
+		}
+		lst[f] = i;
+		obr[pos[i]] = i;
+	}
+	int mx = 0;
+	for(int i = maxn - 2; i >= 0; i--) {
+		upper[i] = mx;
+		if(dl[i] == i) {
+			mx = nm[i];
+		}
+	}
+	pasz = 0;
+
+	ll n, answ = 0;
+	scanf("%lld", &n);
+
+	for(int i = 0; i < prsz; i++) {
+		ll r = n / pr[i];
+		if(r <= pr[i]) break;
+		getzap(r, upper[(int)sqrt(r + 2)]);
+	}
+
+	sort(&paidx[0], &paidx[pasz], cmppa);
+	{
+		int f = 0;
+		for(int i = 2; i < maxn; i++) {
+			add(obr[i]);
+			while(f < pasz && pa[paidx[f]].f == i) {
+				ans[paidx[f]] = getsum(lst[pa[paidx[f]].s]) + 1;
+				f++;
+			}
+		}
+		while(f < pasz) {
+			ans[paidx[f]] = pa[paidx[f]].f;
+			f++;
+		}
+	}
+
+	pasz = 0;
+	for(int i = 0; i < prsz; i++) {
+		ll r = n / pr[i];
+		if(r <= pr[i]) break;
+		answ += getans(r, upper[(int)sqrt(r + 2)]) + upper[(int)sqrt(r + 2)] - 1 - i - 1;
+	}
+
+	for(int i = 0; i < prsz; i++){
+		ll r = 1ll*pr[i] * pr[i] * pr[i];
+		if(r <= n) answ++;
+		else break;
+	}
+
+	printf("%lld", answ);
+
+	return(0);
+}          

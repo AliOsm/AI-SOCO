@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+
+#define IO ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+
+typedef long long ll;
+
+using namespace std;
+
+const int INF = 2e9;
+
+int deg[5];
+vector<pair<pair<int,int>,int>>edg;
+vector<map<int,int>>g(5);
+bool vis[5];
+bool m3aya[5][5];
+
+set<int>dfs(int nd){
+	vis[nd] = 1;
+	set<int>ret;
+	ret.insert(nd);
+	for(auto ch: g[nd]){
+		if(vis[ch.first] || ch.second == 0)continue;
+		set<int>tmp = dfs(ch.first);
+		ret.insert(all(tmp));
+	}
+	return ret;
+}
+
+void dfs2(int nd, vector<bool>&vv, vector<map<int,int>>&gr){
+	vv[nd] = 1;
+	for(auto ch: gr[nd])
+		if(vv[ch.first] || ch.second == 0)continue;
+		else dfs2(ch.first, vv, gr);
+}
+bool disc(int u, int v){
+	int b4 = 0;
+	vector<bool>vv(5);
+	vector<map<int,int>>gr = g;
+	for(int i = 1; i <= 4; i++)if(!vv[i])b4++,dfs2(i, vv, gr);
+	vv.assign(5, 0);
+	gr[u][v]--;
+	gr[v][u]--;
+	int aft = 0;
+	for(int i = 1; i <= 4; i++)if(!vv[i])aft++,dfs2(i, vv, gr);
+//	cerr << "comp " << b4 << " " << aft << endl;
+	return b4 != aft;
+}
+
+int solve(set<int>comp){
+	int ret = 0;
+	for(int i = 0; i < edg.size(); i++){
+		int u = edg[i].first.first, v = edg[i].first.second, c = edg[i].second;
+		if(!comp.count(u))continue;
+		if(!comp.count(v))continue;
+		ret += c;
+	}
+	set<int>odd;
+	for(auto nd: comp)
+		if(deg[nd] % 2)
+			odd.insert(nd);
+//	cerr << "ret = " << ret << endl;
+//	cerr << odd.size() << endl;
+
+	if(odd.size() < 4)return ret;
+
+	int sub = INF;
+
+	for(int i = 0; i < edg.size(); i++){
+		int u = edg[i].first.first, v = edg[i].first.second, c = edg[i].second;
+		if(u == v)continue;
+//		cerr << "edg " << u << " " << v << endl;
+		bool b = disc(u, v);
+		cerr << b << endl;
+		if(odd.count(u) && odd.count(v) && !b){
+			sub = min(sub, c);
+//			cerr << "5adto" << endl;
+		}
+	}
+
+	return ret - sub;
+}
+
+int main(){
+	IO;
+
+	int n;
+	cin >> n;
+	for(int i = 0; i < n; i++){
+		int u, c, v;
+		cin >> u >> c >> v;
+		m3aya[u][v] = m3aya[v][u] = 1;
+		deg[u]++, deg[v]++;
+
+		edg.push_back({{u, v}, c});
+
+		if(u == v)continue;
+
+		g[u][v]++;
+		g[v][u]++;
+	}
+
+	sort(all(edg));
+
+	int ans = 0;
+	for(int i = 1; i <= 4; i++){
+		if(vis[i])continue;
+		int tmp = solve(dfs(i));
+		ans = max(ans, tmp);
+	}
+//	cerr << ans <<endl;
+
+	for(int e = 0; e < edg.size(); e++){
+		int u = edg[e].first.first, v = edg[e].first.second;
+		if(u == v)continue;
+		if(deg[u] % 2 == 0 || deg[v] % 2 == 0)continue;
+		pair<pair<int,int>, int>del = edg[e];
+		swap(edg[e], edg.back());
+		edg.pop_back();
+		g[u][v]--;
+		g[v][u]--;
+		deg[u]--, deg[v]--;
+		m3aya[u][v] = m3aya[v][u] = 0;
+
+		memset(vis, 0, sizeof vis);
+		for(int i = 1; i <= 4; i++){
+			if(vis[i])continue;
+			int tmp = solve(dfs(i));
+			ans = max(ans, tmp);
+		}
+
+		m3aya[u][v] = m3aya[v][u] = 1;
+		deg[u]++, deg[v]++;
+		g[u][v]++;
+		g[v][u]++;
+		edg.push_back(del);
+		sort(all(edg));
+	}
+
+	cout << ans << endl;
+	return 0;
+}

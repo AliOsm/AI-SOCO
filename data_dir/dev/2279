@@ -1,0 +1,222 @@
+#include <bits/stdc++.h>
+#define fi first
+#define se second
+#define pb push_back
+#define sz(x) (int)(x).size()
+#define pcnt __builtin_popcountll
+#define rep(i,a,b) for(int i = (a); i <= (b); i++)
+#define rrep(i,a,b) for(int i = (b); i >= (a); i--)
+#ifdef LOCAL
+#define rall(x,a) for(x : a)
+#define LL "%lld"
+#else
+#define rall(x,a) for(auto x : a)
+#define LL "%I64d"
+#define y0    oooo
+#define y1    ooox
+#define yn    ooxo
+#define prev  ooxx
+#define next  oxoo
+#define read  oxox
+#define tm    oxxo
+#endif
+#define rng(a) a.begin(), a.end()
+#define PI 3.14159265358979323846
+#define MOD 1000000007
+#define endl "\n"
+typedef long long ll;
+using namespace std;
+
+const int N = 222;
+const int NN = N << 1;
+string vow, word;
+char buff[NN];
+bool igraph[NN][NN], graph[NN][NN];
+vector<vector<int> > sccs;
+stack<int> st;
+bool inst[NN];
+int mini[NN], ti, ans[NN], comp[NN], nc[N], nv[N];
+bool ok;
+int n, m, k;
+
+int tarjan(int u) {
+    int cur = ++ti;
+    st.push(u);
+    inst[u] = true;
+    mini[u] = cur;
+    rep(v, 2, 2 * n + 1) {
+        if(graph[u][v]) {
+            if(!mini[v]) {
+                mini[u] = min(mini[u], tarjan(v));
+            } else if(inst[v]) {
+                mini[u] = min(mini[u], mini[v]);
+            }
+        }
+    }
+    if(mini[u] == cur) {
+        vector<int> scc;
+        k++;
+        while(1) {
+            int x = st.top();
+            st.pop();
+            inst[x] = false;
+            comp[x] = k;
+            if(comp[x] == comp[x ^ 1]) {
+                ok = false;
+            }
+            scc.pb(x);
+            if(x == u) {
+                break;
+            }
+        }
+        sccs.pb(scc);
+    }
+    return mini[u];
+}
+
+// O(n + m) = O(n²)
+bool twoSat() {
+    k = 0;
+    sccs.clear();
+    ok = true;
+    ti = 0;
+    fill(mini + 1, mini + 2 * n + 2, 0);
+    fill(comp + 1, comp + 2 * n + 2, 0);
+    fill(inst + 1, inst + 2 * n + 2, false);
+    rep(u, 2, 2 * n + 1) {
+        if(!mini[u]) {
+            tarjan(u);
+        }
+    }
+    if(!ok) {
+        return false;
+    }
+    return true;
+}
+
+bool rem;
+void add(int from, int to) {
+    if(!graph[from][to]) {
+        graph[from][to] = true;
+        rem = true;
+    }
+}
+
+void remove(int from, int to) {
+    if(rem) {
+        graph[from][to] = false;
+        rem = false;
+    }
+}
+
+string anss;
+bool solve(int pref) {
+    anss = "";
+    rep(i, 2, 2 * n + 1) {
+        copy(igraph[i] + 2, igraph[i] + 2 * n + 2, graph[i] + 2);
+    }
+    rep(i, 1, pref) {
+        anss += word[i - 1];
+        bool isv = vow[word[i - 1] - 'a'] == 'V';
+        int u = 2 * i + isv;
+        graph[u ^ 1][u] = true;
+    }
+    if(!twoSat()) {
+        return false;
+    }
+    if(pref < sz(word)) {
+        int x = word[pref] - 'a';
+        x++;
+        if(x == sz(vow)) {
+            return false;
+        }
+        bool isv = vow[x] == 'V';
+        int u = (pref + 1) * 2 + isv;
+        add(u ^ 1, u);
+        if(!twoSat()) {
+            remove(u ^ 1, u);
+            if(isv) x = nc[x];
+            else x = nv[x];
+            if(x == -1) return false;
+            isv = !isv;
+            int u = (pref + 1) * 2 + isv;
+            add(u ^ 1, u);
+            if(!twoSat()) {
+                return false;
+            }
+        }
+        anss += 'a' + x;
+    }
+    rep(i, pref + 2, sz(word)) {
+        int x = 0;
+        bool isv = vow[x] == 'V';
+        int u = i * 2 + isv;
+        add(u ^ 1, u);
+        if(!twoSat()) {
+            remove(u ^ 1, u);
+            if(isv) x = nc[x];
+            else x = nv[x];
+            if(x == -1) return false;
+            isv = !isv;
+            int u = i * 2 + isv;
+            add(u ^ 1, u);
+            if(!twoSat()) {
+                exit(1);
+            }
+        }
+        anss += 'a' + x;
+    }
+    return true;
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    scanf("%s %d %d", buff, &n, &m);
+    vow = (string)buff;
+    rep(i, 1, m) {
+        int u, v;
+        char tu, tv;
+        scanf("%d %c %d %c", &u, &tu, &v, &tv);
+        u <<= 1;
+        v <<= 1;
+        if(tu == 'V') {
+            u++;
+        }
+        if(tv == 'V') {
+            v++;
+        }
+        igraph[u][v] = true;
+        igraph[v ^ 1][u ^ 1] = true;
+    }
+    if(vow.find('V') == string::npos) {
+        rep(i, 1, n) {
+            igraph[2 * i + 1][2 * i] = true;
+        }
+    }
+    if(vow.find('C') == string::npos) {
+        rep(i, 1, n) {
+            igraph[2 * i][2 * i + 1] = true;
+        }
+    }
+    scanf(" %s", buff);
+    word = (string)buff;
+    int c = -1, v = -1;
+    rrep(i, 1, sz(vow)) {
+        nc[i - 1] = c;
+        nv[i - 1] = v;
+        if(vow[i - 1] == 'V') {
+            v = i - 1;
+        } else {
+            c = i - 1;
+        }
+    }
+    rrep(p, 0, n) {
+        if(solve(p)) {
+            printf("%s\n", anss.c_str());
+            return 0;
+        }
+    }
+    printf("-1\n");
+    return 0;
+}

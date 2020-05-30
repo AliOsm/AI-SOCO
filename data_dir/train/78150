@@ -1,0 +1,36 @@
+/*
+
+ */
+#include <bits/stdc++.h>
+using namespace std;
+int x;
+int mx[3], mn[3];
+int main() {
+	mn[0] = mn[1] = 1e9;
+
+	int n, m, k;
+	scanf("%d %d %d", &n, &m, &k);
+	if (n % 2 == 0) {
+		puts("0");
+		return 0;
+	}
+
+	if (n == 1) {
+		scanf("%d", &n);
+		printf("%lld", min(1ll * m * k, 1ll * n));
+		return 0;
+	}
+
+	for (int i = 0; i < n; ++i) {
+		scanf("%d", &x);
+		mn[i % 2] = min(mn[i % 2], x);
+	}
+	int op = 1 + (n / 2);
+	op = (m / op);
+	if (op == 0) {
+		puts("0");
+		return 0;
+	}
+	int ans = min(1ll * k * op, 1ll * mn[0]);
+	printf("%d", ans);
+}

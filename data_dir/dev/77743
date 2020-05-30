@@ -1,0 +1,129 @@
+#include <iostream>
+#include <string>
+#include <stdio.h>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <memory.h>
+using namespace std;
+vector<vector<int > > g;
+const int N= 1e5 + 5;
+int n,m,dp[18][N],d[N],cdr[N];
+bool vis[N];
+vector<int > all;
+vector<int > blk;
+void dfs(int u,int p,int dd){
+	dp[0][u]= p;
+	d[u]= dd;
+	for(int i= 0;i < g[u].size();i++){
+		int v= g[u][i];
+		if(v != p)
+			dfs(v,u,dd + 1);
+	}
+}
+
+void bfs(){
+
+	queue<int > q;
+	memset(vis,0,sizeof vis);
+	for(int i= 0;i < all.size();i++){
+		q.push(all[i]);
+		cdr[all[i]]= 0;
+		vis[all[i]]= true;
+	}
+	while( !q.empty()){
+		int u= q.front();
+		q.pop();
+		for(int i= 0;i < g[u].size();i++){
+			int v= g[u][i];
+			if( !vis[v]){
+				q.push(v);
+				vis[v]= true;
+				cdr[v]= cdr[u] + 1;
+			}
+		}
+
+	}
+
+}
+
+int lca(int a,int b){
+
+	if(d[a] < d[b])
+		swap(a,b);
+
+	int l= 0;
+	while((1 << l) <= d[a])
+		l++;
+	l--;
+	for(int i= l;i >= 0;i--){
+		if(d[a] - (1 << i) >= d[b])
+			a= dp[i][a];
+	}
+	if(a == b)
+		return a;
+
+	for(int i= l;i >= 0;i--){
+		if(dp[i][a] != dp[i][b]){
+			a= dp[i][a];
+			b= dp[i][b];
+		}
+	}
+	return dp[0][a];
+
+}
+
+int main(){
+
+//	freopen("readtest.txt","r",stdin);
+
+	scanf("%d%d", &n, &m);
+	g.resize(n);
+	for(int i= 1,a,b;i < n;i++){
+		scanf("%d%d", &a, &b);
+		a--,b--;
+		g[a].push_back(b);
+		swap(a,b);
+		g[a].push_back(b);
+	}
+	dfs(0, -1,0);
+
+	for(int i= 1;i < 18;i++){
+		for(int j= 0;j < n;j++){
+			if(dp[i - 1][j] == -1)
+				dp[i][j]= -1;
+			else
+				dp[i][j]= dp[i - 1][dp[i - 1][j]];
+		}
+	}
+
+	int z= sqrt(m +0.0) + 1;
+	vector<vector<pair<int,int > > > q(z);
+	for(int i= 0,t,x;i < m;i++){
+		scanf("%d%d", &t, &x);
+		q[i / z].push_back(make_pair(t,x));
+	}
+	all.push_back(0);
+	for(int i= 0;i < z;i++){
+		for(int j= 0;j < q[i].size();j++){
+			if (!j)	bfs();
+			int t= q[i][j].first;
+			int x= q[i][j].second;
+			x--;
+			if(t == 1){
+				all.push_back(x);
+				blk.push_back(x);
+				continue;
+			}
+			int ans= cdr[x];
+			for(int k= 0;k < blk.size();k++){
+				int c= lca(x,blk[k]);
+				ans= min(ans,d[x] + d[blk[k]] - 2 * d[c]);
+			}
+			printf("%d\n",ans);
+		}
+		blk.clear();
+	}
+
+	return 0;
+}

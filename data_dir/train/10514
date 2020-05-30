@@ -1,0 +1,97 @@
+#include <bits/stdc++.h>
+#ifdef DBP
+#define deb(...) fprintf(stderr,__VA_ARGS__)
+#else
+#define deb(...) 0
+#endif
+#define fst first
+#define snd second
+#define fore(x,a,b) for(int x=(a), qwerty=(b); x<qwerty; x++)
+#define pb push_back
+#define mset(a,v) memset((a),(v),sizeof(a))
+#define ALL(a) (a).begin(), (a).end()
+#define SZ(a) int((a).size())
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+using namespace std;
+typedef long long ll;
+
+const int MAXC=4e6+5;
+struct state {int len,link;map<char,int> next;}; //clear next!!
+state st[MAXC];
+int sz,last;
+ll cnt[MAXC];
+bool fin[MAXC], used[MAXC];
+string text;
+void sa_init(){
+	last=st[0].len=0;sz=1;
+	st[0].link=-1;
+}
+void sa_extend(char c){
+	int k=sz++,p;
+	st[k].len=st[last].len+1;
+	for(p=last;p!=-1&&!st[p].next.count(c);p=st[p].link)st[p].next[c]=k;
+	if(p==-1)st[k].link=0;
+	else {
+		int q=st[p].next[c];
+		if(st[p].len+1==st[q].len)st[k].link=q;
+		else {
+			int w=sz++;
+			st[w].len=st[p].len+1;
+			st[w].next=st[q].next;st[w].link=st[q].link;
+			for(;p!=-1&&st[p].next[c]==q;p=st[p].link)st[p].next[c]=w;
+			st[q].link=st[k].link=w;
+		}
+	}
+	last=k;
+}
+
+int f(int u){
+    if(cnt[u]!=-1)return cnt[u];
+    cnt[u]=fin[u];
+    for(auto e:st[u].next)
+        cnt[u]+=f(e.snd);
+    return cnt[u];
+}
+
+vector<int> cs;
+
+int main(){FIN;mset(cnt,-1);
+    cin >> text;
+    sa_init();
+    fore(x,0,SZ(text))sa_extend(text[x]);
+    int k=last;
+    while(k>0){fin[k]=1;k=st[k].link;}
+    f(0);
+    int n; cin >> n;
+    fore(x,0,n){
+        cs.clear();
+        string s;cin>>s;
+        int idx=0, ss=0, szs=SZ(s);
+        bool has=1;
+        fore(i,0,SZ(s))has&=st[0].next.count(s[i]);
+        if(!has){cout<<"0\n";continue;}
+        s+=s;s.pop_back();
+        ll ans=0;
+        set<int> used;
+        fore(i,0,SZ(s)){
+            if(st[idx].next.count(s[i])){
+                idx=st[idx].next[s[i]];
+            }else{
+                while(!st[idx].next.count(s[i])){
+                    int mnl=st[st[idx].link].len+1;
+                    if(i-ss-1<mnl)idx=st[idx].link;
+                    ss++;
+                }
+                idx=st[idx].next[s[i]];
+            }
+            if(i-ss+1==szs){
+                if(!used.count(idx))ans += cnt[idx],used.insert(idx);
+                int mnl = st[st[idx].link].len+1;
+                if(szs-1<mnl)
+                    idx=st[idx].link;
+                ss++;
+            }
+        }
+        cout << ans << "\n";
+    }
+}

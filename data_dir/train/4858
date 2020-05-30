@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using matrix = vector<vector<long long>>;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+
+#define all(x) (x).begin(), (x).end()
+#define int ll
+
+mt19937 gen(3123661);
+
+struct node {
+    node *l, *r;
+    int sz, x, y;
+    bool rev;
+    node(int key) : l(nullptr), r(nullptr), sz(1), x(key), y(gen()), rev(false) {};
+};
+
+int getsz(node *&root) {
+    return (root == nullptr ? 0 : root->sz);
+}
+
+void update(node *&root) {
+    if (root == nullptr) {
+        return;
+    }
+    root->sz = getsz(root->l) + getsz(root->r) + 1;
+    if (root->rev) {
+        if (root->l) {
+            root->l->rev ^= true;
+        }
+        if (root->r) {
+            root->r->rev ^= true;
+        }
+        swap(root->l, root->r);
+        root->rev = false;
+    }
+}
+
+pair<node*, node*> split(node *root, int k) {
+    update(root);
+    if (root == nullptr) {
+        return {nullptr, nullptr};
+    }
+    int key = getsz(root->l) + 1;
+    if (key <= k) {
+        auto splitted = split(root->r, k - key);
+        root->r = splitted.first;
+        update(root);
+        return {root, splitted.second};
+    }
+    else {
+        auto splitted = split(root->l, k);
+        root->l = splitted.second;
+        update(root);
+        return {splitted.first, root};
+    }
+}
+
+node* merge(node *l, node *r) {
+    update(l);
+    update(r);
+    if (l == nullptr) {
+        return r;
+    }
+    if (r == nullptr) {
+        return l;
+    }
+    if (l->y < r->y) {
+        l->r = merge(l->r, r);
+        update(l);
+        return l;
+    }
+    else {
+        r->l = merge(l, r->l);
+        update(r);
+        return r;
+    }
+}
+
+void shift(node *&root, int l, int r) {
+    auto first = split(root, l - 1);
+    auto second = split(first.second, r - l);
+    auto third = split(second.second, 1);
+    root = merge(first.first, merge(merge(third.first, second.first), third.second));
+}
+
+void reverse(node *&root, int l, int r) {
+    auto first = split(root, l - 1);
+    auto second = split(first.second, r - l + 1);
+    second.first->rev = true;
+    update(second.first);
+    root = merge(merge(first.first, second.first), second.second);
+}
+
+int check(node *&root, int pos) {
+    update(root);
+    int key = getsz(root->l) + 1;
+    if (key < pos) {
+        return check(root->r, pos - key);
+    }
+    if (key > pos) {
+        return check(root->l, pos);
+    }
+    return root->x;
+}
+
+signed main() {
+
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+
+    node *root = nullptr;
+    int n, q, m;
+    cin >> n >> q >> m;
+    for (int i = 0; i < n; ++i) {
+        int a;
+        cin >> a;
+        root = merge(root, new node(a));
+    }
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            shift(root, l, r);
+        }
+        else {
+            reverse(root, l, r);
+        }
+    }
+    while (m--) {
+        int a;
+        cin >> a;
+        cout << check(root, a) << ' ';
+    }
+}

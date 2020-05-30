@@ -1,0 +1,73 @@
+#include <bits/stdc++.h>
+#define lld long long
+#define nmax 1000005
+using namespace std;
+int k;
+string s;
+lld ans, inmst, inmdr;
+int zst[nmax], n, zdr[nmax];
+int main()
+{
+    cin>>k;
+    cin>>s;
+    zst[0] = (s[0] == '0' ? 1:0);
+    n = s.size();
+    for (int i=1; i<n; ++i)
+    {
+        zst[i] = zst[i-1];
+        if (s[i] == '0') ++zst[i];
+        else zst[i] = 0;
+    }
+    zdr[n-1] = s[n-1] == '0' ? 1 : 0;
+    for (int i=n-1; i>=1; --i)
+    {
+        zdr[i] = zdr[i+1];
+        if (s[i] == '0') ++zdr[i];
+        else zdr[i] = 0;
+    }
+    int act = 0, st = 0, dr, i;
+    while (st < n && s[st] == '0') ++st;
+    if (st == n)
+    {
+        if (!k)
+            cout<<(1LL * n * (n+1))/2;
+        else
+            cout<<"0\n";
+        return 0;
+    }
+    for (i=0; i<n; ++i)
+        if (s[i] == '1')
+        {
+            ++act;
+            if (act == k)
+            {
+                dr = i;
+                break;
+            }
+        }
+    if (act < k)
+    {
+        cout<<"0\n";
+        return 0;
+    }
+    while (dr < n)
+    {
+        if (st == 0) inmst = 1;
+        else inmst = zst[st-1] +1;
+        if (dr == n-1) inmdr = 1;
+        else inmdr = zdr[dr+1] +1;
+        ans += inmst * inmdr;
+        ++st;
+        while (st < n && s[st] == '0')++st;
+        ++dr;
+        while (dr < n && s[dr] == '0')++dr;
+    }
+    if (k == 0)
+    {
+        for (int i=0; i<n; ++i)
+            if (zst[i+1] == 0)
+                ans += 1LL * zst[i] * (zst[i] + 1) / 2;
+    }
+    cout<<ans<<'\n';
+    return 0;
+}

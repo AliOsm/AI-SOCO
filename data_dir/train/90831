@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 35678;
+const int K = 55;
+
+int n, k;
+int a[N];
+int dp[K][N];
+int segtree[N << 2];
+int lazy[N << 2];
+int prv[N], last[N];
+
+void shift(int id, int l, int r) {
+  if (lazy[id]) {
+    segtree[id] += lazy[id];
+    if (l + 1 < r) {
+      lazy[id + id] += lazy[id];
+      lazy[id + id + 1] += lazy[id];
+    }
+    lazy[id] = 0;
+  }
+}
+
+void update(int x, int y, int val, int id = 1, int l = 1, int r = n + 1) {
+  shift(id, l, r);
+  if (l >= y || r <= x) return;
+  if (l >= x && r <= y) {
+    segtree[id] += val;
+    if (l + 1 < r) {
+      lazy[id + id] += val;
+      lazy[id + id + 1] += val;
+    }
+    return;
+  }
+  int mid = l + r >> 1;
+  update(x, y, val, id + id, l, mid);
+  update(x, y, val, id + id + 1, mid, r);
+  segtree[id] = max(segtree[id + id], segtree[id + id + 1]);
+}
+
+int query(int x, int y, int id = 1, int l = 1, int r = n + 1) {
+  shift(id, l, r);
+  if (l >= y || r <= x) return 0;
+  if (l >= x && r <= y) return segtree[id];
+  int mid = l + r >> 1;
+  return max(query(x, y, id + id, l, mid), query(x, y, id + id + 1, mid, r));
+}
+
+void solve(int i) {
+  memset(segtree, 0, sizeof segtree);
+  memset(lazy, 0, sizeof lazy);
+  for (int j = 1; j <= n; j++) {
+    update(prv[j] + 1, j, 1);
+    dp[i][j] = max(dp[i - 1][j - 1] + 1, query(1, j));
+    update(j, j + 1, dp[i - 1][j - 1] + 1);
+  }
+}
+
+int main() {
+  scanf("%d %d", &n, &k);
+  for (int i = 1; i <= n; i++) scanf("%d", a + i);
+  dp[0][0] = 0;
+  set<int> st;
+  for (int i = 1; i <= n; i++) {
+    st.insert(a[i]);
+    dp[1][i] = st.size();
+  }
+  for (int i = 1; i <= n; i++) {
+    prv[i] = last[a[i]];
+    last[a[i]] = i;
+  }  
+  for (int i = 2; i <= k; i++) solve(i);
+  printf("%d\n", dp[k][n]);
+  return 0;
+}

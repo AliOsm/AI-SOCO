@@ -1,0 +1,118 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define sz(a) int(a.size())
+
+struct Dis {
+	int depth, xor_l;
+	Dis (int depth = 0, int xor_l = 0) : depth(depth), xor_l(xor_l) {}
+	Dis operator +(const int &x) const {
+		return Dis(depth+1, xor_l^(1<<x));
+	}
+};
+
+const int MAX_N = 1<<19;
+
+vector <int> cn [MAX_N], dn[MAX_N];
+vector <Dis> D;
+int ss [MAX_N], in[MAX_N], out[MAX_N];
+
+vector <int> eTour;
+void preComp (int u) {
+	ss[u] = 1;
+	in[u] = sz(eTour);
+	eTour.push_back(u);
+	for (int i = 0; i < sz(cn[u]); i++) {
+		int v = cn[u][i];
+		D[v] = D[u] + dn[u][i];
+		preComp(v);
+		ss[u] += ss[v];
+	}
+	out[u] = sz(eTour);
+}
+
+multiset <int> dXor [1<<22];
+
+vector <int> ans;
+void dfs(int u, bool keep){
+	int mxSS = -1, mxChild = -1;
+
+	for (int v : cn[u])  {
+		if (ss[v] > mxSS) mxSS = ss[v], mxChild = v;
+	}
+
+	for (int v : cn[u]) {
+		if (v != mxChild) dfs(v, 0);
+		ans[u] = max(ans[u], ans[v]);
+	}
+
+	if(mxChild != -1) {
+		dfs(mxChild, 1);
+		ans[u] = max(ans[u], ans[mxChild]);
+	}
+
+	int best = 0;
+	for(int v : cn[u]) {
+		if (v != mxChild) {
+			for (int x = in[v]; x < out[v]; x++) {
+				int t = eTour[x];
+
+				auto &ms = dXor[D[t].xor_l];
+				if (!ms.empty()) best = max(best, *rbegin(ms) + D[t].depth - 2*D[u].depth);
+
+				for (int l = 0; l < 22; l++) {
+					auto &ms = dXor[D[t].xor_l^(1<<l)];
+					if (!ms.empty()) best = max(best, *rbegin(ms) + D[t].depth - 2*D[u].depth);
+				}
+			}
+
+			for (int x = in[v]; x < out[v]; x++) {
+				int t = eTour[x];
+				dXor[D[t].xor_l].insert(D[t].depth);
+			}
+		}
+	}
+
+	auto &ms = dXor[D[u].xor_l];
+	if (!ms.empty()) best = max(best, *rbegin(ms) - D[u].depth);
+
+	for (int l = 0; l < 22; l++) {
+		auto &ms = dXor[D[u].xor_l^(1<<l)];
+		if (!ms.empty()) best = max(best, *rbegin(ms) - D[u].depth);
+	}
+	
+	ans[u] = max(ans[u], best);
+	dXor[D[u].xor_l].insert(D[u].depth);
+
+	if (!keep) {
+		for (int x = in[u]; x < out[u]; x++) {
+			int t = eTour[x];
+			auto &toErase = dXor[D[t].xor_l];
+			toErase.erase(toErase.find(D[t].depth));
+		}
+	}
+}
+
+char c[2];
+int main() {
+
+	int n;
+	scanf("%d", &n);
+	D.resize(n);
+	ans.resize(n);
+
+	for (int v = 1; v < n; v++) {
+		int u;
+		scanf("%d%s", &u, c);
+		u--;
+
+		cn[u].push_back(v);
+		dn[u].push_back(c[0]-'a');
+	}
+
+	preComp(0);
+	dfs(0, 1);
+
+	for (int t : ans) printf("%d ", t);
+}

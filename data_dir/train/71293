@@ -1,0 +1,62 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+bool islucky(int n) {
+  string s = to_string(n);
+  return count(s.begin(), s.end(), '4') 
+    + count(s.begin(), s.end(), '7') == int(s.size());
+}
+
+const int N = 1e5 + 100;
+
+vector<pair<int, bool> > gr[N];
+int sz[N], lck[N];
+long long ans[N];
+
+void dfsbottomup(int v, int p) {
+  sz[v] = 1, lck[v] = 0;
+  for (auto it : gr[v]) {
+    int u = it.first, lucky = it.second;
+    if (u == p) continue;
+    dfsbottomup(u, v);
+    sz[v] += sz[u];
+    if (lucky) lck[v] += sz[u];
+    else lck[v] += lck[u];
+  }
+}
+
+void dfstopdown(int v, int p, int pval, const int n) {
+  int tot = lck[v] + pval;
+  ans[v] = tot * 1LL * (tot-1);
+  //cerr << v << ' ' << ans[v] << '\n';
+  for (auto it : gr[v]) {
+    int u = it.first, lucky = it.second;
+    if (u == p) continue;
+    if (lucky) {
+      dfstopdown(u, v, n - sz[u], n);
+    } else {
+      dfstopdown(u, v, pval + lck[v] - lck[u], n); 
+    }
+  }
+}
+
+int main()
+{
+  ios_base::sync_with_stdio(0);
+  int n;
+  cin >> n;
+  for (int i = 0; i < n-1; ++i) {
+    int u, v, w;
+    cin >> u >> v >> w;
+    gr[u].emplace_back(v, islucky(w));
+    gr[v].emplace_back(u, islucky(w));
+  }
+
+  dfsbottomup(1, -1);
+  dfstopdown(1, -1, 0, n);
+
+  long long totans = 0;
+  for (int i = 1; i <= n; ++i) totans += ans[i];
+  cout << totans << '\n'; 
+}
+// g++ -W -Wall -Wextra -pedantic -std=c++0x -o p main.cpp

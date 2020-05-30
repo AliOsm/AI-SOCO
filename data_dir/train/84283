@@ -1,0 +1,130 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 200000 + 10;
+const int M = 1000000007;
+const double PI = acos(-1);
+const int oo = 1000000000;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef pair<int, int> ii;
+#define pb push_back 
+#define all(c) (c).begin(),(c).end()
+int n,m,q,low[N],cmp[N],disc[N],T,D[N],dp[18][N],fr[2][N];
+vi g[N],ng[N],E;
+bool vis[N];
+
+void go(int u, int p, int col){
+	if(cmp[u] || u==p)return;
+	cmp[u]=col;
+	for(int i=0; i<g[u].size(); ++i)
+		go(E[g[u][i]], p, col);
+}
+
+void dfs(int u, int e){
+	low[u]=disc[u]=++T;
+	for(int i=0; i<g[u].size(); ++i){
+		int ce=g[u][i];
+		int d=E[ce];
+		if(!low[d]){
+			dfs(d,ce);
+			if(low[d]>disc[u])
+				go(d,u,disc[d]);
+			low[u]=min(low[u], low[d]);
+		}else if(ce!=(e^1))
+			low[u]=min(low[u], disc[d]);
+	}
+	if(e==-1)
+		go(u,-1,disc[u]);
+}
+
+void build(int u, int p){
+	dp[0][u]=p;
+	vis[u]=true;
+	for(int i=0; i<ng[u].size(); ++i){
+		int d=ng[u][i];
+		if(d==p)continue;
+		D[d]=D[u]+1;
+		build(d, u);
+	}
+}
+
+void no(){
+	cout<<"No\n";
+	exit(0);
+}
+void check(int u, int p){
+	vis[u]=true;
+	for(int i=0; i<ng[u].size(); ++i){
+		int d=ng[u][i];
+		if(d==p)continue;
+		check(d,u);
+		for(int j=0; j<2; ++j)
+			fr[j][u]+=fr[j][d];
+	}
+	if(fr[0][u] && fr[1][u])
+		no();
+}
+int LCA(int a, int b){
+	if(D[a]<D[b])
+		swap(a,b);
+	int l=0;
+	while((1<<l)<=D[a])
+		++l;
+	--l;
+	for(int i=l; i>=0; --i)
+		if(D[a]-(1<<i)>=D[b])
+			a=dp[i][a];
+	if(a==b)
+		return a;
+	for(int i=l; i>=0; --i)
+		if(dp[i][a]!=dp[i][b])
+			a=dp[i][a],
+			b=dp[i][b];
+	return dp[0][a];
+}
+int main(){
+	#ifndef ONLINE_JUDGE
+		freopen("input.txt", "r", stdin);
+	#endif
+	cin>>n>>m>>q;
+	for(int a,b,i=0; i<m; ++i){
+		scanf("%d%d",&a,&b);
+		E.pb(b);
+		E.pb(a);
+		g[a].pb(E.size()-2);
+		g[b].pb(E.size()-1);
+	}
+	for(int i=1; i<=n; ++i)
+		if(!low[i])
+			dfs(i,-1);
+	for(int i=1; i<=n; ++i)
+		for(int j=0; j<g[i].size(); ++j)
+			if(cmp[i] != cmp[E[g[i][j]]])
+				ng[cmp[i]].pb(cmp[E[g[i][j]]]);
+	memset(dp,-1,sizeof(dp));
+	for(int i=1; i<=n; ++i)
+		if(!vis[i])
+			build(i,-1);
+	for(int i=1; i<18; ++i)
+		for(int j=1; j<=n; ++j)
+			if(dp[i-1][j]!=-1)
+				dp[i][j]=dp[i-1][dp[i-1][j]];
+			else
+				dp[i][j]=-1;
+	for(int a,b,i=0; i<q; ++i){
+		scanf("%d%d",&a,&b);
+		a=cmp[a];b=cmp[b];
+		int lca=LCA(a,b);
+		if(lca==-1)no();
+		++fr[0][a];
+		++fr[1][b];
+		--fr[0][lca];
+		--fr[1][lca];
+	}
+	memset(vis,0,sizeof(vis));
+	for(int i=1; i<=n; ++i)
+		if(!vis[i])
+			check(i,-1);
+	puts("Yes");
+}

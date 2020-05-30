@@ -1,0 +1,181 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX = 2005;
+
+int inv[10000005];
+
+typedef long long int64;
+
+struct pt {
+	int64 x, y;
+
+	pt() {}
+
+	pt(int64 x, int64 y) : x(x), y(y) {}
+
+	pt operator - (const pt &p) const {
+		return pt(x - p.x, y - p.y);
+	}
+
+	pt operator + (const pt &p) const {
+		return pt(x + p.x, y + p.y);
+	}
+
+	pt operator * (const double &p) const {
+		return pt(x * p, y * p);
+	}
+
+	pt operator / (const double &p) const {
+		return pt(x / p, y / p);
+	}
+
+	bool operator < (const pt &p) const {
+		if(x != p.x)
+			return x < p.x;
+		return y < p.y;
+	}
+
+	bool operator != (const pt &p) const {
+		return x != p.x || y != p.y;
+	}
+} a[MAX * MAX];
+
+pair <pt, pt> pts[MAX];
+
+typedef long long type;
+
+struct line {
+	type a, b, c;
+
+	line(type a_ = 0, type b_ = 0, type c_ = 0) {
+		a = a_, b = b_, c = c_;
+		fix();
+	}
+
+	line(pt p1, pt p2) { //dos ptos
+		a = p1.y - p2.y; //comp y del vector director
+		b = p2.x - p1.x; //comp x del vector director
+		c = -a * p1.x - b * p1.y; //Ax + By + C = 0 (C is neg)
+		fix();
+	}
+
+	void fix() { //normalizar
+		type g = __gcd(labs(a), __gcd(labs(b), labs(c)));
+
+		if(g == 0)
+			return;
+
+		a /= g, b /= g, c /= g;
+
+		if(a < 0) {
+			a *= -1;
+			b *= -1;
+			c *= -1;
+		}
+
+		else if(a == 0) {
+			if(b < 0) {
+				b *= -1;
+				c *= -1;
+			}
+
+			else if(b == 0)
+				c *= -1;
+		}
+	}
+
+	bool operator < (const line &l) const { //ordenar
+		if(a != l.a)
+			return a < l.a;
+
+		if(b != l.b)
+			return b < l.b;
+
+		return c < l.c;
+	}
+
+	bool operator == (const line &l) const {
+		return a == l.a && b == l.b && c == l.c;
+	}
+
+	bool operator != (const line &l) const {
+		return !(*this == l);
+	}
+} L[MAX];
+
+pt inter(line l1, line l2) {
+	type det = l1.a * l2.b - l2.a * l1.b;
+
+	if(det == 0) {
+		return pt(LLONG_MAX, LLONG_MAX);
+		//rectas paralelas
+		//hacer algo
+	}
+
+	int64 num1 = l1.b * l2.c - l2.b * l1.c;
+	int64 num2 = l2.a * l1.c - l1.a * l2.c;
+
+	if(abs(num1) % abs(det) > 0 || abs(num2) % abs(det) > 0)
+		return pt(LLONG_MAX, LLONG_MAX);
+
+	return pt(num1 / det, num2 / det); //tener en cuenta que coordenadas de pt tienen que se doubles
+}
+
+bool onsegment(pt a, pt b, pt c) {
+	return a.x >= min(b.x, c.x) && a.x <= max(b.x, c.x) && a.y >= min(b.y, c.y) && a.y <= max(b.y, c.y);
+}
+
+int n, l;
+
+int main() {
+	scanf("%d", &n);
+
+	for(int i = 1; 1LL * i * (i - 1) / 2 <= (int) (1e7); i++)
+		inv[i * (i - 1) / 2] = i;
+
+	int64 ans = 0;
+
+	for(int i = 1; i <= n; i++) {
+		pt p1, p2;
+		scanf("%lld%lld%lld%lld", &p1.x, &p1.y, &p2.x, &p2.y);
+		L[i] = line(p1, p2);
+		ans += __gcd(abs(p1.x - p2.x), abs(p1.y - p2.y)) + 1;
+		pts[i] = { p1, p2 };
+	}
+
+	for(int i = 1; i <= n; i++) {
+		for(int j = i + 1; j <= n; j++) {
+			pt I = inter(L[i], L[j]);
+
+			if(I.x != LLONG_MAX) {
+				if(onsegment(I, pts[i].first, pts[i].second) && onsegment(I, pts[j].first, pts[j].second))
+					a[++l] = I;
+			}
+
+			/*if(I.x == 6 && I.y == 6) {
+				printf("--- %d %d\n", i, j);
+			}*/
+		}
+	}
+
+	sort(a + 1, a + l + 1);
+
+	//printf("%d\n", inv[6]);
+
+	int c = 1;
+	for(int i = 1; i <= l; i++) {
+		//printf("%lld %lld\n", a[i].x, a[i].y);
+		if(i == l || a[i] != a[i + 1]) {
+			//assert(inv[c] != 0);
+			//printf("c = %d, inv = %d\n", c, inv[c]);
+			ans -= inv[c] - 1;
+			c = 1;
+		}
+
+		else c++;
+	}
+
+	printf("%lld\n", ans);
+	return 0;
+}

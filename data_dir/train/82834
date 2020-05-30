@@ -1,0 +1,99 @@
+#include <iostream>
+#include <vector>
+#include <cstdio>
+#include <limits>
+using namespace std;
+
+class segments
+{
+public:
+    typedef unsigned long long ull; 
+    segments(vector<int>& v): t(4*v.size())
+    {
+        build(v, 1, 0, v.size()-1);
+    }
+    ull sum(int v, int tl, int tr, int l, int r)
+    {
+        if (l > r)
+            return 0;
+        if (tl == l && tr == r)
+            return get_value (v, tl, tr);
+        int tm = (tl+tr)/2; 
+        push(v, tl, tr);
+        return sum(2*v, tl, tm, l, min(r, tm)) + 
+            sum(2*v+1, tm+1, tr, max(tm+1, l), r);      
+    }   
+    void update(int v, int tl, int tr, int l, int r, int new_val)
+    {
+        if (l > r)
+            return ;
+        if (tl == l && tr == r)
+            t[v].val = new_val;         
+        else
+        {   
+            int tm = (tl+tr)/2; 
+            push(v, tl, tr);                    
+            update(2*v, tl, tm, l, min(r, tm), new_val); 
+            update(2*v+1, tm+1, tr, max(tm+1, l), r, new_val);
+            t[v].sum = get_value(2*v, tl, tm) + get_value(2*v+1, tm+1, tr);
+        }
+    }
+private:
+    ull get_value (int v, int l, int r) 
+    {
+        return (t[v].val != numeric_limits<ull>::max()) ? t[v].val * (r - l + 1) : t[v].sum;    
+    }
+    void push(int v, int l, int r)
+    {
+        if (t[v].val != numeric_limits<ull>::max())
+        {
+            t[v].sum = t[v].val * (r-l+1);
+            t[2*v].val = t[2*v+1].val = t[v].val;           
+            t[v].val = numeric_limits<ull>::max();
+        }
+    }
+    void build(vector<int>& a, int v, int tl, int tr)
+    {
+        t[v].sum = 0;
+        t[v].val = numeric_limits<ull>::max();
+        if (tl == tr)
+        {
+            t[v].sum = a[tr];
+            return ;
+        }
+        int tm = (tl+tr)/2;
+        build(a, 2*v, tl, tm); 
+        build(a, 2*v+1, tm+1, tr);
+        t[v].sum = t[2*v].sum + t[2*v+1].sum;
+    }
+private:
+    struct node
+    {
+        ull sum;
+        ull val;    
+    };
+    vector<node> t;
+};
+
+int main(void)
+{
+    int n, m;
+    cin >> n >> m;
+    vector<int> l(m), r(m), x(m);
+    for (int i = 0; i < m; ++i)
+    {
+        cin >> l[i] >> r[i] >> x[i];
+    }
+    vector<int> v(n);
+    segments q(v);
+    for (int i = m-1; i >= 0; --i)
+    {
+        q.update(1, 0, n-1, l[i]-1, x[i]-2, x[i]);
+        q.update(1, 0, n-1, x[i], r[i]-1, x[i]);
+    }
+    for (int i = 0; i < n; ++i)
+    {
+        cout << q.sum(1, 0, n-1, i, i) << ' ';
+    }
+    return 0;
+}

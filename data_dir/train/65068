@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int maxN = 20;
+
+int a[maxN][maxN];
+int dp[40][1 << maxN][2], n;
+int startX[40], startY[40], lenDiag[40];
+
+pair<int, int> get_coord(int diag, int index) {
+    return make_pair(startX[diag] + index, startY[diag] - index);
+}
+
+int get_index(int x, int index_diag) {
+    return x - startX[index_diag];
+}
+
+int f(int diag, int mask, int player) {
+    if (dp[diag][mask][player] != -1) {
+        return dp[diag][mask][player];
+    }
+    if (diag == 2 * n - 2) {
+        dp[diag][mask][player] = 0;
+        return dp[diag][mask][player];
+    }
+
+    int answer = -1e9;
+    vector<pair<int, int> > coords;
+    for (int i = 0; i < lenDiag[diag]; ++i) {
+        int val = mask & (1 << i);
+        if (val) coords.emplace_back(get_coord(diag, i));
+    }
+    vector<int> new_mask(27, 0);
+    for (int i = 0; i < coords.size(); ++i) {
+        if (coords[i].first + 1 < n) {
+            int color = a[coords[i].first + 1][coords[i].second];
+            new_mask[color] |= 1 << get_index(coords[i].first + 1, diag + 1);
+        }
+        if (coords[i].second + 1 < n) {
+            int color = a[coords[i].first][coords[i].second + 1];
+            new_mask[color] |= 1 << get_index(coords[i].first, diag + 1);
+        }
+    }
+    for (int color = 1; color <= 26; ++color) {
+        if (new_mask[color] == 0) {
+            continue;
+        }
+        int code = 0;
+        if (color <= 2) {
+            if (color % 2 == player) code = 1; else code = -1;
+        }
+        answer = max(answer, code - f(diag + 1, new_mask[color], 1 - player));
+    }
+    dp[diag][mask][player] = answer;
+    return dp[diag][mask][player];
+}
+
+int main() {
+    cin >> n;
+    for (int i = 0; i < n; ++i) {
+        string s;
+        cin >> s;
+        for (int j = 0; j < n; ++j) {
+            a[i][j] = s[j] - 'a' + 1;
+        }
+    }
+    int cnt = -1;
+    for (int i = 0; i < n; ++i) {
+        ++cnt;
+        startX[cnt] = 0;
+        startY[cnt] = i;
+    }
+    --cnt;
+    for (int i = 0; i < n; ++i) {
+        ++cnt;
+        startX[cnt] = i;
+        startY[cnt] = n - 1;
+    }
+    for (int diag = 0; diag < 2 * n - 1; ++diag) {
+        for (int mask = 0; mask < (1 << n); ++mask) {
+            for (int player = 0; player <= 1; ++player) {
+                dp[diag][mask][player] = -1;
+            }
+        }
+    }
+    for (int i = 0; i < 2 * n - 1; ++i) {
+        if (i < n) {
+            lenDiag[i] = i + 1;
+        } else {
+            lenDiag[i] = 2 * n - 1 - i;
+        }
+    }
+    int code = 0;
+    if (a[0][0] == 1) code = 1;
+    else if (a[0][0] == 2) code = -1;
+    int answer = - f(0, 1, 0) + code;
+    if (answer > 0) {
+        cout << "FIRST" << endl;
+    } else if (answer == 0) {
+        cout << "DRAW" << endl;
+    } else {
+        cout << "SECOND" << endl;
+    }
+    return 0;
+}

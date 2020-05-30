@@ -1,0 +1,145 @@
+#include <bits/stdc++.h>
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define sf scanf
+#define pf printf
+#define pb push_back
+#define mp make_pair
+#define PI ( acos(-1.0) )
+#define mod 1000000007LL
+#define IN freopen("C.in","r",stdin)
+#define OUT freopen("output.txt","w",stdout)
+#define FOR(i,a,b) for(i=a ; i<=b ; i++)
+#define DBG pf("Hi\n")
+#define i64 long long int
+#define eps (1e-8)
+#define xx first
+#define yy second
+#define ln 17
+#define off 2
+
+using namespace __gnu_pbds;
+using namespace std ;
+
+typedef tree< i64, null_type, less<i64>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+typedef pair<i64, i64> pii;
+
+#define maxn 300005
+#define INF 20000000000000000LL
+
+int tr[4*maxn] ;
+int a[maxn] ;
+
+int Merge(int x, int y)
+{
+    if( a[x] < a[y] ) return x ;
+    else return y ;
+}
+
+void update(int cn, int b , int e , int idx , int val)
+{
+    if( b>idx || e<idx ) return ;
+    if( b==e )
+    {
+        tr[cn] = idx ;
+        a[idx] = val ;
+        return ;
+    }
+    int lc = cn*2 , rc = cn*2+1 , m = (b+e)/2 ;
+    update(lc,b,m,idx,val) ;
+    update(rc,m+1,e,idx,val) ;
+    tr[cn] = Merge(tr[lc],tr[rc]) ;
+    return ;
+}
+int query(int cn , int b, int e , int l, int r)
+{
+    if(e<l || b>r) return 0;
+    if( l<=b && e<=r ) return tr[cn] ;
+    int lc = cn*2 , rc = cn*2+1 , m = (b+e)/2 ;
+    return Merge(  query(lc,b,m,l,r) , query(rc,m+1,e,l,r) ) ;
+}
+
+int bit[maxn] ;
+
+void updateBit( int y, int val ) // update the value of 1 <= y <= bitMax
+{
+    while( y < maxn )
+    {
+        bit[y] += val;
+        y += (y&(-y));
+    }
+}
+
+int queryBit( int y ) //sum of all numbers from 1 to y (inclusive)
+{
+    int  sum = 0;
+
+    while( y > 0 )
+    {
+        sum += bit[y];
+        y -= (y&(-y));
+    }
+    return sum;
+}
+
+pair<int,i64> Find(int n, int val , int st)
+{
+    int idx = query(1,1,n,st,n) ;
+    if( a[idx] != val )
+    {
+        i64 ans2 = queryBit(n)- queryBit(st-1) ;
+        pair<int,i64> ans = Find(n,val,1) ;
+        ans.yy += ans2 ;
+        return ans ;
+    }
+    else{
+        int lo = st , hi = n ;
+        while(lo<hi)
+        {
+            int m = (lo+hi)/2 ;
+            int id = query(1,1,n,lo,m) ;
+            if( a[id] != val ) lo = m+1 ;
+            else hi = m ;
+        }
+        i64 res = queryBit(lo) - queryBit(st-1) ;
+        return mp(lo,res) ;
+    }
+}
+
+int main()
+{
+    int n ;
+
+    scanf("%d",&n) ;
+    multiset<int> ms ;
+    for(int i=1 ; i<=n ; i++)
+    {
+        scanf("%d",&a[i]) ;
+        updateBit(i,1) ;
+        ms.insert(a[i]) ;
+        update(1,1,n,i,a[i]) ;
+    }
+
+    i64 ans = 0 ;
+
+    int st = 1 ;
+    a[0] = 2*maxn ;
+
+    for(int i=1 ; i<=n ; i++)
+    {
+        int mnVal = (*ms.begin()) ;
+        ms.erase(ms.begin()) ;
+
+        pair<int,i64> res = Find(n,mnVal,st) ;
+        st = res.xx ;
+        ans += res.yy ;
+        update(1,1,n,st,2*maxn) ;
+        updateBit(st,-1) ;
+    }
+
+    printf("%lld\n",ans) ;
+
+    return 0 ;
+}

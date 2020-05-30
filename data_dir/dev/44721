@@ -1,0 +1,112 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 5;
+
+int n, l, w, x, y, t[N], dp[N];
+vector < pair < int, int > > g[N];
+bool o;
+long long ans;
+bool used[N];
+vector < pair < int, int > > q;
+
+int getcenter(int v, int size, int pr = -1){
+    for(auto it : g[v]){
+        int to = it.first;
+        if(!used[to] && to != pr && dp[to] > size / 2){
+            return getcenter(to, size, v);
+        }
+    }
+    return v;
+}
+
+int calc(int v, int pr = -1){
+    dp[v] = 1;
+    for(auto it : g[v]){
+        int to = it.first;
+        if(!used[to] && to != pr){
+            dp[v] += calc(to, v);
+        }
+    }
+    return dp[v];
+}
+
+void dfs(int v, int curw, int curl, int pr = -1){
+    q.push_back(make_pair(curw, curl));
+    for(auto it : g[v]){
+        int to = it.first, len = it.second;
+        if(!used[to] && to != pr){
+            dfs(to, curw + len, curl + 1, v);
+        }
+    }
+}
+
+inline void update(int pos, int val){
+    for(int i = pos + 1; i < N; i += i & -i){
+        t[i] += val;
+    }
+}
+
+inline int get(int pos){
+    int cur = 0;
+    for(int i = pos + 1; i >= 1; i -= i & -i){
+        cur += t[i];
+    }
+    return cur;
+}
+
+inline long long solve(){
+    sort(q.begin(), q.end());
+    for(auto it : q){
+        update(it.second, 1);
+    }
+    long long sum = 0;
+    for(int i = 0, j = (int)q.size() - 1; i < q.size(); i++){
+        while(j >= i && q[j].first + q[i].first > w){
+            update(q[j].second, -1);
+            j--;
+        }
+        if(j < i){
+            break;
+        }
+        update(q[i].second, -1);
+        sum += get(l - q[i].second);
+    }
+    return sum;
+}
+
+void build(int v){
+    int center = getcenter(v, calc(v));
+    q.clear();
+    dfs(center, 0, 0);
+    ans += solve();
+    //cout << "RAZ " << v << " " << center << " " << ans << "\n";
+    for(auto it : g[center]){
+        int to = it.first;
+        if(!used[to]){
+            int len = it.second;
+            q.clear();
+            dfs(to, len, 1, center);
+            ans -= solve();
+        }
+    }
+    //cout << "DVA " << v << " " << center << " " << ans << "\n";
+    used[center] = true;
+    for(auto it : g[center]){
+        int to = it.first;
+        if(!used[to]){
+            build(to);
+        }
+    }
+}
+
+int main(){
+    scanf("%d%d%d", &n, &l, &w);
+    for(int i = 2; i <= n; i++){
+        scanf("%d%d", &x, &y);
+        g[i].push_back(make_pair(x, y));
+        g[x].push_back(make_pair(i, y));
+    }
+    build(1);
+    printf("%lld", ans);
+}

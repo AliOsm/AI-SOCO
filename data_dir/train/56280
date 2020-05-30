@@ -1,0 +1,254 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <stdio.h>
+#include <cstring>
+#include <cassert>
+#include <bitset>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+typedef long long ll;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+
+const int maxN = (int)1e6 + 10;
+const int INF = (int)1e9;
+const int mod = (int)1e9 + 7;
+const ll LLINF = (ll)1e18;
+
+int n;
+
+struct my {
+    int cycleIdx[maxN];
+    int cycleSize[maxN];
+    int pre[maxN];
+    int p[maxN];
+    int n;
+    bool was[maxN];
+    bool wasProcessed[maxN];
+    int ancestor[maxN];
+    int cycles;
+    int posInCycle[maxN];
+    int inCycle[maxN];
+    vector <int> g[maxN];
+
+    int tin[maxN];
+    int tout[maxN];
+    int timer;
+
+    my() {}
+    my(int n): n(n) {
+        timer = 0;
+        memset(was, 0, sizeof was);
+        memset(wasProcessed, 0, sizeof wasProcessed);
+        memset(p, -1, sizeof p);
+        memset(inCycle, 0, sizeof inCycle);
+    }
+
+    void go(int v) {
+        while(!was[v]) {
+            was[v] = true;
+            v = p[v];
+        }
+        if (wasProcessed[v]) return;
+
+        int curIdx = cycles++;
+        int curPos = 0;
+
+        vector <int> cycle;
+
+        while(!wasProcessed[v]) {
+            cycle.push_back(v);
+            wasProcessed[v] = true;
+            cycleIdx[v] = curIdx;
+            cycleSize[curIdx]++;
+            posInCycle[v] = curPos++;
+            inCycle[v] = true;
+            v = p[v];
+        }
+        for (int v: cycle) {
+            dfs(v, v, 0);
+        }
+    }
+
+    void dfs(int v, int p, int depth) {
+        tin[v] = timer++;
+        pre[v] = depth;
+        cycleIdx[v] = cycleIdx[p];
+        wasProcessed[v] = true;
+        ancestor[v] = p;
+        for(int x: g[v]) {
+            if (!wasProcessed[x]) {
+                dfs(x, p, depth + 1);
+            }
+        }
+        tout[v] = timer++;
+    }
+
+    bool upper(int x, int y) {
+        return tin[x] <= tin[y] && tout[x] >= tout[y];
+    }
+
+    void add(int x, int y) {
+        p[x] = y;
+        g[y].push_back(x);
+    }
+
+    void findCycles() {
+        for (int i = 0; i < n; ++i) {
+            go(i);
+        }
+    }
+
+    int getCycleSize(int x) {
+        return cycleSize[cycleIdx[ancestor[x]]];
+    }
+
+    int dist(int x, int y) {
+        if (posInCycle[x] <= posInCycle[y]) {
+            return posInCycle[y] - posInCycle[x];
+        }
+        return getCycleSize(x) - (posInCycle[x] - posInCycle[y]);
+    }
+
+};
+
+my *a, *b;
+int x, y;
+
+int gcd (ll a, ll b, ll & x, ll & y) {
+	if (a == 0) {
+		x = 0; y = 1;
+		return b;
+	}
+	ll x1, y1;
+	ll d = gcd (b%a, a, x1, y1);
+	x = y1 - (b / a) * x1;
+	y = x1;
+	return d;
+}
+
+bool find_any_solution (ll a, ll b, ll c, ll & x0, ll & y0, ll & g) {
+	g = gcd (abs(a), abs(b), x0, y0);
+	if (c % g != 0)
+		return false;
+	x0 *= c / g;
+	y0 *= c / g;
+	if (a < 0)   x0 *= -1;
+	if (b < 0)   y0 *= -1;
+	return true;
+}
+long long solveDiofantine(ll x, ll y, ll a1, ll a2) {
+    ll p = a->pre[x]; x = a->ancestor[x];
+    ll q = b->pre[y]; y = b->ancestor[y];
+    p += a->dist(x, a1);
+    q += b->dist(y, a2);
+    ll n = a->getCycleSize(x);
+    ll m = b->getCycleSize(y);
+    ll x0, y0, g;
+    if (!find_any_solution(n, -m, q - p, x0, y0, g)) return LLINF;
+
+    ll best = LLINF;
+    ll k = min(x0 / (m / g), y0 / (n / g));
+    if (x0 - k * (m / g) < 0) k--;
+    if (y0 - k * (n / g) < 0) k--;
+    ll xx = x0 + k * 1LL * (-m / g);
+    ll yy = y0 - k * 1LL * (n / g);
+    ll z = xx * 1LL * n + p;
+    ll z2 = yy * 1LL * m + q;
+    if (z >= 0 && xx >= 0 && yy >= 0) best = min(best, z);
+    return best;
+}
+
+int main() {
+
+   // freopen("input.txt", "r", stdin);
+   // freopen("output.txt", "w", stdout);
+
+    n = nextInt<int>();
+    int h1 = nextInt<int>();
+    int a1 = nextInt<int>();
+    int x1 = nextInt<int>();
+    int y1 = nextInt<int>();
+    int h2 = nextInt<int>();
+    int a2 = nextInt<int>();
+    int x2 = nextInt<int>();
+    int y2 = nextInt<int>();
+
+    a = new my(n);
+    b = new my(n);
+
+    for (int i = 0; i < n; ++i) {
+        a->add(i, (x1 * 1LL * i + y1) % n);
+        b->add(i, (x2 * 1LL * i + y2) % n);
+    }
+    a->findCycles();
+    b->findCycles();
+
+    x = h1;
+    y = h2;
+    ll best = LLINF;
+    for (int vv = 0; vv < 1; ++vv) {
+        if (a->cycleIdx[x] != a->cycleIdx[a1]) continue;
+        if (b->cycleIdx[y] != b->cycleIdx[a2]) continue;
+        if (a->inCycle[x] && !a->inCycle[a1]) continue;
+        if (b->inCycle[y] && !b->inCycle[a2]) continue;
+        if (!a->inCycle[x] && !a->inCycle[a1] && !a->upper(a1, x)) continue;
+        if (!b->inCycle[y] && !b->inCycle[a2] && !b->upper(a2, y)) continue;
+        if (!a->inCycle[x] && !b->inCycle[a2] && !a->inCycle[a1] && !b->inCycle[a2]) {
+            if (a->ancestor[x] != a->ancestor[a1]) continue;
+            if (b->ancestor[y] != b->ancestor[a2]) continue;
+            int d = a->pre[x] - a->pre[a1];
+            int d2 = b->pre[y] - b->pre[a2];
+            if (d == d2 && d >= 0) best = min(best, (ll)d2);
+            continue;
+        }
+        if (a->inCycle[a1] && !b->inCycle[a2]) {
+            int p = a->pre[x] + a->dist(a->ancestor[x], a1);
+            int k = a->getCycleSize(a1);
+            int q = b->pre[y] - b->pre[a2];
+            if ((q - p) % k == 0 && q - p >= 0) best = min(best, (ll)q);
+            continue;
+        }
+        if (!a->inCycle[a1] && b->inCycle[a2]) {
+            int p = b->pre[y] + b->dist(b->ancestor[y], a2);
+            int k = b->getCycleSize(a2);
+            int q = a->pre[x] - a->pre[a1];
+            if ((q - p) % k == 0 && q - p >= 0) best = min(best, (ll)q);
+            continue;
+        }
+        if (a->inCycle[a1] && b->inCycle[a2]) {
+            best = min(best, solveDiofantine(x, y, a1, a2));
+            continue;
+        }
+    }
+    if (best == LLINF) best = -1;
+    printf("%I64d\n", best);
+    return 0;
+
+}

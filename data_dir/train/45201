@@ -1,0 +1,133 @@
+//====================================
+//======================================
+//
+//                   Bismillahir-Rahmanir-Rahim
+//
+// ==========================================================================
+#include <bits/stdc++.h>
+#define        ll                              long long int
+#define        FOR(x,y,z)                      for(int x=y;x<z;x++)
+#define        pii                             pair<int,int>
+#define        pll                             pair<ll,ll>
+#define        CLR(a)                          memset(a,0,sizeof(a))
+#define        SET(a)                          memset(a,-1,sizeof(a))
+#define        N                               4000010
+#define        M                               1000000007
+#define        pi                              acos(-1.0)
+#define        ff                              first
+#define        ss                              second
+#define        pb                              push_back
+#define        inf                              (ll)1e17
+#define        eps                             1e-9
+#define        debug(x)                        cerr << #x << " is " << x << endl;
+#define        ALL(x)                          x.begin(),x.end()
+using namespace std;
+int dx[]={0,0,1,-1,-1,-1,1,1};
+int dy[]={1,-1,0,0,-1,1,1,-1};
+template < class T> inline T biton(T n,T pos){return n |((T)1<<pos);}
+template < class T> inline T bitoff(T n,T pos){return n & ~((T)1<<pos);}
+template < class T> inline T ison(T n,T pos){return (bool)(n & ((T)1<<pos));}
+template < class T> inline T gcd(T a, T b){while(b){a%=b;swap(a,b);}return a;}
+template <typename T> string NumberToString ( T Number ) { ostringstream ss; ss << Number; return ss.str(); }
+inline int nxt(){int aaa;scanf("%d",&aaa);return aaa;}
+inline ll lxt(){ll aaa;scanf("%lld",&aaa);return aaa;}
+inline double dxt(){double aaa;scanf("%lf",&aaa);return aaa;}
+template <class T> inline T bigmod(T p,T e,T m){T ret = 1;
+for(; e > 0; e >>= 1){
+    if(e & 1) ret = (ret * p) % m;p = (p * p) % m;
+} return (T)ret;}
+///******************************************START******************************************
+ll ar[N];
+vector<pii> jabe[N],firbe[N];
+ll bam[N];
+ll dan[N];
+int mark[N];
+int limit = 3000001;
+int main(){
+    #ifdef sayed
+     //freopen("out.txt","w",stdout);
+    // freopen("in.txt","r",stdin);
+    #endif
+    //ios_base::sync_with_stdio(false);
+   //cin.tie(0);
+  // cout<<inf<<endl;
+   int n = nxt();
+   int m  = nxt();
+   int k = nxt();
+   FOR(i,0,m) {
+      int d  = nxt();
+      int f = nxt();
+      int t = nxt();
+      int cost = nxt();
+      if(f) {
+          jabe[d].pb(make_pair(f,cost));
+      } else {
+         firbe[d].pb(make_pair(t,cost));
+      }
+    }
+    int cnt = 0;
+     ll cost = 0 ;
+    for(int i = 1;i<=limit;i++) {
+
+        for(int j = 0;j<jabe[i].size();j++) {
+              int x = jabe[i][j].ff;
+              int c = jabe[i][j].ss;
+              if(mark[x]==0) {
+                 cnt++;
+                 mark[x]=c;
+                 cost+=c;
+              } else{
+                 if(c<mark[x]) {
+                      cost-=mark[x];
+                      cost+=c;
+                      mark[x] = c;
+                 }
+              }
+        }
+        if(cnt<n) bam[i] = inf;
+        else bam[i]=cost;
+
+    }
+    CLR(mark);
+    cnt = 0;
+    cost = 0;
+    for(int i = limit;i>=1;i--) {
+
+         for(int j = 0;j<firbe[i].size();j++) {
+              int x = firbe[i][j].ff;
+              int c = firbe[i][j].ss;
+              if(mark[x]==0) {
+                 cnt++;
+                 mark[x]=c;
+                 cost+=c;
+              } else{
+                 if(c<mark[x]) {
+                      cost-=mark[x];
+                      cost+=c;
+                      mark[x] = c;
+                 }
+              }
+        }
+        if(cnt<n) dan[i] = inf;
+        else dan[i]=cost;
+       // cout<<dan[i]<<" "<<i<<" "<<cnt<<endl;
+
+    }
+//    for(int i = 1;i<=15;i++){
+//         cout<<i<<" "<<bam[i]<<endl;
+//    }
+//    for(int i = 1;i<=15;i++){
+//         cout<<i<<" "<<dan[i]<<endl;
+//    }
+
+    ll res = LLONG_MAX;
+    for(int i = 1;i<=1000000;i++){
+
+        if(bam[i]<inf&&dan[i+k+1]<inf) res = min(res,bam[i]+dan[i+k+1]);
+        //if(dan[i+k+1]<inf) cout<<dan[i+k+1]<<" "<<i<<endl;
+    }
+
+    if(res==LLONG_MAX) res = -1;
+    cout<<res<<endl;
+return 0;
+}

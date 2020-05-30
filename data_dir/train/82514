@@ -1,0 +1,147 @@
+//
+// d.cpp
+//
+// Siwakorn Srisakaokul - ping128
+// Written on Friday, 25 April 2014.
+//
+
+#include <cstdio>
+#include <iostream>
+#include <sstream>
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include <set>
+#include <queue>
+#include <stack>
+#include <list>
+#include <cmath>
+#include <algorithm>
+#include <map>
+#include <ctype.h>
+#include <string.h>
+
+#include <assert.h>
+
+using namespace std;
+
+typedef long long LL;
+typedef pair<LL, int> PII;
+
+#define MAXN 305
+
+int in[MAXN][MAXN];
+int R, C, T;
+int t_u, t_d, t_p;
+
+LL best = -1;
+int ans_i1, ans_i2, ans_j1, ans_j2;
+
+LL goLeft[MAXN][MAXN];
+LL goRight[MAXN][MAXN];
+LL goDown[MAXN][MAXN];
+LL goUp[MAXN][MAXN];
+
+LL abs2(LL x) {
+    if (x < 0) return -x;
+    return x;
+}
+
+
+void update(LL cur, int i, int left, int right, set<PII>::iterator it, set<PII> &seg) {
+    if (it == seg.end()) return ;
+    PII pick = *it;
+    LL now = cur - pick.first;
+    if (best == -1 || abs2(best - T) > abs2(now - T)) {
+        best = now;
+        ans_i1 = pick.second;
+        ans_j1 = left;
+        ans_i2 = i;
+        ans_j2 = right;
+    }
+}
+
+void cal(int left, int right) {
+    set<PII> seg;
+
+    for (int i = 3; i <= R; i++) {
+        LL cur = goDown[i][right] + 
+            goUp[1][left] - goUp[i][left] + 
+            goLeft[i][left] - goLeft[i][right];
+        LL pre = goDown[i - 2][right] + 
+            goUp[1][left] - goUp[i - 2][left] -
+            (goRight[i - 2][right] - goRight[i - 2][left]);
+
+        //        if (left == 3 && right == 7) cout << i << "#" << goUp[1][left] - goUp[i][left] << "$$$$" << cur << " $" << pre << endl;
+
+
+        seg.insert(PII(pre, i - 2));
+
+        LL diff = cur - T;
+        //        if (left == 3 && right == 7) cout << "$$$"<< diff << endl;
+        auto it = seg.lower_bound(PII(diff, 0));
+        update(cur, i, left, right, it, seg);
+        if (it != seg.end()) {
+            it++;
+            update(cur, i, left, right, it, seg);
+            it--;
+        }
+        if (it != seg.begin()) {
+            it--;
+            update(cur, i, left, right, it, seg);
+            it++;
+        }
+    }
+}
+
+int cost(int from, int to) {
+    if (from == to)
+        return t_p;
+    if (from < to)
+        return t_u;
+    return t_d;
+}
+
+int main() {
+    scanf("%d %d %d", &R, &C, &T);
+    scanf("%d %d %d", &t_p, &t_u, &t_d);
+    for (int i = 1; i <= R; i++) {
+        for (int j = 1; j <= C; j++) {
+            scanf("%d", &in[i][j]);
+        }
+    }
+
+    for (int i = 1; i <= R; i++) {
+        for (int j = C - 1; j >= 1; j--) {
+            goLeft[i][j] = goLeft[i][j + 1] + cost(in[i][j + 1], in[i][j]);
+        }
+    }
+
+    for (int i = 1; i <= R; i++) {
+        for (int j = 2; j <= C; j++) {
+            goRight[i][j] = goRight[i][j - 1] + cost(in[i][j - 1], in[i][j]);
+        }
+    }
+
+    for (int j = 1; j <= C; j++) {
+        for (int i = 2; i <= R; i++) {
+            goDown[i][j] = goDown[i - 1][j] + cost(in[i - 1][j], in[i][j]);
+        }
+    }
+
+    for (int j = 1; j <= C; j++) {
+        for (int i = R - 1; i >= 1; i--) {
+            goUp[i][j] = goUp[i + 1][j] + cost(in[i + 1][j], in[i][j]);
+        }
+    }
+
+    for (int left = 1; left <= C; left++) {
+        for (int right = left + 2; right <= C; right++) {
+            cal(left, right);
+        }
+    }
+
+    printf("%d %d %d %d\n", ans_i1, ans_j1, ans_i2, ans_j2);
+    //    cout << best << endl;
+    return 0;
+}

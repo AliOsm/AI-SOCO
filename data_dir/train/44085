@@ -1,0 +1,177 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef unsigned long long ull;
+typedef long long ll;
+typedef long double ld;
+#define int ll
+
+typedef pair<int, int> pii;
+typedef pair<pii, pii> piii;
+typedef vector<piii> vpii;
+typedef pair<ll, ll> pll;
+typedef vector<int> vi;
+typedef vector< vi > vvi;
+typedef vector< vvi > vvvi;
+typedef vector<pii> vpi;
+typedef vector<short> vs;
+typedef vector<vs> vvs;
+typedef vector<vvs> vvvs;
+typedef vector<ll> vl;
+typedef vector<vl> vvl;
+typedef vector<vvl> vvvl;
+typedef vector<ld> vld;
+typedef vector<vld> vvld;
+typedef vector<vvld> vvvld;
+typedef vector<string> vst;
+typedef vector<vst> vvst;
+typedef pair<ld, ld> pld;
+typedef complex<double> base;
+
+#define inmin(a, b) a = min(a, (b))
+#define inmax(a, b) a = max(a, (b))
+#define mp(a, b) make_pair(a, (b))
+#define ALL(a) a.begin(),a.end()
+#define RALL(a) a.rbegin(),a.rend()
+#define sqr(x) ((x) * (x))
+#define fori(i, n) for(int i = 0; i < int(n); ++i)
+#define SZ(a) ((int)((a).size()))
+#define triple(T) tuple<T, T, T>
+#define quad(T) tuple<T, T, T, T>
+#define watch(x) cout << (#x) << " = " << x << endl;
+#ifdef MAX_HOME
+#define cerr cout
+#else
+#define cerr if (false) cerr
+#endif
+
+
+void err(istream_iterator<string> it) {}
+template<typename T, typename... Args>
+void err(istream_iterator<string> it, T a, Args... args) {
+    cerr << *it << " = " << a << endl;
+    err(++it, args...);
+}
+
+const double PI = 2 * acos(0.0);
+
+const string DIGITS = "0123456789";
+const string ALPH = "abcdefghijklmnopqrstuvwxyz";
+
+
+istream &operator >> (istream &in, pii &a)
+{
+    in >> a.first >> a.second;
+    return in;
+}
+
+
+ostream &operator << (ostream &out, pii &a)
+{
+    out << a.first << ' ' << a.second;
+    return out;
+}
+
+
+template <class T0, class T1>
+inline ostream & operator << (ostream &out, pair<T0, T1> &a) {
+    return out << "{" << a.first << ", " << a.second << "}";
+}
+
+template <class T0, class T1, class T2>
+inline ostream & operator << (ostream &out, tuple<T0, T1, T2> &a) {
+    return out << "{" << get<0>(a) << ", " << get<1>(a) << ", " << get<2>(a) << "}";
+}
+
+template <class T0, class T1, class T2, class T3>
+inline ostream & operator << (ostream &out, tuple<T0, T1, T2, T3> &a) {
+    return out << "{" << get<0>(a) << ", " << get<1>(a) <<
+               ", " << get<2>(a) << ", " <<  get<3>(a) << "}";
+}
+
+template<class T>
+inline ostream & operator << (ostream &out, vector<T> &a) {
+    out << "[";
+    fori (i, a.size())
+        out << a[i] << vector<string>{", ", "]  "}[i + 1 == a.size()];
+    return out;
+}
+
+
+void smain();
+
+signed main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0); cout.tie(0);
+
+#ifdef ART_HOME
+    freopen("input.txt", "r", stdin);
+    clock_t start = clock();
+#endif
+    cout << setprecision(12) << fixed;
+    smain();
+#ifdef ART_HOME
+    cout << "\n\n\n\nTOTAL EXECUTION TIME: " << float( clock () - start ) /  CLOCKS_PER_SEC << endl;
+#endif
+}
+
+
+const int N = 310, M = 998244353;
+
+
+bool check(string s, int len)
+{
+    string f;
+    for (auto c : s)
+        if (c != 'a')
+            f.push_back(c);
+
+    assert(SZ(f) == len * 2);
+    return f.substr(0, len) == f.substr(len, len);
+}
+
+
+void smain()
+{
+    string s;
+    cin >> s;
+
+    if (!count(ALL(s), 'a'))
+    {
+        if (SZ(s) & 1 || !check(s, SZ(s) / 2))
+        {
+            cout << ":(";
+            return;
+        }
+        else
+        {
+            cout << s.substr(0, SZ(s) / 2);
+            return;
+        }
+    }
+
+
+    int n = SZ(s);
+    int last = 0;
+
+    for (int i = 0; i < n; ++i)
+        if (s[i] == 'a')
+            last = i;
+
+    int cnt = count(ALL(s), 'a');
+    int len2 = n - last - 1;
+    int len1 = last + 1 - cnt;
+
+    if ((len1 + len2) & 1 || len1 > len2)
+    {
+        cout << ":(";
+        return;
+    }
+
+    if (check(s, (len1 + len2) / 2))
+    {
+        cout << s.substr(0, n - (len1 + len2) / 2);
+    }
+    else
+        cout << ":(";
+}

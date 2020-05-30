@@ -1,0 +1,89 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node{
+	int val, pos;
+};
+
+const int N = (1 << 12) + 5;
+
+vector <int> sav[15][N];
+vector <int> rec[15];
+char s[15];
+int a[15][2005], dp[15][N], sum[15][N], valid[15][N];
+Node b[2005];
+
+int minpre(int len){
+	int i, j, k;
+	i = 0; j = 1; k = 0;
+	while (i < len && j < len && k < len){
+		int t = s[(i + k) % len] - s[(j + k) % len];
+		if (!t) k++;
+		else{
+			if (t > 0) i += k + 1;
+			else j += k + 1;
+			if (i == j) j++;
+			k = 0; 
+		}
+	}
+	return min(i, j);
+}
+
+int main(){
+	for (int p = 1; p <= 12; p++){
+		for (int i = 0; i < (1 << p); i++){
+			for (int j = 0; j < p; j++) s[p - j] = (i & (1 << j)) ? '1' : '0';
+			if (minpre(p) == 0){
+				valid[p][i] = 1;
+				rec[p].push_back(i);
+			}
+		}
+	}
+	for (int p = 1; p <= 12; p++){
+		for (auto it : rec[p]){
+			for (int S = it; S; S = (S - 1) & it){
+				if (valid[p][S]) sav[p][it].push_back(S);
+			}
+		}
+	}
+	int T;
+	scanf("%d",&T);
+	int n, m, tot;
+	while (T--){
+		scanf("%d %d",&n,&m);
+		tot = 0;
+		for (int i = 0; i < m; i++) b[i] = (Node){0, i};
+		for (int i = 0; i < n; i++){
+			for (int j = 0; j < m; j++){
+				scanf("%d",&a[i][j]);
+				b[j].val = max(b[j].val, a[i][j]);
+			}
+		}
+		sort(b, b + m, [&](Node x, Node y){return x.val > y.val;});
+		memset(sum, 0, sizeof(sum));
+		for (int i = 0; i < min(n, m); i++){
+			for (int it = 0; it < (1 << n); it++){
+				for (int j = 0, ssum; j < n; j++){
+					ssum = 0;
+					for (int k = 0; k < n; k++){
+						if (it & (1 << k)){
+							ssum += a[(k + j) % n][b[i].pos];
+						}
+					}
+					sum[i][it] = max(sum[i][it], ssum);
+				}
+			}
+		}
+		memset(dp, 0, sizeof(dp));
+		for (auto it : rec[n]) dp[0][it] = sum[0][it];
+		for (int i = 1; i < min(n, m); i++){
+			for (auto it : rec[n]){
+				for (auto it2 : sav[n][it]){
+					dp[i][it] = max(dp[i][it], dp[i - 1][it2] + sum[i][it ^ it2]);
+				}
+			}
+		}
+		printf("%d\n", dp[min(n, m) - 1][(1 << n) - 1]);
+	}
+	return 0;
+}

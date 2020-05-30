@@ -1,0 +1,163 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 4e5 + 9;
+struct node
+{
+    node *l, *r, *p;
+    long long val;
+    int sz, vsz, id;//sz - subtree size, vsz - virtual tree size
+    node(){}
+    node(int id): id(id)
+    {
+        l = r = p = NULL;
+        val = 0; sz = 1; vsz = 0;
+    }
+    void pull()
+    {
+        sz = 1 + vsz;
+        if (l != NULL) l->p = this, sz += l->sz;
+        if (r != NULL) r->p = this, sz += r->sz;
+    }
+};
+struct LCT{
+    node* t[N];
+    LCT(){}
+    bool is_root(node* v)
+    {
+        if (v == NULL) return 0;
+        return (v->p == NULL || (v->p->l != v && v->p->r != v));
+    }
+    void rotate(node* v)
+    {
+        node* u = v->p;
+        assert(u != NULL);
+        v->p = u->p;
+        if (v->p != NULL){
+            if (v->p->l == u) v->p->l = v;
+            if (v->p->r == u) v->p->r = v;
+        }
+        if (v == u->l) u->l = v->r, v->r = u;
+        else u->r = v->l, v->l = u;
+        u->pull();
+        v->pull();
+    }
+    void splay(node* v)
+    {
+        if (v == NULL)  return;
+        while (!is_root(v)){
+            node* u = v->p;
+            if (!is_root(u)){
+                if ((u->l == v) ^ (u->p->l == u)) rotate(v);
+                else rotate(u);
+            }
+            rotate(v);
+        }
+    }
+    void access(node* v)
+    {
+        node* u = NULL;
+        while (v != NULL){
+            splay(v);
+            if (v->r != NULL){
+                v->val += (long long) v->r->sz * v->r->sz;
+                v->vsz += v->r->sz;
+            }
+            v->r = u;
+            if (v->r != NULL){
+                v->val -= (long long) v->r->sz * v->r->sz;
+                v->vsz -= v->r->sz;
+            }
+            u = v; v = v->p;
+        }
+    }
+    node* find_root(node* v)
+    {
+        access(v); splay(v);
+        while (v->l != NULL) v = v->l;
+        splay(v); return v;
+    }
+    long long ans = 0;
+    void link (node* v, node* u) // u -> v
+    {
+        access(v); splay(v);
+        ans -= v->val;
+        node* w = find_root(u);
+        access(w);
+        ans -= w->val;
+        access(u); splay(u);
+        v->p = u;
+        u->val += (long long) v->sz * v->sz;
+        u->vsz += v->sz;
+        u->pull();
+        access(w); splay(w);
+        ans += w->val;
+    };
+    void cut (node* v, node* u) // u -> v
+    {
+        node* w = find_root(v);
+        access(w);
+        ans -= w->val;
+        access(u); splay(u);
+        v->p = NULL;
+        u->val -= (long long) v->sz * v->sz;
+        u->vsz -= v->sz;
+        u->pull();
+        access(w); splay(w);
+        ans += w->val;
+        access(v); splay(v);
+        ans += v->val;
+    };
+}lct;
+
+int c[N], par[N], col[N];
+long long ans[N];
+vector<pair<int, int>> Q[N];
+vector<int> g[N];
+void dfs(int u = 1, int pre = 0)
+{
+    par[u] = pre;
+    for(auto v: g[u]) if(v != pre) dfs(v, u);
+}
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n, q; cin >> n >> q;
+    for(int i = 1; i <= n; i++) cin >> c[i];
+    for(int i = 1; i < n; i++){
+        int u, v; cin >> u >> v;
+        g[u].push_back(v); g[v].push_back(u);
+    }
+    dfs(1);
+    for(int i = 1; i <= n; i++) Q[c[i]].push_back({i, 0});
+    for(int i = 1; i <= q; i++){
+        int id, x; cin >> id >> x;
+        Q[c[id]].push_back({id, i});
+        c[id] = x;
+        Q[c[id]].push_back({id, i});
+    }
+    for(int i = 0; i <= n; i++) col[i] = 1, lct.t[i] = new node(i);
+    for(int i = 1; i <= n; i++) lct.link(lct.t[i], lct.t[par[i]]);
+    for(int c = 1; c <= n; c++){
+        long long last = 0;
+        for(auto x: Q[c]){
+            int u = x.first, id = x.second;
+            if(col[u]) lct.cut(lct.t[u], lct.t[par[u]]);
+            else lct.link(lct.t[u], lct.t[par[u]]);
+            col[u] ^= 1;
+            ans[id] += 1LL * n * n - lct.ans - last;
+            last = 1LL * n * n - lct.ans;
+        }
+        for(auto x: Q[c]){
+            int u = x.first, id = x.second;
+            if(!col[u]) lct.link(lct.t[u], lct.t[par[u]]), col[u] ^= 1;
+        }
+    }
+    for(int i = 1; i <= q; i++) ans[i] += ans[i - 1];
+    for(int i = 0; i <= q; i++){
+        cout << ans[i] << '\n';
+    }
+    return 0;
+}

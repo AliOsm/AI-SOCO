@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+signed main() {
+  ios::sync_with_stdio(false);
+
+  int N;
+  cin >> N;
+
+  map<pair<int, int>, int> eid;
+
+  vector<vector<int>> G(N);
+  for (int i = 0; i + 1 < N; ++i) {
+    int U, V;
+    cin >> U >> V;
+    G[U - 1].push_back(V - 1);
+    G[V - 1].push_back(U - 1);
+    if (U > V) swap(U, V);
+    eid[make_pair(U - 1, V - 1)] = i;
+  }
+
+  vector<vector<int>> par(17, vector<int>(N, -1));
+  vector<int> dpt(N);
+  function<void(int, int)> build_par = [&](int u, int fa) {
+    for (int v : G[u]) {
+      if (v == fa) continue;
+      par[0][v] = u;
+      dpt[v] = dpt[u] + 1;
+      build_par(v, u);
+    }
+  };
+  build_par(0, -1);
+
+  for (int i = 0; i + 1 < par.size(); ++i) {
+    for (int u = 0; u < N; ++u) {
+      int x = par[i][u];
+      if (~x) par[i + 1][u] = par[i][x];
+    }
+  }
+
+  auto get_lca = [&](int u, int v) {
+    if (dpt[u] < dpt[v]) swap(u, v);
+    for (int i = 16; dpt[u] ^ dpt[v]; --i) {
+      if (dpt[u] - dpt[v] >= 1 << i) {
+        u = par[i][u];
+      }
+    }
+    if (u == v) return u;
+    for (int i = 16; ~i; --i) {
+      if (par[i][u] ^ par[i][v]) {
+        u = par[i][u];
+        v = par[i][v];
+      }
+    }
+    assert(par[0][u] == par[0][v]);
+    return par[0][u];
+  };
+
+  int Q;
+  cin >> Q;
+  vector<int> cnt(N);
+  for (int i = 0; i < Q; ++i) {
+    int U, V;
+    cin >> U >> V;
+    int lca = get_lca(U - 1, V - 1);
+    ++cnt[U - 1];
+    ++cnt[V - 1];
+    --cnt[lca];
+    --cnt[lca];
+  }
+
+  vector<int> ans(N - 1);
+  function<void(int, int)> solve = [&](int u, int fa) {
+    for (int v : G[u]) {
+      if (v == fa) continue;
+      solve(v, u);
+      ans[eid[make_pair(min(u, v), max(u, v))]] = cnt[v];
+      cnt[u] += cnt[v];
+    }
+  };
+  solve(0, -1);
+
+  for (int i = 0; i + 1 < N; ++i) cout << ans[i] << " \n"[i + 2 == N];
+
+  return 0;
+}

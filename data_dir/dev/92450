@@ -1,0 +1,126 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <map>
+#include <set>
+#include <string>
+#include <cmath>
+#include <algorithm>
+#include <assert.h>
+#include <memory.h>
+#include <string.h>
+#include <complex>
+#include <queue>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+
+#define ll long long
+#define pb push_back
+#define mp make_pair
+#define sz(x) (int)(x).size()
+
+int dp[3030][3030];
+int lst[3030][3030];
+pair<pair<int, int>, int > mas[3030];
+
+
+vector<pair<int, int> > sorted[3030];
+
+int main() {
+	//freopen("input.txt", "rt", stdin);
+	//freopen("output.txt", "wt", stdout);
+	//freopen("commuting.in", "rt", stdin);
+	//freopen("commuting.out", "wt", stdout);
+
+	memset(dp, -1, sizeof(dp));
+	int n, p, s;
+	scanf("%d %d %d", &n, &p, &s);
+
+	for(int i = 1; i <= n; i++) scanf("%d", &mas[i].first.first);
+	for(int i = 1; i <= n; i++) scanf("%d", &mas[i].first.second), mas[i].second = i;
+
+
+	sort(mas + 1, mas + n + 1);
+	reverse(mas + 1, mas + n + 1);
+
+	set<pair<int, int> > st;
+	for(int i = n; i >= 1; i--) {
+		st.insert(mp(mas[i].first.second, mas[i].second));
+		sorted[i].resize(sz(st));
+		set<pair<int, int> >::iterator it = st.end();
+		for(int j = 0; j < sz(st); j++) {
+			--it;
+			sorted[i][j] = *it;
+		}
+	}
+
+	dp[0][0] = 0;
+
+	int bestans = -1;
+	vector<int> bestteam1;
+	vector<int> bestteam2;
+
+	for(int i = 0; i < n + 1; i++) {
+		int s1 = mas[i+1].first.first;
+		int s2 = mas[i+1].first.second;
+		for(int fi = 0; fi <= p - 1; fi++) {
+			if (i == n) break;
+			int se = i - fi;
+			if (se < 0) continue;
+			if (se > s) continue;
+			if (dp[fi][se] == -1) continue;
+			// in first
+			if (dp[fi+1][se] == -1 || dp[fi][se] + s1 > dp[fi+1][se]) {
+				dp[fi+1][se] = dp[fi][se] + s1;
+				lst[fi+1][se] = 1;
+			}
+			// in second
+			if (se + 1 <= s && (dp[fi][se+1] == -1 || dp[fi][se] + s2 > dp[fi][se+1])) {
+				dp[fi][se+1] = dp[fi][se] + s2;
+				lst[fi][se+1] = 2;
+			}
+		}
+		if (i - p >= 0 && i - p <= s && dp[p][i-p] != -1) { // набрать в команду оставшихся с максимальным s2
+			int ost = s - (i - p);
+			int curans = dp[p][i-p];
+			vector<int> path;
+			int curp = p;
+			int curs = i - p;
+			vector<int> team1;
+			vector<int> team2;
+			while(curp > 0 || curs > 0) {
+				int idx = curp + curs;
+				if (lst[curp][curs] == 1) {
+					curp--;
+					team1.pb(mas[idx].second);
+				}
+				else if (lst[curp][curs] == 2) {
+					curs--;
+					team2.pb(mas[idx].second);
+				}
+				else assert(0);
+			}
+
+			for(int j = 0; j < ost; j++) {
+				curans += sorted[i+1][j].first;
+				team2.pb(sorted[i+1][j].second);
+			}
+
+			if (curans > bestans) {
+				bestans = curans;
+				bestteam1 = team1;
+				bestteam2 = team2;
+			}
+		}
+	}
+	sort(bestteam1.begin(), bestteam1.end());
+	sort(bestteam2.begin(), bestteam2.end());
+	printf("%d\n", bestans);
+	for(int i = 0; i < sz(bestteam1); i++) printf("%d ", bestteam1[i]);
+	printf("\n");
+	for(int i = 0; i < sz(bestteam2); i++) printf("%d ", bestteam2[i]);
+	printf("\n");
+
+	return 0;
+}

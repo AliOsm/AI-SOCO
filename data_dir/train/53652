@@ -1,0 +1,185 @@
+#include <cstdio>
+#include <utility>
+#include <iostream>
+#include <set>
+#include <vector>
+#include <algorithm>
+#include <cstring>
+#include <queue>
+#include <map>
+#include <cassert>
+#include <functional>
+
+using namespace std;
+
+typedef long long Long;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+
+template<class T, class U>
+struct SegmentTree {
+    struct Node {
+        bool hasCarry = 0;
+        int b = 0,e = 0;
+        U carry = U(); T val = T();
+        Node(){ }
+        void join(const Node &l, const Node &r){
+            val = l.val + r.val;
+            b = l.b;
+            e = r.e;
+        }
+        void update(const U &u){
+            carry += u;
+            u(val);
+            hasCarry = 1;
+        }
+        void pushDown(Node &l, Node &r){
+            if(!hasCarry)return;
+            l.update(carry.trim(0,r.e-r.b+1));
+            r.update(carry.trim(l.e-l.b+1,0));
+            carry = U();
+            hasCarry = 0;
+        }
+    };
+    vector<Node> V;
+#define idx(b, e) (((b)+(e))|((b)!=(e))) // memory optimized index
+    int N;
+    SegmentTree(int N) : V(2*N), N(N){ }
+    template<class I>
+    void create(const vector<I> &VEC, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (b == e) {
+            V[n].val = T(VEC[b]), V[n].b = b, V[n].e = e;
+        } else {
+            int m = (b + e) / 2;
+            create(VEC, b, m);
+            create(VEC, m + 1, e);
+            V[n].join(V[idx(b, m)], V[idx(m+1, e)]);
+        }
+    }
+    T query(int i, int j, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (i <= b && e <= j){
+            return V[n].val;
+        } else {
+            int m = (b + e) / 2;
+            V[n].pushDown(V[idx(b, m)], V[idx(m+1, e)]);
+            if (i >  m) return query(i, j, m+1, e);
+            if (j <= m) return query(i, j, b, m);
+            return query(i, j, b, m) + query(i, j, m+1, e);
+        }
+    }
+    int findOkPrefix(int i, const function<bool(T)> &isOk){
+        static int stk[50];
+        int ssz = 0;
+        stk[ssz++] = (idx(0, N-1));
+        T acum; int sz = 0;
+        while(ssz > 0) {
+            int t = stk[--ssz];
+            Node &n = V[t];
+            int m = (n.b + n.e) / 2;
+            if(n.e < i) continue;
+            T newAcum = sz == 0 ? n.val : (acum + n.val);
+            if (i <= n.b) {
+                if (isOk(newAcum)) {
+                    sz += n.e - n.b + 1;
+                    acum = newAcum;
+                } else {
+                    if(n.b == n.e) return sz;
+                    n.pushDown(V[idx(n.b, m)], V[idx(m+1, n.e)]);
+                    stk[ssz++] = (idx(m+1, n.e));
+                    stk[ssz++] = (idx(n.b, m));
+                }
+            } else {
+                if(n.b == n.e) continue;
+                n.pushDown(V[idx(n.b, m)], V[idx(m+1, n.e)]);
+                stk[ssz++] = (idx(m+1, n.e));
+                stk[ssz++] = (idx(n.b, m));
+            }
+        }
+        return sz;
+    }
+    void update(int i, int j, const U &v, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (i <= b && e <= j) {
+            V[n].update(v.trim(max(b-i,0), max(j-e,0)));
+        } else if (i > e || j < b)
+            return;
+        else {
+            int m = (b + e) / 2;
+            int l = idx(b, m), r = idx(m+1, e);
+            V[n].pushDown(V[l], V[r]);
+            update(i, j, v, b, m);
+            update(i, j, v, m + 1, e);
+            V[n].join(V[l], V[r]);
+        }
+    }
+};
+typedef long long Long;
+struct SumAndMax {
+    Long sum;
+    int sz;
+    SumAndMax(PII v = PII(0, 0)){
+        sum = v.first;
+        sz = 1;
+    }
+    SumAndMax operator+(const SumAndMax &a)const{
+        SumAndMax r;
+        r.sum = sum + a.sum;
+        r.sz = sz + a.sz;
+        return r;
+    }
+};
+struct TurnOff {
+    TurnOff trim(int l, int r)const{ return *this; }
+    void operator+=(const TurnOff &a){ }
+    void operator()(SumAndMax &a)const{
+        a.sum = 0;
+        a.sz = 0;
+    }
+};
+
+int main() {
+
+    int N;
+    Long M;
+    cin >> N >> M;
+    SegmentTree<SumAndMax, TurnOff> ST(N);
+    vector<PII> V(N);
+    for (int i = 0; i < N; ++i) {
+        PII &v = V[i];
+        scanf("%d", &v.first);
+        v.second = i;
+    }
+    ST.create(V);
+    Long cn = 0;
+    while (ST.query(0, N-1).sum > 0) {
+        SumAndMax t = ST.query(0, N-1);
+        cn += M / t.sum * t.sz;
+        M %= t.sum;
+        int p = 0;
+        while(p < N) {
+            int sz = ST.findOkPrefix(p, [&](const SumAndMax &sm) { return sm.sum <= M; });
+            if (sz) {
+                SumAndMax se = ST.query(p, p + sz - 1);
+                assert(se.sum <= M);
+                M -= se.sum;
+                cn += se.sz;
+            }
+            if (p + sz < N) {
+                ST.update(p + sz, p + sz, TurnOff());
+            }
+            p += sz;
+        }
+    }
+    cout << cn << endl;
+
+
+
+
+
+}

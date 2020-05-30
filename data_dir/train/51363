@@ -1,0 +1,88 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair <int, int> pii;
+ 
+const int N = 3e5 + 10;
+
+ll n, m, k, par[N], dist[N], deg[N];
+vector <pii> adj[N], edge;
+map <pii, int> mp, idx;
+
+void dij(int v = 0) {
+	memset(dist, 63, sizeof dist);
+	set <pii> s;
+	dist[0] = 0;
+	s.insert({0, 0});
+	while(!s.empty()) {
+		pii t = (*s.begin());
+		v = t.second;
+		s.erase(t);
+		for (auto e : adj[v]) {
+			int u = e.first, w = e.second;
+			if(dist[u] > dist[v] + w) {
+				s.erase({dist[u], u});
+				dist[u] = dist[v] + w;
+				if(mp[{u, par[u]}]) {
+					deg[u]--, deg[par[u]]--;
+					mp[{u, par[u]}] = mp[{par[u], u}] = 0;
+				}
+				par[u] = v;
+				mp[{v, u}] = mp[{u, v}] = 1;
+				deg[u]++, deg[v]++;
+				s.insert({dist[u], u});
+			}
+		}
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	cin >> n >> m >> k;
+	k = m - k;
+	for (int i = 0; i < m; i++) {
+		int v, u, w;
+		cin >> v >> u >> w;
+		v--, u--;
+		adj[v].push_back({u, w}),adj[u].push_back({v, w});
+		edge.push_back({v, u});
+		idx[{min(v, u), max(v, u)}] = i;
+	}
+	dij();
+	vector <pii> del;
+	for (auto e : edge) {
+		if(k && !mp[e])
+			mp[e] = 0, k--;
+		else
+			mp[e] = 1;
+	}
+	set <int> s;
+	for (int i = 0; i < n; i++) {
+		if(deg[i] == 1) {
+			s.insert(i);
+		}
+	}
+	while(k--) {
+		int v = (*s.rbegin());
+		deg[v]--;
+		s.erase(v);
+		int u = par[v];
+		del.push_back({min(v, u), max(v, u)});
+		mp[{v, u}] = mp[{u, v}] = 0;
+		if(deg[u] == 1)
+			s.erase(u);
+		deg[u]--;
+		if(deg[u] == 1)
+			s.insert(u);
+	}
+	vector <int> ans;
+	for (int i = 0; i < (int)edge.size(); i++) {
+		int v = edge[i].first, u = edge[i].second;
+		if(mp[{v, u}])
+			ans.push_back(i + 1);
+	}
+	cout << ans.size() << "\n";
+	for (auto u : ans)
+		cout << u << " ";
+	cout << endl;
+}

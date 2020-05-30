@@ -1,0 +1,166 @@
+#include<bits/stdc++.h>
+#define lc (p<<1)
+#define rc ((p<<1)|1)
+typedef long long ll;
+using namespace std;
+class node
+{
+	public:
+		ll mx,secmx,tag;
+		int cntmx;
+		ll sum;
+};
+class tree
+{
+	public:
+		node t[400010];
+		void pushnow(int p,ll v)
+		{
+			if(v>=t[p].mx)return;
+			t[p].sum-=(t[p].mx-v)*t[p].cntmx;
+			t[p].tag=v;
+			t[p].mx=v;
+		}
+		void pushdown(int p)
+		{
+			if(t[p].tag!=-1)
+			{
+				pushnow(lc,t[p].tag);
+				pushnow(rc,t[p].tag);
+				t[p].tag=-1;
+			}
+		}
+		void pushup(int p)
+		{
+			if(t[lc].mx>t[rc].mx)
+			{
+				t[p].mx=t[lc].mx;
+				t[p].cntmx=t[lc].cntmx;
+				t[p].secmx=max(t[lc].secmx,t[rc].mx);
+			}
+			else if(t[lc].mx==t[rc].mx)
+			{
+				t[p].mx=t[lc].mx;
+				t[p].cntmx=t[lc].cntmx+t[rc].cntmx;
+				t[p].secmx=max(t[lc].secmx,t[rc].secmx);
+			}
+			else
+			{
+				t[p].mx=t[rc].mx;
+				t[p].cntmx=t[rc].cntmx;
+				t[p].secmx=max(t[lc].mx,t[rc].secmx);
+			}
+			t[p].sum=t[lc].sum+t[rc].sum;
+		}
+		void build(int p,int l,int r)
+		{
+			t[p].tag=-1;
+			if(l==r)
+			{
+				t[p].sum=0;
+				t[p].mx=1000000000;
+				t[p].secmx=-1000000000;	
+				t[p].cntmx=0;
+				return;
+			}
+			int mid=(l+r)>>1;
+			build(lc,l,mid);
+			build(rc,mid+1,r);
+			pushup(p);
+		}
+		void modify(int p,int l,int r,int ml,int mr,ll v)
+		{
+			if(v>=t[p].mx)return;
+			if(ml<=l&&r<=mr&&v>t[p].secmx)
+			{
+				pushnow(p,v);
+				return;
+			}
+			pushdown(p);
+			int mid=(l+r)>>1;
+			if(ml<=mid)modify(lc,l,mid,ml,mr,v);
+			if(mr>mid)modify(rc,mid+1,r,ml,mr,v);
+			pushup(p);
+		}
+		ll query(int p,int l,int r,int ql,int qr)
+		{
+			if(ql<=l&&r<=qr)return t[p].sum;
+			pushdown(p);
+			int mid=(l+r)>>1;
+			ll ret=0;
+			if(ql<=mid)ret=query(lc,l,mid,ql,qr);
+			if(qr>mid)ret+=query(rc,mid+1,r,ql,qr);
+			pushup(p);
+			return ret;
+		}
+		void activate(int p,int l,int r,int pos)
+		{
+			if(l==r)
+			{
+				t[p].cntmx=1;
+				t[p].sum=t[p].mx;
+				return;
+			}
+			pushdown(p);
+			int mid=(l+r)>>1;
+			if(pos<=mid)activate(lc,l,mid,pos);
+			else activate(rc,mid+1,r,pos);
+			pushup(p);
+		}
+}T1,T2;
+int Q;
+set<int> st[3];
+const int N=100000;
+int main()
+{
+	scanf("%d",&Q);
+	T1.build(1,1,N);
+	T2.build(1,1,N);
+	for(int i=1;i<=N;i++)st[0].insert(i);
+	while(Q--)
+	{
+		int l,r,K,opt;
+		scanf("%d%d%d",&opt,&l,&r);
+		r--;
+		if(opt==1)
+		{
+			scanf("%d",&K);
+			if(K<0)
+			{
+				T2.modify(1,1,N,l,r,-K);
+				for(auto it=st[0].lower_bound(l);it!=st[0].end()&&(*it)<=r;)
+				{
+					st[2].insert(*it);
+					it=st[0].erase(it);
+				}
+				for(auto it=st[1].lower_bound(l);it!=st[1].end()&&(*it)<=r;)
+				{
+					T1.activate(1,1,N,*it);
+					T2.activate(1,1,N,*it);
+					it=st[1].erase(it);
+				}
+			}
+			else
+			{
+				T1.modify(1,1,N,l,r,K);
+				for(auto it=st[0].lower_bound(l);it!=st[0].end()&&(*it)<=r;)
+				{
+					st[1].insert(*it);
+					it=st[0].erase(it);
+				}
+				for(auto it=st[2].lower_bound(l);it!=st[2].end()&&(*it)<=r;)
+				{
+					T1.activate(1,1,N,*it);
+					T2.activate(1,1,N,*it);
+					it=st[2].erase(it);
+				}
+			}
+		}
+		else
+		{
+			ll v=T1.query(1,1,N,l,r)+T2.query(1,1,N,l,r);
+			printf("%lld\n",v);
+		}
+	}
+	return 0;
+}

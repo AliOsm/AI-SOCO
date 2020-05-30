@@ -1,0 +1,91 @@
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma GCC optimize("unroll-loops")
+
+
+#include <bits/stdc++.h>
+using namespace std;
+#define endl '\n'
+typedef long long ll;
+
+int r,c;
+
+vector<pair<int, int>> res;
+vector<vector<int>> prefix;
+vector<vector<int>> good;
+
+
+bool possible(const vector<string> &grid, int time) {
+    res.clear();
+    for(int i=1;i<=r;++i){
+        for(int j=1;j<=c;++j){
+            prefix[i][j] = (grid[i-1][j-1] == 'X') + prefix[i-1][j] + prefix[i][j-1] - prefix[i-1][j-1];
+            good[i][j] = 0;
+            good[i+1][j+1] = 0;
+        }
+    }
+    for(int i=1;i<=r;++i){
+        for(int j=1;j<=c;++j){
+            const int li = i-time;
+            const int ri = i+time;
+
+            const int lj = j-time;
+            const int rj = j+time;
+            if(li < 1 || ri > r || lj < 1 || lj > c) continue;
+
+            int sum = prefix[ri][rj] - prefix[li-1][rj] - prefix[ri][lj-1] + prefix[li-1][lj-1];
+            if(sum == (rj-lj+1) * (ri-li+1)) {
+                res.push_back({i,j});
+                ++good[li][lj];
+                --good[li][rj+1];
+                --good[ri+1][lj];
+                ++good[ri+1][rj+1];
+            }
+        }
+    }
+    for(int i=1;i<=r;++i){
+        for(int j=2;j<=c;++j){
+            good[i][j] += good[i][j-1];
+        }
+    }
+    for(int i=2;i<=r;++i){
+        for(int j=1;j<=c;++j){
+            good[i][j] += good[i-1][j];
+        }
+    }
+    for(int i=1;i<=r;++i){
+        for(int j=1;j<=c;++j){
+            if((good[i][j] > 0) != (grid[i-1][j-1] == 'X')) return false;
+        }
+    }
+    return true;
+}
+
+signed main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    cin >> r >> c;
+    prefix.resize(r+1,vector<int>(c+1));
+    good.resize(r+2,vector<int>(c+2,0));
+    vector<string> grid(r);
+    for(int i=0;i<r;++i){
+        cin >> grid[i];
+    }
+    int start = -1, end = max(r,c), mid;
+    vector<pair<int, int>> actualTiles;
+    while(start+1 < end) {
+        mid = (start+end)/2;
+        if(possible(grid, mid)) {
+            start = mid;
+            actualTiles = res;
+        } else end = mid;
+    }
+    cout << start << endl;
+    vector<string> answer(r,string(c,'.'));
+    for(auto &p : actualTiles) answer[p.first-1][p.second-1] = 'X';
+    for(int i=0;i<r;++i){
+        cout << answer[i] << endl;
+    }
+}

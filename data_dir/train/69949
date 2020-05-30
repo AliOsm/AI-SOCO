@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+using namespace std;
+const int N = 401000;
+#define lson l,mid,rt<<1
+#define rson mid+1,r,rt<<1|1
+int delta[N<<2],t[N<<2];
+void down(int rt) {
+        if (delta[rt]) {
+                delta[rt<<1] += delta[rt];
+                t[rt<<1] += delta[rt];
+                delta[rt<<1|1] += delta[rt];
+                t[rt<<1|1] += delta[rt];
+                delta[rt] = 0;
+        }
+}
+void update(int L,int R,int v,int l,int r,int rt) {
+        if (L<=l && r<=R) {
+                delta[rt] += v;
+                t[rt] += v;
+                return ;
+        }
+        int mid = l+r>>1;
+        down(rt);
+        if (L<=mid) update(L,R,v,lson);
+        if (R> mid) update(L,R,v,rson);
+        t[rt] = t[rt<<1]+t[rt<<1|1];
+}
+int query(int pos,int l,int r,int rt) {
+        if (l==r) return t[rt];
+        int mid = l+r>>1;
+        down(rt);
+        if (pos<=mid) return query(pos,lson);
+        else return query(pos,rson);
+}
+struct edge {
+        int v,next;
+}g[N];
+int head[N],etot,n,m,w[N],bg[N],ed[N],tim;
+void add_edge(int u,int v) {
+        g[etot] = (edge) {v,head[u]}; head[u] = etot ++;
+}
+void dfs(int u,int fa) {
+        bg[u] = tim ++;
+        for (int i = head[u]; i != -1; i = g[i].next) {
+                int v = g[i].v;
+                if (v==fa) continue;
+                dfs(v,u);
+                tim ++;
+        }
+        ed[u] = tim-1;
+}
+int main() {
+        scanf("%d%d",&n,&m);
+        for (int i = 1; i <= n; i ++) scanf("%d",&w[i]);
+        memset(head,-1,sizeof(head));
+        for (int i = 0; i < n-1; i ++) {
+                int a,b;
+                scanf("%d%d",&a,&b);
+                add_edge(a,b);
+                add_edge(b,a);
+        }
+        dfs(1,-1);
+        while (m--) {
+                int op,a,b;
+                scanf("%d",&op);
+                if (op==1) {
+                        scanf("%d%d",&a,&b);
+                        if (bg[a]%2==1) b = -b;
+                        update(bg[a],ed[a],b,0,tim-1,1);
+                } else {
+                        scanf("%d",&a);
+                        int ans = query(bg[a],0,tim-1,1);
+                        if (bg[a]%2==1) ans = -ans;
+                        printf("%d\n",ans+w[a]);
+                }
+        }
+        return 0;
+}

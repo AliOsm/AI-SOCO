@@ -1,0 +1,166 @@
+#include <bits/stdc++.h>
+
+typedef long long ll;
+using namespace std;
+
+#define all(x) x.begin(), x.end()
+#define f(i,a,b) for(int i = (a); i <= (b); i++)
+#define fd(i,a,b) for(int i = (a); i >= (b); i--)
+#define mp make_pair
+#define faster_io() ios_base::sync_with_stdio(false)
+#define pb push_back
+#define pii pair<int,int>
+#define SZ(x) ((int)x.size())
+#define vii vector<pair<int,int>>
+
+const int INF = 1000000002;
+const ll INFLL = 100000000000000000ll;
+const ll MOD = 1000000007;
+
+// ----------------------------------------------------------------------------------------------------------
+
+struct Seg
+{
+    int p, a, b;
+    Seg(int p1, int p2, int p3) : p(p1), a(p2), b(p3) {};
+};
+
+struct Event
+{
+    int x, type, a, b;
+    Event(int p1, int p2, int p3, int p4) : x(p1), type(p2), a(p3), b(p4) {};
+    friend bool operator < (Event e1, Event e2)
+    {
+        if(e1.x != e2.x) return e1.x < e2.x;
+        if(e1.type != e2.type) return e1.type < e2.type;
+        if(e1.a != e2.a) return e1.a < e2.a;
+        return e1.b < e2.b;
+    }
+};
+
+const int MAX = 450005;
+const int RIGHT = 524288;
+const int SIZE = 1060000;
+enum {OPEN,VER,CLOSE};
+int N, R[MAX], To[MAX], T[SIZE], Cnt[SIZE];
+set<Event> Events;
+set<int> S;
+unordered_map<int,int> M,O;
+vector<Seg> V, H;
+
+void update(int x, int v, int n, int a, int b)
+{
+    if(a > x || b < x) return;
+    if(a == b)
+    {
+        T[n] += v;
+        if(T[n] == 0) Cnt[n]--;
+        if(T[n] == 1 && v == 1) Cnt[n]++;
+        return;
+    }
+
+    int mid = (a+b) / 2;
+    update(x,v,2*n,a,mid);
+    update(x,v,2*n+1,mid+1,b);
+
+    Cnt[n] = Cnt[2*n] + Cnt[2*n+1];
+}
+
+int query(int l, int r, int n, int a, int b)
+{
+    if(a > r || b < l) return 0;
+    if(a >= l && b <= r) return Cnt[n];
+
+    int mid = (a+b) / 2;
+    return query(l,r,2*n,a,mid) + query(l,r,2*n+1,mid+1,b);
+}
+
+int main()
+{
+    cin >> N;
+
+    f(i,1,N)
+    {
+        int x1, y1, x2, y2;
+        scanf("%d %d %d %d", &x1, &y1, &x2, &y2);
+
+        /*x1 = rand() % 20;
+        x2 = rand() % 20;
+        y1 = rand() % 20;
+        y2 = rand() % 20;
+        if(rand() % 2) x2 = x1;
+        else y1 = y2;
+
+        cout << x1 << " " << y1 << " " << x2 << " " << y2 << "\n";*/
+
+        if(x1 == x2) V.pb(Seg(x1,min(y1,y2),max(y1,y2)));
+        else H.pb(Seg(y1,min(x1,x2),max(x1,x2)));
+
+        //f(i,min(x1,x2),max(x1,x2)) f(j,min(y1,y2),max(y1,y2)) B[i][j] = 1;
+        S.insert(x1);
+        S.insert(x2);
+        S.insert(y1);
+        S.insert(y2);
+    }
+
+    int c = 0;
+    for(int k : S)
+    {
+        M[k] = ++c;
+        O[c] = k;
+    }
+
+    f(i,0,MAX-1) R[i] = -INF, To[i] = -INF;
+
+    for(Seg seg : V) Events.insert(Event(M[seg.p],VER,M[seg.a],M[seg.b]));
+    for(Seg seg : H)
+    {
+        Events.insert(Event(M[seg.a],OPEN,M[seg.b],M[seg.p]));
+        Events.insert(Event(M[seg.b],CLOSE,M[seg.a],M[seg.p]));
+    }
+
+    ll ans = 0;
+
+    for(Event e : Events)
+    {
+        if(e.type == OPEN)
+        {
+            int l = e.x;
+            int r = e.a;
+
+            //cout << "Opening from " << O[l] << " to " << O[r] << " at " << O[e.b] << "\n";
+
+            if(To[e.b] >= O[l])
+            {
+                int common = min(To[e.b] - O[l] + 1, O[r]-O[l]+1);
+                ans += O[r]-O[l]+1 - common;
+            }
+            else ans += O[r]-O[l]+1;
+
+            //cout << "Now ans is " << ans << "\n";
+
+            To[e.b] = max(To[e.b], O[r]);
+            //cout << "Updating " << e.b << "\n";
+            update(e.b,1,1,1,RIGHT);
+        }
+        else if(e.type == CLOSE) update(e.b,-1,1,1,RIGHT);
+        else
+        {
+            //cout << "Vertical " << O[e.a] << "->" << O[e.b] << " at " << O[e.x] << "\n";
+            int l = e.a, r = e.b;
+            if(R[e.x] >= O[l])
+            {
+                int q = query(M[R[e.x]]+1,e.b,1,1,RIGHT);
+                int common = min(R[e.x] - O[l] + 1, O[r] - O[l] + 1);
+                ans += O[r] - O[l] + 1 - common - q;
+            }
+            else ans += O[r] - O[l] + 1 - query(e.a,e.b,1,1,RIGHT);
+            R[e.x] = max(R[e.x], O[r]);
+            //cout << "Querying " << e.a << "->" << e.b << " at " << O[e.x] << "which is " << q << "\n";
+            //cout << "Querying " << e.a << "->" << e.b << " at " << O[e.x] << "which is " << q << "\n";
+            //cout << "Now ans is " << ans << "\n";
+        }
+    }
+
+    cout << ans;
+}

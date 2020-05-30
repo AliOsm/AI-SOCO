@@ -1,0 +1,210 @@
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <limits>
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include <complex>
+#include <cstdio>
+#include <set>
+#include <cstring>
+#include <map>
+#include <cmath>
+#include <set>
+#include <algorithm>
+#include <queue>
+#include <bitset>
+#include <ctime>
+#if INCREASE_STACK
+//#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
+using namespace std;
+typedef long long Long;
+typedef long double Double;
+
+int read(int &x) { return scanf("%d", &x); }
+int read(int &x, int &y) { return scanf("%d%d", &x, &y); }
+int read(Long &x) { return scanf("%lld", &x); }
+char buff[1000010];
+int read(string &s) { int r = scanf("%s", buff); s = buff; return r; }
+
+typedef vector<int> VI;
+typedef vector<Long> VL;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+
+// This point struct is very friendly with types it allows any type of casting
+// like Point<int>(1, 2) / 2.0 will transform into Point<double> automatically
+// it is possible to do Point<int>(1, 1) + Point<double>(2, 3) and any other cast
+
+// MANDATORY
+template <class F> struct Point;
+
+// MANDATORY to implement all functions using makePoint()
+template<class F> Point<F> makePoint(const F &x, const F &y) { return Point<F>(x, y); }
+
+// implement only the ones that you need
+#define FUNC0(name, expr) auto name() const -> decltype(expr) { return expr; }
+
+#define FUNC1(name, arg, expr) \
+template <class F1> auto name(const arg) const -> decltype(expr) { return expr; }
+
+#define FUNC2(name, arg0, arg1, expr) \
+template <class F1, class F2> auto name(const arg0, const arg1) \
+const -> decltype(expr) { return expr; }
+
+// START HERE
+template <class F>
+struct Point {
+    F x, y;
+    Point() : x(0), y(0) {}
+    Point(const F& x, const F& y) : x(x), y(y) {}
+    template <class F1>
+    Point& operator = (const Point<F1>& o) { x = o.x; y = o.y; return *this; }
+    template <class F1> explicit operator Point<F1> () const {
+        return Point<F1>(static_cast<F1>(x), static_cast<F1>(y));
+    }
+#define PI 3.14159265358979323846L
+    // NOTE: implement only the functions that you need
+    FUNC1(operator +, Point<F1> &o, makePoint(x + o.x, y + o.y))
+    FUNC1(operator -, Point<F1> &o, makePoint(x - o.x, y - o.y))
+    FUNC1(operator *, Point<F1> &o, x*o.x + y*o.y)
+    FUNC1(operator ^, Point<F1> &o, x*o.y - y*o.x)
+    FUNC1(operator /, F1 &f, makePoint(x / f, y / f))
+    FUNC1(operator *, F1 &f, makePoint(x * f, y * f))
+
+    FUNC0(sqmag,      x*x + y*y)
+    FUNC0(mag,        sqrt(x*x + y*y))
+    FUNC0(unit,       (*this) / sqrt(x*x + y*y))
+    FUNC0(gcd,        (*this) / abs(__gcd(x, y)))
+    FUNC0(rotate90, makePoint(-y, x)) // rotates counter clockwise 90degs
+    FUNC0(operator -, makePoint(-x, -y))
+    FUNC0(angle,      atan2l(y, x) + (y >= 0 ? 0 : 2*PI))
+    FUNC1(rotate, F1 &a, makePoint(x * cos(a) - y * sin(a), x * sin(a) + y * cos(a)))
+    // angle from 'this' to 'o' in clockwise
+    FUNC1(angle, Point<F1> &o, atan2l((*this)^(o), (*this)*o) + (((*this)^(o)) >= 0 ? 0 : 2*PI))
+    FUNC1(dist,  Point<F1> &o, (*this - o).mag())
+    FUNC1(sqdist,  Point<F1> &o, (*this - o).sqmag())
+
+    FUNC1(operator ==, Point<F1> &o, x==o.x && y==o.y)
+    FUNC1(operator !=, Point<F1> &o, x!=o.x || y!=o.y)
+    FUNC1(operator<,   Point<F1> &o, x < o.x || (x == o.x && y < o.y))
+
+    // < 0 counter-clockwise, 0 if collinear, > 0 if clockwise (negative of ^)
+    FUNC1(ccw, Point<F1>& o, o ^ (*this))
+    // ccw with origin at (*this)
+    FUNC2(ccw, Point<F1>& a, Point<F2>& b, (a - *this).ccw(b - *this))
+};
+
+#undef FUNC0
+#undef FUNC1
+
+template <class F> ostream& operator << (ostream& os, const Point<F>& point) {
+    return os << point.x << ' ' << point.y;
+}
+
+template<class T, class U>
+struct Node {
+    Node *l, *r;
+    int b,e;
+    T sum;
+    Node(int b, int e):l(NULL),r(NULL),b(b),e(e), sum() { }
+    Node* clone() {
+        Node *n = new Node(*this);
+        return n;
+    }
+    Node operator+(const Node &n) const {
+        Node r(b, n.e);
+        r.sum = sum + n.sum;
+        return r;
+    }
+    static Node* create(int b, int e) {
+        Node *r = new Node(b, e);
+        if (b == e) return r;
+        r->l = create(b, (b+e)/2);
+        r->r = create((b+e)/2+1, e);
+        return r;
+    }
+    Node* update(int i, int j, U val) {
+        Node* n = clone();
+        if(i <= b && e <= j){
+            n->sum += val;
+            return n;
+        }else{
+            int m = (b+e)/2;
+            if(m >= i) n->l = l->update(i, j, val);
+            if(m <  j) n->r = r->update(i, j, val);
+            n->sum = n->l->sum + n->r->sum;
+            return n;
+        }
+    }
+    T query(int i, int j) {
+        if(i <= b && e <= j){
+            return sum;
+        }else{
+            int m = (b+e)/2;
+            if(m >= j) return l->query(i, j);
+            if(m <  i) return r->query(i, j);
+            return l->query(i, j) + r->query(i, j);
+        }
+    }
+};
+
+int main() {
+
+    int N;
+    read(N);
+    vector<Point<Long>> ALL;
+    VI ST(N), EN(N);
+    for (int i = 0; i < N; ++i) {
+        int K;
+        read(K);
+        vector<Point<Long>> P(K);
+        for(auto &p : P) {
+            read(p.x); read(p.y);
+        }
+        ST[i] = ALL.size();
+        for (int j = 0; j < K; ++j) {
+            int nj = (j + 1) % K;
+            auto v = (P[nj] - P[j]).gcd();
+            ALL.push_back(v.rotate90());
+//            ALL.push_back(v.rotate90().rotate90().rotate90());
+        }
+        EN[i] = ALL.size() - 1;
+    }
+    map<Point<Long>, int> LS;
+    vector<int> PR(ALL.size(), -1);
+    vector<Node<int, int>*> VERS;
+    VERS.push_back(Node<int, int>::create(0, ALL.size() - 1));
+    vector<int> A;
+    for (int i = 0; i < ALL.size(); ++i) {
+        auto c = VERS.back();
+        if (LS.count(ALL[i])) {
+            int p = LS[ALL[i]];
+            A.push_back(p);
+            VERS.push_back(c->update(p, p, +1));
+        } else {
+            VERS.push_back(c);
+            A.push_back(-1);
+        }
+        LS[ALL[i]] = i;
+    }
+    int Q;
+    read(Q);
+    for (int i = 0; i < Q; ++i) {
+        int l, r;
+        read(l, r);
+        l--;r--;
+        l = ST[l];
+        r = EN[r];
+        int SZ = r - l + 1 - VERS[r+1]->query(l, r);
+        cout << SZ << endl;
+    }
+
+
+
+
+}

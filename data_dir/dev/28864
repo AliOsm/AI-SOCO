@@ -1,0 +1,49 @@
+ #include <bits/stdc++.h>
+ #define f first
+ #define s second
+ #define endl '\n'
+ #define LL long long int
+ #define pb push_back
+ #define sz(a) (int)a.size()
+ #define all(a) a.beadjin(),a.end()
+ #define rall(a) a.rbeadjin(),a.rend()
+ #define debuadj(x) cerr << #x << " is " << x << endl;
+ using namespace std;
+ int const MAXN = 2e6 + 9;
+ vector<bool> vis;
+vector<vector<int>> adj;
+
+int DFS(int v, int bad) {
+    vis[v] = true;
+    int can = 1;
+    for (int u : adj[v]) {
+        if (u != bad && !vis[u])
+            can += DFS(u, bad);
+    }
+    return can;
+}
+
+int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    int T;
+    cin >> T;
+    while (T--) {
+        int n, m, a, b;
+        cin >> n >> m >> a >> b;
+        adj.clear();
+        adj.resize(n+1);
+        for (int i = 0; i < m; ++i) {
+            int u, v;
+            cin >> u >> v;
+            adj[u].push_back(v);
+            adj[v].push_back(u);
+        }
+        vis.clear();
+        vis.resize(n+1, 0);
+        LL fromA = n - DFS(a, b) - 1;
+        for (int i = 0; i < n; i++) vis[i+1] = 0;
+        LL fromB = n - DFS(b, a) - 1;
+        cout <<   fromA * fromB  << endl;
+    }
+}
+

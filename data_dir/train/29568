@@ -1,0 +1,162 @@
+/* upsolve with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	400000
+#define M	400000
+#define L	400000
+
+char *strdup_(char *cc) {
+	int n = strlen(cc) + 1;
+	char *cc_ = (char *) malloc(n);
+
+	memcpy(cc_, cc, n);
+	return cc_;
+}
+
+int next[1 + N + L], xx[1 + N + L];
+
+int link(int l, int x) {
+	static int l_ = 1;
+
+	next[l_] = l;
+	xx[l_] = x;
+	return l_++;
+}
+
+
+char *ss[M];
+int ii_[M];
+
+int tt[1 + L + 1][26], ff[1 + L + 1], delta[1 + L + 1][26];
+int ao_[1 + L + 1], ll[1 + L + 1], rr[1 + L + 1];
+
+void dfs_(int i) {
+	static int time;
+	int l, j;
+
+	ll[i] = time++;
+	for (l = ao_[i]; l; l = next[l]) {
+		j = xx[l];
+		dfs_(j);
+	}
+	rr[i] = time - 1;
+}
+
+void aho_corasick(int m) {
+	static int qq[L + 1];
+	int _, h, i, j, k, l, e, f, a, head, cnt;
+
+	_ = 1;
+	for (h = 0; h < m; h++) {
+		l = strlen(ss[h]);
+		for (k = 0, i = 1; k < l; k++, i = tt[i][a]) {
+			a = ss[h][k] - 'a';
+			if (!tt[i][a])
+				tt[i][a] = ++_;
+		}
+		ii_[h] = i;
+	}
+	head = cnt = 0;
+	qq[head + cnt++] = 1;
+	while (cnt) {
+		i = qq[cnt--, head++];
+		e = ff[i];
+		for (a = 0; a < 26; a++) {
+			f = i == 1 ? 1 : delta[e][a];
+			j = tt[i][a];
+			if (j == 0)
+				delta[i][a] = f;
+			else {
+				delta[i][a] = j;
+				ff[j] = f;
+				ao_[f] = link(ao_[f], j);
+				qq[head + cnt++] = j;
+			}
+		}
+	}
+	dfs_(1);
+}
+
+int aa[N], jj[N];
+int *qq[1 + N], kk[1 + N], ao[1 + N];
+int ans[M];
+
+int tr[L + 1];
+
+void update(int i, int x) {
+	while (i <= L) {
+		tr[i] += x;
+		i |= i + 1;
+	}
+}
+
+int query(int i) {
+	int x = 0;
+
+	while (i >= 0) {
+		x += tr[i];
+		i &= i + 1;
+		i--;
+	}
+	return x;
+}
+
+void dfs(int i, int i_) {
+	int l, g, h, j, a;
+
+	update(ll[i_], 1);
+	for (g = 0; g < kk[i]; g++) {
+		h = qq[i][g];
+		ans[h] = query(rr[ii_[h]]) - query(ll[ii_[h]] - 1);
+	}
+	for (l = ao[i]; l; l = next[l]) {
+		h = xx[l], j = jj[h], a = aa[h];
+		dfs(j, delta[i_][a]);
+	}
+	update(ll[i_], -1);
+}
+
+int main() {
+	static int ii[M];
+	int n, m, p, h, i;
+
+	scanf("%d", &n);
+	for (h = 0; h < n; h++) {
+		int t;
+		char a;
+
+		scanf("%d", &t);
+		if (t == 1) {
+			p = 0;
+			scanf(" %c", &a);
+		} else
+			scanf("%d %c", &p, &a);
+		aa[h] = a - 'a';
+		jj[h] = h + 1;
+		ao[p] = link(ao[p], h);
+	}
+	scanf("%d", &m);
+	for (h = 0; h < m; h++) {
+		static char cc[L + 1];
+
+		scanf("%d %s", &i, cc);
+		ii[h] = i;
+		kk[i]++;
+		ss[h] = strdup_(cc);
+	}
+	for (i = 0; i <= n; i++) {
+		qq[i] = (int *) malloc(kk[i] * sizeof *qq[i]);
+		kk[i] = 0;
+	}
+	aho_corasick(m);
+	for (h = 0; h < m; h++) {
+		i = ii[h];
+		qq[i][kk[i]++] = h;
+	}
+	dfs(0, 1);
+	for (h = 0; h < m; h++)
+		printf("%d\n", ans[h]);
+	return 0;
+}

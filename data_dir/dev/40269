@@ -1,0 +1,41 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int limN = 1e5 + 5;
+typedef long long ll;
+
+int N;
+ll k;
+int nums[limN];
+
+int main() {
+    scanf("%d%lld", &N, &k);
+    for(int i=1; i<=N; i++) {
+        scanf("%d", &nums[i]);
+    }
+    sort(nums+1, nums+N+1);
+
+    ll minV = nums[1], maxV = nums[N];
+    ll x = 0, y = 0;
+    ll p, q;
+    for(int r=N, l=1; minV<maxV;  )  {
+        while(nums[l] == minV) l++, x++;
+        while(nums[r] == maxV) r--, y++;
+        if(k < min(x, y))
+            break;
+        p = r<l? maxV - minV : nums[l] - minV;
+        q = r<l? maxV - minV : maxV - nums[r];
+        // printf("%lld %lld %lld %d        %lld %lld %lld %d\n", minV, x, p, l, maxV, y, q, r);      
+        if(x < y) {
+            ll t = min(k/x, p);
+            minV += t;
+            k -= x*t;
+        }
+        else {
+            ll t = min(k/y, q);
+            maxV -= t;
+            k -= y*t;
+        }
+    }
+
+    printf("%lld\n", maxV - minV);
+}

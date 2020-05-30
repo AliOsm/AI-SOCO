@@ -1,0 +1,119 @@
+#include<bits/stdc++.h>
+#define N ((int)(45))
+
+using namespace std;
+
+int prefx[N];
+void prefix_func(char s[])
+{
+    prefx[0] = -1;
+    int now;
+    for(int i = 1; s[i]!='\0'; i++)
+    {
+        now = prefx[i-1];
+        while(now!=-1 && s[i]!=s[now+1])
+            now = prefx[now];
+        if(s[i]==s[now+1])
+            prefx[i] = now+1;
+        else
+            prefx[i] = -1;
+    }
+}
+
+int node[N*N][3], level[N*N];
+long long int mask[N*N];
+void init(int n)  /// creating new node in trie
+{
+    for(int i = 0; i<2; i++)
+        node[n][i] = -1;
+    mask[n] = 0;
+}
+int Insert(char s[], int tot, int i)   /// inserting a string in trie
+{
+    int cur = 0;
+    int j = i;
+    for(; s[i]!='\0'; i++)
+    {
+        if(node[cur][s[i]-'0']==-1)
+        {
+            init(tot);
+            node[cur][s[i]-'0'] = tot++;
+        }
+        cur = node[cur][s[i]-'0'];
+    }
+    mask[cur] = 1ll<<j;
+    return tot;
+}
+void dfs(int n) /// building mask[] array
+{
+    for(int i = 0; i<2; i++)
+    {
+        if(node[n][i]!=-1)
+        {
+            level[node[n][i]] = level[n] + 1;
+            mask[node[n][i]] |= mask[n];  /// যদি  node n এর  mask বের করা থাকে তাহলে   n এর নিচের কোন node এর  mask বের করার জন্য  root পর্যন্ত যাওয়ার দরকার নেই।
+            /// n এর mask এর সাথে or করলেই হবে
+            dfs(node[n][i]);
+        }
+    }
+}
+
+long long int dp[N][N][N*N], powr[N]; /// powr[i] = 2^i
+char s[N];
+long long int call(int i, int j, int t, int n)
+{
+    if(s[j]=='\0')
+        return powr[n-i];
+    if(i==n)
+    {
+        while(1)
+        {
+            if(mask[t]&(1ll<<j))
+                return 1;
+            if(j==0)
+                return 0;
+            j = prefx[j-1]+1;
+
+        }
+    }
+
+    if(dp[i][j][t]!=-1)
+        return dp[i][j][t];
+    dp[i][j][t] = 0;
+    int t1, now;
+    for(int k = 0; k<2; k++)
+    {
+        if(level[t]!=i || node[t][k]==-1)
+            t1 = t;
+        else
+            t1 = node[t][k];
+        now = j-1;
+        while(now!=-1 && s[now+1]-'0'!=k)
+            now = prefx[now];
+        if(s[now+1]-'0'==k)
+            now += 2;
+        else
+            now++;
+        dp[i][j][t] += call(i+1,now,t1,n);
+    }
+    return dp[i][j][t];
+}
+
+int main()
+{
+    int n, tot = 1, i;
+    scanf("%d %s",&n,s);
+    prefix_func(s);
+    init(0);
+    for(i = 0; s[i]!='\0'; i++)
+    {
+        tot = Insert(s,tot,i);
+    }
+    dfs(0);
+    memset(dp,-1,sizeof dp);
+    powr[0] = 1;
+    for(i = 1; i<=n; i++)
+        powr[i] = powr[i-1]*2;
+    printf("%lld\n",call(0,0,0,n));
+    return 0;
+}

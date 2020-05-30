@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+using namespace std;
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+const long long mod = 1000000007;
+
+const int mxN = 200010;
+
+long long val;
+long long mxTree[mxN<<2],mnTree[mxN<<2],sumTree[mxN<<2];
+bool lz[mxN<<2];
+int N;
+
+void push(int n,int l,int r) {
+	if(l == r || !lz[n])
+		return;
+	int md = (l+r)>>1;
+	mxTree[n<<1] = mxTree[n<<1|1] = mnTree[n<<1] = mnTree[n<<1|1] = mxTree[n];
+	sumTree[n<<1] = mxTree[n<<1] * (md - l + 1ll);
+	sumTree[n<<1|1] = mxTree[n<<1|1] * (r - md);
+	lz[n] = false;
+	lz[n<<1] = lz[n<<1|1] = true; 
+}
+
+void upd(int a,int b,int n = 1,int l = 0,int r = N) {
+	push(n,l,r);
+	int md = (l+r)>>1;
+	if(mnTree[n] >= val)
+		return;
+	if(l == a && r == b) {
+		if(l == r) {
+			mxTree[n] = mnTree[n] = sumTree[n] = val;
+		} else if(val > mxTree[n]) {
+			mxTree[n] = mnTree[n] = val;
+			sumTree[n] = val * (r - l + 1ll);
+			lz[n] = true;
+		} else {
+			upd(a,min(b,md),n<<1,l,md);
+			upd(max(a,md+1),b,n<<1|1,md+1,r);
+			mxTree[n] = max(mxTree[n<<1],mxTree[n<<1|1]);
+			mnTree[n] = min(mnTree[n<<1],mnTree[n<<1|1]);
+			sumTree[n] = sumTree[n<<1] + sumTree[n<<1|1];
+		}
+		return;
+	}
+	if(a <= md)
+		upd(a,min(b,md),n<<1,l,md);
+	if(b > md)
+		upd(max(a,md+1),b,n<<1|1,md+1,r);
+	mxTree[n] = max(mxTree[n<<1],mxTree[n<<1|1]);
+	mnTree[n] = min(mnTree[n<<1],mnTree[n<<1|1]);
+	sumTree[n] = sumTree[n<<1] + sumTree[n<<1|1];
+}
+
+long long getSum(int a,int b,int n = 1,int l = 0,int r = N) {
+	push(n,l,r);
+	if(l == a && r == b)
+		return sumTree[n];
+	int md = (l+r)>>1;
+	long long res = 0;
+	if(a <= md)
+		res += getSum(a,min(b,md),n<<1,l,md);
+	if(b > md)
+		res += getSum(max(a,md+1),b,n<<1|1,md+1,r);
+	return res;
+}
+
+int lastOcc[mxN];
+int fsOcc[mxN];
+vector<long long> dvs[mxN];
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	srand(time(NULL));
+
+	cin>>N;
+	//	N = mxN - 20;
+	if(N == 1) {
+		cout<<"0\n";
+		return 0;
+	}
+	vector<long long> a(N);
+	memset(fsOcc,-1,sizeof fsOcc);
+	for(int i = 0;i < N;i++) {
+		cin>>a[i];
+		//		a[i] = rand();
+		for(long long j = 1;j * j <= a[i];j++) {
+			if(a[i]%j) continue;
+			dvs[i].push_back(j);
+			long long other = a[i] / j;
+			lastOcc[j] = lastOcc[other] = i;
+			if(fsOcc[j] == -1) fsOcc[j] = i;
+			if(fsOcc[other] == -1) fsOcc[other] = i;
+			if(j != other) dvs[i].push_back(other);
+		}
+	}
+
+	for(int i = N-1;i >= 1;i--) {
+		long long mx = 0;
+		for(auto d : dvs[i]) {
+			if(lastOcc[d] > i) 
+				mx = max(mx,d);
+		}
+		push(1,0,N);
+		if(mx > mxTree[1]) {
+			val = mx;
+			upd(1,i);
+		}
+	}
+
+	long long res = getSum(1,N-1);
+	for(int i = 0;i + 1 < N;i++) {
+		long long mx = 0;
+		for(auto d : dvs[i]) {
+			if(fsOcc[d] < i)
+				mx = max(mx,d);
+			if(lastOcc[d] > i + 1 && fsOcc[d] == i) {
+				val = d;
+				upd(i + 2,lastOcc[d]);
+			}
+		}
+		val = mx;
+		upd(i + 2,N);
+		res += getSum(i+2,N);
+	}
+	cout<<res<<'\n';
+	return 0;
+}

@@ -1,0 +1,152 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <unordered_set>
+#include <functional>
+#include <climits>
+#include <cstring>
+#include <cassert>
+#include <cmath>
+#include <numeric>
+#include <random>
+#include <tuple>
+#include <chrono>
+
+using namespace std;
+using ll = long long;
+using ull = unsigned long long;
+mt19937 rnd(std::chrono::steady_clock::now().time_since_epoch().count());
+const int N = 1000010;
+
+inline int gcd(int a, int b) {
+  return (b == 0) ? a : gcd(b, a % b);
+}
+
+ull h1[N], h2[N];
+ull deg1[N], deg2[N];
+
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
+  string s, t;
+  cin >> s >> t;
+  if (s.size() > t.size()) {
+    cout << 0 << endl;
+    return 0;
+  }
+  int c0 = 0, c1 = 0;
+  int idx0 = -1, idx1 = -1;
+  for(size_t i = 0; i < s.size(); ++i) {
+    if (s[i] == '0') {
+      ++c0;
+      if (idx0 == -1) {
+        idx0 = i;
+      }
+    }
+    if (s[i] == '1') {
+      ++c1;
+      if (idx1 == -1) {
+        idx1 = i;
+      }
+    }
+  }
+  int g = gcd(c0, c1);
+  if (t.size() % g != 0) {
+    cout << 0 << endl;
+    return 0;
+  }
+
+  ull P1 = rnd() + 29;
+  ull P2 = rnd() + 31;
+  deg1[0] = deg2[0] = 1;
+  h1[0] = h2[0] = 0;
+  for(int i = 0; i < (int)t.size(); ++i) {
+    deg1[i + 1] = deg1[i] * P1;
+    h1[i + 1] = h1[i] * P1 + t[i] - 'a';
+    deg2[i + 1] = deg2[i] * P2;
+    h2[i + 1] = h2[i] * P2 + t[i] - 'a';
+  }
+
+  auto get_hash1 = [&](const int l, const int r) {
+    return h1[r + 1] - h1[l] * deg1[r - l + 1];
+  };
+
+  auto get_hash2 = [&](const int l, const int r) {
+    return h2[r + 1] - h2[l] * deg2[r - l + 1];
+  };
+
+  int n = (int)t.size();
+  vector<pair<int, int>> lens;
+  for(int i = 1; i < n / c0; ++i) {
+    if ((n - c0 * i) % c1 != 0) continue;
+    int l1 = i, l2 = (n - c0 * i) / c1;
+    assert(l1 * c0 + l2 * c1 == n);
+    if (l1 == l2) {
+      int i1 = idx0 * l1, i2 = idx1 * l2;
+      bool e1 = get_hash1(i1, i1 + l1 - 1) == get_hash1(i2, i2 + l2 - 1);
+      bool e2 = get_hash2(i1, i1 + l1 - 1) == get_hash2(i2, i2 + l2 - 1);
+      if (!(e1 && e2)) {
+        lens.emplace_back(l1, l2);
+      }
+    } else {
+      lens.emplace_back(l1, l2);
+    }
+  }
+
+  int ret = 0;
+  for(const auto& p : lens) {
+    int l1 = p.first, l2 = p.second;
+    // cout << "l1 = " << l1 << " l2 = " << l2 << endl;
+    ull hh1 = -1, hh2 = -1;
+    ull hhh1 = -1, hhh2 = -1;
+    int f1 = 0, f2 = 0;
+    bool ok = true;
+    int zero = 0, one = 0;
+    for(int j = 0; j < (int)s.size() && ok; ++j) {
+      if (s[j] == '0') {
+        int st = zero * l1 + one * l2;
+        assert(st + l1 - 1 < n);
+        ull hsh = get_hash1(st, st + l1 - 1);
+        ull hsh1 = get_hash2(st, st + l1 - 1);
+        if (!f1) {
+          f1 = 1;
+          hh1 = hsh;
+          hhh1 = hsh1;
+        } else {
+          if (hsh != hh1 || hsh1 != hhh1) {
+            ok = false;
+            break;
+          }
+        }
+        ++zero;
+      } else {
+        int st = zero * l1 + one * l2;
+        assert(st + l2 - 1 < n);
+        ull hsh = get_hash1(st, st + l2 - 1);
+        ull hsh1 = get_hash2(st, st + l2 - 1);
+        if (!f2) {
+          f2 = 1;
+          hh2 = hsh;
+          hhh2 = hsh1;
+        } else {
+          if (hsh != hh2 || hsh1 != hhh2) {
+            ok = false;
+            break;
+          }
+        }
+        ++one;
+      }
+    }
+    if (ok) {
+      ++ret;
+    }
+  }
+
+  cout << ret << endl;
+  return 0;
+}

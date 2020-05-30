@@ -1,0 +1,98 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	100000
+#define M	100000
+
+int min(int a, int b) { return a < b ? a : b; }
+
+int compare(const void *a, const void *b) {
+	int ia = *(int *) a;
+	int ib = *(int *) b;
+
+	return ia - ib;
+}
+
+int dsu[M], ll[M];
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+void join(int i, int j) {
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return;
+	if (dsu[i] > dsu[j]) {
+		dsu[i] = j;
+		ll[j] = min(ll[i], ll[j]);
+	} else {
+		if (dsu[i] == dsu[j])
+			dsu[i]--;
+		dsu[j] = i;
+		ll[i] = min(ll[i], ll[j]);
+	}
+}
+
+int main() {
+	static int ka[M], kb[M], dd[N];
+	int n, m, h, i, a, b, cnt;
+
+	scanf("%d%d", &n, &m);
+	for (i = 0; i < n; i++) {
+		scanf("%d", &a);
+		ka[a]++;
+	}
+	for (i = 0; i < n; i++) {
+		scanf("%d", &b);
+		kb[b]++;
+	}
+	memset(dsu, -1, m * sizeof *dsu);
+	for (b = 0; b < m; b++)
+		ll[b] = b;
+	for (b = 1; b < m; b++)
+		if (kb[b - 1] == 0 && kb[b] == 0)
+			join(b - 1, b);
+	cnt = 0;
+	for (a = m - 1; a >= 0; a--) {
+		b = m - 1 - a;
+		while (ka[a] > 0) {
+			int k;
+
+			if (kb[b] == 0 && (b = ll[find(b)] - 1) < 0)
+				break;
+			k = min(ka[a], kb[b]);
+			for (h = 0; h < k; h++)
+				dd[cnt++] = a + b;
+			ka[a] -= k;
+			kb[b] -= k;
+			if (kb[b] == 0) {
+				if (b > 0 && kb[b - 1] == 0)
+					join(b - 1, b);
+				if (b + 1 < m && kb[b + 1] == 0)
+					join(b, b + 1);
+			}
+		}
+	}
+	for (a = m - 1, b = m - 1; a >= 0 && b >= 0; )
+		if (ka[a] == 0)
+			a--;
+		else if (kb[b] == 0)
+			b--;
+		else {
+			int k = min(ka[a], kb[b]);
+
+			for (h = 0; h < k; h++)
+				dd[cnt++] = a + b - m;
+			ka[a] -= k;
+			kb[b] -= k;
+		}
+	qsort(dd, n, sizeof *dd, compare);
+	for (i = n - 1; i >= 0; i--)
+		printf("%d ", dd[i]);
+	printf("\n");
+	return 0;
+}

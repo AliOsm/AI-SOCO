@@ -1,0 +1,174 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define SZ(x) ((int)(x).size())
+#define PB(x) push_back(x)
+#define MEMSET(x,v) memset(x,v,sizeof(x))
+#define REP(i,n) for(int (i)=0;(i)<(n);++(i))
+#define x first
+#define y second
+#define INF (0x3f3f3f3f)
+
+typedef long long LL;
+typedef pair<int, int> P2;
+template<class A, class B> inline bool mina(A &x, B y) {return (x > y)?(x=y,1):0;}
+template<class A, class B> inline bool maxa(A &x, B y) {return (x < y)?(x=y,1):0;}
+
+template<typename Int,Int mod>
+class ModInt {
+public:
+    static const Int Mod = mod;
+    Int x;
+    ModInt() { x = 0; }
+    ModInt(int a) { Int t = a % mod; if(t < 0) t += mod; x = t; }
+    ModInt(long long a) { Int t = a % mod; if(t < 0) t += mod; x = t; }
+    Int get() const { return x; }
+
+    ModInt &operator += (ModInt that) { if((x += that.x) >= mod) x -= mod; return *this; }
+    ModInt &operator -= (ModInt that) { if((x += mod - that.x) >= mod) x -= mod; return *this; }
+    ModInt &operator *= (ModInt that) { x = (long long)(x) * that.x % mod; return *this; }
+    bool operator == (ModInt that) const { return x == that.x; }
+    ModInt operator + (ModInt that) const { return ModInt(*this) += that; }
+    ModInt operator - (ModInt that) const { return ModInt(*this) -= that; }
+    ModInt operator * (ModInt that) const { return ModInt(*this) *= that; }
+    ModInt operator - () const { return ModInt(-this->x); }
+    inline friend ostream& operator << (ostream &out, ModInt m) {return out << m.x;}
+
+    ModInt power(long long k) const {
+        ModInt r(1); ModInt b = *this;
+        if (k <= 0) return r; while (k) { if (k & 1) r *= b; b *= b; k >>= 1; }
+        return r;
+    }
+    ModInt inverse() const {
+        long long a = x, b = mod, u = 1, v = 0;
+        while(b) { long long t = a / b; a -= t * b; swap(a, b); u -= t * v; swap(u, v); }
+        return ModInt(u);
+    }
+};
+
+#define MOD (1000000007)
+typedef ModInt<int, MOD> Mint;
+
+const int MAXN = 2005;
+int M, D;
+
+bool good(int number, int pos) {
+    if (pos % 2 == 1) {
+        return number != D;
+    } else {
+        return number == D;
+    }
+}
+
+Mint magic(string &s) {
+    for (int i = 1; i < SZ(s); i += 2) {
+        if (s[i] - '0' != D) {
+            return Mint(0);
+        }
+    }
+    for (int i = 0; i < SZ(s); i += 2) {
+        if (s[i] - '0' == D) {
+            return Mint(0);
+        }
+    }
+    int r = 0;
+    REP(i, SZ(s)) {
+        r *= 10;
+        r += s[i] - '0';
+        r %= M;
+    }
+    if (r == 0) return Mint(1);
+    return Mint(0);
+}
+
+Mint dp[10][MAXN][MAXN];
+Mint dp2[MAXN][MAXN];
+int ten[MAXN];
+
+Mint solve(string &s) {
+    Mint res = 0;
+    int len = SZ(s);
+    int r = 0;
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < s[i] - '0'; j++) {
+            if (i == 0 && j == 0) {
+                for (int k = 1; k < len; k++) {
+                    res += dp2[k][0] - dp[0][k][0];
+                }
+            } else {
+                if (!good(j, i + 1)) continue;
+                int temp = (r * 10 + j) % M;
+
+                if (i + 1 == len) { // last digit
+                    res += temp == 0;
+                } else if (i + 2 == len) {
+                    REP(k, 10) {
+                        if (good(k, i + 2)) {
+                            int temp2 = (temp * 10 + k) % M;
+                            res += temp2 == 0;
+                        }
+                    }
+                } else {
+                    if (i % 2 == 1) {
+                        temp = (temp * ten[len - i - 1]) % M;
+                        res += dp2[len - i - 1][(M - temp) % M];
+                    } else {
+                        temp = (temp * 10 + D) % M;
+                        temp = (temp * ten[len - i - 2]) % M;
+                        res += dp2[len - i - 2][(M - temp) % M];
+                    }
+                }
+            }
+        }
+        if (!good(s[i] - '0', i + 1)) break;
+        r *= 10;
+        r += s[i] - '0';
+        r %= M;
+    }
+    res += magic(s);
+    return res;
+}
+
+int main() {
+    string A, B;
+    cin >> M >> D;
+    cin >> A >> B;
+//    dp[0][0] = 1;
+    ten[0] = 1 % M;
+    ten[1] = 10 % M;
+    for (int i = 2; i < MAXN; i++) {
+        ten[i] = (ten[i - 1] * 10) % M;
+    }
+    REP(i, 10) {
+        if (good(i, 1)) {
+            dp[i][1][i % M] += 1;
+        }
+    }
+    for (int i = 1; i < MAXN - 1; i++) {
+        REP(j, 10) {
+            REP(k, MAXN) {
+                if (dp[j][i][k].get() != 0) {
+                    REP(n, 10) {
+                        if (good(n, i + 1)) {
+               //             cout << (k * 10 + n) % M << endl;
+                            dp[j][i + 1][(k * 10 + n) % M] += dp[j][i][k];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    REP(i, MAXN) REP(j, MAXN) {
+        REP(s, 10) {
+            dp2[i][j] += dp[s][i][j];
+        }
+    }
+    Mint bb = solve(B);
+    Mint aa = solve(A);
+    Mint cc = magic(A);
+//    cout << aa.get() << endl;
+//    cout << bb.get() << endl;
+    cout << (bb - aa + cc).get() << endl;
+    return 0;
+}

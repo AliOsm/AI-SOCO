@@ -1,0 +1,392 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define ll long long
+#define eb emplace_back
+#define nl '\n'
+#define deb(x) cerr << #x" = " << x << nl
+#define in() ( { int a ; scanf("%d", &a); a; } )
+
+const int N = 2e5 + 9;
+const int mod = 1e9 + 7;
+
+template <int32_t MOD>
+struct modint {
+    int32_t value;
+    modint() = default;
+    modint(int32_t value_) : value(value_) {}
+    inline int32_t normalize(int64_t x){
+		x%=mod;
+		if(x<0)x+=mod;
+		return x;
+	}
+    inline modint<MOD> operator + (modint<MOD> other) const { int32_t c = this->value + other.value; return modint<MOD>(c >= MOD ? c - MOD : c); }
+    inline modint<MOD> operator - (modint<MOD> other) const { int32_t c = this->value - other.value; return modint<MOD>(c <    0 ? c + MOD : c); }
+    inline modint<MOD> operator * (modint<MOD> other) const { int32_t c = (int64_t)this->value * other.value % MOD; return modint<MOD>(c < 0 ? c + MOD : c); }
+    inline modint<MOD> & operator += (modint<MOD> other) { this->value += other.value; if (this->value >= MOD) this->value -= MOD; return *this; }
+    inline modint<MOD> & operator -= (modint<MOD> other) { this->value -= other.value; if (this->value <    0) this->value += MOD; return *this; }
+    inline modint<MOD> & operator *= (modint<MOD> other) { this->value = (int64_t)this->value * other.value % MOD; if (this->value < 0) this->value += MOD; return *this; }
+    inline modint<MOD> operator - () const { return modint<MOD>(this->value ? MOD - this->value : 0); }
+    modint<MOD> pow(uint64_t k) const {
+        modint<MOD> x = *this, y = 1;
+        for (; k; k >>= 1) {
+            if (k & 1) y *= x;
+            x *= x;
+        }
+        return y;
+    }
+    modint<MOD> inv() const { return pow(MOD - 2); }  // MOD must be a prime
+    inline modint<MOD> operator /  (modint<MOD> other) const { return *this *  other.inv(); }
+    inline modint<MOD> operator /= (modint<MOD> other)       { return *this *= other.inv(); }
+    inline bool operator == (modint<MOD> other) const { return value == other.value; }
+    inline bool operator != (modint<MOD> other) const { return value != other.value; }
+};
+template <int32_t MOD> modint<MOD> operator * (int64_t value, modint<MOD> n) { return modint<MOD>(value) * n; }
+template <int32_t MOD> modint<MOD> operator * (int32_t value, modint<MOD> n) { return modint<MOD>(value % MOD) * n; }
+template <int32_t MOD> ostream & operator << (ostream & out, modint<MOD> n) { return out << n.value; }
+
+using mint = modint<mod>;
+
+namespace ntt
+{
+    struct num
+    {
+        double x,y;
+        num() {x=y=0;}
+        num(double x,double y):x(x),y(y){}
+    };
+    inline num operator+(num a,num b) {return num(a.x+b.x,a.y+b.y);}
+    inline num operator-(num a,num b) {return num(a.x-b.x,a.y-b.y);}
+    inline num operator*(num a,num b) {return num(a.x*b.x-a.y*b.y,a.x*b.y+a.y*b.x);}
+    inline num conj(num a) {return num(a.x,-a.y);}
+
+    int base=1;
+    vector<num> roots={{0,0},{1,0}};
+    vector<int> rev={0,1};
+    const double PI=acosl(-1.0);
+
+    void ensure_base(int nbase)
+    {
+        if(nbase<=base) return;
+        rev.resize(1<<nbase);
+        for(int i=0;i<(1<<nbase);i++)
+            rev[i]=(rev[i>>1]>>1)+((i&1)<<(nbase-1));
+        roots.resize(1<<nbase);
+        while(base<nbase)
+        {
+            double angle=2*PI/(1<<(base+1));
+            for(int i=1<<(base-1);i<(1<<base);i++)
+            {
+                roots[i<<1]=roots[i];
+                double angle_i=angle*(2*i+1-(1<<base));
+                roots[(i<<1)+1]=num(cos(angle_i),sin(angle_i));
+            }
+            base++;
+        }
+    }
+
+    void fft(vector<num> &a,int n=-1)
+    {
+        if(n==-1) n=a.size();
+        assert((n&(n-1))==0);
+        int zeros=__builtin_ctz(n);
+        ensure_base(zeros);
+        int shift=base-zeros;
+        for(int i=0;i<n;i++)
+            if(i<(rev[i]>>shift))
+                swap(a[i],a[rev[i]>>shift]);
+        for(int k=1;k<n;k<<=1)
+        {
+            for(int i=0;i<n;i+=2*k)
+            {
+                for(int j=0;j<k;j++)
+                {
+                    num z=a[i+j+k]*roots[j+k];
+                    a[i+j+k]=a[i+j]-z;
+                    a[i+j]=a[i+j]+z;
+                }
+            }
+        }
+    }
+
+    vector<num> fa,fb;
+
+    vector<int> multiply(vector<int> &a, vector<int> &b)
+    {
+        int need=a.size()+b.size()-1;
+        int nbase=0;
+        while((1<<nbase)<need) nbase++;
+        ensure_base(nbase);
+        int sz=1<<nbase;
+        if(sz>(int)fa.size()) fa.resize(sz);
+        for(int i=0;i<sz;i++)
+        {
+            int x=(i<(int)a.size()?a[i]:0);
+            int y=(i<(int)b.size()?b[i]:0);
+            fa[i]=num(x,y);
+        }
+        fft(fa,sz);
+        num r(0,-0.25/sz);
+        for(int i=0;i<=(sz>>1);i++)
+        {
+            int j=(sz-i)&(sz-1);
+            num z=(fa[j]*fa[j]-conj(fa[i]*fa[i]))*r;
+            if(i!=j) fa[j]=(fa[i]*fa[i]-conj(fa[j]*fa[j]))*r;
+            fa[i]=z;
+        }
+        fft(fa,sz);
+        vector<int> res(need);
+        for(int i=0;i<need;i++) res[i]=fa[i].x+0.5;
+        return res;
+    }
+
+    vector<int> multiply(vector<int> &a,vector<int> &b,int m,int eq=0)
+    {
+        int need=a.size()+b.size()-1;
+        int nbase=0;
+        while((1<<nbase)<need) nbase++;
+        ensure_base(nbase);
+        int sz=1<<nbase;
+        if(sz>(int)fa.size()) fa.resize(sz);
+        for(int i=0;i<(int)a.size();i++)
+        {
+            int x=(a[i]%m+m)%m;
+            fa[i]=num(x&((1<<15)-1),x>>15);
+        }
+        fill(fa.begin()+a.size(),fa.begin()+sz,num{0,0});
+        fft(fa,sz);
+        if(sz>(int)fb.size()) fb.resize(sz);
+        if(eq) copy(fa.begin(),fa.begin()+sz,fb.begin());
+        else
+        {
+            for(int i=0;i<(int)b.size();i++)
+            {
+                int x=(b[i]%m+m)%m;
+                fb[i]=num(x&((1<<15)-1),x>>15);
+            }
+            fill(fb.begin()+b.size(),fb.begin()+sz,num{0,0});
+            fft(fb,sz);
+        }
+        double ratio=0.25/sz;
+        num r2(0,-1),r3(ratio,0),r4(0,-ratio),r5(0,1);
+        for(int i=0;i<=(sz>>1);i++)
+        {
+            int j=(sz-i)&(sz-1);
+            num a1=(fa[i]+conj(fa[j]));
+            num a2=(fa[i]-conj(fa[j]))*r2;
+            num b1=(fb[i]+conj(fb[j]))*r3;
+            num b2=(fb[i]-conj(fb[j]))*r4;
+            if(i!=j)
+            {
+                num c1=(fa[j]+conj(fa[i]));
+                num c2=(fa[j]-conj(fa[i]))*r2;
+                num d1=(fb[j]+conj(fb[i]))*r3;
+                num d2=(fb[j]-conj(fb[i]))*r4;
+                fa[i]=c1*d1+c2*d2*r5;
+                fb[i]=c1*d2+c2*d1;
+            }
+            fa[j]=a1*b1+a2*b2*r5;
+            fb[j]=a1*b2+a2*b1;
+        }
+        fft(fa,sz);fft(fb,sz);
+        vector<int> res(need);
+        for(int i=0;i<need;i++)
+        {
+            ll aa=fa[i].x+0.5;
+            ll bb=fb[i].x+0.5;
+            ll cc=fa[i].y+0.5;
+            res[i]=(aa+((bb%m)<<15)+((cc%m)<<30))%m;
+        }
+        return res;
+    }
+    vector<mint> MULTIPLY( vector<mint> a, vector<mint> b, int mod)
+    {
+        vector<int> A, B;
+        for(auto x: a) A.eb(x.value);
+        for(auto x: b) B.eb(x.value);
+        auto ans = multiply(A, B, mod);
+        vector<mint> Ans;
+        for(auto x: ans) Ans.eb(mint(x));
+        return Ans;
+    }
+    vector<int> square(vector<int> &a,int m)
+    {
+        return multiply(a,a,m,1);
+    }
+};
+
+using namespace ntt;
+
+
+
+struct poly
+{
+    vector<mint>v;
+    inline void normalize()
+    {
+        while(v.size()&&v.back()==0)
+            v.pop_back();
+    }
+    template<class...Args>
+    poly(Args...args):v(args...) {}
+
+    poly(const initializer_list<mint>&in):v(in.begin(),in.end()) {}
+    int size()const
+    {
+        return v.size();
+    }
+
+    inline mint coef(const int i)const
+    {
+        return (i<v.size())?v[i]:mint(0);
+    }
+
+    poly operator+(const poly &x)
+    {
+        int n=max(size(),x.size());
+        vector<mint>res(n);
+        for(int i=0; i<n; i++) res[i]=coef(i)+x.coef(i);
+        return res;
+    }
+    poly operator-(const poly &x)
+    {
+        int n=max(size(),x.size());
+        vector<mint>res(n);
+        for(int i=0; i<n; i++) res[i]=coef(i)-x.coef(i);
+        return res;
+    }
+    poly operator*(const poly& x)
+    {
+        return MULTIPLY(v,x.v, mod);
+    }
+    poly operator*(const mint& x)
+    {
+        int n=size();
+        vector<mint>res(n);
+        for(int i=0; i<n; i++) res[i]=v[i]*x;
+        return res;
+    }
+    poly operator/(const mint& x)
+    {
+        return (*this)*x.inv();
+    }
+
+    poly& operator+=(const poly& x)
+    {
+        return *this=(*this)+x;
+    }
+    poly& operator-=(const poly& x)
+    {
+        return *this=(*this)-x;
+    }
+    poly& operator*=(const poly& x)
+    {
+        return *this=(*this)*x;
+    }
+    poly& operator*=(const mint& x)
+    {
+        return *this=(*this)*x;
+    }
+    poly& operator/=(const mint& x)
+    {
+        return *this=(*this)/x;
+    }
+
+    poly pre(int n)
+    {
+        return {v.begin(),v.begin()+min(n,size())};
+    }
+    poly rev()
+    {
+        vector<mint>res=v;
+        reverse(res.begin(),res.end());
+        return res;
+    }
+    poly differantiate(int n)
+    {
+        vector<mint>res(n);
+        for(int i=1; i<size()&&i<=n; i++) res[i-1]=coef(i)*i;
+        return res;
+    }
+    poly integrate(int n)
+    {
+        vector<mint>res(n);
+        for(int i=0; i<size()&&i+1<n; i++) res[i+1]=coef(i)/(i+1);
+        return res;
+    }
+    ///first m values of the inverse
+    poly inv(int m)
+    {
+        poly res{mint(1)/v[0]};
+        for(int i=1; i<m; i*=2)
+        {
+            res=(res*mint(2)-res*res*pre(2*i)).pre(2*i);
+        }
+        return res.pre(m);
+    }
+    poly exp(int n)
+    {
+        poly f{1};
+        for(int i=1; i<n; i*=2)
+        {
+            f=(f*(pre(2*i)-f.log(2*i))+f).pre(2*i);
+        }
+        return f.pre(n);
+    }
+
+    poly log(int n)
+    {
+        return (differantiate(n-1)*inv(n-1)).integrate(n);
+    }
+
+    mint& operator[](const int i)
+    {
+        return v[i];
+    }
+};
+
+struct combi{
+	int N;
+	vector<mint>facts,finvs,invs;
+	combi(int n):N(n),facts(n),finvs(n),invs(n){
+		facts[0]=finvs[0]=1;
+		for(int i=1;i<N;i++){
+			facts[i]=facts[i-1]*i;
+			invs[i]=mint(i).inv();
+			finvs[i]=finvs[i-1]*invs[i];
+		}
+	}
+	inline mint fact(int n){return facts[n];}
+	inline mint finv(int n){return finvs[n];}
+	inline mint inv(int n){return invs[n];}
+	inline mint ncr(int n,int k){return facts[n]*finvs[k]*finvs[n-k];}
+};
+combi C(N);
+
+poly yo(int l, int r){
+	if(l==r){
+		return  poly({1, mod - l});
+	}
+	int mid= (l+r)>>1;
+	return yo(l ,mid) * yo(mid+1, r);
+}
+
+int32_t main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n, k; cin >> n >> k;
+    mint sum = 0;
+    for(int i = 1; i <= n; i++){
+        int p; cin >> p; sum += p;
+    }
+    if(k == 1) return cout << sum * n << nl, 0;
+    poly S = yo(1, k - 1);
+    S = S.inv(n + 1);
+    mint ans = 0;
+    for(int i = 1; i  <= n; i++) if(n - i - (k - 1) >= 0) ans += C.ncr(n - 1, i - 1) * i * S[n - i - (k - 1)];
+    ans *= sum;
+    cout << ans<< nl;
+    return 0;
+}

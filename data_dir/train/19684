@@ -1,0 +1,279 @@
+#include<iostream>
+#include<cstdio>
+#include<vector>
+#include<algorithm>
+#include<queue>
+#include<string>
+#include<cstring>
+#include<map>
+#include<cmath>
+#include<bitset>
+#include<set>
+#include<cstdlib>
+#include<complex>
+#include<list>
+#include<cassert>
+#include<iomanip>
+#include<limits>
+#include<fstream>
+#include<unordered_map>
+
+using namespace std;
+
+//#define double long double
+
+typedef pair<int,int> ii;
+typedef pair<int,long long> il;
+typedef pair<long long,long long> ll;
+typedef pair<ll,int> lli;
+typedef pair<long long,int> li;
+typedef pair<double,double> dd;
+typedef pair<ii,int> iii;
+typedef pair<double,int> di;
+typedef pair<int,ii> iii2;
+typedef pair<ii,ii> iiii;
+typedef vector<int> vi;
+long long mod = 1000000007;
+long long large = 2000000000000000000LL;
+
+
+
+vector<int> lb,rb;
+vector<int> pos;
+int sz = 0;
+vector<int> maxi;
+
+int up,uv;
+void update(int o,int l,int r){
+	if(l==r){
+		maxi[o] = uv;
+	}else{
+		int m = (l+r)/2;
+		if(up<=m) update(o*2,l,m);
+		if(up>m) update(o*2+1,m+1,r);
+		maxi[o] = max(maxi[o*2],maxi[o*2+1]);
+	}
+}
+
+
+int ql,qr,re;
+void query(int o,int l,int r){
+	if(ql>qr) return;
+	if(ql<=l&&qr>=r){
+		re = max(re,maxi[o]);
+	}else{
+		int m = (l+r)/2;
+		if(ql<=m) query(o*2,l,m);
+		if(qr>m) query(o*2+1,m+1,r);
+	}
+}
+
+
+struct SuffixTree{
+	struct node {
+		int l, r, par, link;
+		map<char,int> next;
+
+		node (int l=0, int r=0, int par=-1)
+			: l(l), r(r), par(par), link(-1) {}
+		int len()  {  return r - l;  }
+		int &get (char c) {
+			if (!next.count(c))  next[c] = -1;
+			return next[c];
+		}
+	};
+
+	vector<vector<int> > pa,climb;
+
+	struct state {
+		int v, pos;
+		state (int v = 0, int pos = 0) : v(v), pos(pos)  {}
+	};
+
+	string s;
+	int n;
+	vector<node> t;
+	int sz;
+	state ptr;
+
+	state go (state st, int l, int r) {
+		while (l < r)
+			if (st.pos == t[st.v].len()) {
+				st = state (t[st.v].get( s[l] ), 0);
+				if (st.v == -1)  return st;
+			}
+			else {
+				if (s[ t[st.v].l + st.pos ] != s[l])
+					return state (-1, -1);
+				if (r-l < t[st.v].len() - st.pos)
+					return state (st.v, st.pos + r-l);
+				l += t[st.v].len() - st.pos;
+				st.pos = t[st.v].len();
+			}
+		return st;
+	}
+
+	int split (state st) {
+		if (st.pos == t[st.v].len())
+			return st.v;
+		if (st.pos == 0)
+			return t[st.v].par;
+		node v = t[st.v];
+		int id = sz++;
+		t[id] = node (v.l, v.l+st.pos, v.par);
+		t[v.par].get( s[v.l] ) = id;
+		t[id].get( s[v.l+st.pos] ) = st.v;
+		t[st.v].par = id;
+		t[st.v].l += st.pos;
+		return id;
+	}
+
+	int get_link (int v) {
+		if (t[v].link != -1)  return t[v].link;
+		if (t[v].par == -1)  return 0;
+		int to = get_link (t[v].par);
+		return t[v].link = split (go (state(to,t[to].len()), t[v].l + (t[v].par==0), t[v].r));
+	}
+
+	void tree_extend (int pos) {
+		for(;;) {
+			state nptr = go (ptr, pos, pos+1);
+			if (nptr.v != -1) {
+				ptr = nptr;
+				return;
+			}
+
+			int mid = split (ptr);
+			int leaf = sz++;
+			t[leaf] = node (pos, n, mid);
+			t[mid].get( s[pos] ) = leaf;
+
+			ptr.v = get_link (mid);
+			ptr.pos = t[ptr.v].len();
+			if (!mid)  break;
+		}
+	}
+
+	void build_tree() {
+		sz = 1;
+		for (int i=0; i<n; ++i)
+			tree_extend (i);
+	}
+
+	//traverse all node in suffix tree
+
+	int counter = 0;
+	void dfs(int u,int parent,int d){
+		lb[u] = counter++;
+		pa[u][0] = parent;
+		climb[u][0] = t[u].len();
+		if(t[u].next.size()==0) {
+			//cout<<s.substr(n-d,d)<<endl;
+			pos[n-d] = u;
+		}
+		for(map<char,int>::iterator it = t[u].next.begin();it!=t[u].next.end();it++){
+			int v = it->second;
+			dfs(v,u,d+t[v].len());
+		}
+		rb[u] = counter-1;
+	}
+
+	void init(string ss){
+		//remember to add '$' at the end of the string
+		s = ss+"$";
+		n = (int)s.length();
+		ptr = state(0,0);
+		t.assign(2*n,node());
+		build_tree();
+		pa.assign(2*n,vector<int>(21,-1));
+		climb.assign(2*n,vector<int>(21,1000000000));
+	}
+
+	void process(){
+
+		for(int j=1;j<21;j++){
+			for(int i=0;i<sz;i++){
+				if(pa[i][j-1]!=-1){
+					pa[i][j] = pa[pa[i][j-1]][j-1];
+					climb[i][j] = climb[i][j-1]+climb[pa[i][j-1]][j-1];
+					climb[i][j] = min(climb[i][j],1000000000);
+				}
+			}
+		}
+	}
+
+	int find(int u,int d){
+		for(int j=20;j>=0;j--){
+			if(climb[u][j]<=d){
+				d-=climb[u][j];
+				u = pa[u][j];
+			}
+		}
+		//cout<<u<<endl;
+		return u;
+	}
+
+};
+
+
+
+
+int main(){
+
+	int n;
+	string s;
+	cin>>n>>s;
+	SuffixTree ST;
+
+	ST.init(s);
+
+	lb.assign(2*n+10,-1);
+	rb = lb;
+	pos.assign(n+1,-1);
+	maxi.assign(8*n+10,0);
+
+
+	ST.dfs(0,-1,0);
+	ST.process();
+
+	vector<int> dp(n,0);
+	dp[n-1] = 1;
+	int rp = n;
+
+
+	for(int i=n-2;i>=0;i--){
+		//cout<<i<<"-----------"<<endl;
+		while(rp-i>1){
+			int len = rp-i;
+			int u = ST.find(pos[i],n+1-i-(len-1));
+			ql = lb[u];
+			qr = rb[u];
+			re = 0;
+			query(1,0,2*n-1);
+
+			u = ST.find(pos[i+1],n+1-(i+1)-(len-1));
+			ql = lb[u];
+			qr = rb[u];
+			query(1,0,2*n-1);
+
+
+			if(re>=len-1){
+				break;
+			}
+			rp--;
+
+			up = lb[pos[rp]];
+			uv = dp[rp];
+			update(1,0,2*n-1);
+		}
+
+		dp[i] = rp-i;
+	}
+
+	int ans = 1;
+	for(int i=0;i<n;i++) ans = max(ans,dp[i]);
+	cout<<ans<<endl;
+
+
+    return 0;
+}

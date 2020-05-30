@@ -1,0 +1,215 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <memory.h>
+#include <sstream>
+#include <fstream>
+#include <iomanip>
+#include <assert.h>
+#include <bitset>
+#include <string>
+#include <cstdio>
+#include <math.h>
+#include <complex>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <bitset>
+#include <map>
+using namespace std;
+
+typedef complex<double> base;
+
+#define int64 long long
+#define TASK ""
+#define mp make_pair
+#define pub push_back
+
+#ifdef _DEBUG
+const int N = 2000010;
+#else
+const int N = 2000010;
+#endif
+
+const int MOD = 1e9;
+
+struct Node
+{
+    int f1, f2, sum1, sum2, upd, cnt;
+    Node()
+    {
+        f1 = f2 = sum1 = sum2 = 0;
+        upd = 0;
+        cnt = 0;
+    }
+    Node(int x)
+    {
+        f1 = f2 = 1;
+        sum1 = sum2 = x;
+        cnt = 1;
+        upd = 0;
+    }
+    Node(int f1, int f2, int sum1, int sum2, int upd, int cnt) : f1(f1), f2(f2), sum1(sum1), sum2(sum2), upd(upd), cnt(cnt){}
+};
+
+int n, m, a[N], f[N];
+Node t[4 * N];
+
+void add(int &a, int b)
+{   
+    a += b;
+    if (a >= MOD) a -= MOD;
+}
+
+int sum(int a, int b)
+{
+    return (a + b) % MOD;
+}
+
+int product(int a, int b)
+{
+    return (1ll * a * b) % MOD;
+}
+
+void mult(int &a, int b)
+{
+    a = (1ll * a * b) % MOD;
+}
+
+int get(int sum1, int sum2, int k)
+{
+    if (k == 0) return sum1;
+    if (k == 1) return sum2;
+    return sum(product(f[k - 1], sum2), product(f[k - 2], sum1));
+}
+
+Node merge(const Node &v1, const Node &v2)
+{
+    Node res = Node();
+    res.cnt = v1.cnt + v2.cnt;
+    res.f1 = sum(v1.f1, get(v2.f1, v2.f2, v1.cnt));
+    res.f2 = sum(v1.f2, get(v2.f1, v2.f2, v1.cnt + 1));
+    res.sum1 = sum(v1.sum1, get(v2.sum1, v2.sum2, v1.cnt));
+    res.sum2 = sum(v1.sum2, get(v2.sum1, v2.sum2, v1.cnt + 1));
+    res.upd = 0;
+    return res;
+}
+
+void build(int v, int tl, int tr)
+{
+    if (tl == tr)
+    {
+        t[v] = Node(a[tl]);
+        return;
+    }
+    int tm = (tl + tr) / 2;
+    build(v * 2, tl, tm);
+    build(v * 2 + 1, tm + 1, tr);
+    t[v] = merge(t[v * 2], t[v * 2 + 1]);
+}
+
+void addNode(Node &v, int x)
+{
+    add(v.upd, x);
+    add(v.sum1, product(x, v.f1));
+    add(v.sum2, product(x, v.f2));
+}
+
+void push(int v)
+{
+    if (t[v].upd != 0)
+    {
+        addNode(t[v * 2], t[v].upd);
+        addNode(t[v * 2 + 1], t[v].upd);
+        t[v].upd = 0;
+    }
+}
+
+void update(int v, int tl, int tr, int l, int r, int x)
+{
+    if (l > r) return;
+    if (l == tl && r == tr)
+    {
+        addNode(t[v], x);
+        return;
+    }
+    push(v);
+    int tm = (tl + tr) / 2;
+    update(v * 2, tl, tm, l, min(r, tm), x);
+    update(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, x);
+    t[v] = merge(t[v * 2], t[v * 2 + 1]);
+}
+
+void assign(int v, int tl, int tr, int pos, int val)
+{
+    if (tl == tr)
+    {
+        t[v] = Node(val);
+        return;
+    }
+    push(v);
+    int tm = (tl + tr) / 2;
+    if (pos <= tm) assign(v * 2, tl, tm, pos, val);
+    else assign(v * 2 + 1, tm + 1, tr, pos, val);
+    t[v] = merge(t[v * 2], t[v * 2 + 1]);
+}
+
+Node get(int v, int tl, int tr, int l, int r)
+{
+    if (l > r) return Node();
+    if (l == tl && r == tr)
+    {
+        return t[v];
+    }
+    push(v);
+    int tm = (tl + tr) / 2;
+    return merge(get(v * 2, tl, tm, l, min(r, tm)),
+                 get(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r));
+}
+
+void calc()
+{
+    f[0] = 1;
+    f[1] = 1;
+    for (int i = 2; i <= n; i++) f[i] = sum(f[i - 1], f[i - 2]);
+}
+
+int main()
+{
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+    scanf("%d%d", &n, &m);
+    for (int i = 1; i <= n; i++) scanf("%d", &a[i]);
+    calc();
+    build(1, 1, n);
+    for (int i = 1; i <= m; i++)
+    {
+        int type;
+        scanf("%d", &type);
+        if (type == 1)
+        {
+            int x, v;
+            scanf("%d%d", &x, &v);
+            assign(1, 1, n, x, v);
+        }
+        else if (type == 2)
+        {
+            int l, r;
+            scanf("%d%d", &l, &r);
+            printf("%d\n", get(1, 1, n, l, r).sum1);
+        }
+        else
+        {
+            int l, r, d;
+            scanf("%d%d%d", &l, &r, &d);
+            update(1, 1, n, l, r, d);
+        }
+    }
+	return 0;
+}

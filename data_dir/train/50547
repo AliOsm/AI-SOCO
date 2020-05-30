@@ -1,0 +1,116 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100100;
+const int B = 350;
+const int Mod = 998244353;
+
+int n,k;
+int x[N];
+
+vector <int> v[N];
+
+int Cnt[N];
+int Offset[B];
+int Pref[B][B];
+
+int Dp[N];
+
+void add_self(int& a,int b)
+{
+    a += b;
+    if(a>=Mod)  a -= Mod;
+
+    assert( 0<=a && a<Mod );
+}
+
+void min_self(int& a,int b)
+{
+    a = min(a,b);
+}
+
+void ReBuild(int Block)
+{
+    int a = Block*B;
+    int b = (Block+1)*B - 1;
+
+    if(b>n) b = n-1;
+
+    assert(a<=b);
+
+    for(int i=a;i<=b;i++)   Cnt[i] += Offset[Block];
+
+    Offset[Block] = Cnt[a];
+
+    for(int i=a;i<=b;i++)   min_self(Offset[Block],Cnt[i]);
+
+    for(int i=a;i<=b;i++)   Cnt[i] -= Offset[Block] , assert(0<=Cnt[i]&&Cnt[i]<B);
+
+    for(int i=0;i<B;i++)    Pref[Block][i] = 0;
+
+    for(int i=a;i<=b;i++)   add_self(Pref[Block][Cnt[i]],Dp[i]);
+
+    for(int i=1;i<B;i++)    add_self(Pref[Block][i],Pref[Block][i-1]);
+}
+
+void Add(int a,int b,int c)
+{
+    assert(a<=b);
+
+    if(a/B==b/B)
+    {
+        for(int i=a;i<=b;i++)   Cnt[i] += c;
+        return ReBuild(a/B);
+    }
+
+    for(int i=a/B+1;i<b/B;i++)  Offset[i] += c;
+
+    for(int i=a; i<n && i/B==a/B ;i++)  Cnt[i] += c;
+    for(int i=b; i>=0 && i/B==b/B ;i--) Cnt[i] += c;
+
+    ReBuild(a/B);
+    ReBuild(b/B);
+}
+
+int Query(int a)    /// Up to a
+{
+    int Res = 0;
+
+    for(int i=0;i<a/B;i++)
+        if(k-Offset[i]>=0)
+            add_self(Res,Pref[i][min(k-Offset[i],B-1)]);
+
+    for(int i=(a/B)*B;i<=a;i++)
+        if(Cnt[i]+Offset[i/B]<=k)
+            add_self(Res,Dp[i]);
+
+    return Res;
+}
+
+int main()
+{
+    cin>>n>>k;
+
+    for(int i=0;i<n;i++)    scanf("%d",x+i);
+
+    for(int i=1;i<=n;i++)   v[i].push_back(-1); /// fake position
+
+    Dp[0] = 1;
+    ReBuild(0);
+
+    for(int R=0;R<n;R++)
+    {
+        vector <int>& vec = v[x[R]];
+
+        if(vec.size()>=2)
+            Add(vec.end()[-2]+1,vec.back(),-1);
+
+        Add(vec.back()+1,R,+1);
+        vec.push_back(R);
+
+        add_self(Dp[R+1],Query(R));
+    }
+
+    cout<<Dp[n];
+}

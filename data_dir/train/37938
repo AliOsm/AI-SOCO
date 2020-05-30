@@ -1,0 +1,138 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define ll long long
+
+const int N = 2e5 + 100;
+vector<int> v[N];
+int a[N], sz[N], cur[N];
+ll gl[N];
+bool ban[N];
+vector<int> divisors[N];
+int n;
+
+int gcd(int a, int b) {
+    return a ? gcd(b % a, a) : b;
+}
+
+void cntSz(int node, int anc) {
+    sz[node] = 1;
+    for (int to : v[node]) {
+        if (to != anc && !ban[to]) {
+            cntSz(to, node);
+            sz[node] += sz[to];
+        }
+    }
+}
+
+int findCentroid(int node, int anc, int half) {
+    for (int to : v[node]) {
+        if (to != anc && !ban[to] && sz[to] > half)
+            return findCentroid(to, node, half);
+    }
+    return node;
+}
+
+void addToCur(int g, int d) {
+    for (int i : divisors[g])
+        cur[i] += d;
+}
+
+void deep(int node, int anc, int g, map<int, int> &q) {
+    g = gcd(g, a[node]);
+    q[g]++;
+
+    for (int to : v[node]) {
+        if (!ban[to] && to != anc) {
+            deep(to, node, g, q);
+        }
+    }
+}
+
+void solve(int node) {
+    cntSz(node, -1);
+    node = findCentroid(node, -1, sz[node] / 2);
+
+    ban[node] = 1;
+
+    addToCur(a[node], 1);
+    for (int to : v[node]) {
+        if (!ban[to]) {
+            map<int, int> q;
+            deep(to, node, 0, q);
+            for (auto &p : q) {
+                for (int i : divisors[p.first])
+                    gl[i] += cur[i] * (ll)p.second;
+            }
+            for (auto &p : q) {
+                addToCur(gcd(a[node], p.first), p.second);
+            }
+        }
+    }
+
+    addToCur(a[node], -1);
+    for (int to : v[node]) {
+        if (!ban[to]) {
+            map<int, int> q;
+            deep(to, node, a[node], q);
+            for (auto &p : q) {
+                addToCur(p.first, -p.second);
+            }
+        }
+    }
+
+    for (int to : v[node]) {
+        if (!ban[to]) {
+            solve(to);
+        }
+    }
+}
+
+
+int main() {
+#ifdef HOME
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+    for (int i = 1; i < N; i++) {
+        for (int j = 1; j * j <= i; j++) {
+            if (i % j == 0) {
+                divisors[i].push_back(j);
+                if (j * j != i)
+                    divisors[i].push_back(i / j);
+            }
+        }
+    }
+
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++)
+        scanf("%d", &a[i]);
+
+    for (int i = 0; i < n - 1; i++) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        x--, y--;
+        v[x].push_back(y);
+        v[y].push_back(x);
+    }
+
+    solve(0);
+
+    for (int i = N - 1; i > 0; i--) {
+        for (int j = i + i; j < N; j += i) {
+            gl[i] -= gl[j];
+        }
+    }
+
+    for (int i = 0; i < n; i++)
+        gl[a[i]]++;
+
+    for (int i = 0; i < N; i++) {
+        if (gl[i] > 0) {
+            printf("%d %lld\n", i, gl[i]);
+        }
+    }
+
+    return 0;
+}

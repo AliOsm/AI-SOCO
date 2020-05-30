@@ -1,0 +1,126 @@
+#include <bits/stdc++.h>
+
+using namespace __gnu_cxx;
+using namespace std;
+
+using ll = long long;
+using vi = vector<int>;
+using vll = vector<ll>;
+using vvi = vector<vi>;
+using pii = pair<int, int>;
+using vii = vector<pii>;
+using vb = vector<bool>;
+using vs = vector<string>;
+const int MOD = int(998244353);
+const long double EPS = 1e-8;
+const double PI = acos(-1.0);
+const ll INF = ll(1e18);
+int di[] = {0, 1, 0, -1};
+int dj[] = {1, 0, -1, 0};
+#define all(x) x.begin(),x.end()
+
+class SegmentTree {
+private: vi st, A;
+	int n;
+	int left(int p) { return p << 1; }
+	int right(int p) { return (p << 1) + 1; }
+	int mid(int a, int b) { return (a + b) / 2; }
+
+	void build(int p, int L, int R) {
+		if (L == R)
+			st[p] = L;
+		else {
+			build(left(p), L, mid(L, R));
+			build(right(p), mid(L, R) + 1, R);
+			int p1 = st[left(p)], p2 = st[right(p)];
+			st[p] = (A[p1] >= A[p2]) ? p1 : p2;
+		}
+	}
+
+	int rmq(int p, int L, int R, int i, int j) {
+		if (i > R || j < L) return -1;
+		if (L >= i && R <= j) return st[p];
+
+		int p1 = rmq(left(p), L, mid(L, R), i, j);
+		int p2 = rmq(right(p), mid(L, R) + 1, R, i, j);
+
+		if (p1 == -1) return p2;
+		if (p2 == -1) return p1;
+		return (A[p1] >= A[p2]) ? p1 : p2;
+	}
+
+	int update_point(int p, int L, int R, int idx, int new_value) {
+		int i = idx, j = idx;
+
+		if (i > R || j < L)
+			return st[p];
+
+		if (L == i && R == j) {
+			A[i] = new_value;
+			return st[p] = L;
+		}
+
+		int p1, p2;
+		p1 = update_point(left(p), L, mid(L, R), idx, new_value);
+		p2 = update_point(right(p), mid(L, R) + 1, R, idx, new_value);
+
+		return st[p] = (A[p1] >= A[p2]) ? p1 : p2;
+	}
+
+public:
+	SegmentTree(const vi &_A) {
+		A = _A; n = (int)A.size();
+		st.assign(4 * n, 0);
+		build(1, 0, n - 1);
+	}
+
+	int rmq(int i, int j) { return rmq(1, 0, n - 1, i, j); }
+
+	int update_point(int idx, int new_value) {
+		return update_point(1, 0, n - 1, idx, new_value);
+	}
+};
+
+const int N = 2e5 + 5;
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(nullptr);
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+#endif
+
+	int n, q; cin >> n >> q;
+	vi a(n);
+	vi mx(N, -1);
+	for (int i = 0; i < n; ++i) {
+		cin >> a[i];
+		mx[a[i]] = max(mx[a[i]], i);
+	}
+
+	int ans = 0;
+	vi v(n);
+	for (int i = 0; i < n; ++i) {
+		v[i] = mx[a[i]];
+	}
+	SegmentTree sgt(v);
+	for (int i = 0; i < n; ++i) {
+		int cmx = mx[a[i]];
+		while (true) {
+			int tmp = v[sgt.rmq(i, cmx)];
+			if (tmp == cmx)
+				break;
+			cmx = tmp;
+		}
+
+		map<int, int> cnt;
+		int mxcnt = -1;
+		for (int j = i; j <= cmx; ++j) {
+			cnt[a[j]]++;
+			mxcnt = max(mxcnt, cnt[a[j]]);
+		}
+		ans += cmx - i + 1 - mxcnt;
+		i = cmx;
+	}
+
+	cout << ans << endl;
+}

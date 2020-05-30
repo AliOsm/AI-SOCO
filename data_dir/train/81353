@@ -1,0 +1,223 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#ifdef SG
+	#include <debug.h>
+#else
+	#define show(...)
+	#define debug(...)
+	#define deepen(...)
+	#define timer(...)
+#endif
+
+#define ARG4(_1,_2,_3,_4,...) _4
+
+#define forn3(i,l,r) for (int i = int(l); i < int(r); ++i)
+#define forn2(i,n) forn3 (i, 0, n)
+#define forn(...) ARG4(__VA_ARGS__, forn3, forn2) (__VA_ARGS__)
+
+#define ford3(i,l,r) for (int i = int(r) - 1; i >= int(l); --i)
+#define ford2(i,n) ford3 (i, 0, n)
+#define ford(...) ARG4(__VA_ARGS__, ford3, ford2) (__VA_ARGS__)
+
+#define ve vector
+#define pa pair
+#define tu tuple
+#define mp make_pair
+#define mt make_tuple
+#define pb push_back
+#define fs first
+#define sc second
+#define all(a) (a).begin(), (a).end()
+#define sz(a) ((int)(a).size())
+
+typedef long double ld;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef unsigned char uc;
+typedef pa<int, int> pii;
+typedef pa<int, ll> pil;
+typedef pa<ll, int> pli;
+typedef pa<ll, ll> pll;
+typedef ve<int> vi;
+
+const ld pi = 3.1415926535897932384626433832795l;
+
+template<typename T> inline auto sqr (T x) -> decltype(x * x) {return x * x;}
+template<typename T1, typename T2> inline bool umx (T1& a, T2 b) {if (a < b) {a = b; return 1;} return 0;}
+template<typename T1, typename T2> inline bool umn (T1& a, T2 b) {if (b < a) {a = b; return 1;} return 0;}
+
+const int N = 1010;
+const int M = 200100;
+
+struct Input {
+	int n;
+	int m, q;
+	pii e[M];
+	int L[M], R[M], S[M], T[M];
+		
+	bool read () {
+		if (scanf("%d%d%d", &n, &m, &q) != 3)
+			return 0;
+		forn(i, m) {
+			scanf("%d%d", &e[i].fs, &e[i].sc);
+			e[i].fs--, e[i].sc--;
+		}
+		forn(i, q) {
+			scanf("%d%d%d%d", &L[i], &R[i], &S[i], &T[i]);
+			L[i]--, R[i]--, S[i]--, T[i]--;
+		}
+		return 1;
+	}
+
+	void init (const Input &input) {
+		*this = input;
+	}
+};
+
+struct Data: Input {
+	bool ans[M];
+	
+	void write () {
+		forn(i, q) {
+			if (ans[i]) {
+				puts("Yes");
+			} else {
+				puts("No");
+			}
+		}
+	}
+	
+	virtual void solve () {}
+	
+	virtual void clear () {
+		*this = Data();
+	}
+};
+
+const int K = 20;
+
+struct Solution: Data {
+	vi idxl[M];
+	vi idxr[M];
+	ull tekl[N][K];	
+	ull tekr[N][K];
+	ull res[M][K];
+	
+	void calc(int l, int r) {
+		if (l >= r)
+			return;
+		int m = (l + r) / 2;
+		calc(l, m);
+		calc(m + 1, r);
+		ford(i, l, m + 1) {
+			int u = e[i].fs, v = e[i].sc;
+			forn(j, K) {
+				tekl[u][j] |= tekl[v][j];
+				tekl[v][j] |= tekl[u][j];
+			}
+			forn(j, sz(idxl[i])) {
+				int id = idxl[i][j];
+				int to = L[id] + R[id] - i;
+				if (to > m && to <= r) {
+					debug(mt(l, r, m, id));
+					forn(p, K) {
+						res[id][p] |= tekl[S[id]][p];
+					}
+					debug(mt('#', i, id));
+					debug(res[id], res[id] + K);
+				}
+			}
+		}
+		forn(i, m + 1, r + 1) {
+			int u = e[i].fs, v = e[i].sc;
+			forn(j, K) {
+				tekr[u][j] |= tekr[v][j];
+				tekr[v][j] |= tekr[u][j];
+			}
+			forn(j, sz(idxr[i])) {
+				int id = idxr[i][j];
+				int to = L[id] + R[id] - i;
+				if (to <= m && to >= l) {
+					forn(p, K) {
+						res[id][p] &= tekr[T[id]][p];
+					}
+					debug(mt('!', i, id));
+					debug(res[id], res[id] + K);
+				}
+			}
+		}	
+		ford(i, l, m + 1) {
+			int u = e[i].fs, v = e[i].sc;
+			memset(tekl[u], 0, sizeof(tekl[u]));
+			memset(tekl[v], 0, sizeof(tekl[v]));
+			tekl[u][u >> 6] |= (1ull << (u & 63));
+			tekl[v][v >> 6] |= (1ull << (v & 63));
+		}
+		forn(i, m + 1, r + 1) {
+			int u = e[i].fs, v = e[i].sc;
+			memset(tekr[u], 0, sizeof(tekr[u]));
+			memset(tekr[v], 0, sizeof(tekr[v]));
+			tekr[u][u >> 6] |= (1ull << (u & 63));
+			tekr[v][v >> 6] |= (1ull << (v & 63));
+		}
+		debug(mt(l, m, r));
+	}
+	
+	void solve () {
+		forn(i, q) {
+			idxl[L[i]].pb(i);
+			idxr[R[i]].pb(i);
+		}
+		memset(tekl, 0, sizeof(tekl));
+		memset(tekr, 0, sizeof(tekr));
+		memset(res, 0, sizeof(res));
+		forn(i, n) {
+			tekl[i][i >> 6] |= (1ull << (i & 63));
+			tekr[i][i >> 6] |= (1ull << (i & 63));
+		}
+		calc(0, m - 1);
+		forn(i, q) {
+			ans[i] = 0;
+			if (L[i] == R[i]) {
+				pii p1 = mp(S[i], T[i]);
+				pii p2 = e[L[i]];
+				if (p1.fs > p1.sc)
+					swap(p1.fs, p1.sc);
+				if (p2.fs > p2.sc)
+					swap(p2.fs, p2.sc);
+				ans[i] = (p1 == p2);
+			} else {
+    			forn(j, K) {
+    				ans[i] |= (res[i][j] != 0);
+    			}
+			}
+		}
+	}
+	
+	void clear () {
+		*this = Solution();
+	}
+};
+
+Solution sol;
+
+int main () {
+	cout.setf(ios::showpoint | ios::fixed);
+	cout.precision(20);
+#ifdef SG
+	freopen((problemname + ".in").c_str(), "r", stdin);
+//	freopen((problemname + ".out").c_str(), "w", stdout);
+	while (sol.read()) {
+		sol.solve();
+		sol.write();
+		sol.clear();
+	}
+#else
+    sol.read();
+    sol.solve();
+	sol.write();
+#endif
+	return 0;
+}

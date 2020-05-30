@@ -1,0 +1,106 @@
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stack>
+#include <queue>
+#include <ctime>
+#include <cassert>
+#include <complex>
+#include <string>
+#include <cstring>
+#include <chrono>
+#include <random>
+#include <bitset>
+using namespace std;
+#define endl '\n'
+
+const int mod = 998244353;
+
+const int N = 5e5 + 5;
+int arr[30][N], zeros[30][N];
+int l[N], r[N], x[N], dp[N];
+
+bool cmp(const pair<int,int> &x, const pair<int,int> &y) {
+    return x.second < y.second;
+}
+
+signed main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n,k,m;
+    cin >> n >> k >> m;
+    for(int i = 0; i < m; ++i) {
+        cin >> l[i] >> r[i] >> x[i];
+        for(int bit = 0; bit < k; ++bit) {
+            if(x[i] & (1<<bit)) {
+                ++arr[bit][l[i]];
+                --arr[bit][r[i]+1];
+            }
+        }
+    }
+    for(int bit = 0; bit < k; ++bit) {
+        for(int i = 1; i <= n; ++i) {
+            arr[bit][i] += arr[bit][i-1];
+            zeros[bit][i] += zeros[bit][i-1];
+            if(arr[bit][i] == 0) ++zeros[bit][i];
+        }
+    }
+    for(int i = 0; i < m; ++i) {
+        for(int bit = 0; bit < k; ++bit) {
+            if((x[i] & (1<<bit)) == 0) {
+                if(zeros[bit][r[i]] - zeros[bit][l[i]-1] == 0) {
+                    cout << 0;
+                    return 0;
+                }
+            }
+        }
+    }
+    //cout << "at least one answer exists\n";
+    dp[0] = 0;
+    int res = 1;
+    for(int bit = 0; bit < k; ++bit) {
+        vector<pair<int,int>> zeroRanges;
+        for(int i = 0; i < m; ++i) {
+            if((x[i] & (1<<bit)) == 0) {
+                zeroRanges.push_back({l[i],r[i]});
+            }
+        }
+        sort(zeroRanges.begin(), zeroRanges.end(), cmp);
+        int mxL = -1;
+        int pos = 0;
+        for(int i = 1; i <= n; ++i) {
+            if(arr[bit][i] == 0) {
+                dp[i] = dp[i-1];
+                if(mxL == -1) ++dp[i];
+                else dp[i] -= dp[mxL-1];
+            } else {
+                dp[i] = 0;
+            }
+            dp[i] %= mod;
+
+            dp[i] += dp[i-1];
+            dp[i] %= mod;
+            dp[i] += mod;
+            dp[i] %= mod;
+            while(pos < zeroRanges.size() && zeroRanges[pos].second <= i) {
+                mxL = max(mxL, zeroRanges[pos].first);
+                ++pos;
+            }
+        }
+        int ways;
+        if(mxL == -1) {
+            ways = dp[n] + 1;
+        } else {
+            ways = dp[n] - dp[mxL-1];
+        }
+        res = (1LL*res*ways%mod+mod)%mod;
+    }
+    cout << res;
+}

@@ -1,0 +1,211 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll mod = 777777777;
+const ll N = 1e5 + 1;
+const ll maxN = 2e6 + 1;
+ll n, m, ans;
+ll arr[N];
+
+ll dp[4][4][N];
+
+vec <ll> adj[4];
+
+map <ll, ll> pos;
+
+struct Node {
+    int ans;
+    int cnt;
+    int l, r;
+} node[maxN << 2];
+
+ll fpow(ll b, ll p) {
+    ll res = 1;
+    ll pow = b;
+    while(p) {
+        if(p & 1) {
+            res *= pow;
+            res %= mod;
+        }
+        pow *= pow;
+        pow %= mod;
+        p >>= 1;
+    }
+    return res;
+}
+
+ll get(ll x) {
+    ll i = x % N; x /= N;
+    ll b = x % 4; x /= 4;
+    ll a = x;
+    return dp[a][b][i];
+}
+
+void build(ll id, ll l, ll r) {
+    node[id].l = l;
+    node[id].r = r;
+    node[id].ans = 1;
+    if(l == r) {
+        return;
+    }
+    ll q = l + r >> 1;
+    build(l(id), l, q);
+    build(r(id), q + 1, r);
+}
+
+void merge(ll id, ll l, ll r) {
+    node[id].ans = 1ll * node[l].ans * node[r].ans % mod;
+}
+
+void update(ll id, ll i, ll c) {
+    if(node[id].l == node[id].r) {
+        node[id].cnt += c;
+        node[id].ans = fpow(get(i), node[id].cnt);
+        return;
+    }
+    ll q = node[id].l + node[id].r >> 1;
+    if(i <= q) {
+        update(l(id), i, c);
+    } else {
+        update(r(id), i, c);
+    }
+    merge(id, l(id), r(id));
+}
+
+void input() {
+    cin >> n >> m;
+    for(ll i = 1; i <= 3; ++i) {
+        adj[0].pb(i);
+        adj[i].pb(0);
+    }
+    for(ll i = 1; i <= 3; ++i) {
+        for(ll j = 1; j <= 3; ++j) {
+            ll x; cin >> x;
+            if(x) {
+                adj[i].pb(j);
+            }
+        }
+    }
+}
+
+ll id(ll a, ll b, ll i) {
+    return ((a * 4) + b) * N + i;
+}
+
+ll calc(ll i, ll j, ll k) {
+    if(!k) {
+        return i == j;
+    }
+    if(dp[i][j][k] != -1) {
+        return dp[i][j][k];
+    }
+    ll res = 0;
+    for(ll v: adj[i]) {
+        if(!v && k - 1) {
+            continue;
+        }
+        res += calc(v, j, k - 1);
+        res %= mod;
+    }
+    return dp[i][j][k] = res;
+}
+
+map <ll, ll>::iterator next(ll x) {
+    return pos.ub(x);
+}
+
+map <ll, ll>::iterator prev(ll x) {
+    return prev(pos.lb(x));
+}
+
+void erase(ll x, ll y) {
+    auto itl = prev(x);
+    auto itr = next(x);
+    if(y) {
+        update(0, id(itl->yy, y, x - itl->xx), -1);
+        update(0, id(y, itr->yy, itr->xx - x), -1);
+        update(0, id(itl->yy, itr->yy, itr->xx - itl->xx), 1);
+    }
+}
+
+void insert(ll x, ll y) {
+    auto itl = prev(x);
+    auto itr = next(x);
+    if(y) {
+        update(0, id(itl->yy, y, x - itl->xx), 1);
+        update(0, id(y, itr->yy, itr->xx - x), 1);
+        update(0, id(itl->yy, itr->yy, itr->xx - itl->xx), -1);
+    }
+}
+
+void solve() {
+    memset(dp, -1, sizeof dp);
+    for(ll i = 0; i <= 3; ++i) {
+        for(ll j = 0; j <= 3; ++j) {
+            for(ll k = 1; k <= n + 1; ++k) {
+                calc(i, j, k);
+            }
+        }
+    }
+    build(0, 0, maxN);
+    pos.insert({0, 0});
+    pos.insert({n + 1, 0});
+    update(0, id(0, 0, n + 1), 1);
+    for(ll i = 0; i < m; ++i) {
+        ll x; cin >> x;
+        ll y; cin >> y;
+        erase(x, arr[x]);
+        insert(x, y);
+        if(pos.count(x)) {
+            pos.erase(x);
+        }
+        if(y) {
+            pos.insert(mp(x, y));
+        }
+        arr[x] = y;
+        cout << node[0].ans << "\n";
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

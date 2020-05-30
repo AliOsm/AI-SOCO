@@ -1,0 +1,128 @@
+// In the Name of God
+# include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long double LD;
+typedef long long int LL;
+typedef pair <int,int> pii;
+
+# define PB push_back
+# define MP make_pair
+# define L first
+# define R second
+
+const int maxn = 2e5 + 100;
+const int maxl = 20;
+
+char a[2][maxn];
+
+vector <pair<int, pii> > all;
+vector <int> adj[maxn];
+
+int num[2][maxn], l[2][maxn], r[2][maxn], h[maxn], par[maxn][maxl], mark[maxn], cmp;
+
+void add_edge(int x,int y){
+	if(a[0][x] == 'X' || a[1][y] == 'X')
+		return;
+	int v = num[0][x], u = num[1][y];
+	adj[v].push_back(u);
+	adj[u].push_back(v);
+}
+
+void dfs(int v){
+	for (int i = 1; i < maxl; i++)
+		if(par[v][i - 1] != -1)
+			par[v][i] = par[par[v][i - 1]][i - 1];
+
+	mark[v] = cmp;
+	for (int i = 0; i < adj[v].size(); i++){
+		int u = adj[v][i];
+		if(!mark[u]){
+			h[u] = h[v] + 1;
+			par[u][0] = v;
+			dfs(u);
+		}
+	}
+}
+
+int lca(int v,int u){
+	if(h[v] < h[u])
+		swap(v, u);
+	for (int i = maxl - 1; i >= 0; i--)
+		if(par[v][i] != -1 && h[par[v][i]] >= h[u])
+			v = par[v][i];
+	if(v == u)
+		return v;
+	for (int i = maxl - 1; i >= 0; i--)
+		if(par[v][i] != par[u][i])
+			v = par[v][i], u = par[u][i];
+	return par[v][0];
+}
+
+int d(int v,int u){
+	return h[v] + h[u] - 2 * h[lca(v, u)];
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	
+	int n, m;
+	cin >> n >> m;
+	for (int j = 0; j < 2; j++)
+		for (int i = 0; i < n; i++)
+			cin >> a[j][i];
+
+	for (int j = 0; j < 2; j++){
+		for (int i = 0; i < n; i++)
+			if(i == 0 || a[j][i - 1] == 'X')
+				l[j][i] = i;
+			else
+				l[j][i] = l[j][i - 1];
+		for (int i = n - 1; i >= 0; i--)
+			if(i == n - 1 || a[j][i + 1] == 'X')
+				r[j][i] = i;
+			else
+				r[j][i] = r[j][i + 1];
+	}
+	
+	for (int j = 0; j < 2; j++)
+		for (int i = 0; i < n; i++)
+			if(a[j][i] != 'X')
+				all.push_back(MP(j, MP(l[j][i], r[j][i])));
+	
+	sort(all.begin(), all.end());
+	all.resize(unique(all.begin(), all.end()) - all.begin());
+	
+	for (int j = 0; j < 2; j++)
+		for (int i = 0; i < n; i++)
+			if(a[j][i] != 'X')
+				num[j][i] = lower_bound(all.begin(), all.end(), MP(j, MP(l[j][i], r[j][i]))) - all.begin();
+			else
+				num[j][i] = -1;
+
+	for (int i = 0; i < n; i++)
+		add_edge(i, i);
+	
+	memset (par, -1, sizeof par);
+	for (int i = 0; i < all.size(); i++)
+		if(!mark[i])
+			cmp++, dfs(i);
+
+	while(m--){
+		int r1, c1, r2, c2;
+		r1 = r2 = 0;
+		cin >> c1 >> c2;
+		c1--, c2--;
+		if(c1 >= n) c1 -= n, r1++;
+		if(c2 >= n) c2 -= n, r2++;
+		int v = num[r1][c1], u = num[r2][c2]; 
+		if(mark[v] == mark[u])
+			cout << d(v, u) + abs(c1 - c2) << '\n';
+		else
+			cout << "-1\n";
+	}
+
+	return 0;
+}

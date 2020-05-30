@@ -1,0 +1,111 @@
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int fid[400000],sz[400000];
+
+void init(int n)
+{
+	for(int i=0;i<n;i++) fid[i] = i, sz[i] = 1;
+}
+int find(int i)
+{
+	if(fid[i]==i) return i;
+	return fid[i] = find(fid[i]);
+}
+void join(int i,int j)
+{
+	i = find(i), j = find(j);
+	if(sz[i] <= sz[j])
+	{
+		fid[i] = j;
+		sz[j] += sz[i];
+	}
+	else
+	{
+		fid[j] = i;
+		sz[i] += sz[j];
+	}
+}
+
+int N,M;
+vector<int> edges[400000];
+int nxt[800000];
+bool dir[400000];
+int ea[400000],eb[400000];
+
+int depth[400000];
+int lowdepth[400000];
+bool vis[400000];
+
+void dfs(int i,int par,int d)
+{
+	depth[i] = lowdepth[i] = d;
+	vis[i] = 1;
+	for(int j=0;j<edges[i].size();j++)
+	{
+		if(!vis[nxt[edges[i][j]]])
+		{
+			dfs(nxt[edges[i][j]],i,d+1);
+			lowdepth[i] = min(lowdepth[i],lowdepth[nxt[edges[i][j]]]);
+		}
+		else if(nxt[edges[i][j]] != par)
+		{
+			lowdepth[i] = min(lowdepth[i],depth[nxt[edges[i][j]]]);
+		}
+	}
+	if(lowdepth[i] != d)
+		join(i,par);
+}
+
+bool inanc[400000];
+
+void dfs2(int i,int par)
+{
+	inanc[i] = 1;
+	vis[i] = 1;
+	for(int j=0;j<edges[i].size();j++)
+	{
+		if(!vis[nxt[edges[i][j]]])
+		{
+			dir[edges[i][j]/2] = edges[i][j]%2;
+			dfs2(nxt[edges[i][j]],i);
+		}
+		else if(nxt[edges[i][j]]!=par)
+		{
+			dir[edges[i][j]/2] = (edges[i][j]%2)^(!inanc[nxt[edges[i][j]]]);
+		}
+	}
+	inanc[i] = 0;
+}
+
+int main()
+{
+	scanf("%d %d",&N,&M);
+	int a,b;
+	for(int i=0;i<M;i++)
+	{
+		scanf("%d %d",&a,&b);
+		a--,b--;
+		ea[i] = a+1, eb[i] = b+1;
+		edges[a].push_back(2*i);
+		nxt[2*i] = b;
+		edges[b].push_back(2*i+1);
+		nxt[2*i+1] = a;
+	}
+	init(N);
+	dfs(0,-1,0);
+	int mxi = 0;
+	for(int i=1;i<N;i++)
+		if(sz[find(i)]>sz[find(mxi)])
+			mxi = i;
+	for(int i=0;i<N;i++) vis[i] = 0;
+	dfs2(mxi,-1);
+	printf("%d\n",sz[find(mxi)]);
+	for(int i=0;i<M;i++)
+	{
+		if(dir[i]==0) printf("%d %d\n",eb[i],ea[i]);
+		else printf("%d %d\n",ea[i],eb[i]);
+	}
+}

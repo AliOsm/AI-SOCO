@@ -1,0 +1,88 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int INF = 0x3f3f3f3f;
+const int MOD = 1e9+7;
+const int BROKEN = 0x7f7f7f7f;
+int n;
+vector<int> lt, rt, parent, value, subsize;
+int dp[2][101][10001];
+
+void build(const string& s) {
+		n = s.size();
+		lt.resize(n+1, -1);
+		rt.resize(n+1, -1);
+		parent.resize(n+1, -1);
+		value.resize(n+1, -1);
+		subsize.resize(n+1, 1);
+		memset(dp, BROKEN, sizeof dp);
+
+		int cur = n;
+		for (int i = 0; i < n; i++) {
+			if (s[i] == '(') {
+				if (lt[cur] == -1) {
+					lt[cur] = i;
+				} else {
+					rt[cur] = i;
+				}
+				parent[i] = cur;
+				cur = i;
+			}
+			else if (s[i] == ')') {
+				subsize[parent[cur]] += subsize[cur];
+				cur = parent[cur];
+			}
+			else if (isdigit(s[i])) {
+				if (lt[cur] == -1) {
+					lt[cur] = i;
+				} else {
+					rt[cur] = i;
+				}
+				parent[i] = cur;
+				value[i] = s[i] - '0';
+			}
+		}
+	}
+
+#define BAD (big ? -INF : INF)
+int solve(int cur, int opcount, char op, bool big) {
+		if (opcount > subsize[cur] || opcount < 0)
+			return BAD;
+		if (lt[cur] == -1)
+			return (opcount == 0) ? value[cur] : BAD;
+		if (rt[cur] == -1)
+			return solve(lt[cur], opcount, op, big);
+		if (dp[big][opcount][cur] != BROKEN)
+			return dp[big][opcount][cur];
+
+		int val;
+		int res = BAD;
+		// put +
+		for (int i = 0; i <= opcount - (op == '+'); i++) {
+			val = solve(lt[cur], i, op, big) + solve(rt[cur], opcount-i - (op == '+'), op, big);
+			res = big ? max(res, val) : min(res, val);
+		}
+		// put -
+		for (int i = 0; i <= opcount - (op == '-'); i++) {
+			val = solve(lt[cur], i, op, big) - solve(rt[cur], opcount-i - (op == '-'), op, !big);
+			res = big ? max(res, val) : min(res, val);
+		}
+		return dp[big][opcount][cur] = res;
+	}
+
+
+int main() {
+	ios::sync_with_stdio(0);
+	cin.tie(0); cout.tie(0);
+	string s;
+	int plus, minus;
+	cin >> s;
+	cin >> plus >> minus;
+
+	build(s);
+	if (plus > minus)
+		cout << solve(s.size(), minus, '-', true);
+	else
+		cout << solve(s.size(), plus, '+', true);
+
+	return 0;
+}

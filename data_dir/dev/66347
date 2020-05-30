@@ -1,0 +1,142 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <map>
+#include <iterator>
+#include <cmath>
+#include <set>
+#include <deque> 
+#include <string>
+
+
+using namespace std;
+
+struct Node {
+	int pos;
+	bool isVisited;
+	int depth;
+	int totalChildren;
+	
+	int parent;
+	std::set<int> connects;
+	
+	int profit;
+};
+Node nodes[200010];
+
+int n, k;
+
+void bfs() {
+	std::queue<int> q;
+	nodes[1].parent = -1;
+	nodes[1].depth = 0;
+	nodes[1].isVisited = true;
+	q.push(1);
+	
+	std::set<int>::iterator iConnects;
+	int curP, newP;
+	
+	while (!q.empty()) {
+		curP = q.front();
+		q.pop();
+		nodes[curP].isVisited = true;
+		
+		for (iConnects = nodes[curP].connects.begin() ; 
+			iConnects != nodes[curP].connects.end() ; 
+			iConnects++) {
+			newP = *iConnects;
+			if (true == nodes[newP].isVisited)
+				continue;
+				
+			nodes[newP].depth = nodes[curP].depth + 1;
+			nodes[newP].parent = curP;
+			nodes[newP].connects.erase(curP);
+			q.push(newP);
+		}
+	}
+}
+
+bool compareDepth(const Node &a, const Node &b) {
+	return a.depth > b.depth;
+}
+
+int posMap[200010];
+
+
+void doSearchTail() {
+//	std::queue<int> q;
+//	for (int i = 1 ; i <= n ; i++) {
+//		nodes[i].isVisited = false;
+//		if (nodes[i].connects.size() == 0) {
+//			q.push(i);
+//		}
+//	}
+	
+	sort(nodes + 1, nodes + 1 + n, compareDepth);
+	for (int i = 1 ; i <= n ; i++) {
+		if (posMap[nodes[i].pos] != 0)
+			printf("error\n");
+		posMap[nodes[i].pos] = i;
+	}
+	
+	int curP, newP;
+//	while (!q.empty()) {
+	for (int i = 1 ; i <= n ; i++) {
+		curP = i;
+		
+		newP = nodes[curP].parent;
+		if (newP == -1)
+			continue;
+		newP = posMap[newP];
+		nodes[newP].totalChildren = nodes[newP].totalChildren + 1 + nodes[curP].totalChildren;
+	}
+	
+	for (int i = 1 ; i <= n ; i++) {
+		nodes[i].profit = nodes[i].depth - nodes[i].totalChildren;
+	}
+}
+
+bool compare(const Node &a, const Node &b) {
+	if (a.profit == b.profit) {
+		return a.depth > b.depth;
+	} else {
+		return a.profit > b.profit;
+	}
+}
+
+
+int main()
+{
+	scanf("%d%d", &n, &k);
+	for (int i = 1 ; i <= n ; i++) {
+		nodes[i].pos = i;
+		nodes[i].isVisited = false;
+		nodes[i].totalChildren = 0;
+	}
+	
+	for (int i = 0 ; i < n - 1 ; i++) {
+		int u, v;
+		scanf("%d%d", &u, &v);
+		nodes[u].connects.insert(v);
+		nodes[v].connects.insert(u);
+	}
+	
+	//bfs，层次遍历确认深度和子结点个数
+	bfs(); 
+	
+	//根据叶子结点找所有子树长度
+	doSearchTail(); 
+	
+	sort(nodes + 1, nodes + n + 1, compare);
+	
+	long long sum = 0;
+	for (int i = 1 ; i <= k ; i++) {
+		sum = sum + nodes[i].profit;
+	}
+	
+	printf("%I64d\n", sum);
+	
+	return 0;
+}

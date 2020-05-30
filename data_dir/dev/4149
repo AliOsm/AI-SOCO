@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+using namespace std;
+const int MAXN = (int)2e6 + 42;
+
+template <class T>
+struct fenwick
+{
+	int sz;
+	T tr[MAXN + 42];
+
+	void init(int n)
+	{
+		sz = n + 1;
+		memset(tr, 0, sizeof(tr));
+	}
+
+	T query(int idx)
+	{
+		return tr[idx];
+	}
+
+	void update(int idx, T val)
+	{
+		if(idx <= 0) return;
+		tr[idx] += val;
+	}
+
+	void prep() 
+	{
+		for(int i = 1; i <= sz; i++)
+			tr[i] += tr[i - 1];
+	}
+
+	T query(int l, int r) 
+	{
+		if(r > sz) r = min(r, sz);
+		if(r < l) return 0; 
+		return query(r) - query(l - 1); 
+	}
+};
+
+
+int n, X, Y;
+int a[MAXN];
+
+void read()
+{
+	cin >> n >> X >> Y;
+	for(int i = 0; i < n; i++)
+		cin >> a[i];
+}
+
+bool dont[MAXN << 1];
+
+fenwick<int> cnt;
+fenwick<int64_t> sum;
+
+void solve()
+{
+	sum.init(MAXN);
+	cnt.init(MAXN);
+
+	for(int i = 0; i < n; i++)
+	{
+		cnt.update(a[i], 1);
+		sum.update(a[i], a[i]);
+	}
+
+	cnt.prep();
+	sum.prep();
+
+	int64_t answer = (int64_t)2e18;
+	for(int i = 2; i < MAXN; i++)
+		if(!dont[i])
+		{
+			for(int d = 2 * i; d < MAXN; d += i) dont[i] = 1;
+
+			int low = 0, high = i - 1, mid1, bound = 0;
+			while(low <= high)
+			{
+				mid1 = (low + high) >> 1;
+				if(mid1 * 1ll * Y < X)
+					bound = mid1, low = mid1 + 1;
+				else 
+					high = mid1 - 1;
+			}
+
+			int64_t ans = 0;
+			for(int d = i; d < MAXN; d += i)
+			{
+				int l = d - i + 1, r = d, mid = r - bound;
+				ans += cnt.query(l, mid - 1) * 1ll * X;
+				ans += (cnt.query(mid, r) * 1ll * r - sum.query(mid, r)) * 1ll * Y;
+			}
+
+			answer = min(answer, ans);
+		}
+
+	cout << answer << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

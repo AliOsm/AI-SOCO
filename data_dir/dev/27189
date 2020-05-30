@@ -1,0 +1,206 @@
+/****** BISMILLAH HIR RAHMANIR RAHIM ******/
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+/* Special functions:
+
+        find_by_order(k) --> returns iterator to the kth largest element counting from 0
+        order_of_key(val) --> returns the number of items in a set that are strictly smaller than our item
+*/
+
+typedef tree<
+int,
+null_type,
+less<int>,
+rb_tree_tag,
+tree_order_statistics_node_update>
+ordered_set;
+
+
+#define EPS 1e-9
+#define NL cout<<endl;
+#define MP make_pair
+#define ALL(a) a.begin(), a.end()
+#define DBG(a) cout<< #a <<" --> "<<(a)<<endl;
+#define FastIO ios::sync_with_stdio(false); cin.tie(0);cout.tie(0)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+
+/****** END OF HEADER ******/
+
+
+#define mx 100005
+int Sub[mx];
+int L[mx]; //লেভেল
+int P[mx][22]; //স্পার্স টেবিল
+int T[mx]; //প্যারেন্ট
+vector<int>g[mx];
+int dfs(int from,int u,int dep)
+{
+    int ret=1;
+    T[u]=from;
+    L[u]=dep;
+    for(int i=0; i<(int)g[u].size(); i++)
+    {
+
+        int v=g[u][i];
+        if(v==from)
+            continue;
+        ret+=dfs(u,v,dep+1);
+    }
+    Sub[u]=ret;
+    return ret;
+}
+
+int lca_query(int N, int p, int q) //N=নোড সংখ্যা
+{
+    int tmp, log, i;
+
+    if (L[p] < L[q])
+        tmp = p, p = q, q = tmp;
+
+    log=1;
+    while(1)
+    {
+        int next=log+1;
+        if((1<<next)>L[p])
+            break;
+        log++;
+    }
+
+    for (i = log; i >= 0; i--)
+        if (L[p] - (1 << i) >= L[q])
+            p = P[p][i];
+
+    if (p == q)
+        return p;
+
+    for (i = log; i >= 0; i--)
+        if (P[p][i] != -1 && P[p][i] != P[q][i])
+            p = P[p][i], q = P[q][i];
+
+    return T[p];
+}
+
+void lca_init(int N)
+{
+    memset (P,-1,sizeof(P)); //শুরুতে সবগুলো ঘরে -১ থাকবে
+    int i, j;
+    for (i = 0; i < N; i++)
+        P[i][0] = T[i];
+
+    for (j = 1; 1 << j < N; j++)
+        for (i = 0; i < N; i++)
+            if (P[i][j - 1] != -1)
+            {
+                P[i][j] = P[P[i][j - 1]][j - 1];
+            }
+
+
+}
+/*
+int kthParent(int N,int p,int k)
+{
+    int lg ;
+    for( lg = 1 ; (1 << lg) <= L[p] ; ++lg )
+        ;
+    lg--;
+    for( int i = lg ; i >= 0 ; i-- )
+    {
+        if( (1 << i) <= k )
+        {
+            p = P[p][i];
+            k -= ( 1 << i );
+        }
+    }
+    return p;
+}*/
+int kthParent(int N,int p,int k)
+{
+    for(int i=0;1<<i <=k;i++)
+    if(k&(1<<i))
+        p=P[p][i];
+    return p;
+}
+
+
+void initCase()
+{
+    for(int i=0; i<mx; i++)
+    {
+        g[i].clear();
+    }
+
+}
+
+
+
+
+int main()
+{
+//    IN;
+//    OUT;
+    int n;
+    scanf("%d",&n);
+    for(int i=1;i<=n-1;i++)
+    {
+        int u,v;
+        scanf("%d %d",&u,&v);
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+    n++;
+    dfs(0,1,0);
+    lca_init(n);
+
+
+
+
+    int q;
+    scanf("%d",&q);
+    while(q--)
+    {
+        int x,y;
+        scanf("%d %d",&x,&y);
+        if(L[x]<L[y])
+            swap(x,y);
+        int lc=lca_query(n,x,y);
+
+
+        int dis=L[x]+L[y]-2*L[lc];
+
+        int ans=0;
+        if(dis%2)
+            ans=0;
+        else
+        {
+            dis/=2;
+            int node= kthParent(n,x,dis),u= kthParent(n,x,dis-1),v;
+            if(lc==node)
+            {
+                v=kthParent(n,y,dis-1);
+                ans= n-1 -Sub[u]-Sub[v];
+            }
+            else
+            {
+                v= kthParent(n,x,dis+1);
+                ans= Sub[node]-Sub[u];
+            }
+            if(dis==0)
+            {
+                ans=n-1;
+            }
+        }
+        printf("%d\n",ans);
+    }
+}

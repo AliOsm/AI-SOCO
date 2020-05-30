@@ -1,0 +1,85 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <utility>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=1e6+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a,T b){T ret=1;for (;b;b>>=1,a*=a) ret=1ll*ret*a%M;return ret;}
+
+struct node{
+	int b,p;
+	operator <(const node&A)const{
+		if (p==A.p) return b<A.b;
+		return p<A.p;
+	}
+}k;
+vector<node> C,D;
+int dpC[maxn],dpD[maxn];
+int pos[4];
+int n,m,c,d;
+int i,j,t;
+int mx,now1,now2;
+int main(){
+	scanf("%d%d%d",&n,&c,&d);
+	REP(i,n){
+		char c;
+		int b,p;
+		scanf("%d%d",&b,&p);
+		cin>>c;
+		k.p=p;k.b=b;
+		if (c=='C') C.push_back(k);
+		else D.push_back(k);
+	}
+	sort(C.begin(),C.end());
+	sort(D.begin(),D.end());
+	now1=0;
+	REP(i,C.size()){
+		if (C[i].p>c) break;
+		while (now1<C[i].p){
+			now1++;
+			dpC[now1]=dpC[now1-1]; 
+		}
+		t=dpC[min(c-C[i].p,now1)];
+		if (t!=0) mx=max(mx,C[i].b+t);
+		dpC[now1]=max(dpC[now1],C[i].b);
+	}
+	now2=0;
+	REP(i,D.size()){
+		if (D[i].p>d) break;
+		while (now2<D[i].p){
+			now2++;
+			dpD[now2]=dpD[now2-1]; 
+		}
+		t=dpD[min(d-D[i].p,now2)];
+		if (t!=0) mx=max(mx,D[i].b+t);
+		dpD[now2]=max(dpD[now2],D[i].b);
+	}
+	if (dpC[now1]!=0&&dpD[now2]!=0) mx=max(mx,dpC[now1]+dpD[now2]);
+	printf("%d",mx);
+}
+/*
+2 4 5
+2 2 C
+2 2 C
+*/

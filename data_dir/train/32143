@@ -1,0 +1,137 @@
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <queue>
+#define SZ(x) ((int)(x).size())
+#define FOR(it, c) for(__typeof((c).begin()) it = (c).begin(); it != (c).end(); ++it)
+using namespace std;
+typedef long long LL;
+
+const int N = 1e5+5;
+vector<pair<int, int> > a[N];
+int d[N], u[N], to[N], zero[N], w[N], meowto[N];
+queue<int> q;
+
+int main(void) {
+  int n, m;
+  scanf("%d%d", &n, &m);
+  for(int i=0;i<m;i++) {
+    int x, y, len;
+    scanf("%d%d%d", &x, &y, &len);
+    a[x].push_back(make_pair(y, len));
+    a[y].push_back(make_pair(x, len));
+  }
+  d[0] = 1;
+  q.push(0);
+  while(!q.empty()) {
+    int x = q.front(); q.pop();
+    for(auto &e : a[x]) {
+      int y = e.first;
+      if (!d[y]) {
+        d[y] = d[x] + 1;
+        q.push(y);
+      }
+    }
+  }
+
+  int dist=d[n-1];
+  zero[n-1] = 1;
+  q.push(n-1);
+  while(!q.empty()) {
+    int x = q.front(); q.pop();
+    for(auto &e : a[x]) {
+      int y = e.first;
+      if (e.second == 0 && zero[y]==0) {
+        if(d[y]>0) dist = min(dist, d[y]);
+        zero[y] = zero[x]+1;
+        meowto[y] = x;
+        q.push(y);
+      }
+    }
+  }
+
+
+  vector<int> sol;
+  vector<int> care;
+  for(int i=0;i<n;i++) if(d[i]==dist && zero[i]>0) care.push_back(i);
+  for(int i=dist-1;i>=1;i--) {
+    int len=1;
+    vector<int> nxt;
+    for(len=0;len<=9;len++) {
+      for(auto &x: care) {
+        for(auto &e: a[x]) {
+          if (len == e.second && d[e.first] == i && u[e.first]==0) {
+            u[e.first] = 1;
+            //to[e.first] = x;
+            nxt.push_back(e.first);
+          }
+        }
+      }
+      if (!nxt.empty()) break;
+    }
+    sol.push_back(len);
+    care = nxt;
+  }
+ 
+  reverse(sol.begin(), sol.end());
+  care.clear();
+  care.push_back(0);
+  for(int i=0;i<(int)sol.size();i++) {
+    vector<int> nxt;
+    for(auto &x: care) {
+      for(auto &e: a[x]) {
+        if(d[e.first]==i+2 && e.second == sol[i] && w[e.first]==0) {
+          w[e.first] = 1;
+          to[e.first] = x;
+          nxt.push_back(e.first);
+        }
+      }
+    }
+    care = nxt;
+  }
+
+  vector<int> route;
+  int start = 0, stcost = n+1, cpy_start;
+  for(auto &x: care) {
+    if (zero[x] > 0 && stcost > zero[x]) {
+      stcost = zero[x];
+      start = x;
+    }
+  }
+
+  cpy_start = start;
+  while (start > 0) {
+    route.push_back(start);
+    start = to[start];
+  }
+  route.push_back(0);
+  reverse(route.begin(), route.end());
+  start = cpy_start;
+  while (start != n-1) {
+    start = meowto[start];
+    route.push_back(start);
+  }
+
+  string result = "";
+  if (sol.empty()) result = "0";
+  else {
+    reverse(sol.begin(), sol.end());
+    for(auto &digit : sol) {
+      result += (char)('0' + digit);
+    }
+  }
+
+  puts(result.c_str());
+  printf("%d\n", SZ(route));
+  for(auto &node : route) {
+    printf("%d ", node);
+  }
+  puts("");
+  
+  return 0;
+}

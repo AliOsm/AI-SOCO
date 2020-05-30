@@ -1,0 +1,179 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using ld = long double;
+#define ff first
+#define ss second
+#define nl '\n'
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+#include <bits/extc++.h>
+namespace pbds =  __gnu_pbds;
+template <typename key, typename val=pbds::null_type, typename comp=less<key> >
+using ostree = pbds::tree<key, val, comp, pbds::rb_tree_tag,
+                          pbds::tree_order_statistics_node_update>;
+using vi = vector< int >; using vll = vector< ll >;
+#define allOf(x) std::begin(x), std::end(x)
+template <typename...Args>
+ostream&operator<<(ostream&os, pair<Args...> const &p)
+{return os<<'('<<p.first<<", "<<p.second<<')';}
+template <typename...Args>
+ostream&operator<<(ostream&os, vector<Args...> const &v)
+{os<<'[';for(const auto&el:v)os<<' '<<el;return(os<<" ]");}
+template <typename...Args> ostream&operator<<(ostream&os, map<Args...>const&v)
+{os<<'[';for(auto const&el:v)os<<' '<<el;return(os<<" ]");}
+template <typename...Args> ostream&operator<<(ostream&os, set<Args...>const&v)
+{os<<'[';for(auto const&el:v)os<<' '<<el;return(os<<" ]");}
+template <typename...Args>
+ostream&operator<<(ostream&os, unordered_map<Args...>const&v)
+{os<<'[';for(auto const&el:v)os<<' '<<el;return(os<<" ]");}
+template<typename T> void trace_rec(stringstream&sst, const T&t)
+{ string arg; getline(sst, arg, ','); cerr << arg << " : " << t << " }"; }
+template<typename T, typename... Args>
+void trace_rec(stringstream&sst, const T&t, const Args... args)
+{ string arg; getline(sst, arg, ','); cerr << arg << " : " << t << ", ";
+  trace_rec(sst, args...); }
+template<typename... Args> void trace(const string&s, Args... args)
+{stringstream sst(s); cerr << "{ "; trace_rec(sst, args...); cerr << endl;}
+#define dbg(...) trace(#__VA_ARGS__, __VA_ARGS__)
+template <typename T> void dbr(const T lb, const T ub)
+{cerr<<'{';for(auto it=lb; it!=ub; it++)cerr<<' '<<(*it);cerr<<" }"<<endl;}
+template<typename T, typename Comp=less<T> >
+bool setMin(T &mem, const T&v, Comp comp = Comp())
+{ return comp(v, mem) ? mem = v, true : false; }
+template<typename T, typename Comp=less<T> >
+bool setMax(T &mem, const T&v, Comp comp = Comp())
+{ return comp(mem, v) ? mem = v, true : false; }
+mt19937_64 rng(time(nullptr));
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+
+int n, a[111][111];
+pair<int,int> pos[111];
+
+const int KNT = 0, BSHP = 1, ROOK = 2;
+pair<int,int> knmvs[] =
+  { {2,1}, {2,-1}, {-2,1}, {-2,-1}, {1,2}, {1,-2}, {-1,2}, {-1,-2} };
+pair<int,int> bshpmvs[] = { {1, 1}, {1, -1}, {-1, 1}, {-1, -1} };
+pair<int,int> rkmvs[] = { {1, 0}, {0, -1}, {0, 1}, {-1, 0} };
+
+const int LEN = (int)1e8;
+const int N   = 333;
+int nodes;
+pair<int,int> g[N][N];
+pair<int,int> dp[3][111]; // dist / moves
+
+inline int getId(const int &piece, const int &row, const int&col) {
+  return (row * n + col) * 3 + piece;
+}
+
+inline bool inside(const int&row, const int&col) {
+  return row >= 0 and row < n and col >= 0 and col < n;
+}
+
+int main() {
+  ios::sync_with_stdio(0);
+  cin.tie(0); cout.tie(0);
+
+  cin >> n;
+
+  nodes = 3*n*n;
+
+  for(int i=0; i<n; i++)
+    for(int j=0; j<n; j++) {
+      cin >> a[i][j]; a[i][j]--;
+      pos[a[i][j]] = {i,j};
+    }
+
+  for(int i=0; i<nodes; i++)
+    for(int j=0; j<nodes; j++) {
+      g[i][j] = {LEN,LEN};
+      if( i == j ) g[i][j] = {0, 0};
+    }
+
+  for(int i=0; i<n; i++) {
+    for(int j=0; j<n; j++) {
+      for(int pc=0; pc<3; pc++) {
+        for(int npc=0; npc<3; npc++) {
+          if( pc == npc ) continue;
+          g[ getId(pc, i, j) ][ getId(npc, i, j) ] = {1,1};
+        }
+      }
+    }
+  }
+
+  for(int i=0; i<n; i++) {
+    for(int j=0; j<n; j++) {
+      for(auto&mv:knmvs) {
+        int ii = i + mv.ff, jj = j+mv.ss;
+        if( inside(ii, jj) )
+          g[getId(KNT, i, j)][getId(KNT, ii, jj)] = {1,0};
+      }
+    }
+  }
+
+  for(int i=0; i<n; i++) {
+    for(int j=0; j<n; j++) {
+
+      for(int len=1; len<=n; len++) {
+        for(auto&dir:bshpmvs) {
+          int ii = i + dir.ff * len, jj = j + dir.ss * len;
+          if( inside(ii, jj) )
+            g[ getId(BSHP, i, j) ][ getId(BSHP, ii, jj) ] = {1,0};
+        }
+      }
+
+    }
+  }
+
+  for(int i=0; i<n; i++) {
+    for(int j=0; j<n; j++) {
+
+      for(int len=1; len<=n; len++) {
+        for(auto&dir:rkmvs) {
+          int ii = i + dir.ff * len, jj = j + dir.ss * len;
+          if( inside(ii, jj) )
+            g[ getId(ROOK, i, j) ][ getId(ROOK, ii, jj) ] = {1,0};
+        }
+      }
+
+    }
+  }
+
+  for(int mid=0; mid<nodes; mid++)
+    for(int i=0; i<nodes; i++)
+      for(int j=0; j<nodes; j++) {
+        pair<int,int> chill = {g[i][mid].ff + g[mid][j].ff,
+                               g[i][mid].ss + g[mid][j].ss};
+        setMin(g[i][j], chill);
+      }
+
+  dp[0][0] = dp[1][0] = dp[2][0] = {0,0};
+
+  dbr(pos, pos+n*n);
+
+  for(int i=1; i<n*n; i++) {
+    int pi = pos[i-1].ff, pj = pos[i-1].ss;
+    int ci = pos[i].ff, cj = pos[i].ss;
+    for(int pc=0; pc<3; pc++) {
+      dp[pc][i] = {LEN, LEN};
+      for(int ppc=0; ppc<3; ppc++) {
+        auto tr = g[ getId(ppc, pi, pj) ][ getId(pc, ci, cj) ];
+        setMin(dp[pc][i],
+               {dp[ppc][i-1].ff + tr.ff, dp[ppc][i-1].ss + tr.ss});
+      }
+    }
+  }
+
+  // for(int pc=0; pc<3; pc++) dbr(dp[pc], dp[pc]+n*n);
+  // for(int pc=0; pc<3; pc++) dbr(repMoves[pc], repMoves[pc]+n*n);
+
+  pair<int,int> ans[3] = {dp[0][n*n-1], dp[1][n*n-1], dp[2][n*n-1]};
+  sort(ans, ans+3);
+
+  dbr(ans, ans+3);
+
+  cout << ans[0].ff << ' ' << ans[0].ss << nl;
+
+  return 0;
+}
+
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */

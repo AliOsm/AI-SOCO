@@ -1,0 +1,52 @@
+// In the name of Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int MAX = 200005;
+int par[MAX] , lim[MAX] , cur[MAX];
+int Find(int x)
+{
+    if(x==par[x])return x;
+    return par[x] = Find(par[x]);
+}
+void Union(int x , int y)
+{
+    int px = Find(x);
+    int py = Find(y);
+    par[px] = py;
+}
+int main(void)
+{
+    int n;
+    scanf("%d",&n);
+    for(int i=0;i<n;i++)scanf("%d",&lim[i]);
+    lim[n] = 2e9;
+    for(int i=0;i<=n;i++)par[i] = i;
+    int m;
+    scanf("%d",&m);
+    while(m--){
+        int t;
+        scanf("%d",&t);
+        if(t==1){
+            int c , tot;
+            scanf("%d %d",&c , &tot);
+            c--;
+            while(tot>0){
+                c = par[c];
+                if(c==n)break;
+                int mi = min(tot , lim[c]-cur[c]);
+                tot-=mi;
+                cur[c]+=mi;
+                if(tot>0)Union(c , c+1);
+            }
+        }
+        else{
+            int idx;
+            scanf("%d",&idx);
+            printf("%d\n",cur[idx-1]);
+        }
+    }
+    return 0;
+}

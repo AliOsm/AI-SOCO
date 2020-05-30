@@ -1,0 +1,161 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using ll = long long;
+using ld = double;
+
+// const int maxn = 1e5
+// const int maxm = 1e6
+struct Point {
+    ld x, y;
+
+    Point() {}
+
+    Point(ld x, ld y): x(x), y(y) {}
+
+    Point operator + (const Point &other) const {
+        return Point(x + other.x, y + other.y);
+    }
+
+    Point operator - () const {
+        return Point(-x, -y);
+    }
+
+    Point operator - (const Point &other) const {
+        return *this + (-other);
+    }
+
+    Point operator / (ld k) const {
+        return Point(x / k, y / k);
+    }
+
+    ld operator * (const Point &other) const {
+        return x * other.x + y * other.y;
+    }
+
+    ld operator ^ (const Point &other) const {
+        return x * other.y - y * other.x;
+    }
+
+    ld sq_len() const {
+        return *this * *this;
+    }
+
+    ld len() const {
+        return sqrt(sq_len());
+    }
+
+    ld dist(const Point &A) const {
+        return (*this - A).len();
+    }    
+
+    ld dist(const Point &A, const Point &B) const {
+        return fabs((*this -  A) ^ (*this - B)) / (B - A).len();
+    }
+
+    bool cw(const Point &A, const Point &B) const {
+        return ((*this - B) ^ (B - A)) > 0;
+    }
+
+    Point norm(ld nl) const {
+        ld l = len();
+        return Point(nl * x / l, nl * y / l);
+    }
+
+    Point rot() const {
+        return Point(-y, x);
+    }
+
+    void print() const {
+        //cout << x << " " << y << "\n";
+    }
+};
+
+bool check_line_circle(const Point &A, const Point &B, const Point &C, ld r) {
+    if (C.dist(A, B) < r) {
+        return false;
+    }
+    return C.cw(A, B);
+}
+
+bool check_three_circles(const Point &A, const Point &B, const Point &C,
+                         const Point &M, const Point &H, const Point &D, const Point &H1, 
+                         ld r) {
+    if (A.dist(B) < 2.0 * r ||
+        B.dist(C) < 2.0 * r ||
+        C.dist(A) < 2.0 * r) {
+        return false;
+    }
+    //if (!check_line_circle(A + H, B + H, C, r)) return false;
+    if (!check_line_circle(A - H, B - H, C, r)) return false;
+    if (!check_line_circle(A + H1 + D, M, C, r)) {
+         return false;
+    }
+    if (!check_line_circle(A - H1 + D, M, C, r)) {
+        return false;
+    }
+    return true;
+}
+
+int main() {
+#ifdef _DEBUG
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif 
+    vector<Point> points;
+    int n;
+    scanf("%d", &n);
+    for (int i = 0; i < n; ++i) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        points.emplace_back(x, y);
+    }
+    points.push_back(points[0]);
+    points.push_back(points[1]);
+    ld l = 0, r = (points[1] - points[0]).len();
+    for (int j = 0; j < n; ++j) {
+        for (int k = 0; k < n; ++k) {
+            if (k == j) continue;
+            r = min(r, (points[k] - points[j]).len());
+        }
+    }
+    r /= 2;
+    for (int i = 0; i < 25; ++i) {
+        ld m;
+        if (l < 1 && r > 1) {
+            m = 1;
+        } else if (l < 1) {
+            m = (l + r) / 2;
+        } else {
+            m = sqrt(l * r);
+        }
+        bool t = true;
+        for (int j = 0; j < n; ++j) {
+            Point M, H, D, H1;
+            Point A, B;
+            A = points[j];
+            B = points[j + 1];
+            M = (A + B) / 2; 
+            H = (B - A).norm(m);
+            ld d = m * m / (M - A).len();
+            ld h = sqrt(m * m - d * d);
+            D = (B - A).norm(d);
+            H1 = (B - A).rot().norm(h);
+            for (int k = 0; k < n; ++k) {
+                if (k == j || k == j + 1 || k == j - n || k == j - n + 1) {
+                    continue;
+                }
+                if (!check_three_circles(A, B, points[k], M, H, D, H1, m)) {
+                    t = false;
+                    break;
+                }
+            }
+        }
+        if (t) {
+            l = m;
+        } else {
+            r = m;
+        }
+    }
+    printf("%.10lf", r);
+}

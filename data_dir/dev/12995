@@ -1,0 +1,204 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+
+typedef long long ll;
+typedef double dbl;
+
+const int MAXN = 1 << 18;
+const dbl PI = acos(-1.0);
+
+int n, k;
+vector<int> g[MAXN];
+vector<ll> ans;
+int sz[MAXN];
+bool was[MAXN];
+int rev[MAXN];
+dbl sn[18][MAXN];
+dbl cs[18][MAXN];
+
+void addEdge(int a, int b) {
+	g[a].pb(b);
+	g[b].pb(a);
+}
+
+void calcSz(int v, int p = -1) {
+	sz[v] = 1;
+	for (int i = 0; i < (int)g[v].size(); ++i) {
+		if (!was[g[v][i]] && g[v][i] != p) {
+			calcSz(g[v][i], v);
+			sz[v] += sz[g[v][i]];
+		}
+	}
+}
+
+int findCentroid(int v, int total, int p = -1) {
+	for (int i = 0; i < (int)g[v].size(); ++i) {
+		if (!was[g[v][i]] && g[v][i] != p && sz[g[v][i]] * 2 > total) {
+			return findCentroid(g[v][i], total, v);
+		}
+	}
+	return v;
+}
+
+void go(int v, vector<int> &d, int p, int dep = 1) {
+	if (dep >= (int)d.size()) {
+		d.pb(0);
+	}
+	++d[dep];
+	for (int i = 0; i < (int)g[v].size(); ++i) {
+		if (!was[g[v][i]] && p != g[v][i]) {
+			go(g[v][i], d, v, dep + 1);
+		}
+	}
+}
+
+void operator+=(vector<int> &a, const vector<int> &b) {
+	if (a.size() < b.size()) a.resize(b.size());
+	for (int i = 0; i < (int)b.size(); ++i) {
+		a[i] += b[i];
+	}
+}
+
+void operator+=(vector<ll> &a, const vector<ll> &b) {
+	if (a.size() < b.size()) a.resize(b.size());
+	for (int i = 0; i < (int)b.size(); ++i) {
+		a[i] += b[i];
+	}
+}
+
+void operator+=(vector<ll> &a, const vector<int> &b) {
+	if (a.size() < b.size()) a.resize(b.size());
+	for (int i = 0; i < (int)b.size(); ++i) {
+		a[i] += b[i];
+	}
+}
+
+bool cmp(const vector<int> &a, const vector<int> &b) {
+	return a.size() < b.size();
+}
+
+struct Complex {
+	dbl re, im;
+	Complex(dbl re = 0, dbl im = 0) : re(re), im(im) {}
+	Complex operator+(Complex p) {
+		return Complex(re + p.re, im + p.im);
+	}
+	Complex operator-(Complex p) {
+		return Complex(re - p.re, im - p.im);
+	}
+	Complex operator*(Complex p) {
+		return Complex(re * p.re - im * p.im, re * p.im + im * p.re);
+	}
+	void operator*=(Complex p) {
+		*this = *this * p;
+	}
+	void operator/=(int n) {
+		re /= n;
+		im /= n;
+	}
+};
+
+void fft(vector<Complex> &a, int inv) {
+	int n = a.size();
+	for (int i = 0; i < (int)a.size(); ++i) {
+		if (i < rev[i]) {
+			swap(a[i], a[rev[i]]);
+		}
+	}
+	for (int step = 1, pw = 0; 2 * step <= n; step <<= 1, ++pw) {
+		for (int i = 0; i < n; i += 2 * step) {
+			for (int j = 0; j < step; ++j) {
+				Complex wnk(cs[pw][j], inv * sn[pw][j]);
+				Complex u = a[i + j];
+				Complex v = a[i + j + step] * wnk;
+				a[i + j] = u + v;
+				a[i + j + step] = u - v;
+			}
+		}
+	}
+	if (inv == -1) {
+		for (int i = 0; i < n; ++i) {
+			a[i] /= n;
+		}
+	}
+}
+
+vector<ll> mult(vector<int> &a, vector<int> &b) {
+	int n = max(a.size(), b.size());
+	while (n & (n - 1)) n += -n & n;
+	for (int i = 0; i < 2 * n; ++i) {
+		rev[i] = rev[i >> 1] >> 1;
+		if (i & 1) rev[i] |= n;
+	}
+	vector<Complex> A(2 * n), B(2 * n);
+	for (int i = 0; i < (int)a.size(); ++i) {
+		A[i].re = a[i];
+	}
+	for (int i = 0; i < (int)b.size(); ++i) {
+		B[i].re = b[i];
+	}
+	fft(A, 1);
+	fft(B, 1);
+	for (int i = 0; i < (int)A.size(); ++i) {
+		A[i] *= B[i];
+	}
+	fft(A, -1);
+	vector<ll> res(A.size());
+	for (int i = 0; i < (int)A.size(); ++i) {
+		res[i] = A[i].re + 0.5;
+	}
+	while (!res.empty() && !res.back()) res.pop_back();
+	return res;
+}
+
+void buildCentroidDecomposition(int v) {
+	calcSz(v);
+	v = findCentroid(v, sz[v]);
+	was[v] = true;
+	vector< vector<int> > d;
+	d.pb(vector<int>(1, 1));
+	for (int i = 0; i < (int)g[v].size(); ++i) {
+		if (!was[g[v][i]]) {
+			d.pb(vector<int>(1, 0));
+			go(g[v][i], d.back(), v);
+		}
+	}
+	sort(d.begin(), d.end(), cmp);
+	ans += d[0];
+	for (int i = 1; i < (int)d.size(); ++i) {
+		vector<ll> tmp = mult(d[0], d[i]);
+		ans += tmp;
+		d[0] += d[i];
+	}
+	for (int i = 0; i < (int)g[v].size(); ++i) {
+		if (!was[g[v][i]]) {
+			buildCentroidDecomposition(g[v][i]);
+		}
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cin >> n >> k;
+	for (int i = 1, a, b; i < n; ++i) {
+		cin >> a >> b;
+		addEdge(a, b);
+	}
+	for (int i = 0; i < 18; ++i) {
+		for (int j = 0; j < (1 << i); ++j) {
+			cs[i][j] = cos(PI / (1 << i) * j);
+			sn[i][j] = sin(PI / (1 << i) * j);
+		}
+	}
+	ans.resize(n);
+	buildCentroidDecomposition(1);
+	ll res = 0;
+	for (int i = 1; i < n; ++i) {
+		res += (i + k - 1) / k * ans[i];
+	}
+	cout << res << endl;
+	return 0;
+}

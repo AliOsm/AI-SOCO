@@ -1,0 +1,125 @@
+// They can't break me, as long as I know who I am...
+
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int maxn = 2e5 + 10, mod = 1e9 + 7;
+const ll inf = 1e18;
+
+template<typename A, typename B> ostream& operator << (ostream& out, pair<A, B> p){
+    out << "{ " << p.F << ", " << p.S <<" }";
+    return out;
+}
+template<typename T> ostream& operator << (ostream& out, vector<T> v){
+    out << "[ ";
+    for(int i = 0; i < sz(v); i++){
+	out << v[i];
+	if(i != sz(v)-1)
+	    out << " ,";
+    }
+    out << " ]";
+    return out;
+}
+
+struct Fenwick{
+    int fn[maxn];    
+    void add(int pos, int x){
+	for( ; pos < maxn; pos+= (pos & -pos))
+	    fn[pos]+=x;
+    }
+    int ask(int pos){
+	int ans = 0;
+	for( ; pos > 0; pos-=(pos & -pos))
+	    ans+= fn[pos];
+	return ans;
+    }
+    int fnd(int x){
+	int ans = 0;
+	for(int i = 19; i >= 0; i--){
+	    if(ans + (1<<i) >= maxn)
+		continue;
+	    if(x > fn[ans + (1<<i)])
+		ans+= 1<<i, x -= fn[ans];
+	}
+	return ans+1;
+    }
+};
+Fenwick fn1;
+
+struct Segment{
+    ll val[4 * maxn], lz[4 * maxn];
+    void shift(int l, int r, int id){
+	val[id] += 1ll * (r-l) * lz[id];
+	if(r-l > 1)
+	    lz[2 * id] += lz[id], lz[2*id + 1]+= lz[id];
+	lz[id] = 0;
+    }
+    void add(int f, int s, int x, int l = 0, int r = maxn, int id = 1){
+	if(f>=s || l>=r)
+	    return;
+	shift(l, r, id);
+	if(s<=l || r<=f)
+	    return;
+	if(f<=l && r<=s){
+	    lz[id] = x;
+	    shift(l, r, id);
+	    return;
+	}
+	int mid = (l+r) >> 1;
+	add(f, s, x, l, mid, 2*id);
+	add(f, s, x, mid, r, 2*id+1);
+	val[id] = val[2*id] + val[2*id + 1];
+    }
+    ll ask(int f, int s, int l = 0, int r = maxn, int id = 1){
+	if(f>=s || l>=r)
+	    return 0;
+	shift(l, r, id);
+	if(s<=l || r<=f)
+	    return 0;
+	if(f<=l && r<=s)
+	    return val[id];
+	int mid = (l+r) >> 1;
+	return ask(f, s, l, mid, 2*id) + ask(f, s, mid, r, 2*id+1);
+    }
+};
+Segment seg;
+
+ll f(ll x){
+    return (x * (x+1))/2;
+}
+
+int pos[maxn];
+
+int main(){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie();
+
+    int n;
+    cin >> n;
+    for(int i = 1; i <= n; i++){
+	int x;
+	cin >> x;
+	pos[x] = i;
+    }
+    ll num = 0;
+    for(int i = 1; i <= n; i++){
+	num+= i - 1 - fn1.ask(pos[i]);
+	fn1.add(pos[i], 1);
+	seg.add(pos[i], n+1, 1);
+	int med = fn1.fnd((i+1) /2);
+	cout << num + seg.ask(1, med) + 1ll * i * (n-med+1) - seg.ask(med, n+1) - f(i/2) - f((i-1)/2) << " ";
+    }
+    return cout << endl, 0;
+}
+// #pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math")
+// #pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")

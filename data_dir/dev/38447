@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 100000 + 10;
+const int MAGIC = 121;
+const int mod = 1e9 + 9;
+
+LL pw[N], pre[N];
+char a[N];
+struct SegmentTree {
+#define lc o<<1
+#define rc o<<1|1
+#define lson l,m,lc
+#define rson m+1,r,rc
+
+	LL sum[N << 2];
+	int flag[N << 2];
+	int L, R, v;
+
+	void init(int _L, int _R, int _v=0) {
+		L = _L;
+		R = _R;
+		v = _v;
+	}
+	
+	void build(int l, int r, int o) {
+		flag[o] = -1;
+		if(l == r) {
+			sum[o] = (a[l]-'0') * pw[l] % mod;
+		} else {
+			int m = l + r >> 1;
+			build(lson);
+			build(rson);
+			sum[o] = (sum[lc] + sum[rc]) % mod;
+		}
+	}
+
+	inline void apply(int l, int r, int o, int v) {
+		flag[o] = v;
+		sum[o] = (pre[r] - pre[l-1]) * v % mod;
+		if(sum[o] < 0) {
+			sum[o] += mod;
+		}
+	}
+
+	void down(int l, int r, int o) {
+		if(~flag[o]) {
+			int m = l + r >> 1;
+			apply(lson, flag[o]);
+			apply(rson, flag[o]);
+			flag[o] = -1;
+		}
+	}
+
+	void modify(int l, int r, int o) {
+		if(L <= l && r <= R) {
+			apply(l, r, o, v);
+		} else {
+			int m = l + r >> 1;
+			down(l, r, o);
+			if(L <= m)	modify(lson);
+			if(R >	m)	modify(rson);
+			sum[o] = (sum[lc] + sum[rc]) % mod;
+		}
+	}
+
+	LL query(int l, int r, int o) {
+		if(L <= l && r <= R)	return sum[o];
+		int m = l + r >> 1;
+		LL ret = 0;
+		down(l, r, o);
+		if(L <= m)	ret = query(lson);
+		if(R >	m)	ret = (ret + query(rson)) % mod;
+		return ret;
+	}
+}Stree;
+
+int main() {
+	int n, q, op, l, r, d;
+	scanf("%d%d%d", &n, &q, &l);
+	q += l;
+	pw[0] = 1;
+	for(int i = 1; i <= n; i ++) {
+		pw[i] = pw[i-1] * MAGIC % mod;
+		pre[i] = (pre[i-1] + pw[i]) % mod;
+	}
+	scanf("%s", a + 1);
+	Stree.build(1, n, 1);
+	while(q --) {
+		scanf("%d%d%d%d", &op, &l, &r, &d);
+		if(op == 1) {
+			Stree.init(l, r, d);
+			Stree.modify(1, n, 1);
+		} else {
+			bool can = true;
+			if(can && r-l+1!=d) {
+				Stree.init(l, r-d);
+				LL x1 = Stree.query(1, n, 1);
+				Stree.init(l+d, r);
+				LL x2 = Stree.query(1, n, 1);
+				if(x1*pw[d]%mod != x2) {
+					can = false;
+				}
+		//		printf("%I64d %I64d\n", x1, x2);
+			}
+			puts(can ? "YES": "NO");
+		}
+	}
+	return 0;
+}
+

@@ -1,0 +1,124 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX_N = 100005;
+
+int n;
+string s[MAX_N];
+map<int, vector<int>> words[26];
+map<int, vector<int>> byCnt;
+map<int, int> usedCnt;
+vector<tuple<int, int, int, int>> res;
+bool used[MAX_N];
+
+bool check(int cnt)
+{
+	if (cnt == 0)
+		return true;
+	for (auto& p : usedCnt)
+		p.second = 0;
+
+	int foundCnt = 0;
+	for (int i = 0; i < 26; i++)
+		for (const auto& p : words[i])
+		{
+			int x = min((int)p.second.size() / 2, cnt - foundCnt);
+			foundCnt += x;
+			usedCnt[p.first] += 2 * x;
+		}
+	if (foundCnt != cnt)
+		return false;
+
+	foundCnt = 0;
+	auto it1 = byCnt.begin();
+	auto it2 = usedCnt.begin();
+	for (; it1 != byCnt.end(); it1++, it2++)
+		foundCnt += ((int)it1->second.size() - it2->second) / 2;
+	return foundCnt >= cnt;
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin >> n;
+	for (int i = 0; i < n; i++)
+	{
+		cin >> s[i];
+		int cnt = 0;
+		char lastLetter = 0;
+		for (char c : s[i])
+			if (c == 'a' || c == 'e' || c == 'o' || c == 'i' || c == 'u')
+			{
+				cnt++;
+				lastLetter = c;
+			}
+		words[lastLetter - 'a'][cnt].push_back(i);
+		byCnt[cnt].push_back(i);
+	}
+
+	for (const auto& p : byCnt)
+		usedCnt[p.first] = 0;
+	int l = 0, r = n / 4;
+	while (r - l > 1)
+	{
+		int mid = (l + r) / 2;
+		if (check(mid))
+			l = mid;
+		else
+			r = mid - 1;
+	}
+	if (check(r))
+		l = r;
+	if (l == 0)
+	{
+		cout << "0" << endl;
+		return 0;
+	}
+
+	for (int i = 0; i < l; i++)
+		res.emplace_back(tuple<int, int, int, int>(0, 0, 0, 0));
+	int foundCnt = 0, curr = 0;
+	for (int i = 0; i < 26; i++)
+		for (const auto& p : words[i])
+		{
+			int x = min((int)p.second.size() / 2, l - foundCnt);
+			foundCnt += x;
+			for (int j = 0; j < 2 * x; j += 2, curr++)
+			{
+				used[p.second[j]] = true;
+				used[p.second[j + 1]] = true;
+				get<1>(res[curr]) = p.second[j];
+				get<3>(res[curr]) = p.second[j + 1];
+			}
+		}
+
+	curr = 0;
+	for (const auto& p : byCnt)
+	{
+		foundCnt = 0;
+		if (curr == l)
+			break;
+		for (auto j : p.second)
+		{
+			if (used[j])
+				continue;
+			if (curr == l)
+				break;
+			if (foundCnt % 2 == 0)
+				get<0>(res[curr]) = j;
+			else
+				get<2>(res[curr++]) = j;
+			foundCnt++;
+		}
+	}
+
+	cout << l << endl;
+	for (int i = 0; i < l; i++)
+	{
+		cout << s[get<0>(res[i])] << " " << s[get<1>(res[i])] << endl;
+		cout << s[get<2>(res[i])] << " " << s[get<3>(res[i])] << endl;
+	}
+}

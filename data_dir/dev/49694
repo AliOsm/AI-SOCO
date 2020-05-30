@@ -1,0 +1,220 @@
+/**
+ *    +--+--+--++--++--In the name of ALLAH--++--++--+--+--+
+ *
+ *    author:  skmonir
+ *    created: 11-Jan-2019 21:37:26
+**/
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define endl                '\n'
+#define TN                  typename
+#define mod                 1000000007LL
+#define len(x)              (int) x.size()
+#define all(x)              x.begin(), x.end()
+#define rall(x)             x.rbegin(), x.rend()
+#define mem(x, y)           memset(x, y, sizeof x)
+#define FOR(x, l, r)        for (int x = l; x <= r; ++x)
+#define ROF(x, l, r)        for (int x = l; x >= r; --x)
+
+template <TN T> inline void Int(T &n) {
+    n = 0; int f = 1; register int ch = getchar();
+    for (; !isdigit(ch); ch = getchar()) if (ch == '-') f = -1;
+    for (; isdigit(ch); ch = getchar()) n = (n << 3) + (n << 1) + ch - '0';
+    n = n * f;
+}
+
+template <TN T> T gcd(T a, T b) {return !b ? a : gcd(b, a % b);}
+template <TN T> inline void umin(T &a, T b) {a = a < b ? a : b;}
+template <TN T> inline void umax(T &a, T b) {a = a > b ? a : b;}
+template <TN T, TN W> inline void Int(T &x, W &y) {Int(x), Int(y);}
+template <TN T, TN W, TN Q> void Int(T &x, W &y, Q &z) {Int(x, y), Int(z);}
+
+const int N = 2e5 + 7;
+const int inf = 1e9 + 7;
+
+vector <int> g[N], prm;
+
+bool used[N];
+bitset <N> isPrime;
+int n, m, nd, a[N], res;
+int sz[N], max_dist[N];
+
+void GetSize(int u, int p) {
+    nd++, sz[u] = 1;
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        GetSize(v, u), sz[u] += sz[v];
+    }
+}
+
+int GetCenter(int u, int p) {
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        if (sz[v] > nd / 2) return GetCenter(v, u);
+    }
+    return u;
+}
+
+void GetRes(int u, int p, int gc, int ds) {
+    if (isPrime[gc]) {
+        umax(res, ds + max_dist[gc]);
+    } else {
+        for (int d : prm) {
+            if (d * d > gc) {
+                break;
+            }
+            umax(res, ds + max_dist[d]);
+        }
+    }
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        GetRes(v, u, gcd(gc, a[v]), ds + 1);
+    }
+}
+
+void Modify(int u, int p, int gc, int ds) {
+    if (isPrime[gc]) {
+        umax(max_dist[gc], ds);
+    } else {
+        for (int d : prm) {
+            if (d * d > gc) {
+                break;
+            }
+            umax(max_dist[d], ds);
+        }
+    }
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        Modify(v, u, gcd(gc, a[v]), ds + 1);
+    }
+}
+
+void Clear(int u, int p, int gc) {
+    if (isPrime[gc]) {
+        max_dist[gc] = 0;
+    } else {
+        for (int d : prm) {
+            if (d * d > gc) {
+                break;
+            }
+            max_dist[d] = 0;
+        }
+    }
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        Clear(v, u, gcd(gc, a[v]));
+    }
+}
+
+void Conquer(int u) {
+    int gc = a[u];
+    if (isPrime[gc]) {
+        umax(res, 1);
+        max_dist[gc] = 1;
+    } else {
+        for (int d : prm) {
+            if (d * d > gc) {
+                break;
+            }
+            umax(res, 1);
+            max_dist[d] = 1;
+        }
+    }
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (!used[v]) {
+            GetRes(v, u, a[v], 1);
+            Modify(v, u, gcd(a[u], a[v]), 2);
+        }
+    }
+
+    if (isPrime[gc]) {
+        max_dist[gc] = 0;
+    } else {
+        for (int d : prm) {
+            if (d * d > gc) {
+                break;
+            }
+            max_dist[d] = 0;
+        }
+    }
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (!used[v]) {
+            Clear(v, u, gcd(a[u], a[v]));
+        }
+    }
+}
+
+void Divide(int u, int p) {
+    nd = 0;
+    GetSize(u, u);
+    int center = GetCenter(u, u);
+    used[center] = 1;
+    Conquer(center);
+    for (int i = 0; i < g[center].size(); i++) {
+        int v = g[center][i];
+        if (!used[v]) Divide(v, center);
+    }
+}
+
+void sieve() {
+    isPrime.set();
+    isPrime[1] = false;
+    for (int i = 4; i < N; i += 2) isPrime[i] = false;
+    int sq = sqrt(1.0 * N);
+    for (int i = 3; i <= sq; i += 2) {
+        if (isPrime[i]) {
+            for (int j = i * i; j < N; j += i << 1) {
+                isPrime[j] = false;
+            }
+        }
+    }
+    prm.push_back(2);
+    for (int i = 3; i < N; i += 2) {
+        if (isPrime[i]) prm.push_back(i);
+    }
+}
+
+int solve() {
+
+    sieve();
+
+    Int(n);
+    FOR (i, 1, n) {
+        Int(a[i]);
+    }
+
+    for (int i = 1; i < n; i++) {
+        int u, v; Int(u, v);
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+
+    Divide(1, 0);
+
+    printf("%d\n", res);
+
+    return 0;
+}
+
+int main() {
+    int tests = 1, CaseNo = 0; //Int(tests);
+    while (tests--) {
+        //printf("Case %d: ", ++CaseNo);
+        solve();
+    }
+    return 0;
+}

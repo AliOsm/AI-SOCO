@@ -1,0 +1,96 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {
+  int n, m;
+  scanf("%d %d", &n, &m);
+  int n1, n2, n3;
+  scanf("%d %d %d", &n1, &n2, &n3);
+  vector< vector < int > > g(n, vector< int > ());
+  for (int i = 0; i < m; ++i) {
+    int x, y;
+    scanf("%d %d", &x, &y);
+    g[x - 1].emplace_back(y - 1);
+    g[y - 1].emplace_back(x - 1);
+  }
+  vector< int > cor(n, -1);
+  vector< int > component(n, -1);
+  vector< pair< int, int > > op;
+  vector< vector< vector< int > > > ret;
+  for (int i = 0; i < n; ++i) {
+    if (cor[i] != -1) continue;
+    queue< int > q;
+    q.push(i);
+    vector< int > qtd(2, 0);
+    vector< vector< int > > nodes(2, vector< int > ());
+    cor[i] = 0;
+    while (!q.empty()) {
+      int x = q.front();
+      q.pop();
+      component[x] = op.size();
+      qtd[cor[x]]++;
+      nodes[cor[x]].emplace_back(x);
+      for (int y : g[x]) {
+        if (cor[x] == cor[y]) {
+          puts("NO");
+          exit(0);
+        }
+        if (cor[y] == -1) {
+          cor[y] = 1 - cor[x];
+          q.push(y);
+        }
+      }
+    }
+    ret.emplace_back(nodes);
+    op.emplace_back(make_pair(qtd[0], qtd[1]));
+  }
+  int opSz = op.size();
+  vector< vector< int > > dp(opSz + 1, vector< int > (n + 1));
+  vector< vector< int > > rec(opSz + 1, vector< int > (n + 1));
+  dp[0][0] = 1;
+  for (int i = 0; i < opSz; ++i) {
+    for (int j = 0; j <= n; ++j) {
+      if (j >= op[i].first && !dp[i + 1][j] && dp[i][j - op[i].first]) {
+        dp[i + 1][j] = dp[i][j - op[i].first];
+        rec[i + 1][j] = 0;
+      }
+      if (j >= op[i].second && !dp[i + 1][j] && dp[i][j - op[i].second]) {
+        dp[i + 1][j] = dp[i][j - op[i].second];
+        rec[i + 1][j] = 1;
+      }
+    }
+  }
+  if (!dp[opSz][n2]) {
+    puts("NO");
+    exit(0);
+  }
+  vector< int > ans(n);
+  vector< int > choice(opSz);
+  int pn2 = n2;
+  for (int i = opSz; i > 0; --i) {
+    choice[i - 1] = rec[i][pn2];
+    if (!rec[i][pn2]) pn2 -= op[i - 1].first;
+    else pn2 -= op[i - 1].second;
+  }
+  for (int i = 0; i < opSz; ++i) {
+    for (int x : ret[i][choice[i]]) ans[x] = 2;
+  }
+  for (int i = 0; i < n; ++i) {
+    if (ans[i] == 0) {
+      if (n1 > 0) {
+        n1--;
+        ans[i] = 1;
+      }
+      else {
+        ans[i] = 3;
+      }
+    }
+  }
+  puts("YES");
+  for (int i = 0; i < n; ++i) {
+    printf("%d", ans[i]);
+  }
+  printf("\n");
+  return 0;
+}

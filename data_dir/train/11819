@@ -1,0 +1,123 @@
+#include <stdio.h>
+#include <vector>
+#include <map>
+#include <algorithm>
+
+using LL = long long ;
+
+const int kN = 100000 + 5;
+int n, m, nq;
+std::vector<int> edges[kN];
+int dist[kN];
+std::vector<int> vec[kN];
+std::vector<LL> suf_sum[kN];
+int diam[kN];
+int sz[kN];
+std::map<std::pair<int, int>, double> cached;
+
+int dsu[kN];
+int find(int x)
+{
+    return dsu[x] == x ? x : dsu[x] = find(dsu[x]);
+}
+
+std::pair<int, int> dfs(int u, int fa)
+{
+    std::pair<int, int> ret(0, u);
+    for (int v : edges[u]) if (v != fa) {
+        auto tmp = dfs(v, u);
+        tmp.first ++;
+        if (tmp.first > ret.first)
+            ret = tmp;
+    }
+    return ret;
+}
+
+void paint(int u, int fa, int d)
+{
+    dist[u] = std::max(dist[u], d);
+    for (int v : edges[u]) if (v != fa)
+        paint(v, u, d + 1);
+}
+
+void push(int u, int fa, int root)
+{
+    vec[root].emplace_back(dist[u]);
+    sz[u] = 1;
+    for (int v : edges[u]) if (v != fa) {
+        push(v, u, root);
+        sz[u] += sz[v];
+    }
+}
+
+void pre_process(int root)
+{
+    int da, db, dm;
+    da = dfs(root, 0).second;
+    std::tie(dm, db) = dfs(da, 0);
+    paint(da, 0, 0);
+    paint(db, 0, 0);
+    push(root, 0, root);
+    diam[root] = dm;
+    std::sort(vec[root].begin(), vec[root].end());
+    suf_sum[root].resize(vec[root].size() + 1);
+    for (int i = (int)vec[root].size() - 1; i >= 0; -- i) {
+        suf_sum[root][i] = suf_sum[root][i + 1] + vec[root][i];
+    }
+}
+
+double query(int u, int v)
+{
+    u = find(u);
+    v = find(v);
+    if (u == v) return -1;
+    if (sz[u] > sz[v] || sz[u] == sz[v] && u > v) std::swap(u, v);
+    if (cached.find(std::make_pair(u, v)) != cached.end())
+        return cached[std::make_pair(u, v)];
+
+    LL paired = 0;
+    LL sum = 0;
+    int md = std::max(diam[u], diam[v]);
+
+    for (int i = 0; i < (int)vec[u].size(); ++ i) {
+        int w = vec[u][i];
+        int f = md - w - 1;
+        int p = std::lower_bound(vec[v].begin(), vec[v].end(), f) - vec[v].begin();
+        int cnt = vec[v].size() - p;
+        sum += (w + 1) * 1ll * cnt + suf_sum[v][p];
+        paired += cnt;
+    }
+
+    LL total = vec[u].size() * 1ll * vec[v].size();
+    double ret = (sum + (total - paired) * md) * 1. / total;
+    cached[std::make_pair(u, v)] = ret;
+    return ret;
+}
+
+int main()
+{
+    scanf("%d%d%d", &n, &m, &nq);
+    for (int i = 1; i <= n; ++ i)
+        dsu[i] = i;
+    for (int i = 1; i <= m; ++ i) {
+        int a, b;
+        scanf("%d%d", &a, &b);
+        edges[a].emplace_back(b);
+        edges[b].emplace_back(a);
+        int x = find(a);
+        int y = find(b);
+        if (x != y)
+            dsu[x] = y;
+    }
+    std::vector<int> big;
+    for (int i = 1; i <= n; ++ i) if (dsu[i] == i) {
+            pre_process(i);
+            if (sz[i] * 1ll * sz[i] > n)
+                big.emplace_back(i);
+    }
+    for (int i = 1; i <= nq; ++ i) {
+        int u, v;
+        scanf("%d%d", &u, &v);
+        printf("%.10f\n", query(u, v));
+    }
+}

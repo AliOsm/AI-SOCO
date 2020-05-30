@@ -1,0 +1,109 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int mx = 200111;
+
+vector<int>vec[mx];
+int col[mx];
+int st[mx],en[mx],backup[mx],tim;
+bool vis[mx];
+void dfs(int nd){
+    vis[nd]=1;
+    st[nd]=++tim;
+    backup[tim]=nd;
+    for(int i=0;i<vec[nd].size();i++){
+        int v=vec[nd][i];
+        if(vis[v])continue;
+        dfs(v);
+    }
+    en[nd]=tim;
+}
+
+struct node{
+    int one,zero;
+    bool flip;
+};
+node tree[4*mx];
+
+void build(int nd,int b,int e){
+    if(b==e){
+        tree[nd].one = col[ backup[b] ];
+        tree[nd].zero = (col[ backup[b] ]==0);
+        tree[nd].flip = 0;
+        return;
+    }
+    build(nd<<1,b,(b+e)>>1);
+    build(nd<<1|1,((b+e)>>1)+1,e);
+    tree[nd].one = tree[nd<<1].one + tree[nd<<1|1].one;
+    tree[nd].zero = tree[nd<<1].zero + tree[nd<<1|1].zero;
+}
+void push_down(int nd,int b,int e){
+    if(tree[nd].flip){
+        swap(tree[nd].one,tree[nd].zero);
+        if(b!=e){
+            tree[nd<<1].flip   ^= tree[nd].flip;
+            tree[nd<<1|1].flip ^= tree[nd].flip;
+        }
+        tree[nd].flip = 0;
+    }
+}
+void push_up(int nd,int b,int e){
+    tree[nd].one = tree[nd<<1].one + tree[nd<<1|1].one;
+    tree[nd].zero = tree[nd<<1].zero + tree[nd<<1|1].zero;
+}
+void upd(int nd,int b,int e,int i,int j){
+    push_down(nd,b,e);
+    if(e<i || b>j)return;
+    if(b>=i && e<=j){
+        tree[nd].flip ^= 1;
+        push_down(nd,b,e);
+        return;
+    }
+    upd( nd<<1,b,(b+e)>>1, i,j );
+    upd( nd<<1|1 , ((b+e)>>1)+1, e, i,j );
+    push_up(nd,b,e);
+}
+int query(int nd,int b,int e,int i,int j){
+    push_down(nd,b,e);
+    if(e<i || b>j)return 0;
+    if(b>=i && e<=j){
+        return tree[nd].one;
+    }
+    int p = query( nd<<1,b,(b+e)>>1, i,j );
+    int q = query( nd<<1|1 , ((b+e)>>1)+1, e, i,j );
+    push_up(nd,b,e);
+    return p+q;
+}
+int main()
+{
+    int n;
+    cin>>n;
+    for(int i=2;i<=n;i++){
+        int p;
+        cin>>p;
+        vec[p].push_back(i);
+        vec[i].push_back(p);
+    }
+    for(int i=1;i<=n;i++){
+        cin>>col[i];
+    }
+    dfs(1);
+  //  cout<<tim<<" "<<st[1]<<" "<<en[1]<<endl;
+    int q;
+    build(1,1,n);
+    cin>>q;
+    while(q--){
+        string s;
+        int p;
+        cin>>s>>p;
+        if(s=="get"){
+            cout<<query(1,1,n,st[p],en[p])<<endl;
+        }
+        else{
+            upd( 1,1,n,st[p],en[p] );
+        }
+    }
+    return 0;
+}
+

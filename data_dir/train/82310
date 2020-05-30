@@ -1,0 +1,50 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 200010;
+
+int n;
+int h[N];
+
+int main() {
+  scanf("%d", &n);
+  int id = 0;
+  for(int i = 0; i <= n; ++i) scanf("%d", h + i);
+  for(int i = 1; i <= n; ++i) {
+    if(h[i] > 1 && h[i - 1] > 1) {
+      id = i;
+      break;
+    }
+  }
+  if(id == 0) {
+    puts("perfect");
+    exit(0);
+  }
+  puts("ambiguous");
+  int foo = 0;
+  for(int i = 0; i <= n; ++i) {
+    int dad = foo;
+    for(int j = 0; j < h[i]; ++j) {
+      printf("%d ", dad);
+      foo++;
+    }
+    dad = foo;
+  }
+  printf("\n");
+  foo = 0;
+  for(int i = 0; i <= n; ++i) {
+    int dad = foo;
+    if(id == i) {
+      printf("%d ", dad - 1);
+      foo++;
+    }
+    for(int j = (id == i); j < h[i]; ++j) {
+      printf("%d ", dad);
+      foo++;
+    }
+    dad = foo;
+  }
+  printf("\n");
+  return 0;
+}

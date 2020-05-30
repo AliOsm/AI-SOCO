@@ -1,0 +1,129 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define scl(x) scanf("%lld",&x)
+#define sc(x)  scanf("%d",&x)
+#define ll long long
+#define lop(i,n) for(int i=0;i<n;++i)
+typedef pair<int, int> ii;
+typedef pair<ll, ll> pll;
+
+const int N=2e5+100,LG=19;
+
+
+struct edge{
+	int u,v,w,c,i,in;
+	bool operator<(const edge &b)const{
+		return w<b.w;
+	}
+}arr[N];
+vector<ii> adj[N];
+
+int ST[N][LG],mx[N][LG],in[N],out[N];
+
+bool isAncestor(int u,int v){
+	return in[v]>=in[u]&&out[v]<=out[u];
+}
+void go(int &ret,int i){
+	if(ret==-1||arr[ret].w<arr[i].w)
+		ret=i;
+}
+int solve(int u,int v){
+	int ret=-1;
+	for(int j=LG-1;j>=0;j--){
+		if(ST[u][j]&&!isAncestor(ST[u][j],v)){
+			go(ret,mx[u][j]);
+			u=ST[u][j];
+		}
+	}
+	for(int j=LG-1;j>=0;j--){
+		if(ST[v][j]&&!isAncestor(ST[v][j],u)){
+			go(ret,mx[v][j]);
+			v=ST[v][j];
+		}
+	}
+	if(!isAncestor(u,v))
+		go(ret,mx[u][0]);
+	if(!isAncestor(v,u))
+		go(ret,mx[v][0]);
+	return ret;
+}
+int t;
+void dfs(int cur,int from = 0){
+	in[cur]=t++;
+
+	ST[cur][0]=from;
+	for(int j=1;j<LG;++j){
+		ST[cur][j]=ST[ST[cur][j-1]][j-1];
+		mx[cur][j]=mx[cur][j-1];
+		int to=ST[cur][j-1];
+		if(to)
+			go(mx[cur][j],mx[to][j-1]);
+	}
+
+	lop(i,adj[cur].size())
+		if(adj[cur][i].first!=from){
+			mx[adj[cur][i].first][0]=adj[cur][i].second;
+			dfs(adj[cur][i].first,cur);
+		}
+
+	out[cur]=t++;
+}
+
+int p[N];
+int findSet(int i){
+	return (i==p[i] ? i:p[i]=findSet(p[i]));
+}
+int n,m,s;
+
+int main(){
+#ifndef ONLINE_JUDGE
+	freopen("i.txt","r",stdin);
+#endif
+	sc(n),sc(m);
+	lop(i,m)sc(arr[i].w);
+	lop(i,m)sc(arr[i].c);
+	lop(i,m){
+		sc(arr[i].u);
+		sc(arr[i].v);
+		arr[i].i=i+1;
+		arr[i].in=0;
+	}
+	sc(s);
+	for(int i=1;i<=n;i++)
+		p[i]=i;
+	sort(arr,arr+m);
+	ll sum=0;
+	lop(i,m){
+		int ru=findSet(arr[i].u);
+		int rv=findSet(arr[i].v);
+		if(ru==rv)continue;
+		arr[i].in=1;
+		p[ru]=rv;
+		sum+=arr[i].w;
+		adj[arr[i].u].push_back(ii(arr[i].v,i));
+		adj[arr[i].v].push_back(ii(arr[i].u,i));
+	}
+	dfs(1);
+	int be=-1,re=-1;
+	ll delta=1e18;
+	lop(i,m){
+		int j=solve(arr[i].u,arr[i].v);
+		if(arr[i].w-arr[j].w-s/arr[i].c<delta){
+			be=i,re=j;
+			delta=arr[i].w-arr[j].w-s/arr[i].c;
+		}
+
+	}
+	cout<<sum+delta<<endl;
+	lop(i,m){
+		if((arr[i].in&&re!=i)||i==be){
+			printf("%d ",arr[i].i);
+			if(i==be)printf("%d\n",arr[i].w-s/arr[i].c);
+			else printf("%d\n",arr[i].w);
+		}
+	}
+
+
+
+}

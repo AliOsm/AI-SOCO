@@ -1,0 +1,149 @@
+//In the name of God
+
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int , int> pii;
+
+const int N = 1e5+10 , mod = 1e9+7 , L = 20;
+
+int now = 0 , st[N] , seg[4 * N][2][2] , h[N] , who[N] , par[N][L];
+vector <int> g[N];
+set <int> stt;
+
+void get(int s , int e , int ind , int l , int r , int i , int j){
+   if(s >= r || e <= l){
+      return;
+   }
+   if(s >= l && e <= r){
+      if(seg[ind][i][0] != mod - 1 && seg[ind][i][0] != -1)
+         stt.insert(seg[ind][i][0]);
+      if(seg[ind][i][1] != mod - 1 && seg[ind][i][1] != -1)
+         stt.insert(seg[ind][i][1]);
+      return;
+   }
+   int mid = (s + e) / 2;
+   get(s , mid , 2 * ind , l , r , i , j);
+   get(mid , e , 2 * ind + 1 , l , r , i , j);
+}
+
+void add(int s , int e , int ind , int l , int r , int val){
+   if(s >= r || e <= l)
+      return;
+   if(val < seg[ind][0][0]){
+      seg[ind][0][1] = seg[ind][0][0];
+      seg[ind][0][0] = val;
+   }
+   else{
+      if(val < seg[ind][0][1])
+         seg[ind][0][1] = val;
+   }
+   if(val > seg[ind][1][1]){
+      seg[ind][1][0] = seg[ind][1][1];
+      seg[ind][1][1] = val;
+   }
+   else{
+      if(val > seg[ind][1][0])
+         seg[ind][1][0] = val;
+   }
+   if(e - s <= 1)
+      return;
+   int mid = (e + s) / 2;
+   add(s , mid , 2 * ind , l , r , val);
+   add(mid , e , 2 * ind + 1 , l , r , val);
+}
+
+void dfs(int v , int p = 0){
+   st[v] = now++;
+   who[st[v]] = v;
+   par[v][0] = p;
+   for(int i = 1 ; i < L ; i++)
+      par[v][i] = par[par[v][i - 1]][i - 1];
+   for(int u : g[v]){
+      h[u] = h[v] + 1;
+      dfs(u , v);
+   }
+}
+
+inline int pr(int v , int x){
+   for(int i = 0 ; i < L ; i++)
+      if((1 << i) & x)
+         v = par[v][i];
+   return v;
+}
+
+int lca(int u , int v){
+   if(h[u] > h[v])
+      swap(u , v);
+   v = pr(v , h[v] - h[u]);
+   if(u == v)
+      return v;
+   for(int i = L - 1 ; i >= 0 ; i--)
+      if(par[v][i] != par[u][i])
+         u = par[u][i] , v = par[v][i];
+   return par[v][0];
+}
+
+int32_t main()
+{
+   ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+   for(int i = 0 ; i < 4 * N ; i++)
+      for(int j = 0 ; j < 2 ; j++)
+         for(int k = 0 ; k < 2 ; k++)
+            seg[i][j][k] = -1 + (1 - j) * mod;
+   int n , q;
+   cin >> n >> q;
+   for(int i = 1 ; i < n ; i++){
+      int p;
+      cin >> p;
+      p--;
+      g[p].push_back(i);
+   }
+   dfs(0);
+   for(int i = 0 ; i < n ; i++)
+      add(0 , n , 1 , i , i + 1 , st[i]);
+   while(q--){
+      int u , v;
+      cin >> u >> v;
+      u--;
+      if(v - u == 2){
+         v--;
+         //cout << h[u] << " " << h[v] << endl;
+         if(h[u] > h[v])
+            cout << v + 1 << " " << h[u] << "\n";
+         else
+            cout << u + 1 << " " << h[v] << "\n";
+         continue;
+      }
+      int a[2][2];
+      for(int i = 0 ; i < 2 ; i++){
+         get(0 , n , 1 , u , v , i , 0);
+         if(i == 0){
+            a[i][0] = who[*stt.begin()];
+            stt.erase(stt.begin());
+            a[i][1] = who[*stt.begin()];
+            stt.clear();
+         }
+         else{
+            a[i][1] = who[*stt.rbegin()];
+            auto it = stt.end();
+            it--;
+            stt.erase(it);
+            a[i][0] = who[*stt.rbegin()];
+            stt.clear();
+         }
+      }
+      int ret1 = h[lca(a[0][0] , a[1][0])];
+      int ret2 = h[lca(a[0][1] , a[1][1])];
+      /*for(int i = 0 ; i < 2 ; i++)
+         for(int j = 0 ; j < 2 ; j++)
+            cout << a[i][j] << " ";
+      cout << endl;*/
+      if(ret1 > ret2)
+         cout << a[1][1] + 1 << " " << ret1 << "\n";
+      else
+         cout << a[0][0] + 1 << " " << ret2 << "\n";
+   }
+   return 0;
+}

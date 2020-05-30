@@ -1,0 +1,137 @@
+#include <algorithm>
+#include <stdio.h>
+#include <iostream>
+#include <stdlib.h>
+#include <math.h>
+#include <stdlib.h>
+#include <functional>
+#include <string.h>
+#include <string>
+
+#include <vector>
+#include <stack>
+
+#include <set>
+#include <map>
+
+#include <hash_set>
+#include <hash_map>
+
+using namespace std;
+
+const int maxn = 2 * (int)1e5 + 10;
+
+pair<int, pair<int, int> > src[maxn];
+int n;
+
+set<int> varx;
+map<int, int> xtonx, nxtox;
+
+set<int> line[maxn];
+
+
+const int inf = (int)1e9 + 11;
+int tree[4 * maxn];
+
+void build() {
+	for (int i = 0; i < 4 * maxn; ++i) tree[i] = -inf;
+}
+
+void put(int v, int lt, int rt, int pos, int val) {
+	if (lt == rt) {
+		tree[v] = val;
+	} else {
+		int mt = (lt + rt) >> 1;
+		if (pos <= mt) {
+			put(v + v, lt, mt, pos, val);	
+		} else {
+			put(v + v + 1, mt + 1, rt, pos, val); //??
+		}
+		tree[v] = max(tree[v + v], tree[v + v + 1]);
+	}
+}
+
+int getpos(int v, int lt, int rt, int pos, int val) { // >= pos, >= val AND !! log^2 !!
+	if (tree[v] < val) return inf;
+	if (lt == rt) return lt;
+	int mt = (lt + rt) >> 1;
+	if (mt + 1 <= pos) return getpos(v + v + 1, mt + 1, rt, pos, val);
+	if (pos <= lt) { //<
+		if (tree[v + v] >= val)
+			return getpos(v + v, lt, mt, pos, val);
+		else
+			return getpos(v + v + 1, mt + 1, rt, pos, val);
+	}
+	return min(getpos(v + v, lt, mt, pos, val), getpos(v + v + 1, mt + 1, rt, pos, val));
+}
+
+int getmax(int v, int lt, int rt, int pos) {
+	if (lt == rt) return tree[v];
+	int mt = (lt + rt) >> 1;
+	if (pos <= mt) return getmax(v + v, lt, mt, pos);
+	return getmax(v + v + 1, mt + 1, rt, pos); //??
+}
+
+int main() {
+
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+
+	cin >> n;
+
+	{
+		char str[10];
+		for (int i = 0; i < n; ++i) {
+			scanf("%s%d%d", str, &src[i].second.first, &src[i].second.second);
+			if (str[0] == 'a') src[i].first = 0;
+			if (str[0] == 'r') src[i].first = 1;
+			if (str[0] == 'f') src[i].first = -1;
+			varx.insert(src[i].second.first);
+		}
+	}
+
+	int amt = 0;
+
+	while (!varx.empty()) {
+		int point = *varx.begin();
+		varx.erase(point);
+		xtonx[point] = amt;
+		nxtox[amt] = point;
+		++amt;
+	}
+
+	for (int i = 0; i < n; ++i) {
+		src[i].second.first = xtonx[src[i].second.first];
+	}
+
+	build();
+
+	for (int t = 0; t < n; ++t) {
+		if (src[t].first == 0) {
+			line[src[t].second.first].insert(src[t].second.second);
+			if (getmax(1, 0, amt, src[t].second.first) < src[t].second.second)
+				put(1, 0, amt, src[t].second.first, src[t].second.second);
+		} else
+		if (src[t].first == 1) {
+			line[src[t].second.first].erase(src[t].second.second);
+			if (getmax(1, 0, amt, src[t].second.first) == src[t].second.second) {
+				if (line[src[t].second.first].empty()) {
+					put(1, 0, amt, src[t].second.first, -inf);
+				} else {
+					put(1, 0, amt, src[t].second.first, *(--(line[src[t].second.first].end())));
+				}
+			}
+		} else	
+		if (src[t].first == -1) {
+			int pos = getpos(1, 0, amt, src[t].second.first + 1, src[t].second.second + 1);
+			if (pos == inf)
+				printf("-1\n");
+			else
+				printf("%d %d\n", nxtox[pos], *line[pos].upper_bound(src[t].second.second));
+		}			
+	}
+
+	return 0;
+}

@@ -1,0 +1,121 @@
+#include <iostream>
+#include <cstdlib>
+using namespace std;
+
+typedef unsigned long long ull;
+
+struct node
+{
+    bool hasValue;
+    ull value;
+    int L, R;
+};
+
+int kth_bit(ull N, int k)
+{
+    return (N>>k)&1ULL;
+}
+
+struct tree
+{
+    node* A;
+    int MAXSZ;
+    int freenode;
+
+    tree(int n) // maximal number of t's to be added
+    {
+        MAXSZ=41*n+100;
+		freenode=1;
+        A=new node[MAXSZ];
+        for(int i=0; i<MAXSZ; i++)
+        {
+            A[i].hasValue=false;
+            A[i].L=A[i].R=0;
+            A[i].value=0;
+        }
+    }
+
+    void build(ull t)
+    {
+        int it=0;
+        for(int bit=40-1; bit>=0; bit--)
+        {
+            int next;
+            if(kth_bit(t, bit)==0)
+            {
+                if(A[it].L==0) A[it].L=freenode++;
+                next=A[it].L;
+            }
+            else
+            {
+                if(A[it].R==0) A[it].R=freenode++;
+                next=A[it].R;
+            }
+
+            it=next;
+
+            if(bit==0)
+            {
+                A[it].hasValue=true;
+                A[it].value=t;
+            }
+        }
+    }
+
+    ull best(ull t)
+    {
+        int it=0;
+        for(int bit=40-1; bit>=0; bit--)
+        {
+            if(kth_bit(t, bit)==0)
+            {
+                if(A[it].R!=0) it=A[it].R;
+                else it=A[it].L;
+            }
+            else
+            {
+                if(A[it].L!=0) it=A[it].L;
+                else it=A[it].R;
+            }
+        }
+        return t^A[it].value;
+    }
+
+    ~tree()
+    {
+        delete[] A;
+    }
+};
+
+int main()
+{
+    int n;
+    cin >> n;
+
+    ull *a=new ull[n+1];
+    for(int i=1; i<=n; i++) cin >> a[i];
+
+    ull *p=new ull[n+1];
+    p[0]=0;
+
+    tree T(n+1);
+    ull val=0;
+    T.build(val);
+    for(int i=1; i<=n; i++)
+    {
+        val=val^a[i];
+        T.build(val);
+    }
+
+    val=0;
+    ull result=T.best(val);
+    for(int i=n; i>=1; i--)
+    {
+        val=val^a[i];
+        result=max(result, T.best(val));
+    }
+
+    cout << result;
+    delete[] a;
+    return 0;
+}

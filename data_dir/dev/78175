@@ -1,0 +1,110 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+
+struct item {
+	int key, prior, sz;
+	item *l, *r;
+	item(int key, int prior) : key(key), prior(prior), sz(1), l(NULL), r(NULL) { }
+};
+
+typedef item * pitem;
+
+int cnt(pitem t) {
+	if(t) {
+		return t -> sz;
+	}
+	return 0;
+}
+
+void upd_cnt(pitem t) {
+	if(t) {
+		t -> sz = 1 + cnt(t -> l) + cnt(t -> r);
+	}
+}
+
+void split(pitem t, int key, pitem &l, pitem &r) {
+	if(!t) {
+		l = r = NULL;
+	} else if(t -> key > key) {
+		split(t -> l, key, l, t -> l);
+		r = t;
+	} else {
+		split(t -> r, key, t -> r, r);
+		l = t;
+	}
+	upd_cnt(t);
+}
+
+void merge(pitem &t, pitem l, pitem r) {
+	if(!l) {
+		t = r;
+	} else if(!r) {
+		t = l;
+	} else if(l -> prior > r -> prior) {
+		merge(l -> r, l -> r, r);
+		t = l;
+	} else {
+		merge(r -> l, l, r -> l);
+		t = r;
+	}
+	upd_cnt(t);
+}
+
+void insert(pitem &t, pitem it) {
+	if(!t) {
+		t = it;
+	} else if(it -> prior > t -> prior) {
+		split(t, it -> key, it -> l, it -> r);
+		t = it;
+	} else if(it -> key > t -> key) {
+		insert(t -> r, it);
+	} else {
+		insert(t -> l, it);
+	}
+	upd_cnt(t);
+}
+
+map<int, int> mp;
+int cur = 0;
+vector<pitem> root_i, root_e;
+
+int main (int argc, char *argv[])
+{
+	srand(5);
+	int n;
+	scanf("%d", &n);
+	while(n--) {
+		int a, t, x;
+		scanf("%d%d%d", &a, &t, &x);
+		if(a == 1) {
+			if(!mp[x]) {
+				mp[x] = ++cur;
+				root_i.push_back(NULL);
+				root_e.push_back(NULL);
+			}
+			int q = mp[x] - 1;
+			pitem it = new item(t, rand());
+			insert(root_i[q], it);
+		} else if(a == 2) {
+			int q = mp[x] - 1;
+			pitem it = new item(t, rand());
+			insert(root_e[q], it);
+		} else {
+			pitem it = new item(t, rand()), itt = new item(t, rand());
+			if(!mp[x]) {
+				mp[x] = ++cur;
+				root_i.push_back(NULL);
+				root_e.push_back(NULL);
+			}
+			int q = mp[x] - 1;
+			split(root_i[q], it -> key, it -> l, it -> r);
+			split(root_e[q], itt -> key, itt -> l, itt -> r);
+			printf("%d\n", cnt(it -> l) - cnt(itt -> l));
+			merge(root_i[q], it -> l, it -> r);
+			merge(root_e[q], itt -> l, itt -> r);
+		}
+	}
+
+	return 0;
+}
+

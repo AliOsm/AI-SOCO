@@ -1,0 +1,67 @@
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+#define FOR(it, c) for(__typeof((c).begin()) it = (c).begin(); it != (c).end(); it++)
+#define SZ(c) ((int)(c).size())
+
+typedef long long LL;
+LL sum[2][2][2][155][155];
+LL dp[2][2][2][155][155];
+const int MOD = 1e9+7;
+void add(LL &x, long long v) {
+    x = (x+v)%MOD;
+}
+
+LL require_sum(int u, int f1, int f2, int xL, int xR, int yL, int yR) {
+    return
+        sum[u][f1][f2][xR][yR] - sum[u][f1][f2][xL-1][yR]
+        -sum[u][f1][f2][xR][yL-1] + sum[u][f1][f2][xL-1][yL-1];
+}
+int main(void) {
+    int m, n;
+    LL sol=0;
+    scanf("%d%d", &m, &n);
+    int u=0;
+    for(int i=1;i<=m;i++)
+        for(int j=i;j<=m;j++) {
+            dp[0][0][0][i][j] = 1;
+            add(sol, (n+1-1)*dp[0][0][0][i][j]);
+        }
+    for(int i=1;i<=m;i++)
+        for(int j=1;j<=m;j++) {
+            sum[0][0][0][i][j] = (dp[0][0][0][i][j] + sum[0][0][0][i-1][j] + sum[0][0][0][i][j-1] - sum[0][0][0][i-1][j-1])%MOD;
+        }
+    for(int row=2;row<=n;row++) {
+        memset(dp[1-u],0,sizeof(dp[1-u]));
+        memset(sum[1-u],0,sizeof(sum[1-u]));
+        for(int i=1;i<=m;i++)
+            for(int j=i;j<=m;j++) {
+                dp[1-u][0][0][i][j] = require_sum(u, 0, 0, i, j, i, j);
+                dp[1-u][0][1][i][j] = require_sum(u, 0, 1, i, j, j, m);
+                if(j<m) add(dp[1-u][0][1][i][j], require_sum(u, 0, 0, i, j, j+1, m));
+                
+                dp[1-u][1][0][i][j] = require_sum(u, 1, 0, 1, i, i, j);
+                if(i>1) add(dp[1-u][1][0][i][j], require_sum(u, 0, 0, 1, i-1, i, j));
+
+                dp[1-u][1][1][i][j] = require_sum(u, 1, 1, 1, i, j, m);
+                if(i>1) add(dp[1-u][1][1][i][j], require_sum(u, 0, 1, 1, i-1, j, m));
+                if(j<m) add(dp[1-u][1][1][i][j], require_sum(u, 1, 0, 1, i, j+1, m));
+                if(i>1&&j<m) add(dp[1-u][1][1][i][j], require_sum(u, 0, 0, 1, i-1, j+1, m));
+            }
+        u=1-u;
+                for(int f1=0;f1<2;f1++)
+                    for(int f2=0;f2<2;f2++) {
+        for(int i=1;i<=m;i++)
+            for(int j=1;j<=m;j++)
+                sum[u][f1][f2][i][j] = (dp[u][f1][f2][i][j] + sum[u][f1][f2][i-1][j]+sum[u][f1][f2][i][j-1] - sum[u][f1][f2][i-1][j-1])%MOD;
+        add(sol, (n+1-row)*1LL*sum[u][f1][f2][m][m]);
+                    }
+    }
+    sol = (sol%MOD+MOD)%MOD;
+    printf("%I64d\n", sol);
+    return 0;
+}

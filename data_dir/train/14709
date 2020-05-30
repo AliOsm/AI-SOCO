@@ -1,0 +1,161 @@
+#include "bits/stdc++.h"
+
+using namespace std;
+
+#define debug(args...) fprintf(stderr, args)
+
+#define FOR(i, a, b) for(int i = a; i <= b; i++)
+#define ROF(i, a, b) for(int i = a; i >= b; i--)
+
+#define pb push_back
+#define sz(x) (int)(x).size()
+#define all(x) x.begin(), x.end()
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int MAXN = 2e5 + 10;
+
+int N, M, K;
+
+char c[MAXN];
+
+struct node {
+	int NX[10][10];
+	char lazy;
+	char l, r;
+
+	node() {
+		l = r = '_';
+		lazy = '_';
+
+		memset(NX, 0, sizeof(NX));
+	}
+
+	void merge(node L, node R) {
+		FOR(i, 0, K - 1)
+			FOR(j, 0, K - 1)
+				NX[i][j] = L.NX[i][j] + R.NX[i][j];
+
+		if(L.r != '_' && R.l != '_') 
+			++NX[L.r - 'a'][R.l - 'a'];
+
+		if(L.l != '_') l = L.l;
+		else l = R.l;
+
+		if(R.r != '_') r = R.r;
+		else r = L.r;
+	}
+} seg[4 * MAXN];
+
+void refresh(int idx, int i, int j) {
+	if(seg[idx].lazy == '_') return;
+
+	int left = idx << 1;
+	int right = left | 1;
+
+	if(i != j) {
+		seg[left].lazy = seg[idx].lazy;
+		seg[right].lazy = seg[idx].lazy;
+	}
+
+	memset(seg[idx].NX, 0, sizeof(seg[idx].NX));
+
+	seg[idx].NX[seg[idx].lazy - 'a'][seg[idx].lazy - 'a'] = j - i;
+	seg[idx].l = seg[idx].lazy;
+	seg[idx].r = seg[idx].lazy;
+	seg[idx].lazy = '_';
+}
+
+void build(int idx, int i, int j) {
+	seg[idx].lazy = '_';
+
+	if(i == j) {
+		seg[idx].l = c[i];
+		seg[idx].r = c[i];
+		return;
+	}
+
+	int mid = (i + j) >> 1;
+	int left = idx << 1;
+	int right = left | 1;
+
+	build(left, i, mid);
+	build(right, mid + 1 , j);
+
+	seg[idx].merge(seg[left], seg[right]);
+}
+
+void update(int idx, int i, int j, int l, int r, char C) {
+	refresh(idx, i, j);
+
+	if(i > j || j < l || r < i) return;
+
+	if(l <= i && j <= r) {
+		seg[idx].lazy = C;
+		refresh(idx, i, j);
+		return;
+	}
+
+	int mid = (i + j) >> 1;
+	int left = idx << 1;
+	int right = left | 1;
+
+	update(left, i, mid, l, r, C);
+	update(right, mid + 1, j, l, r, C);
+
+	seg[idx].merge(seg[left], seg[right]);
+}
+
+bool st[10][10];
+
+int main() {
+	cin.sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	cin >> N >> M >> K;
+
+	FOR(i, 1, N)
+		cin >> c[i];
+
+	build(1, 1, N);
+
+	while(M--) {
+		int type;
+
+		cin >> type;
+
+		if(type == 1) {
+			int L, R;
+			char C;
+
+			cin >> L >> R >> C;
+
+			update(1, 1, N, L, R, C);
+		}
+		else {
+			string p;
+
+			cin >> p;
+
+			memset(st, false, sizeof(st));
+
+			FOR(i, 0, K - 1)
+				FOR(j, i + 1, K - 1)
+					st[p[i] - 'a'][p[j] - 'a'] = true;
+
+			int ans = 1;
+
+			FOR(i, 0, K - 1)
+				FOR(j, 0, K - 1)
+					if(!st[i][j]) 
+						ans += seg[1].NX[i][j];
+
+			cout << ans << '\n';
+		}
+	}
+
+	return 0;
+}
+	

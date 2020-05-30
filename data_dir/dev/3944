@@ -1,0 +1,27 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define FOR(i, a, b) for (int i = (a); i < (b); ++i)
+typedef long long ll;
+typedef long double ld;
+ll m=1000000007;
+int main()
+{
+	ll x,y,ans;
+	ll n;
+	cin>>x>>y;
+	cin>>n;
+	if(n%6==0)ans=((-y)%m+x%m)%m;
+	else if(n%6==1)ans=x%m;
+	else if(n%6==2)ans=y%m;
+	else if(n%6==3)ans=(y%m-x%m)%m;
+	else if(n%6==4)ans=(-x)%m;
+	else if(n%6==5)ans=(-y)%m;
+	if(ans>=0)cout<<ans%m;
+	else
+	{
+		while(ans<0)
+			ans+=m;
+	cout<<ans%m;
+	}
+	return 0;
+}

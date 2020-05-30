@@ -1,0 +1,104 @@
+#include <vector>
+#include <algorithm>
+#include <cstdio>
+#include <iostream>
+#include <sstream>
+#include <set>
+#include <map>
+#include <queue>
+#include <cassert>
+#include <string>
+#include <cstring>
+#include <unordered_map>
+#include <unordered_set>
+
+using namespace std;
+
+bool check(const vector<int> &sequence, const vector<int> &need) {
+    vector<int> freq(4, 0);
+    for (size_t i = 0; i < sequence.size(); ++i) {
+        if (i != 0 && abs(sequence[i] - sequence[i - 1]) != 1)
+            return false;
+        ++freq[sequence[i]];
+    }
+    for (int i = 0; i < 4; ++i) {
+        if (freq[i] != need[i])
+            return false;
+    }
+    return true;
+}
+
+vector<int> buildSequence(const vector<int> &prefix, const vector<int> &suffix, const vector<int> &need) {
+    vector<int> can(need.begin(), need.end());
+    for (int x : prefix) {
+        --can[x];
+    }
+    for (int x : suffix) {
+        --can[x];
+    }
+    vector<int> value({1, 2});
+    vector<int> sequence;
+    for (int i = 0; i < 2; ++i) {
+        sequence.clear();
+        sequence.insert(sequence.end(), prefix.begin(), prefix.end());
+        int size = min(can[value[i]], can[value[i ^ 1]]);
+        for (int j = 0; j < size; ++j) {
+            sequence.push_back(value[i]);
+            sequence.push_back(value[i ^ 1]);
+        }
+        if (can[value[i]] > can[value[i ^ 1]])
+            sequence.push_back(value[i]);
+        sequence.insert(sequence.end(), suffix.begin(), suffix.end());
+        if ((sequence.empty() || sequence.back() == 1) && can[0] > 0)
+            sequence.push_back(0);
+        if ((sequence.empty() || sequence.back() == 2) && can[3] > 0)
+            sequence.push_back(3);
+        if (check(sequence, need))
+            break;
+        sequence.clear();
+    }
+    return sequence;
+}
+
+vector<int> buildSequence(int a, int b, int c, int d) {
+    vector<int> need({a, b, c, d});
+    vector<vector<int>> prefixes(2);
+    for (int i = 0; i < 2; ++i) {
+        int size = min(need[i], need[i ^ 1]);
+        for (int j = 0; j < size; ++j) {
+            prefixes[i].push_back(i);
+            prefixes[i].push_back(i ^ 1);
+        }
+    }
+    vector<vector<int>> suffixes(2);
+    for (int i = 2; i < 4; ++i) {
+        int size = min(need[i], need[i ^ 1]);
+        for (int j = 0; j < size; ++j) {
+            suffixes[i - 2].push_back(i);
+            suffixes[i - 2].push_back(i ^ 1);
+        }
+    }
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 2; ++j) {
+            vector<int> sequence = buildSequence(prefixes[i], suffixes[j], need);
+            if (!sequence.empty())
+                return sequence;
+        }
+    }
+    return vector<int>();
+}
+
+int main(int argc, char **argv) {
+    int a, b, c, d;
+    scanf("%d%d%d%d", &a, &b, &c, &d);
+    vector<int> answer = buildSequence(a, b, c, d);
+    if (answer.empty())
+        puts("NO");
+    else {
+        puts("YES");
+        for (size_t i = 0; i < answer.size(); ++i)
+            printf("%s%d", i ? " " : "", answer[i]);
+        puts("");
+    }
+    return 0;
+}

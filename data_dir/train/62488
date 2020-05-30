@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+
+const int N = 500;
+const int E = 30006;
+const ll oo = 1e18;
+vector<int> g[N];
+
+int ne;
+struct Edge{
+    int from, to;
+    ll cap;
+} edge[E];
+
+int lvl[N], vis[N], pass, source, target, px[N];
+
+ll run(int s, ll minE){
+    if(s == target) return minE;
+
+    ll ans = 0;
+
+    for(; px[s] < (int)g[s].size(); px[s]++){
+        int e = g[s][ px[s] ];
+        auto &v = edge[e], &rev = edge[e^1];
+        if(lvl[v.to] != lvl[s]+1 || !v.cap) continue;
+        ll tmp = run(v.to, min(minE, v.cap));
+        v.cap -= tmp, rev.cap += tmp;
+        ans += tmp, minE -= tmp;
+        if(minE == 0) break;
+    }
+    return ans;
+}
+
+int bfs(){
+
+    queue<int> q;
+    q.push(source);
+    lvl[source] = 1;
+    vis[source] = ++pass;
+
+    while(!q.empty()){
+        int u = q.front(); q.pop();
+        px[u] = 0;
+
+        for(int e : g[u]){
+            auto v = edge[e];
+            if(v.cap <= 0 || vis[v.to] == pass) continue;
+            vis[v.to] = pass;
+            lvl[v.to] = lvl[u]+1;
+            q.push(v.to);
+        }
+    }
+    return vis[target] == pass;
+}
+
+ll flow(){
+    ll ans = 0;
+    while(bfs()) ans += run(source, oo);
+    return ans;
+}
+
+void addEdge(int u, int v, ll c){
+    edge[ne] = {u, v, c};
+    g[u].push_back(ne++);
+    edge[ne] = {v, u, 0};
+    g[v].push_back(ne++);
+}
+
+char a[N], b[N];
+int n;
+
+int dp[N][N];
+int f(int i, int j){
+	if(i == n || j == n) return 0;
+	int &ans = dp[i][j];
+	if(~ans) return ans;
+
+	ans = max(f(i+1, j), f(i, j+1));
+
+	if(i == j){
+		if(a[i] == '0' && b[j] == '0' && a[i+1] == '0'){
+			ans = max(ans, 1+f(i+2, j+1));
+		}
+		if(a[i] == '0' && b[j] == '0' && b[i+1] == '0'){
+			ans = max(ans, 1+f(i+1, j+2));
+		}
+	}
+	else if(i+1 == j){
+		if(a[i]	== '0' && b[j] == '0' && a[i+1] == '0'){
+			ans = max(ans, 1+f(i+2, j+1));
+		}
+	}
+	else if(i == j+1){
+		if(a[i] == '0' && b[j] == '0' && b[j+1] == '0'){
+			ans = max(ans, 1+f(i+1, j+2));
+		}
+	}
+
+	return ans;
+}
+
+int main(){
+
+	memset(dp, -1, sizeof dp);
+	scanf(" %s %s", a, b), n = strlen(a);
+
+	printf("%d\n", f(0, 0));
+
+}

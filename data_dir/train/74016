@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#ifdef DGC
+#include "debug.h"
+#else
+#define debug(...) 9715
+#endif
+typedef long long ll;
+typedef long double ld;
+typedef complex<ll> point;
+#define F first
+#define S second
+
+template <typename T>
+struct RMQ_2D
+{
+	vector<vector<vector<vector<T>>>> v;
+	int side;
+	RMQ_2D<T>(vector<vector<T>> w, int _side = 1)
+	{
+		side = _side;
+		int n = w.size(), m = w[0].size();
+		v = vector<vector<vector<vector<T>>>>(n, vector<vector<vector<T>>>(m,
+				vector<vector<T>>(1+(int)log2(n), vector<T>(1+(int)log2(m)))));
+		for(int ln=0; (1<<ln)<=n; ln++)
+		{
+			for(int i=0; i+(1<<ln)<n; i++)
+			{
+				for(int lm=0; (1<<lm)<=m; lm++)
+				{
+					for(int j=0; j+(1<<lm)<m; j++)
+					{
+						if(ln == 0 && lm == 0)
+							v[i][j][ln][lm] = w[i][j];
+						else if(lm == 0)
+							v[i][j][ln][lm] = max(side * v[i][j][ln - 1][lm], side * v[i + (1<<(ln - 1))][j][ln - 1][lm]);
+						else
+							v[i][j][ln][lm] = max(side * v[i][j][ln][lm - 1], side * v[i][j + (1<<(lm - 1))][ln][lm - 1]);
+					}
+				}
+			}
+		}
+	}
+	T query(int x1, int y1, int x2, int y2)
+	{
+		int l1 = (int)log2( x2 - x1 + 1), l2 = (int)log2(y2 - y1 + 1);
+		return max(
+				max(side * v[x1][y1][l1][l2], side * v[x1][y2 - (1<<l2) + 1][l1][l2]),
+				max(side * v[x2 - (1<<(l1)) + 1][y2 - (1<<l2) + 1][l1][l2], side * v[x2 - (1<<(l1)) + 1][y1][l1][l2])
+				);
+	}
+};
+
+int main()
+{
+	#ifdef DGC
+		freopen("a.in", "r", stdin);
+		//freopen("a.out", "w", stdout);
+	#endif
+
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int n, m, q;
+	cin >> n >> m >> q;
+	vector<string> a(n);
+	for (auto &i : a) cin >> i;
+
+	vector<vector<int>> dp(n, vector<int>(m));
+	auto row = dp, col = dp;
+
+	for (int i = n-1; i >= 0; --i)
+		for (int j = m-1; j >= 0; --j)
+		{
+			col[i][j] = row[i][j] = 1;
+			if (j+1 < m && a[i][j+1] == a[i][j]) row[i][j] += row[i][j+1];
+			if (i+1 < n && a[i+1][j] == a[i][j]) col[i][j] += col[i+1][j];
+		}
+
+	for (int i = 0; i+1 < n; ++i)
+		for (int j = 0; j+1 < m; ++j)
+			if (a[i][j] == 'R' && a[i+1][j] == 'Y' && a[i][j+1] == 'G' && a[i+1][j+1] == 'B')
+			{
+				dp[i][j] = n;
+
+				int l = 0;
+				while (i-l >= 0 && j-l >= 0 && a[i-l][j-l] == 'R' && row[i-l][j-l] >= l+1 && col[i-l][j-l] >= l+1) ++l;
+				dp[i][j] = min(dp[i][j], l);
+
+				l = 0;
+				while (i-l >= 0 && j+1+l < m && a[i-l][j+1+l] == 'G' && row[i-l][j+1] >= l+1 && col[i-l][j+1+l] >= l+1) ++l;
+				dp[i][j] = min(dp[i][j], l);
+
+				l = 0;
+				while (i+1+l < n && j-l >= 0 && a[i+1+l][j-l] == 'Y' && row[i+1+l][j-l] >= l+1 && col[i+1][j-l] >= l+1) ++l;
+				dp[i][j] = min(dp[i][j], l);
+
+				l = 0;
+				while (i+1+l < n && j+1+l < m && a[i+1+l][j+1+l] == 'B' && row[i+1+l][j+1] >= l+1 && col[i+1][j+1+l] >= l+1) ++l;
+				dp[i][j] = min(dp[i][j], l);
+			}
+
+	RMQ_2D<int> R(dp);
+	for (int r1, c1, r2, c2; q--; )
+	{
+		cin >> r1 >> c1 >> r2 >> c2;
+		--r1, --c1;
+
+		int l = 0, r = min(r2-r1, c2-c1) / 2;
+		while (l < r)
+		{
+			int md = (l + r + 1) >> 1;
+			if (R.query(r1 + md-1, c1 + md-1, r2 - md-1, c2 - md-1) >= md)
+				l = md;
+			else
+				r = md-1;
+		}
+		cout << 4*l*l << "\n";
+	}
+
+	return 0;
+}

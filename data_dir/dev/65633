@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+ 
+using namespace std;
+ 
+template <typename T, class F = function<T(const T&, const T&)>>
+class SparseTable {
+public:
+    int n;
+    vector<vector<T>> sp;
+    F func;
+ 
+    SparseTable(const vector<T> &a , const F& f) : func(f) {
+        n = static_cast<int>(a.size());
+        int max_log = 32 - __builtin_clz(n);
+        sp.resize(max_log);
+        sp[0] = a;
+        for (int j = 1; j < max_log; ++j) {
+            sp[j].resize(n - (1 << j) + 1);
+            for (int i = 0; i <= n - (1 << j); ++i) {
+                sp[j][i] = func(sp[j - 1][i], sp[j - 1][i + (1 << (j - 1))]);
+            }
+        }
+    }
+ 
+    T get(int l , int r) const {
+        int lg = 32 - __builtin_clz(r - l + 1) - 1;
+        return func(sp[lg][l] , sp[lg][r - (1 << lg) + 1]);
+    }
+};
+ 
+const int N = 1e6 + 6;
+vector<int> adj[N];
+int nxt[2 * N] , prv[2 * N];
+ 
+int main() {
+#ifndef ONLINE_JUDGE
+    freopen("input.in" , "r" , stdin);
+#endif
+    int n;
+    scanf("%d" , &n);
+ 
+    map<int , int> mp;
+    vector<int> a(n);
+ 
+    for (int i = 0 ;i < n ;i++)
+        scanf("%d" , &a[i]) , mp[a[i]];
+ 
+    int cnt = 0;
+    for (auto &p : mp)
+        p.second = cnt++;
+ 
+    for (int i = 0 ;i < n ;i++) {
+        a[i] = mp[a[i]];
+        adj[a[i]].push_back(i);
+    }
+ 
+    SparseTable<int> sp(a, [&](int i, int j) {
+        return max(i, j);
+    });
+ 
+    long long ans = 0;
+    for (int v = 0 ;v < cnt ;v++) {
+        vector<int> comps;
+        for (int j = 0 ;j < adj[v].size() ;j++) {
+            int cnt = 1;
+            while (j + 1 < adj[v].size() && sp.get(adj[v][j] , adj[v][j + 1]) == v)
+                cnt++ , j++;
+ 
+            comps.push_back(cnt);
+        }
+ 
+        if (comps.size() > 1 && sp.get(0 , adj[v][0]) == v && sp.get(adj[v].back() , n - 1) == v) {
+            comps[0] += comps.back();
+            comps.pop_back();
+        }
+ 
+        for (int x : comps)
+            ans += (x * (x - 1ll)) / 2;
+    }
+ 
+    for (int i = 0 ;i < n ;i++)
+        a.push_back(a[i]);
+ 
+    int m = a.size();
+ 
+    for (int i = m - 1 ;i >= 0 ;i--) {
+        nxt[i] = i + 1;
+        while (nxt[i] < m && a[nxt[i]] <= a[i])
+            nxt[i] = nxt[nxt[i]];
+    }
+ 
+    for (int i = 0 ;i < m ;i++) {
+        prv[i] = i - 1;
+        while (prv[i] >= 0 && a[prv[i]] <= a[i])
+            prv[i] = prv[prv[i]];
+ 
+        if (prv[i] >= 0 && nxt[i] < m && (i >= n || nxt[i] >= n))
+            ans += prv[i] % n == nxt[i] % n ? 1 : 2;
+    }
+ 
+    printf("%lld" , ans);
+}

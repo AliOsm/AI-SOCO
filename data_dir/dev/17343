@@ -1,0 +1,101 @@
+#include <cstdio>
+#include <algorithm>
+using namespace std;
+
+using PII = pair<int,int>;
+using LL = long long;
+const int INF = 1000000007;
+
+class SegTree{
+public:
+    LL  e[6][262144];
+    int u[6][262144];
+    int mark[262144];
+    void init(const int a[], int l, int r, int i){
+        mark[i]=-1;
+        if(l+1==r){
+            e[0][i]=1;
+            u[0][i]=a[l];
+            for(int o=1;o<6;o++){
+                e[o][i]=(l+1)*e[o-1][i]%INF;
+                u[o][i]=e[o][i]*a[l]%INF;
+            }
+            return;
+        }
+        int m=(l+r)/2,j=i*2,k=j+1;
+        init(a,l,m,j);
+        init(a,m,r,k);
+        for(int o=0;o<6;o++){
+            e[o][i]=(e[o][j]+e[o][k])%INF;
+            u[o][i]=(u[o][j]+u[o][k])%INF;
+        }
+    }
+    void modify(int x, int y, int c, int l, int r, int i){
+        if(x<=l && r<=y){
+            for(int o=0;o<6;o++) u[o][i]=e[o][i]*c%INF;
+            mark[i]=c;
+            return;
+        }
+        int m=(l+r)/2,j=i*2,k=j+1;
+        if(~mark[i]){
+            for(int o=0;o<6;o++){
+                u[o][j]=e[o][j]*mark[i]%INF;
+                u[o][k]=e[o][k]*mark[i]%INF;
+            }
+            mark[j]=mark[k]=mark[i];
+            mark[i]=-1;
+        }
+        if(x<m) modify(x,y,c,l,m,j);
+        if(m<y) modify(x,y,c,m,r,k);
+        for(int o=0;o<6;o++) u[o][i]=(u[o][j]+u[o][k])%INF;
+    }
+    int getsum(int x, int y, int c, int l, int r, int i){
+        if(x<=l && r<=y) return u[c][i];
+        int m=(l+r)/2,j=i*2,k=j+1;
+        if(~mark[i]){
+            for(int o=0;o<6;o++){
+                u[o][j]=e[o][j]*mark[i]%INF;
+                u[o][k]=e[o][k]*mark[i]%INF;
+            }
+            mark[j]=mark[k]=mark[i];
+            mark[i]=-1;
+        }
+        int ret=0;
+        if(x<m) ret+=getsum(x,y,c,l,m,j);
+        if(m<y) ret+=getsum(x,y,c,m,r,k);
+        return ret%INF;
+    }
+}st;
+
+int a[100005];
+
+const int table[6][6]={
+    {1},
+    {1,-1},
+    {1,-2,1},
+    {1,-3,3,-1},
+    {1,-4,6,-4,1},
+    {1,-5,10,-10,5,-1}
+};
+
+int main(){
+    int n,m;
+    scanf("%d%d",&n,&m);
+    for(int i=0;i<n;i++) scanf("%d",a+i);
+    st.init(a,0,n,1);
+    for(int i=0;i<m;i++){
+        char o[5];
+        int x,y,c;
+        scanf("%s%d%d%d",o,&x,&y,&c);
+        if(*o=='=') st.modify(x-1,y,c,0,n,1);
+        if(*o=='?'){
+            int e=1,ans=0;
+            for(int j=0;j<=c;j++){
+                int w=st.getsum(x-1,y,c-j,0,n,1);
+                ans=(ans+LL(w)*table[c][j]%INF*e)%INF;
+                e=e*(x-1ll)%INF;
+            }
+            printf("%d\n",(ans+INF)%INF);
+        }
+    }
+}

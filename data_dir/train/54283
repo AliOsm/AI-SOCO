@@ -1,0 +1,174 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define x first
+#define y second
+#define mp make_pair
+#define pb push_back
+#define sqr(a) ((a) * (a))
+#define sz(a) int(a.size())
+#define all(a) a.begin(), a.end()
+#define forn(i, n) for(int i = 0; i < int(n); i++) 
+#define fore(i, l, r) for(int i = int(l); i < int(r); i++)
+
+typedef long long li;
+typedef long double ld;
+typedef pair<int, int> pt;
+
+template <class A, class B> ostream& operator << (ostream& out, const pair<A, B> &a) {
+	return out << "(" << a.x << ", " << a.y << ")";
+}
+
+template <class A> ostream& operator << (ostream& out, const vector<A> &v) {
+	out << "[";
+	forn(i, sz(v)) {
+		if(i) out << ", ";
+		out << v[i];
+	}
+	return out << "]";
+}
+
+mt19937 rnd(time(NULL));
+
+const int INF = int(1e9);
+const li INF64 = li(1e18);
+const int MOD = INF + 7;
+const ld EPS = 1e-9;
+const ld PI = acos(-1.0);
+
+const int N = 1000 * 1000 + 13;
+const int LOGN = 18;
+
+struct edge{
+	int v, u, w, i;
+	bool fl;
+	edge(){}
+};
+
+bool operator <(const edge &a, const edge &b){
+	return a.w < b.w;
+}
+
+int n, m;
+edge e[N];
+
+bool read () {
+	if (scanf("%d%d", &n, &m) != 2)
+		return false;
+	forn(i, m){
+		scanf("%d%d%d", &e[i].v, &e[i].u, &e[i].w);
+		--e[i].v, --e[i].u;
+		e[i].i = i;
+		e[i].fl = false;
+	}
+	return true;
+}
+
+int p[N], rk[N];
+
+int getp(int a){
+	return (a == p[a] ? a : p[a] = getp(p[a]));
+}
+
+bool unite(int a, int b){
+	a = getp(a), b = getp(b);
+	if (a == b) return false;
+	if (rk[a] < rk[b]) swap(a, b);
+	p[b] = a;
+	rk[a] += rk[b];
+	return true;
+}
+
+vector<pt> g[N];
+int up[LOGN][N], mx[LOGN][N];
+int h[N];
+
+void init(int v, int p = -1){
+	for (auto it : g[v]){
+		int u = it.x;
+		int w = it.y;
+		if (u == p) continue;
+		up[0][u] = v;
+		mx[0][u] = w;
+		fore(i, 1, LOGN){
+			up[i][u] = up[i - 1][up[i - 1][u]];
+			mx[i][u] = max(mx[i - 1][u], mx[i - 1][up[i - 1][u]]);
+		}
+		h[u] = h[v] + 1;
+		init(u, v);
+	}
+}
+
+int get(int v, int u){
+	if (h[v] < h[u]) swap(v, u);
+	int res = -INF;
+	for (int i = LOGN - 1; i >= 0; --i){
+		if (h[up[i][v]] >= h[u]){
+			res = max(res, mx[i][v]);
+			v = up[i][v];
+		}
+	}
+	if (v == u) return res;
+	for (int i = LOGN - 1; i >= 0; --i){
+		if (up[i][v] != up[i][u]){
+			res = max({res, mx[i][v], mx[i][u]});
+			v = up[i][v], u = up[i][u];
+		}
+	}
+	return max({res, mx[0][v], mx[0][u]});
+}
+
+int ans[N];
+
+void solve() {
+	forn(i, n) g[i].clear();
+	
+	sort(e, e + m);
+	forn(i, n) p[i] = i, rk[i] = 1;
+	li tot = 0;
+	forn(i, m) if (unite(e[i].v, e[i].u)){
+		g[e[i].v].pb(mp(e[i].u, e[i].w));
+		g[e[i].u].pb(mp(e[i].v, e[i].w));
+		tot += e[i].w;
+		e[i].fl = true;
+	}
+	
+	init(0);
+	
+	memset(ans, -1, sizeof(ans));
+	forn(i, m) if (!e[i].fl)
+		ans[e[i].i] = get(e[i].v, e[i].u);
+	
+	forn(i, m) if (ans[i] != -1)
+		printf("%d\n", ans[i]);
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+	
+	int tt = clock();
+	
+#endif
+	
+	cerr.precision(15);
+	cout.precision(15);
+	cerr << fixed;
+	cout << fixed;
+
+#ifdef _DEBUG
+	while(read()) {	
+#else
+	if(read()) {
+#endif
+		solve();
+		
+#ifdef _DEBUG
+	cerr << "TIME = " << clock() - tt << endl;
+	tt = clock();
+#endif
+
+	}
+}

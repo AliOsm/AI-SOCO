@@ -1,0 +1,232 @@
+//satyaki3794
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <cstring>
+#include <algorithm>
+#include <climits>
+#include <string>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <cctype>
+#include <cassert>
+#include <bitset>
+#include <iomanip>
+#define gc getchar_unlocked
+#define pc putchar_unlocked
+#define PI (3.14159265)
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define INF (100000005)
+#define SIZE (2)
+#define TREESIZE (302144)
+#define LEFT(n) (2*n)
+#define RIGHT(n) (2*n+1)
+#define epsilon 1e-8 //add to double before casting to integer
+ 
+using namespace std;
+ 
+typedef long long ll;
+typedef unsigned long long ull;
+typedef pair<int, int> ii;
+typedef pair<ii, int> iii;
+
+
+#define matrix vector< vector<ll> >
+
+matrix matmul(matrix &a, matrix &b){
+    int i, j, k, n = a.size();
+    matrix ans (n, vector<ll>(n));
+    for(i=0;i<n;i++)
+        for(j=0;j<n;j++){
+            ll temp = 0;
+            for(k=0;k<n;k++)    temp = (temp + a[i][k] * b[k][j]) % MOD;
+            ans[i][j] = temp;
+        }
+
+    return ans;
+}
+
+matrix matpwr(matrix &a, ll p){
+    int n = a.size();
+    matrix ans(n, vector<ll> (n));
+    for(int i=0;i<n;i++)    ans[i][i] = 1;
+
+    while(p){
+        if(p&1) ans = matmul(ans, a);
+
+        a = matmul(a, a);
+        p >>= 1;
+    }
+    return ans;
+}
+
+
+ll pwr(ll base, ll p, ll mod = MOD){
+    ll ans = 1;
+    while(p){
+        if(p & 1)   ans = (ans * base) % mod;
+        base = (base * base) % mod;
+        p /= 2;
+    }
+    return ans;
+}
+
+
+ll gcd(ll a, ll b){
+    if(b == 0)  return a;
+    return gcd(b, a%b);
+}
+
+
+ll lcm(ll a, ll b){
+    return (a*b) / gcd(a, b);
+}
+
+
+ll invMod(ll n, ll mod = MOD){
+    return pwr(n, mod-2);
+}
+
+
+int n, len1, len2, cnt[2005];
+char str[2005], sub1[2005], sub2[2005];
+bool starts[2005];
+
+int ranks[1002][2005], step, currLen;
+struct entry{
+    int rank[2], pos;
+}buffer[2005];
+
+bool comp(entry a, entry b){
+    if(a.rank[0] != b.rank[0])  return (a.rank[0] < b.rank[0]);
+    return (a.rank[1] < b.rank[1]);
+}
+
+int suffixArray[2005], lcp[2005];
+
+
+void buildSA(){
+
+    for(int i=1;i<=n;i++)
+        ranks[0][i] = str[i]-'a'+1;
+
+    for(step=1,currLen=1;currLen<=n;step++,currLen*=2){
+
+        for(int i=1;i<=n;i++){
+            buffer[i].rank[0] = ranks[step-1][i];
+            buffer[i].rank[1] = (i+currLen<=n ? ranks[step-1][i+currLen] : -1);
+            buffer[i].pos = i;
+        }
+
+        sort(buffer+1, buffer+n+1, comp);
+        for(int i=1;i<=n;i++)
+            if(i>0 && buffer[i].rank[0]==buffer[i-1].rank[0] && buffer[i].rank[1]==buffer[i-1].rank[1])
+                ranks[step][buffer[i].pos] = ranks[step][buffer[i-1].pos];
+            else    ranks[step][buffer[i].pos] = i;
+    }
+
+    for(int i=1;i<=n;i++)
+        suffixArray[i] = buffer[i].pos;
+
+    step--;
+
+    lcp[1] = 0;
+    for(int i=2;i<=n;i++){
+
+        lcp[i] = 0;
+        int cnt = ::currLen;
+        int x = suffixArray[i], y = suffixArray[i-1];
+        for(int k=step;k>=0;k--,cnt/=2){
+            if(x+cnt-1 <= n && y+cnt-1 <= n && ranks[k][x]>0 && ranks[k][x] == ranks[k][y]){
+                lcp[i] += cnt;
+                x += cnt;
+                y += cnt;
+            }
+        }
+    }
+}
+
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    // freopen("input.txt", "r", stdin);
+
+    cin>>(str+1);
+    n = strlen(str+1);
+    cin>>(sub1+1)>>(sub2+1);
+    len1 = strlen(sub1+1);
+    len2 = strlen(sub2+1);
+
+    for(int i=1;i<=n;i++){
+
+        int c = 0;
+        for(int j=1;j<=len1&&i+j-1<=n&&str[i+j-1]==sub1[j];j++)
+            c++;
+        if(c == len1)   starts[i] = true;
+
+        c = 0;
+        for(int j=1;j<=len2&&i+j-1<=n&&str[i+j-1]==sub2[j];j++)
+            c++;
+        if(c == len2)   cnt[i+len2-1]++;
+    }
+
+    for(int i=n;i>=1;i--)
+        cnt[i] += cnt[i+1];
+
+    buildSA();
+
+    int i = 1;
+    for(;i<=n;i++)
+        if(starts[suffixArray[i]])
+            break;
+
+    if(i == n+1){
+        cout<<"0";
+        return 0;
+    }
+
+    int maxOverlap = 0;
+    for(int i=1;i<=n;i++){
+        int temp = 0;
+        for(int j=1;j<=len2&&i+j-1<=len1&&sub1[i+j-1]==sub2[j];j++)
+            temp++;
+        maxOverlap = max(maxOverlap, temp);
+    }
+    int minLen = len1 + len2 - maxOverlap;
+
+    int ans = 0;
+    if(suffixArray[i]+minLen-1 <= n)
+        ans += cnt[suffixArray[i]+minLen-1];
+
+    i++;
+    for(;i<=n&&starts[suffixArray[i]];i++){
+
+        int idx = suffixArray[i];
+        int minEndingIndex = max(idx+minLen-1, idx+lcp[i]);
+        if(minEndingIndex <= n) ans += cnt[minEndingIndex];
+    }
+
+    cout<<ans;
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

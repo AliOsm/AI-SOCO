@@ -1,0 +1,150 @@
+//In the name of Allah
+
+#include<bits/stdc++.h>
+
+using namespace std;
+
+const int Maxn = 100 * 1000 + 10, Max = 17;
+int n, m, k, moal[Maxn], st[Maxn], par[Maxn], stt = 1, lca[Max][Maxn], h[Maxn], cnt;
+vector<int> adj[Maxn], ind[Maxn], adj2[Maxn];
+struct edge
+{
+    int u, v;
+}e[Maxn];
+bool markE[Maxn], mark[Maxn];
+
+void dfs3(int v)
+{
+    mark[v] = false;
+    for(int i = 0; i < (int)adj2[v].size(); i ++)
+        if(mark[adj2[v][i]])
+        {
+            lca[0][adj2[v][i]] = v;
+            h[adj2[v][i]] = h[v] + 1;
+            dfs3(adj2[v][i]);
+        }
+    return;
+}
+
+int dfs(int v)
+{
+    st[v] = stt; stt ++;
+    int ans = INT_MAX, indd;
+    for(int i = 0; i < (int)adj[v].size(); i ++)
+    {
+        if(st[adj[v][i]] == 0)
+        {
+            par[adj[v][i]] = v;
+            ans = min(ans, dfs(adj[v][i]));
+        }
+        else
+        {
+            if(adj[v][i] != par[v])
+                ans = min(ans, st[adj[v][i]]);
+            else
+                indd = i;
+        }
+    }
+    if(v != 0 && ans >= st[v])
+        markE[ind[v][indd]] = true;
+    return ans;
+}
+
+void dfs2(int v, int a)
+{
+    mark[v] = true; moal[v] = a;
+    for(int i = 0; i < (int)adj[v].size(); i ++)
+    {
+        if(! markE[ind[v][i]] && ! mark[adj[v][i]])
+            dfs2(adj[v][i], a);
+    }
+    return;
+}
+
+void dfsAll()
+{
+    for(int i = 0; i < n; i ++)
+        if(! mark[i])
+        {
+            dfs2(i, cnt);
+            cnt ++;
+        }
+    return;
+}
+
+void fillLca()
+{
+    for(int i = 1; i < Max; i ++)
+    {
+        for(int j = 0; j < cnt; j ++)
+        {
+            if(lca[i - 1][j] != -1)
+                lca[i][j] = lca[i - 1][lca[i - 1][j]];
+        }
+    }
+    return;
+}
+
+int fath(int a, int b)
+{
+    for(int i = Max - 1; i >= 0; i --)
+    {
+        if((b >> i) & 1)
+          a = lca[i][a];
+    }
+    return a;
+}
+
+int LCA(int u, int v)
+{
+    if(h[u] > h[v])
+        swap(u, v);
+    v = fath(v, h[v] - h[u]);
+    if(v == u)
+        return u;
+    for(int i = Max - 1; i >= 0; i --)
+    {
+        if(lca[i][u] != lca[i][v])
+        {
+            u = lca[i][u];
+            v = lca[i][v];
+        }
+    }
+    return lca[0][u];
+}
+
+int main()
+{
+    scanf("%d%d", &n, &m);
+    int u, v;
+    for(int i = 0; i < m; i ++)
+    {
+        scanf("%d%d", &u, &v);
+        u --; v --;
+        adj[u].push_back(v); ind[u].push_back(i);
+        adj[v].push_back(u); ind[v].push_back(i);
+        e[i].u = u, e[i].v = v;
+    }
+    int a = dfs(0);
+    dfsAll();
+    for(int i = 0; i < m; i ++)
+        if(markE[i])
+        {
+            adj2[moal[e[i].u]].push_back(moal[e[i].v]);
+            adj2[moal[e[i].v]].push_back(moal[e[i].u]);
+        }
+    for(int i = 0; i < Max; i ++)
+        for(int j = 0; j < n; j ++)
+            lca[i][j] = -1;
+    dfs3(0);
+    fillLca();
+    scanf("%d", &k);
+    for(int i = 0; i < k; i ++)
+    {
+        scanf("%d%d", &u, &v);
+        u --; v --;
+        int a = LCA(moal[u], moal[v]);
+        printf("%d\n", h[moal[u]] + h[moal[v]] - 2 * h[a]);
+    }
+    return 0;
+}

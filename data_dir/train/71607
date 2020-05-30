@@ -1,0 +1,164 @@
+#include <iostream>
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <set>
+#include <cstring>
+using namespace std;
+typedef long long Long;
+
+string mat[510];
+
+int dx[] = {-1,0,0,1};
+int dy[] = {0,-1,1,0};
+int N;
+int ID[510][510];
+int SZ[250*500];
+int dfs(int i,int j, int id){
+	int sz = 1;
+	ID[i][j] = id;
+	for(int k = 0; k < 4; ++k){
+		int ni = i + dx[k];
+		int nj = j + dy[k];
+		if(ni < 0 || nj < 0 || ni >= N || nj >= N)
+			continue;
+		if(mat[ni][nj] == 'X')continue;
+		if(ID[ni][nj] != -1)continue;
+		sz += dfs(ni,nj,id);
+	}
+	return sz;
+}
+struct Window{
+	vector<int> V;
+	vector<int> B;
+	int K;
+	int ci,cj,szIn, szB, inc;
+	Window(int K, int ci,int cj){
+		szIn = szB = inc = 0;
+		this->ci = ci;
+		this->cj = cj;
+		this->K = K;
+		V = vector<int>(250*500);
+		B = vector<int>(250*500);
+		for(int i = ci-1; i < ci+K+1; ++i){
+			for(int j = cj-1; j < cj+K+1; ++j){
+				if(i < 0 || j < 0 || i >= N || j >= N)continue;
+				int f = 0;
+				if(ci <= i && i < ci+K){
+					f++;
+				}
+				if(cj <= j && j < cj+K){
+					f++;
+				}
+//				if(ID[i][j] != -1)
+//					cout << i << " " << j << " " << f << "    " << SZ[ID[i][j]]<< endl;
+				if(f == 2)
+					inV(ID[i][j]);
+				if(f == 1)
+					inB(ID[i][j]);
+			}
+		}
+	}
+	void inV(int id){
+		if(id == -1)return;
+		V[id]++;
+		inc++;
+		if(V[id] == 1){
+			szIn += SZ[id];
+			if(B[id]){
+				szB -= SZ[id];
+			}
+		}
+	}
+	void outV(int id){
+		if(id == -1)return;
+		V[id]--;
+		inc--;
+		if(V[id] == 0){
+			szIn -= SZ[id];
+			if(B[id]){
+				szB += SZ[id];
+			}
+		}
+	}
+	void inB(int id){
+		if(id == -1)return;
+		B[id]++;
+		if(B[id] == 1 && V[id] == 0){
+			szB += SZ[id];
+		}
+	}
+	void outB(int id){
+		if(id == -1)return;
+		B[id]--;
+		if(B[id] == 0 && V[id] == 0){
+			szB -= SZ[id];
+		}
+	}
+	void moveLeft(){
+//		cout << inc << " " << szB << " " << szIn << "\t--->\t";
+		// take out left
+		if(ci > 0  )outB(ID[ci-1][cj]);
+		if(ci+K < N)outB(ID[ci+K][cj]);
+		for(int i = ci; i < ci+K; ++i){
+			outV(ID[i][cj]);
+			inB(ID[i][cj]);
+			if(cj){
+				outB(ID[i][cj-1]);
+			}
+		}
+		cj++;
+		if(ci > 0  )inB(ID[ci-1][cj+K-1]);
+		if(ci+K < N)inB(ID[ci+K][cj+K-1]);
+		for(int i = ci; i < ci+K; ++i){
+			inV(ID[i][cj+K-1]);
+			outB(ID[i][cj+K-1]);
+			if(cj+K<N){
+				inB(ID[i][cj+K]);
+			}
+		}
+//		cout << inc << " " << szB << " " << szIn << endl;
+	}
+	int getSize(){
+		return K*K - inc + szB + szIn;
+	}
+};
+
+int main()
+{
+	memset(ID,-1,sizeof(ID));
+	int K;
+	cin >> N >> K;
+	for (int i = 0; i < N; ++i) {
+		cin >> mat[i];
+	}
+	int CC = 0;
+	for(int i = 0; i < N; ++i){
+		for(int j = 0; j < N; ++j){
+			if(ID[i][j] == -1 && mat[i][j] == '.'){
+				SZ[CC] = dfs(i,j,CC);
+				CC++;
+			}
+		}
+	}
+	if(CC > 250*500){
+		cout << CC << endl;
+		return 0;
+	}
+	int b = 0;
+	for(int i = 0; i+K-1 < N; ++i){
+		int j = 0;
+		Window W(K,i,j);
+		b = max(b, W.getSize());
+//		cout << W.getSize() << "\t";
+		while( (j+1)+K-1 < N){
+			j++;
+			W.moveLeft();
+//			cout << W.getSize() << "\t";
+			b = max(b, W.getSize());
+		}
+//		cout << endl;
+	}
+	cout << b << endl;
+}

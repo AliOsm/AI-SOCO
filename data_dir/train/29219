@@ -1,0 +1,175 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define mem(a,b) memset(a,b,sizeof(a))
+#define FOR(i,j,k) for(i=j;i<=k;i++)
+#define REV(i,j,k) for(i=j;i>=k;i--)
+#define inf         freopen("in.txt", "r", stdin)
+#define outf        freopen("out.txt", "w", stdout)
+#define pf          printf
+#define sf(n)       scanf("%d", &n)
+#define sff(a,b)    scanf("%d %d", &a, &b)
+#define sfff(a,b,c)    scanf("%d %d %d", &a, &b, &c)
+#define minn          (long long)-1000000000000000000
+#define maxx          (long long) 1000000000000000000
+#define mod          1000000009
+#define LL           long long
+#define NL '\n'
+#define MAX 100005
+#define cnd tree[idx]
+#define lnd (2*idx)
+#define rnd ((2*idx)+1)
+typedef pair<int,int> pr;
+
+/*dir array
+//8 moves
+int fx[]={+0,+0,+1,-1,-1,+1,-1,+1};
+int fy[]={-1,+1,+0,+0,+1,+1,-1,-1};
+//4 moves
+int fx[]={+1,-1,+0,+0};
+int fy[]={+0,+0,+1,-1};
+#define valid(nx,ny)  ((nx >= 0) && (nx < row) && (ny >= 0) && (ny < col))
+*/
+
+
+//set<int>::iterator ii;
+
+struct node
+{
+    LL v, pa, low, lev;
+}tar[100010];
+
+int stk[100010], top, ins[100010], ti;
+vector<int> mat[100010], ans;
+
+void tarzan( int p )
+{
+    int i, j, y;
+    tar[p].v = 1;
+    tar[p].low = tar[p].lev = ++ti;
+    ins[p] = 1;
+    stk[++top] = p;
+
+    for(int i=0; i<mat[p].size(); i++ )
+    {
+        int x = mat[p][i], y;
+        if( tar[x].v == 0 )
+        {
+            tar[x].pa = p;
+            tarzan(x);
+            tar[p].low = min( tar[x].low, tar[p].low );
+            //cout << p << ' ' << x  << ' ' << tar[x].low << ' ' << tar[p].low << endl;
+
+        }
+        else if( ins[x] == 1 && tar[p].pa != x ) tar[p].low = min( tar[x].lev, tar[p].low );
+
+    }
+    //cout << p << ' ' << tar[p].low <<  ' ' << tar[p].lev << endl;
+    if( tar[p].low == tar[p].lev )
+    {
+        vector<int> tum;
+        while( top > -1 )
+        {
+            y = stk[top];
+            ins[y] = 0;
+            top--;
+            tum.push_back( y );
+            if( y == p ) break;
+        }
+        if( tum.size() > 1 )
+        {
+            for( int l = 0; l<tum.size(); l++ )
+            {
+                int q = tum[l];
+                ans.push_back( q );
+            }
+        }
+    }
+}
+
+
+struct dude
+{
+    LL v, pa, l;
+}bfa[100010];
+
+int que[100010], h, r;
+
+void bfs( int p )
+{
+
+    while( h != r )
+    {
+        //cout << p << " = ";
+        for(int i=0; i<mat[p].size(); i++ )
+        {
+            int x = mat[p][i];
+            if( bfa[x].v == 0 )
+            {
+                //cout << x << ' ';
+                bfa[x].l = bfa[p].l+1;
+                bfa[x].pa = p;
+                bfa[x].v = 1;
+                que[r] = x;
+                r++;
+            }
+        }
+        //9cout << endl;
+        h++;
+        p = que[h];
+    }
+
+}
+
+int main()
+{
+    ios::sync_with_stdio(false);
+
+    //inf;
+    //outf;
+
+    int i, j, x, y, n, m;
+
+    ti = 0;
+    top = -1;
+    cin >> n;
+
+    for( i=0; i<n; i++ )
+    {
+        cin >> x >> y;
+
+        mat[x].push_back( y );
+        mat[y].push_back( x );
+    }
+
+    for( i=1; i<=n; i++ )
+    {
+        if( tar[i].v == 0 ) tarzan( i );
+    }
+
+    h = r = 0;
+
+    for( i=0; i<ans.size(); i++ )
+    {
+        int p = ans[i];
+        bfa[p].l = 0;
+        bfa[p].pa = -1;
+        bfa[p].v = 1;
+        que[r] = p;
+        r++;
+    }
+
+    bfs( ans[0] );
+
+    for( i=1; i<=n; i++ )
+    {
+        cout << bfa[i].l << ' ';
+    }
+    return 0;
+
+}
+
+
+
+

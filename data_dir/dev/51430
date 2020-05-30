@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MAX 200005
+#define INF 12345678
+int tree[4*MAX], arr[MAX], n, q;
+int st[MAX], ed[MAX];
+
+void build(int node, int b, int e)
+{
+    if(b == e){
+        tree[node] = arr[b];
+        return;
+    }
+    int left = 2*node;
+    int right = 2*node+1;
+    int mid = (b+e)/2;
+    build(left, b, mid);
+    build(right, mid+1, e);
+    tree[node] = min(tree[left], tree[right]);
+}
+
+int query(int node, int b, int e, int l, int r)
+{
+    if(l > e || r < b) return INF;
+    if(b >= l && e <= r) return tree[node];
+    int left = 2*node;
+    int right = 2*node+1;
+    int mid = (b+e)/2;
+    int q1 = query(left, b, mid, l, r);
+    int q2 = query(right, mid+1, e, l, r);
+    return min(q1, q2);
+}
+
+int main()
+{
+    scanf("%d %d", &n, &q);
+    bool all = true;
+    int maxs = 0;
+    int id = -1;
+    for(int i=1; i<=n; i++){
+        scanf("%d", &arr[i]);
+        maxs = max(maxs, arr[i]);
+        if(arr[i] != 0) all = false;
+        if(arr[i] == 0) id = i;
+    }
+    if(all){
+        cout << "YES" << endl;
+        for(int i=1; i<=n; i++) cout << q << " ";
+        return 0;
+    }
+    if(maxs != q){
+        if(id == -1){
+            cout << "NO";
+            return 0;
+        }
+        arr[id] = q;
+    }
+    set<int> S;
+    for(int i=1; i<=n; i++) if(arr[i] == 0){
+        arr[i] = INF;
+        S.insert(i);
+    }
+    build(1, 1, n);
+    memset(st, -1, sizeof st);
+    memset(ed, -1, sizeof ed);
+    for(int i=1; i<=n; i++){
+        int val = arr[i];
+        if(val == INF){
+            continue;
+        }
+        if(st[val] != -1){
+            ed[val] = i;
+        }
+        else {
+            st[val] = i;
+            ed[val] = i;
+        }
+    }
+    for(int i=q; i>=1; i--){
+        if(st[i] == -1) continue;
+        int l = st[i], r = ed[i];
+        int mins = query(1, 1, n, l, r);
+        if(mins < i){
+            cout << "NO";
+            return 0;
+        }
+        set<int> ::iterator it = S.lower_bound(l);
+        set<int> ::iterator it2;
+        vector<set<int> ::iterator > V;
+        for(it2 = it; it2!=S.end(); it2++){
+            int pos = *it2;
+            if(pos <= r){
+                V.push_back(it2);
+                arr[pos] = i;
+            }
+            else {
+                break;
+            }
+        }
+        for(int i=0; i<V.size(); i++) S.erase(V[i]);
+    }
+    for(int i=1; i<=n; i++){
+        if(arr[i] != 0){
+            int it = i-1;
+            while(it >= 1 && it <= n && arr[it] == INF){
+                arr[it] = arr[i];
+                it--;
+            }
+            it = i+1;
+            while(it >= 1 && it <= n && arr[it] == INF){
+                arr[it] = arr[i];
+                it++;
+            }
+        }
+    }
+    cout << "YES" << endl;
+    for(int i=1; i<=n; i++) cout << arr[i] << " ";
+}
+

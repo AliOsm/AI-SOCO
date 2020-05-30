@@ -1,0 +1,161 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define fr first
+#define sc second
+#define mp make_pair
+#define ii pair<ll,ll>
+using namespace std;
+/// Lazy Propagation Segment Tree
+const int max_node = 10000000;
+ll tree[max_node];
+ll lazy[max_node];
+void updateRange(int node , int start , int _end , int l , int r , ll val)
+{
+    if(lazy[node] != 0)
+    {
+        tree[node] += lazy[node]; /// Update it
+        if(start != _end)
+        {
+            lazy[node*2]   += lazy[node];   /// Mark child as lazy
+            lazy[node*2+1] += lazy[node];   /// Mark child as lazy
+        }
+        lazy[node] = 0;  /// Reset it
+    }
+    if(start > _end || start > r || _end < l)
+        return ;
+    if(start >=l && _end <=r)
+    {
+        tree[node] +=  val;
+        if(start != _end)
+        {
+            lazy[node*2]   +=val;
+            lazy[node*2+1] +=val;
+        }
+        return ;
+    }
+    int mid = (start + _end) / 2;
+    updateRange(node*2   , start ,  mid , l , r , val); /// Updating left  child
+    updateRange(node*2+1 , mid+1 , _end , l , r , val); /// Updating right child
+    tree[node] = max(tree[node*2] , tree[node*2+1]);         /// Updating root with max value
+ }
+ll queryRange(int node , int start , int _end, int l , int r)
+{
+    if(start > _end || start > r || _end < l )
+        return -1e10;   /// Out of range
+    if(lazy[node] != 0)
+    {
+        tree[node] += lazy[node]; /// Update it
+        if(start != _end)
+        {
+            lazy[node*2]   += lazy[node];  /// Mark child as lazy
+            lazy[node*2+1] += lazy[node];  /// Mark child as lazy
+        }
+        lazy[node] = 0;   /// Reset it
+    }
+    if(start >= l && _end <= r)  /// Current segment is totally within range [l, r]
+        return tree[node];
+    int mid = (start + _end) / 2;
+    ll x1 = queryRange(node*2   , start ,  mid , l , r);   /// Query left  child
+    ll x2 = queryRange(node*2+1 , mid+1 , _end , l , r);   /// Query right child
+    return max(x1,x2);
+}
+int n,m,p;
+vector < ii > v,v2;
+int main()
+{
+    /// ios_base::sync_with_stdio(false);
+    cin>>n>>m>>p;
+    for(int i=0;i<n;i++)
+    {
+        int x,y;
+        scanf("%d%d",&x,&y);
+        v.push_back(mp(x,y));
+    }
+    sort(v.begin(),v.end());
+    for(int i=0;i<m;i++)
+    {
+        int x,y;
+        scanf("%d%d",&x,&y);
+        v2.push_back(mp(x,y));
+    }
+    sort(v2.begin(),v2.end());
+    vector < ii > temp;
+    for(int i=0;i<v2.size();i++)
+    {
+        ii r = v2[i];
+        if(temp.size() == 0)
+        {
+            temp.push_back(v2[i]);
+        }
+        else
+        {
+            while(temp.size() > 0)
+            {
+                int len = temp.size()-1;
+                ii r2 = temp[len];
+                if(r2.sc >= r.sc)
+                {
+                    temp.pop_back();
+                }
+                else
+                    break;
+            }
+            if(temp.size() > 0)
+            {
+                int len = temp.size()-1;
+                ii r2 = temp[len];
+                if(r2.fr == r.fr)
+                {
+                 ///
+                }
+                else
+                {
+                    temp.push_back(v2[i]);
+                }
+            }
+            else
+                temp.push_back(v2[i]);
+        }
+    }
+    int last = 0;
+    int En = 1e6+5;
+    int maxx = -1;
+    for(int i=0;i<temp.size();i++)
+    {
+        int L = last , R = temp[i].fr-1;
+        maxx = max(maxx , R);
+        updateRange(1,0,En,L,R,-temp[i].sc);
+        last = temp[i].fr;
+    }
+    vector < pair < ii , int > > F;
+    for(int i=0;i<p;i++)
+    {
+        int x,y,z;
+        scanf("%d%d%d",&x,&y,&z);
+        F.push_back(mp(mp(x,y),z));
+    }
+    sort(F.begin(),F.end());
+    ll ans = -1e10;
+    int id = 0;
+    for(int i=0;i<n;i++)
+    {
+        int x,y;
+        x = v[i].fr;
+        y = v[i].sc;
+
+        while(id < F.size())
+        {
+            pair<ii,int> te = F[id];
+            if(te.fr.fr < x)
+            {
+                updateRange(1,0,En,te.fr.sc,maxx,te.sc);
+            }
+            else
+                break;
+            id++;
+        }
+        ans = max(ans , queryRange(1,0,En,0,maxx)-y);
+    }
+    cout<<ans<<endl;
+   return 0;
+}

@@ -1,0 +1,128 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <cstdio>
+#include <iomanip>
+#include <fstream>
+#include <cassert>
+#include <cstring>
+#include <unordered_set>
+#include <unordered_map>
+#include <numeric>
+#include <ctime>
+#include <bitset>
+#include <complex>
+#include <chrono>
+#include <random>
+#include <functional>
+
+using namespace std;
+
+const int N = 2e5 + 7;
+const int K = 22;
+
+namespace SP {
+	int p[N];
+	int sp[K][N];
+
+	int n;
+	vector<int> a;
+
+	void run() {
+		for (int i = 0; i < n; i++) {
+			sp[0][i] = i; 
+		}
+		for (int i = 0; i + 1 < K; i++) {
+			for (int j = 0; j + (2 << i) <= n; j++) {
+				if (a[sp[i][j]] > a[sp[i][j + (1 << i)]]) {
+					sp[i + 1][j] = sp[i][j + (1 << i)];
+				} else {
+					sp[i + 1][j] = sp[i][j];
+				}
+			}
+		}
+		p[1] = 0;
+		for (int i = 2; i <= n; i++) {
+			p[i] = p[i / 2] + 1;
+		}
+	}
+
+	void init(vector<int> a_) {
+		a = a_;
+		n = (int)a.size();
+		run();
+	}
+
+	int min(int l, int r) {
+		int pw = p[r - l];
+		int f = sp[pw][l];
+		int s = sp[pw][r - (1 << pw)];
+		if (a[f] < a[s]) return f;
+		else return s;
+	}
+}
+
+signed main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);	
+
+	int n;
+	cin >> n;
+	vector<int> a(n);
+	vector<int> b(n);
+	vector<vector<pair<int, int>>> op(n);
+	for (int i = 0; i < n; i++) {
+		cin >> a[i] >> b[i];
+		a[i]--;
+		b[i]--;
+		op[a[i]].push_back({b[i], i});
+	}
+	vector<int> p(n);
+	priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> q;
+	for (int i = 0; i < n; i++) {
+		for (auto t : op[i]) {
+			q.push(t);
+		}
+		auto tp = q.top();
+		q.pop();
+		p[tp.second] = i;
+		while (!q.empty() && q.top().first == i) {
+			q.pop();
+		}
+	}	
+	vector<int> wr(n);
+	vector<int> pa(n);
+	for (int i = 0; i < n; i++) {
+		pa[p[i]] = a[i];
+		wr[p[i]] = i;
+	}
+	SP::init(pa);
+	for (int i = 0; i < n; i++) {
+		if (p[i] == b[i]) continue;
+		int vl = SP::min(p[i] + 1, b[i] + 1);
+		if (a[wr[vl]] <= p[i]) {
+			cout << "NO\n";
+			for (auto t : p) {
+				cout << t + 1 << ' ';
+			}
+			cout << '\n';
+			swap(p[i], p[wr[vl]]);
+			for (auto t : p) {
+				cout << t + 1 << ' ';
+			}
+			cout << '\n';
+			return 0;
+		}
+	}
+	cout << "YES\n";
+	for (auto t : p) {
+		cout << t + 1 << ' ';
+	}
+	cout << '\n';
+}
+

@@ -1,0 +1,103 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<ll,ll> pll;
+typedef long double ld;
+
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+#define fst first
+#define snd second
+#define ins insert
+#define pb push_back
+
+const int N = 5e5 + 5;
+const int MOD = 998244353;
+
+int k;
+ll dp[20][1024][10][2];
+ll sum[20][1024][10][2];
+
+vector<int> dig;
+
+ll solve(ll x){
+    if(x == 0)return 0;
+    memset(dp,0,sizeof(dp));
+    memset(sum,0,sizeof(sum));
+    dig.clear();
+    while(x){
+        dig.pb(x % 10);
+        x /= 10;
+    }
+    dig.pb(0);
+    reverse(all(dig));
+    dp[0][0][0][0] = 1;
+    for(int i = 0;i < dig.size() - 2; ++i){
+        for(int mask = 0;mask < 1024; ++mask){
+            for(int lst = 0;lst < 10; ++lst){
+                for(int add = 0;add < 10; ++add){
+                    if(add == 0 && i == 0)continue;
+                    int nmask = mask | (1 << add);
+                    dp[i + 1][nmask][add][0] += dp[i][mask][lst][0];
+                    sum[i + 1][nmask][add][0] += (((sum[i][mask][lst][0] * 10) % MOD) + ((dp[i][mask][lst][0] * add) % MOD)) % MOD;
+                    sum[i + 1][nmask][add][0] %= MOD;
+                }
+            }
+        }
+    }
+    ll ret = 0;
+    for(int i = 1;i < dig.size() - 1; ++i){
+        for(int mask = 0;mask < 1024; ++mask){
+            if(__builtin_popcount(mask) > k)continue;
+            for(int lst = 0;lst < 10; ++lst){
+                ret += sum[i][mask][lst][0];
+                ret %= MOD;
+            }
+        }
+    }
+    memset(dp,0,sizeof(dp));
+    memset(sum,0,sizeof(sum));
+    dp[0][0][0][1] = 1;
+    for(int i = 0;i < dig.size() - 1; ++i){
+        for(int mask = 0;mask < 1024; ++mask){
+            for(int lst = 0;lst < 10; ++lst){
+                for(int is_eq = 0;is_eq < 2; ++is_eq){
+                    for(int add = 0;add < 10; ++add){
+                        if(add == 0 && i == 0)continue;
+                        if(dig[i + 1] < add && is_eq)continue;
+                        int nmask = mask | (1 << add);
+                        int nis_eq = is_eq && (add == dig[i + 1]);
+                        dp[i + 1][nmask][add][nis_eq] += dp[i][mask][lst][is_eq];
+                        sum[i + 1][nmask][add][nis_eq] += (((sum[i][mask][lst][is_eq] * 10) % MOD) + ((dp[i][mask][lst][is_eq] * add) % MOD)) % MOD;
+                        sum[i + 1][nmask][add][nis_eq] %= MOD;
+                    }
+                }
+            }
+        }
+    }
+    for(int mask = 0;mask < 1024; ++mask){
+        if(__builtin_popcount(mask) > k)continue;
+        for(int lst = 0;lst < 10; ++lst){
+            for(int is_eq = 0;is_eq < 2; ++is_eq){
+                ret += sum[dig.size() - 1][mask][lst][is_eq];
+                ret %= MOD;
+            }
+        }
+    }
+    return ret;
+}
+
+int main(){
+    //freopen(".in", "r", stdin);
+    //freopen(".out", "w", stdout);
+    ll l,r;
+    cin >> l >> r >> k;
+    cout << (solve(r) - solve(l - 1) + MOD) % MOD;
+
+
+    return 0;
+}
+
+

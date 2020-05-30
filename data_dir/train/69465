@@ -1,0 +1,203 @@
+#include "bits/stdc++.h"
+#include "chrono"
+
+using namespace std;
+
+#define ALL(x) x.begin(), x.end()
+#define bits(x) __builtin_popcount(x)
+#define bitsll(x) __builtin_popcountll(x)
+#define precision(a) fixed << setprecision(a)
+
+typedef long long ll;
+typedef long double ld;
+typedef unsigned int uint;
+typedef unsigned long long ull;
+typedef pair <int, int> pii;
+typedef vector <int> vi;
+
+template <class T>
+inline T sqr (T x) {
+	return x * x;
+}
+
+template <class T>
+inline bool isSquare (T x) {
+	T y = sqrt(x + 0.5);
+	return (y * y) == x;
+}
+
+template <class T1, class T2>
+inline T1 gcd (T1 a, T2 b) {
+	return b ? gcd(b, a % b) : a;
+}
+
+template <class T1, class T2>
+inline T1 eqMin (T1 & x, const T2 & y) {
+	if (T1(y) < x)
+		return x = y;
+	return x;
+}
+
+template <class T1, class T2>
+inline T1 eqMax (T1 & x, const T2 & y) {
+	if (T1(y) > x)
+		return x = y;
+	return x;
+}
+
+template <class T1, class T2>
+inline T1 min (const T1 & x, const T2 & y) {
+	return x < (T1) y ? x : (T1) y;
+}
+
+template <class T1, class T2>
+inline T1 max (T1 & x, const T2 & y) {
+	return x > (T1) y ? x : (T1) y;
+}
+
+template <typename T>
+inline T getint () {
+	T x = 0, p = 1;
+	char ch;
+	do {
+		ch = getchar();
+	} while (ch <= ' ');
+	if (ch == '-')
+		p = -1, ch = getchar();
+	while (ch >= '0' && ch <= '9')
+		x = x * 10 + ch - '0', ch = getchar();
+	return x * p;
+}
+
+struct _flag_t {
+	string val;
+}
+const _1d{", "}, _2d{"\n  "};
+_flag_t _flag = _1d;
+
+ostream & operator<< (ostream & os, _flag_t flag) {
+	_flag = flag;
+	return os;
+}
+
+template <class CharT, class Traits, class It>
+basic_ostream <CharT, Traits> &
+_out (basic_ostream <CharT, Traits> & os, It f, It l) {
+	if (f == l) return os << "{}";
+	_flag_t cur_flag = _flag;
+	os << _1d << "{ " << *f;
+	for (; ++f != l; os << cur_flag.val << *f);
+	return os << " }";
+}
+
+template <class CharT, class Traits, class C>
+auto operator<< (basic_ostream <CharT, Traits> & os, C const & cont)
+-> decltype(begin(cont), end(cont), cont.size(), os) {return _out(os, begin(cont), end(cont));}
+
+template <class X, class Y>
+ostream & operator<< (ostream & os, pair <X, Y> const & p) {return os << "[" << p.first << ", " << p.second << "]";}
+
+const double PI = acos(-1);
+const double EPS = 1e-8;
+const int INF = (int) 2e9;
+const int MOD = (int) 1e9 + 7;
+const int MAXN = (int) 1;
+
+int step (int v, int p) {
+	int result = 1;
+	while (p--) result *= v;
+	return result;
+}
+
+void shift (deque <int> & d) {
+	int x = d.back();
+	d.pop_back();
+	d.push_front(x);
+}
+
+vector <int> oldmask, newmask, addmask;
+
+void precalc () {
+
+	int n3 = step(3, 12);
+	for (int mask3 = 0; mask3 < n3; mask3++) {
+		int _oldmask = 0, _newmask = 0, _addmask = 0;
+		for (int bit3 = 0, mask = mask3; bit3 < 12; bit3++, mask /= 3) {
+			int val = mask % 3;
+
+			if (val) _newmask |= (1 << bit3);
+			if (val == 1) _oldmask |= (1 << bit3);
+			if (val == 2) _addmask |= (1 << bit3);
+
+		}
+		oldmask.push_back(_oldmask);
+		newmask.push_back(_newmask);
+		addmask.push_back(_addmask);
+	}
+}
+
+void solve () {
+	int n, m;
+	cin >> n >> m;
+
+	vector <deque <int> > arr(m, deque <int>(n, 0)), a(m);
+	vector <pii> for_sort(m);
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			cin >> arr[j][i];
+		}
+	}
+	for (int j = 0; j < m; j++) {
+		for_sort[j] = pii{*max_element(ALL(arr[j])), j};
+	}
+
+	sort(ALL(for_sort));
+	reverse(ALL(for_sort));
+
+	for (int j = 0; j < m; j++) {
+		a[j] = arr[for_sort[j].second];
+	}
+
+	while (a.size() > n) a.pop_back();
+	eqMin(m, n);
+
+	vector <vector <int> > add(m + 1, vector <int>(1 << n, 0));
+	vector <vector <int> > dp(m + 1, vector <int>(1 << n, 0));
+
+	for (int i = 0; i < m; i++) {
+		for (int addmask = 0; addmask < (1 << n); addmask++) {
+			for (int iter = 0; iter < n; iter++, shift(a[i])) {
+				int sum = 0;
+				for (int j = 0; j < n; j++) {
+					if (addmask >> j & 1) {
+						sum += a[i][j];
+					}
+				}
+				eqMax(add[i][addmask], sum);
+			}
+		}
+	}
+
+	int n3 = step(3, n);
+
+	for (int i = 0; i < m; i++) {
+		for (int mask3 = 0; mask3 < n3; mask3++) {
+			eqMax(dp[i + 1][newmask[mask3]], dp[i][oldmask[mask3]] + add[i][addmask[mask3]]);
+		}
+	}
+
+	cout << dp[m][(1 << n) - 1] << endl;
+}
+
+int main () {
+	ios_base::sync_with_stdio(false);
+	int T;
+	cin >> T;
+
+	precalc();
+
+	while (T--) {
+		solve();
+	}
+}

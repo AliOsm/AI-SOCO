@@ -1,0 +1,122 @@
+
+// In the name of God
+#include <bits/stdc++.h>
+
+using namespace std;
+#define Size(x) ((int)(x).size())
+#define pb push_back
+typedef long long ll;
+typedef long double ld;
+typedef pair<int,int>pii;
+const int INF = 1e9 + 10;
+const int MN = 7e5 + 10;
+const ll BIG = (ll) 1e18;
+
+vector<pii>adj[MN];
+int ind[MN] , nxt[MN] , L[MN] , R[MN] ,Par[MN], Now;
+int pr[MN];
+int n ,q;
+vector<int>vec;
+priority_queue<pair<ll , int> >S;
+ll dist[MN];
+bool mk[MN];
+int st;
+
+int build(int b,int e)
+{
+	int v = Now++;
+	nxt[v] = Now++;
+	if(e-b == 1){
+		ind[b] = Now++;
+		nxt[ind[b]] = Now++;
+
+		Par[ind[b]] = v;
+		Par[nxt[ind[b]]] = nxt[v];
+		adj[ind[b]].pb({nxt[ind[b]] , 0});
+		adj[nxt[ind[b]]].pb({ind[b] , 0});
+		adj[ind[b]].pb({v , 0});
+		adj[nxt[v]].pb({nxt[ind[b]] , 0});
+		return v;
+	}
+	int mid = b+e>>1;
+	L[v] = build(b , mid);
+	R[v] = build(mid , e);
+
+	adj[L[v]].pb({v , 0}) , adj[R[v]].pb({v , 0});
+   	adj[nxt[v]].pb({nxt[L[v]] , 0}) , adj[nxt[v]].pb({nxt[R[v]] , 0});	
+	return v;
+}
+
+void get(int id,int b,int e,int l,int r)
+{
+	if(r <= b || e <= l) return;
+	if(l <= b && e <= r){
+		vec.pb(id);
+		return;
+	}
+	int mid = b+e>>1;
+	get(L[id] , b , mid , l , r);
+	get(R[id] , mid , e , l , r);
+}
+
+void dijk(int s)
+{
+	memset(pr , -1 , sizeof pr) ;
+	fill(dist , dist+MN , BIG);
+	dist[s] = 0;
+	for(int i=0;i<Now;++i) S.push({-dist[i] , i});
+	while(!S.empty()){
+		int v = S.top().second; S.pop();
+		if(mk[v]) continue;
+		mk[v] = true;
+		for(auto x:adj[v]){
+			int u = x.first , c = x.second;
+			if(dist[u] > dist[v] + c){
+				dist[u] = dist[v]+c;
+				pr[u] = v;
+				S.push({-dist[u] , u});
+			}	
+		}
+	}
+	for(int i=0;i<n;++i)
+		cout << (dist[nxt[ind[i]]]>=BIG ? -1 : dist[nxt[ind[i]]]) << ' ';cout << endl;
+}
+
+int main()
+{
+	ios_base :: sync_with_stdio(false) ,cin.tie(0) , cout.tie(0);
+	cin >> n >> q >> st;
+	--st;
+	build(0 , n);
+	while(q--){
+		int tp;cin>>tp;
+		if(tp == 1){
+			int u , v , w;
+			cin >> u >> v >> w;
+			--u ,--v;
+			adj[ind[u]].pb({nxt[ind[v]] , w});
+		}else if(tp == 2){
+			int u,l,r,w;
+			cin >> u >> l >> r >> w; // az u be baaze
+			--l , --u;
+			vec.clear(); get(0 , 0 , n , l , r);
+			int v = Now++;
+			adj[Par[ind[u]]].pb({v , w});
+			for(auto x:vec)
+				adj[v].pb({nxt[x] , 0});
+		}else{
+			int u,l,r,w;
+			cin>>u>>l>>r>>w;
+			--l , --u;
+			vec.clear(); get(0 , 0 , n , l , r);
+			
+			int v = Now++;
+			for(auto x:vec)
+				adj[x].pb({v , 0});
+			adj[v].pb({Par[nxt[ind[u]]] , w});
+		}
+	}
+	dijk(ind[st]);
+	return 0;
+}
+

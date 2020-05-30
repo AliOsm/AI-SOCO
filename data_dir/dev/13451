@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ll long long
+
+const int N = (1 << 16), K = 51;
+int n, k;
+int st[K][N << 1];
+int lazy[K][N << 1];
+
+void prob(int l, int p)
+{
+    lazy[l][p << 1] += lazy[l][p];
+    lazy[l][(p << 1) | 1] += lazy[l][p];
+    st[l][p << 1] += lazy[l][p];
+    st[l][(p << 1) | 1] += lazy[l][p];
+    lazy[l][p] = 0;
+}
+
+void update_range(int l, int p, int s, int e, int i, int j, int val)
+{
+    if (e < i || s > j)
+        return;
+    if (s >= i && e <= j)
+    {
+        st[l][p] += val;
+        lazy[l][p] += val;
+        return;
+    }
+    prob(l, p);
+    update_range(l, p << 1, s, (s + e) / 2, i, j, val);
+    update_range(l, (p << 1) | 1, (s + e) / 2 + 1, e, i, j, val);
+    st[l][p] = max(st[l][p << 1], st[l][(p << 1) | 1]);
+}
+
+void update_range(int l, int i, int j, int val)
+{
+    update_range(l, 1, 1, N, i, j, val);
+}
+
+int query(int l, int p, int s, int e, int i, int j)
+{
+    if (e < i || s > j)
+        return 0;
+    if (s >= i && e <= j)
+        return st[l][p];
+    prob(l, p);
+    int q1 = query(l, p << 1, s, (s + e) / 2, i, j);
+    int q2 = query(l, (p << 1) | 1, (s + e) / 2 + 1, e, i, j);
+    return max(q1, q2);
+}
+
+int query(int l, int i, int j)
+{
+    return query(l, 1, 1, N, i, j);
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    cin >> n >> k;
+    int a[n];
+    for (int i = 0; i < n; i++)
+        cin >> a[i];
+    if (n == 1)
+    {
+        cout << 1 << endl;
+        return 0;
+    }
+    int pre[n], lst[n + 1];
+    memset(lst, -1, sizeof lst);
+    for (int i = 0; i < n; i++)
+    {
+        pre[i] = lst[a[i]];
+        lst[a[i]] = i;
+    }
+    int c = 0;
+    for (int i = 0; i < n; i++)
+    {
+        if (pre[i] == -1)
+            c++;
+        update_range(1, i + 1, i + 1, c);
+    }
+    for (int l = 2; l <= k; l++)
+    {
+        for (int i = 1; i < n; i++)
+        {
+            int s = max(0, pre[i]);
+            update_range(l - 1, s + 1, i, 1);
+            int x = query(l - 1, 1, i);
+            update_range(l, i + 1, i + 1, x);
+        }
+    }
+    cout << query(k, 1, n) << endl;
+}

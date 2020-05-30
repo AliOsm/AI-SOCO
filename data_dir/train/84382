@@ -1,0 +1,41 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+#define SZ(a) ((int)(a).size())
+#define PB push_back
+/**/
+const int N = 100000 + 87;
+int g[N];
+bool b[N];
+int go(int u)
+{
+	if (!b[u]) {
+		b[u] = 1;
+		return go(g[u]) + 1;
+	}
+	return 0;
+}
+int main()
+{
+	ios::sync_with_stdio(0);cin.tie(0);
+	int n;
+	cin >> n;
+	for (int i = 1; i <= n; ++i)
+		cin >> g[i];
+	ll ans = 0;
+	vector<int> v;
+	for (int i = 1; i <= n; ++i) {
+		int s = go(i);
+		if (s) {
+			ans += s * 1LL * s;
+			v.PB(s);
+			if (SZ(v) > 2) {
+				sort(v.rbegin(), v.rend());
+				v.pop_back();
+			}
+		}
+	}
+	if (SZ(v) == 2)
+		ans += v[0] * 2LL * v[1];
+	cout << ans << '\n';
+}

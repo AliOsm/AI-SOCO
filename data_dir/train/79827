@@ -1,0 +1,111 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define REP(i , n) for(int i = 0 ; i < n ; ++i)
+
+#define all(v) v.begin() , v.end()
+#define SZ(v) ((int)(v).size())
+
+typedef vector<int> vInt;
+typedef vector<vInt> vvInt;
+typedef long long Long;
+typedef vector<Long> vLong;
+typedef tuple<int, int, int, Long> quad;
+
+const int MAX_LEN = (1 << 20);
+
+void addRight(int pos, vInt &acum, vInt &freqFixed, vInt &freqMoved, Long &ans, int K){
+	freqFixed[acum[pos]] ++;
+	freqMoved[acum[pos + 1]] ++;
+	ans += freqFixed[K ^ acum[pos + 1]];
+}
+
+void removeRight(int pos, vInt &acum, vInt &freqFixed, vInt &freqMoved, Long &ans, int K){
+	ans -= freqFixed[K ^ acum[pos + 1]];
+	freqFixed[acum[pos]] --;
+	freqMoved[acum[pos + 1]] --;
+}
+
+void addLeft(int pos, vInt &acum, vInt &freqFixed, vInt &freqMoved, Long &ans, int K){
+	freqFixed[acum[pos]] ++;
+	freqMoved[acum[pos + 1]] ++;
+	ans += freqMoved[K ^ acum[pos]];
+}
+
+void removeLeft(int pos, vInt &acum, vInt &freqFixed, vInt &freqMoved, Long &ans, int K){
+	ans -= freqMoved[K ^ acum[pos]];
+	freqFixed[acum[pos]] --;
+	freqMoved[acum[pos + 1]] --;
+}
+
+int main(){
+	int n, m, K;
+	while(scanf("%d%d%d", &n, &m, &K) == 3){
+		vInt acum(n + 1);
+		REP (i, n) {
+			int value;
+			scanf("%d", &value);
+			acum[i + 1] = acum[i] ^ value;
+		}
+		
+		vector<quad> queries;
+		REP (i, m) {
+			int low, high;
+			scanf("%d%d", &low, &high);
+			low--, high--;
+			queries.push_back(make_tuple(low, high, i, 0));
+		}
+		
+		int blockSize = (int)sqrt(n);
+		sort(all(queries),[blockSize](quad queryA, quad queryB){
+			int blockA = get<0>(queryA) / blockSize;
+			int blockB = get<0>(queryB) / blockSize;
+			if (blockA != blockB) {
+				return blockA < blockB;
+			}
+			return get<1>(queryA) < get<1>(queryB);
+		});
+		int curL = 0;
+		int curR = -1;
+		Long ans = 0;
+		vInt freqFixed(MAX_LEN);
+		vInt freqMoved(MAX_LEN);
+		for (auto &query : queries) {
+			int L = get<0>(query);
+			int R = get<1>(query);
+	
+			// curL .... L
+			while (curL < L) {
+				removeLeft(curL, acum, freqFixed, freqMoved, ans, K);
+				curL ++;
+			}
+	
+			// L .... curL
+			while (curL > L) {
+				addLeft(curL - 1, acum, freqFixed, freqMoved, ans, K);
+				curL --;
+			}
+	
+			// curR .... R
+			while (curR < R) {
+				addRight(curR + 1, acum, freqFixed, freqMoved, ans, K);
+				curR ++;
+			}
+	
+			// R ..... curR
+			while (curR > R) {
+				removeRight(curR, acum, freqFixed, freqMoved, ans, K);
+				curR --;
+			}
+			get<3>(query) = ans;
+		}
+
+		sort(all(queries), [](quad queryA, quad queryB){
+			return get<2>(queryA) < get<2>(queryB);
+		});
+
+		for (auto query : queries) {
+			printf("%lld\n", get<3>(query));
+		}		
+	}
+}

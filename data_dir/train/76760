@@ -1,0 +1,39 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 2e5+5;
+int n, a[maxn];
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int t; cin >> t;
+    while (t--) {
+        cin >> n;
+        for (int i = 0; i < n; i++) {
+            cin >> a[i];
+        }
+        map<int,int> prev;
+        vector<pair<int,int>> v;
+        for (int i = 0; i < n; i++) {
+            if (prev.count(a[i])) {
+                v.push_back({prev[a[i]],i});
+            }
+            prev[a[i]] = i;
+        }
+        sort(v.begin(),v.end(),[](auto a, auto b) {
+                return a.first!=b.first?a.first<b.first:a.second>b.second;
+                });
+        int ans = -1;
+        for (auto p: v) {
+            if (ans == -1) {
+                ans = p.second-p.first+1;
+            }
+            else {
+                ans = min(ans,p.second-p.first+1);
+            }
+        }
+        cout << ans << '\n';
+    }
+}
+

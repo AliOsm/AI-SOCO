@@ -1,0 +1,208 @@
+#include<bits/stdc++.h>
+#define god dimasi5eks
+#pragma GCC optimize("O3")
+#define fi first
+#define se second
+#define pb push_back
+#define pf push_front
+
+// #define fisier 1
+
+using namespace std;
+
+typedef long long ll;
+
+const int mod = 1000000007;
+const double dancila = 3.14159265359; // PI 
+const double eps = 1e-9;
+
+int n, val[200002], msk[200002], st[200002], dr[200002], pz;
+map<int, int> s[1 << 20];
+vector<int> frq[1 << 20];
+vector<int> v[200002];
+int sts[200002];
+map<int, int> mp[200002];
+int adr[200002];
+
+ll ans[200002], drp[200002];
+void dfs(int dad, int nod)
+{
+	++pz;
+	st[nod] = pz;
+	msk[nod] = (msk[dad] ^ val[nod]);
+	frq[msk[nod]].pb(nod);
+	sts[nod] = 1;
+	
+	int lf = 0;
+	int mxi = -1;
+	for(int i = 0; i < v[nod].size(); ++i)
+	{
+		int vecin = v[nod][i];
+		if(vecin == dad)
+			continue;
+		++lf;
+		dfs(nod, vecin);
+		sts[nod] += sts[vecin];
+		if(mxi == -1 || sts[vecin] > sts[v[nod][mxi]])
+			mxi = i;
+	}
+	dr[nod] = pz;
+	if(lf == 0)
+	{
+		adr[nod] = nod;
+		mp[adr[nod]][msk[nod]]++;
+	}
+	else
+	{	
+		adr[nod] = adr[v[nod][mxi]];
+		map<int, int> add;
+		for(int i = 0; i < v[nod].size(); ++i)
+		{
+			int vecin = v[nod][i];
+			if(vecin == dad)
+				continue;
+			if(i == mxi)
+				continue;
+			for(auto x : mp[adr[vecin]])
+			{
+				mp[adr[nod]][x.fi] += x.se;
+				add[x.fi] += x.se;
+			}
+		}
+		if(mp[adr[nod]].find(msk[dad]) != mp[adr[nod]].end())
+		{
+			if(st[nod] != dr[nod])
+			{
+				s[msk[dad]][st[nod]+1]++;
+				s[msk[dad]][dr[nod]+1]--;
+			}
+			drp[dad] += 1LL * mp[adr[nod]][msk[dad]];
+		}
+		for(int i = 0; i <= 19; ++i)
+		{
+			int nxx = msk[dad] ^ (1<<i);
+			if(mp[adr[nod]].find(nxx) != mp[adr[nod]].end())
+			{
+				if(st[nod] != dr[nod])
+				{
+					s[nxx][st[nod]+1]++;
+					s[nxx][dr[nod]+1]--;
+				}
+				drp[dad] += 1LL * mp[adr[nod]][nxx];
+			}
+		}
+		if(lf == 1)
+		{	
+			mp[adr[nod]][msk[nod]]++;
+			return;
+		}
+		int opne = v[nod][mxi];
+		ll tota = 0;
+		ll totb = 0;
+		for(int i = 0; i < v[nod].size(); ++i)
+		{
+			int vecin = v[nod][i];
+			if(vecin == dad)
+				continue;
+			if(i == mxi)
+				continue;
+			for(auto x : mp[adr[vecin]])
+			{
+				int mask = x.fi;
+				int x2 = mask ^ msk[nod] ^ msk[dad];
+				if(!x.se)
+					continue;
+				if(mp[adr[nod]].find(x2) != mp[adr[nod]].end())
+				{
+					int tr = mp[adr[nod]][x2] - (mp[adr[vecin]].find(x2) != mp[adr[vecin]].end()) * mp[adr[vecin]][x2];
+					int tr2 = (add.find(x2) != add.end()) * add[x2] - (mp[adr[vecin]].find(x2) != mp[adr[vecin]].end()) * mp[adr[vecin]][x2];
+					if(tr)
+					{
+						s[x2][st[opne]] += x.se;
+						s[x2][dr[opne]+1] -= x.se;
+						s[mask][st[vecin]] += tr;
+						s[mask][dr[vecin]+1] -= tr;
+						tota += 1LL * x.se * (tr - tr2);
+						totb += 1LL * x.se * tr2;
+					}
+				}
+				for(int btc = 0; btc <= 19; ++btc)
+				{
+					int xx2 = x2 ^ (1<<btc);
+					if(mp[adr[nod]].find(xx2) != mp[adr[nod]].end())
+					{
+						int tr = mp[adr[nod]][xx2] - (mp[adr[vecin]].find(xx2) != mp[adr[vecin]].end()) * mp[adr[vecin]][xx2];
+						int tr2 = (add.find(xx2) != add.end()) * add[xx2] - (mp[adr[vecin]].find(xx2) != mp[adr[vecin]].end()) * mp[adr[vecin]][xx2];
+						if(tr)
+						{
+							s[xx2][st[opne]] += x.se;
+							s[xx2][dr[opne]+1] -= x.se;
+							s[mask][st[vecin]] += tr;
+							s[mask][dr[vecin] + 1] -= tr;
+							tota += 1LL * x.se * (tr - tr2);
+							totb += 1LL * x.se * tr2;
+						}
+					}
+				}
+			}
+		}
+		totb /= 2;
+		drp[nod] += tota + totb;
+		drp[dad] += tota + totb;
+		mp[adr[nod]][msk[nod]]++;
+	}
+}
+void dfs2(int dad, int nod)
+{
+	ans[nod] -= drp[nod];
+	for(int i = 0; i < v[nod].size(); ++i)
+	{
+		int vecin = v[nod][i];
+		if(vecin == dad)
+			continue;
+		dfs2(nod, vecin);
+		ans[nod] += ans[vecin];
+	}
+}
+int main()
+{
+
+    #ifdef fisier
+        ifstream f("input.in");
+        ofstream g("output.out");
+    #endif
+
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+	cin >> n;
+	for(int i = 1; i < n; ++i)
+	{
+		int a, b;
+		cin >> a >> b;
+		v[a].pb(b);
+		v[b].pb(a);
+	}
+	for(int i = 1; i <= n; ++i)
+	{
+		char c;
+		cin >> c;
+		val[i] = (1 << (c - 'a'));
+	}
+	dfs(0, 1);
+	for(int i = 0; i < (1<<20); ++i)
+	{
+		int ptr = 0;		
+		ll val = 0;
+		for(auto x : s[i])
+		{
+			while(ptr < frq[i].size() && x.fi > st[frq[i][ptr]])
+				ans[frq[i][ptr]] += val, ++ptr;
+			val += x.se;
+		}
+	}
+	dfs2(0, 1);
+	for(int i = 1; i <= n; ++i)
+		cout << ans[i]+1 << " ";
+    return 0;
+}

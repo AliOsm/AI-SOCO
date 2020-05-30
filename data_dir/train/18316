@@ -1,0 +1,198 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <stack>
+#include <queue>
+#include <deque>
+#include <algorithm>
+#include <stdint.h>
+using namespace std;
+
+struct fen
+{
+	int n;
+	vector<int64_t> t;
+
+	fen()
+		: n (100000 + 1)
+		, t(n)
+	{}
+
+	int64_t sum(int r)
+	{
+		int64_t result = 0;
+		for (; r >= 0; r = (r & (r + 1)) - 1)
+			result += t[r];
+		return result;
+	}
+
+	void inc(int i, int64_t delta)
+	{
+		for (; i < n; i = (i | (i + 1)))
+			t[i] += delta;
+	}
+
+	int64_t sum(int l, int r)
+	{
+		return sum(r) - sum(l - 1);
+	}
+};
+
+struct Solution
+{
+	vector<vector<int> > g;
+	vector<int64_t> ans;
+
+	struct data
+	{
+		int h;
+		int sz;
+		int st;
+		int ft;
+		int ver;
+	};
+
+	vector<data> a;
+	int time = 0;
+
+	vector<int> color;
+
+	vector < vector<pair<int, int>>> q;
+
+	void prepare_dfs(int v, int p, int cur_h)
+	{
+		a[v].h = cur_h;
+		a[v].sz = 1;
+		a[time].ver = v;
+		a[v].st = time++;
+		for (auto & to : g[v])
+		{
+			if (to == p)
+				continue;
+			prepare_dfs(to, v, cur_h + 1);
+			a[v].sz += a[to].sz;
+		}
+		a[v].ft = time;
+	}
+	
+	vector<int> cnt;
+	fen f;
+
+	void apply(int v)
+	{
+		f.inc(cnt[color[v]], -1);
+		++cnt[color[v]];
+		f.inc(cnt[color[v]], 1);
+	}
+
+	void revert(int v)
+	{
+		f.inc(cnt[color[v]], -1);
+		--cnt[color[v]];
+		f.inc(cnt[color[v]], 1);
+	}
+
+	void calc_ans(int v)
+	{
+		for (auto & x : q[v])
+		{
+			ans[x.second] = f.sum(x.first, f.n - 1);
+		}
+	}
+
+	void dfs(int v, int p, bool keep)
+	{
+		int big_to = -1;
+		int mx = 0;
+		for (auto & to : g[v])
+		{
+			if (to == p)
+				continue;
+			if (a[to].sz > mx)
+			{
+				mx = a[to].sz;
+				big_to = to;
+			}
+		}
+		for (auto & to : g[v])
+		{
+			if (to != big_to && to != p)
+			{
+				dfs(to, v, false);
+			}
+		}
+		if (big_to != -1)
+		{
+			dfs(big_to, v, true);
+		}
+
+		apply(v);
+		for (auto & to : g[v])
+		{
+			if (to == big_to || to == p)
+				continue;
+			for (int t = a[to].st; t < a[to].ft; ++t)
+			{
+				apply(a[t].ver);
+			}
+		}
+
+		calc_ans(v);
+
+		if (keep == 0)
+		{
+			for (int t = a[v].st; t < a[v].ft; ++t)
+			{
+				revert(a[t].ver);
+			}
+		}
+	}
+
+	void solve()
+	{
+		int n, m;
+		cin >> n >> m;
+		g.resize(n);
+		a.resize(n);
+		color.resize(n);
+		q.resize(n);
+		cnt.resize(100001);
+		int s = 0;
+		for (int i = 0; i < n; ++i)
+		{
+			cin >> color[i];
+		}
+		for (int i = 0; i < n - 1; ++i)
+		{
+			int x, y;
+			cin >> x >> y;
+			--x, --y;
+			g[x].push_back(y);
+			g[y].push_back(x);
+		}
+		ans.resize(m);
+		for (int i = 0; i < m; ++i)
+		{
+			int v, k;
+			cin >> v >> k;
+			--v;
+			q[v].push_back(make_pair(k, i));
+		}
+		prepare_dfs(s, -1, 0);
+		dfs(s, -1, true);
+		for (auto & x : ans)
+		{
+			cout << x << endl;
+		}
+	}
+};
+
+int main(void)
+{
+	ios_base::sync_with_stdio(false);
+	Solution().solve();
+	return 0;
+}

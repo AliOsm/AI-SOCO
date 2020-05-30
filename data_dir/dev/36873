@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int encode(int v1, int v2, int a, int t){
+    return v1 + v2*100 + a*10000 + t*270000;
+}
+
+vector<int> decode(int n){
+    int v1 = n%100; n /= 100;
+    int v2 = n%100; n /= 100;
+    int a = n%27; n /= 27;
+    return {v1, v2, a, n};
+}
+
+int main(){
+    int N, M;
+    cin >> N >> M;
+    vector<pair<int, int>> es[100], rev[100];
+    for(int i=0; i<M; i++){
+        int a, b;
+        char c;
+        cin >> a >> b >> c;
+        es[a-1].emplace_back(b-1, c-'a'+1);
+        rev[b-1].emplace_back(a-1, c-'a'+1);
+    }
+
+    vector<int> dp(540000, -1), indeg(540000);
+    for(int i=0; i<N; i++) for(int j=0; j<N; j++) for(int c=0; c<27; c++){
+        for(auto& p : es[i]){
+            int i2 = p.first, c2 = p.second;
+            if(c <= c2){
+                int s = encode(i, j, c, 0);
+                int t = encode(i2, j, c2, 1);
+                indeg[s]++;
+            }
+        }
+        for(auto& p : es[j]){
+            int j2 = p.first, c2 = p.second;
+            if(c <= c2){
+                int s = encode(i, j, c, 1);
+                int t = encode(i, j2, c2, 0);
+                indeg[s]++;
+            }
+        }
+    }
+
+    queue<int> que;
+    for(int i=0; i<540000; i++) if(indeg[i] == 0){
+        dp[i] = 0;
+        que.push(i);
+    }
+    while(que.size()){
+        int n = que.front(); que.pop();
+        auto v = decode(n);
+        int i = v[0], j = v[1], a = v[2], t = v[3];
+        if(t == 1){
+            for(auto& e : rev[i]){
+                int i0 = e.first, c = e.second;
+                if(c != a) continue;
+                for(int c0=0; c0<=c; c0++){
+                    int n2 = encode(i0, j, c0, 1-t);
+                    if(dp[n2] >= 0) continue;
+                    indeg[n2]--;
+                    if(indeg[n2] == 0) dp[n2] = 0;
+                    if(dp[n] == 0)  dp[n2] = 1;
+                    if(dp[n2] >= 0) que.push(n2);
+                }
+            }
+        }else{
+            for(auto& e : rev[j]){
+                int j0 = e.first, c = e.second;
+                if(c != a) continue;
+                for(int c0=0; c0<=c; c0++){
+                    int n2 = encode(i, j0, c0, 1-t);
+                    if(dp[n2] >= 0) continue;
+                    indeg[n2]--;
+                    if(indeg[n2] == 0) dp[n2] = 0;
+                    if(dp[n] == 0)  dp[n2] = 1;
+                    if(dp[n2] >= 0) que.push(n2);
+                }
+            }
+        }
+    }
+
+    for(int i=0; i<N; i++){
+        for(int j=0; j<N; j++){
+            cout << (dp[encode(i, j, 0, 0)] ? "A" : "B");
+        }
+        cout << endl;
+    }
+    return 0;
+}

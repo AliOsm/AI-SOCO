@@ -1,0 +1,197 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+//defines
+#define openin freopen("input.txt","r",stdin)
+#define openout freopen("output.txt","w",stdout)
+#define fast ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define ll long long
+#define int long long
+#define mod 1000000007
+#define repr(i,x,y) for (__typeof(x) i=x;i>=y;i--)
+#define rep(i,x,y) for (__typeof(x) i=x;i<=y;i++)
+#define all(c) (c).begin(),(c).end()
+#define ff first
+#define ss second
+#define pb push_back
+#define mp make_pair
+
+/* Print pair */
+template <typename T,typename S>
+ostream & operator << (ostream &os , const pair<T,S> &v) {
+    os << "(" ;
+    os << v.first << "," << v.second << ")" ;
+    return os ;
+}
+/* Print vector */
+template <typename T>
+ostream & operator << (ostream &os , const vector<T> &v) {
+    os << "[" ;
+    int sz = v.size() ;
+    for(int i = 0 ; i < sz ; ++i) {
+        os << v[i] ;
+        if(i!=sz-1)os << "," ;
+    }
+    os << "]\n" ;
+    return os ;
+}
+/* Print set */
+template <typename T>
+ostream & operator << (ostream &os , const set<T> &v) {
+    T last = *v.rbegin() ;
+    os << "[" ;
+    for(auto it : v) {
+        os << it  ;
+        if(it != last) os << "," ;
+    }
+    os << "]\n" ;
+    return os ;
+}
+/* Print Map */
+template <typename T,typename S>
+ostream & operator << (ostream &os , const map<T,S> &v) {
+    for(auto it : v) {
+        os << it.first << " : " << it.second << "\n" ;
+    }
+    return os ;
+}
+int power(int a , int b)
+{
+    int res = 1 ;
+    while(b)
+    {
+        if(b%2) {
+            res = (res * a) % mod ;
+        }
+        b/=2 ;
+        a = (a*a) % mod ;
+    }
+    return res ;
+}
+
+//debug
+#define TRACE
+
+#ifdef TRACE
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+        cerr << name << " : " << arg1 << std::endl;
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+        const char* comma = strchr(names + 1, ',');cerr.write(names, comma - names) << " : " << arg1<<" | ";__f(comma+1, args...);
+}
+#else
+#define trace(...)
+#endif
+
+const int N = 1e5 + 5 ; 
+
+vector<int> G[N] ; 
+int n , m , k , x ; 
+int DP[3][11][N] ; 
+int temp[11] , sum[11] ;
+
+void go(int node = 1 , int par = 0) {
+    bool isLeaf = true ; 
+    for(auto &child : G[node]) {
+        if(child != par) {
+            isLeaf = false ; 
+            go(child , node) ;
+        }
+    }
+    if(isLeaf) {
+        DP[0][0][node] = k - 1 ; // less than k 
+        DP[1][1][node] = 1 ; // equal to k 
+        DP[2][0][node] = m - k ; // more than k
+        return ; 
+    }
+    // less than k case
+    memset(temp , 0 , sizeof(temp)) ; 
+    memset(sum , 0 , sizeof(sum)) ;
+    temp[0] = 1 ; 
+    for(int child : G[node]) {
+        if(child == par) continue ; 
+        rep(cnt,0,x) {
+            rep(take,0,x) {
+                if(cnt + take > x) continue ; 
+                int ways = (DP[0][take][child] + DP[1][take][child] + DP[2][take][child]) % mod ; 
+                sum[cnt + take] += (temp[cnt] * ways) % mod ; 
+                sum[cnt + take] %= mod ; 
+            }
+        }
+        rep(cnt,0,x) {
+            temp[cnt] = sum[cnt] ; 
+            sum[cnt] = 0 ; 
+        }
+    }
+    rep(cnt,0,x) {
+        DP[0][cnt][node] = (temp[cnt] * (k - 1)) % mod ;
+    }
+
+    // equal to k 
+    memset(temp , 0 , sizeof(temp)) ; 
+    memset(sum , 0 , sizeof(sum)) ; 
+    temp[0] = 1 ; 
+    for(int child : G[node]) {
+        if(child == par) continue ; 
+        rep(cnt,0,x) {
+            rep(take,0,x) {
+                if(cnt + take > x) continue ; 
+                int ways = (DP[0][take][child]) % mod ; 
+                sum[cnt + take] += (temp[cnt] * ways) % mod ; 
+                sum[cnt + take] %= mod ; 
+            }
+        }
+        rep(cnt,0,x) {
+            temp[cnt] = sum[cnt] ; 
+            sum[cnt] = 0 ; 
+        }
+    }
+    rep(cnt,0,x) {
+        DP[1][cnt][node] = temp[cnt - 1] ;
+    }
+
+    // more than k 
+    memset(temp , 0 , sizeof(temp)) ; 
+    memset(sum , 0 , sizeof(sum)) ;
+    temp[0] = 1 ; 
+    for(int child : G[node]) {
+        if(child == par) continue ; 
+        rep(cnt,0,x) {
+            rep(take,0,x) {
+                if(cnt + take > x) continue ; 
+                int ways = (DP[0][take][child] + DP[2][take][child]) % mod ; 
+                sum[cnt + take] += (temp[cnt] * ways) % mod ; 
+                sum[cnt + take] %= mod ; 
+            }
+        }
+        rep(cnt,0,x) {
+            temp[cnt] = sum[cnt] ; 
+            sum[cnt] = 0 ; 
+        }
+    }
+    rep(cnt,0,x) {
+        DP[2][cnt][node] = (temp[cnt] * (m - k)) % mod ;
+    }
+}
+int32_t main()
+{
+    fast;
+    cin >> n >> m ; 
+    for(int i = 0 ; i < n - 1 ; ++i) {
+        int u , v ; 
+        cin >> u >> v ; 
+        G[u].pb(v) ; 
+        G[v].pb(u) ;
+    }
+    cin >> k >> x ; 
+    go() ; 
+    int res = 0 ; 
+    rep(type,0,2) rep(cnt,0,x) {
+        res = (res + DP[type][cnt][1]) % mod ;
+    }
+    cout << res << endl ;
+    return 0;
+}

@@ -1,0 +1,300 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <hash_set>
+#include <hash_map>
+#include <map>
+#include <functional>
+#include <cmath>
+
+#if !defined(__GNUC__)
+#include <hash_set>
+#include <hash_map>
+
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+
+typedef stdext::hash_set<size_t>    hash_set_size_t;
+#else // !defined(__GNUC__)
+
+#endif // !defined(__GNUC__)
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<vector_size_t> vector_vector_size_t;
+typedef std::set<size_t> set_size_t;
+typedef std::multiset<size_t> multiset_size_t;
+
+typedef std::vector<string8_t> vector_string8_t;
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<std::string> multiset_string8_t;
+
+
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else //defined(ONLINE_JUDGE)
+#include <library/lib_stopwatch.h>
+#endif //defined(ONLINE_JUDGE)
+
+
+typedef size_t vertex_index_t;
+typedef uint32_t distance_t;
+
+typedef std::vector<vertex_index_t> link_list_t;
+typedef std::vector<vertex_index_t> vertex_index_list_t;
+typedef std::vector<link_list_t> link_lists_t;
+
+typedef std::vector<distance_t> distances_t;
+typedef std::vector<distances_t> distance_matrix_t;
+
+static const distances_t::value_type InfiniteDistance = UINT_MAX / 4;
+
+class FloydEvaluation
+{
+    distance_matrix_t GetEmptyDistanceMatrix(size_t n)
+    {
+        // fill n*n with infinite value
+        return distance_matrix_t(n, distances_t(n, InfiniteDistance));
+    }
+
+public:
+    void CalculateMatrixForLinkList(const link_lists_t& links, distance_matrix_t& distanceMatrix)
+    {
+        const size_t n = links.size();
+        GetEmptyDistanceMatrix(n).swap(distanceMatrix);
+
+        distance_matrix_t(n, distances_t(n, InfiniteDistance)).swap(distanceMatrix);
+
+        for (size_t i = 0; i < n; i++)
+        {
+            distanceMatrix[i][i] = 0;
+        }
+
+        for (size_t i = 0; i < n; i++)
+        {
+            for (size_t j = 0; j < links[i].size(); j++)
+            {
+                distanceMatrix[i][links[i][j]] = 1;
+            }
+        }
+
+        TransformToDistanceMatrix(distanceMatrix);
+    }
+
+    distance_matrix_t CalculateMatrixForLinkList(const link_lists_t& links)
+    {
+        distance_matrix_t result;
+        CalculateMatrixForLinkList(links, result);
+        return result;
+    }
+
+private:
+    void TransformToDistanceMatrix(distance_matrix_t& distanceMatrix)
+    {
+        const size_t n = distanceMatrix.size();
+        for (size_t k = 0; k < n; k++)
+        {
+            for (size_t i = 0; i < n; i++)
+            {
+                for (size_t j = 0; j < n; j++)
+                {
+                    distanceMatrix[i][j] = 
+                        Min(distanceMatrix[i][j], distanceMatrix[i][k] + distanceMatrix[k][j]);
+                }
+            }
+        }
+    }
+};
+
+void TransformDistances(const distance_matrix_t& distances, vector_vector_size_t& waves)
+{
+    const size_t n = distances.size();
+
+    const vertex_index_t start = 0;
+    const vertex_index_t stop = n-1;
+
+    const distance_t maxDist = distances[start][stop];
+
+    vector_vector_size_t(maxDist + 1).swap(waves);
+
+    waves[0].push_back(start);
+    distance_t dist = 1;
+
+    while (dist <= maxDist)
+    {
+        for (size_t i = 0; i < n; i++)
+        {
+            if (distances[start][i] == dist)
+            {
+                waves[dist].push_back(i);
+            }
+        }
+        dist++;
+    }
+}
+
+uint64_t GetPathsCount(const distance_matrix_t& distances, const vector_vector_size_t& waves, const vertex_index_t midIdx)
+{
+    const size_t n = distances.size();
+
+    vector_uint64_t pathsCount(n);
+    distance_t dist = 0;
+    pathsCount[waves[dist][0]] = 1;
+
+    const distance_t maxDist = (distance_t)waves.size() - 1;
+
+    bool wasMidReached = (midIdx == 0);
+
+    while (dist != maxDist)
+    {
+        if (midIdx != 0 && std::find(waves[dist].begin(), waves[dist].end(), midIdx) != waves[dist].end())
+        {
+            for (size_t i = 0; i < waves[dist].size(); i++)
+            {
+                if (waves[dist][i] != midIdx)
+                    pathsCount[waves[dist][i]] = 0;
+            }
+            wasMidReached = true;
+        }
+
+        const vector_size_t& currWave = waves[dist];
+        const vector_size_t& nextWave = waves[dist+1];
+
+        for (size_t i = 0; i < currWave.size(); i++)
+        {
+            const vertex_index_t curr = currWave[i];
+            for (size_t j = 0; j < nextWave.size(); j++)
+            {
+                const vertex_index_t next = nextWave[j];
+                if (distances[curr][next] == 1)
+                {
+                    pathsCount[next] += pathsCount[curr];
+                }
+            }
+        }
+
+        dist++;
+    }
+
+    if (wasMidReached)
+    {
+        return pathsCount[n-1];
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw;
+
+    // first input operation
+    //
+    size_t n, m;
+    ist >> n >> m;
+
+    // /////////////////////
+
+    if (multipleTestMode && !ist)
+    {
+        return false;
+    }
+
+    // other input operation and calculations
+    //
+    link_lists_t origLinks(n);
+    if (n <= 100)
+    {
+        for (size_t i = 0; i < m; i++)
+        {
+            vertex_index_t a, b;
+            ist >> a >> b;
+            a--; b--;
+
+            origLinks[a].push_back(b);
+            origLinks[b].push_back(a);
+        }
+    }
+    else
+    {
+        // big test generation
+        const size_t groupCount = 2;
+        for (size_t i = 0; i+1 < n / groupCount; i++)
+        {
+            for (size_t j = 0; j < groupCount; j++)
+            {
+                for (size_t k = 0; k < groupCount; k++)
+                {
+                    const vertex_index_t a = i * groupCount + j;
+                    const vertex_index_t b = (i+1) * groupCount + k;
+                    origLinks[a].push_back(b);
+                    origLinks[b].push_back(a);
+                }
+            }
+        }
+    }
+
+    const distance_matrix_t distances = FloydEvaluation().CalculateMatrixForLinkList(origLinks);
+
+    vector_vector_size_t waves;
+    TransformDistances(distances, waves);
+
+    const uint64_t totalPathsCount = GetPathsCount(distances, waves, 0);
+
+    uint64_t maxCount = totalPathsCount;
+
+    for (vertex_index_t idx = 1; idx + 1 < n; idx++)
+    {
+        const uint64_t pathsCount = GetPathsCount(distances, waves, idx);
+        maxCount = Max(maxCount, pathsCount * 2);
+    }
+
+    const double_t ratio = (double_t)maxCount / totalPathsCount;
+    ost << std::setprecision(8) << std::fixed << ratio << std::endl;
+
+    // /////////////////////
+
+    return multipleTestMode;
+}
+
+int main()
+{
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

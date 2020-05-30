@@ -1,0 +1,142 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+const int MAXN = 200100;
+
+const long long mod = 1000000007;
+
+long long powmod(long long a,long long b){
+	long long res = 1;
+	while(b > 0){
+		if(b % 2 == 0) a *= a , a %= mod , b /= 2;
+		else res *= a , res %= mod , b --;
+	}
+	return res;
+}
+
+struct seg{
+	seg *fe,*fd;
+	int meio,l,r;
+	long long prod1,prod2;
+	
+	seg(int x,int y){
+		l = x , r = y;
+		meio = (x + y) / 2;
+		prod1 = prod2 = 1;
+	
+		if(l == r) return;
+		
+		fe = new seg(x,meio);
+		fd = new seg(meio + 1,y);
+	}
+	
+	void up1(int pos,long long novo){
+		if(l == r){
+			prod1 = novo;
+			return;
+		}
+		if(pos <= meio) fe->up1(pos,novo);
+		else fd->up1(pos,novo);
+		
+		prod1 = (fe->prod1 * fd->prod1) % mod;
+	}
+	
+	void up2(int pos,long long novo,int t){
+		if(l == r){
+			if(t == 1) prod2 *= (powmod(novo,mod - 2) * (novo - 1)) % mod ,prod2 %= mod;
+			else prod2 *= (powmod(novo - 1,mod - 2) * (novo)) % mod , prod2 %= mod;
+			return;
+		}
+		if(pos <= meio) fe->up2(pos,novo,t);
+		else fd->up2(pos,novo,t);
+		
+		prod2 = (fe->prod2 * fd->prod2) % mod;
+	}
+	
+	long long get(int a,int b){
+		if(l >= a && r <= b) return (prod1 * prod2) % mod;
+		if(l > b || r < a) return 1;
+		return (fe->get(a,b) * fd->get(a,b)) % mod;
+	}
+};
+
+struct query{
+	int l,r,id;
+};
+
+query q[MAXN];
+seg st(1,MAXN);
+
+bool compara(query a,query b){
+	return a.l < b.l;
+}
+
+bool comp[1000100];
+
+void crivo(){
+	for(int i = 2;i <= 1000000;i++){
+		if(comp[i] == true) continue;
+		for(int j = 2*i;j <= 1000000;j += i)
+			comp[j] = true;
+	}
+}
+
+int v[MAXN];
+vector<int> vec[1000100];
+int p[1000100];
+vector<int> primos[MAXN];
+int resposta[MAXN];
+
+signed main(){
+
+	memset(p,0,sizeof p);
+	
+	int n;
+	scanf("%d",&n);
+	
+	comp[1] = true;
+	crivo();
+	
+	for(int i = 1;i <= n;i++) scanf("%d",&v[i]), st.up1(i,v[i]);
+	for(int i = 1;i <= n;i++){
+		int h = v[i];
+		for(int j = 2;j <= sqrt(v[i]);j++){
+			if(comp[j] == true || h % j != 0) continue;
+			vec[j].push_back(i);
+			primos[i].push_back(j);
+			while(h % j == 0) h /= j;
+		}
+		if(h > 1) vec[h].push_back(i) , primos[i].push_back(h); 
+	}
+	
+	int qq;
+	scanf("%d",&qq);
+
+	for(int i = 1;i <= qq;i++) scanf("%d %d",&q[i].l,&q[i].r) , q[i].id = i;
+	
+	sort(q + 1,q + qq + 1,compara);
+	
+	
+	for(int i = 1;i <= 1000000;i++){
+		if(comp[i] == true) continue;
+		if(vec[i].size() > 0) st.up2(vec[i][0],i,1);
+	}
+	
+	int cnt = 1;
+	for(int i = 1;i <= n;i++){
+		while(cnt <= qq && q[cnt].l == i){
+			resposta[q[cnt].id] = st.get(q[cnt].l,q[cnt].r);
+			cnt ++;
+		}
+		for(int j = 0;j < primos[i].size();j++){
+			int at = primos[i][j];
+			st.up2(vec[at][p[at]],at,2);
+			p[at] ++;
+			if(p[at] < vec[at].size()) st.up2(vec[at][p[at]],at,1);
+		}
+	}
+	
+	for(int i = 1;i <= qq;i++){
+		printf("%d\n",resposta[i]);
+	}
+}

@@ -1,0 +1,184 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair <ll, ll> ii;
+typedef vector<vector<ll>> matrix;
+ 
+matrix identity {{1,0}, {0,1}};
+matrix f[50005];
+ll k, mod, freq[50005], s[50005];
+matrix tree[4*50005];
+
+int left(int u){return (u << 1);}
+int right(int u){return (u << 1) + 1;}
+ 
+void mult_matrix(matrix& x, matrix& y, matrix& res) {
+    ll a = x[0][0], b = x[0][1], c = x[1][0], d = x[1][1];
+    ll e = y[0][0], f = y[0][1], g = y[1][0], h = y[1][1];
+    res[0][0] = (a*e %mod) + (b*g %mod); res[0][0] %= mod;
+    res[0][1] = (a*f %mod) + (b*h %mod); res[0][1] %= mod;
+    res[1][0] = (c*e %mod) + (d*g %mod); res[1][0] %= mod;
+    res[1][1] = (c*f %mod) + (d*h %mod); res[1][1] %= mod;
+}
+ 
+void exp_matrix(matrix&x, ll exp, matrix& res) {
+    if (exp == 0) {
+        res = identity;
+        return;
+    }
+    if (exp == 1) {
+        res = x;
+        return;
+    }
+    matrix m {{0,0},{0,0}};
+    exp_matrix(x, exp / 2, m);
+    mult_matrix(m, m, m);
+    if (exp % 2 == 1)
+        mult_matrix(m, x, m);
+    res = m;
+}
+
+void build(int u, int L, int R){
+    if(L == R) tree[u] = f[L];
+    else{
+        int mid = (L+R)/2;
+        build(left(u), L, mid);
+        build(right(u), mid+1, R);
+        tree[u].assign(2, vector<ll>(2));
+        mult_matrix(tree[left(u)], tree[right(u)], tree[u]);
+    }
+}
+
+void query(matrix& res){
+    res = tree[1];
+}
+
+void update(int u, int L, int R, int pos, matrix& res){
+    if(L == R) tree[u] = res;
+    else{
+        int mid = (L+R)/2;
+        if(L <= pos and pos <= mid) update(left(u), L, mid, pos, res);
+        else update(right(u), mid+1, R, pos, res);
+        mult_matrix(tree[left(u)], tree[right(u)], tree[u]);
+    }
+}
+
+void printmatrix(matrix& x, string s = ""){
+    cout << s << endl;
+    cout << x[0][0] << " " << x[0][1] << endl;
+    cout << x[1][0] << " " << x[1][1] << endl;
+    cout << endl;
+    
+}
+ 
+int main(){
+    
+    cin >> k >> mod;
+    if(k == 0){
+        cout << 0 << endl;
+        return 0;
+    }
+    if(k == 1){
+        cout << 1%mod << endl;
+        return 0;
+    }
+ 
+    ll n; cin >> n;
+    for(int i = 0; i < n; i++)
+        cin >> s[i];
+    
+    for(int i = 0; i < n; i++){
+        f[i].assign(2, vector<ll>(2));
+        f[i][0][0] = 0;
+        f[i][0][1] = s[i];
+        f[i][1][0] = 1;
+        f[i][1][1] = s[(i+1)%n];
+    }
+    
+    matrix tot = identity;
+    for(int i = 0; i < n; i++)
+        mult_matrix(tot, f[i], tot);
+    
+    build(1, 0, n-1);
+    
+    vector<matrix> vm;
+    ll m; cin >> m;
+    vector<ii> lol;
+    for(int i = 0; i < m; i++){
+        ll j, v; cin >> j >> v;
+        lol.emplace_back(j, v);
+    }
+    sort(lol.begin(), lol.end());
+    map<ll, matrix> mapa;
+    for(int i = 0; i < m; i++){
+        ll j, v; tie(j, v) = lol[i];
+        if(j >= k) break;
+        
+        matrix m_j {{0, 0}, {0, 0}};
+        m_j[0][0] = 0; m_j[0][1] = v;
+        m_j[1][0] = 1; m_j[1][1] = s[(j+1)%n];
+        mapa[j] = m_j;
+        
+        if(mapa.count(j-1))
+            mapa[j-1][1][1] = v;
+        else{
+            m_j[0][0] = 0; m_j[0][1] = s[(j-1)%n];
+            m_j[1][0] = 1; m_j[1][1] = v;
+            mapa[j-1] = m_j;
+        }
+    }
+    
+    map< ll, vector< pair<ll, matrix> > > mapa_ciclo;
+    for(auto p : mapa)
+        mapa_ciclo[p.first/n].push_back(p);
+    
+    ll ant = -1, numciclos = (k-1)/n;
+    matrix res = identity;
+    for(auto p : mapa_ciclo){
+        ll atual = p.first;
+        // cout << "entrei no ciclo " << atual << endl;
+        if (atual >= numciclos) break;
+        vector< pair<ll, matrix> >& vec = p.second;
+        
+        ll dif = atual-ant-1;
+        matrix aux = identity;
+        // cout << "somei " << dif << " na potencia" << endl;
+        exp_matrix(tot, dif, aux);
+        vector<ll> visited;
+        
+        for(int i = 0; i < vec.size(); i++){
+            ll j = vec[i].first%n;
+            matrix m_j = vec[i].second;
+            update(1, 0, n-1, j, m_j);
+            visited.push_back(j);
+        }
+        
+        matrix mm = identity;
+        query(mm);
+        mult_matrix(aux, mm, aux);
+        
+        for(ll pos : visited)
+            update(1, 0, n-1, pos, f[pos]);
+        
+        ant = atual;
+        mult_matrix(res, aux, res);
+    }
+    // printmatrix(res);
+    if (ant < numciclos - 1) {
+        matrix aux = identity;
+        exp_matrix(tot, numciclos - 1 - ant, aux);
+        mult_matrix(res, aux, res);
+    }
+    /*
+              0   |  1    | 2      |
+        s = 0 1 2 | 3 4 5 | 6 7  8 | 9  ;
+        f = 2 3 4 | 5 6 7 | 8 9 10 | 11
+    */
+    for (ll i = numciclos*n; i+1 < k; ++i){
+        if(mapa.count(i)) mult_matrix(res, mapa[i], res);
+        else mult_matrix(res, f[i%n], res);
+    }
+    cout << res[1][1] << endl;
+    
+	return 0;
+}

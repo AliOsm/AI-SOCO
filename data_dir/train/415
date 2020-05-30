@@ -1,0 +1,91 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#define Q	200000
+#define INF	0x3f3f3f3f
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_() {
+	return (rand() * 76543LL + rand()) % 0x7fffffff;
+}
+
+int ll[1 + Q + 1], rr[1 + Q + 1], zz[1 + Q + 1], xx1[1 + Q + 1], xx2[1 + Q + 1], yy1[1 + Q + 1], yy2[1 + Q + 1], u_, l_, r_;
+
+int node(int x1, int x2, int y1, int y2) {
+	static int _ = 1;
+
+	zz[_] = rand_();
+	xx1[_] = x1, xx2[_] = x2, yy1[_] = y1, yy2[_] = y2;
+	return _++;
+}
+
+void split(int u, int x, int y) {
+	if (u == 0) {
+		u_ = l_ = r_ = 0;
+		return;
+	}
+	if (xx2[u] < x) {
+		split(rr[u], x, y);
+		rr[u] = l_, l_ = u;
+	} else if (yy2[u] < y) {
+		split(ll[u], x, y);
+		ll[u] = r_, r_ = u;
+	} else {
+		u_ = u, l_ = ll[u], r_ = rr[u];
+		ll[u] = rr[u] = 0;
+	}
+}
+
+int merge(int u, int v) {
+	if (u == 0)
+		return v;
+	if (v == 0)
+		return u;
+	if (zz[u] < zz[v]) {
+		rr[u] = merge(rr[u], v);
+		return u;
+	} else {
+		ll[v] = merge(u, ll[v]);
+		return v;
+	}
+}
+
+int main() {
+	int n, q;
+
+	srand_();
+	scanf("%d%d", &n, &q);
+	u_ = node(0, n + 1, 0, n + 1);
+	while (q--) {
+		static char dir[2];
+		int x, y, ans;
+
+		scanf("%d%d%s", &x, &y, dir);
+		split(u_, x, y);
+		if (xx2[u_] == x || yy2[u_] == y)
+			ans = 0;
+		else if (dir[0] == 'L') {
+			int y_;
+
+			ans = x - xx1[u_];
+			y_ = yy2[u_], yy2[u_] = y;
+			u_ = merge(node(xx1[u_], x, y, y_), u_);
+		} else {
+			int x_;
+
+			ans = y - yy1[u_];
+			x_ = xx2[u_]; xx2[u_] = x;
+			u_ = merge(u_, node(x, x_, yy1[u_], y));
+		}
+		u_ = merge(l_, merge(u_, r_));
+		printf("%d\n", ans);
+	}
+	return 0;
+}

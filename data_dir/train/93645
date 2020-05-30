@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define finish(x) return cout << x << endl, 0
+#define ll long long
+
+struct item{
+    int lca, mn, mx;
+};
+
+const int N = 100001;
+
+int n, q, in[N], h[N], p[N][18];
+vector <int> v[N];
+item tree[4 * N];
+int cn;
+
+int lift(int node, int k){
+    if(k < 0) return node;
+    for(int i = 0 ; i < 18 ; i++)
+        if((1 << i) & k)
+            node = p[node][i];
+    return node;
+}
+int LCA(int a, int b){
+    if(b == -1) return a;
+    if(a == -1) return b;
+    if(h[a] > h[b]) swap(a, b);
+    b = lift(b, h[b] - h[a]);
+    if(a == b) return a;
+    for(int i = 17 ; i >= 0 ; i--){
+        if(p[a][i] != p[b][i]){
+            a = p[a][i];
+            b = p[b][i];
+        }
+    }
+    return p[a][0];
+}
+item merge(item a, item b){
+    if(a.lca == -1) return b;
+    if(b.lca == -1) return a;
+    a.lca = LCA(a.lca, b.lca);
+    if(in[b.mn] < in[a.mn]) a.mn = b.mn;
+    if(in[b.mx] > in[a.mx]) a.mx = b.mx;
+    return a;
+}
+void build(int l, int r, int node){
+    if(l == r){
+        tree[node] = {l, l, l};
+        return;
+    }
+    int mid = (l + r) / 2;
+    build(l, mid, 2 * node);
+    build(mid + 1, r, 2 * node + 1);
+    tree[node] = merge(tree[2 * node], tree[2 * node + 1]);
+}
+item query(int l, int r, int node, int s, int e){
+    if(r < l || r < s || l > e) return {-1, -1, -1};
+    if(s <= l && r <= e) return tree[node];
+    int mid = (l + r) / 2;
+    return merge(query(l, mid, 2 * node, s, e), query(mid + 1, r, 2 * node + 1, s, e));
+}
+void dfs(int node, int pnode){
+    in[node] = cn++;
+    h[node] = h[pnode] + 1;
+    p[node][0] = pnode;
+    for(int cur = 1 ; (1 << cur) <= n ; cur++)
+        p[node][cur] = p[p[node][cur - 1]][cur - 1];
+    for(auto &i : v[node])
+        dfs(i, node);
+}
+int query(int l, int u, int r){
+    return LCA(query(1, n, 1, l, u - 1).lca, query(1, n, 1, u + 1, r).lca);
+}
+int main(){
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cin >> n >> q;
+    for(int i = 2 ; i <= n ; i++){
+        int x;
+        cin >> x;
+        v[x].push_back(i);
+    }
+    h[0] = -1;
+    dfs(1, 0);
+    build(1, n, 1);
+    while(q--){
+        int l, r;
+        cin >> l >> r;
+        auto cur = query(1, n, 1, l, r);
+        if(h[query(l, cur.mn, r)] > h[query(l, cur.mx, r)])
+            cout << cur.mn << " " << h[query(l, cur.mn, r)] << endl;
+        else cout << cur.mx << " " << h[query(l, cur.mx, r)] << endl;
+        
+    }
+}

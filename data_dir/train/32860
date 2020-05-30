@@ -1,0 +1,139 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+
+const int N = 1e6 + 5, mod = 1e9 + 7;
+
+int n, m, k, l[N], r[N];
+vector <int> vec;
+vector <pii> last[N];
+
+ll s(int a, int b) {
+	ll ret = a + b;
+	if(ret >= mod)
+		ret -= mod;
+	if(ret < 0)
+		ret += mod;
+	return ret;
+}
+
+struct node {
+	ll sum;
+	bool zero;
+	node() {
+		sum = zero = 0;
+	}
+}seg[2][N << 2];
+
+ll pw(ll a, ll b) {
+	if(!b)
+		return 1;
+	ll ans = pw(a, b / 2);
+	ans *= ans;
+	ans %= mod;
+	if(b & 1)
+		ans *= a;
+	return ans % mod;
+}
+
+void shift(int x, int id) {
+	if(id > (N << 2))
+		exit(0);
+	if(seg[x][id].zero) {
+		seg[x][id].zero = 0;
+		int lc = id * 2, rc = lc | 1;
+		seg[x][lc].zero = seg[x][rc].zero = 1;
+		seg[x][lc].sum = seg[x][rc].sum = 0;
+		return;
+	}
+}
+
+void add(int x, int pos, ll val, int id = 1, int b = 0, int e = N) {
+	if(e - b == 1) {
+		seg[x][id].sum = s(seg[x][id].sum, val);
+		return;
+	}
+	shift(x, id);
+	int mid = (b + e) >> 1, lc = id * 2, rc = lc | 1;
+	if(pos < mid)
+		add(x, pos, val, lc, b, mid);
+	else
+		add(x, pos, val, rc, mid, e);
+	seg[x][id].sum = s(seg[x][lc].sum, seg[x][rc].sum);
+	return;
+}
+
+void reset(int x, int l, int r, int id = 1, int b = 0, int e = N) {
+	if(l >= e || b >= r)
+		return;
+	if(l <= b && e <= r) {
+		seg[x][id].sum = 0;
+		seg[x][id].zero = true;
+		return;
+	}
+	shift(x, id);
+	int mid = (b + e) >> 1, lc = id * 2, rc = lc | 1;
+	reset(x, l, r, lc, b, mid);
+	reset(x, l, r, rc, mid, e);
+	seg[x][id].sum = s(seg[x][lc].sum, seg[x][rc].sum);
+	return;
+}
+
+ll get(int x, int l, int r, int id = 1, int b = 0, int e = N) {
+	if(l >= e || b >= r)
+		return 0;
+	if(l <= b && e <= r)
+		return seg[x][id].sum;
+	shift(x, id);
+	int mid = (b + e) >> 1, lc = id * 2, rc = lc | 1;
+	return s(get(x, l, r, lc, b, mid), get(x, l, r, rc, mid, e));
+}
+
+void compress() {
+	add(0, 0, 1);
+	add(1, 0, 1);
+	vec.push_back(0);
+	vec.push_back(k);
+	for (int i = 0; i < n + m; i++)
+		vec.push_back(l[i]), vec.push_back(r[i]);
+	sort(vec.begin(), vec.end());
+	vec.resize(unique(vec.begin(), vec.end()) - vec.begin());
+	for (int i = 0; i < n + m; i++)
+		l[i] = lower_bound(vec.begin(), vec.end(), l[i]) - vec.begin(), r[i] = lower_bound(vec.begin(), vec.end(), r[i]) - vec.begin();
+	k = vec.size();
+}
+
+int main() {
+	ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);	
+	cin >> k >> n >> m;
+	for (int i = 0; i < n; i++) {
+		cin >> l[i] >> r[i];
+		l[i]--;
+	}
+	for (int i = 0; i < m; i++) {
+		cin >> l[i + n] >> r[i + n];
+		l[i + n]--;
+	}
+	compress();
+	for (int i = 0; i < n; i++)
+		last[r[i]].push_back({l[i], 0});
+	for (int i = 0; i < m; i++)
+		last[r[i + n]].push_back({l[i + n], 1});
+	for (int i = 1; i < k; i++) {
+		ll cur = s(pw(2, vec[i] - vec[i - 1]), -1);
+		ll val = seg[0][1].sum * cur;
+		val %= mod;
+		add(0, i, val);
+		add(1, i, val);
+		while(last[i].size()) {
+			pii p = last[i].back();
+			last[i].pop_back();
+			int x = p.second, pos = p.first;
+			add(x ^ 1, i, -get(x, 0, pos + 1));
+			reset(x, 0, pos + 1);
+		}
+	}
+	cout << seg[0][1].sum << "\n";
+}

@@ -1,0 +1,76 @@
+#include <bits/stdc++.h>
+#define F first
+#define S second
+#define pii pair<int,int>
+#define pb push_back
+typedef long long ll;
+using namespace std;
+const int N = 7 , K = (1LL << N) , mod = 1e9 + 7 , LOG = 20;
+ll w[10], dp[K] , l_dp[K];
+
+struct matrix{
+	int v[K][K];
+	matrix(int p = 0 , int q = 0){
+		for(int i=0; i<K; i++)
+			for(int j=0; j<K; j++)
+				if(i != j)v[i][j] = p;
+				else v[i][j] = q;
+	}
+};
+
+inline matrix mul(matrix &A , matrix &B , int r){
+	matrix ans(0);
+	for(int i=0; i<r; i++)
+		for(int j=0; j<r; j++)
+			for(int p=0; p<r; p++)ans.v[i][j] = (ans.v[i][j] + 1LL * A.v[i][p] * B.v[p][j]) % mod;
+	return ans;
+}
+
+inline int get_ans(int len , int m1 , int m2){
+	ll res = 0;
+	for(int mask=1; mask<(1LL << len); mask+=2){
+		int nmask = mask + (1LL << len);
+		bool bad = false;
+		for(int j=0; j<len; j++){
+			if((nmask & (1 << j)) && (nmask & (1 << (j + 1))) && (m1 & (1 << j)) && (m2 & (1 << j))){
+                bad = true;
+                break;
+            }
+		}
+		if(!bad)res++;
+	}
+	return res;
+}
+
+int main(){
+	for(int i=0; i<7; i++) cin >> w[i];
+	dp[0] = 1; int ls = 0;
+	for(int i=1; i<=7; i++){
+		if(w[i - 1] == 0)continue;
+		matrix adj(0 , 0);
+		matrix ans(0 , 1);
+		for(int j=0; j<(1LL << i); j++)
+			for(int k=0; k<(1LL << i); k++)
+				adj.v[j][k] = get_ans(i , j , k);
+		for(int j=0; j<LOG; j++){
+			if(w[i - 1] & (1LL << j))ans = mul(ans , adj , (1LL << i));
+			adj = mul(adj , adj , (1LL << i));
+			if((1 << j) > w[i - 1])break;
+		}
+		for(int j=0; j<K; j++)l_dp[j] = dp[j] , dp[j] = 0;
+		for(int m1=0; m1<(1LL << i); m1++){
+			for(int m2=0; m2<(1LL << ls); m2++){
+				int sum = (1 << i);
+				sum -= (1 << ls);
+				dp[m1] += 1LL * ans.v[m2 + sum][m1] * l_dp[m2];
+				dp[m1] %= mod;
+			}
+		}
+		ls = i;
+	}
+	ll need = 0;
+	for(int i=0; i<ls; i++)need += (1LL << i);
+	cout << dp[need] << '\n';
+	//int x; cin>>x;
+
+}

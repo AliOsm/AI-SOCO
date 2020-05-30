@@ -1,0 +1,158 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+#define pb push_back
+#define mp make_pair
+
+const int N = 100001, M = 303;
+const int T = N << 2;
+
+int n, m;
+int a[N];
+int L[M], R[M];
+vector<int> start[N];
+vector<int> finish[N];
+
+int tmin[T], tmax[T], psh[T];
+
+void push(int v, int l, int r) {
+	if (l + 1 != r) {
+		psh[v << 1] += psh[v];
+		psh[v << 1 | 1] += psh[v];
+	}
+	tmin[v] += psh[v];
+	tmax[v] += psh[v];
+	psh[v] = 0;
+}
+
+void pull(int v, int l, int r) {
+	int mm = (l + r) >> 1;
+	push(v << 1, l, mm);
+	push(v << 1 | 1, mm, r);
+	tmin[v] = min(tmin[v << 1], tmin[v << 1 | 1]);
+	tmax[v] = max(tmax[v << 1], tmax[v << 1 | 1]);
+}
+
+int get_min(int v, int l, int r, int qL, int qR) {
+	push(v, l, r);
+	if (l == qL && r == qR) {
+		return tmin[v];
+	} 
+	int mm = (l + r) >> 1;
+	if (qR <= mm) {
+		return get_min(v << 1, l, mm, qL, qR);
+	}
+	if (qL >= mm) {
+		return get_min(v << 1 | 1, mm, r, qL, qR);
+	}
+	return min(get_min(v << 1, l, mm, qL, mm), get_min(v << 1 | 1, mm, r, mm, qR));
+}
+
+int get_max(int v, int l, int r, int qL, int qR) {
+	push(v, l, r);
+	if (l == qL && r == qR) {
+		return tmax[v];
+	}
+	int mm = (l + r) >> 1;
+	if (qR <= mm) {
+		return get_max(v << 1, l, mm, qL, qR);
+	}
+	if (qL >= mm) {
+		return get_max(v << 1 | 1, mm, r, qL, qR);
+	}
+	return max(get_max(v << 1, l, mm, qL, mm), get_max(v << 1 | 1, mm, r, mm, qR));
+}
+
+void upd(int v, int l, int r, int qL, int qR, int d) {
+	push(v, l, r);
+	if (l == qL && r == qR) {
+		psh[v] += d;
+	} else {
+		int mm = (l + r) >> 1;
+		if (qR <= mm) {
+			upd(v << 1, l, mm, qL, qR, d);
+		} else {
+			if (qL >= mm) {
+				upd(v << 1 | 1, mm, r, qL, qR, d);
+			} else {
+				upd(v << 1, l, mm, qL, mm, d);
+				upd(v << 1 | 1, mm, r, mm, qR, d);
+			}
+		}
+		pull(v, l, r);
+	}
+}
+
+void build(int v, int l, int r) {
+	if (l + 1 == r) {
+		tmin[v] = a[l];
+		tmax[v] = a[l];
+		psh[v] = 0; 
+	} else {
+		int mm = (l + r) >> 1;
+		build(v << 1, l, mm);
+		build(v << 1 | 1, mm, r);
+		pull(v, l, r);
+	}
+}
+
+void apply(int ind) {
+	for (auto &id : start[ind])
+		upd(1, 0, n, L[id], R[id] + 1, -1);
+}
+
+void undo(int ind) {
+	for (auto &id : finish[ind])
+		upd(1, 0, n, L[id], R[id] + 1, 1);
+}
+
+void init() {
+	build(1, 0, n);
+}
+
+int get_diff() {
+	return get_max(1, 0, n, 0, n) - get_min(1, 0, n, 0, n);
+}
+
+bool contains(int i, int l, int r) {
+	return i >= l && i <= r;
+}
+
+int main() {
+	scanf("%d %d", &n, &m);
+	for (int i = 0; i < n; i++)
+		scanf("%d", &a[i]);
+	for (int i = 0; i < m; i++)
+		scanf("%d %d", &L[i], &R[i]);
+	for (int i = 0; i < m; i++)
+		L[i]--, R[i]--;
+	for (int i = 0; i < m; i++) {
+		start[L[i]].pb(i);
+		finish[R[i]].pb(i);
+	}
+	init();
+	int ans = -1, ind = -1;
+	for (int i = 0; i < n; i++) {
+		apply(i);
+		if (get_diff() > ans) {
+			ans = get_diff();
+			ind = i;
+		}
+		undo(i);
+	}
+	printf("%d\n", ans);
+	vector<int> c;
+	for (int id = 0; id < m; id++)
+		if (contains(ind, L[id], R[id]))
+			c.pb(id);
+	int k = (int)c.size();
+	printf("%d\n", k);
+	for (auto &id : c)
+		printf("%d ", id + 1);
+	puts("");
+	return 0;
+}

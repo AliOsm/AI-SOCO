@@ -1,0 +1,202 @@
+
+#include <stdio.h>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <functional>
+#include <iostream>
+
+using namespace std;
+
+typedef long long li;
+
+li const LIM = 30;
+li const N = 100 * 1000 + 5;
+li const MAX_N = 50;
+li const INF = 1e18;
+
+li p[N];
+li tin[N];
+li tout[N];
+li lvl[N];
+li dp[N][LIM];
+li dlen[MAX_N][N];
+li tmr;
+li e[MAX_N][MAX_N];
+li is[N];
+vector <pair<li,li>> a[N];
+vector <pair<li, li>> G[N];
+
+
+void dfs(li u, li p, li l)
+{
+    lvl[u] = l;
+    tin[u] = ++tmr;
+    dp[u][0] = p;
+    for (li i = 1; i < LIM; ++i)
+    {
+        dp[u][i] = dp[dp[u][i - 1]][i - 1];
+    }
+    for (auto v : a[u]){
+        if (v.first != p)
+        {
+            dfs(v.first, u, l + v.second);
+        }
+    }
+    tout[u] = ++tmr;
+}
+
+bool upper(li a, li b)
+{
+    return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+li lca(li a, li b)
+{
+    if (upper(a, b))  return a;
+    if (upper(b, a))  return b;
+    for (li i = LIM - 1; i >= 0; --i)
+        if (!upper(dp[a][i], b))
+            a = dp[a][i];
+    return dp[a][0];
+}
+
+li get(li a)
+{
+    if (p[a] == a)
+    {
+        return a;
+    }
+    else
+    {
+        return get(p[a]);
+    }
+}
+
+li GetLen(li u, li v)
+{
+    li X = lca(u, v);
+    return lvl[u] + lvl[v] - 2 * lvl[X];
+}
+
+int main()
+{
+    for (li i = 1; i < N; ++i)
+    {
+        p[i] = i;
+    }
+    li n, m;
+    cin >> n >> m;
+    vector <pair<li,pair<li, li>>> rbs;
+ 
+    for (li i = 0; i < m; ++i)
+    {
+        li u, v, len;
+        cin >> u >> v >> len;
+        rbs.push_back(make_pair(len, make_pair(u, v)));
+        G[u].push_back({u, len});
+        G[v].push_back({v, len});
+    }
+    sort(rbs.begin(), rbs.end());
+    vector <li> bad;
+    for (li i = 0; i < m; ++i)
+    {
+        li A = get(rbs[i].second.first);
+        li B = get(rbs[i].second.second);
+        li U = rbs[i].second.first;
+        li V = rbs[i].second.second;
+        li len = rbs[i].first;
+        if (A != B)
+        {
+            is[i] = 1;
+            a[U].push_back(make_pair(V, len));
+            a[V].push_back(make_pair(U, len));
+            p[B] = A;
+        }
+        else
+        {
+            bad.push_back(U);
+            bad.push_back(V);
+        }
+    }
+    dfs(1, 1, 0);
+
+    sort(bad.begin(), bad.end());
+    bad.erase(unique(bad.begin(), bad.end()), bad.end());
+  
+    li sz = bad.size();
+
+    for (li i = 0; i < sz; ++i)
+    {
+        for (li j = 1; j <= n; ++j)
+        {
+            dlen[i][j] = GetLen(bad[i], j);
+        }
+    }
+
+    for (li i = 0; i < sz; ++i)
+    {
+        for (li j = 0; j < sz; ++j)
+        {
+            e[i][j] = dlen[i][bad[j]];
+        }
+    }
+
+    for (li i = 0; i < m; ++i)
+    {
+        if (!is[i])
+        {
+            li U = rbs[i].second.first;
+            li V = rbs[i].second.second;
+            li len = rbs[i].first;
+            for (li a = 0; a < sz; ++a)
+            {
+                for (li b = 0; b < sz; ++b)
+                {
+                    if (bad[a] == U && bad[b] == V)
+                    {
+                        e[a][b] = min(e[a][b], len);
+                        e[b][a] = min(e[a][b], len);
+                    }
+                    if (bad[a] == V && bad[b] == U)
+                    {
+                        e[a][b] = min(e[a][b], len);
+                        e[b][a] = min(e[a][b], len);
+                    }
+                }
+            }
+        }
+    }
+
+    for (li k = 0; k < sz; k++)
+    {
+        for (li i = 0; i < sz; i++)
+        {
+            for (li j = 0; j < sz; j++)
+            {
+                e[i][j] = min(e[i][j], e[i][k] + e[k][j]);
+            }
+        }
+    }
+
+    li q;
+    cin >> q;
+    while (q--)
+    {
+        li u, v;
+        cin >> u >> v;
+        li best = GetLen(u, v);
+        for (li a = 0; a < sz; ++a)
+        {
+            for (li b = 0; b < sz; ++b)
+            {
+                best = min(best, dlen[a][u] + e[a][b] + dlen[b][v]);
+            }
+        }
+        cout << best << endl;
+    }
+    return 0;
+}

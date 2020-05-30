@@ -1,0 +1,47 @@
+//https://codeforces.com/problemset/problem/429/D
+#pragma GCC optimize("O2")
+#pragma GCC optimize ("unroll-loops")
+#include<bits/stdc++.h>
+#define ll long long int
+#define sq(x) ((x)*(x))
+using namespace std;
+const int N = 1e5+10;
+
+
+struct point{
+    ll x,y;
+    point(ll x = 0, ll y = 0):x(x),y(y){}
+    bool operator<(const point &rhs)const{
+        return y < rhs.y;
+    }
+};
+
+ll dis(const point &a, const point &b){
+    return sq(a.x-b.x)+sq(a.y-b.y);
+}
+
+vector<point> a;
+long long arr[N];
+int n;
+ll ans = LLONG_MAX;
+
+int main(){
+    scanf("%d",&n);
+    for(int i = 1; i <= n; ++i)scanf("%lld",arr+i);
+    for(int i = 1; i <= n; ++i)arr[i]+=arr[i-1];
+    for(int i = 1; i <= n; ++i)a.emplace_back(i,arr[i]);
+    int j = 0;
+    multiset<point> m;
+    for(point &i: a){
+        long long d = ceil(sqrt(ans));
+        while(m.size() && i.x-a[j].x >= ans)m.erase({a[j].x,a[j].y}),j++;
+        auto itr = m.begin();
+        if(d != LLONG_MAX)itr=m.lower_bound({i.x,i.y-d});
+        auto itr2 = m.end();
+        if(d != LLONG_MAX)itr2 = m.upper_bound({i.x,i.y+d});
+        while(itr!=itr2)ans = min(ans,dis(*itr++,i));
+        m.insert(i);
+    }
+    cout << (long long)ans << "\n";
+    return 0;
+}

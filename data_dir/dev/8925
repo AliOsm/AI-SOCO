@@ -1,0 +1,192 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <cmath>
+#include <cstring>
+#include <cstdio>
+#include <algorithm>
+#include <string>
+#include <queue>
+using namespace std;
+#define pii pair<int, int>
+#define pdd pair<double, double>
+#define mp make_pair
+#define x first
+#define y second
+#define L(s) ((int)(s).size())
+#define pb push_back
+#define VI vector<int>
+#define all(v) (v).begin(),(v).end()
+char a[1600][1600];
+char b[1600][1600];
+int n, m;
+int dx[] = {-1, 0, 1, 0, -1, -1, 1, 1};
+int dy[] = {0, 1, 0, -1, -1, 1, -1, 1};
+inline bool ok(int x, int y) {
+	return x >= 0 && x < n &&  y >= 0 && y < m;
+}
+
+bool cmp (pii a, pii b) {
+	return a.x < b.x || a.x == b.x && a.y < b.y;
+}
+
+bool cw (pii a, pii b, pii c) {
+	return a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y) < 0;
+}
+
+bool ccw (pii a, pii b, pii c) {
+	return a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y) > 0;
+}
+
+
+int sh = 4;
+
+inline int ngb(int x, int y) {
+	int tot = 0;
+	for(int i = x - sh; i <= x + sh; ++i)
+		for(int j = y - sh; j <= y + sh; ++j)
+			if (a[i][j] == 1) ++tot;
+	return tot;
+}
+
+
+int main() {
+//	freopen("21.in.txt", "r", stdin);
+	scanf("%d%d", &n, &m);
+	for(int i = 0; i < n; ++i) {
+		for(int j = 0; j < m; ++j) {
+			scanf("%d", &a[i][j]);
+			b[i][j] = 0;
+		}
+	}
+	for(int i = sh; i < n - sh; ++i) 
+		for(int j = sh; j < m - sh; ++j)
+			if (a[i][j] == 1 && ngb(i, j) == (2 * sh + 1) * (2 * sh + 1)) b[i][j] = 1;
+
+	VI ans(0);
+	for(int i = 0; i < n; ++i) {
+		for(int j = 0; j < m; ++j) {
+			if (b[i][j] == 1) {
+
+				queue<pii> q;
+
+				vector<pii> allp;
+				q.push(mp(i, j));
+				allp.pb(mp(i, j));
+				a[i][j] = 2;
+				while(!q.empty()) {
+					pii cur = q.front();
+					q.pop();
+					for(int w = 0; w < 8; ++w) {
+						pii nxt = mp(cur.x + dx[w], cur.y + dy[w]);
+						if (!ok(nxt.x, nxt.y)) continue;
+						if (a[nxt.x][nxt.y] != 1) continue;
+						a[nxt.x][nxt.y] = 2; 
+						allp.pb(nxt);
+						q.push(nxt);
+					}
+				}
+
+				vector<pii> pts(0);
+				q.push(mp(i, j));
+				pts.pb(mp(i, j));
+				b[i][j] = 0;
+				a[i][j] = 0;
+				while(!q.empty()) {
+					pii cur = q.front();
+					q.pop();
+					for(int w = 0; w < 8; ++w) {
+						pii nxt = mp(cur.x + dx[w], cur.y + dy[w]);
+						if (!ok(nxt.x, nxt.y)) continue;
+						if (b[nxt.x][nxt.y] != 1) continue;
+						b[nxt.x][nxt.y] = 0; 
+						a[nxt.x][nxt.y] = 0;
+						pts.pb(nxt);
+						q.push(nxt);
+					}
+				}
+
+				int si = 0, sj = 0;
+				for(int k = 0; k < L(pts); ++k) {
+					si += pts[k].x;
+					sj += pts[k].y;
+				}
+				double cx = si / L(pts);
+				double cy = sj / L(pts);
+
+				//double ddx = 0, ddy = 0;
+
+				//for(int k = 0; k < L(pts); ++k) {
+				//	ddx = max(ddx, 1. * pts[k].x);
+				//	ddy = max(ddy, 1. * pts[k].y);
+				//}
+
+				//ddx -= cx;
+				//ddy -= cy;
+
+				////cerr << dx << " " << dy << endl;
+
+				//double c = sqrt(abs(ddx * ddx - ddy * ddy));
+
+				for(int k = 0; k < L(pts); ++k) {
+					double vx = pts[k].x - cx;
+					double vy = pts[k].y - cy;
+					double vl = sqrt(vx * vx + vy * vy);
+					vx /= vl;
+					vy /= vl;
+					for(int act = 1; act <= 7; ++act) {
+						double px = pts[k].x + vx * act;
+						double py = pts[k].y + vy * act;
+						int sadd = 2;
+						for(int sx = -sadd; sx <= sadd; ++sx)
+							for(int sy = -sadd; sy <= sadd; ++sy)
+								if (ok((int)px + sx, (int)py + sy) && 
+									a[(int)px + sx][(int)py + sy] == 2) 
+									a[(int)px + sx][(int)py + sy] = 0;
+						
+					}
+				}
+				
+				int rays = 0;
+				for(int k = 0; k < L(allp); ++k) {
+					if (a[allp[k].x][allp[k].y] == 2) {
+						q.push(mp(allp[k].x, allp[k].y));
+						a[allp[k].x][allp[k].y] = 0;
+						++rays;
+						while(!q.empty()) {
+							pii cur = q.front();
+							q.pop();
+							for(int w = 0; w < 8; ++w) {
+								pii nxt = mp(cur.x + dx[w], cur.y + dy[w]);
+								if (!ok(nxt.x, nxt.y)) continue;
+								if (a[nxt.x][nxt.y] != 2) continue;
+								a[nxt.x][nxt.y] = 0;
+								pts.pb(nxt);
+								q.push(nxt);
+							}
+						}
+					}
+				}
+				ans.pb(rays);
+			}
+		}
+	}
+	cout << L(ans) << endl;
+	sort(all(ans));
+	for(int i = 0; i < L(ans); ++i) {
+		if (i) cout << " ";
+		cout << ans[i];
+	}
+	cout << endl;
+
+	/*freopen("output.txt", "w", stdout);
+	for(int i = 0; i < n; ++i) {
+		for(int j = 0; j < m; ++j) {
+			if (a[i][j]) 
+			cout << '1';
+			else cout << ' ';
+		}
+		cout << endl;
+	}*/
+} 

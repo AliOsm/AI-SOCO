@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 16;
+
+vector<int> g[4][4];
+pair<int, int> who[N];
+int used[4];
+int deleted[4][4];
+int size;
+
+void dfs(int v, int cc) {
+  used[v] = cc;
+  for (int u = 0; u < 4; u++) {
+    int min_v = min(v, u);
+    int max_v = max(v, u);
+    if ((int) g[min_v][max_v].size() > deleted[min_v][max_v] && used[u] == -1) {
+      dfs(u, cc);
+    }
+  }
+}
+
+bool has_euler_tour(int cc) {
+  int odd = 0;
+  vector<int> deg(4);
+  for (int j = 0; j < size; j++) {
+    int v = who[j].first;
+    int u = who[j].second;
+    deg[v] += (int) g[v][u].size() - deleted[v][u];
+    deg[u] += (int) g[v][u].size() - deleted[v][u];
+  }
+  for (int i = 0; i < 4; i++) {
+    if (used[i] == cc) {
+      odd += (deg[i] & 1);
+    }
+  }
+  return odd == 0 || odd == 2;
+}
+
+int main() {
+  #ifdef LOCAL
+  freopen("sol.in", "r", stdin);
+  freopen("sol.out", "w+", stdout);
+  #endif
+  int n;
+  scanf("%d", &n);
+  for (int i = 0; i < n; i++) {
+    int c1, val, c2;
+    scanf("%d %d %d", &c1, &val, &c2);
+    c1--; c2--;
+    if (c1 > c2) {
+      swap(c1, c2);
+    }
+    g[c1][c2].push_back(val);
+  }
+  for (int i = 0; i < 4; i++) {
+    for (int j = i; j < 4; j++) {
+      sort(g[i][j].begin(), g[i][j].end());
+    }
+  }
+  for (int i = 0; i < 4; i++) {
+    for (int j = i; j < 4; j++) {
+      if (g[i][j].empty()) {
+        continue;
+      }
+      who[size++] = make_pair(i, j);
+    }
+  }                  
+  int ans = 0;
+  for (int mask = 0; mask < 1 << size; mask++) {
+    for (int j = 0; j < size; j++) {
+      if (mask & (1 << j)) {
+        deleted[who[j].first][who[j].second] = 1;
+      } else {
+        deleted[who[j].first][who[j].second] = 0;
+      }
+    }
+    memset(used, -1, sizeof used);
+    int cc = 0;
+    for (int i = 0; i < 4; i++) {
+      if (used[i] == -1) {
+        dfs(i, cc);
+        int sum = 0;
+        if (has_euler_tour(cc)) {
+          for (int j = 0; j < size; j++) {
+            int v = who[j].first;
+            int u = who[j].second;
+            assert(v <= u);
+            if (used[v] == cc && used[u] == cc) {
+              for (int k = deleted[v][u]; k < (int) g[v][u].size(); k++) {
+                sum += g[v][u][k];
+              }
+            }
+          }
+          ans = max(ans, sum);
+        }
+        cc++;
+      }
+    }
+  }
+  printf("%d\n", ans);
+  return 0;
+}

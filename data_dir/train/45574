@@ -1,0 +1,211 @@
+#include <iostream>
+#include <stdio.h>
+#include <algorithm>
+#include <cmath>
+#include <set>
+#include <map>
+#include <bitset>
+#include <vector>
+#include <queue>
+#include <memory.h>
+#include <deque>
+#include <iomanip>
+#include <utility>
+#include <string>
+#include <ext/rope>
+#include <iterator>
+
+using namespace std;
+using namespace __gnu_cxx;
+
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+#define sz size
+#define scf scanf
+#define prf printf       
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define gcd(a,b) __gcd(a,b)
+#define print(x) prf("%d\n", x.sz()); for (int i = 0; i < x.sz(); i++) prf("%d ", x[i]);
+#define getBit(x,i) ((x&(1<<i))!=0 ? 1 : 0)
+#define For(i,n) for (int i = 0; i < n; ++i)
+#define FOR(i,begin,end,move) for (int i = begin; i != end; i += move)
+
+#define int long long
+
+typedef long long ll;
+
+int base = (int)1e9 + 9;
+
+struct data {
+    int A, B;
+//  int add;
+    int sum;
+} tree[4 * 300500];
+
+struct Matrix {
+    int a[2][2];
+} matrix, all[300100];
+
+int n, m;
+int t, l, r;
+int a[300500];
+int fib[300500];
+
+Matrix mult(Matrix a, Matrix b)
+{
+    Matrix c;
+    For(i, 2)
+        For(j, 2)
+            c.a[i][j] = 0;
+    For(i, 2)
+        For(j, 2)
+            For(k, 2)
+                (c.a[i][j] += (int)((1LL * a.a[i][k] * b.a[k][j]) % base)) %= base;
+    return c;
+}   
+
+Matrix makePower(int n, Matrix m)
+{
+    if (n == 1)
+        return m;
+    if (n % 2 == 0)
+    {
+        Matrix pm = makePower(n >> 1, m);
+        pm = mult(pm, pm);
+        return pm;
+    }
+    else
+    {
+        Matrix pm = makePower(n - 1, m);
+        pm = mult(pm, m);
+        return pm;
+    }
+}
+
+int getSumFromAToB(int A, int B, int len)
+{             
+ //   matrix.a[0][0] = 0;
+   // matrix.a[0][1] = matrix.a[1][1] = matrix.a[1][0] = 1;
+ //   matrix = makePower(len, matrix);
+ matrix = all[len];
+    int res = (int)((1LL * matrix.a[0][0] * A) % base);
+    res %= base;
+    res += (int)((1LL * matrix.a[0][1] * B) % base);
+    res %= base;
+    return res;
+}
+
+void build(int ver, int l, int r)
+{
+    if (l == r)
+    {
+        tree[ver].sum = a[l];
+        tree[ver].A = tree[ver].B = 0;
+        return;
+    }
+    int mid = (l + r) >> 1;
+    build(ver + ver, l, mid);
+    build(ver + ver + 1, mid + 1, r);
+    tree[ver].sum = tree[ver + ver].sum + tree[ver + ver + 1].sum;
+    tree[ver].sum %= base;
+    tree[ver].A = tree[ver].B = 0;
+//  tree[ver].add = 0;
+}
+
+void modify(int ver, int l, int r, int pl, int pr, int L, int R)
+{
+    if (pl > pr)
+        return;
+    int fA = pl - L + 1;
+    int fB = fA + 1;
+    fA = fib[fA];
+    fB = fib[fB];
+//  tree[ver].A += fA;
+//  tree[ver].B += fB;
+    (tree[ver].sum += (getSumFromAToB(fA, fB, pr - pl + 2) - fB + base)) %= base;
+    if (l == pl && r == pr)
+    {
+    //  int fA = pl - L + 1;
+    //  int fB = fA + 1;
+    //  fA = fib[fA];
+    //  fB = fib[fB];
+        tree[ver].A += fA;
+        tree[ver].B += fB;
+        tree[ver].A %= base;
+        tree[ver].B %= base;
+    //  (tree[ver].add += (getSumFromAToB(fA, fB, pr - pl + 2) - fB)) %= base;
+        return;
+    }
+    int mid = (l + r) >> 1;
+    modify(ver + ver, l, mid, pl, min(mid, pr), L, R);
+    modify(ver + ver + 1, mid + 1, r, max(pl, mid + 1), pr, L, R);
+//  tree[ver].sum = tree[ver + ver].sum + tree[ver + ver + 1].sum;
+//  tree[ver].sum %= base;              
+//  tree[ver] = tree[ver] + tree[ver + ver].add;
+//  tree[ver].sum %= base;
+//  tree[ver] += (tree[ver + ver + 1].add);
+//  tree[ver].sum %= base;
+}
+
+int getSum(int ver, int l, int r, int pl, int pr)
+{
+    if (pl > pr)
+        return 0;
+    if (l == pl && r == pr)
+        return tree[ver].sum;   
+    int mid = (l + r) >> 1;
+    int ffA, ffB;
+    int res = 0;
+    ffA = ffB = 0;
+    int len = pr - pl + 1;
+    if (pl != l)
+    {
+        ffA = getSumFromAToB(tree[ver].A, tree[ver].B, pl - l);
+        ffB = getSumFromAToB(tree[ver].A, tree[ver].B, pl - l + 1);
+    }
+    else ffA = tree[ver].A, ffB = tree[ver].B;
+    res = getSumFromAToB(ffA, ffB, len + 1) - ffB + base;
+    res %= base;    
+    int add = getSum(ver + ver, l, mid, pl, min(mid, pr));
+    add %= base;
+    ffA = ffB = 0;
+    add += getSum(ver + ver + 1, mid + 1, r, max(pl, mid + 1), pr);
+    add %= base;
+    add += res;
+    add %= base;
+    return add;
+}                            
+
+
+#undef int
+
+int main()
+{
+//  freopen("input.txt","r",stdin);
+#define int long long
+    all[1].a[0][0] = 0;
+    all[1].a[0][1] = all[1].a[1][0] = all[1].a[1][1] = 1;
+    matrix = all[1];
+    for (int i = 2; i <= 300050; i++)
+        all[i] = mult(all[i - 1], matrix);
+    fib[1] = 1;
+    fib[2] = 1;
+    for (int i = 3; i <= 300100; i++)
+        fib[i] = (fib[i - 1] + fib[i - 2]) % base;
+    scf("%I64d%I64d", &n, &m);
+    For(i, n)
+        scf("%d", &a[i + 1]);
+    build(1, 1, n);
+    while (m--)
+    {
+        scf("%I64d%I64d%I64d", &t, &l, &r);
+        if (t == 1)
+            modify(1, 1, n, l, r, l, r);
+        else prf("%I64d\n", getSum(1, 1, n, l, r));
+    }
+    #undef int
+    return 0;
+}

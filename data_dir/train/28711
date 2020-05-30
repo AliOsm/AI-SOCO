@@ -1,0 +1,142 @@
+// Daniel Grzegorzewski
+// while (clock()<=69*CLOCKS_PER_SEC)
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+// #pragma GCC target ("avx2")
+// #pragma GCC optimization ("O3")
+// #pragma GCC optimization ("unroll-loops")
+
+#define MP make_pair
+#define PB push_back
+#define ST first
+#define ND second
+#define int long long
+
+using namespace __gnu_pbds;
+using namespace std;
+
+template <typename T>
+using ordered_set =
+    tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+//X.find_by_order(k); - zwraca iterator na k-ty element (numeracja od zerowego)
+//X.order_of_key(k); - zwraca liczbę elementów ostro mniejszych niż k
+
+typedef pair<int, int> PII;
+typedef vector<int> VI;
+typedef vector<PII> VII;
+typedef long long LL;
+
+void init_ios() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+}
+
+const int N = (1<<18);
+
+int n, res, x[N], v[N], xx[N], vv[N], suf[N], pr[N], su[N], cn1[N], cn2[N];
+PII drz[2][2*N];
+vector<pair<int, PII>> dod, uje;
+VI ind, zera;
+
+bool cmp(int i, int j) {
+  return x[i] < x[j];
+}
+
+PII operator+(PII x, PII y) {
+  return {x.ST+y.ST, x.ND+y.ND};
+}
+
+void add(int nr, int v, PII val) {
+  v += N;
+  drz[nr][v] = val;
+  while (v > 1) {
+    v /= 2;
+    drz[nr][v] = drz[nr][2*v]+drz[nr][2*v+1];
+  }
+}
+
+PII get(int nr, int p, int q) {
+  p += N;
+  q += N;
+  PII res = drz[nr][p];
+  if (p != q)
+    res = res+drz[nr][q];
+  while (p/2 != q/2) {
+    if (p%2 == 0)
+      res = res+drz[nr][p+1];
+    if (q%2 == 1)
+      res = res+drz[nr][q-1];
+    p /= 2;
+    q /= 2;
+  }
+  return res;
+}
+
+signed main() {
+  init_ios();
+  cin >> n;
+  for (int i = 1; i <= n; ++i)
+    cin >> x[i];
+  for (int i = 1; i <= n; ++i)
+    cin >> v[i];
+  for (int i = 1; i <= n; ++i)
+    ind.PB(i);
+  sort(ind.begin(), ind.end(), cmp);
+  for (int i = 0; i < n; ++i)
+    xx[i+1] = x[ind[i]], vv[i+1] = v[ind[i]];
+  for (int i = 1; i <= n; ++i)
+    x[i] = xx[i], v[i] = vv[i];
+  for (int i = 1; i <= n; ++i) {
+    pr[i] = pr[i-1];
+    cn1[i] = cn1[i-1];
+    if (v[i] <= 0) {
+      ++cn1[i];
+      pr[i] += x[i];
+    }
+  }
+  for (int i = n; i >= 1; --i) {
+    su[i] = su[i+1];
+    cn2[i] = cn2[i+1];
+    if (v[i] >= 0) {
+      ++cn2[i];
+      su[i] += x[i];
+    }
+  }
+  for (int i = 1; i <= n; ++i)
+    if (v[i] == 0)
+      res += cn1[i]*x[i]-pr[i] + su[i]-cn2[i]*x[i];
+  for (int i = 1; i <= n; ++i) {
+    if (v[i] < 0)
+      uje.PB({-v[i], {-x[i], i}});
+    if (v[i] > 0)
+      dod.PB({v[i], {x[i], i}});
+    if (v[i] == 0)
+      zera.PB(x[i]);
+  }
+  sort(dod.begin(), dod.end());
+  while (dod.size()) {
+    int id = dod.back().ND.ND;
+    dod.pop_back();
+    PII hm = get(0, id, n);
+    res += hm.ST - x[id]*hm.ND;
+    add(0, id, {x[id], 1});
+  }
+  sort(uje.begin(), uje.end());
+  while (uje.size()) {
+    int id = uje.back().ND.ND;
+    uje.pop_back();
+    PII hm = get(1, 1, id);
+    res += x[id]*hm.ND - hm.ST;
+    PII hm2 = get(0, id, n);
+    res += hm2.ST - x[id]*hm2.ND;
+    add(1, id, {x[id], 1});
+  }
+  int siz = (int)zera.size();
+  for (int i = siz-1; i >= 0; --i)
+    suf[i] = suf[i+1]+zera[i];
+  for (int i = 0; i+1 < siz; ++i)
+    res -= suf[i+1]-(siz-i-1)*zera[i];
+  cout<<res<<"\n";
+}

@@ -1,0 +1,202 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define all(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+const int N = 2e5 + 7;
+const int M = 1e9 + 7;
+const int MAX = 1 << 18;
+
+struct node {
+    LL l, r;
+    LL sum, val, pos;
+};
+
+void merge(node &nn, node A, node &B)
+{
+    node my;
+    my.l = A.l, my.r = B.r;
+    my.sum = A.sum + B.sum;
+    my.pos = B.pos;
+    my.val = (B.val + A.val + A.sum % M * (B.pos - A.pos + A.r - B.r)) % M;
+    nn = my;
+}
+
+int n, q;
+LL A[N], W[N], RA[N], RW[N];
+
+node tree[2 * MAX + 7], rtree[2 * MAX + 7];
+
+LL query1(int l, int r)
+{
+    l += MAX, r += MAX;
+    if (l == r)
+    {
+        return 0;
+    }
+    vector < int > vec = {r};
+    node res = tree[l];
+    while(l / 2 != r / 2)
+    {
+        if(l % 2 == 0)
+            merge(res, res, tree[l + 1]);
+        if(r % 2 == 1) vec.push_back(r - 1);
+        l /= 2, r /= 2;
+    }
+    while(!vec.empty())
+    {
+        merge(res, res, tree[vec.back()]);
+        vec.pop_back();
+    }
+    return res.val;
+}
+
+LL query2(int l, int r)
+{
+    l = n - l + 1, r = n - r + 1;
+    swap(l, r);
+
+    l += MAX, r += MAX;
+    if (l == r)
+    {
+        return 0;
+    }
+    vector<int> vec = {r};
+    node res = rtree[l];
+    while (l / 2 != r / 2)
+    {
+        if (l % 2 == 0)
+            merge(res, res, rtree[l + 1]);
+        if (r % 2 == 1)
+            vec.push_back(r - 1);
+        l /= 2, r /= 2;
+    }
+    while (!vec.empty())
+    {
+        merge(res, res, rtree[vec.back()]);
+        vec.pop_back();
+    }
+    return res.val;
+}
+
+LL sum(int l, int r)
+{
+    l += MAX, r += MAX;
+    if(l == r) return tree[l].sum;
+    LL ans = tree[l].sum + tree[r].sum;
+    while(l / 2 != r / 2)
+    {
+        if(l % 2 == 0) ans += tree[l + 1].sum;
+        if(r % 2 == 1) ans += tree[r - 1].sum;
+        l /= 2, r /= 2;
+    }
+    return ans;
+}
+
+LL alls;
+
+LL cost(int i, int l, int r)
+{
+    LL s1 = sum(l, i), s2 = alls - s1;
+    return s1 - s2;
+}
+
+int main()
+{
+    _upgrade
+    cin >> n >> q;
+    for(int i = 1; i <= n; i++)
+    {
+        cin >> A[i];
+        RA[n - i + 1] = -A[i];
+    }
+    for(int i = 1; i <= n; i++)
+    {
+        cin >> W[i];
+        RW[n - i + 1] = W[i];
+    }
+    for(int i = 1; i <= n; i++)
+    {
+        tree[MAX + i].l = tree[MAX + i].r = i;
+        tree[MAX + i].sum = W[i], tree[MAX + i].val = 0;
+        tree[MAX + i].pos = A[i];
+
+        rtree[MAX + i].l = rtree[MAX + i].r = i;
+        rtree[MAX + i].sum = RW[i], rtree[MAX + i].val = 0;
+        rtree[MAX + i].pos = RA[i];
+    }
+    for(int i = MAX; i; i--)
+    {
+        merge(tree[i], tree[2 * i], tree[2 * i + 1]);
+        merge(rtree[i], rtree[2 * i], rtree[2 * i + 1]);
+    }
+    while(q--)
+    {
+        int x, y;
+        cin >> x >> y;
+        if(x < 0)
+        {
+            x *= -1;
+
+            W[x] = y;
+            tree[MAX + x].sum = y;
+            for(int e = (x + MAX) / 2; e; e /= 2)
+            {
+                merge(tree[e], tree[2 * e], tree[2 * e + 1]);
+            }
+
+            RW[n - x + 1] = y;
+            rtree[n - x + 1 + MAX].sum = y;
+            for (int e = (n - x + 1 + MAX) / 2; e; e /= 2)
+            {
+                merge(rtree[e], rtree[2 * e], rtree[2 * e + 1]);
+            }
+        }
+        else
+        {
+            if(x == y)
+            {
+                cout << 0 << "\n";
+            }
+            else
+            {
+                int l = x - 1, r = y;
+                alls = sum(x, y);
+                while(l + 1 < r)
+                {
+                    int m = (l + r) / 2;
+                    if(cost(m, x, y) <= 0)
+                    {
+                        l = m;
+                    }
+                    else
+                    {
+                        r = m;
+                    }
+                }
+                l++;
+                cout << (query1(x, l) + query2(l, y)) % M << "\n";
+            }
+        }
+    }
+	return 0;
+}

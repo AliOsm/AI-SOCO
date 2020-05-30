@@ -1,0 +1,29 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL); cout.tie(NULL);
+
+    int q;
+    cin >> q;
+
+    while(q--){
+        int a, b, c;
+        cin >> a >> b >> c;
+
+        int ans = 0;
+        for(int i = 0; i <= a; ++i){
+            for(int j = 0; j <= c; j += 2){
+                int k = j / 2;
+                if(i * 2 + k <= b){
+                    ans = max(ans, i + j + i * 2 + k);
+                }
+            }
+        }
+
+        cout << ans << endl;
+    }
+}

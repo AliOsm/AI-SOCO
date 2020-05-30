@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+#define eb emplace_back
+#define mt make_tuple
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int N = 300010, LOGN = 20;
+int a[N], last[N], l[N], r[N];
+int t[N][LOGN];
+int lg[N];
+vector<int> where[N];
+
+bool query(int l, int r)
+{
+	int l0g = lg[r - l + 1];
+	return max(t[l][l0g], t[r - (1 << l0g) + 1][l0g]) < l;
+}
+
+int main()
+{
+	int n;
+	scanf("%d", &n);
+	stack<int> s;
+	for (int i = 1; i <= n; i++)
+	{
+		scanf("%d", a+i);
+		t[i][0] = last[a[i]];
+		last[a[i]] = i;
+		where[a[i]].pb(i);
+		lg[i] = 31 - __builtin_clz(i);
+		while (!s.empty() and a[i] >= a[s.top()])
+		{
+			r[s.top()] = i;
+			s.pop();
+		}
+		s.push(i);
+	}
+	while (!s.empty())
+	{
+		r[s.top()] = n+1;
+		s.pop();
+	}
+
+	for (int i = n; i >= 1; i--)
+	{
+		while (!s.empty() and a[i] >= a[s.top()])
+		{
+			l[s.top()] = i;
+			s.pop();
+		}
+		s.push(i);
+	}
+	
+	for (int j = 1; j < LOGN; j++)
+	{
+		for (int i = 1; i <= n; i++)
+		{
+			if (i + (1 << (j-1)) <= n)
+				t[i][j] = max(t[i][j-1], t[i + (1 << (j-1))][j-1]);
+			else
+				t[i][j] = t[i][j-1];
+		}
+	}
+
+	int ans = 0;
+	for (int m = 1; m <= n; m++)
+	{
+		for (int p : where[m])
+		{
+			if (p-l[p] <= r[p]-p)
+			{
+				for (int i = l[p]+1; i <= p; i++)
+				{
+					//r = i + m - 1
+					if (i + m - 1 >= r[p]) break;
+					ans += query(i, i + m - 1); 
+				}
+			}
+			else
+			{
+				for (int i = r[p] - 1; i >= p; i--)
+				{
+					if (i - m + 1 <= l[p]) break;
+					ans += query(i - m + 1, i);
+				}
+			}
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+
+

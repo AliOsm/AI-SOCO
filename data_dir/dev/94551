@@ -1,0 +1,118 @@
+#include <iostream>
+#include <stdio.h>
+#include <string>
+#include <memory.h>
+#include <set>
+#include <map>
+#include <vector>
+#include <queue>
+#include <time.h>
+#include <assert.h>
+#include <cmath>
+#include <stack>
+#include <string.h>
+#include <sstream>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+char s[100000];
+int p, m;
+char *ptr;
+vector<vector<int> > g;
+vector<int> val;
+int newNode(int vl) {
+	int ret = g.size();
+	g.push_back(vector<int>());
+	val.push_back(vl);
+	return ret;
+}
+int build() {
+	char c = *ptr;
+	++ptr;
+	if (c >= '0' && c <= '9') {
+		int cur = newNode(c - '0');
+		return cur;
+	}
+	if (c == '(') {
+		int A = build();
+		++ptr;
+		int B = build();
+		++ptr;
+		int cur = newNode(-1);
+		g[cur].push_back(A);
+		g[cur].push_back(B);
+		return cur;
+	}
+	assert(false);
+}
+pair<int, int> dp[40000][101];
+bool vis[40000][101];
+bool sw = false;
+int has[40000];
+void DFS(int u) {
+	has[u] = val[u] == -1;
+	for (int i = 0; i < g[u].size(); ++i) {
+		DFS(g[u][i]);
+		has[u] += has[g[u][i]];
+	}
+}
+pair<int,int> calc(int u, int p) {
+	if (val[u] != -1) {
+		return{ val[u],val[u] };
+	}
+	auto &ret = dp[u][p];
+	if (vis[u][p])
+		return ret;
+	vis[u][p] = true;
+	ret.first = 1e9;
+	ret.second = -1e9;
+	int A = min(p, has[g[u][0]]);
+	int B = has[g[u][1]];
+	for (int i = A; i >= 0; --i) {
+		if (p && i<p && p - i - 1 <= B) {
+			auto a = calc(g[u][0], i);
+			auto b = calc(g[u][1], p - i - 1);
+			if (!sw) {
+				ret.first = min(ret.first, a.first + b.first);
+				ret.second = max(ret.second, a.second + b.second);
+			}
+			else {
+				ret.first = min(ret.first, a.first - b.second);
+				ret.second = max(ret.second, a.second - b.first);
+			}
+		}
+		if (i <= has[g[u][0]] && p - i <= has[g[u][1]]) {
+			auto a = calc(g[u][0], i);
+			auto b = calc(g[u][1], p - i);
+			if (sw) {
+				ret.first = min(ret.first, a.first + b.first);
+				ret.second = max(ret.second, a.second + b.second);
+			}
+			else {
+				ret.first = min(ret.first, a.first - b.second);
+				ret.second = max(ret.second, a.second - b.first);
+			}
+		}
+		if (p - i - 1 > B)
+			break;
+	}
+	return ret;
+}
+int main()
+{
+	cin >> s;
+	cin >> p >> m;
+	if (!s[1]) {
+		cout << s << endl;
+		return 0;
+	}
+	ptr = s;
+	g.reserve(100000);
+	int root = build();
+	if (p > m)
+		sw = true;
+	DFS(root);
+	auto ret = calc(root, min(p, m));
+	printf("%d\n", ret.second);
+	return 0;
+}

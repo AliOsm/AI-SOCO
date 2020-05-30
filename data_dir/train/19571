@@ -1,0 +1,149 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 2e5 + 1;
+ll n, q;
+ll arr[N];
+ll pre[N];
+ll dp[N];
+
+vec <pii> upd[N];
+
+struct Node {
+    ll mxm;
+    ll lzy;
+    ll l, r;
+} node[N << 2];
+
+void lazy(ll id) {
+    ll lzy = node[id].lzy;
+    if(node[id].l != node[id].r) {
+        node[l(id)].lzy += lzy;
+        node[r(id)].lzy += lzy;
+    }
+    node[id].mxm += lzy;
+    node[id].lzy = 0;
+}
+
+void merge(ll id, ll l, ll r) {
+    lazy(l), lazy(r);
+    node[id].mxm = max(node[l].mxm, node[r].mxm);
+}
+
+void build(ll id, ll l, ll r) {
+    node[id].l = l;
+    node[id].r = r;
+    if(l == r) {
+        node[id].mxm = pre[l - 1];
+        return;
+    }
+    ll q = l + r >> 1;
+    build(l(id), l, q);
+    build(r(id), q + 1, r);
+    merge(id, l(id), r(id));
+}
+
+void update(ll id, ll l, ll r, ll x) {
+    if(node[id].l == l && node[id].r == r) {
+        node[id].lzy += x;
+        return;
+    }
+    lazy(id);
+    ll q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        update(l(id), l, min(q, r), x);
+    }
+    if(r > q) {
+        update(r(id), max(q + 1, l), r, x);
+    }
+    merge(id, l(id), r(id));
+}
+
+ll query(ll id, ll l, ll r) {
+    lazy(id);
+    if(node[id].l == l && node[id].r == r) {
+        return node[id].mxm;
+    }
+    ll res = 0;
+    ll q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        res = max(res, query(l(id), l, min(q, r)));
+    }
+    if(r > q) {
+        res = max(res, query(r(id), max(q + 1, l), r));
+    }
+    return res;
+}
+
+void input() {
+    cin >> n >> q;
+    for(ll i = 1; i <= n; ++i) {
+        cin >> arr[i];
+    }
+    for(ll i = 0; i < q; ++i) {
+        ll l; cin >> l;
+        ll r; cin >> r;
+        ll w; cin >> w;
+        upd[r].pb({l, w});
+    }
+    for(ll i = 1; i <= n; ++i) {
+        pre[i] = pre[i - 1] + arr[i];
+    }
+}
+
+void solve() {
+    build(0, 1, n + 1);
+    for(ll i = 1; i <= n; ++i) {
+        for(pii p: upd[i]) {
+            ll l = p.xx;
+            ll w = p.yy;
+            update(0, 1, l, w);
+        }
+        update(0, i, i, dp[i - 1]);
+        dp[i] = max(dp[i - 1], query(0, 1, i) - pre[i]);
+    }
+    cout << dp[n] << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

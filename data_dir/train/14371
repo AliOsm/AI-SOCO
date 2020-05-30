@@ -1,0 +1,190 @@
+/* ****GT_18**** */
+
+#include<bits/stdc++.h>
+
+// These are definded to make our implemetation look clear
+#define ll          long long
+#define pb          push_back
+#define pii         pair<ll int,ll int>
+#define vi          vector<ll int>
+#define all(a)      (a).begin(),(a).end()
+#define F           first
+#define S           second
+#define sz(x)       (ll int)x.size()
+#define rep(i,a,b)	for(ll int i=a;i<b;i++)
+
+#define maxn		200005
+
+using namespace std;
+
+// Variables used
+ll n,m,cost=0; 		//n=no of nodes,m=no of edges,cost=cost of MST
+vector<pair<ll,pii> > ed1,ed2,mst;  //ed1,ed2=list of all edges of given graph,mst= list of edges considered in MST
+vi w(maxn);    //  This is used to implement disjoint set union which will be used to find MST using kruskal algorithm
+vector<pii> a[maxn];	// Stores adjacency list for MST
+vi vis(maxn,0),t(maxn),l(maxn);	// vis for DFS on MST, t stores parent of each node in MST, l stores level or depth of each node in MST
+ll p[maxn][20],bedge[maxn][20];	//p stores preprocessed array for LCA, bedge stores preprocessed array for best edge
+map<pii,ll> edge;	//stores weight of the edge between two given nodes
+
+// Implementation Of DSU
+ll find(ll x)           // Function to find the set in DSU
+{
+	if(x==w[x])
+	return x;
+	return w[x]=find(w[x]);
+}
+void merge(ll a,ll b)	// Function to merge two sets
+{
+	a=find(a);
+	b=find(b);
+	w[a]=b;
+}
+//
+
+// Implementation of Kruskal's Algorithm to find MST
+void kruskal()	
+{
+	sort(all(ed1));
+	rep(i,1,n+1)
+	w[i]=i;
+	rep(i,0,sz(ed1))
+	{
+		ll x,y,wt;
+		x=ed1[i].S.F;
+		y=ed1[i].S.S;
+		wt=ed1[i].F;
+		if(find(x)==find(y))
+		continue;
+		merge(x,y);
+		mst.pb(ed1[i]);
+		cost+=wt;
+	}
+}
+
+// Building MST from set of edges strored in vector mst
+void build_mst()
+{
+	rep(i,0,sz(mst))
+	{
+		ll x,y,wt;
+		x=mst[i].S.F;
+		y=mst[i].S.S;
+		wt=mst[i].F;
+		a[x].pb({y,wt});
+		a[y].pb({x,wt});
+	}
+}
+
+//DFS on MST to fill vectors t and l storing parent and depth of each node respectively
+void dfs(ll node,ll par,ll lev)
+{
+	vis[node]=1;
+	t[node]=par;
+	l[node]=lev;
+	rep(i,0,sz(a[node]))
+	if(!vis[a[node][i].F])
+	dfs(a[node][i].F,node,lev+1);
+}
+
+//pre processing the MST to find LCA and best edge 
+void process()
+{
+	memset(p,-1,sizeof p);
+	rep(i,1,n+1)
+	p[i][0]=t[i];
+	rep(j,1,20)
+	rep(i,1,n+1)
+	if(p[i][j-1]!=-1)
+	p[i][j]=p[p[i][j-1]][j-1];
+	
+	
+	memset(bedge,-1,sizeof bedge);
+	rep(i,1,n+1)
+	bedge[i][0]=edge[{i,t[i]}];
+	rep(j,1,20)
+	rep(i,1,n+1)
+	{
+	    if(p[i][j-1]!=-1)
+	    bedge[i][j]=max(bedge[i][j-1],bedge[p[i][j-1]][j-1]);
+	}
+}
+
+// Finding LCA 
+ll lca(ll x,ll y)
+{
+	if(l[x]<l[y])
+	swap(x,y);
+	for(int i=19;i>=0;i--)
+	if(l[x]-(1<<i)>=l[y])
+	x=p[x][i];
+	if(x==y) return x;
+	for(int i=19;i>=0;i--)
+	if(p[x][i]!=p[y][i]&&p[x][i]!=-1)
+	{
+		x=p[x][i];
+		y=p[y][i];
+	}
+	return t[x];
+}
+
+// Finding best edge in simple path between x and y
+ll get_best(ll x,ll y)
+{
+	// you should see the calling of this function in main
+	// you will find that y is an ancestor of x
+	ll dep=l[x]-l[y];	// dist between the nodes x and y
+	ll ans=0;
+	for(ll i=20;i>=0;i--)
+	if(dep>=(1<<i))		// to get the real feel of how to think this you should also consider reading sparse table
+	{
+		ans=max(ans,bedge[x][i]);
+		dep-=(1<<i);
+		x=p[x][i];
+	}
+	return ans;
+}
+
+
+int main()
+{
+	ios_base::sync_with_stdio(false);		//   This is just to make input output
+	cin.tie(0);								//	 work fast as cin cout is too slow as 
+	cout.tie(0);
+	
+		// Main code begins here
+			
+		cin>>n>>m;
+		
+		rep(i,0,m)
+		{
+			ll x,y,w;
+			cin>>x>>y>>w;
+			ed1.pb({w,{x,y}});
+			ed2.pb({w,{x,y}});
+			edge[{x,y}]=w;
+			edge[{y,x}]=w;
+		}
+		
+		kruskal();
+ 		
+		build_mst();
+		
+		dfs(1,1,0);
+		
+		process();
+		
+		rep(i,0,sz(ed2))	// remeber not to take ed1 here as it has been sorted in kruskal
+		{
+			ll x,y,wt;
+			x=ed2[i].S.F;
+			y=ed2[i].S.S;
+			wt=ed2[i].F;
+			ll L=lca(x,y);
+			ll best=0;
+			best=max(best,get_best(x,L));
+			best=max(best,get_best(y,L));
+			cout<<cost+wt-best<<endl;			
+		}
+
+	return 0;
+}

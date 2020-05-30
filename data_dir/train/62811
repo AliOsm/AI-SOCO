@@ -1,0 +1,193 @@
+#include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp> 
+#include <ext/pb_ds/tree_policy.hpp> 
+#define IOS ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define max(a,b) (a>b?a:b)
+#define min(a,b) (a<b?a:b)
+#define INF 2000000000
+#define DESPACITO2 1000000000000000
+#define DESPACITO 1000000000000000000
+#define MOD 1000000007
+#define ll long long
+#define vi vector<int>
+#define pb push_back
+#define mp make_pair
+#define ii pair<int,int>
+#define vii vector<ii>
+#define si set<int>
+#define msi map<string,int>
+#define REP(i,a,b) for(int i=int(a);i<=int(b);i++)
+#define TRvi(c,it) for(vi::iterator it=(c).begin();it!=(c).end();it++)
+#define TRvii(c,it) for(vii::iterator it=(c).begin();it!=(c).end();it++)
+#define TRmsi(c,it) for(msi::iterator it=(c).begin();it!=(c).end();it++)
+ 
+ 
+using namespace std;
+
+int n,m,q;
+vector<int>adj[300001];
+bool act[300001];
+bool visited1[300001];
+bool visited2[300001];
+bool visited3[300001];
+int parent[300001];
+int rnk[300001];
+int ans[300001];
+int depth[300001];
+int diam[300001];
+
+int dpth(int node)
+{
+	if(visited3[node])
+		return depth[node];
+	visited3[node]=true;
+	int maxim=0;
+	REP(i,0,adj[node].size()-1)
+	{
+		if(!visited3[adj[node][i]])
+			maxim=max(maxim,1+dpth(adj[node][i]));
+	}
+	depth[node]=maxim;
+	return maxim;
+}
+
+int dfs1(int node)
+{
+	if(visited1[node])
+		return diam[node];
+	visited1[node]=true;
+	int max1=0,max2=0;
+	int cnt=0;
+	REP(i,0,adj[node].size()-1)
+	{
+		if(!visited1[adj[node][i]])
+		{
+			cnt++;
+			int val=dpth(adj[node][i]);
+			if(val>=max1)
+			{
+				max2=max1;
+				max1=val;
+			}
+			else if(val>=max2)
+				max2=val;
+		}
+	}
+	int mdiam=0;
+	REP(i,0,adj[node].size()-1)
+	{
+		if(!visited1[adj[node][i]])
+		{
+			int val=dfs1(adj[node][i]);
+			mdiam=max(mdiam,val);
+		}
+	}
+	if(cnt==0)
+		diam[node]=0;
+	else if(cnt==1)
+		diam[node]=max(mdiam,max1+1);
+	else
+		diam[node]=max(mdiam,max1+max2+2);
+	return diam[node];
+}
+
+void dfs2(int node,int p)
+{
+	visited2[node]=true;
+	parent[node]=p;
+	REP(i,0,adj[node].size()-1)
+	{
+		if(!visited2[adj[node][i]])
+			dfs2(adj[node][i],p);
+	}
+}
+
+int findset(int node)
+{
+	if(parent[node]==node)
+		return node;
+	return (parent[node]=findset(parent[node]));
+}
+
+void union_find(int x,int y)
+{
+	x=findset(x);
+	y=findset(y);
+	if(x==y)
+		return;
+	if(rnk[x]<rnk[y])
+	{
+		parent[x]=y;
+		ans[y]=max(ans[y],max(ans[x],rnk[x]+rnk[y]+1));
+		if(ans[y]%2==1)
+			rnk[y]=ans[y]/2 + 1;
+		else
+			rnk[y]=ans[y]/2;
+	}
+	else
+	{
+		parent[y]=x;
+		ans[x]=max(ans[x],max(ans[y],rnk[x]+rnk[y]+1));
+		if(ans[x]%2==1)
+			rnk[x]=ans[x]/2 + 1;
+		else
+			rnk[x]=ans[x]/2;
+	}
+}
+
+int main()
+{
+    IOS;
+    #ifndef ONLINE_JUDGE
+        // for getting input from input.txt
+        freopen("input.txt", "r", stdin);
+        // for writing output to output.txt
+        freopen("output.txt", "w", stdout);
+    #endif
+    cin >> n >> m >> q;
+    REP(i,1,m)
+    {
+    	int a,b;
+    	cin >> a >> b;
+    	adj[a].pb(b);
+    	adj[b].pb(a);
+    	act[a]=true;
+    	act[b]=true;
+    }
+    REP(i,1,n)
+    {
+    	parent[i]=i;
+    	rnk[i]=0;
+    }
+    REP(i,1,n)
+    {
+    	if(act[i]&&(!visited1[i]))
+    	{
+    		int u=dpth(i);
+    		int val=dfs1(i);
+    		dfs2(i,i);
+    		ans[i]=val;
+    		if(val%2==1)
+    			rnk[i]=val/2 + 1;
+    		else
+    			rnk[i]=val/2;
+    	}
+    }
+    while(q--)
+    {
+    	int ch;
+    	cin >> ch;
+    	if(ch==1)
+    	{
+    		int x;
+    		cin >> x;
+    		cout << ans[findset(x)] << "\n";
+    	}
+    	else
+    	{
+    		int x,y;
+    		cin >> x >> y;
+    		union_find(x,y);
+    	}
+    }
+}

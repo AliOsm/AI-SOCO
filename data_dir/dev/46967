@@ -1,0 +1,197 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <unordered_set>
+#include <functional>
+#include <climits>
+#include <cstring>
+#include <cmath>
+
+using namespace std;
+using ll = long long;
+
+vector<vector<int>> g;
+int n, m, K;
+
+#ifdef DEBUG
+inline void print(const vector<int>& deg) {
+	for(size_t i = 0; i < deg.size(); ++i) {
+		cout << (i + 1) << " " << deg[i] << endl;
+	}
+	cout << endl;
+}
+#endif
+
+struct Edge {
+	int to;
+	bool deleted;
+
+	Edge(int to_): to(to_), deleted(false) {};
+};
+
+vector<Edge> e;
+inline void add(int v, int u) {
+	g[v].push_back(e.size());
+	e.emplace_back(u);
+	g[u].push_back(e.size());
+	e.emplace_back(v);
+}
+
+int main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie();
+	cin >> n >> m >> K;
+	g.resize(n);
+	vector<int> deg(n, 0);
+	for(int i = 0; i < m; ++i) {
+		int v, u;
+		cin >> v >> u;
+		--v; --u;
+		++deg[u]; ++deg[v];
+		add(v, u);
+	}
+
+	vector<bool> inset(n, true);
+	vector<bool> inqueue(n, false);
+	queue<int> q;
+	for(int i = 0; i < n; ++i) {
+		if (deg[i] < K) {
+			inset[i] = false;
+			inqueue[i] = true;
+			q.push(i);
+		}
+	}
+
+	while(!q.empty()) {
+		int cur = q.front();
+		q.pop();
+		inqueue[cur] = false;
+		inset[cur] = false;
+		for(int id : g[cur]) {
+			auto& edge = e[id];
+			if (edge.deleted) {
+				continue;
+			}
+			e[id].deleted = true;
+			e[id ^ 1].deleted = true;
+			int to = edge.to;
+			--deg[to];
+			if (inset[to] && !inqueue[to] && deg[to] < K) {
+				q.push(to);
+				inqueue[to] = true;
+			}
+		}
+	}
+
+#ifdef DEBUG
+	print(deg);
+
+	cout << "in set" << endl;
+	for(int i = 0; i < n; ++i) {
+		if (inset[i]) {
+			cout << i << " ";
+		}
+	}
+	cout << endl;
+#endif
+
+	int s = 0;
+	for(int i = 0; i < n; ++i) {
+		if (inset[i]) {
+			++s;
+		}
+	}
+	vector<int> ans(m, 0);
+	ans[m - 1] = s;
+	for(int i = m - 1; i > 0; --i) {
+		int idx = i << 1;
+		e[idx].deleted = true;
+		e[idx ^ 1].deleted = true;
+		int u = e[idx].to, v = e[idx ^ 1].to;
+		if (!inset[v] || !inset[u]) {
+			ans[i - 1] = s;
+			if (!inset[v]) {
+				for(int to : g[v]) {
+					auto& edge = e[to];
+					if (edge.deleted) {
+						continue;
+					}
+					e[to].deleted = true;
+					e[to ^ 1].deleted = true;
+					--deg[to];
+				}
+			}
+			if (!inset[u]) {
+				for(int to : g[u]) {
+					auto& edge = e[to];
+					if (edge.deleted) {
+						continue;
+					}
+					e[to].deleted = true;
+					e[to ^ 1].deleted = true;
+					--deg[to];
+				}
+			}
+#ifdef DEBUG
+			print(deg);
+#endif
+			continue;
+		}
+		--deg[v];
+		--deg[u];
+		if (deg[v] >= K && deg[u] >= K){
+			ans[i - 1] = s;
+#ifdef DEBUG
+			print(deg);
+#endif
+			continue;
+		}
+		if (deg[v] < K) {
+			inset[v] = false;
+			q.push(v);
+			inqueue[v] = true;
+		}
+		if (deg[u] < K) {
+			inset[u] = false;
+			q.push(u);
+			inqueue[u] = true;
+		}
+
+		while(!q.empty()) {
+			int cur = q.front();
+			q.pop();
+			inqueue[cur] = false;
+			--s;
+			for(int to : g[cur]) {
+				auto& edge = e[to];
+				if (edge.deleted) {
+					continue;
+				}
+
+				e[to].deleted = true;
+				e[to ^ 1].deleted = true;
+				int j = edge.to;
+				--deg[j];
+				if (inset[j] && deg[j] < K && !inqueue[j]) {
+					q.push(j);
+					inqueue[j] = true;
+					inset[j] = false;
+				}
+			}
+		}
+		ans[i - 1] = s;
+#ifdef DEBUG
+		print(deg);
+#endif
+	}
+
+	for(auto r : ans) {
+		cout << r << endl;
+	}
+	return 0;
+}

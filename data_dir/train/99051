@@ -1,0 +1,68 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+
+
+template <int mod>
+struct ModInt {
+  int val;
+  int trim(int x) const { return x >= mod ? x - mod : x < 0 ? x + mod : x; }
+  ModInt(int v = 0) : val(trim(v % mod)) {}
+  ModInt(long long v) : val(trim(v % mod)) {}
+  ModInt &operator=(int v) { return val = trim(v % mod), *this; }
+  ModInt &operator=(const ModInt &oth) { return val = oth.val, *this; }
+  ModInt operator+(const ModInt &oth) const { return trim(val + oth.val); }
+  ModInt operator+=(const ModInt &oth) { return val = trim(val + oth.val), *this; }
+  ModInt operator-(const ModInt &oth) const { return trim(val - oth.val); }
+  ModInt operator*(const ModInt &oth) const { return 1LL * val * oth.val % mod; }
+  ModInt operator/(const ModInt &oth) const {
+    function<int(int, int, int, int)> modinv = [&](int a, int b, int x, int y) {
+      if (b == 0) return trim(x);
+      return modinv(b, a - a / b * b, y, x - a / b * y);
+    };
+    return *this * modinv(oth.val, mod, 1, 0);
+  }
+  bool operator==(const ModInt &oth) const { return val == oth.val; }
+  ModInt operator-() const { return trim(mod - val); }
+  template<typename T> ModInt pow(T pw) {
+    bool sgn = false;
+    if (pw < 0) pw = -pw, sgn = true;
+    ModInt ans = 1;
+    for (ModInt cur = val; pw; pw >>= 1, cur = cur * cur) {
+      if (pw&1) ans = ans * cur;
+    }
+    return sgn ? ModInt{1} / ans : ans;
+  }
+};
+
+using mint = ModInt<int(1e9 + 7)>;
+mint cur[201][1001] = {0}, pre[201][1001];
+int a[200];
+
+int main () {
+  ios_base::sync_with_stdio(false); cin.tie(0);
+  int n, k; cin >> n >> k;
+  cur[0][0] = 1;
+  for (int i = 0; i < n; ++i) cin >> a[i];
+  sort(a, a + n);
+  for (int i = 0, last = -1000; i < n; ++i) {
+    swap(cur, pre);
+    memset(cur, 0, sizeof(cur));
+    auto add = [&](int a, int b, mint v) {
+      if (0 <= a and a <= n and 0 <= b and b <= k) {
+        cur[a][b] = cur[a][b] + v;
+      }
+    };
+    for (int sz = 0; sz <= n; ++sz) {
+      for (int tot = 0; tot <= k; ++tot) {
+        int nt = tot + sz * (a[i] - last);
+        add(sz + 1, nt, pre[sz][tot]);
+        add(sz, nt, pre[sz][tot] * mint(sz + 1));
+        add(sz - 1, nt, pre[sz][tot] * mint(sz));
+      }
+    }
+    last = a[i];
+  }
+  cout << accumulate(cur[0], cur[0] + k + 1, mint(0)).val << '\n';
+}
+

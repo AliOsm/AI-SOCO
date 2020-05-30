@@ -1,0 +1,144 @@
+#include<bits/stdc++.h>
+
+#define rep(i,n) for(int i=0;i<(int)n;i++)
+#define all(c) (c).begin(),(c).end()
+#define mp make_pair
+#define pb push_back
+#define each(i,c) for(__typeof((c).begin()) i=(c).begin();i!=(c).end();i++)
+#define dbg(x) cerr<<__LINE__<<": "<<#x<<" = "<<(x)<<endl
+
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef pair<int,int> pi;
+const int inf = (int)1e9;
+const double INF = 1e12, EPS = 1e-9;
+
+int lca(int, int);
+void dfs(int, int, int, ll);
+
+
+const int MX = 5000;
+const int MX_L=13;
+
+int parent[MX_L][MX];
+int depth[MX];
+
+int n;
+ll dist[5000];
+vector<vector<pi> > e;
+ll ans, allpair;
+
+int ng1, ng2;
+
+int sz[5000];
+
+void rec1(int c, int p, ll &sum, ll d){
+	sum += d;
+	sz[c] = 1;
+	rep(i, e[c].size()){
+		int to = e[c][i].first;
+		if(to == p || ng1 == c && ng2 == to || ng1 == to && ng2 == c) continue;
+		
+		rec1(to, c, sum, d + e[c][i].second);
+		sz[c] += sz[to];
+	}
+}
+void rec2(int c, int p, ll sum, ll &mn, int rsz){
+	mn = min(mn, sum);
+	rep(i, e[c].size()){
+		int to = e[c][i].first;
+		if(to == p || ng1 == c && ng2 == to || ng1 == to && ng2 == c) continue;
+		
+		int l = sz[to], r = rsz - sz[to];
+		rec2(to, c, sum + (ll)(r - l) * e[c][i].second, mn, rsz);
+	}
+}
+
+
+int solve(int root, ll &sum, ll &mn){
+	sum = 0;
+	mn = 1e18;
+	rec1(root, root, sum, 0);
+	rec2(root, root, sum, mn, sz[root]);
+	return sz[root];
+}
+void rec_main(int c, int p){
+	rep(i, e[c].size()) if(e[c][i].first != p){
+		
+		ng1 = e[c][i].first;
+		ng2 = c;
+		
+		ll mn1, mn2, sum1, sum2;
+		
+		int sz1 = solve(e[c][i].first, sum1, mn1);
+		int sz2 = solve(c, sum2, mn2);
+		/*
+		if(c == 2 && e[c][i].first == 3){
+		
+		cerr<<"c: "<<c<<" to: "<<e[c][i].first<<endl;
+		cerr<<"sz1: "<<sz1<<" sz2: "<<sz2<<endl;
+		cerr<<"mn1: "<<mn1<<" mn2: "<<mn2<<endl;
+		cerr<<"sum1 :"<<sum1<<" sum2: "<<sum2<<endl;
+		
+		assert(sz1 + sz2 == n);
+		*/
+		ans = min(ans, allpair + (mn1 - sum1) * sz2 + (mn2 - sum2) * sz1);
+		/*
+			dbg(allpair - e[c][i].second * sz1 * sz2 - 2 * sum1 * sz2 - 2 * sum2 * sz1);
+			dbg(2 * mn1 * sz2 + 2 * mn2 * sz1);
+		}*/
+		rec_main(e[c][i].first, c);
+	}
+}
+
+int main(){
+	cin >> n;
+	e.resize(n);
+	rep(i, n - 1){
+		int a, b, c;
+		cin >> a >> b >> c;
+		a--; b--;
+		e[a].pb(mp(b, c));
+		e[b].pb(mp(a, c));
+	}
+	
+	dfs(0, 0, 0, 0);
+	rep(i, MX_L - 1) rep(j, n) parent[i + 1][j] = parent[i][parent[i][j]];
+	
+	rep(i, n) rep(j, i){
+		int a = lca(i, j);
+		allpair += dist[i] + dist[j] - 2 * dist[a];
+		
+		//cerr<<"i: "<<i<<" j:"<<j<<" a: "<<a<<endl;
+	}
+	
+	ans = allpair; //dbg(ans);
+	rec_main(0, 0);
+	cout << ans << endl;
+	return 0;
+}
+
+
+void dfs(int c, int p, int d, ll di){
+	depth[c] = d;
+	dist[c] = di;
+	parent[0][c] = p;
+	rep(i, e[c].size()){
+		int to = e[c][i].first;
+		if(to == p) continue;
+		dfs(to, c, d + 1, di + e[c][i].second);
+	}
+}
+inline int lca(int a, int b){
+	if(depth[a] > depth[b]) swap(a, b);
+	int d = depth[b] - depth[a];
+	rep(i, MX_L) if(d & 1 << i) b = parent[i][b];
+	if(a == b) return a;
+	for(int i = MX_L - 1; i >= 0; i--) if(parent[i][a] != parent[i][b]){
+		a = parent[i][a];
+		b = parent[i][b];
+	}
+	return parent[0][a];
+}

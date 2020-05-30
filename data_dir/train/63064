@@ -1,0 +1,248 @@
+/*
+ID: noszaly1
+TASK: {TASK}
+LANG: C++11               
+*/
+
+//Noszály Áron 10o Debreceni Fazekas Mihály Gimnázium
+
+#include<iostream>
+#include<vector>
+#include<map>
+#include<set>
+#include<cassert>
+#include<cassert>
+#include<unordered_map>
+#include<unordered_set>
+#include<functional>
+#include<queue>
+#include<stack>
+#include<cstring>
+#include<algorithm>
+#include<cmath>
+#include<sstream>
+#include<iomanip>
+#include<cstdio>
+#include<cstdlib>
+#include<numeric>
+using namespace std;
+
+#define all(x) (x).begin(), (x).end()
+#define pb push_back
+#define xx first
+#define yy second
+#define sz(x) (int)(x).size()
+#define gc getchar
+#define IO ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define mp make_pair
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+
+const double PI=acos(-1);
+
+template<typename T> T getint() {
+	T val=0;
+	char c;
+	
+	bool neg=false;
+	while((c=gc()) && !(c>='0' && c<='9')) {
+		neg|=c=='-';
+	}
+
+	do {
+		val=(val*10)+c-'0';
+	} while((c=gc()) && (c>='0' && c<='9'));
+
+	return val*(neg?-1:1);
+}
+
+#define int ll
+
+int prime[100001];
+
+void sieve() {
+	for(auto&i:prime) i=1;
+	for(int i=2;i<100001;++i) {
+		if(prime[i]==1) {
+			for(ll j=ll(i)*ll(i);j<100001LL;j+=i) {
+				prime[j]=i;
+			}
+			prime[i]=i;
+		}
+	}
+}
+
+
+struct trie {
+	bool ending;
+	int min;
+	trie *sub[2];
+	
+	trie() {
+		ending=false;
+		min=10000001;
+		sub[0]=sub[1]=NULL;
+	}
+};
+
+void insert(string num, int val,  trie* root) {
+	trie* akt=root;
+	
+	for(auto i:num) {
+		
+		if(akt->sub[i-'0']==NULL) {
+			
+			akt->sub[i-'0']=new trie();
+		}
+		
+		akt->min=min(akt->min, val);
+		akt=akt->sub[i-'0'];
+	}
+	
+	
+	akt->min=min(akt->min, val);
+	akt->ending=true;
+}
+
+int query(string num, int lim, trie* root) {
+	trie* akt=root;
+	//cerr<<"QUERY: ";
+	for(auto i:num) {
+		if(akt->sub[1-i+'0']==NULL && akt->sub[i-'0']==NULL) {
+			return -1;
+		}
+		
+		/*if(akt->sub[1-i+'0']!=NULL && akt->sub[i-'0']!=NULL) {
+			cerr<<akt->sub[1-i+'0']->min<<" ";
+			cerr<<akt->sub[i-'0']->min<<"?!?!!?\n";
+		}*/
+		
+		
+		if(akt->sub[1-i+'0']==NULL) {
+		
+			akt=akt->sub[i-'0'];
+		}else {
+			if(akt->sub[1-i+'0']->min<=lim) {
+				akt=akt->sub[1-i+'0'];
+			}else if(akt->sub[i-'0']!=NULL)
+			{
+				akt=akt->sub[i-'0'];	
+			}else return -1;
+		}
+	}
+	
+	if(akt->min<=lim) return akt->min; 
+	
+	return -1;
+}
+
+vector<pair<int,int>> fact(int x) {
+	vector<pair<int,int>> ans;
+	while(x>1) {
+		int curr=prime[x];
+		int cnt=0;
+		while(x>1 && x%curr==0) {
+			x/=curr;
+			cnt++;
+		}
+		
+		ans.pb({curr,cnt});
+	}
+	
+	return ans;
+}
+
+trie* lst[100001];
+vector<int> dbg[100001];
+string conv(int i) {
+	string num;
+	for(int j=17;j>=0;j--) {
+		num.pb('0'+(((1<<j)&i)!=0));
+	}
+	
+	return num;
+}
+
+void gen(int ind, int akt, vector<pair<int,int>>& factd, vector<int>& res) {
+	if(ind==sz(factd)) {
+		res.pb(akt);
+		return ;
+	}
+	
+	gen(ind+1, akt, factd, res);
+	
+	int curr=1;
+	for(int i=0;i<factd[ind].yy;++i) {
+		gen(ind+1, akt*(curr*=factd[ind].xx), factd, res);
+	}
+}
+
+int volt[100001];
+
+main() {
+	IO;
+	sieve();
+	int q;
+	cin>>q;
+	
+	for(int i=0;i<=100000;++i) lst[i]=new trie();
+	
+	while(q--) {
+		int typ;
+		cin>>typ;
+		if(typ==1) {
+			int val;
+			cin>>val;
+			if(!volt[val]) {
+				//cerr<<"ADD "<<val<<"\n";
+				auto factd=fact(val);
+				
+				vector<int> res;
+				
+				gen(0, 1, factd, res);
+				
+				for(auto i:res) {
+			
+					string num=conv(val);
+					insert(num, val, lst[i]);
+					
+					dbg[i].pb(val);
+				}
+			
+			}
+			volt[val]=1;
+		} else {
+			int x,k,s;
+			cin>>x>>k>>s;
+			auto fx=fact(x);
+			auto fk=fact(k);
+			
+			
+			bool ok=true;
+			map<int,int> ffx, ffk;
+			for(auto i:fx) ffx[i.xx]=i.yy;
+			for(auto i:fk) ffk[i.xx]=i.yy;
+			
+			for(auto i:fk) {
+				ok&=i.yy<=ffx[i.xx];
+			}
+			
+			if(!ok) {
+				cout<<"-1\n";
+				continue ;
+			}
+	
+			string num=conv(x);
+			
+			int ans=query(num, s-x, lst[k]);
+			
+			
+			cout<<ans<<"\n";
+
+		}
+	}
+	
+	return 0;
+}

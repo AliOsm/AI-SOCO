@@ -1,0 +1,211 @@
+/*
+digu_J - Digvijay Janartha
+NIT Hamirpur - INDIA
+*/
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+template < typename T > using ordered_set = tree < T, null_type, less < T >, rb_tree_tag, tree_order_statistics_node_update >;
+template < typename T > using MinPriorityQueue = priority_queue < T, vector < T >, greater < T > >;
+
+#ifndef ONLINE_JUDGE
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template < typename Arg1 >
+void __f(const char* name, Arg1&& arg1) {
+    cout << name << " : " << arg1 << std :: endl;
+}
+template < typename Arg1, typename... Args >
+void __f(const char* names, Arg1&& arg1, Args&&... args) {
+    const char* comma = strchr(names + 1, ',');
+    int len = comma - names;
+    for (int i = 0; i < len; ++i) {
+        cout << names[i];
+    }
+    cout <<  " : " << arg1 << " | ";
+    __f(comma + 1, args...);
+}
+#else
+#define trace(...)
+#endif
+
+typedef double db;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+typedef pair < ll, ll > pll;
+typedef pair < int, int > pii;
+typedef vector < ll > vll;
+typedef vector < int > vi;
+
+#define eb emplace_back
+#define pb push_back
+#define F first
+#define S second
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+#define unique_sort(x) (sort(x.begin(), x.end()), x.resize(distance(x.begin(), unique(x.begin(), x.end()))))
+#define fast_io() ios_base :: sync_with_stdio(0); cin.tie(0); cout.tie(0)
+
+const ll LINF = LLONG_MAX, base = 1e9, MOD = 1e9 + 7, N = 2e3 + 10, M = 1e3 + 10;
+const int INF = INT_MAX;
+const db PI = acos(-1);
+
+struct edge {
+    int u, v, w;
+    bool operator<(edge const& oth) {
+        return w < oth.w;
+    }
+};
+
+int n, timer, lg, mat[N][N], p[N], sz[N], tin[N], tout[N];
+ll pre[N];
+vector < vi > up;
+vector < pii > g[N];
+vector < edge > e;
+bool vis[N];
+
+void test();
+int find_set(int v);
+void union_sets(int a, int b);
+void bfs(int s);
+void dfs(int s, int p);
+bool is_ancestor(int u, int v);
+int lca(int u, int v);
+
+int main() {
+    fast_io();
+    #ifndef ONLINE_JUDGE
+        freopen("input.txt", "r", stdin);
+        freopen("output.txt", "w", stdout);
+    #endif
+    test();
+    #ifndef ONLINE_JUDGE
+        cout << "Time: " << (int)(clock() * 1000. / CLOCKS_PER_SEC) << "ms";
+    #endif
+    return 0;
+}
+
+void test() {
+    cin >> n;
+    lg = ceil(log2(n + 1));
+    for (int i = 1; i <= n; ++i) {
+        p[i] = i, sz[i] = 1;
+    }
+    for (int i = 1; i <= n; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            cin >> mat[i][j];
+        }
+    }
+    for (int i = 1; i <= n; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            if (i == j) {
+                if (mat[i][j]) {
+                    cout << "NO\n";
+                    return;
+                }
+            } else {
+                if (!mat[i][j] or mat[i][j] != mat[j][i]) {
+                    cout << "NO\n";
+                    return;
+                }
+                e.pb({i, j, mat[i][j]});
+            }
+        }
+    }
+    sort(all(e));
+    for (auto &x: e) {
+        if (find_set(x.u) != find_set(x.v)) {
+            union_sets(x.u, x.v);
+            g[x.u].eb(x.v, x.w);
+            g[x.v].eb(x.u, x.w);
+        }
+    }
+    up.resize(n + 1);
+    for (int i = 0; i <= n; ++i) {
+        up[i].resize(lg + 1);
+    }
+    bfs(1);
+    dfs(1, 1);
+    for (int i = 1; i <= n; ++i) {
+        for (int j = i + 1; j <= n; ++j) {
+            ll d = pre[i] + pre[j] - 2 * pre[lca(i, j)];
+            if (d != mat[i][j]) {
+                cout << "NO\n";
+                return;
+            }
+        }
+    }
+    cout << "YES\n";
+}
+
+int find_set(int v) {
+    return (v == p[v] ? v : p[v] = find_set(p[v]));
+}
+
+void union_sets(int a, int b) {
+    a = find_set(a);
+    b = find_set(b);
+    if (a != b) {
+        if (sz[a] < sz[b]) {
+            swap(a, b);
+        }
+        p[b] = a;
+        sz[a] += sz[b];
+    }
+}
+
+void bfs(int s) {
+    queue < int > q;
+    q.push(s);
+    vis[s] = true;
+    while (!q.empty()) {
+        int v = q.front();
+        q.pop();
+        for (auto &x: g[v]) {
+            if (!vis[x.F]) {
+                vis[x.F] = true;
+                pre[x.F] = pre[v] + ll(x.S);
+                q.push(x.F);
+            }
+        }
+    }
+    fill(vis, vis + n, false);
+}
+
+void dfs(int s, int p) {
+    tin[s] = ++timer;
+    up[s][0] = p;
+    for (int i = 1; i <= lg; ++i) {
+        up[s][i] = up[up[s][i - 1]][i - 1];
+    }
+    for (auto &x: g[s]) {
+        if (x.F != p) {
+            dfs(x.F, s);
+        }
+    }
+    tout[s] = ++timer;
+}
+
+bool is_ancestor(int u, int v) {
+    return tin[u] <= tin[v] and tout[u] >= tout[v];
+}
+
+int lca(int u, int v) {
+    if (is_ancestor(u, v)) {
+        return u;
+    }
+    if (is_ancestor(v, u)) {
+        return v;
+    }
+    for (int i = lg; i >= 0; --i) {
+        if (!is_ancestor(up[u][i], v)) {
+            u = up[u][i];
+        }
+    }
+    return up[u][0];
+}

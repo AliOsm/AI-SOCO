@@ -1,0 +1,99 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+const int N = 2e5+7, K = 18;
+
+LL ft[N];
+void update(int idx, LL val) {
+    for (; idx<N;  idx+=idx&-idx)
+        ft[idx] = max(ft[idx], val);
+}
+
+LL query(int idx) {
+    LL ans = -1;
+    for (; idx>0; idx-=idx&-idx)
+        ans = max(ans, ft[idx]);
+    return ans;
+}
+
+struct frog {
+    LL l, r, id, cnt;
+};
+
+int find(int idx, LL x) {
+    int cur = 0;
+    for (int k=K-1; k>=0; k--) {
+        if (cur + (1<<k) > idx) continue;
+        if (ft[cur + (1<<k)] >= x)  continue;
+        cur += 1<<k;
+    }
+    if (cur+1>idx)  return -1;
+    return cur+1;
+}
+
+frog frogs[N];
+int order[N];
+LL ans[N], fr[N];
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    memset(ft, -1, sizeof ft);
+
+    int n, q;
+    cin>>n>>q;
+
+    for (int i=1; i<=n; i++)    order[i] = i;
+
+    for (int i=1; i<=n; i++) {
+        frogs[i].id = i;
+        frogs[i].cnt = 0;
+        cin>>frogs[i].l>>frogs[i].r;
+        frogs[i].r += frogs[i].l;
+    }
+
+    sort(order+1, order+n+1, [](int a, int b) {return frogs[a].l < frogs[b].l;});
+
+    for (int ii=1; ii<=n; ii++) {
+        int i = order[ii];
+        update(ii, frogs[i].r);
+    }
+
+    multiset<pair<LL, LL>> st;
+
+    while (q--) {
+        LL x, v;
+        cin>>x>>v;
+
+        frogs[0] = {x, 0, 0, 0};
+        int idx = upper_bound(order+1, order+n+1, 0, [](int a, int b) {return frogs[a].l < frogs[b].l;}) - order;
+        idx--;
+        int ff = find(idx, x);
+//        cout<<"---->"<<idx<<" "<<ff<<" "<<order[ff]<<endl;
+
+        if (ff == -1) {
+            st.insert({x, v});
+            continue;
+        }
+
+        int f = order[ff];
+        frogs[f].r += v;
+        frogs[f].cnt++;
+
+        while (true) {
+            auto it = st.lower_bound({frogs[f].l, -1});
+            if (it == st.end() || it->first > frogs[f].r) break;
+            frogs[f].r += it->second;
+            frogs[f].cnt++;
+            st.erase(it);
+        }
+        update(ff, frogs[f].r);
+    }
+
+    for (int i=1; i<=n; i++) {
+        ans[frogs[i].id] = frogs[i].r - frogs[i].l;
+        fr[frogs[i].id] = frogs[i].cnt;
+    }
+
+    for (int i=1; i<=n; i++)    cout<<fr[i]<<" "<<ans[i]<<"\n";
+}

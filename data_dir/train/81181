@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+const int N = 16;
+const int SZ = 5005;
+
+vector<ll> a[N];
+ll k;
+int mark[N][SZ];
+int good[1 << N];
+ll s[N];
+vector<pair<int, int>> st[1 << N];
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin >> k;
+  map<ll, pair<int, int>> mp;
+  ll sum = 0;
+  for (int i = 0; i < k; ++i) {
+    int sz;
+    cin >> sz;
+    for (int j = 0; j < sz; ++j) {
+      ll x;
+      cin >> x;
+      sum += x;
+      s[i] += x;
+      mp[x] = {i, j};
+      a[i].push_back(x);
+    }
+  }
+  if (sum % k) {
+    cout << "No\n";
+    return 0;
+  }
+  sum /= k;
+  for (int i = 0; i < k; ++i) {
+    for (int j = 0; j < a[i].size(); ++j) {
+      int msk = (1 << i);
+      int x = i, y = j;
+      bool bad = false;
+      vector <pair<int, int>> e;
+      e.push_back({i, j});
+      while (true) {
+        ll need = sum - s[x] + a[x][y];
+        if (mp.count(need) == 0) {
+          bad = true;
+          break;
+        }
+        x = mp[need].first;
+        y = mp[need].second;
+        if (msk & (1 << x)) {
+          if (x != i) {
+            bad = true;
+            break;
+          }
+          if (y != j) {
+            bad = true; 
+            break;
+          }
+          break;
+        }
+        msk |= (1 << x);
+        e.push_back({x, y});
+      }
+      if (!bad) {
+        st[msk] = e;
+        good[msk] = 1;
+      }
+    }
+  }
+  good[0] = 1;
+  for (int i = 0; i < (1 << k); ++i) {
+    for (int j = i; j > 0; j = (j - 1) & i) {
+      good[i] |= (good[i^j] & good[j]);
+    }
+  }
+  if (good[(1 << k) - 1] == 0) {
+    cout << "No\n";
+    return 0;
+  }
+  cout << "Yes\n";
+  vector <pair<int, int>> ans(k);
+  queue <int> q;
+  q.push((1 << k) - 1);
+  fill(&mark[0][0], &mark[0][0] + N * SZ, 0);
+  while (q.size()) {
+    int top = q.front();
+    q.pop();
+    if (!top) continue;
+    int divide = 0;
+    for (int j = top; j > 0; j = (j - 1) & top) {
+      if ((top ^ j) == 0) continue;
+      if (good[j] && good[top ^ j]) {
+        q.push(j);
+        q.push(top ^ j);
+        divide = 1;
+        break;
+      }
+    }
+    if (divide) continue;
+    for (int i = 0; i < st[top].size(); ++i) {
+      int j = (i - 1 + st[top].size()) % st[top].size();
+      ans[st[top][i].first] = {a[st[top][i].first][st[top][i].second], st[top][j].first};
+    }
+  }
+  for (int i = 0; i < k; ++i) {
+    cout << ans[i].first << " " << ans[i].second + 1 << "\n";
+  }
+  return 0;
+}

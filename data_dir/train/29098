@@ -1,0 +1,73 @@
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//  Convex Hull Optimization
+//
+//  dp[i] = min(dp[j] + b[j] * a[i]), j < i
+//  y     = min(c     + m    * x)
+//
+//  Requires b[j] >= b[j + 1] (lines are added in decreasing order of slopes
+//  Requires for this implementation: a[i] <= a[i + 1] (query x in increasing order)
+//
+//  Link: http://codeforces.com/contest/319/problem/C
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <bits/stdc++.h>
+#define SZ(x) ((int)(x).size())
+
+using namespace std;
+
+template<class T>
+class ConvexHullOptimization {
+public:
+    struct Line { T c, m; };
+    deque<Line> sk;
+    ConvexHullOptimization () {}
+    void add_line(T m, T c) {
+        Line new_line = {c, m};
+        if (!sk.empty() && sk.back().m == new_line.m) {
+            sk.back().c = min(sk.back().c, new_line.c);
+            return ;
+        }
+        while (SZ(sk) >= 2 && cross_left(sk[SZ(sk) - 2], sk.back(), new_line)) sk.pop_back();
+        sk.push_back(new_line);
+    }
+    // Returns the minimum value of y
+    T minimize(T x) {
+        if (sk.empty()) return 0;
+        while (SZ(sk) >= 2 && cal_y(sk.front(), x) > cal_y(sk[1], x)) sk.pop_front();
+        return cal_y(sk.front(), x);
+    }
+private:
+    // Returns true if x_ab > x_bc
+    //   x_ab = the x-coordinate of the intersection of A and B
+    //   x_bc = the x-coordinate of the intersection of B and new_line
+    bool cross_left(Line A, Line B, Line new_line) {
+        long double x_ab = (long double)(B.c - A.c) / (A.m - B.m);
+        long double x_bc = (long double)(new_line.c - B.c) / (B.m - new_line.m);
+        return x_ab > x_bc;
+    }
+    T cal_y(Line a, T x) { return a.m * x + a.c; }
+};
+
+#define MAXN (100005)
+typedef long long LL;
+int heights[MAXN];
+int costs[MAXN];
+LL dp[MAXN];
+
+int main(){
+    int n;
+    scanf("%d", &n);
+    for(int i = 1; i <= n; i++ ) scanf("%d", &heights[i]);
+    for(int i = 1; i <= n; i++ ) scanf("%d", &costs[i]);
+
+    // dp[i] = min({dp[k] + costs[k] * heights[i]})
+    // y = dp[i], c = dp[k], m = costs[k], x = heights[i]
+    // costs is decreasing, heights is increasing
+    ConvexHullOptimization<LL> solver;
+    for (int i = 1; i <= n; i++ ) {
+        dp[i] = solver.minimize(heights[i]);
+        solver.add_line(costs[i], dp[i]);
+    }
+    cout << dp[n] << endl;
+    return 0;
+}

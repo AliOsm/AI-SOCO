@@ -1,0 +1,193 @@
+#include <bits/stdc++.h>
+
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/pb_ds/tree_policy.hpp>
+
+//using namespace __gnu_pbds;
+using namespace std;
+
+//template<typename T>
+//using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+typedef vector<int> vi;
+typedef long long ll;
+
+#define pb push_back
+#define inf 0x3f3f3f3f
+#define all(v) (v).begin() , (v).end()
+#define ones(n) __builtin_popcount(n)
+#define ONES(n) __builtin_popcountll(n)
+
+int di[] = {0, 0, 1, -1, 1, 1, -1, -1};
+int dj[] = {1, -1, 0, 0, -1, 1, 1, -1};
+
+const int N = 1e5 + 5, M = 18;
+int n;
+vi adj[N];
+int occ[N], E[2 * N], L[2 * N], in[N];
+int table[M][2 * N], LG[2 * N], sz;
+
+void dfs(int node = 1, int level = 0) {
+    table[0][sz] = sz;
+    occ[node] = sz;
+    E[sz] = node;
+    L[sz] = level;
+    in[node] = sz++;
+    for (int child : adj[node]) {
+        dfs(child, level + 1);
+        E[sz] = node;
+        table[0][sz] = sz;
+        L[sz++] = level;
+    }
+}
+
+void build() {
+    dfs();
+
+    for (int j = 1; j <= M; j++) {
+        for (int i = 0; i + (1 << j) - 1 < sz; i++) {
+            int f = table[j - 1][i];
+            int s = table[j - 1][i + (1 << (j - 1))];
+            table[j][i] = L[f] < L[s] ? f : s;
+        }
+    }
+}
+
+int RMQ(int l, int r) {
+    if (r < l)
+        swap(l, r);
+    int lg = LG[r - l + 1];
+    int f = table[lg][l];
+    int s = table[lg][r - (1 << lg) + 1];
+    return L[f] < L[s] ? E[f] : E[s];
+}
+
+int LCA(int a, int b) {
+    if (!a)
+        return b;
+    if (!b)
+        return a;
+    return RMQ(occ[a], occ[b]);
+}
+
+int mnTree[4 * N], mxTree[4 * N], lcaTree[4 * N];
+
+void buildLCA(int l = 1, int r = n, int pos = 1) {
+    if (l == r) {
+        lcaTree[pos] = l;
+        return;
+    }
+
+    int mid = (l + r) / 2;
+    buildLCA(l, mid, pos * 2);
+    buildLCA(mid + 1, r, pos * 2 + 1);
+    lcaTree[pos] = LCA(lcaTree[pos * 2], lcaTree[pos * 2 + 1]);
+}
+
+int lcaQuery(int s, int e, int l = 1, int r = n, int pos = 1) {
+    if (e < s || l > e || r < s)
+        return 0;
+    if (l >= s && r <= e)
+        return lcaTree[pos];
+    int mid = (l + r) / 2;
+    return LCA(lcaQuery(s, e, l, mid, pos * 2), lcaQuery(s, e, mid + 1, r, pos * 2 + 1));
+}
+
+void buildMn(int l = 1, int r = n, int pos = 1) {
+    if (l == r) {
+        mnTree[pos] = l;
+        return;
+    }
+    int mid = (l + r) / 2;
+    buildMn(l, mid, pos * 2);
+    buildMn(mid + 1, r, pos * 2 + 1);
+    int f = in[mnTree[pos * 2]];
+    int s = in[mnTree[pos * 2 + 1]];
+    mnTree[pos] = f < s ? mnTree[pos * 2] : mnTree[pos * 2 + 1];
+}
+
+void buildMx(int l = 1, int r = n, int pos = 1) {
+    if (l == r) {
+        mxTree[pos] = l;
+        return;
+    }
+
+    int mid = (l + r) / 2;
+    buildMx(l, mid, pos * 2);
+    buildMx(mid + 1, r, pos * 2 + 1);
+    int f = in[mxTree[pos * 2]];
+    int s = in[mxTree[pos * 2 + 1]];
+    mxTree[pos] = f > s ? mxTree[pos * 2] : mxTree[pos * 2 + 1];
+}
+
+int mnQuery(int s, int e, int l = 1, int r = n, int pos = 1) {
+    if (l >= s && r <= e)
+        return mnTree[pos];
+
+    int mid = (l + r) / 2;
+    if (e <= mid)
+        return mnQuery(s , e , l , mid , pos * 2);
+
+    if (s > mid)
+        return mnQuery(s , e , mid + 1 , r , pos * 2 + 1);
+
+    int fn = mnQuery(s , e , l , mid , pos * 2);
+    int sn = mnQuery(s , e , mid + 1 , r , pos * 2 + 1);
+    int fIn = in[fn];
+    int sIn = in[sn];
+
+    return fIn < sIn ? fn : sn;
+}
+
+int mxQuery(int s, int e, int l = 1, int r = n, int pos = 1) {
+    if (l >= s && r <= e)
+        return mxTree[pos];
+
+    int mid = (l + r) / 2;
+    if (e <= mid)
+        return mxQuery(s , e , l , mid , pos * 2);
+    if (s > mid)
+        return mxQuery(s , e  , mid + 1 , r , pos * 2 + 1);
+
+    int fn = mxQuery(s , e , l , mid , pos * 2);
+    int sn = mxQuery(s , e , mid + 1 , r , pos * 2 + 1);
+    int fIn = in[fn];
+    int sIn = in[sn];
+
+    return fIn > sIn ? fn : sn;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+    freopen("input.in", "r", stdin);
+#endif
+    LG[0] = -1;
+    for (int i = 1; i < 2 * N; i++)
+        LG[i] = LG[i - 1] + !(i - (i & (-i)));
+
+    int q, p;
+    scanf("%d%d", &n, &q);
+    for (int i = 2; i <= n; i++) {
+        scanf("%d", &p);
+        adj[p].pb(i);
+    }
+
+    build();
+    buildLCA();
+    buildMn();
+    buildMx();
+
+    int l, r;
+    while (q--) {
+        scanf("%d%d" , &l , &r);
+        int mnInNode = mnQuery(l, r);
+        int mxInNode = mxQuery(l, r);
+        int f = LCA(lcaQuery(l, mnInNode - 1), lcaQuery(mnInNode + 1, r));
+        int s = LCA(lcaQuery(l, mxInNode - 1), lcaQuery(mxInNode + 1, r));
+
+        if (L[occ[f]] > L[occ[s]])
+            printf("%d %d\n", mnInNode, L[occ[f]]);
+        else
+            printf("%d %d\n", mxInNode, L[occ[s]]);
+    }
+}

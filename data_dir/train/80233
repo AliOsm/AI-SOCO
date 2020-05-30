@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	50000
+#define M	150000
+#define Q	250000
+#define M_	(M + Q)
+#define L	800
+
+int min(int a, int b) { return a < b ? a : b; }
+
+int oo[1 + M_ * 2], oj[1 + M_ * 2], _;
+
+int link(int o, int j) {
+	oo[_] = o, oj[_] = j;
+	return _++;
+}
+
+int ii[M_], jj[M_], hh[M_], hh_[M_];
+
+int compare(const void *a, const void *b) {
+	int h1 = *(int *) a;
+	int h2 = *(int *) b;
+
+	return ii[h1] != ii[h2] ? ii[h1] - ii[h2] : jj[h1] - jj[h2];
+}
+
+int main() {
+	static char type[Q], on_v[N], on_e[M_], changed_v[N], changed_e[M_];
+	static int uu[Q], ii_[M_], jj_[M_], ae[N], dd[N];
+	int n, m, m_, m1, k, q, g, h, h_, i, j;
+
+	scanf("%d%d%d%d", &n, &m, &q, &k);
+	for (h = 0; h < k; h++) {
+		scanf("%d", &i), i--;
+		on_v[i] = 1;
+	}
+	m_ = 0;
+	for (h = 0; h < m; h++) {
+		int tmp;
+
+		scanf("%d%d", &i, &j), i--, j--;
+		if (i > j)
+			tmp = i, i = j, j = tmp;
+		ii[h] = i, jj[h] = j, hh[m_] = h, m_++;
+	}
+	for (h = 0; h < q; h++) {
+		static char s[2];
+		int tmp;
+
+		scanf("%s", s);
+		type[h] = s[0];
+		if (s[0] == 'A' || s[0] == 'D') {
+			scanf("%d%d", &i, &j), i--, j--;
+			if (i > j)
+				tmp = i, i = j, j = tmp;
+			ii[m + h] = i, jj[m + h] = j, hh[m_] = m + h, m_++;
+		} else
+			scanf("%d", &uu[h]), uu[h]--;
+	}
+	qsort(hh, m_, sizeof *hh, compare);
+	m1 = 0;
+	for (h = 0; h < m_; h = h_) {
+		i = ii[hh[h]], j = jj[hh[h]];
+		h_ = h + 1;
+		while (h_ < m_ && ii[hh[h_]] == i && jj[hh[h_]] == j)
+			h_++;
+		for (g = h; g < h_; g++)
+			hh_[hh[g]] = m1;
+		ii_[m1] = i, jj_[m1] = j, m1++;
+	}
+	m_ = m1;
+	for (h = 0; h < m; h++)
+		on_e[hh_[h]] = 1;
+	k = (q + L - 1) / L;
+	for (g = 0; g < k; g++) {
+		int l = g * L, r = min(l + L, q), cnt;
+
+		memset(changed_v, 0, n * sizeof *changed_v);
+		memset(changed_e, 0, m_ * sizeof *changed_e);
+		for (h = l; h < r; h++)
+			if (type[h] == 'O' || type[h] == 'F')
+				changed_v[uu[h]] = 1;
+			else if (type[h] == 'A' || type[h] == 'D')
+				changed_e[hh_[m + h]] = 1;
+		memset(ae, 0, n * sizeof *ae), _ = 1;
+		memset(dd, 0, n * sizeof *dd);
+		cnt = 0;
+		for (h = 0; h < m_; h++)
+			if (changed_e[h])
+				hh[cnt++] = h;
+			else if (on_e[h]) {
+				i = ii_[h], j = jj_[h];
+				if (changed_v[j])
+					ae[i] = link(ae[i], j);
+				else if (on_v[j])
+					dd[i]++;
+				if (changed_v[i])
+					ae[j] = link(ae[j], i);
+				else if (on_v[i])
+					dd[j]++;
+			}
+		for (h = l; h < r; h++)
+			if (type[h] == 'O' || type[h] == 'F')
+				on_v[uu[h]] ^= 1;
+			else if (type[h] == 'A' || type[h] == 'D')
+				on_e[hh_[m + h]] ^= 1;
+			else {
+				int u, o, ans;
+
+				u = uu[h];
+				ans = dd[u];
+				for (o = ae[u]; o; o = oo[o]) {
+					j = oj[o];
+					if (on_v[j])
+						ans++;
+				}
+				for (h_ = 0; h_ < cnt; h_++)
+					if (on_e[hh[h_]]) {
+						i = ii_[hh[h_]], j = jj_[hh[h_]];
+						if (u == i && on_v[j] || u == j && on_v[i])
+							ans++;
+					}
+				printf("%d\n", ans);
+			}
+	}
+	return 0;
+}

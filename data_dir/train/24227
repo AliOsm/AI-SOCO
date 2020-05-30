@@ -1,0 +1,64 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+#include <cassert>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+#define dbg(x) cout <<#x<<" = "<<x<<" ;  "
+#define dbgln(x) cout <<#x<<" = "<<x<<endl
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=1e6+7;
+const double eps=0.00000001;
+LL gcd(LL a, LL b) {return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a, T b) {
+	T ret=1;
+	for (; b; b>>=1ll,a=(LL)a*a%M)
+		if (b&1) ret=(LL)ret*a%M;
+	return ret;
+}
+
+char A[maxn];
+int n,m;
+set<int> S;
+int ans=-1;
+void dfs(int val,int i){
+	// printf("%d %d %d\n",val,i,len);
+	if (S.count(val)) ans=max(ans,val);
+	for (;i<n;i++)
+		dfs(val*10+A[i]-'0',i+1);
+}
+int main() {
+	int i;
+	FOR(i,1,100000) if ((LL)i*i<=2e9+7) S.insert(i*i);
+	scanf("%s",A);n=strlen(A);
+	dfs(0,0);
+	if (ans==-1) puts("-1");
+	else {
+		while (ans) ans/=10,n--;
+		printf("%d\n",n-ans);
+	}
+	return 0;
+}
+/*
+121
+*/

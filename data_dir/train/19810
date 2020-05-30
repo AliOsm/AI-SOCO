@@ -1,0 +1,109 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+#define x1 fasdfj
+#define x2 dsghg
+#define y1 gjdklg
+#define y2 fdjkg
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int INF = 1e9;
+const int LEAVES = 1 << 18;
+
+int n, a[200001];
+int st[18][200001];
+int Log[200001];
+int t[2 * LEAVES];
+
+void buildST() {
+  for (int i = 0; i < n; ++i)
+    st[0][i] = a[i];
+  for (int i = 1; i < 18; ++i) {
+    for (int j = 0; j + (1 << i) <= n; ++j) {
+      st[i][j] = min(st[i - 1][j], st[i - 1][j + (1 << (i - 1))]);
+    }
+  }
+}
+
+inline int getMin(int l, int r) {
+  int L = Log[r - l + 1];
+  return min(st[L][l], st[L][r - (1 << L) + 1]);
+}
+
+void update(int v, int tl, int tr, int l, int r, int val) {
+  if (t[v]) {
+    if (tl != tr) {
+      t[v << 1] = max(t[v << 1], t[v]);
+      t[v << 1 | 1] = max(t[v << 1 | 1], t[v]);
+      t[v] = 0;
+    }
+  }
+  if (l > r) return;
+  if (tl == l && tr == r) {
+    if (tl == tr)
+      t[v] = max(t[v], val);
+    else {
+      t[v << 1] = max(t[v << 1], val);
+      t[v << 1 | 1] = max(t[v << 1 | 1], val);
+    }
+    return;
+  }
+  int tm = (tl + tr) >> 1;
+  update(v << 1, tl, tm, l, min(r, tm), val);
+  update(v << 1 | 1, tm + 1, tr, max(l, tm + 1), r, val);
+}
+
+void update(int l, int r, int val) {
+  if (l > r) return;
+  update(1, 0, LEAVES - 1, l, r, val);
+}
+
+int main() {
+  //ios_base::sync_with_stdio(false);
+  //freopen("input.txt", "r", stdin);
+  for (int i = 2; i <= 200000; ++i)
+    Log[i] = Log[i >> 1] + 1;
+  scanf("%d", &n);
+  for (int i = 0; i < n; ++i)
+    scanf("%d", a + i);
+  buildST();
+  for (int i = 0; i < n; ++i) {
+    int l = -1;
+    int r = i + 1;
+    while (r - l > 1) {
+      int mid = (l + r) >> 1;
+      if (getMin(mid, i) >= a[i])
+	r = mid;
+      else l = mid;
+    }
+    int L, R;
+    L = r;
+    l = i - 1;
+    r = n;
+    while (r - l > 1) {
+      int mid = (l + r) >> 1;
+      if (getMin(i, mid) >= a[i])
+	l = mid;
+      else r = mid;
+    }
+    R = l;
+    //cout << a[i] << ' ' << L << ' ' << R << endl;
+    update(1, R - L + 1, a[i]);
+  }
+  for (int v = 1; v < 2 * LEAVES; ++v) {
+    if (t[v]) {
+      if (v < LEAVES) {
+	t[v << 1] = max(t[v << 1], t[v]);
+	t[v << 1 | 1] = max(t[v << 1 | 1], t[v]);
+      }
+    }
+  }
+  for (int i = 1; i <= n; ++i)
+    printf("%d ", t[LEAVES + i]);
+  puts("");
+  return 0;
+}

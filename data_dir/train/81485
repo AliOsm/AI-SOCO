@@ -1,0 +1,118 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <memory.h>
+#include <sstream>
+#include <assert.h>
+#include <fstream>
+#include <iomanip>
+#include <bitset>
+#include <string>
+#include <cstdio>
+#include <complex>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+const int N = 200001;
+
+int n, m;
+pair < int, long long > ans[N];
+pair < int, int > x[N];
+long long t[N];
+long long tMax[(1 << 20)];
+multiset < pair < int, int > > st;
+
+void update(int v, int tl, int tr, int pos, int value)
+{
+    if (tl == tr)
+    {
+        tMax[v] += value;
+        return ;
+    }
+    int tm = (tl + tr) / 2;
+    if (pos <= tm)
+        update(2 * v, tl, tm, pos, value);
+    else
+        update(2 * v + 1, tm + 1, tr, pos, value);
+    tMax[v] = max(tMax[2 * v], tMax[2 * v + 1]);
+}
+
+int getLeftMax(int v, int tl, int tr, int x)
+{
+    if (tMax[v] < x)
+        return -1;
+    if (tl == tr)
+        return tl;
+    int tm = (tl + tr) / 2;
+    if (tMax[2 * v] >= x)
+        return getLeftMax(2 * v, tl, tm, x);
+    else
+        return getLeftMax(2 * v + 1, tm + 1, tr, x);
+}
+
+int main()
+{
+#ifdef _DEBUG
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+    scanf("%d%d", &n, &m);
+    for (int i = 0; i < n; ++i)
+    {
+        scanf("%d%I64d", &x[i].first, &t[i]);
+        x[i].second = i;
+    }
+    sort(x, x + n);
+    for (int i = 0; i < n; ++i)
+        update(1, 0, n - 1, i, x[i].first + t[x[i].second]);
+    for (int i = 0; i < m; ++i)
+    {
+        int p, b;
+        scanf("%d%d", &p, &b);
+        int pos = getLeftMax(1, 0, n - 1, p);
+        //cout << pos << endl;
+        if (pos == -1 || x[pos].first > p)
+        {
+            st.insert(make_pair(p, b));
+            //cout << "no\n" << " " << p << " " << b << endl;
+        }
+        else
+        {
+            //cout << x[pos].second << ":\n" << p << " " << b << endl;
+            t[x[pos].second] += b;
+            ans[x[pos].second].first++;
+            update(1, 0, n - 1, pos, b);
+            multiset < pair < int, int > > :: iterator it = st.lower_bound(make_pair(x[pos].first, -1));
+            multiset < pair < int, int > > :: iterator itnext;
+            while (it != st.end())
+            {
+                if (x[pos].first + t[x[pos].second] >= (*it).first)
+                {
+                    //cout << (*it).first << " " << (*it).second << endl;
+                    t[x[pos].second] += (*it).second;
+                    update(1, 0, n - 1, pos, (*it).second);
+                    ans[x[pos].second].first++;
+                    itnext = it;
+                    itnext++;
+                    st.erase(it);
+                    it = itnext;
+                }
+                else
+                    break;
+            }
+            //cout << endl;
+        }
+    }
+    for (int i = 0; i < n; ++i)
+        ans[i].second = t[i];
+    for (int i = 0; i < n; ++i)
+        printf("%d %I64d\n", ans[i].first, ans[i].second);
+    return 0;
+}

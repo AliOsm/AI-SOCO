@@ -1,0 +1,46 @@
+#include <bits/stdc++.h>
+#define f first
+#define s second
+#define endl '\n'
+#define LL long long
+#define pb push_back
+#define sz(a) (int)a.size()
+#define all(a) a.begin(),a.end()
+#define rall(a) a.rbegin(),a.rend()
+#define debug(x) cerr << #x << " is " << x << endl;
+using namespace std;
+int const MAXN = 400 + 1;
+char dp[MAXN][MAXN][MAXN];
+int n,m,last;
+string s,t;
+bool solve (int i, int j, int k){
+    if (j == last && k == m) return true;
+    if (i == n) return false;
+    char & ret = dp[i][j][k];
+    if (ret != -1) return ret;
+    ret = false;
+    if (k < m && s[i] == t[k]) ret|= solve(i+1,j,k+1);
+    if (j < last && s[i] == t[j]) ret |= solve (i+1,j+1,k);
+    ret |= solve(i+1,j,k);
+    return ret;
+}
+int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    int T;
+    cin >> T;
+    while (T--){
+        cin >> s >> t;
+        n = s.size();
+        m = t.size();
+        for (int i = 0; i <= n; i++)
+            for (int j = 0; j <= m; j++)
+                for (int k = 0; k <=  m; k++) 
+                    dp[i][j][k] = -1;
+        bool cond = false;
+        for (int i = 0; i < m  ; i++){
+            last = i;
+            cond |= solve (0,0,i);
+        }
+        cout << ((cond)? "YES" : "NO") << endl;
+    }
+}

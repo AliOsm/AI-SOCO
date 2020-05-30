@@ -1,0 +1,287 @@
+#include <iostream>
+#include <vector>
+#include <complex>
+#include <map>
+#include <algorithm>
+#include <cassert>
+#include <functional>
+#include <set>
+#include <iomanip>
+#include <unordered_map>
+#include <cstring>
+#include <bitset>
+#include <numeric>
+#include <queue>
+
+using namespace std;
+
+typedef unsigned long long ULong;
+typedef long long Long;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+typedef pair<int,PII> PIP;
+
+using namespace std;
+
+template<class T, class U>
+struct SegmentTree {
+    struct Node {
+        bool hasCarry = 0;
+        int b = 0,e = 0;
+        U carry = U(); T val = T();
+        Node(){ }
+        void join(const Node &l, const Node &r){
+            val = l.val + r.val;
+            b = l.b;
+            e = r.e;
+        }
+        void update(const U &u){
+            carry += u;
+            u(val);
+            hasCarry = 1;
+        }
+        void pushDown(Node &l, Node &r){
+            if(!hasCarry)return;
+            l.update(carry.trim(0,r.e-r.b+1));
+            r.update(carry.trim(l.e-l.b+1,0));
+            carry = U();
+            hasCarry = 0;
+        }
+    };
+    vector<Node> V;
+#define idx(b, e) (((b)+(e))|((b)!=(e))) // memory optimized index
+    int N;
+    SegmentTree(int N) : V(2*N), N(N){ }
+    template<class I>
+    void create(const vector<I> &VEC, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (b == e) {
+            V[n].val = T(VEC[b]), V[n].b = b, V[n].e = e;
+        } else {
+            int m = (b + e) / 2;
+            create(VEC, b, m);
+            create(VEC, m + 1, e);
+            V[n].join(V[idx(b, m)], V[idx(m+1, e)]);
+        }
+    }
+    T query(int i, int j, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (i <= b && e <= j){
+            return V[n].val;
+        } else {
+            int m = (b + e) / 2;
+            V[n].pushDown(V[idx(b, m)], V[idx(m+1, e)]);
+            if (i >  m) return query(i, j, m+1, e);
+            if (j <= m) return query(i, j, b, m);
+            return query(i, j, b, m) + query(i, j, m+1, e);
+        }
+    }
+    int findOkPrefix(int i, const function<bool(T)> &isOk){
+        static int stk[50];
+        int ssz = 0;
+        stk[ssz++] = (idx(0, N-1));
+        T acum; int sz = 0;
+        while(ssz > 0) {
+            int t = stk[--ssz];
+            Node &n = V[t];
+            int m = (n.b + n.e) / 2;
+            if(n.e < i) continue;
+            T newAcum = sz == 0 ? n.val : (acum + n.val);
+            if (i <= n.b) {
+                if (isOk(newAcum)) {
+                    sz += n.e - n.b + 1;
+                    acum = newAcum;
+                } else {
+                    if(n.b == n.e) return sz;
+                    n.pushDown(V[idx(n.b, m)], V[idx(m+1, n.e)]);
+                    stk[ssz++] = (idx(m+1, n.e));
+                    stk[ssz++] = (idx(n.b, m));
+                }
+            } else {
+                if(n.b == n.e) continue;
+                n.pushDown(V[idx(n.b, m)], V[idx(m+1, n.e)]);
+                stk[ssz++] = (idx(m+1, n.e));
+                stk[ssz++] = (idx(n.b, m));
+            }
+        }
+        return sz;
+    }
+    void update(int i, int j, const U &v, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (i <= b && e <= j) {
+            V[n].update(v.trim(max(b-i,0), max(j-e,0)));
+        } else if (i > e || j < b)
+            return;
+        else {
+            int m = (b + e) / 2;
+            int l = idx(b, m), r = idx(m+1, e);
+            V[n].pushDown(V[l], V[r]);
+            update(i, j, v, b, m);
+            update(i, j, v, m + 1, e);
+            V[n].join(V[l], V[r]);
+        }
+    }
+};
+
+#define PRC 62
+int PR[PRC], IPR[PRC];
+#define MOD 1000000007
+ULong encode(Long n) {
+    ULong primes = 0;
+    for (int i = 0; i < PRC && n > 1; ++i) {
+        if (n % PR[i] == 0) {
+            primes |= 1LL<<i;
+        }
+    }
+    return primes;
+}
+
+Long mul(Long a, Long b) {
+    return a * b % MOD;
+}
+int add(int a, int b) {
+    int ab = a + b;
+    return ab >= MOD ? ab-MOD : ab;
+}
+Long mul(Long a, Long b, Long c) {
+    return a * b % MOD * c % MOD;
+}
+int mpow(int b, int e) {
+    int r = 1;
+    while (e) {
+        if (e % 2)
+            r = mul(r, b);
+
+        e /= 2;
+        b = mul(b, b);
+    }
+    return r;
+}
+Long discreteLogarithm(Long a, Long b, Long m) {
+    assert(b > 0);
+    if (b == 1) return 0;
+    Long n = (int) sqrt (m) + 1;
+    Long an = 1;
+    for (int i = 0; i<n; ++i)
+        an = (an * a) % m;
+    unordered_map<Long, Long> value;
+    for (Long i = 1, cur = an; i<= n; ++i) {
+        if (value.count(cur) == 0)
+            value[ cur ] = i;
+        cur = (cur * an) % m;
+    }
+    for (Long i = 0, cur = b; i<= n; ++i) {
+        if (value.count(cur)) {
+            Long ans = value[cur] * n - i;
+            if (ans < m)
+                return ans;
+        }
+        cur = (cur * a) % m;
+    }
+    return -1;
+}
+int getLogBase5(int n) {
+    static int mem[302];
+    static bool cat[302];
+    if (cat[n]) {
+        return mem[n];
+    }
+    cat[n] = 1;
+    return mem[n] = discreteLogarithm(5, n, MOD);
+}
+struct Phi {
+    ULong primes;
+    Long prod;
+    Phi(int n = 1) {
+        prod = getLogBase5(n);
+        primes = encode(n);
+    }
+    Phi operator+(const Phi &a)const{
+        Phi r;
+        r.primes = primes | a.primes;
+        r.prod = (prod + a.prod) % (MOD-1);
+        return r;
+    }
+    Long get() const {
+        Long r = mpow(5, prod);
+        for (int i = 0; i < PRC; ++i) {
+            if (primes & (1LL << i)) {
+                r = mul(r, PR[i]-1, IPR[i]);
+            }
+        }
+        return r;
+    }
+};
+struct Add {
+    ULong primes;
+    Long factor;
+    int sz;
+    Add(ULong primes = 0, Long factor = 0, int sz = 1) :
+            primes(primes),
+            factor(factor),
+            sz(sz) { }
+    Add trim(int l, int r)const{
+        return Add(primes, factor, sz - l - r);
+    }
+    void operator+=(const Add &a){
+        factor = (factor + a.factor) % (MOD-1);
+        primes |= a.primes;
+        sz = a.sz;
+    }
+    void operator()(Phi &a)const{
+        a.primes |= primes;
+        a.prod = (a.prod + (factor * sz) % (MOD-1)) % (MOD-1);
+    }
+};
+
+void build() {
+    VI P;
+    VI PRI(301, 1);
+    for (int i = 2; i <= 300 ; ++i) {
+        if (PRI[i]) {
+            PR[P.size()] = i;
+            IPR[P.size()] = mpow(i, MOD-2);
+            P.push_back(i);
+        }
+        for (int j = 2*i; j < PRI.size(); j +=i ) {
+            PRI[j] = 0;
+        }
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    build();
+    int N, Q;
+    cin >> N >> Q;
+    SegmentTree<Phi, Add> ST(N);
+    vector<int> V(N);
+    for (int i = 0; i < N; ++i) {
+        cin >> V[i];
+//		V[i] = i;
+    }
+    ST.create(V);
+    for (int i = 0; i < Q; ++i) {
+        string c;
+        cin >> c;
+        if (c == "TOTIENT") {
+            int l, r;
+            cin >> l >> r;
+            l--; r--;
+            cout << ST.query(l, r).get() << endl;
+        } else {
+            int l, r, x;
+            cin >> l >> r >> x;
+            l--; r--;
+            ST.update(l, r, Add(encode(x), getLogBase5(x), r - l + 1));
+        }
+    }
+
+
+}

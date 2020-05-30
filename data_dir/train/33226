@@ -1,0 +1,157 @@
+using namespace std;
+#include<bits/stdc++.h>
+#define ll long long
+#define pr pair<ll,ll>
+#define pii pair<int,int>
+#define fir first
+#define sec second
+#define mp make_pair
+#define pb push_back
+#define sz(c) ((int)c.size())
+#define all(c) (c).begin(),(c).end()
+#define fn "191C"  /// ___FILE_NAME_HERE___
+#define rep(c,it) for(__typeof((c).begin()) it=(c).begin();it!=(c).end();it++)
+#define __rep(c,it) for(__typeof((c).rbegin()) it=(c).rbegin();it!=(c).rend();it++)
+
+const int MAXN=1e5+5;
+const int lg=18;
+vector <int> adj[MAXN],idx[MAXN];
+int dp[MAXN][lg+2],szt[MAXN],dst[MAXN];
+int headChain[MAXN],chainIdx[MAXN],otherEnd[MAXN],pos[MAXN];
+int n,q,nChain=1,prt=1;
+struct fenwickTree
+{
+    vector <int> ft;
+    fenwickTree(){ft.resize(MAXN+5,0);}
+    int rsq(int x)
+    {
+        int res=0;
+        for(;x>0;x-=x&(-x))res+=ft[x];
+        return res;
+    }
+    void update(int x,int val)
+    {
+        for(;x<=MAXN;x+=x&(-x))ft[x]+=val;
+    }
+    void update(int l,int r,int val)
+    {
+        update(l,val);
+        update(r+1,-val);
+    }
+};
+fenwickTree fen;
+
+void dfs(int u=1,int par=1,int deep=1)
+{
+    dp[u][0]=par;
+    dst[u]=deep;
+    szt[u]=1;
+    for(int i=0;i<sz(adj[u]);i++)
+    {
+        int v=adj[u][i];
+        if(v==par)continue;
+        otherEnd[idx[u][i]]=v;
+        dfs(v,u,deep+1);
+        szt[u]+=szt[v];
+    }
+}
+
+void hld(int u=1,int par=1)
+{
+    if(!headChain[nChain])headChain[nChain]=u;
+    chainIdx[u]=nChain;
+    pos[u]=++prt;
+    int hv=-1;
+    for(int i=0;i<sz(adj[u]);i++)
+    {
+        int v=adj[u][i];
+        if(v==par or v==hv)continue;
+        if(hv==-1 or szt[v] > szt[hv])hv=v;
+    }
+    if(hv!=-1)hld(hv,u);
+    for(int i=0;i<sz(adj[u]);i++)
+    {
+        int v=adj[u][i];
+        if(v==par or v==hv)continue;
+        nChain++;
+        hld(v,u);
+    }
+}
+
+void buildLca()
+{
+    for(int j=1;j<=lg;j++)
+        for(int i=1;i<=n;i++)
+          dp[i][j]=dp[dp[i][j-1]][j-1];
+}
+
+int lca(int u,int v)
+{
+    if(dst[u] < dst[v])swap(u,v);
+    for(int j=lg;j>=0;j--)
+        if(dst[dp[u][j]] >= dst[v])
+            u=dp[u][j];
+    if(u==v)return u;
+    for(int j=lg;j>=0;j--)
+        if(dp[u][j]-dp[v][j])
+          u=dp[u][j],v=dp[v][j];
+    return dp[u][0];
+}
+
+void up(int u,int p)
+{
+    int uChain,pChain=chainIdx[p];
+    while(true)
+    {
+        uChain=chainIdx[u];
+        if(uChain==pChain)
+        {
+            fen.update(pos[p]+1,pos[u],1);
+            break;
+        }
+        fen.update(pos[headChain[uChain]],pos[u],1);
+        u=dp[headChain[uChain]][0];
+    }
+}
+
+void preprocess(int u,int v)
+{
+    int p=lca(u,v);
+    up(u,p);
+    up(v,p);
+}
+
+int query(int edgeIdx)
+{
+    int u=otherEnd[edgeIdx];
+    return fen.rsq(pos[u]);
+}
+
+int main(void)
+{
+    #ifndef ONLINE_JUDGE
+    freopen(fn".inp","r",stdin);
+    freopen(fn".out","w",stdout);
+    #endif // ONLINE_JUDGE
+    scanf("%d",&n);
+    for(int u,v,i=1;i<n;i++)
+    {
+        scanf("%d%d",&u,&v);
+        adj[u].pb(v);
+        adj[v].pb(u);
+        idx[u].pb(i);
+        idx[v].pb(i);
+    }
+    dfs();
+    hld();
+    buildLca();
+    scanf("%d",&q);
+    while(q--)
+    {
+        int u,v;
+        scanf("%d%d",&u,&v);
+        preprocess(u,v);
+    }
+    for(int i=1;i<n;i++)
+        printf("%d ",query(i));
+}

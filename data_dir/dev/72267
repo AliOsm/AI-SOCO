@@ -1,0 +1,106 @@
+#include <iostream>
+#include <vector>
+#include <cstdio>
+
+using namespace std;
+
+#define si(a) scanf("%d",&a)
+#define N 100005
+
+struct node{
+    int cnt[25];
+    node(){
+        for(int i=0;i<21;i++)
+            cnt[i]=0;
+    }
+    node operator+(const node &ob)
+    {
+        node ret;
+        for(int i=0;i<21;i++)
+            ret.cnt[i]=cnt[i]+ob.cnt[i];
+        return ret;
+    }
+};
+
+int a[N],lazy[4*N],n;
+node s[4*N];
+
+void build(int id = 1,int l = 0,int r = n){
+	if(r - l < 2){	//	l + 1 == r
+		for(int i=0;i<21;i++){
+            if(a[l]&(1<<i))
+                s[id].cnt[i]=1;
+            else
+                s[id].cnt[i]=0;
+		}
+		return ;
+	}
+	int mid = (l+r)/2;
+	build(id * 2, l, mid);
+	build(id * 2 + 1, mid, r);
+	s[id] = s[id * 2] + s[id * 2 + 1];
+}
+
+void upd(int id,int l,int r,int x){//	increase all members in this interval by x
+	lazy[id] ^= x;
+    for(int i=0;i<21;i++)
+        if(x&(1<<i))
+            s[id].cnt[i]=(r-l)-s[id].cnt[i];
+}
+
+void shift(int id,int l,int r){//pass update information to the children
+	int mid = (l+r)/2;
+	upd(id * 2, l, mid, lazy[id]);
+	upd(id * 2 + 1, mid, r, lazy[id]);
+	lazy[id] = 0;// passing is done
+}
+
+void increase(int x,int y,int v,int id = 1,int l = 0,int r = n){
+	if(x >= r or l >= y)	return ;
+	if(x <= l && r <= y){
+		upd(id, l, r, v);
+		return ;
+	}
+	shift(id, l, r);
+	int mid = (l+r)/2;
+	increase(x, y, v, id * 2, l, mid);
+	increase(x, y, v, id*2+1, mid, r);
+	s[id] = s[id * 2] + s[id * 2 + 1];
+}
+
+node sum(int x,int y,int id = 1,int l = 0,int r = n){  //with lazy
+	if(x >= r or l >= y)	return node();
+	if(x <= l && r <= y)	return s[id];
+	shift(id, l, r);
+	int mid = (l+r)/2;
+	return sum(x, y, id * 2, l, mid) +
+	       sum(x, y, id * 2 + 1, mid, r);
+}
+
+int main()
+{
+    int i;
+    si(n);
+    for(i=0;i<n;i++)
+        si(a[i]);
+    build();
+    int m;
+    si(m);
+    for(i=0;i<m;i++){
+        int type,l,r;
+        si(type);si(l);si(r);
+        if(type==1){
+            node now=sum(l-1,r);
+            long long ans=0;
+            for(int j=0;j<21;j++)
+                ans+=(long long)now.cnt[j]*(1<<j);
+            printf("%I64d\n",ans);
+        }
+        else{
+            int x;
+            si(x);
+            increase(l-1,r,x);
+        }
+    }
+    return 0;
+}

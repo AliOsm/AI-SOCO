@@ -1,0 +1,147 @@
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define pb push_back
+#define pii pair<int,int>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+const int N = 210, M = 2e4 + 10, INF = 1e9;
+
+bool not_prime[M], mark[N], vis[N];
+int que[N], d[N], a[N], ed = 0, from[N * N], to[N * N], cap[N * N], head[N * N], nex[N * N];
+vector<int> adj[N], cycle;
+
+
+void add_edge(int u, int v, int c)
+{
+	from[ed] = u, to[ed] = v, cap[ed] = c, nex[ed] = head[u], head[u] = ed ++;
+	from[ed] = v, to[ed] = u, cap[ed] = 0, nex[ed] = head[v], head[v] = ed ++;
+}
+
+void go(int v)
+{
+	cycle.pb(v);
+	vis[v] = true;
+	for(auto u : adj[v])
+		if(!vis[u])
+			go(u);
+	return ;
+}
+
+void bfs(int source, int sink)
+{
+	memset(d, -1, sizeof d);
+	d[source] = 0;
+	int st = 0, en = 0;
+	que[en ++] = source;
+	while(en - st)
+	{
+		int v = que[st ++];
+		for(int e = head[v]; e != -1; e = nex[e])
+		{
+			if(d[to[e]] == -1 && cap[e])
+			{
+				d[to[e]] = d[v] + 1;
+				que[en ++] = to[e];
+			}
+		}
+	}
+	return ;
+}
+
+int dfs(int v, int sink, int flow)
+{
+	mark[v] = true;
+	if(flow == 0)return 0;
+	if(v == sink)return flow;
+	for(int e = head[v]; e != -1; e = nex[e])
+	{
+		if(!mark[to[e]] && cap[e] && d[to[e]] == d[v] + 1)
+		{
+			int res = dfs(to[e], sink, min(flow, cap[e]));
+			if(res > 0)
+			{
+				cap[e] -= res;
+				cap[e ^ 1] += res;
+				return res;
+			}
+		}
+	}
+	return 0;
+}
+
+int maxflow(int source, int sink)
+{
+	int flow = 0, f = INF;
+	while(f)
+	{
+		bfs(source, sink);
+		f = dfs(source, sink, INF);
+		flow += f;
+		memset(mark, 0, sizeof mark);
+	}
+	return flow;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	
+	memset(head, -1, sizeof head);
+
+	for(int i=2; i<M; i++)
+		for(int j=2*i; j<M; j+=i)
+			not_prime[j] = true;
+
+	int n, odd = 0; cin >> n;
+	for(int i=1; i<=n; i++)
+		cin >> a[i];
+
+	int sink = n + 1, source = 0;
+	for(int i=1; i<=n; i++)
+	{
+		if(a[i] % 2 == 0)
+		{
+			add_edge(source, i, 2);
+		}
+		else
+		{
+			odd++;
+			add_edge(i, sink, 2);
+			for(int j=1; j<=n; j++)
+				if(!not_prime[a[i] + a[j]])add_edge(j, i, 1);
+		}
+	}
+	if(odd * 2 != n)return cout << "Impossible\n", 0;
+	if(maxflow(source, sink) < n)return cout << "Impossible\n", 0;
+
+	for(int e=0; e<ed; e++)
+	{
+		if(to[e] == sink || from[e] == source)continue;
+		if(a[from[e]] % 2 == 0 && cap[e] == 0)
+			adj[from[e]].pb(to[e]), adj[to[e]].pb(from[e]); // cout << a[from[e]] << ',' << a[to[e]] << endl;
+	}
+
+	vector<vector<int> > ans;
+	for(int i=1; i<=n; i++)
+	{
+		if(!vis[i])
+		{
+			cycle.clear();
+			go(i);
+			ans.pb(cycle);
+		}
+	}
+	cout << ans.size() << endl;
+	for(auto v : ans)
+	{
+		cout << v.size() << ' ';
+		for(auto u : v)cout << u << ' ';
+		cout << '\n';
+	}
+}

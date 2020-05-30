@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+#define F first
+#define S second
+#define pii pair<int, int>
+#define pb push_back
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+const int N = 2e5 + 10, LOG = 20;
+
+pair<int, pii> e[N];
+int par[N], fat[LOG][N], ed[LOG][N];
+ll mst = 0, h[N];
+vector<pii> adj[N];
+
+int get_par(int v){
+	if(par[v] == -1)return v;
+	return par[v] = get_par(par[v]);
+}
+
+void dfs(int v, int p = 0 , int w = 0){
+	fat[0][v] = p;
+	ed[0][v] = w;
+	for(int k=1; k<LOG; k++){
+		fat[k][v] = fat[k - 1][fat[k - 1][v]];
+		ed[k][v] = max(ed[k - 1][fat[k - 1][v]], ed[k - 1][v]);
+	}
+
+	for(auto X : adj[v])
+		if(X.F != p){
+			h[X.F] = h[v] + 1;
+			dfs(X.F, v, X.S);
+		}
+	return ;
+}
+
+int i_par(int v, int d){
+	if(d > h[v])return 0;
+	for(int k=0; k<LOG; k++)
+		if(d & (1 << k))v = fat[k][v];
+	return v;
+}
+
+int get_max(int v, int d){
+	int res = 0;
+	for(int k=0; k<LOG; k++)
+		if(d & (1 << k))
+			res = max(res, ed[k][v]), v = fat[k][v];
+	return res;
+}
+
+int lca(int u, int v){
+	if(h[u] > h[v])swap(u, v);	
+	v = i_par(v, h[v] - h[u]);
+	if(u == v)return v;
+	for(int k=LOG-1; k>=0; k--)
+		if(fat[k][v] != fat[k][u])
+			v = fat[k][v], u = fat[k][u];
+	return fat[0][v];
+}
+
+int main(){
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	int n, m; cin >> n >> m;
+	for(int i=0; i<m; i++){
+		int u, v, w; cin >> u >> v >> w;
+		e[i] = {w, {u, v}};
+	}
+
+	memset(par, -1, sizeof par);
+
+	sort(e, e + m);
+
+	int mol = n;
+	for(int i=0; i<m; i++){
+		int u = e[i].S.F, v = e[i].S.S;
+		u = get_par(u); v = get_par(v);
+		if(u == v)continue;
+		mst += e[i].F;
+		mol--;
+		par[u] = v;
+		adj[u].pb({v, e[i].F});
+		adj[v].pb({u, e[i].F});
+	}
+
+	if(mol == 1)
+		dfs(1);
+
+	int q; cin >> q;  
+	while(q--){
+		int u, v; cin >> u >> v;
+		if(mol >= 3)
+			cout << -1 << '\n';
+		else if(mol == 2){
+			if(get_par(u) == get_par(v))
+				cout << -1 << '\n';
+			else cout << mst << '\n';
+		}else{
+			int p = lca(u, v);
+			int mx = get_max(u, h[u] - h[p]);
+			mx = max(mx, get_max(v, h[v] - h[p]));
+			cout << mst - mx << '\n';
+		}
+	}
+
+}
+

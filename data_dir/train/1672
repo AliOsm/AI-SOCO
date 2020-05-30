@@ -1,0 +1,200 @@
+#include <bits/stdc++.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
+#endif // M_PI
+#define endl "\n"
+#define S struct
+#define X first
+#define Y second
+#define V vector
+#ifndef __linux__
+#define LLD "%I64d"
+#else
+#define LLD "%ll""d"
+#endif
+#define FOR(x, y, z) for (int x = (y); x < (z); ++x)
+#define FORR(x, y, z) for (int x = (y); x > (z); --x)
+#define GET(a, n) for (int __i = 0; __i < (n); ++__i) cin >> a[__i];
+#define GETM(a, n, m) for (int __i = 0; __i < (n); ++__i) for (int __j = 0; __j < m; ++__j) cin >> a[__i][__j];
+#define PRINTM(a, n, m) for (int __i = 0; __i < (n); ++__i) { for (int __j = 0; __j < m; ++__j) cout << a[__i][__j] << " ";  cout << endl; };
+#define PRINT(a, n) for (int __i = 0; __i < (n); ++__i) cout << a[__i] << " ";
+#define IT(a) a.begin(), a.end()
+#define SQR(x) (x) * (x)
+#define CASE(a, s) cout << "Case #" << a << ": " << s << endl;
+#define DEB(a) cout << #a << " = " << (a) << endl; cout.flush();
+#define DEBA(a) for (auto __i: a) cout << __i << " "; cout << endl; cout.flush();
+#define IFDEB(b, a) if (b) { cout << #a << " = " << (a) << endl; cout.flush(); }
+#define YESNO(cond) cout << ((cond) ? "Yes" : "No") << endl;
+#define UMAX(left, right) left = max(left, right);
+#define UMIN(left, right) left = min(left, right);
+using namespace std;
+typedef long long LL;
+typedef long double LD;
+typedef unsigned long long ULL;
+typedef pair <int, int> PII;
+typedef pair <LL, LL> PLL;
+const int MOD = 1000000007;
+void yes() { cout << "Yes" << endl;}
+void no() { cout << "No" << endl;}
+S Sync_stdio { Sync_stdio() { cin.tie(NULL); ios_base::sync_with_stdio(false); } } _sync_stdio;
+S FAIL { FAIL () { cout << "CHANGE!!!" << endl;}};
+
+struct Matrix
+{
+    vector <vector <LD>> mat;
+    Matrix(int n, int m): mat(n, vector <LD> (m)) {
+    }
+    Matrix(const vector<vector<LD>> &v): mat(v) {
+    }
+    vector <LD> & operator [] (int t) {
+        return mat[t];
+    }
+    const vector <LD> & operator [] (int t) const {
+        return mat[t];
+    }
+    Matrix operator * (const Matrix &m1) const
+    {
+        assert(mat[0].size() == m1.mat.size());
+        int n = mat.size();
+        int m = mat[0].size();
+        int k = m1.mat[0].size();
+        Matrix m2(mat.size(), m1.mat[0].size());
+        FOR (i, 0, n) {
+            FOR (j, 0, m) {
+                FOR (l, 0, k) {
+                    m2[i][l] += mat[i][j] * m1[j][l];
+                    //m2[i][l] %= MOD;
+                }
+            }
+        }
+        return m2;
+    }
+};
+
+Matrix rotate(LD angle)
+{
+    angle = -angle;
+    return Matrix(vector<vector<LD>>{{cos(angle), -sin(angle), 0}, {sin(angle), cos(angle), 0}, {0, 0, 1}});
+}
+
+Matrix shift(LD dx, LD dy)
+{
+    return Matrix({{1, 0, dx}, {0, 1, dy}, {0, 0, 1}});
+}
+
+class RotatePoints
+{
+  public:
+    RotatePoints(const vector<pair<LD, LD>> &v,
+                 const vector<pair<LD, LD>> &next): v(v), next(next) {}
+
+    pair<LD, LD> get(int index)
+    {
+        auto res = mat * Matrix({{v[index].X}, {v[index].Y}, {1}});
+        return {res[0][0] + rev.X, res[1][0] + rev.Y};
+    }
+
+    pair<LD, LD> get_local(int index)
+    {
+        auto res = mat * Matrix({{v[index].X}, {v[index].Y}, {1}});
+        return {res[0][0], res[1][0]};
+    }
+
+    pair<LD, LD> get_next_local(int index)
+    {
+        auto res = mat * Matrix({{next[index].X}, {next[index].Y}, {1}});
+        return {res[0][0], res[1][0]};
+    }
+
+    void pin(int f, int t)
+    {
+        if (pinned.X != f) {
+            swap(pinned.X, pinned.Y);
+        }
+        fig_shift(pinned.Y);
+        LD angle = get_rot_angle(pinned.Y);
+        fig_rotate(angle);
+        pinned.X = t;
+    }
+
+  private:
+    void fig_shift(int index) {
+        auto pos = get_local(index);
+        rev.X += pos.X, rev.Y += pos.Y;
+        mat = shift(-pos.X, -pos.Y) * mat;
+    }
+
+    void fig_rotate(LD angle) {
+        mat = rotate(angle) * mat;
+    }
+
+    LD get_rot_angle(int index) {
+        auto res = get_next_local(index);
+        auto angle = atan2(res.Y, res.X) + M_PI / 2;
+        return angle;
+    }
+
+    Matrix mat = vector<vector<LD>>{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    pair<LD, LD> rev = {0, 0};
+    PII pinned = {0, 1};
+    vector<pair<LD, LD>> v;
+    vector<pair<LD, LD>> next;
+};
+
+LD calc_triangle_square(const vector<pair<LD, LD>> &v, int a_i, int b_i, int c_i)
+{
+    auto a = v[(a_i + v.size()) % v.size()];
+    auto b = v[(b_i + v.size()) % v.size()];
+    auto c = v[(c_i + v.size()) % v.size()];
+    return abs((a.X * (b.Y - c.Y) + b.X * (c.Y - a.Y) + c.X * (a.Y - b.Y)) / 2);
+}
+
+vector<pair<LD, LD>> calc_next(vector<pair<LD, LD>> v)
+{
+    int n = v.size();
+    vector<pair<LD, LD>> res(n);
+    pair<LD, LD> sum = {0, 0};
+    LD sq = 0;
+    FOR (i, 2, n) {
+        LD ts = calc_triangle_square(v, 0, i - 1, i);
+        sum.X += (v[i].X + v[i - 1].X + v[0].X) / 3 * ts;
+        sum.Y += (v[i].Y + v[i - 1].Y + v[0].Y) / 3 * ts;
+        sq += ts;
+    }
+    FOR (i, 0, n) {
+        res[i] = {sum.X / sq, sum.Y / sq};
+    }
+    return res;
+}
+
+int main()
+{
+    int n, q;
+    scanf("%d%d", &n, &q);
+    vector<pair<LD, LD>> v(n);
+    FOR (i, 0, n) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        v[i] = {x, y};
+    }
+    vector<pair<LD, LD>> next = calc_next(v);
+
+    RotatePoints rp(v, next);
+    FOR (i, 0, q) {
+        int type;
+        scanf("%d", &type);
+        if (type == 1) {
+            int f, t;
+            scanf("%d%d", &f, &t);
+            --f, --t;
+            rp.pin(f, t);
+        } else {
+            int index;
+            scanf("%d", &index);
+            --index;
+            auto res = rp.get(index);
+            printf("%.4f %.4f\n", (double)res.X, (double)res.Y);
+        }
+    }
+
+}

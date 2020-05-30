@@ -1,0 +1,89 @@
+#include <cstdio>
+#include <algorithm>
+
+struct Node {
+	double mpr, msf, sum, res;
+	int le, ri;
+};
+
+int const N = 303600;
+Node const EMPTY = {0, 0, 0, 0, -1, -1};
+
+Node tree[N];
+int sz;
+
+int build(int l, int r) {
+	int v = sz++;
+	if (r - l > 1) {
+		int m = (l + r) / 2;
+		tree[v].le = build(l, m);
+		tree[v].ri = build(m, r);
+	} else {
+		tree[v].le = tree[v].ri = -1;
+	}
+	return v;
+}
+
+Node merge(Node const& l, Node const& r, int ll = -1, int rr = -1) {
+	return {
+		std::max(l.mpr, l.sum + r.mpr),
+		std::max(r.msf, l.msf + r.sum),
+		l.sum + r.sum,
+		std::max(l.msf + r.mpr, std::max(l.res, r.res)),
+		ll,
+		rr
+	};
+}
+
+void modify(int v, int l, int r, int pos, double value) {
+	if (r - l == 1) {
+		double x = std::max(0., value);
+		tree[v] = {x, x, value, x, -1, -1};
+	} else {
+		int m = (l + r) / 2;
+		if (pos < m) {
+			modify(tree[v].le, l, m, pos, value);
+		} else {
+			modify(tree[v].ri, m, r, pos, value);
+		}
+		tree[v] = merge(tree[tree[v].le], tree[tree[v].ri], tree[v].le, tree[v].ri);
+	}
+}
+
+Node getAns(int v, int l, int r, int from, int to) {
+	if (r <= from || to <= l) {
+		return EMPTY;
+	}
+	if (from <= l && r <= to) {
+		return tree[v];
+	}
+	int m = (l + r) / 2;
+	return merge(getAns(tree[v].le, l, m, from, to), 
+			getAns(tree[v].ri, m, r, from, to));
+}
+
+int x[N];
+
+int main() {
+	int n, m, c;
+	scanf("%d%d%d", &n, &m, &c);
+	build(0, n - 1);
+	for (int i = 0; i < n; ++i) {
+		scanf("%d", x + i);
+	}
+	for (int i = 0; i < n - 1; ++i) {
+		int p;
+		scanf("%d", &p);
+		double add = (x[i + 1] - x[i]) * 0.5;
+		add -= c * p / 100.0;
+		modify(0, 0, n - 1, i, add);
+	}
+	double ans = 0;
+	for (int i = 0; i < m; ++i) {
+		int from, to;
+		scanf("%d%d", &from, &to);
+		--from, --to;
+		ans += getAns(0, 0, n - 1, from, to).res;
+	}
+	printf("%.15f\n", ans);
+}

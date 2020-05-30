@@ -1,0 +1,91 @@
+#include<bits/stdc++.h>
+#define pb push_back
+#define lc (id << 1)
+#define rc (lc ^ 1)
+#define md (l + r >> 1)
+using namespace std;
+const int N = 200005;
+int k, d, opl, opr = -1;
+int S[N * 4], L[N * 4], M[N * 4];
+inline void Shift(int id)
+{
+    M[lc] += L[id]; L[lc] += L[id];
+    M[rc] += L[id]; L[rc] += L[id];
+    L[id] = 0;
+}
+void Add(int le, int ri, int val, int id, int l, int r)
+{
+    if (ri <= l || r <= le)
+        return ;
+    if (le <= l && r <= ri)
+    {
+        L[id] += val;
+        M[id] += val;
+        return ;
+    }
+    Shift(id);
+    Add(le, ri, val, lc, l, md);
+    Add(le, ri, val, rc, md, r);
+    M[id] = min(M[lc], M[rc]);
+}
+int Get(int id, int l, int r)
+{
+    if (r - l < 2)
+        return l;
+    Shift(id);
+    if (M[rc] <= k)
+        return (Get(rc, md, r));
+    return (Get(lc, l, md));
+}
+void Solve(vector < int > &A, int jp)
+{
+    int Mx = 0, rb, n = rb = A.size();
+    map < int , int > P;
+    vector < int > MX, MN;
+    MX.pb(n); MN.pb(n);
+    for (int i = n - 1; ~i; i--)
+    {
+        A[i] /= d;
+        if (P.count(A[i]) && P[A[i]] < rb)
+            Add(P[A[i]], rb, N + N, 1, 0, n), rb = P[A[i]];
+        P[A[i]] = i;
+        while (MX.size() > 1 && A[MX.back()] < A[i])
+            Add(MX.back(), MX[MX.size() - 2], A[i] - A[MX.back()], 1, 0, n), MX.pop_back();
+        while (MN.size() > 1 && A[MN.back()] > A[i])
+            Add(MN.back(), MN[MN.size() - 2], A[MN.back()] - A[i], 1, 0, n), MN.pop_back();
+        MX.pb(i); MN.pb(i); Add(i + 1, n, -1, 1, 0, n); int r = Get(1, 0, n);
+        if ((opr - opl < r - i) || (opr - opl == r - i && i + jp < opl))
+            opl = i + jp, opr = r + jp;
+    }
+    for (int i = 0; i <= n * 4; i++)
+        S[i] = L[i] = M[i] = 0;
+}
+int main()
+{
+    int n;
+    vector < int > A;
+    scanf("%d%d%d", &n, &k, &d);
+    if (d == 0)
+    {
+        int p = INT_MAX, c = 0;
+        for (int i = 0, a; i < n; i++)
+        {
+            scanf("%d", &a);
+            if (a != p)
+                p = a, c = 0;
+            c ++;
+            if (opr - opl + 1 < c)
+                opr = i, opl = i - c + 1;
+        }
+        return !printf("%d %d", opl + 1, opr + 1);
+    }
+    for (int i = 0, a; i < n; i++)
+    {
+        scanf("%d", &a); a += 1e9;
+        if (A.size() && a % d != A.back() % d)
+            Solve(A, i - A.size()), A.clear();
+        A.pb(a);
+    }
+    Solve(A, n - A.size());
+    return !printf("%d %d", opl + 1, opr + 1);
+}

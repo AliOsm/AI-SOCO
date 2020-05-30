@@ -1,0 +1,240 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+//.define
+// #define FILE_IN_OUT
+#define RET(_x)                       return cout << (_x) << '\n', 0;
+#define all(_obj)                     std::begin(_obj), std::end(_obj)
+#define loop(_n)                      for (int i = 0; i < (_n); ++i)
+#define ceilDiv(_dividend, _divider)  (((_dividend) - 1LL + (_divider)) / (_divider))
+#define has(_obj, _val)               ((_obj).find(_val) != (_obj).end())
+#define sz(_obj)                      static_cast<int>((_obj).size())
+#ifdef SHJ_LOCAL
+    #define debug(_x)                 std::cerr << (#_x) << " = " << (_x) << '\n' << std::flush;
+#else
+    #define debug(_x)                 ;
+#endif
+#define endl "\n"
+template<typename Tp>
+inline void outarr(Tp _begin, Tp _end, const char* _delim = " ") {
+    for (Tp current = _begin; current != _end; ++current) {
+        std::cout << *current << _delim;
+    }
+    std::cout << '\n';
+}
+
+//.constant
+using ll  = long long;
+using pii = std::pair<int, int>;
+constexpr int INF = 0x3f3f3f3f;
+constexpr int MOD = static_cast<const int>(1e9 + 7);
+
+//.data
+constexpr int MAXN = 100000;
+
+struct TLine {
+    ll K;
+    ll B;
+    ll X;
+
+    TLine() = default;
+
+    TLine(TLine&& other) {
+        K = other.K;
+        B = other.B;
+        X = other.X;
+    }
+
+    TLine(ll k, ll b)
+        : K(k)
+        , B(b)
+    {
+    }
+
+    ll Intersect(const TLine& other) {
+        ll num = K - other.K > 0 ? other.B - B : B - other.B;
+        ll denom = abs(K - other.K);
+        return num > 0 ? ceilDiv(num, denom) : num / denom;
+    }
+};
+
+struct TLCH {
+    TLCH() = default;
+
+    TLCH(TLCH&& other) {
+        Size = other.Size;
+        Lines.swap(other.Lines);
+    }
+
+    TLCH(TLine&& line) {
+        Add(forward<TLine>(line));
+    }
+
+    void Merge(TLCH&& other) {
+        int i = 0;
+        int j = 0;
+        TLCH tmp;
+        while (i < sz(Lines) && j < sz(other.Lines)) {
+            if (Lines[i].K > other.Lines[j].K) {
+                tmp.Add(move(Lines[i++]));
+            } else {
+                tmp.Add(move(other.Lines[j++]));
+            }
+        }
+        while (i < sz(Lines)) {
+            tmp.Add(move(Lines[i++]));
+        }
+        while (j < sz(other.Lines)) {
+            tmp.Add(move(other.Lines[j++]));
+        }
+        Size += other.Size;
+        Lines.swap(tmp.Lines);
+    }
+
+    void Add(TLine&& line) {
+        if (empty(Lines)) {
+            Size = 1;
+            line.X = LLONG_MIN;
+            Lines.push_back(forward<TLine>(line));
+            return;
+        }
+        ++Size;
+        if (line.K == Lines.back().K) {
+            if (line.B < Lines.back().B) {
+                Lines.pop_back();
+                if (empty(Lines)) {
+                    line.X = LLONG_MIN;
+                    Lines.push_back(forward<TLine>(line));
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+        while (line.Intersect(Lines.back()) <= Lines.back().X) {
+            Lines.pop_back();
+        }
+        line.X = line.Intersect(Lines.back());
+        Lines.push_back(forward<TLine>(line));
+    }
+
+    ll MinVal(int x) {
+        int l = 0;
+        int r = sz(Lines) - 1;
+        while (l <= r) {
+            int mid = (l + r) >> 1;
+            if (Lines[mid].X <= x) {
+                l = mid + 1;
+            } else {
+                r = mid - 1;
+            }
+        }
+        return Lines[l - 1].K * x + Lines[l - 1].B;
+    }
+
+    int Size = 0;
+    vector<TLine> Lines;
+};
+
+struct TLCHCont {
+    TLCHCont() = default;
+
+    TLCHCont(TLCH&& lch) {
+        Lchs.push_back(forward<TLCH>(lch));
+    }
+
+    void Merge(TLCHCont&& other) {
+        int i = 0;
+        int j = 0;
+        vector<TLCH> newLchs;
+        while (i < sz(Lchs) && j < sz(other.Lchs)) {
+            if (Lchs[i].Size < other.Lchs[j].Size) {
+                newLchs.push_back(move(Lchs[i++]));
+            } else if (Lchs[i].Size > other.Lchs[j].Size) {
+                newLchs.push_back(move(other.Lchs[j++]));
+            } else {
+                Lchs[i].Merge(move(other.Lchs[j++]));
+                while (i + 1 < sz(Lchs) && Lchs[i + 1].Size == Lchs[i].Size) {
+                    Lchs[i + 1].Merge(move(Lchs[i]));
+                    ++i;
+                }
+            }
+        }
+        while (i < sz(Lchs)) {
+            newLchs.push_back(move(Lchs[i++]));
+        }
+        while (j < sz(other.Lchs)) {
+            newLchs.push_back(move(other.Lchs[j++]));
+        }
+        Lchs.swap(newLchs);
+    }
+
+    void Add(TLCH&& lch) {
+        Merge(TLCHCont(forward<TLCH>(lch)));
+    }
+
+    ll MinVal(int x) {
+        ll res = LLONG_MAX;
+        for (auto&& lch : Lchs) {
+            res = min(res, lch.MinVal(x));
+        }
+        return res;
+    }
+
+    vector<TLCH> Lchs;
+};
+
+int arr[MAXN];
+int brr[MAXN];
+vector<int> gr[MAXN];
+ll dp[MAXN];
+TLCHCont lc[MAXN];
+
+void Dfs(int from = 0, int p = -1) {
+    for (int to : gr[from]) {
+        if (to != p) {
+            Dfs(to, from);
+            lc[from].Merge(move(lc[to]));
+        }
+    }
+    dp[from] = lc[from].MinVal(arr[from]);
+    if (dp[from] == LLONG_MAX) {
+        dp[from] = 0;
+    }
+    lc[from].Add(TLCH(TLine(brr[from], dp[from])));
+}
+
+//.code
+int main() {
+#ifdef FILE_IN_OUT
+    std::ifstream cin ("input.txt",  std::ios::in);
+    std::ofstream cout("output.txt", std::ios::out);
+#else
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+#endif
+
+    int n;
+    cin >> n;
+    loop(n) {
+        cin >> arr[i];
+    }
+    loop(n) {
+        cin >> brr[i];
+    }
+    loop(n - 1) {
+        int a, b;
+        cin >> a >> b;
+        --a; --b;
+        gr[a].push_back(b);
+        gr[b].push_back(a);
+    }
+    Dfs();
+    outarr(dp, dp + n);
+
+#ifdef FILE_IN_OUT
+    cin.close();
+    cout.close();
+#endif
+    return 0;
+}

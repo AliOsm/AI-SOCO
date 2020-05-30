@@ -1,0 +1,140 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+struct Node {
+  pii kv;
+  Node *l, *r;
+  int h;
+  ll sum;
+
+  Node(pii _kv = pii(0, 0),
+       Node *_l = null, Node *_r = null){
+    kv = _kv;
+    l = _l, r = _r;
+    sum = kv.se;
+    h = (rand() << 15) ^ rand();
+  }
+};
+
+ll Get(Node* vr){
+  return vr ? vr->sum : 0;
+}
+
+void Update(Node* vr){
+  if(vr)
+    vr->sum = vr->kv.se + Get(vr->l) + Get(vr->r);
+}
+
+void Split(Node* vr, const pii& on, Node*& l, Node*& r){
+  if(!vr) return void(l = r = null);
+
+  if(vr->kv >= on)
+    Split(vr->l, on, l, vr->l),
+    r = vr, Update(r);
+  else
+    Split(vr->r, on, vr->r, r),
+    l = vr, Update(l);
+}
+
+Node* Merge(Node* l, Node* r){
+  if(!l || !r) return l ? l : r;
+
+  if(l->h < r->h){
+    l->r = Merge(l->r, r);
+    Update(l);
+    return l;
+  } else {
+    r->l = Merge(l, r->l);
+    Update(r);
+    return r;
+  }
+}
+
+Node* Smallest(Node* from){
+  while(from->l) from = from->l;
+  return from;
+}
+
+Node* Cut(Node*& from, int lo, int hi){
+  Node *l, *m, *r;
+  Split(from, mp(lo, -1), l, m);
+  Split(m, mp(hi + 1, -1), m, r);
+  from = Merge(l, r);
+  return m;
+}
+
+Node* Union(Node* a, Node* b){
+  Node* res = null;
+
+  while(a || b){
+    if(!a){res = Merge(res, b); break;}
+    if(!b){res = Merge(res, a); break;}
+    auto sa = Smallest(a);
+    auto sb = Smallest(b);
+    if(sa->kv > sb->kv)
+      swap(a, b), swap(sa, sb);
+    Node* take;
+    Split(a, sb->kv, take, a);
+    res = Merge(res, take);
+  }
+
+  return res;
+}
+
+Node* roots[10];
+
+int main(){
+  int n, q;
+  scanf("%d%d", &n, &q);
+
+  for(int i = 0, v;i < n;++i){
+    scanf("%d", &v);
+    if(v == 0) {
+      roots[0] = Union(roots[0], new Node(mp(i, 1)));
+    } else {
+      int val = 1;
+      while(v > 0){
+        roots[v % 10] = Union(roots[v % 10],
+                              new Node(mp(i, val)));
+        v /= 10, val *= 10;
+      }
+    }
+  }
+
+  for(int i = 0;i < q;++i){
+    int type, l, r, x, y;
+    scanf("%d", &type);
+    if(type == 2){
+      scanf("%d%d", &l, &r);
+      --l, --r;
+      ll ans = 0;
+      for(int c = 1;c < 10;++c){
+        auto mid = Cut(roots[c], l, r);
+        ans += Get(mid) * c;
+        roots[c] = Union(roots[c], mid);
+      }
+      printf("%I64d\n", ans);
+    } else {
+      scanf("%d%d%d%d", &l, &r, &x, &y);
+      --l, --r;
+      auto mid = Cut(roots[x], l, r);
+      roots[y] = Union(roots[y], mid);
+    }
+  }
+
+  return 0;
+}

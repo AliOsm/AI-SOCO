@@ -1,0 +1,185 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+int V,E;
+vector <int> graph[100010];
+int color[100010];
+
+int L,R;
+vector <int> vl,vr;
+int group[100010];
+
+void dfs(int x, int c){
+    int i;
+    if(color[x] != -1) return;
+    color[x] = c;
+    REP(i,graph[x].size()) dfs(graph[x][i],1-c);
+}
+
+void func2(int cnt){
+    int i;
+    
+    REP(i,vl.size()){
+        int x = vl[i];
+        if(group[x] == -1){
+            group[x] = cnt / 3;
+            cnt++;
+        }
+    }
+    
+    REP(i,vr.size()){
+        int x = vr[i];
+        if(group[x] == -1){
+            group[x] = cnt / 3;
+            cnt++;
+        }
+    }
+}
+
+bool connected[100010];
+
+pair <int, int> get_disconnected1(int x){ // x: L
+    int i;
+    
+    REP(i,V) connected[i] = false;
+    REP(i,graph[x].size()) connected[graph[x][i]] = true;
+    
+    int y = -1, z = -1;
+    REP(i,vr.size()){
+        int tmp = vr[i];
+        if(!connected[tmp]){
+            if(y == -1){
+                y = tmp;
+            } else {
+                z = tmp;
+                break;
+            }
+        }
+    }
+    
+    return make_pair(y,z);
+}
+
+pair <int, int> get_disconnected2(int x){ // x: R
+    int i;
+    
+    REP(i,V) connected[i] = false;
+    REP(i,graph[x].size()) connected[graph[x][i]] = true;
+    
+    int y = -1, z = -1;
+    REP(i,vl.size()){
+        int tmp = vl[i];
+        if(!connected[tmp]){
+            if(y == -1){
+                y = tmp;
+            } else {
+                z = tmp;
+                break;
+            }
+        }
+    }
+    
+    return make_pair(y,z);
+}
+
+bool func(void){
+    int i;
+    
+    REP(i,V) group[i] = -1;
+    
+    if(L % 3 == 0){
+        func2(0);
+        return true;
+    }
+    
+    if(L % 3 == 2){
+        swap(L,R);
+        swap(vl,vr);
+    }
+    
+//  cout << L << ' ' << R << endl;
+//  REP(i,vl.size()) cout << vl[i] << ' '; cout << endl;
+//  REP(i,vr.size()) cout << vr[i] << ' '; cout << endl;
+    
+    int x = -1, y = -1;
+    
+    REP(i,L){
+        x = vl[i];
+        if((int)(graph[x].size()) <= R - 2){
+            pair <int, int> p = get_disconnected1(x);
+            group[x] = group[p.first] = group[p.second] = 0;
+            func2(3);
+            return true;
+        }
+    }
+    
+    x = y = -1;
+    REP(i,R) if((int)(graph[vr[i]].size()) <= L - 2){
+    //  cout << vr[i] << endl;
+        if(x == -1) x = vr[i]; else y = vr[i];
+    }
+    
+    if(y == -1) return false;
+    
+//  cout << x << ' ' << y << endl;
+    
+    pair <int, int> p1 = get_disconnected2(x);
+    pair <int, int> p2 = get_disconnected2(y);
+//  cout << p1.first << ' ' << p1.second << endl;
+//  cout << p2.first << ' ' << p2.second << endl;
+    group[x] = group[p1.first] = group[p1.second] = 0;
+    group[y] = group[p2.first] = group[p2.second] = 1;
+    func2(6);
+    
+    return true;
+}
+
+int main(void){
+    int i,j,a,b;
+    
+    scanf("%d%d",&V,&E);
+    REP(i,E){
+        scanf("%d%d",&a,&b);
+        a--; b--;
+        graph[a].push_back(b);
+        graph[b].push_back(a);
+    }
+    
+    REP(i,V) color[i] = -1;
+    REP(i,V) dfs(i,0);
+    
+    REP(i,V) if(color[i] == 0) vl.push_back(i); else vr.push_back(i);
+    L = vl.size();
+    R = vr.size();
+    
+    bool ans = func();
+    if(!ans){
+        cout << "NO" << endl;
+    } else {
+        cout << "YES" << endl;
+        REP(i,V){
+            printf("%d",group[i]+1);
+            if(i == V-1) printf("\n"); else printf(" ");
+        }
+    }
+    
+    return 0;
+}

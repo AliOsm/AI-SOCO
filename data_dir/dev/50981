@@ -1,0 +1,184 @@
+#pragma warning(disable:4996)
+#pragma comment(linker, "/STACK:336777216")
+#pragma GCC optimize("Ofast")
+
+#include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <functional>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+typedef long long ll;
+#define int long long int
+typedef complex<long double> cd;
+const long double pi=acos(-1);
+typedef double db;
+typedef long double ldb;
+typedef pair <int, int> pii;
+typedef pair <db, db> pdd;
+typedef vector<int> vi;
+typedef vector<vector<int> > matrix;
+
+#define m1 make_pair
+#define pb push_back
+#define flush fflush(stdout)
+#define IOS std::ios::sync_with_stdio(false); cin.tie(NULL);cout.tie(NULL);
+#define reset(x,v) memset(x,v,sizeof(x))
+
+#define fi first
+#define se second
+#define endl "\n"
+#define debug(x) (cerr << #x << ": " << x << "\n")
+#define setbits(x) __builtin_popcount(x)
+#define setbitsll(x) __builtin_popcountll(x)
+#define all(x) x.begin(),x.end()
+#define pii pair<int,int>
+
+inline ll gcd(ll a,ll b){if(a==0) return b;return gcd(b%a,a);}
+inline ll power(ll a,ll n,ll m){if(n==0)return 1;ll p=power(a,n/2,m);p=(p%m*p%m)%m;if(n%2) return (p%m*a%m)%m;else return p;}
+const ll MOD =998244353;
+const ll hell=1000000007;
+const int INF = 1e17;
+const ll LL_INF = 0x3f3f3f3f3f3f3f3f;
+typedef tree<int, null_type, less<int>, rb_tree_tag,
+tree_order_statistics_node_update>
+ordered_set;
+const int N=40005;
+int a[55][N];int dp[55][N];int sm[55][N];int pre[55][N],suff[55][N];
+int st1[4*N],st2[4*N];
+
+void update1(int i,int l,int r,int in,int x)
+{
+    if(l>r)
+        return;
+    if(in>r||in<l)
+        return;
+    if(l==r)
+    {
+        st1[i]=x;
+        return;
+    }
+    int m=(l+r)/2;
+    update1(2*i+1,l,m,in,x);
+    update1(2*i+2,m+1,r,in,x);
+    st1[i]=max(st1[2*i+1],st1[2*i+2]);
+}
+int query1(int i,int l,int r,int qs,int qe)
+
+{
+    if(qs>r||qe<l)
+        return -INF;
+    else if(qs<=l&&qe>=r)
+        return st1[i];
+    int mid=(l+r)/2;
+    return max(query1(2*i+1,l,mid,qs,qe),query1(2*i+2,mid+1,r,qs,qe));
+}
+void update2(int i,int l,int r,int in,int x)
+{
+    if(l>r)
+        return;
+    if(in>r||in<l)
+        return;
+    if(l==r)
+    {
+        st2[i]=x;
+        return;
+    }
+    int m=(l+r)/2;
+    update2(2*i+1,l,m,in,x);
+    update2(2*i+2,m+1,r,in,x);
+    st2[i]=max(st2[2*i+1],st2[2*i+2]);
+}
+int query2(int i,int l,int r,int qs,int qe)
+
+{
+    if(qs>r||qe<l)
+        return -INF;
+    else if(qs<=l&&qe>=r)
+        return st2[i];
+    int mid=(l+r)/2;
+    return max(query2(2*i+1,l,mid,qs,qe),query2(2*i+2,mid+1,r,qs,qe));
+}
+int sum2d(int i1,int j1,int i2,int j2)
+{
+    int ans=sm[i2][j2];
+    if(j1)
+        ans-=sm[i2][j1-1];
+    if(i1)
+        ans-=sm[i1-1][j2];
+    if(i1&&j1)
+        ans+=sm[i1-1][j1-1];
+    return ans;
+}
+void solve()
+{
+    int n,m,k;
+    cin>>n>>m>>k;
+    for(int i=1;i<=n;i++)
+        for(int j=1;j<=m;j++)
+            cin>>a[i][j];
+    for(int i=1;i<=n+1;i++)
+        for(int j=1;j<=m;j++)
+            sm[i][j]=sm[i-1][j]+sm[i][j-1]+a[i][j]-sm[i-1][j-1];
+    for(int j=1;j<=m;j++)
+    {
+        update1(0,0,m+2,j,-sum2d(1,0,1,j+k-1));
+        update2(0,0,m+2,j,sum2d(1,0,1,j-1));
+    }
+    for(int i=2;i<=n+1;i++)
+    {
+        for(int j=1;j<=m-k+1;j++)
+        {
+            int x=sum2d(i-1,j,i,j+k-1);
+            dp[i][j]=x+((j-k)>=0?pre[i-1][j-k]:0);
+            dp[i][j]=max(dp[i][j],x+suff[i-1][j+k]);
+            dp[i][j]=max(dp[i][j],x+query1(0,0,m+2,max((int)1,j-k+1),j)+sum2d(i-1,0,i-1,j-1));
+            dp[i][j]=max(dp[i][j],x+query2(0,0,m+2,j,j+k-1)-sum2d(i-1,0,i-1,j+k-1));
+        }
+        for(int j=1;j<=m;j++)
+            pre[i][j]=max(pre[i][j-1],dp[i][j]);
+        for(int j=m+1;j>=0;j--)
+            suff[i][j]=max(suff[i][j+1],dp[i][j]);
+        for(int j=0;j<4*m;j++)
+        {
+            st1[j]= -INF;
+            st2[j]= -INF;
+        }
+        for(int j=1;j<=m;j++)
+        {
+            update1(0,0,m+2,j,dp[i][j]-sum2d(i,0,i,j+k-1));
+            update2(0,0,m+2,j,dp[i][j]+sum2d(i,0,i,j-1));
+        }
+            
+    }
+    /*
+    for(int i=1;i<=n+1;i++)
+    {
+        for(int j=1;j<=m;j++)
+            cout<<dp[i][j]<<" ";
+        cout<<endl;
+    }
+     */
+    int ans=0;
+    for(int i=1;i<=n+1;i++)
+        for(int j=1;j<=m;j++)
+            ans=max(ans,dp[i][j]);
+    cout<<ans<<endl;
+    
+}
+
+int32_t main()
+{
+    IOS;
+    
+    int t;
+    t=1;
+    //cin>>t;
+    while(t--)
+    {
+        solve();
+    }
+    return 0;
+}

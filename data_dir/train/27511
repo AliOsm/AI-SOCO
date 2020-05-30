@@ -1,0 +1,86 @@
+// KALAM
+# include<bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100000 + 77;
+int n , q , a[N] , K[N];
+set < int > S;
+long long Sum[N << 2] , lz[N << 2] , b[N];
+inline void Shift(int l , int r , int id) {
+   long long x = lz[id];
+   lz[id] = 0;
+   Sum[id] += x * 1ll * (r - l);
+   if(r - l > 1)
+      lz[id << 1] += x , lz[id << 1 ^ 1] += x;
+}
+void Add(int ql , int qr , int x , int l = 1 , int r = n + 1 , int id = 1) {
+   Shift(l , r , id);
+   if(qr <= l || r <= ql)
+      return ;
+   if(ql <= l && r <= qr) {
+      lz[id] += x;
+      Shift(l , r , id);
+      return ;
+   }
+   int mid = ((l + r) >> 1);
+   Add(ql , qr , x , l , mid , id << 1);
+   Add(ql , qr , x , mid , r , id << 1 ^ 1);
+   Sum[id] = Sum[id << 1] + Sum[id << 1 ^ 1];
+}
+long long Get(int ql , int qr , int l = 1 , int r = n + 1 , int id = 1) {
+   Shift(l , r , id);
+   if(qr <= l || r <= ql)
+      return 0;
+   if(ql <= l && r <= qr)
+      return Sum[id];
+   int mid = ((l + r) >> 1);
+   return Get(ql , qr , l , mid , id << 1) + Get(ql , qr , mid , r , id << 1 ^ 1);
+}
+int main() {
+   ios::sync_with_stdio(0);cin.tie(0);
+   cin >> n;
+   for(int i = 1;i <= n;++ i)
+      cin >> a[i] , Add(i , i + 1 , a[i]);
+   for(int i = 1;i < n;++ i)
+      cin >> K[i];
+   for(int i = 2;i <= n;++ i) {
+      b[i] = a[i] - (a[i - 1] + K[i - 1]);
+      if(b[i])
+         S.insert(i);
+   }
+   S.insert(n + 1);
+   cin >> q;
+   while(q --) {
+      char c;
+      int x , y;
+      cin >> c >> x >> y;
+      if(c == 's') {
+         cout << Get(x , y + 1) << '\n';
+         continue ;
+      }
+      if(y == 0)
+         continue ;
+      auto it = S.upper_bound(x);
+      int prv = x;
+      b[x] += y;
+      while(1) {
+         Add(prv , * it , y);
+         if(* it == n + 1)
+            break ;
+         long long f = Get(* it - 1 , * it) , s = Get(* it , * it + 1);
+         if(s <= f + K[* it - 1]) {
+            y = f + K[* it - 1] - s;
+            prv = * it;
+            S.erase(it);
+            it = S.lower_bound(prv);
+         } else {
+            b[* it] -= y;
+            break ;
+         }
+      }
+      if(x > 1)
+         S.insert(x);
+   }
+   return 0;
+}

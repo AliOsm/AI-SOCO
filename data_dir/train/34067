@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MaxN = 3e5 + 35;
+
+int a[MaxN];
+long long ans;
+const int base = MaxN;
+int cnt[MaxN * 10];
+int Lmin[MaxN];
+int Rmin[MaxN];
+int Lmax[MaxN];
+int Rmax[MaxN];
+int P1[MaxN];
+int P2[MaxN];
+vector<int> q1[MaxN], q2[MaxN];
+
+void solve(int l, int r)
+{
+    if(l >= r)
+        return;
+//    cout << "IN " << l << ' ' << r << '\n';
+    int mid = (l + r) / 2;
+    Lmax[mid] = Lmin[mid] = a[mid];
+    for(int i = mid - 1; i >= l; --i)
+    {
+        Lmax[i] = max(Lmax[i + 1], a[i]);
+        Lmin[i] = min(Lmin[i + 1], a[i]);
+    }
+    Rmax[mid + 1] = a[mid + 1];
+    Rmin[mid + 1] = a[mid + 1];
+    for(int i = mid + 2; i <= r; ++i)
+    {
+        Rmax[i] = max(Rmax[i - 1], a[i]);
+        Rmin[i] = min(Rmin[i - 1], a[i]);
+    }
+
+    for(int i = mid + 1; i <= r; ++i)
+    {
+        int cnt = Rmax[i] - Rmin[i] + 1;
+        int needL = mid + 1 - (cnt - (i - mid));
+        if(needL >= l && needL <= mid && Lmin[needL] > Rmin[i] && Lmax[needL] < Rmax[i])
+            ++ans;
+    }
+    for(int i = mid; i >= l; --i)
+    {
+        int cnt = Lmax[i] - Lmin[i] + 1;
+        int needR = mid + (cnt - (mid + 1 - i));
+        if(needR >= mid + 1 && needR <= r && Rmin[needR] > Lmin[i] && Rmax[needR] < Lmax[i])
+            ++ans;
+    }
+
+
+    int cur = mid + 1;
+    for(int i = mid; i >= l; --i)
+    {
+        while(cur <= r && Lmax[i] > Rmax[cur])
+            ++cur;
+        P1[i] = cur;
+    }
+    cur = r;
+    for(int i = l; i <= mid; ++i)
+    {
+        while(cur >= mid + 1 && Lmin[i] > Rmin[cur])
+            --cur;
+        P2[i] = cur;
+        if(P2[i] >= P1[i])
+        {
+            //cout << "AYYY " << l << ' ' << r << ' ' << mid << ' ' << P1[i] << ' ' << P2[i] << '\n';
+            q1[P1[i]].push_back(Lmin[i] - i + base);
+            q2[P2[i]].push_back(Lmin[i] - i + base);
+        }
+    }
+    for(int i = mid + 1; i <= r; ++i)
+    {
+        for(int j = 0; j < q1[i].size(); ++j)
+            ans -= cnt[q1[i][j]];
+        ++cnt[Rmax[i] - i + base];
+        for(int j = 0; j < q2[i].size(); ++j)
+            ans += cnt[q2[i][j]];
+    }
+
+    cur = mid;
+    for(int i = mid + 1; i <= r; ++i)
+    {
+        while(cur >= l && Rmax[i] > Lmax[cur])
+            --cur;
+        P1[i] = cur;
+    }
+    cur = l;
+
+    for(int i = r; i >= mid + 1; --i)
+    {
+        while(cur <= mid && Rmin[i] > Lmin[cur])
+            ++cur;
+        P2[i] = cur;
+        if(P2[i] <= P1[i])
+        {
+            q1[P1[i]].push_back(Rmin[i] + i + base);
+            q2[P2[i]].push_back(Rmin[i] + i + base);
+        }
+    }
+    for(int i = mid; i >= l; --i)
+    {
+        for(int j = 0; j < q1[i].size(); ++j)
+            ans -= cnt[q1[i][j]];
+        ++cnt[Lmax[i] + i + base];
+        for(int j = 0; j < q2[i].size(); ++j)
+            ans += cnt[q2[i][j]];
+    }
+
+    for(int i = l; i <= r; ++i)
+        q1[i].clear(), q2[i].clear();
+    /**
+    cout << "EEEE " << l << ' ' << r << ' ' << mid << '\n' << ans << '\n';
+    for(int i = l; i <= r; ++i)
+        cout << a[i] << ' ';
+    cout << '\n' << '\n';
+    */
+    solve(l, mid);
+    solve(mid + 1, r);
+//    cout << "OUT " << l << ' ' << r << '\n';
+}
+
+/**
+LMAX < RMAX
+LMIN < RMIN
+RMAX - LMIN == pr - pl
+RMAX - pr == LMIN - pl
+
+LMAX - RMIN == pr - pl
+LMAX + pl == RMIN + pr
+
+*/
+
+int main()
+{
+    ios_base :: sync_with_stdio(false);
+    cin.tie(NULL);
+//    freopen("input.txt", "r", stdin);
+    int n;
+    cin >> n;
+    for(int i = 1; i <= n; ++i)
+    {
+        int x, y;
+        cin >> x >> y;
+        a[x] = y;
+    }
+    solve(1, n);
+    cout << ans + n << '\n';
+}

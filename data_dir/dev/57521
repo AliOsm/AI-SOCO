@@ -1,0 +1,96 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair <int, int> pii;
+ 
+const int N = 1e5 + 10, SQ = 400, LOG = 15 + 4, inf = 1e9;
+
+int n, m, up[N][LOG], h[N], dist[N], d[N], mark[N];
+vector <int> adj[N];
+vector <int> vec;
+
+void bfs() {
+	memset(mark, 0, sizeof mark);
+	queue <int> q;
+	for (auto u : vec) {
+		q.push(u);
+		d[u] = 0;
+		mark[u] = true;
+	}
+	while(!q.empty()) {
+		int v = q.front();
+		dist[v] = min(dist[v], d[v]);
+		q.pop();
+		for (auto u : adj[v]) {
+			if(!mark[u]) {
+				d[u] = d[v] + 1;
+				q.push(u);
+				mark[u] = true;
+			}
+		}
+	}
+}
+
+void dfs(int v, int p) {
+	up[v][0] = p;
+	for (int i = 1; i < LOG; i++)
+		up[v][i] = up[up[v][i - 1]][i - 1];
+	for (auto u : adj[v]) {
+		if(u == p)	continue;
+		h[u] = h[v] + 1;
+		dfs(u, v);
+	}
+}
+
+int lca(int v, int u) {
+	if(h[v] < h[u])
+		swap(v, u);
+	int diff = h[v] - h[u];
+	for (int i = LOG - 1; ~i; i--)
+		if(diff & (1 << i))
+			v = up[v][i];
+	if(v == u)
+		return v;
+	for (int i = LOG - 1; ~i; i--)
+		if(up[v][i] != up[u][i])
+			v = up[v][i], u = up[u][i];
+	return up[v][0];
+}
+ 
+int main() {
+	ios_base::sync_with_stdio(NULL), cin.tie(NULL), cout.tie(NULL);
+	cin >> n >> m;
+	for (int i = 0; i < n - 1; i++) {
+		int v, u;
+		cin >> v >> u;
+		v--, u--;
+		adj[v].push_back(u), adj[u].push_back(v);
+	}
+	dfs(0, 0);
+	for (int i = 0; i < n; i++)
+		dist[i] = inf, d[i] = inf;
+	int last = 0;
+	vec.push_back(0);
+	dist[0] = 0;
+	for (int qt = 0; qt < m; qt++) {
+		if(qt % SQ == 0) {
+			bfs();
+			last = vec.size();
+		}
+		int type, v;
+		cin >> type >> v;
+		v--;
+		if(type == 1) {
+			vec.push_back(v);
+			dist[v] = 0;
+		}
+		else {
+			for (int i = last; i < vec.size(); i++) {
+				int u = vec[i];
+				int p = lca(v, u);
+				dist[v] = min(dist[v], h[v] + h[u] - 2 * h[p]);
+			}
+			cout << min(dist[v], d[v]) << "\n";
+		}
+	}
+}

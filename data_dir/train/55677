@@ -1,0 +1,159 @@
+#include "omp.h"
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <queue>
+#include <vector>
+#include <cassert>
+#include <fstream>
+#include <algorithm>
+#include <list>
+#include <random>
+#include <ctime>
+#include <random>
+#include <bitset>
+#include <unordered_set>
+#include <cassert>
+#include <list>
+#include <functional>
+
+
+using namespace std;
+
+
+typedef long double ld;
+typedef long long ll;
+
+
+const int sze = 1e5 + 10, INF = 1e9 + 10000;
+const ll eps = 15e5;
+
+
+struct node
+{
+	node *left, *right;
+	int y, cnt, v;
+
+	node(int v) : left(0), right(0), y((rand() << 16) ^ rand()), cnt(1), v(v) {};
+};
+
+
+typedef node* treap;
+typedef pair<treap, treap> ptt;
+
+
+treap update(treap a)
+{
+	return a;
+}
+
+
+int get(treap a)
+{
+	return !a ? 0 : a->cnt;
+}
+
+
+treap merge(treap L, treap R)
+{
+	if (!L)
+		return R;
+
+	if (!R)
+		return L;
+
+	if (L->y > R->y)
+	{
+		L->right = merge(L->right, R);
+		return update(L);
+	}
+	else
+	{
+		R->left = merge(L, R->left);
+		return update(R);
+	}
+}
+
+
+ptt split(treap cur, int x)
+{
+	if (!cur)
+		return { cur, cur };
+
+	int cur_x = get(cur->left);
+
+	if (x >= cur_x)
+	{
+		ptt ans = split(cur->right, x - cur_x - 1);
+		cur->right = ans.first;
+
+		return {update(cur), ans.second};
+	}
+	else
+	{
+		ptt ans = split(cur->left, x);
+		cur->left = ans.second;
+
+		return { ans.first, update(cur) };
+	}
+}
+
+
+int dpr[2][sze], dpl[2][sze];
+
+
+signed main()
+{
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	cout.tie(0);
+	
+	int n, m;
+	cin >> n >> m;
+	vector<int> values(n + 1);
+	values[n] = m;
+
+	for (int i = 0; i < n; ++i)
+		cin >> values[i];
+
+	dpr[0][n] = 0;
+	dpr[1][n] = 0;
+
+	for (int i = n - 1; i >= 0; i--)
+	{
+		dpr[0][i] = dpr[1][i + 1];
+		dpr[1][i] = dpr[0][i + 1] + values[i + 1] - values[i];
+	}
+
+	dpl[0][0] = values[0];
+	dpl[1][0] = -INF;
+
+	for (int i = 0; i < n; ++i)
+	{
+		dpl[0][i + 1] = dpl[1][i] + values[i + 1] - values[i];
+		dpl[1][i + 1] = dpl[0][i];
+	}
+
+	int ans = dpr[0][0] + values[0];
+
+	if (values[0] > 1)
+		ans = max(ans, values[0] - 1 + dpr[1][0]);
+	
+
+	for (int i = 1; i <= n; ++i)
+	{
+		if (values[i] - values[i - 1] > 1)
+		{
+			ans = max(ans, dpr[0][i] + dpl[0][i - 1] + values[i] - values[i - 1] - 1);
+			ans = max(ans, dpr[1][i] + dpl[1][i - 1] + values[i] - values[i - 1] - 1);
+		}
+	}
+
+	cout << ans;
+
+	return 0;
+}

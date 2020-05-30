@@ -1,0 +1,124 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int N = 5005;
+
+struct segment {
+    int x1, y1, x2, y2, t; // t = 0 : hor, t = 1 : vert
+};
+
+bool cmp1(segment &a, segment &b) {
+    return a.y2 < b.y2;
+}
+
+bool cmp2(segment &a, segment &b) {
+    return a.y2 < b.y2;
+}
+
+/// 1D BIT
+
+struct BIT {
+    int n;
+    vector<int> tree;
+    void init(int n_) {
+        n = n_;
+        tree.assign(n+1,0);
+    }
+    void upd (int idx, int val) {
+        while (idx <= n) {
+            tree[idx] += val ;
+            idx += idx & (-idx) ;
+        }
+    }
+    int query (int idx) {
+        int sum = 0 ;
+        while (idx > 0) {
+            sum += tree[idx] ;
+            idx -= idx & (-idx) ;
+        }
+        return sum ;
+    }
+    int Sum(int i, int j) {
+        return query(j)-query(i-1);
+    }
+}B;
+
+
+const int off = 5001;
+
+int main() {
+//    freopen("in.txt", "r", stdin);
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    int n;
+    cin >> n;
+    vector<segment> ver, hor;
+    B.init(10005);
+    for(int i = 1; i <= n; i++) {
+        int x1, y1, x2, y2;
+        cin >> x1 >> y1 >> x2 >> y2;
+//        cout << x1 << " " << y1 << " " << x2 << " " << y2 << endl;
+        x1 += off;
+        y1 += off;
+        x2 += off;
+        y2 += off;
+
+        if(x1 == x2) {
+            if(y1 > y2) swap(y1, y2);
+            ver.push_back({x1,y1,x2,y2,1});
+//            cout << x1 << " " << y1 << " " << x2 << " " << y2 << endl;
+        }
+        else {
+            assert(y1 == y2);
+            if(x1 > x2) swap(x1, x2);
+            hor.push_back({x1,y1,x2,y2,0});
+//            cout << x1 << " " << y1 << " " << x2 << " " << y2 << endl;
+        }
+    }
+    sort(ver.begin(), ver.end(), cmp1);
+    sort(hor.begin(), hor.end(), cmp2);
+
+//
+//    cout << hor.size() << endl;
+//    for(int i = 0; i < hor.size(); i++) {
+//        cout << hor[i].y1 << " " << hor[i].y2 << " " << hor[i].x1 << " " << hor[i].x2 << endl;
+//    }
+
+    long long ans = 0;
+
+    for(int i = 0; i < hor.size(); i++) {
+        vector<pair<int,int>> good;
+        for(int k = (int)ver.size()-1; k >= 0; k--) {
+            if(ver[k].y1 <= hor[i].y1 && ver[k].y2 >= hor[i].y1 && ver[k].x1 >= hor[i].x1 && ver[k].x1 <= hor[i].x2) {
+                good.push_back(make_pair(ver[k].x1,ver[k].y2));
+                B.upd(ver[k].x1, +1);
+            }
+        }
+        for(int j = i + 1; j < hor.size(); j++) {
+            if(hor[i].y1 >= hor[j].y1) continue;
+            int l = max(hor[i].x1, hor[j].x1), r = min(hor[i].x2, hor[j].x2);
+//            cout << " l : " << l << " " << r << endl;
+            if(l > r) continue;
+            while(good.size() > 0 && good.back().second < hor[j].y1) {
+                int idx = good.back().first;
+                good.pop_back();
+                B.upd(idx, -1);
+            }
+            int cnt = B.Sum(l, r);
+            ans += 1ll*cnt*(cnt-1)/2;
+//            cout << "l : " << l << " " << r << endl;
+        }
+        while(good.size() > 0) {
+            int idx = good.back().first;
+            good.pop_back();
+            B.upd(idx, -1);
+        }
+    }
+
+    cout << ans << "\n";
+
+    return 0;
+}
+

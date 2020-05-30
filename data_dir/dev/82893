@@ -1,0 +1,113 @@
+#include <iostream>
+#include <stdio.h>
+#include <algorithm>
+#include <queue>
+#include <map>
+#include <string.h>
+#include <sstream>
+#include <vector>
+
+const int N=200010;
+const int inf=0x3f3f3f3f;
+
+using namespace std;
+
+#define pb push_back
+#define sz(x) ((x).size())
+
+typedef long long ll;
+
+int n,a[N],m;
+
+struct seg
+{
+	int l,r;
+	ll mx,lz;
+}tree[N*4];
+
+void b_tree(int l,int r,int idx)
+{
+	tree[idx].l=l;tree[idx].r=r;
+	tree[idx].mx=a[l];tree[idx].lz=0;
+	if(l==r) return ;
+	int mid=(l+r)>>1;
+	b_tree(l,mid,idx<<1);
+	b_tree(mid+1,r,idx<<1|1);
+	tree[idx].mx=min(tree[idx<<1].mx,tree[idx<<1|1].mx);
+}
+
+void update(int idx)
+{
+	ll &t=tree[idx].lz;
+	if(t)
+	{
+		tree[idx<<1].mx+=t;
+		tree[idx<<1].lz+=t;
+		tree[idx<<1|1].mx+=t;
+		tree[idx<<1|1].lz+=t;
+		t=0;
+	}
+}
+
+void insert(int l,int r,int x,int idx)
+{
+	if(tree[idx].l==l && tree[idx].r==r)
+	{
+		tree[idx].mx+=x;
+		tree[idx].lz+=x;
+		return ;
+	}
+	update(idx);
+	int mid=(tree[idx].l+tree[idx].r)>>1;
+	if(r<=mid) insert(l,r,x,idx<<1);
+	else if(l>mid) insert(l,r,x,idx<<1|1);
+	else insert(l,mid,x,idx<<1),insert(mid+1,r,x,idx<<1|1);
+	tree[idx].mx=min(tree[idx<<1].mx,tree[idx<<1|1].mx);
+}
+
+ll query(int l,int r,int idx)
+{
+	if(tree[idx].l==l && tree[idx].r==r)
+		return tree[idx].mx;
+	update(idx);
+	int mid=(tree[idx].l+tree[idx].r)>>1;
+	ll ret=0;
+	if(r<=mid) ret=query(l,r,idx<<1);
+	else if(l>mid) ret=query(l,r,idx<<1|1);
+	else ret=min(query(l,mid,idx<<1),query(mid+1,r,idx<<1|1));
+	tree[idx].mx=min(tree[idx<<1].mx,tree[idx<<1|1].mx);
+	return ret;
+}
+
+int main()
+{
+	cin>>n;
+	for(int i=1;i<=n;i++)
+		cin>>a[i];
+	cin>>m;
+	b_tree(1,n,1);
+	for(int i=0;i<m;i++)
+	{
+		string str;
+		vector<int> vt;
+		if(i==0) getline(cin,str);
+		getline(cin,str);
+		stringstream sin;
+		sin<<str;
+		int x=0;
+		while(sin>>x) vt.pb(x);
+		//for(int i=0;i<sz(vt);i++)
+			//cout<<vt[i]<<" iii ";cout<<endl;
+		if(sz(vt)==2)
+		{
+			if(vt[1]>=vt[0]) printf("%I64d\n",query(vt[0]+1,vt[1]+1,1));
+			else printf("%I64d\n",min(query(1,vt[1]+1,1),query(vt[0]+1,n,1)));
+		}
+		else
+		{
+			if(vt[1]>=vt[0]) insert(vt[0]+1,vt[1]+1,vt[2],1);
+			else insert(1,vt[1]+1,vt[2],1),insert(vt[0]+1,n,vt[2],1);
+		}
+	}
+	return 0;
+}

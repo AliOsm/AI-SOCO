@@ -1,0 +1,167 @@
+#pragma comment(linker,"/stack:256000000")
+
+#include <cmath> 
+#include <ctime> 
+#include <iostream> 
+#include <string> 
+#include <vector> 
+#include <algorithm> 
+#include <set> 
+#include <map> 
+#include <cstring> 
+#include <cstdlib> 
+#include <queue> 
+#include <cstdio> 
+#include <cfloat>
+#include <cassert>
+#include <ctime>
+
+using namespace std;
+
+#define REP(i, n) for (int (i) = 0; (i) < (n); (i)++) 
+#define sz(v) (int)(v).size() 
+#define all(v) (v).begin(), (v).end()
+
+const int N = 1010;
+
+int a[N][N];
+int f[2][N][N];
+int bnd[2];
+
+void add(int id1, int id2, int x, int v) {
+	for (; x < bnd[id1]; x |= (x + 1)) {
+		f[id1][id2][x] += v;
+	}
+}
+
+int sum(int id1, int id2, int x) {
+	int res = 0;
+	for (; x >= 0; x = (x & (x + 1)) - 1) {
+		res += f[id1][id2][x];
+	}
+	return res;
+}
+
+int sum(int id1, int id2, int L, int R) {
+	return sum(id1, id2, R) - sum(id1, id2, L - 1);
+}
+
+int b[N];
+int lf[N], rg[N];
+
+int solve(int n, int pos) {
+	for (int i = pos - 1; i >= 0; i--) {
+		b[i] = min(b[i], b[i + 1]);
+	}
+	for (int i = pos + 1; i < n; i++) {
+		b[i] = min(b[i], b[i - 1]);
+	}
+	REP(i, N) lf[i] = n;
+	REP(i, N) rg[i] = -1;
+	for (int i = pos; i >= 0; i--) {
+		lf[b[i]] = i;
+	}
+	for (int i = pos; i < n; i++) {
+		rg[b[i]] = i;
+	}
+	for (int i = N - 2; i >= 0; i--) {
+		lf[i] = min(lf[i], lf[i + 1]);
+	}
+	for (int i = N - 2; i >= 0; i--) {
+		rg[i] = max(rg[i], rg[i + 1]);
+	}
+	int ans = 0;
+	REP(i, N) {
+		ans = max(ans, (rg[i] - lf[i] + 1) * i);
+	}
+	return ans;
+}
+
+int main() {
+#ifdef LOCAL
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+	long long start = clock();
+#endif
+	int n, m, q, op, x, y;
+	cin >> n >> m >> q;
+	bnd[0] = m;
+	bnd[1] = n;
+	REP(i, n) REP(j, m) {
+		scanf("%d", &a[i][j]);
+		if (a[i][j] == 1) {
+			add(0, i, j, 1);
+			add(1, j, i, 1);
+		}
+	}
+	REP(_, q) {
+		scanf("%d %d %d", &op, &x, &y);
+		--x, --y;
+		if (op == 1) {
+			if (a[x][y] == 0) {
+				add(0, x, y, 1);
+				add(1, y, x, 1);
+			} else {
+				add(0, x, y, -1);
+				add(1, y, x, -1);
+			}
+			a[x][y] = 1 - a[x][y];
+		} else {
+			int res = 0;
+			for (int j = 0; j < m; j++) {
+				int L = 0, R = x + 2;
+				while (L + 1 < R) {
+					int M = (L + R) / 2;
+					if (sum(1, j, x - M + 1, x) == M) {
+						L = M;
+					} else {
+						R = M;
+					}
+				}
+				b[j] = L;
+			}
+			res = max(res, solve(m, y));
+			for (int j = 0; j < m; j++) {
+				int L = 0, R = n - x + 1;
+				while (L + 1 < R) {
+					int M = (L + R) / 2;
+					if (sum(1, j, x, x + M - 1) == M) {
+						L = M;
+					} else {
+						R = M;
+					}
+				}
+				b[j] = L;
+			}
+			res = max(res, solve(m, y));
+			for (int i = 0; i < n; i++) {
+				int L = 0, R = y + 2;
+				while (L + 1 < R) {
+					int M = (L + R) / 2;
+					if (sum(0, i, y - M + 1, y) == M) {
+						L = M;
+					} else {
+						R = M;
+					}
+				}
+				b[i] = L;
+			}
+			res = max(res, solve(n, x));
+			for (int i = 0; i < n; i++) {
+				int L = 0, R = m - y + 1;
+				while (L + 1 < R) {
+					int M = (L + R) / 2;
+					if (sum(0, i, y, y + M - 1) == M) {
+						L = M;
+					} else {
+						R = M;
+					}
+				}
+				b[i] = L;
+			}
+			res = max(res, solve(n, x));
+			cout << res << endl;
+		}
+	}
+	return 0;
+}

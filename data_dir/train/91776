@@ -1,0 +1,148 @@
+#include <set>
+#include <map>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <sstream>
+using namespace std;
+
+const int INF=2000000000;
+
+struct DpStruct
+{
+	vector<int> dp, ldp, rdp;
+	int inc;
+	DpStruct(){inc=0;}
+	DpStruct(vector<int> dp, int inc):
+		dp(dp),inc(inc)
+	{
+		int n=dp.size();
+		ldp.resize(n+1);
+		rdp.resize(n+1);
+		ldp[0]=-INF;
+		rdp[n]=-INF;
+		for(int i=0;i<n;i++)
+			ldp[i+1]=max(ldp[i], dp[i]+inc*i);
+		for(int i=n-1;i>=0;i--)
+			rdp[i]=max(rdp[i+1], dp[i]+inc*i);
+	}
+	int operator[](int i) const
+	{
+		return dp[i];
+	}
+	int get_max_exclude(int i)
+	{
+		return max(ldp[i], rdp[i+1]-inc);
+	}
+};
+
+vector<vector<int> > v;
+vector<int> a, gres;
+vector<DpStruct> dp_down;
+vector<int> dp_up, pid;
+
+int solve_down(int cur, int p)
+{
+	vector<int> c;
+	vector<int> val;
+	for(int i=0;i<v[cur].size();i++)
+	{
+		int to=v[cur][i];
+		if(to==p)
+		{
+			pid[cur]=i;
+			c.push_back(-INF);
+			continue;
+		}
+		c.push_back(solve_down(to, cur));
+		val.push_back(a[to]);
+	}
+
+	dp_down[cur]=DpStruct(c,0);
+	sort(val.rbegin(), val.rend());
+	int res=-INF;
+	for(int i=0;i<val.size();i++)
+		res=max(res, val[i]+2);
+	if(!c.empty())
+		res=max(res, *max_element(c.begin(), c.end()));
+	return res;
+}
+
+void solve_up(int cur, int p, int pval)
+{
+	dp_up[cur]=pval;
+	vector<int> val;
+	for(int i=0;i<v[cur].size();i++)
+		val.push_back(a[v[cur][i]]+2);
+	DpStruct local(val, 0);
+	for(int i=0;i<v[cur].size();i++)
+	{
+		int to=v[cur][i];
+		if(to==p) continue;
+		solve_up(to, cur, max(pval,
+					max(
+							dp_down[cur].get_max_exclude(i),
+							local.get_max_exclude(i)
+						)
+					)
+				);
+	}
+}
+
+bool cmp(int u, int v)
+{
+	return a[u]<a[v];
+}
+
+int main()
+{
+	int n;
+	scanf("%d",&n);
+	v.resize(n);
+	gres.resize(n,INF);
+	dp_down.resize(n);
+	dp_up.resize(n);
+	pid.resize(n,-1);
+	a.resize(n);
+	for(int i=0;i<n;i++)
+		scanf("%d",&a[i]);
+	for(int i=0;i<n-1;i++)
+	{
+		int a,b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+
+	if(n==1)
+	{
+		printf("%d\n",a[0]);
+		return 0;
+	}
+
+	for(int i=0;i<n;i++)
+		sort(v[i].rbegin(), v[i].rend(),cmp);
+
+	solve_down(0,-1);
+	solve_up(0,-1,-INF);
+
+	for(int cur=0;cur<n;cur++)
+	{
+		gres[cur]=max(a[cur], dp_up[cur]);
+		for(int i=0;i<v[cur].size();i++)
+		{
+			gres[cur]=max(gres[cur], a[v[cur][i]]+1);
+			if(i!=pid[cur])
+				gres[cur]=max(gres[cur], dp_down[cur][i]);
+		}
+	}
+
+	printf("%d\n",*min_element(gres.begin(), gres.end()));
+
+	return 0;
+}

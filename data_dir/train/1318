@@ -1,0 +1,137 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+
+#define N	200000
+#define A	400000
+
+int max(int a, int b) { return a > b ? a : b; }
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_() {
+	return (rand() * 76543LL + rand()) % 0x7fffffff;
+}
+
+int zz[1 + N], ll[1 + N], rr[1 + N], kk[1 + N], sz[1 + N]; long long sum[1 + N], sum_[1 + N];
+
+int node(int k) {
+	static int _ = 1;
+
+	zz[_] = rand_(), kk[_] = k;
+	sz[_] = 1, sum[_] = k, sum_[_] = 0;
+	return _++;
+}
+
+void pul(int u) {
+	sz[u] = sz[ll[u]] + 1 + sz[rr[u]];
+	sum[u] = sum[ll[u]] + kk[u] + sum[rr[u]];
+	sum_[u] = sum_[ll[u]] + (long long) kk[u] * sz[ll[u]] + sum_[rr[u]] + sum[rr[u]] * (sz[ll[u]] + 1);
+}
+
+int l_, r_;
+
+void split(int u, int k) {
+	if (u == 0) {
+		l_ = r_ = 0;
+		return;
+	}
+	if (kk[u] > k) {
+		split(rr[u], k);
+		rr[u] = l_, l_ = u;
+	} else {
+		split(ll[u], k);
+		ll[u] = r_, r_ = u;
+	}
+	pul(u);
+}
+
+int merge(int u, int v) {
+	if (u == 0)
+		return v;
+	if (v == 0)
+		return u;
+	if (zz[u] < zz[v]) {
+		rr[u] = merge(rr[u], v);
+		pul(u);
+		return u;
+	} else {
+		ll[v] = merge(u, ll[v]);
+		pul(v);
+		return v;
+	}
+}
+
+int tr_add(int u, int v) {
+	split(u, kk[v]);
+	return merge(merge(l_, v), r_);
+}
+
+int tr_merge(int u, int v) {
+	while (v) {
+		int l = ll[v], r = rr[v];
+
+		ll[v] = rr[v] = 0, pul(v);
+		u = tr_add(u, v);
+		v = merge(l, r);
+	}
+	return u;
+}
+
+int dsu[A + 1], rr_[A + 1], tr[A + 1]; char used[A + 1];
+
+int find(int i) {
+	return dsu[i] < 0 ? i : (dsu[i] = find(dsu[i]));
+}
+
+long long join(int i, int j) {
+	long long x;
+	int r, tmp;
+
+	i = find(i);
+	j = find(j);
+	if (i == j)
+		return 0;
+	x = -(sum_[tr[i]] + sum_[tr[j]] + sum[tr[j]] * sz[tr[i]]);
+	r = rr_[j];
+	if (sz[tr[i]] < sz[tr[j]])
+		tmp = i, i = j, j = tmp;
+	dsu[j] = i, tr[i] = tr_merge(tr[i], tr[j]);
+	x += sum_[tr[i]];
+	rr_[i] = r;
+	return x;
+}
+
+int main() {
+	int n, a;
+	long long ans;
+
+	srand_();
+	scanf("%d", &n);
+	memset(dsu, -1, sizeof dsu);
+	for (a = 0; a <= A; a++)
+		rr_[a] = a;
+	ans = 0;
+	while (n--) {
+		int a_, b;
+
+		scanf("%d%d", &a, &b);
+		a_ = used[a] ? rr_[find(a)] + 1 : a;
+		ans += (long long) (a_ - a) * b;
+		a = a_;
+		tr[a] = node(b);
+		used[a] = 1;
+		if (used[a - 1])
+			ans += join(a - 1, a);
+		if (used[a + 1])
+			ans += join(a, a + 1);
+		printf("%lld\n", ans);
+	}
+	return 0;
+}

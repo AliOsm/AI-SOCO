@@ -1,0 +1,149 @@
+#ifdef DEBUG
+#define _GLIBCXX_DEBUG
+#endif
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+mt19937 mrand(random_device{} ()); 
+
+int rnd(int x) {
+  return mrand() % x;
+}
+
+typedef long double ld;
+typedef long long ll;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf(stderr, __VA_ARGS__), fflush(stderr)
+#else
+#define eprintf(...) ;
+#endif
+
+#define pb push_back
+#define mp make_pair
+#define sz(x) ((int) (x).size())
+#define TASK "text"
+
+const int inf = (int) 1.01e9;
+const ld eps = 1e-9;
+const ld pi = acos((ld) -1.0);
+
+const int mod = (int) 1e9 + 7;
+
+int sum(int x, int y) {
+  if ((x += y) >= mod) {
+    x -= mod;
+  }
+  return x;
+}
+
+int mult(int x, int y) {
+  return (long long) x * y % mod;
+}
+
+int myPower(int x, int pw) {
+  int res = 1;
+  for (; pw; pw >>= 1) {
+    if (pw & 1) {
+      res = mult(res, x);
+    }
+    x = mult(x, x);
+  }
+  return res;
+}
+
+const int maxc = (int) 2e5 + 10;
+int fact[maxc], invfact[maxc];
+
+void precalc() {
+  fact[0] = invfact[0] = 1;
+  for (int i = 1; i < maxc; ++i) {
+    fact[i] = mult(fact[i - 1], i);
+    invfact[i] = myPower(fact[i], mod - 2);
+  }
+}
+
+int getc(int n, int k) {
+  if (k > n) {
+    return 0;
+  }
+  assert(0 <= k && k <= n && n < maxc);
+  return mult(fact[n], mult(invfact[k], invfact[n - k]));
+}
+
+const int maxn = (int) 2e3 + 10;
+
+int w, h, n, s;
+
+pair<int, int> ps[maxn];
+
+int read() {
+  if (scanf("%d%d%d%d", &w, &h, &n, &s) < 4) {
+    return 0;
+  }
+  int n0 = n;
+  n = 0;
+  for (int i = 0; i < n0; ++i) {
+    int x, y;
+    scanf("%d%d", &x, &y);
+    if ((x == 1 && y == 1) || (x == w && y == h)) {
+      s = (s + 1) / 2;
+      continue;
+    }
+    --x, --y;
+    ps[n++] = mp(x, y);
+  }
+  return 1;
+}
+
+const int maxk = 20;
+int dp[maxn][maxk];
+
+void solve() {
+  ps[n++] = mp(w - 1, h - 1);
+  sort(ps, ps + n);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < maxk; ++j) {
+      int &cur = dp[i][j];
+      cur = getc(ps[i].first + ps[i].second, ps[i].second);
+      for (int j1 = 0; j1 < j; ++j1) {
+        cur = sum(cur, mod - dp[i][j1]);
+      }
+      for (int i1 = 0; i1 < i; ++i1) {
+        if (ps[i1].second <= ps[i].second) {
+          int dx = ps[i].first - ps[i1].first, dy = ps[i].second - ps[i1].second;
+          cur = sum(cur, mod - mult(getc(dx + dy, dx), dp[i1][j]));
+        }
+      }
+    }
+  }
+  int res = 0;
+  for (int i = 0, val = s; val > 1; ++i, val = (val + 1) / 2) {
+    assert(i < maxk);
+    res = sum(res, mult(val - 1, dp[n - 1][i]));
+  }
+  res = mult(res, myPower(getc(w + h - 2, w - 1), mod - 2));
+  res = sum(res, 1);
+  printf("%d\n", res);
+}
+
+int main() {
+  precalc();
+#ifdef LOCAL
+  freopen(TASK ".out", "w", stdout);
+  assert(freopen(TASK ".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time %.2f\n", (double) clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

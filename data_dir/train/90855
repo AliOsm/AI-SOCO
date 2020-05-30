@@ -1,0 +1,203 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double K;
+typedef pair<int, int> pii;
+
+#define x first
+#define y second
+#define mp make_pair
+#define pb push_back
+#define all(a) (a).begin(), (a).end()
+
+struct val{
+    int id;
+    int color;
+
+    val(){
+        id = -1;
+        color = -1;
+    }
+};
+
+int nCycle;
+vector<vector<bool>> black;
+vector<vector<char>> a;
+vector<vector<val>> f;
+vector<vector<int>> mark;
+vector<val> cycles;
+vector<int> sumCycle;
+
+pair<val, pii> dfs(int i, int j){
+    mark[i][j] = 2;
+
+    int x = i;
+    int y = j;
+    switch(a[i][j]){
+        case 'U':
+            --x;
+            break;
+        case 'D':
+            ++x;
+            break;
+        case 'L':
+            --y;
+            break;
+        case 'R':
+            ++y;
+            break;
+    }
+
+    if(mark[x][y] == 0){
+        mark[i][j] = 1;
+        pair<val, pii> tmp = dfs(x, y);
+        mark[i][j] = 2;
+
+        val curCycle = tmp.x;
+        pii endCycle = tmp.y;
+
+        if(endCycle == mp(i, j)){
+            sumCycle[curCycle.color]++;
+            curCycle.id++;
+            endCycle = {-1, -1};
+        } else
+        if(endCycle != mp(-1, -1)){
+            sumCycle[curCycle.color]++;
+            curCycle.id++;
+        } else {
+            curCycle.id = (curCycle.id + 1) % sumCycle[curCycle.color];
+        }
+
+        f[i][j] = curCycle;
+        //cout << i << " " << j << " " << curCycle.id << "\n";
+        return {curCycle, endCycle};
+    } else
+    if(mark[x][y] == 1){
+        val curCycle;
+        curCycle.color = nCycle++;
+        curCycle.id = 0;
+        sumCycle.pb(1);
+        pii endCycle = {x, y};
+        f[i][j] = curCycle;
+        return {curCycle, endCycle};
+    } else {
+        f[i][j] = f[x][y];
+        f[i][j].id = (f[i][j].id + 1) % sumCycle[f[i][j].color];
+        //cout << i << " " << j << " " << f[i][j].id << " " << f[x][y].id << "\n";
+        return {f[i][j], {-1, -1}};
+    }
+}
+
+main(){
+    //cin.tie(0);
+    //ios_base::sync_with_stdio(0);
+
+    int t;
+    cin >> t;
+    while(t--){
+        int n, m;
+        cin >> n >> m;
+        mark.resize(n, vector<int>(m, 0));
+
+        black.resize(n, vector<bool>(m, false));
+        for(int i = 0; i < n; i++){
+            string s;
+            cin >> s;
+            for(int j = 0; j < m; j++){
+                if(s[j] == '0'){
+                    black[i][j] = true;
+                }
+            }
+        }
+
+        a.resize(n, vector<char>(m));
+        for(int i = 0; i < n; i++){
+            string s;
+            cin >> s;
+            for(int j = 0; j < m; j++){
+                a[i][j] = s[j];
+            }
+        }
+
+        f.resize(n, vector<val>(m));
+        nCycle = 0;
+        for(int i = 0; i < n; i++){
+            for(int j = 0; j < m; j++){
+                if(f[i][j].color == -1){
+                    dfs(i, j);
+                }
+            }
+        }
+
+        vector<bool> used(nCycle);
+        vector<set<int>> sets(nCycle);
+        for(int i = 0; i < n; i++){
+            for(int j = 0; j < m; j++){
+                //cout << f[i][j].id << "\n";
+                if(black[i][j]){
+                    sets[f[i][j].color].insert(f[i][j].id);
+                }
+            }
+        }
+
+        int ans = 0;
+        for(int i = 0; i < nCycle; i++){
+            ans += sumCycle[i];
+        }
+        int black_ans = 0;
+        for(int i = 0; i < nCycle; i++){
+            black_ans += sets[i].size();
+        }
+        cout << ans << " " << black_ans << "\n";
+
+        cycles.clear();
+        f.clear();
+        used.clear();
+        sets.clear();
+        a.clear();
+        mark.clear();
+        black.clear();
+        sumCycle.clear();
+    }
+}
+
+/*
+1
+7 1
+1
+1
+0
+0
+1
+1
+0
+D
+U
+U
+U
+D
+D
+U
+
+1
+1 2
+01
+RL
+1
+3 3
+001
+101
+110
+RLL
+DLD
+ULL
+3 3
+000
+000
+000
+RRD
+RLD
+ULL
+*/

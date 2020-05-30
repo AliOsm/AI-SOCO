@@ -1,0 +1,137 @@
+// Can't debugg anything :(
+#include <bits/stdc++.h> 
+using namespace std;
+#define fl(i,a,b) for(int i=a;i<b;i++)
+#define ll long long
+#define endl '\n'
+#define pb push_back
+#define ff first
+#define ss second
+#define mod 1000000007 
+#define inf 2e18
+#define fast ios_base::sync_with_stdio(0);cin.tie(NULL);cout.tie(NULL);
+#define mx 1000005
+#define int long long
+vector<pair<ll,ll> > arr(mx),brr(mx);
+vector<pair<int,int> > v[mx];
+int hy[mx],hx[mx];
+int A[mx];
+int tree[4*mx];
+int lazy[4*mx];
+void build(int node, int start, int end)
+{
+    if(start == end)
+    {
+        tree[node] = A[start];
+    }
+    else
+    {
+        int mid = (start + end) / 2;
+        build(2*node, start, mid);
+        build(2*node+1, mid+1, end);
+        tree[node] = max(tree[2*node] , tree[2*node+1]);
+    }
+}
+void updateRange(int node, int start, int end, int l, int r, int val)
+{
+    if(lazy[node] != 0)
+    {
+        tree[node] += lazy[node];            // Update it
+        if(start != end)
+        {
+            lazy[node*2] += lazy[node];         // Mark child as lazy
+            lazy[node*2+1] += lazy[node];    // Mark child as lazy
+        }
+        lazy[node] = 0;                 // Reset it
+    }
+    if(start > end or start > r or end < l)              // Current segment is not within range [l, r]
+        return;
+    if(start >= l and end <= r)
+    {
+        tree[node] += val;
+        if(start != end)
+        {
+            lazy[node*2] += val;
+            lazy[node*2+1] += val;
+        }
+        return;
+    }
+    int mid = (start + end) / 2;
+    updateRange(node*2, start, mid, l, r, val);        // Updating left child
+    updateRange(node*2 + 1, mid + 1, end, l, r, val);   // Updating right child
+    tree[node] = max(tree[node*2] , tree[node*2+1]);        // Updating root with max value 
+}
+int queryRange(int node, int start, int end, int l, int r)
+{
+    if(start > end or start > r or end < l)
+        return -inf;         
+    if(lazy[node] != 0)
+    {
+        tree[node] += lazy[node];            // Update it
+        if(start != end)
+        {
+            lazy[node*2] += lazy[node];         // Mark child as lazy
+            lazy[node*2+1] += lazy[node];    // Mark child as lazy
+        }
+        lazy[node] = 0;                 // Reset it
+    }
+    if(start >= l and end <= r)             // Current segment is totally within range [l, r]
+        return tree[node];
+    int mid = (start + end) / 2;
+    int p1 = queryRange(node*2, start, mid, l, r);         // Query left child
+    int p2 = queryRange(node*2 + 1, mid + 1, end, l, r); // Query right child
+    return max(p1 , p2);
+}
+main()
+{
+	fast;
+	int n,m,p;
+	cin >> n >> m >> p;
+	fl(i,0,mx)
+	{
+		hx[i] = hy[i] = inf;
+	}
+	fl(i,1,n+1)
+	{
+		cin >> arr[i].ff >> arr[i].ss;
+		hx[arr[i].ff] = min(hx[arr[i].ff],arr[i].ss);
+	}
+	fl(i,1,m+1)
+	{
+		cin >> brr[i].ff >> brr[i].ss;
+		hy[brr[i].ff] = min(hy[brr[i].ff],brr[i].ss);
+	}
+	for(int i = mx - 2; i >= 0;i--)
+	{
+		hx[i] = min(hx[i+1],hx[i]);
+		hy[i] = min(hy[i+1],hy[i]);
+	}
+	fl(i,1,mx)
+	{
+		A[i] = -hy[i];
+	}
+	fl(i,0,p)
+	{
+		int a,b,c;
+		cin >> a >> b >> c;
+		v[a].pb({b,c});
+	}
+	build(1,1,mx-1);
+	ll ans = -inf;
+	ll ar = inf;
+	int prev = 0;
+	fl(i,1,mx)
+	{
+		ar = hx[i];
+		ll tans = queryRange(1,1,mx-1,1,mx-1);
+		ans = max(ans,tans - ar);
+	//	if(v[i-1].size() > 0)
+	//	cout<<i<<" "<<tans<<" "<<ar<<endl;
+		prev = 1;
+		for(auto j : v[i])
+		{
+			updateRange(1,1,mx-1,j.ff + 1,mx-1,j.ss);
+		}
+	}
+	cout<<ans<<endl;
+}

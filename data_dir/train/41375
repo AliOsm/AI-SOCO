@@ -1,0 +1,118 @@
+#include <bits/stdc++.h>
+using namespace std;
+ 
+int n, m;
+vector<int> depth, succ[20];
+vector<vector<int>> adj;
+
+void dfs(int u, int par) {
+	depth[u] = depth[par] + 1;
+	succ[0][u] = par;
+
+	for (int v : adj[u]) {
+		if (v == par) continue;
+		dfs(v, u);
+	}
+}
+
+void build() {
+	for (int pi = 1; (1 << pi) <= n; pi++) {
+		for (int i = 1; i <= n; i++) {
+			succ[pi][i] = succ[pi - 1][succ[pi - 1][i]];
+		}
+	}
+}
+
+int lift(int a, int x) {
+	for (int pi = 19; pi >= 0; pi--) {
+		if (x >= (1 << pi)) {
+			x -= (1 << pi);
+			a = succ[pi][a];
+		}
+	}
+
+	return a;
+}
+
+int lca(int a, int b) {
+	// cout << a << ' ' << b << '\n';
+	if (depth[a] > depth[b]) swap(a, b);
+	// cout << a << ' ' << b << '\n';
+	b = lift(b, depth[b] - depth[a]);
+
+	// cout << a << ' ' << b << '\n';
+
+	if (a == b) return a;
+
+	int papa = 0;
+	for (int pi = 19; pi >= 0; pi--) {
+		if ((1 << pi) >= depth[a]) continue;
+
+		int x = succ[pi][a];
+		int y = succ[pi][b];
+
+		if (x == y) {
+			papa = x;
+		} else {
+			a = x;
+			b = y;
+		}
+	}
+
+	return papa;
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	cin >> n >> m;
+	adj.assign(n + 1, vector<int>());
+
+	for (int i = 1; i <= n - 1; i++) {
+		int a, b;
+		cin >> a >> b;
+
+		adj[a].push_back(b);
+		adj[b].push_back(a);
+	}
+
+	depth.assign(n + 1, 0);
+	for (int i = 0; i < 20; i++) {
+		succ[i].assign(n + 1, 0);
+	}
+
+	dfs(1, 0);
+	build();
+
+	while (m--) {
+		int k;
+		cin >> k;
+
+		vector<int> node(k);
+		for (int i = 0; i < k; i++) {
+			cin >> node[i];
+		}
+
+		int terbawah = 0;
+		for (int cur : node) {
+			if (depth[terbawah] < depth[cur]) {
+				terbawah = cur;
+			}
+		}
+
+		bool ok = 1;
+		for (int cur : node) {
+			int papa = lca(cur, terbawah);
+			// cout << cur << ' ' << terbawah << " -> " << papa << '\n';
+			if (papa != succ[0][cur] && papa != cur) {
+				ok = 0;
+			}
+		}
+
+		cout << (ok ? "YES\n" : "NO\n");
+	}
+
+	return 0;
+}

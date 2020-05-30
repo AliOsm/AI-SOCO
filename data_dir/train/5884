@@ -1,0 +1,144 @@
+#pragma GCC target("avx2")
+#pragma GCC optimize("O3")
+   
+#include <x86intrin.h>
+#include <bits/stdc++.h>   
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+ 
+using namespace __gnu_pbds;
+using namespace std;
+
+template<typename T> using ordered_set = tree <T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+     
+#define F first
+#define S second           
+#define lb lower_bound               
+#define ub upper_bound
+#define pb push_back
+#define pf push_front    
+#define ppb pop_back
+#define mp make_pair
+#define bpp __builtin_popcountll                                                                                        
+#define sqr(x) ((x) * (x)) 
+#define al 0x3F3F3F3F
+#define sz(x) (int)x.size()
+#define all(x) x.begin(), x.end()
+#define in insert
+#define ppf pop_front
+#define endl '\n'
+#define int long long
+ 
+typedef unsigned long long ull;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+ 
+const int mod = (int)1e9 + 7;
+const int N = (int)3e5 + 123;
+const ll inf = (ll)1e18 + 1;
+
+const double pi = acos (-1.0);
+const double eps = 1e-7;                  
+const int dx[] = {0, 0, 1, 0, -1};
+const int dy[] = {0, 1, 0, -1, 0};
+
+int n, c[4][N], ans, res = inf, a[4], path[N];
+vector <int> g[N];
+
+void dfs (int v, int pr, int pos) {
+   ans += c[a[pos]][v];
+   for (auto to : g[v])
+      if (to != pr)
+         dfs (to, v, (pos == 3 ? 1 : pos + 1)); 
+}
+
+void cl (int v, int pr, int pos) {
+   path[v] = a[pos];
+   for (auto to : g[v])
+      if (to != pr)
+         cl (to, v, (pos == 3 ? 1 : pos + 1));
+}
+
+inline void boost () {                    
+   ios_base :: sync_with_stdio (NULL);
+   cin.tie (NULL), cout.tie (NULL);          
+}                                                     
+
+inline void Solve () {
+   cin >> n;
+   for (int i = 1; i <= 3; i ++) {
+      a[i] = i;
+      for (int j = 1; j <= n; j ++)
+         cin >> c[i][j];
+   }
+   for (int i = 1; i < n; i ++) {
+      int x, y;
+      cin >> x >> y;
+      g[x].pb (y);
+      g[y].pb (x);
+   }
+   for (int i = 1; i <= n; i ++)
+      if (sz (g[i]) >= 3)
+         cout << -1, exit (0);
+   if (sz (g[1]) == 1) {
+      do {
+         dfs (1, 0, 1);
+         if (res > ans) {
+            res = ans;
+            cl (1, 0, 1);
+         }
+         ans = 0;
+
+      }while (next_permutation (a + 1, a + 3 + 1));
+      cout << res << endl;
+      for (int i = 1; i <= n; i ++) cout << path[i] << ' ';
+   }
+   else {
+      for (int i = 1; i <= 3; i ++) {
+         ans = c[i][1];
+         a[1] = i;
+         if (i == 1) a[2] = 2, a[3] = 3;
+         if (i == 2) a[2] = 1, a[3] = 3;
+         if (i == 3) a[2] = 1, a[3] = 2;
+         dfs (g[1][0], 1, 2);
+         swap (a[2], a[3]);
+         dfs (g[1][1], 1, 2);
+         if (res > ans) {
+            res = ans;
+            path[1] = i;
+            swap (a[2], a[3]);
+            cl (g[1][0], 1, 2);
+            swap (a[2], a[3]);
+            cl (g[1][1], 1, 2);
+         }
+         ans = c[i][1];
+         dfs (g[1][0], 1, 2);
+         swap (a[2], a[3]);
+         dfs (g[1][1], 1, 2);
+         if (res > ans) {
+            res = ans;
+            path[1] = i;
+            swap (a[2], a[3]);
+            cl (g[1][0], 1, 2);
+            swap (a[2], a[3]);
+            cl (g[1][1], 1, 2);
+         }
+      }
+      cout << res << endl;
+      for (int i = 1; i <= n; i ++) cout << path[i] << ' ';
+   }
+}
+
+main () {                                       
+// freopen (".in", "r", stdin);    
+// freopen (".out", "w", stdout);              
+   boost ();
+   int tt = 1;
+   //cin >> tt;   
+   while (tt --) {
+      Solve ();
+   }                                               
+   return 0;      
+}
+                          

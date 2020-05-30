@@ -1,0 +1,104 @@
+//#pragma GCC optimize "-O3"
+//#pragma GCC target("avx,avx2,fma")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx") 
+#include"bits/stdc++.h"
+using namespace std;
+
+#define MAX 512
+
+int n;
+int k;
+
+char buf[MAX];
+
+vector<string> v;
+
+int nex[MAX][10];
+int sz[MAX];
+
+int od;
+inline int neww() {
+	od++;
+	return od - 1;
+}
+
+int root;
+
+int  dp[MAX][MAX][12];
+int uf[MAX][12];
+
+
+inline void dfs(int b,int d=0) {
+	if (b == -1)return;
+	for (int i = 0; i < 10; i++) {
+		dfs(nex[b][i], d + 1);
+	}
+	for (int pv = 0; pv <= d; pv++) {
+		int U = INT_MAX;
+		{
+			int add = -sz[b] * (d - pv);
+			memset(uf[b], 0, sizeof(uf[b]));
+			for (int kk = 0; kk <= k; kk++) {
+				uf[b][kk] = add;
+			}
+			for (int l2 = 0; l2 < 10; l2++) {
+				if (nex[b][l2] == -1)continue;
+				for (int kk = k; kk >=0; kk--) {
+					for (int j = k-kk; j>=0; j--) {
+						int ans = dp[nex[b][l2]][d][j];
+						uf[b][kk + j] = min(uf[b][kk + j], ans+uf[b][kk]);
+					}
+				}
+			}
+		}
+		for (int ava = 1; ava <= k; ava++) {
+			dp[b][pv][ava] = min(dp[b][pv][ava],uf[b][ava - 1]);
+		}
+		{
+			memset(uf[b], 0, sizeof(uf[b]));
+			for (int l2 = 0; l2 < 10; l2++) {
+				if (nex[b][l2] == -1)continue;
+				for (int kk = k; kk >=0; kk--) {
+					for (int j = k - kk; j >= 0; j--) {
+						int ans = dp[nex[b][l2]][pv][j];
+						uf[b][kk + j] = min(uf[b][kk + j], ans + uf[b][kk]);
+					}
+				}
+			}
+		}
+		for (int ava = 0; ava <= k; ava++) {
+			dp[b][pv][ava] = min(dp[b][pv][ava],uf[b][ava]);
+		}
+	}
+}
+vector<int> ad;
+int main() {
+	cin >> n >> k;
+	int overall=0;
+	for (int i = 0; i < n; i++) {
+		scanf("%s", buf);
+		v.push_back(buf);
+		int z;
+		scanf("%d", &z);
+		ad.push_back(z);
+		overall += v.back().size()*z;
+	}
+	for (int i = 0; i < MAX; i++)for (int j = 0; j < MAX; j++)for (int k = 0; k < 12; k++)dp[i][j][k] = INT_MAX;
+	memset(nex, -1, sizeof(nex));
+	root = neww();
+	for (int i = 0; i < n; i++) {
+		int cur = root;
+		for (int j = 0; j < v[i].size(); j++) {
+			int go = v[i][j] - '0';
+			if (nex[cur][go] == -1) {
+				nex[cur][go] = neww();
+			}
+			sz[cur]+=ad[i];
+			cur = nex[cur][go];
+		}
+		sz[cur]+=ad[i];
+	}
+	dfs(root);
+	cout << overall+dp[root][0][k] << endl;
+	return 0;
+}

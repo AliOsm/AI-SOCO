@@ -1,0 +1,107 @@
+#include "bits/stdc++.h"
+#define FI first.first
+#define SE first.second
+#define TH second
+#define fi first
+#define se second
+#define th second
+
+using namespace std;
+
+class DebugStream {}LOG;
+template <typename T>DebugStream &operator<<(DebugStream &s, const T&) { return s; }
+#ifdef DEBUG
+#define LOG clog
+#endif
+
+typedef long long ll;
+typedef pair<ll, ll> ii;
+typedef long double ld;
+mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
+
+const int maxN = 2e5 + 9, maxV = 1e6 + 9, MOD = 1e9 + 7, SQ = 335, lg = 20, bs = 29;
+
+int HEIGHT = 20, n;
+ll d[maxN], t[maxN << 1], csto[maxN], acu[maxN];
+int perm[maxN], inv[maxN];
+
+void apply(int p, ll value) {
+    t[p] += value;
+    if (p < n) d[p] += value;
+}
+
+void build(int p) {
+    while (p > 1) p >>= 1, t[p] = min(t[p<<1], t[p<<1|1]) + d[p];
+}
+
+void push(int p) {
+    for (int s = HEIGHT; s > 0; --s) {
+        int i = p >> s;
+        if (d[i] != 0) {
+            apply(i<<1, d[i]);
+            apply(i<<1|1, d[i]);
+            d[i] = 0;
+        }
+    }
+}
+
+void update(int l, int r, ll value) {
+	if(l == r) return;
+    l += n, r += n;
+    int l0 = l, r0 = r;
+    for (; l < r; l >>= 1, r >>= 1) {
+        if (l&1) apply(l++, value);
+        if (r&1) apply(--r, value);
+    }
+    build(l0);
+    build(r0 - 1);
+}
+
+ll query(int l, int r) {
+    l += n, r += n;
+    push(l);
+    push(r - 1);
+    ll res = LLONG_MAX / 3;
+    for (; l < r; l >>= 1, r >>= 1) {
+        if (l&1) res = min(res, t[l++]);
+        if (r&1) res = min(t[--r], res);
+    }
+    return res;
+}
+
+int main() {
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+	#ifdef DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+	#endif
+
+	cin >> n;
+	for(int i = 0; i < n; i++) {
+		cin >> perm[i];
+		perm[i]--;
+		inv[perm[i]] = i;
+	}
+	for(int i = 0; i < n; i++) {
+		cin >> csto[i];
+	}
+	for(int i = n - 1; i >= 0; i--) {
+		acu[i] = acu[i + 1] + (i + 1 == n? 0: csto[inv[i + 1]]);
+		update(i, i + 1, acu[i]);
+	}
+
+	ll ans = LLONG_MAX / 3, tot = accumulate(csto, csto + n, 0LL);
+		for(int j = 0; j < n; j++) LOG << query(j, j + 1) << ' '; LOG << '\n';
+	for(int i = n - 1; i >= 0; i--) {
+		if(i < n - 1) ans = min(ans, query(0, n));
+		ans = min(ans, tot);
+		//LOG << tot << '\n';
+		tot -= csto[i];
+		update(0, perm[i], -csto[i]), update(perm[i] + 1, n, csto[i]);
+		update(perm[i], perm[i] + 1, LLONG_MAX / 3);
+		//for(int j = 0; j < n; j++) LOG << query(j, j + 1) << ' '; LOG << '\n';
+	}
+	cout << ans << '\n';
+}

@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define ll long long
+#define N 200010
+#define pii pair <int, int>
+int n, a[N];
+vector <int> G[N];
+ll ans[N];
+
+int gcd(int a, int b) { return b ? gcd(b, a % b) : a; }
+
+int vis[N];
+int sze[N], f[N], sum, root;
+void getroot(int u, int fa)
+{
+	sze[u] = 1; f[u] = 0;
+	for (auto v : G[u]) if (!vis[v] && v != fa)
+	{
+		getroot(v, u);
+		sze[u] += sze[v];
+		f[u] = max(f[u], sze[v]);
+	}
+	f[u] = max(f[u], sum - sze[u]);
+	if (f[u] < f[root])
+		root = u;
+}
+
+int d[N], dep[N];
+void getdep(int u, int fa, int deep)  
+{
+	dep[u] = gcd(deep, a[u]);
+	d[++d[0]] = dep[u];
+	for (auto v : G[u]) if (!vis[v] && v != fa)  
+		getdep(v, u, dep[u]);
+}
+
+void calc(int u, int base, int vis)
+{
+	d[0] = 0;
+	getdep(u, u, base); 
+	vector <pii> vec;
+	sort(d + 1, d + 1 + d[0]);
+	vec.push_back(pii(d[1], 1)); 
+	for (int i = 2; i <= d[0]; ++i)
+	{
+		if (d[i] == d[i - 1])
+			++vec.end()[-1].second;   
+		else
+			vec.push_back(pii(d[i], 1));
+	}
+	int len = (int)vec.size();
+	for (int i = 0; i < len; ++i)
+		for (int j = i + 1; j < len; ++j)
+			ans[gcd(vec[i].first, vec[j].first)] += 1ll * vec[i].second * vec[j].second * vis;
+	for (int i = 0; i < len; ++i)
+		ans[vec[i].first] += (1ll * vec[i].second * (vec[i].second - 1) / 2) * vis;
+}
+
+
+void solve(int u)
+{
+	vis[u] = 1; calc(u, 0, 1);
+	for (auto v : G[u]) if (!vis[v])
+	{
+		calc(v, a[u], -1);
+		f[0] = sum = sze[v]; root = 0;
+		getroot(v, v);
+		solve(root);
+	}	
+}
+
+int main()
+{
+	while (scanf("%d", &n) != EOF)
+	{
+		for (int i = 1; i <= n; ++i) G[i].clear();
+		memset(ans, 0, sizeof ans);
+		memset(vis, 0, sizeof vis); 
+		for (int i = 1; i <= n; ++i) scanf("%d", a + i), ++ans[a[i]];
+		for (int i = 1, u, v; i < n; ++i)
+		{
+			scanf("%d%d", &u, &v);
+			G[u].push_back(v);
+			G[v].push_back(u); 
+		}
+		f[0] = sum = n; root = 0;
+		getroot(1, 1);
+		solve(root); 
+		for (int i = 1; i <= 200000; ++i)
+			if (ans[i])
+				printf("%d %lld\n", i, ans[i]);
+	}
+	return 0;
+}

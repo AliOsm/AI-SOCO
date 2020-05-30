@@ -1,0 +1,104 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define scl(x) scanf("%lld",&x)
+#define sc(x)  scanf("%d",&x)
+#define ll long long
+#define lop(i,n) for(int i=0;i<n;++i)
+#define sz(v) (int(v.size()))
+typedef pair<int, int> ii;
+typedef pair<ll, ll> pll;
+const int N=1e5+100;
+int n;
+struct edge{
+	int i,w,u,v;
+	ll cnt;
+}edges[N];
+bool cmpw(edge a,edge b){
+	return a.w<b.w;
+}
+bool cmpi(edge a,edge b){
+	return a.i<b.i;
+}
+int compId[N],subSz[N],rootId[N];
+vector<int> adj[N];
+vector<int> nodes[N];
+int tc,vis[N];
+int dfs(int cur,int fr,int root){
+	vis[cur]=tc;
+	rootId[cur]=root;
+	subSz[cur]=sz(nodes[cur]);
+	int ret=cur;
+	lop(i,sz(adj[cur])){
+		if(adj[cur][i]==fr)continue;
+		int temp=dfs(adj[cur][i],cur,root);
+		subSz[cur]+=subSz[adj[cur][i]];
+		if(sz(nodes[temp])>sz(nodes[ret]))ret=temp;
+	}
+	return ret;
+}
+void merge(int cur,int fr,int bigComp){
+	vis[cur]=tc;
+	lop(i,sz(adj[cur]))
+		if(adj[cur][i]!=fr)
+			merge(adj[cur][i],cur,bigComp);
+	adj[cur].clear();
+	if(cur==bigComp)return;
+	int s=sz(nodes[bigComp]);
+	nodes[bigComp].resize(int(s+sz(nodes[cur])));
+	lop(i,sz(nodes[cur])){
+		int u=nodes[cur][i];
+		nodes[bigComp][i+s]=u;
+		compId[u]=bigComp;
+	}
+	nodes[cur].clear();
+}
+int main(){
+#ifndef ONLINE_JUDGE
+	freopen("i.txt","r",stdin);
+#endif
+	sc(n);
+	lop(i,n-1){
+		sc(edges[i].u);--edges[i].u;
+		sc(edges[i].v);--edges[i].v;
+		sc(edges[i].w);
+		edges[i].i=i;
+		edges[i].cnt=0;
+	}
+	lop(i,n)compId[i]=i,nodes[i].push_back(i);
+	sort(edges,edges+n-1,cmpw);
+	lop(i,n-1){
+		int j=i;
+		while(j+1<n-1&&edges[j+1].w==edges[j].w)j++;
+		for(int k=i;k<=j;k++){
+			adj[compId[edges[k].u]].push_back(compId[edges[k].v]);
+			adj[compId[edges[k].v]].push_back(compId[edges[k].u]);
+		}
+		tc++;
+		vector<int> vec;
+		for(int k=i;k<=j;k++){
+			if(vis[compId[edges[k].u]]!=tc) // new tree
+				vec.push_back(dfs(compId[edges[k].u],-1,compId[edges[k].u]));
+		}
+
+		for(int k=i;k<=j;k++){
+			int u=compId[edges[k].u],v=compId[edges[k].v];
+			if(subSz[u]<subSz[v])swap(u,v);
+			int root=rootId[u];
+			edges[k].cnt=(subSz[root]-subSz[v])*2LL*(subSz[v]);
+		}
+		tc++;
+		for(int k=i,z=0;z<sz(vec);k++){
+			if(vis[compId[edges[k].u]]!=tc)
+				merge(compId[edges[k].u],-1,vec[z++]);
+		}
+		i=j;
+	}
+	sort(edges,edges+n-1,cmpi);
+	ll mx=0;
+	lop(i,n-1)mx=max(mx,edges[i].cnt);
+	int out=0;
+	lop(i,n-1)if(edges[i].cnt==mx)out++;
+	cout<<mx<<" "<<out<<endl;
+	lop(i,n-1)if(edges[i].cnt==mx)printf("%d ",i+1);
+}

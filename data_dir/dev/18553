@@ -1,0 +1,183 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <fstream>
+#include <string>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <iomanip>
+#include <iostream>
+#include <list>
+#include <sstream>
+#include <ctime>
+#include <functional>
+#include <fstream>
+#include <map>
+#include <stack>
+#include <numeric>
+#include <sstream>
+#include <cassert>
+#include <iomanip>
+#include <queue>
+#include <tuple>
+#include <fstream>
+#include <numeric>
+#include <regex>
+#include <array>
+#include <unordered_map>
+#include <unordered_set>
+#include <bitset>
+#include <deque>
+#include <complex>
+#include <stack>
+
+
+
+using namespace std;
+typedef long long ll;
+
+
+const ll sze = 1 << 21, MOD1 = 1e9 + 447, MOD2 = 1e9 + 21, x1 = 139;
+
+
+int n, k, g, m;
+
+
+inline ll MOD11(ll v)
+{
+	if (v < 0)
+	{
+		if (-v < MOD1)
+			return v + MOD1;
+		else
+			return v % MOD1 + MOD1;
+	}
+
+	if (v < MOD1)
+		return v;
+	else
+		return v % MOD1;
+}
+
+
+ll power[sze] = {1}, cnt[sze];
+map<pair<ll, ll>, int> cnt_mp;
+map<pair<ll, ll>, int> positions;
+
+
+
+pair<ll, ll> get_substr(int l, int r, const vector<ll> &v)
+{
+	if (!l)
+		return make_pair(v[r], cnt[r]);
+	else
+		return make_pair(MOD11(v[r] - v[l - 1] * power[r - l + 1]), cnt[r] - cnt[l - 1]);
+}
+
+
+pair<ll, ll> all_hash(const string &s)
+{
+	int n = s.size();
+	ll cnt = s[0];
+	ll cnt2 = s[0];
+
+	for (int i = 1; i < n; ++i)
+	{
+		cnt = MOD11(cnt * x1 + s[i]);
+		cnt2 += s[i];
+	}
+
+	return make_pair(cnt, cnt2);
+}
+
+
+void get_solution(int start, const vector<ll> &v)
+{
+	cout << "YES\n";
+
+	int ind = start;
+	for (int i = 0; i < n; ++i)
+	{
+		pair<ll, ll> h = get_substr(ind, ind + k - 1, v);
+		cout << positions[h] + 1 << ' ';
+		ind += k;
+	}
+}
+
+
+int main()
+{
+	for (int i = 1; i < sze; ++i)
+		power[i] = MOD11(power[i - 1] * x1);
+
+	string s;
+
+	cin >> n >> k >> s;
+	m = s.size();
+
+	vector<ll> my_hash(2 * m);
+	my_hash[0] = s[0];
+	cnt[0] = s[0];
+	s += s;
+
+	for (int i = 1; i < 2 * m; ++i)
+	{
+		my_hash[i] = MOD11(my_hash[i - 1] * x1 + s[i]);
+		cnt[i] += cnt[i - 1] + s[i];
+	}
+
+	vector<string> challengers;
+
+	cin >> g;
+	for (int i = 0; i < g; ++i)
+	{
+		string s;
+		cin >> s;
+		challengers.push_back(s);
+		pair<ll, ll> v = all_hash(s);
+
+		if (cnt_mp.count(v))
+			cnt_mp[v]++;
+		else
+			cnt_mp[v] = 1;
+
+		positions[v] = i;
+	}
+
+	int g_start = -1;
+
+	for (int start = 0; start < k; ++start)
+	{
+		map<pair<ll, ll>, int> cur_cnt;
+		for (auto v : cnt_mp)
+			cur_cnt[v.first] = v.second;
+
+		int ind = start;
+		bool label = 1;
+
+		for (int i = 0; i < n; ++i)
+		{
+			pair<ll, ll> hsh = get_substr(ind, ind + k - 1, my_hash);
+			
+			if (cur_cnt.count(hsh) && cur_cnt[hsh])
+				cur_cnt[hsh]--;
+			else
+				label = 0;
+
+			ind += k;
+		}
+
+		if (label)
+		{
+			g_start = start;
+			break;
+		}
+	}
+
+	if (g_start != -1)
+		get_solution(g_start, my_hash);
+	else
+		cout << "NO";
+
+	return 0;
+}

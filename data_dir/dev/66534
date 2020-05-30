@@ -1,0 +1,230 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 2e5 + 1;
+const ll L = 20;
+ll n, lgx, ans;
+
+ll cnt[N];
+ll acp[N];
+ll bcp[N];
+ll ocp[N];
+ll s[N];
+ll a[N];
+ll b[N];
+ll o[N];
+ll p[L][N];
+
+string t;
+
+struct Node {
+    ll l, r;
+    ll sum;
+    ll lzy;
+} node[N << 2];
+
+ll lcp(ll i, ll j) {
+    ll res = 0;
+    for(ll k = lgx; k >= 0 && i < n && j < n; --k) {
+        if(p[k][i] == p[k][j]) {
+            res += 1 << k;
+            i += 1 << k;
+            j += 1 << k;
+        }
+    }
+    return res;
+}
+
+void build(ll id, ll l, ll r) {
+    node[id].l = l;
+    node[id].r = r;
+    if(l == r) {
+        return;
+    }
+    ll q = l + r >> 1;
+    build(l(id), l, q);
+    build(r(id), q + 1, r);
+}
+
+void lazy(ll id) {
+    ll lzy = node[id].lzy;
+    if(node[id].l != node[id].r) {
+        if(node[id].lzy == -1) {
+            node[l(id)].lzy = -1;
+            node[r(id)].lzy = -1;
+        } else {
+            if(node[l(id)].lzy == -1) {
+                node[l(id)].lzy = lzy;
+                node[l(id)].sum = 0;
+                if(node[l(id)].l != node[l(id)].r) {
+                    node[l(l(id))].lzy = -1;
+                    node[r(l(id))].lzy = -1;
+                }
+            } else {
+                node[l(id)].lzy += lzy;
+            }
+            if(node[r(id)].lzy == -1) {
+                node[r(id)].lzy = lzy;
+                node[r(id)].sum = 0;
+                if(node[r(id)].l != node[r(id)].r) {
+                    node[l(r(id))].lzy = -1;
+                    node[r(r(id))].lzy = -1;
+                }
+            } else {
+                node[r(id)].lzy += lzy;
+            }
+        }
+    }
+    if(lzy == -1) {
+        node[id].sum = 0;
+    } else {
+        node[id].sum += lzy * (node[id].r - node[id].l + 1);
+    }
+    node[id].lzy = 0;
+}
+
+void merge(ll id, ll l, ll r) {
+    lazy(l), lazy(r);
+    node[id].sum = node[l].sum + node[r].sum;
+}
+
+void update(ll id, ll l, ll r, ll x) {
+    if(node[id].l == l && node[id].r == r) {
+        if(x == -1) {
+            node[id].lzy = -1;
+        } else {
+            node[id].lzy += x;
+        }
+        return;
+    }
+    lazy(id);
+    ll q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        update(l(id), l, min(q, r), x);
+    }
+    if(r > q) {
+        update(r(id), max(q + 1, l), r, x);
+    }
+    merge(id, l(id), r(id));
+}
+
+ll query(ll id, ll l, ll r) {
+    lazy(id);
+    if(node[id].l == l && node[id].r == r) {
+        return node[id].sum;
+    }
+    ll res = 0;
+    ll q = node[id].l + node[id].r >> 1;
+    if(l <= q) {
+        res += query(l(id), l, min(q, r));
+    }
+    if(r > q) {
+        res += query(r(id), max(q + 1, l), r);
+    }
+    return res;
+}
+
+void input() {
+    cin >> t;
+    n = len(t);
+    for(ll i = 0; i < n; ++i) {
+        p[0][i] = t[i];
+    }
+}
+
+void counting_sort(ll a[], ll b[], ll o[]) {
+    fill(cnt, cnt + N, 0);
+    for(ll i = 0; i < n; ++i) {
+        cnt[a[i]]++;
+    }
+    for(ll i = 1; i < N; ++i) {
+        cnt[i] += cnt[i - 1];
+    }
+    for(ll i = n - 1; i >= 0; --i) {
+        ll ind = --cnt[a[i]];
+        acp[ind] = a[i];
+        bcp[ind] = b[i];
+        ocp[ind] = o[i];
+    }
+    copy(acp, acp + N, a);
+    copy(bcp, bcp + N, b);
+    copy(ocp, ocp + N, o);
+}
+
+void radix_sort() {
+    counting_sort(b, a, o);
+    counting_sort(a, b, o);
+}
+
+void solve() {
+    build(0, 1, n);
+    for(ll i = 1, j = 1; j <= n; ++i, j <<= 1) {
+        for(ll k = 0; k < n; ++k) { 
+            a[k] = p[i - 1][k] + 1;
+            b[k] = (k + j < n? p[i - 1][k + j] + 1: 0);
+            o[k] = k;
+        }
+        radix_sort();
+        p[i][o[0]] = 0;
+        for(ll k = 1; k < n; ++k) {
+            p[i][o[k]] = mp(a[k - 1], b[k - 1]) == mp(a[k], b[k])? p[i][o[k - 1]]: k;
+        }
+        lgx = i;
+    }
+    for(ll i = 0; i < n; ++i) {
+        s[p[lgx][i]] = i;
+    }
+    for(ll i = 0; i < n; ++i) {
+        ll k = n - s[i];
+        ans += query(0, 1, k) + k;
+        if(i != n - 1) {
+            ll x = lcp(s[i], s[i + 1]);
+            update(0, x + 1, n, -1);
+            update(0, 1, x, 1);
+        }
+    }
+    cout << ans << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

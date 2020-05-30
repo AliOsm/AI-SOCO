@@ -1,0 +1,41 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+#define endl '\n'
+#define D(x) cerr << #x << " = " << (x) << '\n'
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 2e5 + 5;
+
+int n, k;
+int a[N], b[N];
+int p[N];
+
+int main()
+{
+  scanf("%d%d", &n, &k);
+  for(int i = 0 ; i < n ; i++){
+    scanf("%d", a + i);
+    p[i] = i;
+  }
+  for(int i = 0 ; i < n ; i++){
+    scanf("%d", b + i);
+  }
+  sort(p, p + n, [](int i, int j){
+    return b[i] - a[i] > b[j] - a[j];
+  });
+  int ans = 0;
+  for(int i = 0 ; i < k ; i++){
+    ans += a[p[i]];
+  }
+  for(int i = k ; i < n ; i++)
+    ans += min(a[p[i]], b[p[i]]);
+  cout << ans << endl;
+  return 0;
+}
+
+//Check array sizes
+//Check limits: N = 1 ? N = Max ? .. etc
+//Check time complexity

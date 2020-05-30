@@ -1,0 +1,122 @@
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops")
+#pragma GCC optimize("no-stack-protector,fast-math")
+#include <bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define IO ios_base::sync_with_stdio(0),cin.tie(0),cout.tie(0);
+using namespace std;
+const int N = 2e5 + 5, M = 2 * N + 5;
+
+ll cnt[N][2];
+
+int n;
+void KMP(const string &s, const string &k){
+    if (k.empty())
+        return ;
+    vector<int> tmp(k.size(), 0);
+    for (int i = 1, j = 0; i < k.size(); ++i){
+        while (j && k[j] != k[i])
+            j = tmp[j - 1];
+        if (k[j] == k[i])
+            ++j;
+        tmp[i] = j;
+    }
+    for (int i = 0, j = 0; i < s.size(); ++i){
+        while (j && k[j] != s[i])
+            j = tmp[j - 1];
+        if (k[j] == s[i])
+            ++j;
+        if (j == k.size())
+            ++cnt[i - j + 1][0], ++cnt[n - i - 1][1];
+    }
+}
+
+int sz;
+struct node{
+    int cnt;
+    node* to[26];
+}nodes[N];
+
+node* newNode(){
+    nodes[sz].cnt = 0;
+    for(int i = 0 ; i < 26 ; ++i)
+        nodes[sz].to[i] = NULL;
+    return &nodes[sz++];
+}
+
+node* root;
+
+void init(){
+    sz = 0;
+    root = newNode();
+}
+
+void addToTrie(node* r, string &s){
+    for(int i = 0 ; i < (int)s.size() ; ++i){
+        int ch = s[i] - 'a';
+        if(r->to[ch] == NULL)
+            r->to[ch] = newNode();
+        r = r->to[ch];
+    }
+    ++r->cnt;
+}
+
+string t;
+
+int getCnt(node* r, int i){
+    int ret = 0;
+
+    while(i < n){
+        int ch = t[i++] - 'a';
+        if(r->to[ch] == NULL)return ret;
+        ret += (r = r->to[ch])->cnt;
+    }
+
+    return ret;
+}
+
+vector<string> a;
+
+void solve(int sq){
+    for(int r = 0 ; r < 2 ; ++r){
+        init();
+        for(auto s : a)
+            if((int)s.size() <= sq)
+                addToTrie(root, s);
+
+        for(int i = 0 ; i < n ; ++i)
+            cnt[i][r] += getCnt(root, i);
+
+        reverse(t.begin(), t.end());
+        for(auto &s : a)
+            if((int)s.size() <= sq)
+                reverse(s.begin(), s.end());
+    }
+}
+
+ll ans;
+
+int main(){
+    IO;
+    cin >> t >> n;
+
+    int sum = 0;
+    
+    a.resize(n);
+    for(auto &s : a)
+        cin >> s, sum += s.size();
+
+    n = t.size();
+    int sq = sqrt(1.0L * sum);
+    
+    for(auto s : a)
+        if((int)s.size() > sq)
+            KMP(t, s);
+
+    solve(sq);
+    
+    for(int i = 0 ; i < n ; ++i)
+        ans += cnt[i][0] * cnt[n - i][1];
+
+    cout << ans << endl;
+}

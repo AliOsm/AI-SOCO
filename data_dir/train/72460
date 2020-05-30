@@ -1,0 +1,167 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+#define _abs(x) ((x)>0?(x):-(x))
+
+int N,L;
+vector <pair <pair <ll, ll>, pair <ll, ll> > > v; // t%L, t, x, y
+ll MAXSUM,MINSUM,MAXDIF,MINDIF;
+ll X,Y;
+bool failed;
+
+ll parity(ll x){
+    if(x < 0) x = -x;
+    return x % 2;
+}
+
+ll ceil_div(ll x, ll y);
+
+ll floor_div(ll x, ll y){
+    if(x >= 0) return x / y;
+    return -ceil_div(-x, y);
+}
+
+ll ceil_div(ll x, ll y){
+    if(x >= 0) return (x + y - 1) / y;
+    return -floor_div(-x, y);
+}
+
+void check(ll t, ll cycle, ll x, ll y){ // cout << t << ' ' << cycle << ' ' << x << ' ' << y << endl;
+    if(cycle == 0){
+        if(_abs(x) + _abs(y) > t) failed = true;
+        return;
+    }
+    
+    if(cycle < 0){
+        cycle = -cycle;
+        x = -x;
+        y = -y;
+    }
+    
+    MAXSUM = min(MAXSUM, floor_div(x+y+t, cycle));
+    MINSUM = max(MINSUM, ceil_div(x+y-t, cycle));
+    MAXDIF = min(MAXDIF, floor_div(x-y+t, cycle));
+    MINDIF = max(MINDIF, ceil_div(x-y-t, cycle));
+}
+
+int dx[] = {1,-1,0,0}, dy[] = {0,0,1,-1};
+string ds = "RLUD";
+
+map <int, pair <int, int> > mp;
+vector <pair <int, pair <int, int> > > vv;
+
+void construct(void){
+    int i,j;
+    string ans;
+    
+    snuke(mp,itr) vv.push_back(*itr);
+    REP(i,vv.size()-1){
+        int t = vv[i+1].first - vv[i].first;
+        int x = vv[i+1].second.first - vv[i].second.first;
+        int y = vv[i+1].second.second - vv[i].second.second;
+        while(t > 0){
+            REP(j,4) if(_abs(x - dx[j]) + _abs(y - dy[j]) <= t-1){
+                t--;
+                x -= dx[j];
+                y -= dy[j];
+                ans += ds[j];
+                break;
+            }
+        //  if(j == 4) cout << "warning" << endl;
+        }
+    }
+    
+    printf("%s\n", ans.c_str());
+}
+
+ll input(void){
+    ll x;
+    scanf("%I64d", &x);
+    return x;
+}
+
+int main(void){
+    int i;
+    
+    cin >> N >> L;
+    failed = false;
+    
+    REP(i,N){
+        ll t = input();
+        ll x = input();
+        ll y = input();
+        ll tmp = x + y + t;
+        if(tmp < 0) tmp = -tmp;
+        if(tmp % 2 != 0){
+            cout << "NO" << endl;
+            return 0;
+        }
+        v.push_back(make_pair(make_pair(t%L, t), make_pair(x, y)));
+    }
+    
+    sort(v.begin(),v.end());
+    
+    MAXSUM = MAXDIF = L;
+    MINSUM = MINDIF = -L;
+    
+    check(v[0].first.first, v[0].first.second / L, v[0].second.first, v[0].second.second);
+    check(L - v[N-1].first.first, 1 + v[N-1].first.second / L, v[N-1].second.first, v[N-1].second.second);
+    REP(i,N-1) check(v[i+1].first.first - v[i].first.first, v[i+1].first.second / L - v[i].first.second / L,
+    v[i+1].second.first - v[i].second.first, v[i+1].second.second - v[i].second.second);
+    
+    // cout << MAXSUM << ' ' << MINSUM << ' ' << MAXDIF << ' ' << MINDIF << endl;
+    
+    if(parity(MAXSUM) != L % 2) MAXSUM--;
+    if(parity(MINSUM) != L % 2) MINSUM++;
+    if(parity(MAXDIF) != L % 2) MAXDIF--;
+    if(parity(MINDIF) != L % 2) MINDIF++;
+    if(MAXSUM < MINSUM || MAXDIF < MINDIF) failed = true;
+    if(failed){
+        cout << "NO" << endl;
+        return 0;
+    }
+    
+    
+    int CX = (MAXSUM + MAXDIF) / 2;
+    int CY = (MAXSUM - MAXDIF) / 2;
+    
+    mp[0] = make_pair(0, 0);
+    mp[L] = make_pair(CX, CY);
+    
+    REP(i,N){
+        ll t = v[i].first.second;
+        ll x = v[i].second.first;
+        ll y = v[i].second.second;
+        ll cycle = t / L;
+        t -= cycle * L;
+        x -= cycle * CX;
+        y -= cycle * CY;
+        mp[(int)t] = make_pair((int)x, (int)y);
+    }
+    
+    construct();
+    
+    return 0;
+}

@@ -1,0 +1,140 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <bitset>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define snuke(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+int ANSV;
+double ANSC;
+
+void update_ans(int v, double c){
+    if(ANSV == -1 || c < ANSC){
+        ANSC = c;
+        ANSV = v;
+    }
+}
+
+#define MAXV 200010
+
+int N;
+int w[MAXV];
+vector <pair <int, int> > graph[MAXV]; // to, weight
+bool removed[MAXV];
+
+double distsum[MAXV];
+double diffsum[MAXV];
+
+void dfs2(int c, int p, int x, double d){
+    distsum[c] += d * sqrt(d) * (double)w[x];
+    diffsum[c] += sqrt(d) * (double)w[x];
+    int i;
+    REP(i,graph[x].size()){
+        int y = graph[x][i].first;
+        if(y != p) dfs2(c, x, y, d + graph[x][i].second);
+    }
+}
+
+int check(int x){
+    int i;
+    double sum = 0.0;
+    double best = -1.0;
+    int ans = -1;
+    
+    REP(i,graph[x].size()){
+        int y = graph[x][i].first;
+        distsum[y] = diffsum[y] = 0.0;
+        dfs2(y, x, y, graph[x][i].second);
+        sum += distsum[y];
+        if(diffsum[y] > best){
+            best = diffsum[y];
+            ans = y;
+        }
+    }
+    
+    update_ans(x, sum);
+    
+    return ans;
+}
+
+int sz[MAXV];
+
+void dfs(int p, int x){
+    int i;
+    sz[x] = 1;
+    REP(i,graph[x].size()){
+        int y = graph[x][i].first;
+        if(y != p && !removed[y]){
+            dfs(x, y);
+            sz[x] += sz[y];
+        }
+    }
+}
+
+int find_center(int x){
+    int i,p=-1;
+    
+    dfs(-1, x);
+    int cap = sz[x] / 2;
+    
+    while(1){
+        bool found = false;
+        REP(i,graph[x].size()){
+            int y = graph[x][i].first;
+            if(!removed[y] && y != p && sz[y] > cap){
+                found = true;
+                p = x;
+                x = y;
+                break;
+            }
+        }
+        if(!found) return x;
+    }
+}
+
+void func(int x){
+    int y = find_center(x);
+    int tmp = check(y);
+    removed[y] = true;
+    if(tmp != -1 && !removed[tmp]) func(tmp);
+}
+
+int main(void){
+    int i;
+    
+    ANSV = -1;
+    ANSC = 0.0;
+    
+    cin >> N;
+    REP(i,N) scanf("%d", &w[i]);
+    REP(i,N-1){
+        int a,b,l;
+        scanf("%d%d%d", &a, &b, &l);
+        a--; b--;
+        graph[a].push_back(make_pair(b, l));
+        graph[b].push_back(make_pair(a, l));
+    }
+    
+    func(0);
+    
+    printf("%d %.12f\n", ANSV + 1, ANSC);
+    
+    return 0;
+}

@@ -1,0 +1,97 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef tuple<int, int, int> state;
+
+const int MAX = 3000 + 5;
+const int INF = 0x3F3F3F3F;
+const int LOGMAX = 13;
+vector<state> queries[MAX];
+vector<int> adj[MAX];
+bool has_path[MAX][MAX];
+int nxt[LOGMAX][MAX], ans[(int) 4e5 + 5];
+int n, m;
+
+void dfs(int source, int root) {
+	has_path[root][source] = true;
+	for(auto &each : adj[source]) {
+		if(!has_path[root][each]) {
+			dfs(each, root);
+		}
+	}
+}
+
+int get_kth(int s, int t, int k) {
+	if(nxt[12][s] != INF || !has_path[s][t]) {
+		return -1;
+	}
+	int guy = s;
+	for(int i = 0; guy < INF && i <= 11; i++) {
+		if(k & (1 << i)) {
+			guy = nxt[i][guy];
+		}
+	}
+	return guy == INF ? -1 : guy;
+}
+
+int main() {
+	int q;
+	scanf("%d %d %d", &n, &m, &q);
+	fori(i, 0, m) {
+		int u, v;
+		scanf("%d %d", &u, &v);
+		adj[u].push_back(v);
+	}
+
+	fori(i, 0, q) {
+		int s, t, k;
+		scanf("%d %d %d", &s, &t, &k);
+		queries[t].emplace_back(s, k, i);
+	}
+
+	fori(i, 1, n + 1) {
+		dfs(i, i);
+	}
+
+	fori(j, 1, n + 1) {
+		memset(nxt, 0x3F, sizeof nxt);
+		fori(i, 1, n + 1) {
+			if(i == j) {
+				continue;
+			}
+			for(auto &each : adj[i]) {
+				if(has_path[each][j]) {
+					nxt[0][i] = min(nxt[0][i], each);
+				}
+			}
+		}
+		fori(i, 1, LOGMAX) {
+			fori(k, 1, n + 1) {
+				if(nxt[i - 1][k] != INF) {
+					nxt[i][k] = nxt[i - 1][nxt[i - 1][k]];
+				}
+			}
+		}
+		for(auto &each : queries[j]) {
+			int s, k, id;
+			tie(s, k, id) = each;
+			ans[id] = get_kth(s, j, k - 1);
+		}
+	}
+
+
+
+	fori(i, 0, q) {
+		printf("%d\n", ans[i]);
+	}
+
+	return 0;
+}
+

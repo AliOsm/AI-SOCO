@@ -1,0 +1,164 @@
+/*
+    Author: Nguyen Tan Bao
+    Status:
+    Idea:
+*/
+ 
+#include <bits/stdc++.h>
+#define FI first
+#define SE second
+#define EPS 1e-9
+#define ALL(a) a.begin(),a.end()
+#define SZ(a) int((a).size())
+#define MS(s, n) memset(s, n, sizeof(s))
+#define FOR(i,a,b) for (int i = (a); i <= (b); i++)
+#define FORE(i,a,b) for (int i = (a); i >= (b); i--)
+#define FORALL(it, a) for (__typeof((a).begin()) it = (a).begin(); it != (a).end(); it++)
+//__builtin_ffs(x) return 1 + index of least significant 1-bit of x
+//__builtin_clz(x) return number of leading zeros of x
+//__builtin_ctz(x) return number of trailing zeros of x
+ 
+using namespace std;
+using ll = long long;
+using ld = double;
+typedef pair<int, int> II;
+typedef pair<II, ll> III;
+typedef complex<ld> cd;
+typedef vector<cd> vcd;
+ 
+const ll MODBASE = 1000000007LL;
+const int MAXN = 500010;
+const int MAXM = 1000;
+const int MAXK = 16;
+const int MAXQ = 200010;
+
+int n, res[MAXN], maxD[MAXN], fromPar[MAXN], par[MAXN];
+vector<int> a[MAXN], tmp, tmp2, w;
+vector<II> edges;
+map<int, int> ma[MAXN], tmpMap;
+
+void dfs(int u, int p) {
+    maxD[u] = 1;
+    FOR(i,0,SZ(a[u])-1) {
+        int v = a[u][i];
+        if (v == p) continue;
+        par[v] = u;
+        dfs(v, u);
+        maxD[u] = max(maxD[u], maxD[v] + 1);
+    }
+}
+
+void dfs2(int u, int p) {
+    tmp.clear();
+    FOR(i,0,SZ(a[u])-1) {
+        int v = a[u][i];
+        if (v == p) tmp.emplace_back(fromPar[u]);
+        else tmp.emplace_back(maxD[v]);
+    }
+    tmp2 = tmp;
+    FORE(i,SZ(a[u])-2,0) tmp2[i] = max(tmp2[i], tmp2[i+1]);
+    int maxNow = 0;
+    FOR(i,0,SZ(a[u])-1) {
+        int maxNext = 0;
+        if (i < SZ(a[u])-1) maxNext = tmp2[i+1];
+        int v = a[u][i];
+        int q = max(maxNow, maxNext);
+        if (v != p) fromPar[v] = q+1;
+        maxNow = max(maxNow, tmp[i]);
+    }
+    FOR(i,0,SZ(a[u])-1) {
+        int v = a[u][i];
+        if (v == p) continue;
+        dfs2(v, u);
+    }
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(nullptr);
+    cin >> n;
+    FOR(i,1,n-1) {
+        int u, v;
+        cin >> u >> v;
+        a[u].emplace_back(v);
+        a[v].emplace_back(u);
+        edges.emplace_back(II(u, v));
+    }
+    FOR(i,1,n) res[i] = 1;
+
+    dfs(1, 0);
+    dfs2(1, 0);
+
+    FOR(i,1,n) {
+        w.clear();
+        FOR(j,0,SZ(a[i])-1) {
+            int v = a[i][j];
+            if (v == par[i]) {
+                w.emplace_back(fromPar[i]);
+                ma[i][fromPar[i]]++;
+            }
+            else {
+                w.emplace_back(maxD[v]);
+                ma[i][maxD[v]]++;
+            }
+        }
+        w.emplace_back(0);
+        w.emplace_back(-2);
+        sort(ALL(w));
+        int cnt = 1;
+        FORE(j,SZ(w)-2,0) {
+            if (w[j] != w[j+1]) {
+                // calc from w[j+1]
+                int k = w[j+1] * 2;
+                if (cnt > 1) res[k] = max(res[k], cnt);
+                if (w[j] >= 0) {
+                    k = w[j] * 2 + 1;
+                    res[k] = max(res[k], cnt+1);
+                }
+            }
+            cnt++;
+        }
+    }
+
+    FORE(i,n,1) res[i] = max(res[i], res[i+1]);
+
+    // special case (2k, 2k+1)
+    FOR(u,1,n) {
+        tmpMap.clear();
+        int maxU = 0, sumU = 0;
+        FORALL(it, ma[u]) {
+            tmpMap[it->FI] += it->SE;
+            sumU += it->SE;
+            maxU = max(maxU, it->FI);
+        }
+        FOR(j,0,SZ(a[u])-1) {
+            int v = a[u][j];
+            if (v == par[u]) continue;
+            int maxV = 0, sum = sumU;
+            FORALL(it, ma[v]) {
+                tmpMap[it->FI] += it->SE;
+                sum += it->SE;
+                maxV = max(maxV, it->FI);
+            }
+
+            FORALL(it, tmpMap) {
+                if (it->FI > min(maxU, maxV)) break;
+
+                int k = it->FI * 2;
+                if (sum-2 > 1) res[k] = max(res[k], sum-2);
+
+                sum -= it->SE;
+            }
+
+            FORALL(it, ma[v]) {
+                tmpMap[it->FI] -= it->SE;
+                if (tmpMap[it->FI] == 0) tmpMap.erase(it->FI);
+            }
+        }
+    }
+    
+    FORE(i,n,1)
+        if (i % 2 == 0) res[i] = max(res[i], res[i+2]);
+    FOR(i,1,n) cout << res[i] << ' ';
+    return 0;
+}

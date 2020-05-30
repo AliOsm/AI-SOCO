@@ -1,0 +1,143 @@
+#include <iostream>
+#include <string.h>
+#include <ctime>
+#include <cmath>
+#include <algorithm>
+#include <queue>
+#include <map> 
+#include <set>
+#include <vector>
+#define fi first
+#define se second
+
+using namespace std;
+const int maxN = 1e5 + 5999, MOD = 998244353, lg = 19;
+
+typedef long long ll;
+typedef pair<ll, int> ii;
+
+/*void incExc(int init[maxN], int ans[maxN]){
+ 
+ for(int i = 1; i < maxN; buc[i] = 0, root[i++] = 1)
+ for(int j = i; j < maxN; i += j)
+ buc[i] += init[j];
+ 
+ for(int i = 2; i < maxN; i++)
+ if(root[i] == 1)
+ for(int j = i; j < maxN; j += i)
+ root[j] *= i, buc[j] *= -1;
+ 
+ for(int i = 1; i < maxN; i++)
+ if(root[i] == i)
+ for(int j = i; j < maxN; j += i)
+ ans[j] -= buc[i];
+ 
+ for(int i = 1; i < maxN; i++) ans[i] = buc[1] - ans[i];
+ 
+ //for each i, ans[i] = sum of init vals of all numbers not coprime to i
+ }*/
+const ll LIM = 2e18;
+
+ll bat, ans = 0, et, prdivs[100], prsz[100], prdivF[100][100], prc = 0;
+ll origFac[100], origFacC = 0;
+
+ll mulm(ll a, ll b, ll MOD){
+    ll ret = 0;
+    while(b){
+        ret = (ret + b % bat * a) % MOD;
+        b /= bat, a = a * bat % MOD;
+    }
+    return ret;
+}
+
+ll fastPow(ll a, ll b, ll MOD){
+    ll ret = 1;
+    a %= MOD;
+    while(b){
+        if(b & 1) ret = mulm(ret, a, MOD);
+        b >>= 1, a = mulm(a, a, MOD);
+    }
+    return ret % MOD;
+}
+
+ll m, x;
+
+void consid(ll divi){
+    
+    if(divi == 1) return void(ans++);
+    
+    bat = max(2LL, LIM / divi);
+    
+    ll ringsz = 1, net = divi;
+    
+    for(int i = 0; i < origFacC; i++)
+        if(net % origFac[i] == 0)
+            net = net - net / origFac[i];
+    
+    for(int i = 0; i < prc; i++){
+        
+        int l = -1, m, r = prsz[i];
+        while(l + 1 < r){
+            m = (l + r) >> 1;
+            if(fastPow(x, prdivF[i][m], divi) == 1)
+                r = m;//eso prro, tirale a mas
+            else
+                l = m;//te mamaste, bajale de huevos
+        }
+        ringsz *= et / prdivF[i][prsz[i] - r];
+    }
+    
+    //cout << divi << ' ' << net << ' ' << ringsz << '\n';
+    
+    ans += net / ringsz;
+}
+
+map<ll, int> getpr(ll x){
+    map<ll, int> ret;
+    for(ll i = 2; i * i <= x; i++)
+        while(x % i == 0)
+            x /= i, ret[i]++;
+    if(x > 1) ret[x]++;
+    return ret;
+}
+
+set<ll> divs;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    
+    cin >> m >> x;
+    
+    map<ll, int> ordiv = getpr(m);
+    
+    for(auto it = ordiv.begin(); it != ordiv.end(); it++, origFacC++)
+        origFac[origFacC] = it -> fi;
+    
+    et = m;
+    for(auto it = ordiv.begin(); it != ordiv.end(); it++)
+        et = et - et / it -> fi;
+    
+    map<ll, int> prdv = getpr(et);
+    
+    for(auto it = prdv.begin(); it != prdv.end(); it++, prc++){
+        prdivs[prc] = it -> fi;
+        prdivF[prc][it -> se] = et;
+        
+        prsz[prc] = it -> se;
+        
+        for(int j = it -> se - 1; j >= 0; j--) prdivF[prc][j] = prdivF[prc][j + 1] / it -> fi;
+        
+    }
+    
+    for(ll i = 1; i * i <= m; i++)
+        if(m % i == 0)
+            divs.insert(i), divs.insert(m / i);
+    
+    for(auto it = divs.begin(); it != divs.end(); it++)
+        consid(*it);
+    
+    cout << ans << '\n';
+    
+}
+

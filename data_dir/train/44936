@@ -1,0 +1,156 @@
+#pragma comment(linker,"/stack:256000000")
+
+#include <cmath> 
+#include <ctime> 
+#include <iostream> 
+#include <string> 
+#include <vector> 
+#include <algorithm> 
+#include <set> 
+#include <map> 
+#include <cstring> 
+#include <cstdlib> 
+#include <queue> 
+#include <cstdio> 
+#include <cfloat>
+#include <cassert>
+#include <unordered_set>
+
+using namespace std; 
+
+#define REP(i, n) for (int (i) = 0; (i) < (n); (i)++) 
+#define sz(v) (int)(v).size() 
+#define all(v) (v).begin(), (v).end()
+
+const int BOUND = 700;
+const int N = 50010;
+
+unordered_set <int> special;
+unordered_set <int> f[N];
+int cnt[N];
+bool online[N];
+
+void login(int x) {
+	online[x] = true;
+	if (sz(f[x]) < BOUND) { 
+		for (unordered_set <int>::iterator it = f[x].begin(); it != f[x].end(); ++it) {
+			cnt[*it]++;
+		}
+	} else {
+		special.insert(x);
+	}
+}
+
+void logout(int x) {
+	online[x] = false;
+	if (sz(f[x]) < BOUND) {
+		for (unordered_set <int>::iterator it = f[x].begin(); it != f[x].end(); ++it) {
+			cnt[*it]--;
+		}
+	} else {
+		special.erase(x);
+	}
+}
+
+void add_special(int x) {
+	if (online[x]) {
+		for (unordered_set <int>::iterator it = f[x].begin(); it != f[x].end(); ++it) {
+			cnt[*it]--;
+		}
+		special.insert(x);
+	}
+}
+
+void add_friend(int u, int v) {
+	f[u].insert(v);
+	f[v].insert(u);
+	if (online[u]) {
+		if (sz(f[u]) <= BOUND) {
+			cnt[v]++;
+		}
+	}
+	if (online[v]) {
+		if (sz(f[v]) <= BOUND) {
+			cnt[u]++;
+		}
+	}
+	if (sz(f[u]) == BOUND) add_special(u);
+	if (sz(f[v]) == BOUND) add_special(v);
+}
+
+void del_special(int x) {
+	if (online[x]) {
+		special.erase(x);
+		for (unordered_set <int>::iterator it = f[x].begin(); it != f[x].end(); ++it) {
+			cnt[*it]++;
+		}
+	}
+}
+
+void del_friend(int u, int v) {
+	f[u].erase(v);
+	f[v].erase(u);
+	if (online[u]) {
+		if (sz(f[u]) < BOUND - 1) {
+			cnt[v]--;
+		}
+	}
+	if (online[v]) {
+		if (sz(f[v]) < BOUND - 1) {
+			cnt[u]--;
+		}
+	}
+	if (sz(f[u]) == BOUND - 1) del_special(u);
+	if (sz(f[v]) == BOUND - 1) del_special(v);
+}
+
+int count_online_friends(int x) {
+	int res = cnt[x];
+	for (unordered_set <int>::iterator it = special.begin(); it != special.end(); ++it) {
+		if (f[x].count(*it)) {
+			++res;
+		}
+	}
+	return res;
+}
+
+int main() {
+#ifdef LOCAL
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	int n, m, q;
+	scanf("%d %d %d", &n, &m, &q);
+	int onl, x;
+	scanf("%d", &onl);
+	vector <int> now_online(onl);
+	REP(i, onl) scanf("%d", &now_online[i]);
+	int u, v;
+	REP(_, m) {
+		scanf("%d %d", &u, &v);
+		add_friend(u, v);
+	}
+	REP(i, onl) login(now_online[i]);
+	char c;
+	REP(_, q) {
+		scanf("\n");
+		scanf("%c", &c);
+		if (c == 'O') {
+			scanf("%d", &x);
+			login(x);
+		} else if (c == 'F') {
+			scanf("%d", &x);
+			logout(x);
+		} else if (c == 'A') {
+			scanf("%d %d", &u, &v);
+			add_friend(u, v);
+		} else if (c == 'D') {
+			scanf("%d %d", &u, &v);
+			del_friend(u, v);
+		} else if (c == 'C') {
+			scanf("%d", &x);
+			printf("%d\n", count_online_friends(x));
+		}
+	}
+	return 0;
+}

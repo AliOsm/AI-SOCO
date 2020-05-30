@@ -1,0 +1,74 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+const int N = 1e5 + 5;
+vector<int> adj[N];
+int parent[N], root[N], depth[N], a[N], countNeed;
+bool needed[N], printed[N], validated[N];
+int getRoot(int node) {
+	int source = node;
+	while (parent[node]) {
+		node = parent[node];
+		if (root[node])
+			return root[source] = root[node];
+	}
+	return root[source] = node;
+}
+int setDepth(int node, int level) {
+	if (depth[node])
+		return depth[node];
+	for (auto a: adj[node])
+		setDepth(a, level + 1);
+	return depth[node] = level;
+}
+void print(int node) {
+	for (auto a: adj[node])
+		print(a);
+	if (needed[node])
+		printf("%d\n", node);
+}
+bool validate(int node) {
+	if (validated[node]++)
+		return true;
+	if (!(node == a[node] || a[node] == a[parent[node]]))
+		return false;
+	for (auto child: adj[node]) {
+		if (!validate(child))
+			return false;
+	}
+	return true;
+}
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.in", "r", stdin);
+#endif
+	int n, m;
+	scanf("%d%d", &n, &m);
+	for (int i = 0; i < m; ++i) {
+		int u, v;
+		scanf("%d%d", &u, &v);
+		adj[u].push_back(v);
+		parent[v] = u;
+	}
+	for (int i = 1; i <= n; ++i)
+		setDepth(getRoot(i), 1);
+	for (int i = 1; i <= n; ++i) {
+		scanf("%d", a + i);
+		if (!needed[a[i]]++)
+			++countNeed;
+	}
+	for (int i = 1; i <= n; ++i) {
+		if (!validate(getRoot(i))) {
+			printf("-1\n");
+			return 0;
+		}
+	}
+	printf("%d\n", countNeed);
+	for (int i = 1; i <= n; ++i) {
+		int root = getRoot(i);
+		if (!printed[root]++) {
+			print(root);
+		}
+	}
+	return 0;
+}

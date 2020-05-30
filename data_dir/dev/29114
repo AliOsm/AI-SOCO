@@ -1,0 +1,139 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+
+LL power(LL a, LL b, LL m) {
+    a = (a%m+m)%m;
+	LL ans = 1;
+	while (b) {
+		if (b & 1) ans = (ans*a)%m;
+		a = (a*a)%m;
+		b >>= 1;
+	}
+	return ans;
+}
+
+
+struct NTT {
+    int N;
+    vector<int> perm;
+
+    int mod, root, inv, pw;
+
+    NTT(int mod, int root, int inv, int pw) :
+        mod(mod), root(root), inv(inv), pw(pw) {}
+
+    void precalculate() {
+        perm.resize(N);
+        perm[0] = 0;
+
+        for (int k=1; k<N; k<<=1) {
+            for (int i=0; i<k; i++) {
+                perm[i] <<= 1;
+                perm[i+k] = 1 + perm[i];
+            }
+        }
+    }
+
+    void fft(vector<LL> &v, bool invert = false) {
+        if (v.size() != perm.size()) {
+            N = v.size();
+            assert(N && (N&(N-1)) == 0);
+            precalculate();
+        }
+
+        for (int i=0; i<N; i++)
+            if (i < perm[i])
+                swap(v[i], v[perm[i]]);
+
+        for (int len = 2; len <= N; len <<= 1) {
+            LL factor = invert ? inv : root;
+            for (int i = len; i < pw; i <<= 1)
+                factor = (factor * factor) % mod;
+
+            for (int i=0; i<N; i+=len) {
+                LL w = 1;
+                for (int j=0; j<len/2; j++) {
+                    LL x = v[i+j], y = (w * v[i+j+len/2])%mod;
+                    v[i+j] = (x+y);
+                    if (v[i+j] >= mod)  v[i+j] -= mod;
+                    v[i+j+len/2] = (x-y+mod);
+                    if (v[i+j+len/2] >= mod)  v[i+j+len/2] -= mod;
+                    w = (w * factor)%mod;
+                }
+            }
+        }
+        if (invert) {
+            LL n1 = power(N, mod-2, mod);
+            for (LL &x : v) x=(x*n1)%mod;
+        }
+    }
+};
+
+const int MX = 1<<19, M = 998244353;
+int fr[MX];
+vector<LL> ways[10];
+
+vector<LL> single = {1, 2}, twofold = {1, 2, 1};
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    vector<LL> left = {1,4,6,4,1};
+    NTT ntt(998244353, 15311432, 469870224, 1<<23);
+
+    single.resize(MX);
+    twofold.resize(MX);
+    ntt.fft(single);
+    ntt.fft(twofold);
+
+
+    int n, k;
+    cin>>n>>k;
+
+    for (int i=1; i<=n; i++) {
+        int x;
+        cin>>x;
+        fr[x]++;
+    }
+
+    vector<int> b(k);
+    for (int i=0; i<k; i++) cin>>b[i];
+    sort(b.begin(), b.end());
+
+    int done = 0, ss = 0, dd = 0;
+    for (int j=0; j<k; j++) {
+        int x = b[j];
+        while (done < x) {
+            if (fr[done] == 1)  ss++;
+            if (fr[done] >= 2)  dd++;
+            done++;
+        }
+
+        ways[j].resize(MX);
+        for (int i=0; i<MX; i++) {
+            ways[j][i] = (power(single[i], ss, M) * power(twofold[i], dd, M))%M;
+        }
+        ntt.fft(ways[j], 1);
+//        for (int i=0; i<10; i++)    cout<<ways[j][i]<<" "; cout<<endl;
+    }
+
+    int q;
+    cin>>q;
+
+    while (q--) {
+        int a;
+        cin>>a;
+        a = a/2 - 1;
+
+        long long ans = 0;
+
+        for (int i=0; i<k; i++) {
+            int tar = a-b[i];
+            if (tar < 0 || tar >= ways[i].size())    continue;
+            ans += ways[i][tar];
+        }
+        cout<<ans%M<<"\n";
+    }
+}

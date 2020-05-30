@@ -1,0 +1,71 @@
+/*input
+10
+283 463 213 777 346 201 463 283 102 999
+2333333 6263423
+*/
+#include "bits/stdc++.h"
+using namespace std;
+const long long md = 998244353;
+long long n,k,m;
+
+long long power(long long a,long long p,long long m=md){
+	return p?power(a*a%m,p/2,m)*(p&1?a:1)%m:1;
+}
+
+vector<vector<long long>> mul(vector<vector<long long>> &a,vector<vector<long long>> &b){
+	vector<vector<long long>> res(a.size(),vector<long long>(b[0].size()));
+	for(int i=0;i<res.size();++i) for(int j=0;j<res[0].size();++j)
+		for(int k=0;k<b.size();++k) (res[i][j]+=a[i][k]*b[k][j]) %= md-1;
+	return res;
+}
+vector<vector<long long>> power(vector<vector<long long>> a,long long p){
+	if(p == 1) return a;
+	auto tmp = power(mul(a,a),p/2);
+	if(p&1) return mul(a,tmp);
+	else return tmp;
+}
+
+int baby_giant(int g, int h){
+	unordered_map<int,int> mp;
+	int sq = ceil(sqrt(md));
+	for(int i=0,now=1;i<sq;++i)
+		mp[now] = i, now = (long long) now*g % md;
+	for(int i=0,jmp=power(g,md-1-sq);i<sq;++i){
+		if(mp.find(h)!=mp.end()) return i*sq+mp[h];
+		h = (long long) h*jmp % md;
+	}
+	return -1;
+}
+
+long long extended_euclid(long long a, long long b, long long &x, long long &y) {
+	long long xx = y = 0;
+	long long yy = x = 1;
+	while (b) {
+		long long q = a / b;
+		long long t = b; b = a%b; a = t;
+		t = xx; xx = x - q*xx; x = t;
+		t = yy; yy = y - q*yy; y = t;
+	}
+	return a;
+}
+long long modular_linear_equation_solver(long long a, long long b, long long n) {
+	long long x, y;
+	long long g = extended_euclid(a, n, x, y);
+	if (!(b%g)) {
+		x = (x*(b/g) +n)% n;
+		for(long long i = 0; i < g; i++)
+			return power(3,(x+i*(n/g)+n)%n);
+	}
+	return -1;
+}
+
+int main(){
+	cin>>k;
+	vector<vector<long long>> dp(k,vector<long long>(k));
+	for(int i=0;i<k;++i) cin>>dp[0][i];
+	cin>>n>>m;
+	for(int i=1;i<k;++i) dp[i][i-1] = 1;
+	dp = power(dp,n-k);
+	long long req = baby_giant(3,m);
+	cout<<modular_linear_equation_solver(dp[0][0],req,md-1);
+}

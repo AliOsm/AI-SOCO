@@ -1,0 +1,140 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+#define eb emplace_back
+#define mt make_tuple
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int N = 200010, SQRTN = 500;
+int a[N];
+int n;
+ll ft[N];
+
+void add(int x, int pos)
+{
+	while (pos < N)
+	{
+		ft[pos] += x;
+		pos += pos&-pos;
+	}
+}
+
+ll sum(int pos)
+{
+	ll ret = 0;
+	while (pos)
+	{
+		ret += ft[pos];
+		pos -= pos&-pos;
+	}
+	return ret;
+}
+
+ll tree[4*N];
+
+ll build(int start, int end, int pos)
+{
+	if (start == end)
+		return tree[pos] = a[start];
+	
+	int mid = (start+end)/2;
+	ll l = build(start, mid, 2*pos + 1);
+	ll r = build(mid+1, end, 2*pos + 2);
+	return tree[pos] = max(l, r);
+}
+
+ll update(int start, int end, int upos, int pos)
+{
+	if (start > upos or end < upos)
+		return tree[pos];
+	if (start == end)
+		return tree[pos] = a[start];
+
+	int mid = (start+end)/2;
+	ll l = update(start, mid, upos, 2*pos + 1);
+	ll r = update(mid+1, end, upos, 2*pos + 2);
+	return tree[pos] = max(l, r);
+}
+
+int query(int start, int end, int qstart, ll x, int pos)
+{
+	if (end < qstart)
+		return n;
+
+	if (tree[pos] < x)
+		return n;
+
+	if (start == end)
+		return start;
+	
+	int mid = (start+end)/2;
+	if (start >= qstart)
+	{
+		if (tree[2*pos+1] >= x)
+			return query(start, mid, qstart, x, 2*pos + 1);
+		return query(mid+1, end, qstart, x, 2*pos + 2);
+	}
+	int l = query(start, mid, qstart, x, 2*pos + 1);
+	int r = query(mid+1, end, qstart, x, 2*pos + 2);
+	return min(l, r);
+}
+
+int main()
+{
+	int q;
+	scanf("%d %d", &n, &q);
+	for (int i = 0; i < n; i++)
+	{
+		scanf("%d", a+i);
+		add(a[i], i+1);
+	}
+	build(0, n-1, 0);
+	while (q--)
+	{
+		int p, x;
+		scanf("%d %d", &p, &x);
+		p--;
+		int diff = x - a[p];
+		a[p] = x;
+		add(diff, p+1);
+		update(0, n-1, p, 0);
+
+		if (a[0] == 0)
+		{
+			printf("1\n");
+			continue;
+		}
+		int pref = 0;
+
+		while (1) 
+		{
+			int nxt = query(0, n-1, pref+1, sum(pref+1), 0);
+			if (nxt == n)
+			{
+				printf("-1\n");
+				break;
+			}
+			ll s = sum(nxt);
+			if (a[nxt] == s)
+			{
+				printf("%d\n", nxt+1);
+				break;
+			}
+			if (s > 1000 * 1000 * 1000)
+			{
+				printf("-1\n");
+				break;
+			}
+			pref = nxt;
+		}
+	}
+	return 0;
+}
+
+

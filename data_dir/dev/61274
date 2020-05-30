@@ -1,0 +1,162 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int m , n;
+bitset<1000> one = 1 ;
+bitset<1000> msk ;
+class segmentTree{
+public:
+    bitset<1000> *sTree ;
+    int *lazy ;
+    int *array ;
+    int N ;
+
+    segmentTree(int *in , int len)
+    {
+        array = in , N = len - 1 ;
+        sTree = new bitset<1000> [N << 1] ;
+        lazy = new int [N << 1] ;
+        for(int i = 0 ; i < N << 1 ;i++)
+            lazy[i] = 0 ;
+        build(1 , 1 , N)  ;
+    }
+
+    void build(int node ,int b , int e)
+    {
+        sTree[node] = bitset<1000>() ;
+        if(b == e)
+            sTree[node] = one <<  (array[b] % m);
+        else
+        {
+            int mid = b + e >> 1 ;
+            build(node << 1 , b , mid);
+            build(node << 1 | 1 , mid + 1 , e);
+            sTree[node] = sTree[node << 1] | sTree[node << 1 | 1] ;
+        }
+    }
+    void updateRange(int i , int j , int val)
+    {
+        updateRange(1 , 1 , N , i , j , val)  ;
+    }
+    void updateRange(int node , int b ,int e , int i , int j , int val)
+    {
+        if(i > e || j < b)
+            return;
+        if(i <= b && e <= j)
+        {
+            sTree[node] = (sTree[node] << val) | (sTree[node] >> ((m - val) % m)) ;
+            lazy[node] = (lazy[node] + val) % m ;
+            return;
+        }
+        int mid = b + e >> 1 ;
+        propagate(node) ;
+        updateRange(node << 1 , b , mid , i , j , val) ;
+        updateRange(node << 1 | 1 , mid + 1 , e , i , j , val) ;
+        sTree[node] = sTree[node << 1] | sTree[node << 1 | 1] ;
+    }
+    void propagate(int node)
+    {
+        if(!lazy[node])return;
+
+        lazy[node << 1] += lazy[node] ;
+        lazy[node << 1 | 1] += lazy[node] ;
+
+        lazy[node << 1] %= m ;
+        lazy[node << 1 | 1] %= m ;
+
+        int x = lazy[node] ;
+
+        sTree[node << 1] = (sTree[node << 1] << x) | (sTree[node << 1] >> ((m -x) % m)) ; // every element inc by val , and rem is shift cycle
+        sTree[node << 1 | 1] = (sTree[node << 1 | 1] << x) | (sTree[node << 1 | 1] >> ((m -x) % m)) ; // every element inc by val , and rem is shift cycle
+
+        lazy[node] = 0 ;
+    }
+    bitset<1000> query(int i , int j)
+    {
+        return query(1 , 1 , N , i , j) ;
+    }
+    bitset<1000> query(int node , int b , int e , int i , int j)
+    {
+        if(i > e || j < b)
+            return 0;
+        if(i <= b && e <= j)
+            return sTree[node] ;
+        int mid = b + e >> 1 ;
+        propagate(node) ;
+        return query(node << 1 , b , mid , i , j) | query(node << 1 | 1 , mid + 1 , e , i , j) ;
+    }
+
+};
+vector<int > adjList [100000] ;
+vector<int > primes ;
+vector<int > isComposite(1001) ;
+int timer = 0 ;
+int tin[100000] , tout[100000] ;
+void dfs(int u , int p = -1)
+{
+    tin[u] = ++timer ;
+    for(int v : adjList[u])
+        if(v != p)
+            dfs(v , u) ;
+    tout[u] = timer  ;
+}
+
+int main()
+{
+    ios_base :: sync_with_stdio(false) ;
+    cin.tie(nullptr) ;
+    cin >> n >> m ;
+    for(int i = 2 ;i  < m ; i ++)
+        if(!isComposite[i])
+        {
+            primes.push_back(i) ;
+            for(int j = 2 * i ; j < m ; j+= i)
+                isComposite[j] = 1 ;
+        }
+    int N = 1 ;
+    while (N < n) N <<= 1 ;
+    int a[n] ;
+    for(int i = 0 ;i < n ; i ++)
+        cin >> a[i] ;
+    for(int i = 0 ; i < n - 1 ; i++)
+    {
+        int u , v ; cin >> u >> v ; --u,--v ;
+        adjList[u].push_back(v) ;
+        adjList[v].push_back(u) ;
+    }
+    dfs(0) ;
+    int in [N + 1] ;
+    memset(in , 0 , sizeof in) ;
+    for(int i = 0 ; i < n ; i ++)
+        in[tin[i]] = a[i] % m;
+    segmentTree st(in , N + 1) ;
+    int q ;
+    cin >> q ;
+    while (q--)
+    {
+        int t ;
+        cin >> t ;
+        if(t == 1)
+        {
+            int v , x ;
+            cin >> v >> x ;
+            v-- ;
+            x  %= m ;
+            if(x == 0)continue;
+            st.updateRange(tin[v] , tout[v] , x) ;
+        }
+        else
+        {
+            int v ;
+            cin >> v;
+            v-- ;
+            bitset<1000> b = st.query(tin[v] , tout[v]) ;
+            int cnt = 0 ;
+            for(int p : primes)
+                cnt += b[p];
+            cout << cnt << '\n' ;
+        }
+    }
+    return 0 ;
+}

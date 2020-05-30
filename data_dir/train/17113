@@ -1,0 +1,155 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define FOR(i,a,b) 	for(int i=a;i<b;++i)
+#define RFOR(i,a,b) 	for(int i=a;i>=b;--i)
+#define ln 		"\n"
+#define mp make_pair
+#define pb push_back
+#define sz(a)	ll(a.size())
+#define debug1(x) cout<<x<<endl
+#define debug2(x,y) cout<<x<<"-->"<<y<<endl
+#define debug3(x,y,z) cout<<x<<"-->"<<y<<"-->"<<z<<endl
+#define F first
+#define S second
+#define all(c)	c.begin(),c.end()
+#define trace(c,x) for(auto &x:c)
+#define pii pair<ll,ll>
+typedef long long ll;
+typedef long double ld;
+typedef	priority_queue<pii,std::vector<pii>,greater<pii> > revpr;
+const int L=2e6+7;
+map<ll,ll> counter;
+ll x;
+struct node
+{
+	ll l,r, length;
+	ll sum;
+};
+node seg[4*L];
+std::vector<node> baseArray;
+int size_of_base;
+void build(int start = 1, int end = size_of_base, int index = 1)
+{
+	if( start == end )
+	{
+		seg[index].l = baseArray[start].l;
+		seg[index].r = baseArray[start].r;
+		seg[index].length = baseArray[start].length;
+		seg[index].sum = baseArray[start].sum;
+		return;
+	}
+	int mid = (start + end)/2;
+	build(start, mid, 2*index);
+	build(mid+1, end, 2*index + 1);
+	// seg[index] = min( seg[ 2*index ] , seg[ 2*index + 1] );
+	if(seg[2*index].length > seg[2*index + 1].length)
+	{
+		seg[index].l = seg[2*index].l;
+		seg[index].r = seg[2*index].r;
+		seg[index].length = seg[2*index].length;
+		seg[index].sum = seg[2*index].sum;
+	}
+	else
+	{
+		seg[index].l = seg[2*index + 1].l;
+		seg[index].r = seg[2*index + 1].r;
+		seg[index].length = seg[2*index + 1].length;
+		seg[index].sum = seg[2*index + 1].sum;
+	}
+	return;
+}
+node query(int l, int r, int start = 1, int end = size_of_base, int index = 1)
+{
+	node temp;
+	temp.l = temp.r = temp.length = temp.sum = 0;
+	if( start > r || end < l )return temp;
+	if(start >= l && end <= r)
+	{
+		return seg[index];
+	}
+	int mid = (start + end)/2;
+	node query_left, query_right;
+	query_left = query(l, r, start, mid, 2*index );
+	query_right = query(l, r, mid+1, end, 2*index + 1);
+	if(query_left.length < query_right.length)
+	{
+		return query_right;
+	}
+	else
+		return query_left;
+}
+ll a[2002],b[2002],cb[2002],ca[2002];
+ bool comp(node x, node y)
+ {
+ 	return x.sum < y.sum;
+ }
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	int n, m;
+	// ll x;
+	cin >> n >> m;
+	FOR(i,0,n)cin >> a[i];
+	FOR(i,0,m)cin >> b[i];
+	cin >> x;
+	cb[0] = b[0];
+	FOR(i,1,m)
+	cb[i] += (cb[i-1]+b[i]);
+	ca[0] = a[0];
+	FOR(i,1,n)
+	ca[i] += (ca[i-1]+a[i]);
+	// FOR(i,0,m)cout<<cb[i];
+	ll cur;
+	node temp;
+	temp.l=0, temp.r = 0, temp.length = 0, temp.sum = 0;
+	baseArray.pb(temp);
+	FOR(i,0,m)
+	{
+		if(i == 0)cur=0;
+		else cur =cb[i-1];
+		FOR(j,i,m)
+		{
+			temp.l= i, temp.r = j, temp.sum = cb[j] - cur, temp.length = j-i+1;
+			baseArray.pb(temp);
+		}
+	}	
+	sort(baseArray.begin()+1 , baseArray.end(), comp);
+	size_of_base = sz(baseArray);
+	build();
+	ll cursum;
+	ll ans = 0,x1=-1,x2=-1,y1=-1,y2=-1;
+	std::vector<ll> newarr;
+	trace(baseArray,x)newarr.pb(x.sum);
+	ll rft,mx = INT_MIN;
+	FOR(i,0,n)
+	{
+		if(i == 0)cur=0;
+		else cur =ca[i-1];
+		FOR(j,i,n)
+		{
+			if(ca[j]-cur == 0)continue;
+			cursum = x / (ca[j] - cur);
+			rft = (upper_bound(all(newarr),cursum) - newarr.begin());
+			rft--;
+			temp = query(1,rft);
+			if(temp.length*(j-i+1)>mx)
+			{
+				mx = temp.length*(j-i+1);
+				x1= i, x2= j;
+				y1 = temp.l, y2 = temp.r;
+			}
+		}
+	}	
+	if(x1 == -1)
+	{
+		cout<<"0";
+	}
+	else
+	{
+		// cout<<x1<<" "<<x2<<" "<<y1<<" "<<y2<<ln;
+		cout<<mx<<ln;
+	}
+	// trace(baseArray,x)cout<<x.l<<" "<<x.r<<" "<<x.length<<" "<<x.sum<<ln;
+	return 0;
+}

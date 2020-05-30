@@ -1,0 +1,45 @@
+ #include <bits/stdc++.h>
+ #define f first
+ #define s second
+ #define endl '\n'
+ #define LL long long
+ #define pb push_back
+ #define sz(a) (int)a.size()
+ #define all(a) a.begin(),a.end()
+ #define rall(a) a.rbegin(),a.rend()
+ #define debug(x) cerr << #x << " is " << x << endl;
+ using namespace std;
+ int const MAXN = 2e6 + 9;
+ int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    int T;
+    cin >> T;
+    while (T--){
+        int n, m;
+        string p, h;
+        cin >> p >> h;
+        n = sz(p);
+        m = sz (h);
+        vector<int> mp(26,0);
+        for (auto c : p){
+            mp[c-'a']++;
+        }
+        bool cond = false;
+        for (int i = 0; i <= m - n; i ++){
+            bool c= true;
+            vector<int> a(26,0);
+            string s = h.substr(i,n);
+            for (auto c : s)
+                    a[c-'a']++;
+            for (int i = 0; i < 26; i++){
+                if (a[i] != mp[i]) c = false;
+            }
+            if (c){
+                cond = true;
+               break;
+            }
+        }
+        if (cond) cout << "YES" << endl;
+        else cout << "NO" << endl;
+    }
+ }

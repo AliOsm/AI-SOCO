@@ -1,0 +1,89 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+// g++ -std=c++14 -o out sol.cc && ./out < input.txt
+
+struct seg {
+    int left, right, index;
+};
+
+struct ST {
+    struct Node {
+        int left, right, val = 0;
+        unique_ptr<Node> leftptr, rightptr;
+        Node(int left, int right) : left(left), right(right) {}
+    };
+
+    unique_ptr<Node> root;
+
+    unique_ptr<Node> init(int left, int right) {
+        if (left > right) return NULL;
+        if (left == right) return unique_ptr<Node>(new Node(left, right));
+        int middle = (left + right) / 2;
+        unique_ptr<Node> newnode = unique_ptr<Node>(new Node(left, right));
+        newnode -> leftptr = init(left, middle);
+        newnode -> rightptr = init(middle + 1, right);
+        return newnode;
+    }
+
+    ST(int n) {
+        root = init(0, n - 1);
+    }
+
+    void incrhelper(unique_ptr<Node> & cur, int left, int right) {
+        if (cur == NULL || cur -> left > right || cur -> right < left) return;
+        if (cur -> left >= left && cur -> right <= right) {
+            cur -> val++;
+        } else {
+            incrhelper(cur -> leftptr, left, right);
+            incrhelper(cur -> rightptr, left, right);
+        }
+    }
+
+    void incr(int left, int right) {
+        incrhelper(root, left, right);
+    }
+
+    int gethelper(unique_ptr<Node> & cur, int index) {
+        if (cur == NULL || cur -> left > index || cur -> right < index) return 0;
+        return cur -> val + gethelper(cur -> leftptr, index) + gethelper(cur -> rightptr, index);
+    }
+
+    int get(int index) {
+        return gethelper(root, index);
+    }
+};
+
+int main() {
+    int n; scanf("%d", &n);
+    vector<seg> segs(n);
+    vector<int> points(2 * n);
+    for(int i = 0; i < n; i++) {
+        segs[i].index = i;
+        scanf("%d %d", &segs[i].left, &segs[i].right);
+        points[2 * i] = segs[i].left;
+        points[2 * i + 1] = segs[i].right;
+    }
+    sort(points.begin(), points.end());
+    map<int, int> mapping;
+    for(int i = 0; i < points.size(); i++) mapping[points[i]] = i;
+
+    for(auto & seg : segs) {
+        seg.left = mapping[seg.left];
+        seg.right = mapping[seg.right];
+    }
+
+    sort(segs.begin(), segs.end(), [&] (const seg & a, const seg & b) {
+        if (a.right != b.right) return a.right < b.right;
+        return a.left < b.left;
+    });
+
+    vector<int> res(n);
+    ST st(points.size());
+    for(auto & seg : segs) {
+        res[seg.index] = st.get(seg.left);
+        st.incr(0, seg.left);
+    }
+    for(auto val : res) printf("%d \n", val);
+}

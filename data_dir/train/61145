@@ -1,0 +1,78 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define ll long long int
+#define maxn 100005
+
+ll n, k;
+ll A[maxn] , ans = 0;
+
+vector < ll > Div;
+map < ll , ll > divOccurance , current;
+
+int main()
+{
+    cin >> n >> k;
+    for (int i=1;i<=n;i++)cin >> A[i];
+
+    ll a = k;
+    for (int i=2 ; i*i<=k ; i++){
+        while(a%i==0){
+            divOccurance[i]++;
+            if (divOccurance[i]==1){
+                Div.push_back(i);
+            }
+            a/=i;
+        }
+    }
+
+    if (a!=1){
+        Div.push_back(a);
+        divOccurance[a]++;
+    }
+
+    ll b = 1 , e = 1;
+
+    //cout << " div size : " << Div.size() << endl;
+
+    while(e<=n){
+
+        a = A[e];
+        for (int j=0 ; j<Div.size() ; j++){
+            //cout << " div j : " << Div[j] << endl;
+            while(a % Div[j] == 0){
+                current[Div[j]]++;
+                a /= Div[j];
+            }
+        }
+
+        //cout << current[Div[0]] << endl;
+
+        bool possible = true;
+
+        while(b<=e){
+
+            for (int i=0 ; i<Div.size() ; i++){
+                if (divOccurance[Div[i]] > current[Div[i]])possible = false;
+            }
+            if (!possible)break;
+            ans += (n-e+1);
+
+            a = A[b];
+
+            for (int i=0 ; i<Div.size() ; i++){
+                while(a % Div[i]==0){
+                    current[Div[i]]--;
+                    a /= Div[i];
+                }
+            }
+            b++;
+        }
+        e++;
+    }
+    cout << ans << endl;
+
+
+    return 0;
+}

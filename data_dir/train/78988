@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+//array size = 2^k > n + m
+
+int n, m, si = 1, ans[200005], par[200005][6], ta;
+char s[200005], t[200005];
+
+int ln, r[270000];
+double pi = acos(-1);
+complex< double > x[270000], y[270000], w, wn, tx, ty;
+
+int find(int a) {
+	return par[ta][a] == a ? a : par[ta][a] = find(par[ta][a]);
+}
+
+void fft(complex< double > *a, int b) {
+	for (int i = 0; i < si; i++)
+		if (i < r[i])
+			swap(a[i], a[r[i]]);
+	for (int i = 0; i < ln; i++) {
+		wn = complex< double >(cos(pi / (1 << i)), b * sin(pi / (1 << i)));
+		for (int j = 0; j < si; j += 1 << (i + 1)) {
+			w = 1;
+			for (int k = 0; k < 1 << i; k++) {
+				tx = a[j + k];
+				ty = w * a[(1 << i) + j + k];
+				a[j + k] = tx + ty;
+				a[(1 << i) + j + k] = tx - ty;
+				w *= wn;
+			}
+		}
+	}
+}
+
+int main() {
+	scanf("%s%s", s, t);
+	n = strlen(s) - 1;
+	m = strlen(t) - 1;
+	for (int i = 0; i <= n; i++)
+		s[i] -= 'a';
+	for (int i = 0; i <= m; i++)
+		t[i] -= 'a';
+	while (si <= n + m) {
+		si *= 2;
+		ln++;
+	}
+	for (int i = 0; i < si; i++)
+		r[i] = (i & 1) ? r[i / 2] / 2 | si / 2 : r[i / 2] / 2;
+	for (int i = m; i <= n; i++)
+		for (int j = 0; j < 6; j++)
+			par[i][j] = j;
+	for (int i = 0; i < 6; i++)
+		for (int j = 0; j < 6; j++)
+			if (i != j) {
+				for (int k = 0; k <= n; k++)
+					x[k] = s[k] == i;
+				for (int k = n + 1; k <= si; k++)
+					x[k] = 0;
+				for (int k = 0; k <= m; k++)
+					y[k] = t[m - k] == j;
+				for (int k = m + 1; k <= si; k++)
+					y[k] = 0;
+				fft(x, 1), fft(y, 1);
+				for (int k = 0; k < si; k++)
+					x[k] *= y[k];
+				fft(x, -1);
+				// printf("%c %c\n", 'a' + i, 'a' + j);
+				for (int k = m; k <= n; k++)
+					if ((int)(x[k].real() / si + 0.5)) {
+						// printf("%d %c %c\n", k, 'a' + i, 'a' + j);
+						ta = k;
+						if (find(i) != find(j)) {
+							ans[k]++;
+							par[k][par[k][i]] = par[k][j];
+						}
+					}
+			}
+	for (int i = m; i <= n; i++)
+		printf("%d%c", ans[i], i == n ? '\n' : ' ');
+	return 0;
+}
+

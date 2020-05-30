@@ -1,0 +1,111 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <assert.h>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <string>
+#include <sstream>
+#include <memory.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const int N = 500000;
+const int M = 1000000007;
+int n;
+vector<vector<int> > g, tree;
+int in[N];
+bool vis[N];
+int id[N], curID;
+bool seen[N];
+void DFS(int u) {
+	if (vis[u])
+		return;
+	id[u] = curID;
+	vis[u] = true;
+	for(int i=0;i<g[u].size();++i)
+		DFS(g[u][i]);
+}
+int dp[N][2];
+int calc(int u, bool av) {
+	int &ret = dp[u][av];
+	if (ret != -1)
+		return ret;
+	ret = 1;
+	vector<int> pre;
+	for (int i = 0; i < tree[u].size(); ++i) {
+		pre.push_back(ret);
+		ret = (ll)ret*calc(tree[u][i], false) % M;
+	}
+	int suf = 1;
+	if(av)
+	for (int i = (signed)tree[u].size() - 1; i >= 0; --i) {
+		ret += calc(tree[u][i], true)*(ll)suf%M*pre[i] % M;
+		ret %= M;
+		suf = (ll)suf*calc(tree[u][i], false) % M;
+	}
+	return ret;
+}
+int main()
+{
+	scanf("%d", &n);
+	g.resize(2 * n);
+	for (int i = 0, a, b; i < n; ++i) {
+		scanf("%d%d", &a, &b);
+		--a; --b;
+		seen[a] = true;
+		g[a].push_back(b);
+		if (a == b)
+			continue;
+		++in[b];
+	}
+	queue<int> q;
+	n *= 2;
+	tree.resize(n);
+	for (int i = 0; i < n; ++i)
+		if (!in[i])
+			q.push(i);
+	vector<int> order;
+	while (!q.empty()) {
+		int u = q.front();
+		q.pop();
+		vis[u] = true;
+		order.push_back(u);
+		for (int i = 0; i < g[u].size(); ++i)
+			if (!--in[g[u][i]])
+				q.push(g[u][i]);
+	}
+	curID = n;
+	for (int i = 0; i < n; ++i)
+		id[i] = i;
+	for (int i = 0; i < n; ++i)
+		if (!vis[i]) {
+			DFS(i);
+			++curID;
+		}
+	tree.resize(curID);
+	vector<int> indeg(curID);
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < g[i].size(); ++j) {
+			int u = i;
+			int v = g[i][j];
+			if (id[u] == id[v])
+				continue;
+			tree[id[v]].push_back(id[u]);
+			++indeg[id[u]];
+		}
+	}
+	ll res = 1;
+	memset(dp, -1, sizeof(dp));
+	for (int i = 0; i < tree.size(); ++i)
+		if (indeg[i] == 0)
+			res = (ll)res * (1 + int(i >= n)) * calc(i, !seen[i] && i<n) % M;
+	cout << res << endl;
+	return 0;
+}

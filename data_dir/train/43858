@@ -1,0 +1,81 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define lc (p<<1)
+#define rc ((p<<1)|1)
+typedef long long ll;
+class node
+{
+	public:
+		vector<pair<ll,ll> > convex;
+}t[400010];
+int n,m;
+ll a[100010],sum[100010];
+inline long double intersect(const pair<ll,ll> &a,const pair<ll,ll> &b)
+{
+	return (long double)(b.second-a.second)/(a.first-b.first);
+}
+inline ll f(const pair<ll,ll> &a,int x)
+{
+	return a.first*x+a.second;
+}
+void build(vector<pair<ll,ll> > &v)
+{
+	sort(v.begin(),v.end());
+	vector<pair<ll,ll> > stk;
+	reverse(v.begin(),v.end());
+	for(int i=0;i<v.size();i++)
+	{
+		while(!stk.empty()&&stk.back().first==v[i].first)stk.pop_back();
+		while(stk.size()>=2&&intersect(stk.back(),stk[stk.size()-2])>=intersect(stk[stk.size()-2],v[i]))stk.pop_back();
+		stk.push_back(v[i]);
+	}
+	v=stk;
+}
+void build(int p,int l,int r)
+{
+	for(int i=l;i<=r;i++)t[p].convex.push_back(make_pair(a[i],a[i]*i-sum[i]));
+	build(t[p].convex);
+	if(l==r)return;
+	int mid=(l+r)>>1;
+	build(lc,l,mid);
+	build(rc,mid+1,r);
+}
+ll query(int p,int l,int r,int ql,int qr,int x)
+{
+	if(ql<=l&&r<=qr)
+	{
+		ll ret=f(t[p].convex.back(),x);
+		int L=0,R=(int)t[p].convex.size()-2;
+		while(L<=R)
+		{
+			int mid=(L+R)>>1;
+			ret=min(ret,min(f(t[p].convex[mid],x),f(t[p].convex[mid+1],x)));
+			if(f(t[p].convex[mid],x)<=f(t[p].convex[mid+1],x))R=mid-1;
+			else L=mid+1;
+		}
+		return ret;
+	}
+	int mid=(l+r)>>1;
+	ll ret=0x3f3f3f3f3f3f3f3f;
+	if(ql<=mid)ret=query(lc,l,mid,ql,qr,x);
+	if(qr>mid)ret=min(ret,query(rc,mid+1,r,ql,qr,x));
+	return ret;
+}
+int main()
+{
+	scanf("%d",&n);
+	for(int i=1;i<=n;i++)
+	{
+		scanf("%lld",&a[i]);
+		sum[i]=sum[i-1]+a[i];
+	}
+	build(1,1,n);
+	scanf("%d",&m);
+	while(m--)
+	{
+		int x,y;
+		scanf("%d%d",&x,&y);
+		printf("%lld\n",sum[y]+query(1,1,n,y-x+1,y,x-y));
+	}
+	return 0;
+}

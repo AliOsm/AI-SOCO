@@ -1,0 +1,137 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <cmath>
+#include <cstdio>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <queue>
+#include <set>
+#include <queue>
+#include <stack>
+#include <list>
+#include <deque>
+#include <assert.h>
+#include <ctime>
+#include <bitset>
+#include <numeric>
+#include <complex>
+using namespace std;
+
+#define double long double
+#define FOREACH(i, c) for(__typeof((c).begin()) i = (c).begin(); i != (c).end(); ++i)
+#define FOR(i, a, n) for (register int i = (a); i < (int)(n); ++i)
+#define FORE(i, a, n) for (i = (a); i < (int)(n); ++i)
+#define Size(n) ((int)(n).size())
+#define all(n) (n).begin(), (n).end()
+#define ll long long
+#define pb push_back
+#define error(x) cout << #x << " = " << (x) << endl;
+#define ull unsigned long long
+#define pii pair<int, int>
+#define pll pair<ll, ll>
+#define pdd pair<double, double>
+#define point complex<double>
+//#define X real()
+//#define Y imag()
+#define X first
+#define Y second
+#define EPS 1e-12
+//#define endl "\n"
+#define pdd pair<double, double>
+bool gt(double a, double b) { return a > b+EPS; }
+
+const int MAXN = 101*1000;
+
+vector<int> adj[MAXN], tree[MAXN], V;
+map<int, int> mp;
+bool mark[MAXN];
+int par[MAXN], depth[MAXN], dsu[MAXN], seen[MAXN];
+int n, m;
+
+int find(int a) {
+	static int x = 0;
+	x++;
+	if (x > 100000) {
+		error(a);
+		exit(0);
+	}
+	if (dsu[a] == -1) return a;
+	if (dsu[a] == a) return a;
+	return dsu[a] = find(dsu[a]);
+}
+
+void dfs(int pos = 0, int dad = -1, int height = 0) {
+	if (mark[pos]) return; else mark[pos] = true;
+	par[pos] = dad;
+	depth[pos] = height;
+	FOREACH(it, adj[pos]) dfs(*it, pos, height+1);
+}
+
+void dfs_lca(int pos = 0, int dad = -1, int height = 0) {
+	if (mark[pos]) return; else mark[pos] = true;
+	depth[pos] = height;
+	FOREACH(it, tree[pos]) if (*it != dad) V.pb(height), dfs_lca(*it, pos, height+1);
+	seen[pos] = Size(V);
+	V.pb(height);
+	assert(Size(V) < 1000000);
+}
+
+int get_min(int a, int b) {
+	return *min_element(V.begin()+a, V.begin()+b+1);
+}
+
+int dist(int a, int b) {
+	if (seen[a] > seen[b]) swap(a, b);
+	return depth[a]+depth[b]-get_min(seen[a], seen[b])*2;
+}
+
+int main() {
+	memset(dsu, -1, sizeof dsu);
+	cin >> n >> m;
+	FOR(i, 0, m) {
+		int a, b;
+		cin >> a >> b;
+		a--; b--;
+		adj[a].pb(b);
+		adj[b].pb(a);
+	}
+	dfs();
+	FOR(i, 0, n) FOREACH(it, adj[i]) {
+		if (par[i] == *it || par[*it] == i) continue;
+		int a = i, b = *it;
+		if (depth[a] > depth[b]) swap(a, b);
+		while (find(b) != find(a)) {
+			dsu[find(b)] = find(par[b]);
+			b = find(b);
+		}
+	}
+	FOR(i, 0, n) if (mp.count(find(i)) == 0) {
+		int num = Size(mp);
+		mp[find(i)] = num;
+	}
+	assert(Size(mp) <= 100000);
+	FOR(i, 0, n) FOREACH(it, adj[i]) if (find(i) != find(*it) && depth[i] < depth[*it]) {
+		int a = mp[find(i)];
+		int b = mp[find(*it)];
+		tree[a].pb(b);
+		tree[b].pb(a);
+	}
+	memset(mark, 0, sizeof mark);
+	dfs_lca();
+	int q;
+	cin >> q;
+	while (q--) {
+		int a, b;
+		cin >> a >> b;
+		a--; b--;
+		cout << dist(mp[find(a)], mp[find(b)]) << endl;
+	}
+	return 0;
+}
+

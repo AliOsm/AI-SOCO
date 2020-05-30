@@ -1,0 +1,80 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct edge{
+	int to, cost;
+};
+
+const int N = 1e6 + 10;
+
+vector <edge> tr[N];
+vector <int> rec[N][2];
+vector <long long> ssum[N][2];
+int p[N], len[N];
+
+void dfs(int x){
+	int sz = (int)tr[x].size(), u, w;
+	if (sz > 0){
+		u = tr[x][0].to, w = tr[x][0].cost;
+		dfs(u);
+		rec[x][0].push_back(w);
+		for (auto it : rec[u][0]) rec[x][0].push_back(it + w);
+		for (auto it : rec[u][1]) rec[x][0].push_back(it + w);
+		sort(rec[x][0].begin(), rec[x][0].end());
+		if ((int)rec[x][0].size()) ssum[x][0].push_back(rec[x][0][0]);
+		for (int i = 1; i < (int)rec[x][0].size(); i++)
+			ssum[x][0].push_back(ssum[x][0][i - 1] + rec[x][0][i]);
+	}
+	if (sz > 1){
+		u = tr[x][1].to, w = tr[x][1].cost;
+		dfs(u);
+		rec[x][1].push_back(w);
+		for (auto it : rec[u][0]) rec[x][1].push_back(it + w);
+		for (auto it : rec[u][1]) rec[x][1].push_back(it + w);
+		sort(rec[x][1].begin(), rec[x][1].end());
+		if ((int)rec[x][1].size()) ssum[x][1].push_back(rec[x][1][0]);
+		for (int i = 1; i < (int)rec[x][1].size(); i++)
+			ssum[x][1].push_back(ssum[x][1][i - 1] + rec[x][1][i]);
+	}
+}
+
+int main(){
+	int n, m;
+	long long ans;
+	scanf("%d %d",&n,&m);
+	for (int i = 1, w; i <= n - 1; i++){
+		scanf("%d",&w);
+		tr[(i + 1) / 2].push_back((edge){i + 1, w});
+		p[i + 1] = (i + 1) / 2;
+		len[i + 1] = w;
+	}
+	dfs(1);
+	for (int i = 1, x, y, now, sum, cnt, d; i <= m; i++){
+		scanf("%d %d",&x,&y);
+		now = 2; sum = 0; ans = 0; cnt = 0;
+		while (x && sum < y){
+			ans -= sum;
+			cnt++;
+			if (now == 2 || now == 0){
+				d = lower_bound(rec[x][1].begin(), rec[x][1].end(), y - sum) - rec[x][1].begin();
+				if (d){
+					ans -= ssum[x][1][d - 1] + 1LL * sum * d;
+					cnt += d;
+				}
+			}
+			if (now == 2 || now == 1){
+				d = lower_bound(rec[x][0].begin(), rec[x][0].end(), y - sum) - rec[x][0].begin();
+				if (d){
+					ans -= ssum[x][0][d - 1] + 1LL * sum * d;
+					cnt += d;
+				}
+			}
+			sum += len[x];
+			now = x & 1;
+			x >>= 1;
+		}
+		ans += 1LL * y * cnt;
+		printf("%I64d\n", ans);
+	}
+	return 0;
+}

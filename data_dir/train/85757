@@ -1,0 +1,317 @@
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+using namespace std;
+const int N = 100000, M = 100000, P = 1000000007;
+struct sp {
+  int q, id;
+  sp *w;
+  bool invIn, invOut;
+  sp(int q, sp *w, int id, bool c, bool v) :
+    q(q), w(w), id(id) {
+    invIn = c;
+    invOut = v;
+  }
+};
+sp *a[N];
+int edg1[M], edg2[M];
+int inv1[M], inv2[M];
+int s1[N], s2[N];
+bool lok[N];
+
+int line[N], invL[N];
+int q, len;
+bool isCircle;
+void schLine(int q, int id) {
+  lok[q] = 0;
+  line[len] = q;
+  len++;
+  
+  for (sp *c = a[q]; c; c = c->w) {
+    if (c->id != id) {
+      invL[len - 1] = c->invIn + 2 * c->invOut;
+      if (c->q == line[0]) {
+        isCircle = 1;
+        return;
+      }
+      
+      schLine(c->q, c->id);
+      
+      if (isCircle) {
+        return;
+      }
+      
+    }
+  }
+}
+
+
+
+long long f[2][2], f2[2][2], d[2];
+long long ans0 = 1, ans1 = 0;
+void calc() {
+  int w, e1, e2, e3;
+  bool v, v0, v1;
+  for (w = 0; w < len - 1; w++) {
+    f2[0][0] = f2[0][1] = 
+    f2[1][0] = f2[1][1] = 0;
+    
+    v0 = (invL[w] & 1);
+    v1 = (invL[w] >> 1);
+    
+    //cout << v0 << " " << v1 << "  !!!\n";
+    
+    for (e1 = 0; e1 < 2; e1++) { // ��� ������
+      for (e2 = 0; e2 < 2; e2++) {  // ����� �� ����� ���������
+        for (e3 = 0; e3 < 2; e3++) { // ��� ��������� �� ����� �����
+          v = (e1 | (e3 ^ v0)); // ��������� ���������
+          
+          f2[e3 ^ v1][e2 ^ v] += f[e1][e2];
+        }
+      } 
+    }
+    for (int e = 0; e < 2; e++) {
+      for (int r = 0; r < 2; r++) {
+        f[e][r] = f2[e][r] % P;
+      }
+    }
+    /*
+    for (int e = 0; e < 2; e++) {
+      for (int r = 0; r < 2; r++) {
+        cout << f[e][r] << " ";
+      }
+      cout << "\n";
+    }
+    cout << "*\n";*/
+    
+  }
+}
+
+int numInEgd[N];
+
+
+void l(int t) {
+  int w, e, e1, e2, e3;
+  long long c0, c1;
+  bool v, v0;
+  for (w = 0; w < q; w++) {
+    if ((lok[w]) && (numInEgd[w] == t)) {
+      isCircle = 0;
+      len = 0;
+      
+      schLine(w, -1);
+      
+      if (len == 1) {
+        if (s2[w] == 0) {
+          if (s1[w] != 0) {
+            ans0 = ans1 = (ans0 + ans1) % P;
+          }
+        } else {
+          c0 = ans0;
+          c1 = ans1;
+          
+          ans0 = (c1 * 3 + c0) % P;
+          ans1 = (c0 * 3 + c1) % P;
+        }
+        continue;
+      }
+      /*
+      cout << len << " " << isCircle << "\n";
+      for (e = 0; e < len; e++) {
+        cout << line[e] + 1 << " ";
+      }
+      cout << "\n\n";*/
+      
+      
+      if (!isCircle) {
+        if (s2[line[0]] == 0) {
+          f[0][0] = 1;
+          f[0][1] = 0;
+          f[1][0] = 0;
+          f[1][1] = 0;
+        } else {
+          f[0][0] = 1;
+          f[0][1] = 0;
+          f[1][0] = 1;
+          f[1][1] = 0;
+        }
+        
+        calc();
+        
+        
+        
+        if (s2[line[len - 1]] == 0) {
+          c1 = f[1][0] + f[0][1];
+          c0 = f[0][0] + f[1][1];
+        } else {
+          //cout << "?\n";
+          
+          d[0] = d[1] = 0;
+          
+          for (e1 = 0; e1 < 2; e1++) {
+            for (e2 = 0; e2 < 2; e2++) {
+              for (e3 = 0; e3 < 2; e3++) {
+                d[(e1 | e3) ^ e2] += f[e1][e2];
+              }
+            }
+          }
+          
+          c0 = d[0];
+          c1 = d[1];
+        }
+        
+        c0 %= P;
+        c1 %= P;
+        
+        //cout << c0 << " " << c1 << " ###\n";
+        
+        d[0] = (ans0 * c0 + ans1 * c1) % P;
+        d[1] = (ans1 * c0 + ans0 * c1) % P;
+        
+        ans0 = d[0];
+        ans1 = d[1];
+      } else {
+        f[0][0] = 0;
+        f[0][1] = 0;
+        f[1][0] = 0;
+        f[1][1] = 0;
+        
+        e3 = 0;  // ��� (���) ���������� �� ����� �����
+        f[e3 ^ (invL[len - 1] >> 1)][0] = 1;
+        
+        calc();
+        
+        d[0] = d[1] = 0;
+        
+        /// 1
+        v0 = (invL[len - 1] & 1);
+        
+        for (e1 = 0; e1 < 2; e1++) { // ��� ������
+          for (e2 = 0; e2 < 2; e2++) {  // ����� �� ����� ���������
+            v = (e1 | (e3 ^ v0)); // ��������� ���������
+            d[e2 ^ v] += f[e1][e2];
+          }
+        }
+        /// 1
+        
+        //cout << d[0] << " " << d[1] << "   $$$$$\n";
+        
+        ///////////////////////
+        
+        f[0][0] = 0;
+        f[0][1] = 0;
+        f[1][0] = 0;
+        f[1][1] = 0;
+        
+        e3 = 1;  // ��� (���) ���������� �� ����� �����
+        f[e3 ^ (invL[len - 1] >> 1)][0] = 1;
+        
+        calc();
+        
+        /// 2
+        v0 = (invL[len - 1] & 1);
+        
+        for (e1 = 0; e1 < 2; e1++) { // ��� ������
+          for (e2 = 0; e2 < 2; e2++) {  // ����� �� ����� ���������
+            v = (e1 | (e3 ^ v0)); // ��������� ���������
+            d[e2 ^ v] += f[e1][e2];
+          }
+        }
+        /// 2
+        
+        d[0] %= P;
+        d[1] %= P;
+        
+        c0 = d[0];
+        c1 = d[1];
+        
+        //cout << c0 << " " << c1 << "    $$$\n";
+        
+        d[0] = (ans0 * c0 + ans1 * c1) % P;
+        d[1] = (ans1 * c0 + ans0 * c1) % P;
+        
+        ans0 = d[0];
+        ans1 = d[1];
+      }
+      
+    }
+  }
+}
+
+int main() {
+  #ifdef Vlad_kv
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+  #endif // Vlad_kv
+  int w, e, r, numEdg;
+  ans0 = 1;
+  ans1 = 0;
+  cin >> q >> numEdg;
+  for (w = 0; w < numEdg; w++) {
+    edg1[w] = edg2[w] = -1;
+  }
+  for (w = 0; w < q; w++) {
+    numInEgd[w] = 0;
+    
+    a[w] = 0;
+    lok[w] = 1;
+    
+    s2[w] = 0;
+    scanf("%d%d", &e, &s1[w]);
+    r = abs(s1[w]) - 1;
+    if (edg1[r] == -1) {
+      edg1[r] = w;
+      inv1[r] = (s1[w] < 0);
+    } else {
+      edg2[r] = w;
+      inv2[r] = (s1[w] < 0);
+    }
+    if (e > 1) {
+      scanf("%d", &s2[w]);
+      r = abs(s2[w]) - 1;
+      if (edg1[r] == -1) {
+        edg1[r] = w;
+        inv1[r] = (s2[w] < 0);
+      } else {
+        edg2[r] = w;
+        inv2[r] = (s2[w] < 0);
+      }
+      
+    }
+  }
+  
+  for (w = 0; w < numEdg; w++) {
+    if (edg1[w] == -1) {
+      ans0 = (ans0 * 2) % P;
+      ans1 = (ans1 * 2) % P;
+      continue;
+    }
+    if (edg2[w] != -1) {
+      e = edg1[w];
+      r = edg2[w];
+      if (e == r) {
+        s1[e] = s2[e] = 0;
+        if (inv1[w] != inv2[w]) {
+          swap(ans0, ans1);
+          ans0 = (ans0 * 2) % P;
+          ans1 = (ans1 * 2) % P;
+        } else {
+          ans0 = ans1 = (ans0 + ans1) % P;
+        }
+        continue;
+      }
+      a[e] = new sp(r, a[e], w, inv1[w], inv2[w]);
+      a[r] = new sp(e, a[r], w, inv2[w], inv1[w]);
+      numInEgd[e]++;
+      numInEgd[r]++;
+    }
+  }
+  
+  l(0);
+  l(1);
+  l(2);
+  
+  cout << ans1;
+  
+  return 0;
+}

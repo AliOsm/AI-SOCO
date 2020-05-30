@@ -1,0 +1,126 @@
+#include <bits/stdc++.h>
+#define db(x) cout<<#x<<" = "<<x<<"\n"
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(s) int(s.size())
+using namespace std;
+typedef long long ll;
+typedef pair<ll,ll> ii;
+
+ll MOD=1e9+7;
+ll mul(ll x, ll y){return x*y%MOD;}
+ll sum(ll x, ll y){
+	ll ans=x+y+2*MOD; while(ans>=MOD)ans-=MOD;
+	return ans;
+}
+ll sub(ll x, ll y){
+	ll ans=x-y+2*MOD; while(ans>=MOD)ans-=MOD;
+	return ans;
+}
+const int MAXN=2e5+10;
+vector<int> g[MAXN];int n;
+bool tk[MAXN];
+int fat[MAXN]; // father in centroid decomposition
+int szt[MAXN]; // size of subtree
+ll ans,totev,totod,v[MAXN],ev[MAXN],od[MAXN];
+
+void dfs(int pos, int par, int dep){
+	ev[pos]=dep%2==0;
+	od[pos]=dep%2==1;
+	for(auto x:g[pos]) if(x!=par&&!tk[x]){
+		dfs(x,pos,dep+1);
+		ev[pos]+=ev[x];
+		od[pos]+=od[x];
+	}
+}
+
+void f(int pos, int par, int dep){
+	ll rem=totev+totod;
+	ll sz=od[pos]+ev[pos];
+	
+	//going to centroid
+	{
+		//positive
+		if(dep%2==0) ans=sum(ans,mul(v[pos],mul(ev[pos],rem)));
+		else ans=sum(ans,mul(v[pos],mul(od[pos],rem)));
+		
+		//negative
+		if(dep%2==0) ans=sub(ans,mul(v[pos],mul(od[pos],rem)));
+		else ans=sub(ans,mul(v[pos],mul(ev[pos],rem)));
+	}
+	
+	//coming from centroid
+	{
+		//positive
+		if(dep%2==0) ans=sum(ans,mul(v[pos],mul(totev,sz)));
+		else ans=sum(ans,mul(v[pos],mul(totod,sz)));
+		
+		//negative
+		if(dep%2==0) ans=sub(ans,mul(v[pos],mul(totod,sz)));
+		else ans=sub(ans,mul(v[pos],mul(totev,sz)));
+	}
+	
+	for(auto x:g[pos]) if(x!=par&&!tk[x]) f(x,pos,dep+1);
+}
+
+void go(int pos){
+
+	totev=1;
+	totod=0;
+	for(auto x:g[pos]) if(!tk[x]){
+		dfs(x,pos,1);
+		totev+=ev[x];
+		totod+=od[x];
+	}
+
+	//get values of centroid
+	ans=sum(ans,mul(v[pos],totev+totod));	//start in centroid
+	
+	for(auto x:g[pos]) if(!tk[x]){
+		totev-=ev[x];
+		totod-=od[x];
+		f(x,pos,1);
+		
+		//coming from this subtree
+		ll rem=totev+totod;
+		
+		//positive
+		ans=sum(ans,mul(v[pos],mul(ev[x],rem)));
+		//negative
+		ans=sub(ans,mul(v[pos],mul(od[x],rem)));
+		
+		totev+=ev[x];
+		totod+=od[x];
+	}
+}
+
+int calcsz(int x, int f){
+	szt[x]=1;
+	for(auto y:g[x])if(y!=f&&!tk[y])szt[x]+=calcsz(y,x);
+	return szt[x];
+}
+void cdfs(int x=0, int f=-1, int sz=-1){ // O(nlogn)
+	if(sz<0)sz=calcsz(x,-1);
+	for(auto y:g[x])if(!tk[y]&&szt[y]*2>=sz){
+		szt[x]=0;cdfs(y,f,sz);return;
+	}
+	tk[x]=true;fat[x]=f;
+	go(x);
+	for(auto y:g[x])if(!tk[y])cdfs(y,x);
+}
+void centroid(){memset(tk,false,sizeof(tk));cdfs();}
+
+int main(){FIN;
+	cin>>n;
+	fore(i,0,n) cin>>v[i];
+	fore(i,1,n){
+		int x,y; cin>>x>>y; x--; y--;
+		g[x].pb(y); g[y].pb(x);
+	}
+	centroid();
+	cout<<ans<<"\n";
+}

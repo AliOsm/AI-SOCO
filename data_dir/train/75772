@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long double LD;
+typedef long long LL;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+
+#define sz(x) (int)(x).size()
+#define all(x) (x).begin(), (x).end()
+
+// ********************************** //
+
+const int N = 1e6 + 7;
+const int MAX = 1 << 20;
+const int M = 1e9 + 7;
+
+PII tree[2 * MAX + 7];
+LL P[N];
+int n, k, g[N], up[N], down[N];
+vector < PII > G[N];
+map < PII, bool > mp;
+
+void update(int e, PII v)
+{
+    int ve = e + MAX;
+    tree[ve] = v;
+    while(ve)
+        ve >>= 1, tree[ve] = min(tree[2 * ve], tree[2 * ve + 1]);
+}
+
+PII query(int a, int b)
+{
+    if(a > b) swap(a, b);
+    int va = a + MAX, vb = b + MAX;
+    PII res = min(tree[va], tree[vb]);
+    while(va / 2 != vb / 2)
+    {
+        if(va % 2 == 0) res = min(res, tree[va + 1]);
+        if(vb % 2 == 1) res = min(res, tree[vb - 1]);
+        va >>= 1, vb >>= 1;
+    }
+    return res;
+}
+
+int cnt = 0;
+
+void dfs(int v, int f = 0, int d = 0)
+{
+    g[v] = ++cnt;
+    update(cnt, make_pair(d, v));
+    for(auto u: G[v])
+    {
+        if(u.first == f) continue;
+        dfs(u.first, v, d + 1);
+        update(++cnt, make_pair(d, v));
+    }
+}
+
+LL ans = 0;
+
+void DFS(int v, int f = 0)
+{
+    for(auto u: G[v])
+    {
+        if(u.first == f) continue;
+        DFS(u.first, v);
+        down[v] += down[u.first];
+        up[v] += up[u.first];
+    }
+    //cout << v << " " << down[v] << " " << up[v] << " " << mp[{f, v}] << " " << mp[{v, f}] << "\n";
+    if(down[v] > 0 && mp[{f, v}]) ans = (ans + P[down[v]] + M - 1) % M;
+    if(up[v] > 0 && mp[{v, f}]) ans = (ans + P[up[v]] + M - 1) % M;
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0), cin.tie(0);
+    cin >> n;
+    for(int i = 1; i < n; i++)
+    {
+        int a, b, c;
+        cin >> a >> b >> c;
+        G[a].push_back({b, 0});
+        G[b].push_back({a, c});
+        if(c) mp[{b, a}] = 1;
+    }
+    dfs(1);
+    int q; cin >> q;
+    P[0] = 1;
+    for(int i = 1; i <= q; i++)
+    {
+        P[i] = 2 * P[i - 1];
+        if(P[i] >= M) P[i] -= M;
+    }
+    int last = 1;
+    while(q--)
+    {
+        int x; cin >> x;
+        int lca = query(g[last], g[x]).second;
+        //cout << x << " " << last << " : " << lca << "\n";
+        up[last]++;
+        up[lca]--;
+        down[x]++;
+        down[lca]--;
+        last = x;
+    }
+    DFS(1);
+    cout << ans << "\n";
+    return 0;
+}

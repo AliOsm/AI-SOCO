@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Bag {
+	int linker;
+	int node;
+	int distance;
+	Bag() {
+		linker = node = distance = 0;
+	}
+};
+
+int n;
+int parent[200005], depth[200005];
+vector<int> g[200005];
+Bag bags[2];
+int low[200005], high[200005];
+int ind;
+vector<int> layerNodes[200005];
+
+void dfs(int node) {
+	layerNodes[depth[node]].push_back(node);
+	low[node] = ind;
+	for (int i = 0; i < int(g[node].size()); i++)
+		dfs(g[node][i]);
+	high[node] = ind++;
+}
+
+bool isAncestor(int parent, int node) {
+	return low[parent] <= high[node] && high[node] <= high[parent];
+}
+
+int getParent(int node, int layer) {
+	int start = -1;
+	int end = layerNodes[layer].size();
+	while (end - start > 1) {
+		int mid = (end + start) >> 1;
+		if (high[node] < low[layerNodes[layer][mid]])
+			end = mid;
+		else
+			start = mid;
+	}
+	return layerNodes[layer][start];
+}
+
+int lca(int u, int v) {
+	int start = -1;
+	int end = min(depth[u], depth[v]) + 1;
+	while (end - start > 1) {
+		int mid = (end + start) >> 1;
+		int lca = getParent(u, mid);
+		if (isAncestor(lca, v))
+			start = mid;
+		else
+			end = mid;
+	}
+	return getParent(u, start);
+}
+
+int getDistance(int u, int v) {
+	int w = lca(u, v);
+	return depth[u] + depth[v] - 2 * depth[w];
+}
+
+int getLink(int centerNode, int newNode) {
+	if (!isAncestor(centerNode, newNode))
+		return parent[centerNode];
+	int start = -1;
+	int end = g[centerNode].size();
+	while (end - start > 1) {
+		int mid = (end + start) >> 1;
+		if (high[newNode] < low[g[centerNode][mid]])
+			end = mid;
+		else
+			start = mid;
+	}
+	return g[centerNode][start];
+}
+
+
+int main() {
+	ios::sync_with_stdio(false);
+	scanf("%d", &n);
+	parent[0] = -1;
+	for (int i = 1; i < n; i++) {
+		scanf("%d", parent + i);
+		--parent[i];
+		g[parent[i]].push_back(i);
+		depth[i] = 1 + depth[parent[i]];
+	}
+	dfs(0);
+
+	int curCenter = 0;
+	for (int i = 1; i < n; i++) {
+		int newNode = i;
+		int newDistance = getDistance(curCenter, newNode);
+		int linker = getLink(curCenter, newNode);
+
+		// bad is a pair of linker, distance
+		if (linker == bags[0].linker) {
+			if (newDistance > bags[0].distance) {
+				bags[0].distance = newDistance;
+				bags[0].node = newNode;
+			}
+		}
+		else if (linker == bags[1].linker) {
+			if (newDistance > bags[1].distance) {
+				bags[1].distance = newDistance;
+				bags[1].node = newNode;
+			}
+		}
+		else if (newDistance > bags[0].distance) {
+
+			bags[1] = bags[0];
+
+			bags[0].linker = linker;
+			bags[0].node = newNode;
+			bags[0].distance = newDistance;
+		}
+		else if (newDistance > bags[1].distance) {
+			bags[1].linker = linker;
+			bags[1].node = newNode;
+			bags[1].distance = newDistance;
+		}
+
+		if (bags[1].distance > bags[0].distance)
+			swap(bags[0], bags[1]);
+
+		if (bags[0].distance - bags[1].distance > 1 && bags[1].distance != 0) {
+			int oldCenter = curCenter;
+			curCenter = bags[0].linker;
+
+			bags[0].linker = getLink(curCenter, bags[0].node);
+			bags[0].distance -= 1;
+
+			bags[1].linker = oldCenter;
+			bags[1].distance += 1;
+		}
+		printf("%d ", bags[0].distance + bags[1].distance);
+	}
+	puts("");
+
+
+
+	return 0;
+}

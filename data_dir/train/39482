@@ -1,0 +1,160 @@
+#include <bits/stdc++.h>
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(s) int(s.size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+
+const int K=17,MAXN=1<<K;
+char pch[MAXN];
+
+vector<pair<int,char>> g[1<<K];int n;  // K such that 2^K>=n
+int F[K][1<<K],dep[1<<K];
+void lca_dfs(int x){
+	fore(i,0,g[x].size()){
+		int y=g[x][i].fst;if(y==F[0][x])continue;
+		F[0][y]=x;dep[y]=dep[x]+1;pch[y]=g[x][i].snd;lca_dfs(y);
+	}
+}
+void lca_init(){
+	dep[0]=0;F[0][0]=-1;
+	lca_dfs(0);
+	fore(k,1,K)fore(x,0,n)
+		if(F[k-1][x]<0)F[k][x]=-1;
+		else F[k][x]=F[k-1][F[k-1][x]];
+}
+int lca(int x, int y){
+	if(dep[x]<dep[y])swap(x,y);
+	for(int k=K-1;k>=0;--k)if(dep[x]-(1<<k)>=dep[y])x=F[k][x];
+	if(x==y)return x;
+	for(int k=K-1;k>=0;--k)if(F[k][x]!=F[k][y])x=F[k][x],y=F[k][y];
+	return F[0][x];
+}
+int anc(int x, int d){
+	int ans=x;
+	while(d){
+		int nw=__builtin_ctz(d);
+		ans=F[nw][ans]; d^=1<<nw;
+	}
+	return ans;
+}
+
+struct Hash{
+	vector<ll> pw,pi;
+	ll MOD,PI;
+	Hash(int n, ll md, ll pp){
+		MOD=md; PI=pp;
+		pw.resize(n); pi.resize(n);
+		pw[0]=1; pi[0]=1;
+		fore(i,1,n) pw[i]=pw[i-1]*1777771ll%MOD, pi[i]=pi[i-1]*PI%MOD;
+	}
+	ll add_left(ll h, ll len, ll v){return (h*pw[1]+v)%MOD;}
+	ll add_right(ll h, ll len, ll v){return (h+v*pw[len])%MOD;}
+	ll get_pre(ll h1, ll h2, ll len){return (h1-h2*pw[len]%MOD+MOD)%MOD;}
+};
+
+int up[MAXN][2];	//Hash from root
+Hash h1(MAXN,999727999,325255434), h2(MAXN,1070777777,10018302);
+
+void sethash(int pos, int par=-1){
+	for(auto x:g[pos]) if(x.fst!=par){
+		up[x.fst][0]=h1.add_left(up[pos][0],dep[pos],x.snd);
+		up[x.fst][1]=h2.add_left(up[pos][1],dep[pos],x.snd);
+		sethash(x.fst,pos);
+	}
+}
+
+struct query{
+	ll hash; int add,id,up;
+	query(ll hash, int add, int id): hash(hash),add(add),id(id){}
+	query(){}
+};
+
+vector<query> qs[MAXN][101];
+int ans[MAXN];
+unordered_map<ll,int> mp;
+
+void add_pars(int pos, int len, int v){
+	if(dep[pos]<len) return;
+	int now=pos;
+	ll hu=h1.get_pre(up[pos][0],up[anc(pos,len)][0],len);
+	ll hu2=h2.get_pre(up[pos][1],up[anc(pos,len)][1],len);
+	hu=(hu<<32)|hu2;
+	mp[hu]+=v;
+	if(mp[hu]==0) mp.erase(hu);	//not more
+}
+
+void dfs(int pos, int len, int par=-1){
+	add_pars(pos,len,1); //process queries of this node
+	for(auto x:qs[pos][len]){
+		if(mp.count(x.hash)) ans[x.id]+=x.add*mp[x.hash];
+	}
+	for(auto x:g[pos]) if(x.fst!=par) dfs(x.fst,len,pos);
+	add_pars(pos,len,-1);
+}
+
+int main(){FIN;
+	cin>>n;
+	fore(i,1,n){
+		int x,y;char c; cin>>x>>y>>c; x--; y--;
+		g[x].pb({y,c}); g[y].pb({x,c});
+	}
+	lca_init(); sethash(0);
+	int q; cin >>q;
+	fore(i,0,q){
+		int x,y; string s; cin>>x>>y>>s; x--; y--;
+		int lc=lca(x,y);
+		vector<ll> pref,suf;
+		
+		// Only up or down
+		ll hh0=0,hh1=0,hr0=0,hr1=0;
+		fore(j,0,SZ(s)){
+			hh0=h1.add_right(hh0,j,s[j]);
+			hh1=h2.add_right(hh1,j,s[j]);
+			hr0=h1.add_left(hr0,j,s[j]);
+			hr1=h2.add_left(hr1,j,s[j]);
+			pref.pb((hh0<<32)|hh1);
+		}
+		ll hr=(hr0<<32)|hr1;
+		ll h=(hh0<<32)|hh1;
+		int lenx=dep[x]-dep[lc], leny=dep[y]-dep[lc];
+		int px=anc(x,max(0,lenx-SZ(s)+1));
+		int py=anc(y,max(0,leny-SZ(s)+1));
+		if(lenx>=SZ(s)){
+			qs[x][SZ(s)].pb(query(h,1,i));
+			qs[px][SZ(s)].pb(query(h,-1,i));
+		}
+		if(leny>=SZ(s)){
+			qs[y][SZ(s)].pb(query(hr,1,i));
+			qs[py][SZ(s)].pb(query(hr,-1,i));
+		}
+
+		// Up and down
+		hh0=0; hh1=0;
+		for(int j=SZ(s)-1;j>=0;j--){
+			hh0=h1.add_right(hh0,SZ(s)-j-1,s[j]);
+			hh1=h2.add_right(hh1,SZ(s)-j-1,s[j]);
+			suf.pb((hh0<<32)|hh1);
+		}
+		fore(j,1,SZ(s)){	// suf start in j
+			int rr=SZ(s)-j;	// give j to prefix, rr to suffix
+			if(j>lenx) break;
+			if(rr>leny) continue;
+			ll upp=anc(x,lenx-j), dww=anc(y,leny-rr);
+			ll pr=h1.get_pre(up[upp][0],up[lc][0],j);
+			ll pr2=h2.get_pre(up[upp][1],up[lc][1],j);
+			pr=(pr<<32)|pr2;
+			ll su=h1.get_pre(up[dww][0],up[lc][0],rr);
+			ll su2=h2.get_pre(up[dww][1],up[lc][1],rr);
+			su=(su<<32)|su2;
+			ans[i]+=pr==pref[j-1]&&su==suf[rr-1];
+		}
+	}
+	fore(i,1,101) dfs(0,i);
+	fore(i,0,q) cout << ans[i] << "\n";
+}

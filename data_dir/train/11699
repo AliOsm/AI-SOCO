@@ -1,0 +1,45 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int inf = 1e9;
+
+set<pair<int, int>> sa, sb;
+
+int main() {
+  int n, m;
+  scanf("%d %d", &n, &m);
+  long long a = n, b = n;
+  sa.insert(make_pair(1, n));
+  sb.insert(make_pair(1, n));
+  while (m--) {
+    int u, v;
+    scanf("%d %d", &u, &v);
+    auto it = sa.lower_bound(make_pair(u, inf));
+    if (it != sa.begin()) {
+      it--;
+      int l = it->first;
+      int r = it->second;
+      if (l <= u && u <= r) {
+        a--;
+        sa.erase(it);
+        if (l <= u - 1) sa.insert({l, u - 1});
+        if (u + 1 <= r) sa.insert({u + 1, r});
+      }
+    }
+    it = sb.lower_bound({v, inf});
+    if (it != sb.begin()) {
+      it--;
+      int l = it->first;
+      int r = it->second;
+      if (l <= v && v <= r) {
+        b--;
+        sb.erase(it);
+        if (l <= v + 1) sb.insert({l, v - 1});
+        if (v + 1 <= r) sb.insert({v + 1, r});
+      }
+    }
+    printf("%I64d ", a * b);
+  }
+  return 0;
+}

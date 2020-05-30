@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const long long linf = 1e18;
+
+struct SegTree {
+  int n;
+  vector<long long> t;
+  
+  SegTree(const vector<long long>& a): n(a.size()), t(4 * n) {
+    build(1, 0, n - 1, a);
+  }
+  
+  void build(int v, int tl, int tr, const vector<long long>& a) {
+    if (tl == tr) {
+      t[v] = a[tl];
+      return;
+    }
+    int tm = (tl + tr) / 2;
+    build(2 * v, tl, tm, a);
+    build(2 * v + 1, tm + 1, tr, a);
+    t[v] = min(t[2 * v], t[2 * v + 1]);
+  }
+  
+  long long getMin(int v, int tl, int tr, int l, int r) {
+    if (l > tr || r < tl)
+      return 0;
+    if (l <= tl && r >= tr)
+      return t[v];
+    int tm = (tl + tr) / 2;
+    return min(getMin(2 * v, tl, tm, l, r), getMin(2 * v + 1, tm + 1, tr, l, r));
+  }
+  
+  long long getMin(int l, int r) {
+    if (l > r)
+      return 0;
+    return getMin(1, 0, n - 1, l, r);
+  }
+};
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+  
+  int n;
+  cin >> n;
+  
+  vector<int> d(n + 1);
+  for (int i = 1; i <= n; ++i)
+    cin >> d[i];
+  sort(d.begin() + 1, d.end());
+  reverse(d.begin() + 1, d.end());
+  d.push_back(0);
+  
+  vector<long long> pref_sum(n + 2), suff_sum(n + 2);
+  for (int i = 1; i <= n + 1; ++i)
+    pref_sum[i] = pref_sum[i - 1] + d[i];
+  for (int i = n; i >= 0; --i)
+    suff_sum[i] = suff_sum[i + 1] + d[i];
+    
+  vector<long long> val_pref(n + 2), val_suff(n + 2);
+  for (int it = 0; it < 2; ++it) {
+    auto& val = it == 0 ? val_pref : val_suff;
+    for (int j = 1; j <= n; ++j) {
+      int i = j + it;
+      
+      int l = j, r = n + 1;
+      while (r - l > 1) {
+        int m = (l + r) / 2;
+        if (d[m] >= i)
+          l = m;
+        else
+          r = m;
+      }
+      val[j] = 1LL * (r - j - 1) * i + suff_sum[r] + 1LL * i * (i - 1) - pref_sum[j];
+    }
+  }
+  
+  /*for (int i = 1; i <= n; ++i) {
+    cout << i << ":" << val_pref[i] << endl;
+  }
+  
+  for (int i = 1; i <= n; ++i) {
+    cout << i << ":" << val_suff[i] << endl;
+  }*/
+  
+  vector<long long> mn_val_suff(n + 2, linf);
+  for (int i = n; i >= 0; --i) {
+    mn_val_suff[i] = min(mn_val_suff[i + 1], val_suff[i]);
+  }
+  
+  auto val_changed = val_pref;
+  for (int i = 1; i <= n; ++i)
+    val_changed[i] += i;
+    
+  SegTree tree_normal(val_pref), tree_changed(val_changed);
+  
+  vector<int> rs;
+  for (int c = 0, j = n; c <= n; ++c) {
+    if ((pref_sum[n] + c) % 2 != 0)
+      continue;
+    while (j > 0 && d[j] <= c)
+      --j;
+    if (mn_val_suff[j + 1] - c < 0)
+      continue;
+      
+    int pos = j + 1;
+    int p = min(c, j);
+    if (tree_changed.getMin(1, p) < 0)
+      continue;
+    if (tree_normal.getMin(p + 1, j) + c < 0)
+      continue;
+    
+    long long cur = -c - pref_sum[j] + 1LL * pos * (pos - 1);
+    {
+      int l = j, r = n + 1;
+      while (r - l > 1) {
+        int m = (l + r) / 2;
+        if (d[m] >= pos)
+          l = m;
+        else
+          r = m;
+      }
+      p = r;
+    }
+    cur += suff_sum[p] + 1LL * (p - j - 1) * pos;
+    
+    if (cur < 0)
+      continue;
+    
+    
+    rs.push_back(c);
+  }
+  
+  sort(rs.begin(), rs.end());
+  if (rs.empty())
+    rs.push_back(-1);
+  for (int e: rs)
+    cout << e << ' ';
+  cout << '\n';
+}

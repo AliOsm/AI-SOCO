@@ -1,0 +1,132 @@
+//ITNOG
+#include<bits/stdc++.h>
+
+using namespace std;
+#define int long long
+
+
+const int maxN = 100*1000 + 5;
+const int maxL = 20;
+const int mod = 1000*1000*1000 + 7;
+vector< pair<int, int> > a[maxN];
+int dp1[maxN], dp2[maxN];
+int ds1[maxN], ds2[maxN];
+
+int dis[maxN];
+int sz[maxN], h[maxN];
+int lca[maxN][maxL];
+int n; 
+
+int mul(int x, int y) { return x * y % mod; }
+int f(int x) { return (x % mod + mod) % mod; }
+
+
+void make_lca(int v, int par)
+{
+    lca[v][0] = par;
+    for(int i = 1; i < maxL; i ++)
+	  lca[v][i] = lca[lca[v][i - 1]][i - 1];
+}
+
+void dfs1(int v, int par = 0)
+{
+    //cout << v << endl;
+    make_lca(v, par); sz[v] = 1; 
+    for(auto u : a[v])
+	  if(u.first - par)
+	  {
+		h[u.first] = h[v] + 1; 
+		dis[u.first] += dis[v] + u.second; dis[u.first] %= mod;
+		
+		dfs1(u.first, v);
+		
+		ds1[v] += ds1[u.first] + u.second * sz[u.first]; ds1[v] %= mod;
+		dp1[v] += (dp1[u.first] + mul(sz[u.first], mul(u.second, u.second)) + 2 * mul(u.second, ds1[u.first])) % mod; dp1[v] %= mod;
+		sz[v] += sz[u.first];
+	  }
+}
+
+void dfs2(int v, int par = 0)
+{
+    for(auto u : a[v])
+	  if(u.first - par)
+	  {
+		int &dss = ds2[u.first], &dps = dp2[u.first];
+		dps = dp1[v]; dss = ds1[v];
+		
+		dss -= ds1[u.first] + u.second * sz[u.first]; dss = f(dss);
+		dps -= (dp1[u.first] + mul(sz[u.first], mul(u.second, u.second)) + 2 * mul(u.second, ds1[u.first])) % mod; dps = f(dps);
+		
+		dps = (dps + mul(sz[v] - sz[u.first], mul(u.second, u.second)) + 2 * mul(u.second, dss)) % mod; dps %= mod;
+		
+		dss += ds2[v] + (n - sz[u.first]) * u.second; dss %= mod;
+		dps += (dp2[v] + mul(n - sz[v], mul(u.second, u.second)) + 2 * mul(u.second, ds2[v])) % mod; dps %= mod;
+		dfs2(u.first, v);
+	  }
+}
+
+int get_par(int v, int k)
+{
+    for(int i = 0; i < maxL; i ++)
+	  if(k & (1 << i))
+		v = lca[v][i];
+    return v;
+}
+
+int LCA(int v, int u)
+{
+    if(h[v] < h[u]) swap(v, u);
+    
+    v = get_par(v, h[v] - h[u]);
+    if(v == u) return v;
+
+    for(int i = maxL - 1; i >= 0; i --)
+	  if(lca[v][i] != lca[u][i]) v = lca[v][i], u = lca[u][i];
+
+    return lca[v][0];
+}
+
+int dist(int v, int u) { int p = LCA(v, u); return f(dis[v] + dis[u] - 2 * dis[p]); }
+
+int query(int u, int v)
+{
+    int d = dist(v, u);
+    int ans = 0;
+    if(LCA(v, u) == v)
+    {
+	  ans = dp2[v] + mul(n - sz[v], mul(d, d)) + 2 * mul(d, ds2[v]); ans *= 2; ans %= mod;
+//	  cout << ans << ' ' << dp2[v] << endl;
+	  ans -= dp1[u] + dp2[u]; ans = f(ans);
+    }
+    else
+    {
+	  ans = dp1[v] + mul(sz[v], mul(d, d)) + 2 * mul(d, ds1[v]); ans *= 2; ans %= mod;
+	  ans = dp1[u] + dp2[u] - ans; ans = f(ans); 
+    }
+    ans *= -1; ans = f(ans); 
+    return ans;
+}
+main()
+{
+    ios::sync_with_stdio(0); cin.tie(0);
+    cin >> n;
+    for(int i = 1; i < n; i ++)
+    {
+	  int v, u, w; cin >> v >> u >> w;
+	  a[v].push_back(make_pair(u, w));
+	  a[u].push_back(make_pair(v, w));
+    }
+//    cout << "SA" << endl;
+    dfs1(1);
+    dfs2(1);
+
+    //for(int i = 1; i <= n; i ++)
+    //cout << dp2[i] << ' ' << ds2[i] << endl;
+    int q; cin >> q;
+    while(q --)
+    {
+	  int u, v; cin >> u >> v;
+	  cout << query(u, v) << endl;
+    }
+    return 0;
+}

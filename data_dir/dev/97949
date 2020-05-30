@@ -1,0 +1,129 @@
+#include "bits/stdc++.h"
+#define MAXN 500009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+vector<PII>adj[MAXN];
+pair<int,PII> arr[MAXN];
+int qq[MAXN],rr[MAXN],n,pp,q,r;
+int s[MAXN<<2],lazy[MAXN<<2];
+ll st[MAXN<<2];
+void shift(int nd,int x,int y){
+	int &ret=lazy[nd];
+	if(!ret)
+		return;
+	int mid=(x+y)>>1;
+	lazy[nd<<1]=ret;s[nd<<1]=ret;st[nd<<1]=(mid-x+1)*1LL*ret;	
+	lazy[nd<<1|1]=ret;s[nd<<1|1]=ret;st[nd<<1|1]=(y-mid)*1LL*ret;	
+	ret=0;
+}
+int tap(int l,int r,int v,int nd,int x,int y){
+	if(l>y or x>r)	
+		return -1;
+	if(l<=x and y<=r and s[nd]<=v)	
+		return -1;	
+	if(x==y)
+		return x;
+	shift(nd,x,y);	
+	int mid=(x+y)>>1;
+	int res=tap(l,r,v,nd<<1|1,mid+1,y);
+	if(~res){
+		s[nd]=max(s[nd<<1],s[nd<<1|1]);
+		st[nd]=st[nd<<1]+st[nd<<1|1];
+		return res;
+	}
+	res=tap(l,r,v,nd<<1,x,mid);	
+	s[nd]=max(s[nd<<1],s[nd<<1|1]);
+	st[nd]=st[nd<<1]+st[nd<<1|1];
+	return res;
+}
+void modify(int l,int r,int v,int nd,int x,int y){
+	//~ if(nd==1)
+		//~ cout<<"modify "<<l<<" "<<r<<" "<<v<<endl;
+	if(l>y or x>r)
+		return;
+	if(l<=x and y<=r){
+		s[nd]=v;
+		st[nd]=(y-x+1)*1LL*v;
+		lazy[nd]=v;
+		return;
+	}
+	shift(nd,x,y);
+	int mid=(x+y)>>1;
+	modify(l,r,v,nd<<1,x,mid);
+	modify(l,r,v,nd<<1|1,mid+1,y);
+	s[nd]=max(s[nd<<1],s[nd<<1|1]);
+	st[nd]=st[nd<<1]+st[nd<<1|1];
+}
+ll sum(int l,int r,int nd,int x,int y){
+	if(l>y or x>r)
+		return 0;
+	if(l<=x and y<=r)
+		return st[nd];
+	shift(nd,x,y);	
+	int mid=(x+y)>>1;
+	return sum(l,r,nd<<1,x,mid)+sum(l,r,nd<<1|1,mid+1,y);	
+}
+int main(){
+    //~ freopen("file.in", "r", stdin);
+    scanf("%d%d%d%d",&n,&pp,&q,&r);
+    for(int i=1;i<=n;i++){
+		int a,b,c;
+		scanf("%d%d%d",&a,&b,&c);
+		adj[a].pb(mp(b,c));
+		arr[i]=mp(a,mp(b,c));
+	}
+	sort(arr+1,arr+n+1);
+	for(int i=n;i>=1;i--){
+		qq[i]=max(qq[i+1],arr[i].ss.ff);
+		rr[i]=max(rr[i+1],arr[i].ss.ss);
+	}
+	int p=1;
+	ll ans=0;
+	for(int i=1;i<=pp;i++){
+		if(qq[p]<q){
+			int pos=tap(qq[p]+1,q,rr[p],1,1,q);
+			//~ debug(pos);debug(rr[p]+1);
+			if(~pos){
+				ans+=(q-pos)*1LL*(r-rr[p]);
+				//~ debug(ans);
+				ans+=(pos-qq[p])*1LL*r-sum(qq[p]+1,pos,1,1,q);
+			}
+			else
+				ans+=(q-qq[p])*1LL*(r-rr[p]);
+		}
+		while(p<=n and arr[p].ff==i)	
+			p++;
+		tr(it,adj[i]){
+			int pos=tap(1,it->ff,it->ss,1,1,q);
+			//~ debug(pos);
+			if(pos==-1)
+				modify(1,it->ff,it->ss,1,1,q);
+			else
+				modify(pos+1,it->ff,it->ss,1,1,q);
+		}
+		//~ debug(qq[p]);
+		//~ debug(rr[p]);
+		//~ for(int j=1;j<=q;j++)
+			//~ cout<<sum(j,j,1,1,q)<<" ";
+		//~ cout<<endl;	
+		//~ cout<<i<<" "<<ans<<endl;
+		//~ wr
+	}
+	printf("%lld\n",ans);
+	return 0;
+} 

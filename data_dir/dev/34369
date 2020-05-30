@@ -1,0 +1,16 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {
+    string s;
+    cin >> s;
+    int cnt_a = 0;
+    for (char c: s) {
+        if (c == 'a') {
+            ++cnt_a;
+        }
+    }
+    cout << min((int)s.length(), (cnt_a << 1) - 1);
+    return 0;
+}

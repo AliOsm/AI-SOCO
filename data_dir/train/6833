@@ -1,0 +1,211 @@
+#define  _CRT_SECURE_NO_WARNINGS
+#include<iostream>
+#include<map>
+#include<cmath>
+#include<vector>
+#include<algorithm>
+#include<iomanip>
+#include<cmath> 
+#include<stack>
+#include<math.h>
+#include<set>
+#include<string>
+#include<cstring>
+#include<queue>
+#include<complex>	
+#include<assert.h>
+#include<math.h>
+#include<memory.h>
+#include <stdlib.h>
+#include<functional>
+#include<sstream>	
+#include<cstdio>
+using namespace std;
+
+#define rep(i,n) for(int i=0;i<n;i++)
+#define repi(i,a,n) for(int i=a;i<n;i++)
+
+#define mp make_pair
+#define pb push_back
+#define fastIO ios::sync_with_stdio(false)
+#define read freopen("in.in","r",stdin)
+#define write freopen("out.out","w",stdout)
+#define scf(xx) scanf("%d",&xx)
+#define scfl(xx) scanf("%I64d",&xx)
+#define All(a) a.begin(), a.end()
+#define LSOne(S) (S & (-S))
+#define NIL 0
+#define INF (1<<28)
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef vector<int> vi;
+typedef pair<int, int> ii;
+typedef long double ld;
+
+#define X first 
+#define Y second 
+int dx[] = { 0, 1, 0, -1, -1, -1, 1, 1 };
+int dy[] = { 1, 0, -1, 0, 1, -1, 1, -1 };
+
+int n;
+#define MAX_N 100005
+int chainHead[MAX_N], chainInd[MAX_N];
+int chainCnt, arrCnt;
+int posArr[MAX_N], rposArr[MAX_N], subtree[MAX_N];
+int par[MAX_N][24], dep[MAX_N];
+vector<int> G[MAX_N], indexx[MAX_N], cost[MAX_N];
+int edg[MAX_N], Cost[MAX_N];
+int arr[MAX_N]; //
+int seg[4 * MAX_N], lazy[4 * MAX_N];
+void build(int node=1 , int l=1 , int r=n){
+	if (l == r){
+		seg[node] = arr[l];
+		return;
+	}
+	build(node * 2, l, (l + r) / 2);
+	build(node * 2 + 1, (l + r) / 2 + 1, r);
+	seg[node] = seg[node * 2]+ seg[node * 2 + 1];
+}
+void update_tr(int x, int y, int v, int node = 1, int l = 1, int r = n){
+	if (l > y || r < x) return;
+	if (l >= x && r <= y){
+		seg[node] += v;
+		lazy[node] += v;
+		return;
+	}
+	if (lazy[node]){
+		update_tr(l, (l + r) / 2, lazy[node], node * 2, l, (l + r) / 2);
+		update_tr((l + r) / 2 + 1, r, lazy[node], node * 2 + 1, (l + r) / 2 + 1, r);
+		lazy[node] = 0;
+	}
+	update_tr(x, y, v, node * 2, l, (l + r) / 2);
+	update_tr(x, y, v, node * 2 + 1, (l + r) / 2 + 1, r);
+	seg[node] = seg[node * 2] + seg[node * 2 + 1];
+}
+int query_tr(int x, int y , int node=1 , int l = 1 , int r= n ) {
+	if (l > y || r < x) return 0;
+	if (l >= x && r <= y)return seg[node];
+	if (lazy[node]){
+		update_tr(l, (l + r) / 2, lazy[node], node * 2, l, (l + r) / 2);
+		update_tr((l + r) / 2 + 1, r, lazy[node], node * 2 + 1, (l + r) / 2 + 1, r);
+		lazy[node] = 0;
+	}
+	return query_tr(x, y, node * 2, l, (l + r) / 2) + query_tr(x, y, node * 2 + 1, (l + r) / 2 + 1, r); 
+}
+
+void hld(int u, int parent) {
+	if (chainHead[chainCnt] == -1) {
+		chainHead[chainCnt] = u;
+	}
+	chainInd[u] = chainCnt;
+	posArr[u] = arrCnt;
+	arr[arrCnt] = Cost[u];
+	rposArr[arrCnt++] = u;
+	int ind = -1, val = -1;
+	for (int i = 0; i<(int)G[u].size(); i++) {
+		int v = G[u][i];
+		if (subtree[v] > val && v != parent)
+			val = subtree[v], ind = i;
+	}
+	if (ind != -1) hld(G[u][ind], u);
+	for (int i = 0; i<(int)G[u].size(); i++) {
+		int v = G[u][i];
+		if (i != ind && v != parent) {
+			chainCnt++;
+			hld(v, u);
+		}
+	}
+}
+void queryhld(int u, int lcaa) {
+	int chainu, chainv = chainInd[lcaa];
+	while (u!=lcaa) {
+		chainu = chainInd[u];
+		if (chainu == chainv) {
+			update_tr(posArr[lcaa] + 1, posArr[u] ,1 );
+			break;
+		}
+
+		update_tr(posArr[chainHead[chainu]], posArr[u],1);
+		//update ans
+		u = chainHead[chainu];
+		u = par[u][0];
+	}
+}
+
+void dfs(int u, int parent, int depth) {
+	dep[u] = depth;
+	par[u][0] = parent;
+	subtree[u] = 1;
+	for (int i = 0; i<(int)G[u].size(); i++) {
+		int v = G[u][i];
+		if (v != parent) {
+			edg[indexx[u][i]] = v;
+			Cost[v] = cost[u][i];
+			dfs(v, u, depth + 1);
+			subtree[u] += subtree[v];
+		}
+	}
+}
+int LCA(int u, int v) {
+	if (dep[u] <  dep[v]) swap(u, v);
+	int diff = dep[u] - dep[v];
+	for (int i = 0; i <= 20; i++) if (diff&(1 << i)) u = par[u][i];
+	if (u == v) return u;
+	for (int i = 20; i >= 0; i--) {
+		if (par[u][i] != par[v][i] && par[u][i] != -1) {
+			u = par[u][i];
+			v = par[v][i];
+		}
+	}
+	return par[u][0];
+}
+void updatehld(int u, int v){
+	int lca = LCA(u, v);
+	queryhld(u, lca);
+	queryhld(v, lca);
+}
+void init() {
+	chainCnt = arrCnt = 1;
+	memset(chainHead, -1, sizeof chainHead);
+	memset(par, -1, sizeof par);
+	dfs(1, -1, 0);
+	hld(1, -1);
+	for (int j = 1; j <= 20; j++) for (int i = 1; i <= n; i++) {
+		if (par[i][j - 1] != -1) {
+			par[i][j] = par[par[i][j - 1]][j - 1];
+		}
+	}
+}
+vector<ii> V;
+int main() {
+	//read; write;
+	int t = 1;
+	while (t--){
+		scf(n);
+		rep(i, n + 1){ // clear
+			G[i].clear(); indexx[i].clear(); cost[i].clear();
+		}
+		repi(i, 1, n){
+			int x, y, z=0;	
+			scf(x); scf(y); 
+			V.push_back(mp(x, y));
+			G[x].push_back(y); G[y].push_back(x);
+			indexx[x].push_back(i); indexx[y].push_back(i);
+			cost[x].push_back(z); cost[y].push_back(z);
+		}
+		init();
+		build();
+		int m; scf(m);
+		while (m--){
+			int u, v;
+			scf(u); scf(v);
+			updatehld(u, v);
+		}
+		rep(i, n - 1){
+			if (dep[V[i].first] < dep[V[i].second]) swap(V[i].first, V[i].second);
+			printf("%d ", query_tr(posArr[V[i].first], posArr[V[i].first]));
+		}
+	}
+	return 0;
+}

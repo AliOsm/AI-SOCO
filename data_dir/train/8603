@@ -1,0 +1,35 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long
+void jizz(){cout<<-1<<endl; exit(0);}
+
+int s[200005],l[200005],r[200005];
+int main(){
+    ios_base::sync_with_stdio(0) ;cin. tie(0);
+    int n; cin>>n;
+    for(int i=1;i<=n;++i){
+        cin>>s[i]>>l[i];
+        r[i]=s[i]+l[i];
+        l[i]=s[i];
+    }
+    int nl=-9,nr=3000006;
+    for(int i=1;i<=n;++i){
+        --nl,++nr;
+        nl=l[i]=max(l[i],nl);
+        nr=r[i]=min(r[i],nr);
+        if(l[i]>r[i])jizz();
+    }
+    nl=-9,nr=3000006;
+    for(int i=n;i>=1;--i){
+        --nl,++nr;
+        nl=l[i]=max(l[i],nl);
+        nr=r[i]=min(r[i],nr);
+        if(l[i]>r[i])jizz();
+    }
+    ll tot=0;
+    for(int i=1;i<=n;++i){
+        tot+=r[i]-s[i];
+    }
+    cout<<tot<<endl;
+    for(int i=1;i<=n;++i)cout<<r[i]<<" "; cout<<endl;
+}

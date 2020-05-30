@@ -1,0 +1,11 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int n;
+
+int main() {
+  scanf("%d", &n);
+  printf("%d\n", (n % 10 <= 5) ? n - n % 10 : n + 10 - n % 10);
+  return 0; 
+}

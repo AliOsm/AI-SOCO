@@ -1,0 +1,38 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 5;
+
+long long n;
+vector<long long> v;
+void prime (){
+    if (n == 1){
+        cout << 1;
+        exit (0);
+    }
+    for (long long i = 2; i * i <= n; ++i){
+        if (n % i == 0) return;
+    }
+    cout << n;
+    exit (0);
+}
+int main(){
+
+
+    cin >> n;
+    prime ();
+    for (long long i = 2; i * i <= n; ++i){
+        if (n % i == 0) v.push_back(i);
+        if (n % i == 0 && n / i != i) v.push_back(n / i);
+    }
+    sort (v.begin(), v.end());
+    for (int i = 0; i < v.size(); ++i){
+        for (int j = i + 1; j < v.size(); ++j){
+            if (v[j] % v[i] == 0) continue;
+            return cout << 1, 0;
+        }
+    }
+    cout << v[0];
+
+
+}

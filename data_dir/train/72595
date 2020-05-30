@@ -1,0 +1,158 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N	150000
+#define MD	998244353
+
+int d_, x_, y_;
+
+void gcd_(int a, int b) {
+	if (b == 0)
+		d_ = a, x_ = 1, y_ = 0;
+	else {
+		int tmp;
+
+		gcd_(b, a % b);
+		tmp = x_ - a / b * y_, x_ = y_, y_ = tmp;
+	}
+}
+
+int inv(int a) {
+	gcd_(a, MD);
+	return x_;
+}
+
+int oo[1 + (N - 1) * 2], oj[1 + (N - 1) * 2];
+
+int link(int o, int j) {
+	static int _ = 1;
+
+	oo[_] = o, oj[_] = j;
+	return _++;
+}
+
+int ae[N], pp[N], qq[N], dd[N], sz[N], xx[N], *ii[N], *ft[N], kk[N], yy[N], n;
+
+void dfs1(int p, int i, int d) {
+	int o, s;
+
+	pp[i] = p, dd[i] = d;
+	s = 1;
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o];
+
+		if (j != p) {
+			dfs1(i, j, d + 1);
+			s += sz[j];
+		}
+	}
+	sz[i] = s;
+}
+
+void dfs2(int p, int i, int q) {
+	int o, j_ = -1;
+
+	qq[i] = q;
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o];
+
+		if (j != p)
+			if (j_ == -1 || sz[j_] < sz[j])
+				j_ = j;
+	}
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o];
+
+		if (j != p)
+			dfs2(i, j, j == j_ ? q : j);
+	}
+	if (j_ == -1) {
+		int q;
+
+		q = qq[i];
+		kk[q] = dd[i] - dd[q] + 1;
+		ii[q] = (int *) malloc(kk[q] * sizeof *ii[q]);
+		ft[q] = (int *) calloc(kk[q], sizeof *ft[q]);
+		yy[q] = 0;
+	}
+	ii[q][dd[i] - dd[q]] = i;
+}
+
+void ft_update(int *ft, int i, int n, int x) {
+	while (i < n) {
+		ft[i] = (ft[i] + x) % MD;
+		i |= i + 1;
+	}
+}
+
+int ft_query(int *ft, int i) {
+	int x = 0;
+
+	while (i >= 0) {
+		x = (x + ft[i]) % MD;
+		i &= i + 1, i--;
+	}
+	return x;
+}
+
+void update(int i, int x) {
+	int q = qq[i], h = dd[i] - dd[q];
+
+	xx[i] = (xx[i] + x) % MD;
+	if (h + 1 < kk[q]) {
+		int j = ii[q][h + 1];
+		int x_ = (long long) ((n - sz[j]) - sz[i]) * x % MD;
+
+		yy[q] = (yy[q] + x_) % MD;
+		ft_update(ft[q], h, kk[q], x_);
+	}
+}
+
+int query(int i) {
+	int x = 0;
+
+	while (i != -1) {
+		int q = qq[i], p = pp[q], h = dd[i] - dd[q];
+
+		x = (x + (h == kk[q] - 1 ? yy[q] : ft_query(ft[q], h - 1))) % MD;
+		if (p != -1)
+			x = (x + (long long) ((n - sz[q]) - sz[p]) * xx[p]) % MD;
+		i = p;
+	}
+	return x;
+}
+
+int main() {
+	int q, h, i, j, v, z;
+
+	scanf("%d%d", &n, &q);
+	for (h = 0; h < n - 1; h++) {
+		scanf("%d%d", &i, &j), i--, j--;
+		ae[i] = link(ae[i], j);
+		ae[j] = link(ae[j], i);
+	}
+	dfs1(-1, 0, 0);
+	dfs2(-1, 0, 0);
+	v = inv(n);
+	z = 0;
+	while (q--) {
+		int t;
+
+		scanf("%d%d", &t, &i), i--;
+		if (t == 1) {
+			int x;
+
+			scanf("%d", &x);
+			z = (z + (long long) sz[i] * x) % MD;
+			update(i, x);
+		} else {
+			int ans;
+
+			ans = (z + (long long) (n - sz[i]) * xx[i] + query(i)) % MD * v % MD;
+			if (ans < 0)
+				ans += MD;
+			printf("%d\n", ans);
+		}
+	}
+	return 0;
+}

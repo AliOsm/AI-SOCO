@@ -1,0 +1,167 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <memory.h>
+#include <sstream>
+#include <fstream>
+#include <iomanip>
+#include <assert.h>
+#include <bitset>
+#include <string>
+#include <cstdio>
+#include <math.h>
+#include <complex>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <bitset>
+#include <map>
+using namespace std;
+
+#define int64 long long
+#define mp make_pair
+
+#ifdef _DEBUG
+	const int N = 500010;
+#else
+	const int N = 500010;
+#endif
+
+const int64 inf = 1e18;
+
+struct Number
+{
+	int64 a, b;
+	Number(){}
+	Number(int64 a, int64 b) : a(a), b(b){}
+	bool operator > (int64 x) const
+	{
+		return (a > b * x);
+	}
+	bool operator <= (const Number &other) const
+	{
+		return (a * other.b < b * other.a);
+	}
+};
+
+struct Line
+{
+	int64 b, k;
+	Line(){}
+	Line(int64 b, int64 k) : b(b), k(k){}
+	Number Intersect(const Line &other) const
+	{
+		Number res = Number(other.b - b, k - other.k);
+		if (res.b < 0)
+		{
+			res.a *= -1;
+			res.b *= -1;
+		}
+		return res;
+	}
+};
+
+struct T
+{
+	Line l;
+	Number a, b;
+	T(){}
+	T(Line l, Number a, Number b) : l(l), a(a), b(b){}
+};
+
+int n, a[N];
+int64 s[N];
+deque <T> v;
+
+void pushBack(Line l)
+{
+	if (v.empty())
+	{
+		v.push_back(T(l, Number(-inf, 1), Number(inf, 1)));
+		return;
+	}
+	while (v.size() >= 2)
+	{
+		Number tmp1 = v.back().a;
+		Number tmp2 = v[v.size() - 2].l.Intersect(l);
+		if (tmp2 <= tmp1)
+		{
+			v.pop_back();
+		}
+		else break;
+	}
+	Number tmp = v.back().l.Intersect(l);
+	v.back().b = tmp;
+	v.push_back(T(l, tmp, Number(inf, 1)));
+}
+
+void pushFront(Line l)
+{
+	if (v.empty())
+	{
+		v.push_back(T(l, Number(-inf, 1), Number(inf, 1)));
+		return;
+	}
+	while (v.size() >= 2)
+	{
+		Number tmp1 = v.front().b;
+		Number tmp2 = v[1].l.Intersect(l);
+		if (tmp1 <= tmp2)
+		{
+			v.pop_front();
+		}
+		else break;
+	}
+	Number tmp = v.front().l.Intersect(l);
+	v.front().a = tmp;
+	v.push_front(T(l, Number(-inf, 1), tmp));
+}
+
+int64 get(int x)
+{
+	int l = 0, r = v.size() - 1;
+	while (l + 1 < r)
+	{
+		int mid = (l + r) / 2;
+		if (v[mid].a > x) r = mid - 1;
+		else l = mid;
+	}
+	int j;
+	if (v[r].a > x) j = l;
+	else j = r;
+	return v[j].l.k * x + v[j].l.b;
+}
+
+int main()
+{
+#ifdef _DEBUG
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+	scanf("%d", &n);
+	for (int i = 1; i <= n; i++) scanf("%d", &a[i]);
+	s[0] = 0;
+	for (int i = 1; i <= n; i++) s[i] = s[i - 1] + a[i];
+	int64 ans = 0;
+	int64 sum = 0;
+	for (int i = 1; i <= n; i++) sum += 1ll * a[i] * i;
+	ans = sum;
+	pushBack(Line(-s[0], 1));
+	for (int i = 2; i <= n; i++)
+	{
+		ans = max(ans, get(a[i]) + sum + s[i - 1] - 1ll * a[i] * i);
+		pushBack(Line(-s[i - 1], i));
+	}
+	v.clear();
+	pushBack(Line(-s[n], n));
+	for (int i = n - 1; i >= 1; i--)
+	{
+		ans = max(ans, get(a[i]) + sum + s[i] - 1ll * a[i] * i);
+		pushFront(Line(-s[i], i));
+	}
+	cout << ans;
+    return 0;
+}

@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+#define VI vector<int>
+#define pb push_back
+#define pii pair<int,int>
+#define mp make_pair
+#define LL long long
+using namespace std;
+vector<LL> g[16];
+int k;
+LL tot;
+bool mark[1<<16];
+bool memo[1<<16];
+pii path[1<<16];
+map<LL,int> where;
+int pos[1<<16];
+LL S[16];
+bool dp(int msk){
+	if(msk == 0) return true;
+	bool& ans = memo[msk];
+	if(mark[msk]) return ans;
+	mark[msk] = true;
+	ans = false;
+	int b = pos[msk & -msk];
+
+	for(int i = 0; i < (int)g[b].size() && !ans; i++){
+		LL carry = g[b][i];
+		int cur = b;
+		int vis = 0;
+		LL t = carry;
+		while(true){
+			LL res = tot - (S[cur] - t);
+			vis |= (1<<cur);
+			if(res == carry){
+				if(dp(msk ^ vis)){
+					ans = true;
+					path[msk] = mp(i, msk ^ vis);
+				}
+				break;
+			}
+			if(where.count(res) == 0) break;
+			int next = where[res];
+			if(!(msk & (1<<next))) break;
+			if(vis & (1<<next)) break;
+			t = res;
+			cur = next;
+		}
+	}
+	return ans;
+}
+pair<int,LL> who[16];
+void build_path(int msk){
+	if(msk == 0) return;
+	pii p = path[msk];
+	int b = pos[msk & -msk];
+
+	int i = p.first, nmsk = p.second;
+	LL carry = g[b][i];
+	int cur = b;
+	LL t = carry;
+	while(true){
+		LL res = tot - (S[cur] - t);
+		if(res == carry){
+			who[b] = mp(cur, carry);
+			build_path(nmsk);
+			break;
+		}
+		int next = where[res];
+		who[next] = mp(cur, res);
+		t = res;
+		cur = next;
+	}
+}
+int main(){
+	scanf("%d", &k);
+	for(int i = 0; i < k; i++) pos[(1<<i)] = i;
+	LL sum = 0LL;
+	for(int i = 0; i < k; i++){
+		int s, p;
+		scanf("%d", &s);
+		for(int j = 0; j < s; j++){
+			scanf("%d", &p);
+			g[i].pb(p);
+			sum += p;
+			S[i] += p;
+			where[p] = i;
+		}
+	}
+	if(sum%k){
+		printf("No\n");
+		return 0;
+	}
+	tot = sum/k;
+	bool ans = dp((1<<k)-1);
+	printf("%s\n", ans?("Yes"):("No"));
+	if(ans){
+		build_path((1<<k)-1);
+		for(int i = 0; i < k; i++) printf("%lld %d\n", who[i].second, who[i].first+1);
+	}
+	return 0;
+}

@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define mod 1000000007
+#define oo 1000000010
+const int N = 610;
+const int M = 123457;
+int n , m , k, u[N] , v[N];
+
+int deg[N] , source, sink;
+
+int from[M] , to[M] , capacity[M] , cnt = 0;
+
+vector< vector< pair<int,int> > > g;
+
+vector< vector< int > > has;
+
+inline void add_edge(int u,int v,int c){
+    from[cnt] = to[cnt ^ 1] = u;
+    from[cnt ^ 1] = to[cnt] = v;
+    capacity[cnt] = c;
+    capacity[cnt ^ 1] = 0;
+    g[u].push_back(make_pair(v,cnt));
+    g[v].push_back(make_pair(u,cnt^1));
+    cnt += 2;
+}
+
+
+int pre[M] , vis[M] , vi , ans[N] ;
+
+queue < int > q;
+
+void BFS(){
+    vi++;
+    vis[source] = vi;
+    pre[source] = -1;
+    q.push(source);
+    int node;
+    while(!q.empty()){
+        node = q.front();
+        q.pop();
+        for(int i = 0 ;i < (int)g[node].size();i++){
+            if(capacity[g[node][i].second] != 0 && vis[g[node][i].first] != vi){
+                vis[g[node][i].first] = vi;
+                pre[g[node][i].first] = g[node][i].second;
+                q.push(g[node][i].first);
+            }
+        }
+    }
+}
+
+
+
+int max_flow(){
+    int flow = 0 , last , mn;
+    while(true){
+        BFS();
+        if(vis[sink] != vi) break;
+        last = sink;
+        mn = oo;
+        while(pre[last] != -1){
+            mn = min(mn , capacity[pre[last]]);
+            last = from[pre[last]];
+        }
+        flow += mn;
+        last = sink;
+        while(pre[last] != -1){
+            capacity[pre[last]] -= mn;
+            capacity[pre[last] ^ 1] += mn;
+            last = from[pre[last]];
+        }
+    }
+    return flow;
+}
+
+int needed[N];
+
+
+void solve(){
+    scanf("%d%d%d",&n,&m,&k);
+    for(int i = 1;i <= n;i++)
+        deg[i] = 0;
+    g.clear();
+    has.clear();
+    g.resize(n + m + 2);
+    has.resize(n + 1);
+    cnt = 0 , source = 0 , sink = n + m + 1;
+    for(int i = 1 ;i <= m;i++){
+        scanf("%d%d",&u[i],&v[i]);
+        add_edge(source,n + i , 1);
+        add_edge(n + i , u[i] , 1);
+        add_edge(n + i , v[i] , 1);
+        deg[u[i]]++;
+        deg[v[i]]++;
+        needed[i] = -1;
+        ans[i] = i;
+    }
+    bool cant = false;
+    int cur = 0;
+    for(int i = 1;i <= n;i++){
+        cur += 2 * max(0 ,  deg[i] - k);
+        if(deg[i] > 2 * k){
+            cant = true;
+        }
+        add_edge(i , sink , 2 * max(0 , deg[i] - k));
+    }
+    if(cant || max_flow() != cur){
+        for(int i = 0 ;i < m;i++){
+            if(i) putchar(' ');
+            putchar('0');
+        }
+        puts("");
+        return;
+    }
+    for(int i = 0 ;i < cnt;i++){
+        if(from[i] > n && from[i] <= n + m && to[i] >= 1 && to[i] <= n){
+            if(capacity[i] == 0){
+                has[to[i]].push_back(from[i] - n);
+            }
+        }
+    }
+    for(int i = 1;i <= n;i++){
+        for(int j = 0;j < (int)has[i].size();j += 2){
+            ans[has[i][j]] = has[i][j + 1];
+        }
+    }
+    for(int i = 1;i <= m;i++){
+        if(i > 1) putchar(' ');
+        if(cant) ans[i] = 0;
+        printf("%d",ans[i]);
+    }
+    puts("");
+}
+
+int main(){
+    int t;
+    cin >> t;
+    while(t--){
+        solve();
+    }
+    return 0;
+}

@@ -1,0 +1,115 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<ll,ll> pll;
+typedef pair<pll,pll> ppll;
+typedef long double ld;
+
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+#define fst first
+#define snd second
+#define ins insert
+#define pb push_back
+
+const int N = 5e5 + 5;
+const int MOD = 1e9 + 7;
+
+vector<int> g[N];
+int dp[N][20];
+int h[N],sz[N];
+int tin[N],tout[N];
+int timer = 0;
+void dfs(int v,int p,int dd){
+    dp[v][0] = p;
+    h[v] = dd;
+    tin[v] = ++timer;
+    for(int i = 1;i < 20; ++i){
+        dp[v][i] = dp[dp[v][i - 1]][i - 1];
+    }
+    sz[v] = 1;
+    for(auto &it : g[v]){
+        if(it != p){
+            dfs(it,v,dd + 1);
+            sz[v] += sz[it];
+        }
+    }
+    tout[v] = ++timer;
+}
+
+bool cmp(int a,int b){
+    return tin[a] <= tin[b] && tout[b] <= tout[a];
+}
+
+ll lca(int a,int b){
+    if(cmp(a,b))return a;
+    if(cmp(b,a))return b;
+    for(int i = 19;i >= 0; --i){
+        if(!cmp(dp[a][i],b))a = dp[a][i];
+    }
+    return dp[a][0];
+}
+
+ll get_up(int a,int h){
+    if(!h)return a;
+    for(int i = 19;i >= 0; --i){
+        if(h & (1 << i))a = dp[a][i];
+    }
+    return a;
+}
+
+int main(){
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+    //freopen(".in", "r", stdin);
+    //freopen(".out", "w", stdout);
+    int n;
+    cin >> n;
+    for(int i = 1;i < n; ++i){
+        int u,v;
+        cin >> u >> v;
+        --u,--v;
+        g[u].pb(v);
+        g[v].pb(u);
+    }
+    dfs(0,0,0);
+    int m;
+    cin >> m;
+    for(int i = 0;i < m; ++i){
+        int a,b;
+        cin >> a >> b;
+        if(a == b){
+            cout << n << "\n";
+            continue;
+        }
+        --a,--b;
+        int l = lca(a,b);
+        int dist = h[a] + h[b] - 2 * h[l];
+        if(dist % 2){
+            cout << 0 << "\n";
+            continue;
+        }
+        if(h[a] == h[b]){
+            ll ans = n;
+            ans -= sz[get_up(a,h[a] - h[l] - 1)];
+            ans -= sz[get_up(b,h[b] - h[l] - 1)];
+            cout << ans << "\n";
+        }else{
+            dist >>= 1;
+            int mid;
+            ll ans;
+            if(h[a] > h[b]){
+                mid = get_up(a,dist);
+                ans = sz[mid];
+                ans -= sz[get_up(a,h[a] - h[mid] - 1)];
+            }else{
+                mid = get_up(b,dist);
+                ans = sz[mid];
+                ans -= sz[get_up(b,h[b] - h[mid] - 1)];
+            }
+            cout << ans << "\n";
+        }
+    }
+    return 0;
+}

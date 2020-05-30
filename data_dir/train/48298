@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+const int MAXN = 3e3 + 7;
+const int MOD = 1e9 + 7;
+const int NONE = 1e9 + 239;
+
+inline int add(int a, int b) {
+    int res = a + b;
+    if (res >= MOD) {
+        return res - MOD;
+    } else {
+        return res;
+    }
+}
+
+inline int mul(int a, int b) {
+    ll res = (ll)a * b;
+    return res % MOD;
+}
+
+inline int sub(int a, int b) {
+    return (((ll)a - b) + (ll)MOD * MOD) % MOD;
+}
+
+namespace PolynomialHash {
+    const int BASE = 31;
+    
+    int sz;
+    ull pw[MAXN];
+    ull h[MAXN];
+    int pnt = 0;
+    
+    void go(int sz_) {
+        sz = sz_;
+        h[0] = 0;
+        pw[0] = 1;
+        pnt = 0;
+    }
+    
+    void add_symbol(char c) {
+        h[pnt + 1] = h[pnt] * BASE + c;
+        pw[pnt + 1] = pw[pnt] * BASE;
+        pnt++;
+    }
+    
+    ull get(int l, int r) {
+        return h[r] - h[l] * pw[r - l];
+    }
+    
+    int fast_hash(string s) {
+        int h = 0;
+        for (int i = 0; i < (int)s.size(); i++) {
+            h = add(mul(h, BASE), s[i]);
+        }
+        return h;
+    }
+}
+
+int ans = 0;
+string s;
+unordered_set<ull> seen[MAXN];
+int dp[MAXN][MAXN];
+int ok[MAXN];
+
+set<string> ban = {
+    "0011",
+    "0101",
+    "1110",
+    "1111",
+};
+
+set<ull> ban_hash;
+
+void init() {
+    for (auto t : ban) {
+        auto h = PolynomialHash::fast_hash(t);
+        ban_hash.insert(h);
+    }
+    for (int i = 0; i < MAXN; i++) {
+        for (int j = 0; j < MAXN; j++) {
+            dp[i][j] = NONE;
+        }
+    }
+    for (int i = 0; i < MAXN; i++) {
+        dp[i][i] = 1;
+    }
+    for (int i = 0; i < MAXN; i++) {
+        ok[i] = true;
+    }
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    
+    #ifdef LOCAL
+    assert(freopen("input.txt", "r", stdin));
+    assert(freopen("output.txt", "w", stdout));
+    #endif
+    
+    init();
+    
+    int m;
+    cin >> m;
+    PolynomialHash::go(m);
+    for (int i = 0; i < m; i++) {
+        char c;
+        cin >> c;
+        s.push_back(c);
+        PolynomialHash::add_symbol(c);
+    }
+    for (int i = 0; i + 4 <= m; i++) {
+        auto t = PolynomialHash::get(i, i + 4);
+        if (ban_hash.count(t)) {
+            ok[i] = false;
+        }
+    }
+    for (int i = 0; i < m; i++) {
+        //calc
+        int r = i + 1;
+        for (int l = r - 1; l >= 0; l--) {
+            dp[l][r] = 0;
+            for (int i = 1; i <= min(4, r - l); i++) {
+                if (i < 4 || ok[l]) {
+                    dp[l][r] = add(dp[l][r], dp[l + i][r]);
+                }
+            }
+            auto cur = PolynomialHash::get(l, r);
+            if (!seen[r - l].count(cur)) {
+                ans = add(ans, dp[l][r]);
+            }
+            seen[r - l].insert(cur);
+        }
+        //
+        cout << ans << '\n';
+    }
+}

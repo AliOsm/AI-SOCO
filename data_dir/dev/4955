@@ -1,0 +1,226 @@
+#include "bits/stdc++.h"
+using namespace std;
+#ifndef LOCAL
+#define endl '\n'
+#endif
+
+#define fr(i, a, b) for(int i = a; i <= b; i++)
+#define rf(i, a, b) for(int i = a; i >= b; i--)
+#define pf push_front
+#define pb push_back
+#define fi first
+#define se second
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define sz(x) (int)x.size()
+#define rsz resize()
+#define lb lower_bound
+#define ub upper_bound
+#define br cout << endl
+
+typedef long long ll;
+typedef long double f80;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+int pct(int x) { return __builtin_popcount(x); }
+int pct(ll x) { return __builtin_popcountll(x); } 
+int bit(int x) { return 31 - __builtin_clz(x); } // floor(log2(x))
+int bit(ll x) { return 63 - __builtin_clzll(x); } // floor(log2(x))
+int cdiv(int a, int b) { return a / b + !(a < 0 || a % b == 0); }
+ll cdiv(ll a, ll b) { return a / b + !(a < 0 || a % b == 0); }
+
+template<typename T>
+void leftShift(vector<T> &v, ll k) { k %= sz(v); if(k < 0) k += sz(v); rotate(v.begin(), v.begin() + k, v.end()); }
+template<typename T>
+void rightShift(vector<T> &v, ll k) { leftShift(v, sz(v) - k); }
+
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+ll rand(ll l, ll r){
+	uniform_int_distribution<ll> uid(l, r);
+	return uid(rng);
+}
+
+void pr() {}
+void sc() {}
+
+template <typename Head, typename... Tail>
+void pr(Head H, Tail... T) { cout << H << " "; pr(T...); }
+
+template <typename Head, typename... Tail>
+void sc(Head &H, Tail &... T) { cin >> H; sc(T...); }
+
+#ifdef LOCAL
+#define debug(...) cerr << "[L:" << __LINE__ << "][" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+#else
+#define debug(...) 42
+#endif
+
+#ifndef LOCAL
+string to_string(__int128 x) {
+	string s = "";
+	bool neg = 0;
+	if(x < 0) { s += "-"; neg = 1; x = -x; }
+	if(!x) s += '0';
+	while(x) {
+		int rem = x % 10;
+		s += to_string(rem);
+		x /= 10;
+	}
+	reverse(s.begin() + neg, s.end());
+	return s;
+}
+#endif
+
+const int mod = 1e9 + 7; // 998244353;
+
+int pwr(int a,int b) {
+	int ans = 1;
+	while(b) {
+		if(b & 1) ans = (ans * 1LL * a) % mod;
+		a = (a * 1LL * a) % mod;
+		b >>= 1;
+	}
+	return ans;
+}
+
+/*
+	Lookout for overflows!!
+	Check array sizes!!
+	Clear before test cases!!
+	Use the correct modulo!!
+	Check for corner cases!!
+	Are you forgetting something?!
+	Read problem statement carefully!!!
+*/
+
+vector<int> set_bits(int mask) {
+	vector<int> v;
+	int c = bit(mask);
+	fr(i, 0, c) {
+		if((mask >> i) & 1) {
+			v.pb(i + 1);
+		}
+	}
+	return v;
+}
+
+int get_bits(vector<int> bits) {
+	int mask = 0;
+	for(int b : bits) {
+		mask ^= (1 << (b - 1));
+	}
+	return mask;
+}
+
+const int N = 15;
+vector<int> g[N];
+bool path[1 << N][N][N];
+int par[1 << N][N][N];
+bool path2[N][N][1 << N];
+int par2[N][N][1 << N];
+
+bool adj[N][N];
+int dp[1 << N];
+array<int, 4> par_dp[1 << N];
+
+void gen(int i,int j,int mask) {
+	debug(i, j, set_bits(mask));
+	while(pct(mask) != 1) {
+		int k = par2[i][j][mask];
+		pr(k + 1, j + 1);
+		br;
+		if(j != i)
+			mask ^= (1 << j);
+		j = k;
+	}
+}
+
+void solve() {
+	int n, m;
+	sc(n, m);
+	fr(i, 1, m) {
+		int u, v;
+		sc(u ,v);
+		u--, v--;
+		adj[u][v] = adj[v][u] = 1;
+	}
+	int tot = (1 << n) - 1;
+	fr(i, 0, n - 1) {
+		memset(path, 0, sizeof path);
+		path[1 << i][i][i] = 1;
+		fr(mask, 0, tot) {
+			fr(j, 0, n - 1) {
+				fr(k, 0, n - 1) {
+					if(!path[mask][j][k]) continue;
+					if(!path2[i][k][mask]) {
+						path2[i][k][mask] = 1;
+						par2[i][k][mask] = j;
+						if(adj[k][i] && j != i) {
+							path2[i][i][mask] = 1;
+							par2[i][i][mask] = k;
+						}
+					}
+					int cmask = tot ^ mask;
+					while(cmask) {
+						int l = bit(cmask);
+						cmask ^= (1 << l);
+						if(j == l) continue;
+						if(adj[k][l] && !((mask >> l) & 1)) {
+							path[mask ^ (1 << l)][k][l] = 1;
+							par[mask ^ (1 << l)][k][l] = j;
+						}
+					}
+				}
+			}
+		}
+	}
+	fr(i, 0, tot) {
+		dp[i] = 1e9;
+	}
+	dp[1] = 0;
+	fr(mask, 0, tot) {
+		if(dp[mask] == 1e9) continue;
+		fr(i, 0, n - 1) {
+			if(!((mask >> i) & 1)) continue;
+			fr(j, 0, n - 1) {
+				if(!((mask >> j) & 1)) continue;
+				int cmask = tot ^ mask ^ ((1 << i) | (1 << j));
+				int mmask = cmask;
+				while(mmask > 0) {
+					if(((mmask >> i) & 1) && ((mmask >> j) & 1) && path2[i][j][mmask]) {
+						int val = dp[mask] + pct(mmask) - 1 + (i == j);
+						int nmask = mask | mmask;
+						if(dp[nmask] > val) {
+							dp[nmask] = val;
+							par_dp[nmask] = {mask, mmask, i, j};
+						}
+					}
+					mmask = (mmask - 1) & cmask;
+				}
+			}
+		}
+	}
+	cout << dp[tot] << endl;
+	while(tot != 1) {
+		int path_mask = par_dp[tot][1];
+		int i = par_dp[tot][2];
+		int j = par_dp[tot][3];
+		tot = par_dp[tot][0];
+		gen(i, j, path_mask);
+	}
+}
+
+signed main() {
+	ios :: sync_with_stdio(0);
+	cin.tie(0);
+	cout.tie(0);
+	int t;
+	// cin >> t;
+	t = 1;
+	for(int tt = 1; tt <= t; tt++) {
+		solve();
+	}
+	return 0;
+}

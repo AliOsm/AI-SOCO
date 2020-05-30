@@ -1,0 +1,179 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pii             pair<LL , LL >
+#define inf             1000000011
+#define in(a)           scanf("%lld", &a)
+#define ins(a)          scanf("%s", a)
+#define in2(a, b)       scanf("%lld%lld", &a, &b)
+#define in3(a, b, c)    scanf("%lld%lld%lld", &a, &b, &c)
+#define pn              printf("\n")
+#define pr(a)           printf("%lld\n", a)
+#define prs(a)          printf("%lld ", a)
+#define pr2(a, b)       printf("%lld %lld\n", a, b)
+#define pr3(a, b, c)    printf("%lld %lld %lld\n", a, b, c)
+#define pcs(a)          printf("Case %lld: ", a)
+#define mp              make_pair
+#define vi              vector<LL >
+#define _ceil(n, a)     ((n)%(a)==0?((n)/(a)):((n)/(a)+1))
+#define sz              size()
+#define pb              push_back
+#define mem(a, b)       memset((a), (b), sizeof(a))
+#define all(X)          (X).begin(), (X).end ()
+#define lg2(n)          (31-__builtin_clz(n))
+#define ext(a)          {printf("%s\n", a); return 0;}
+#define oka(x, y)       ((x)>=0&&(x)<row&&(y)>=0&&(y)<col)
+#define x               first
+#define y               second
+#define lc              (2*i)
+#define rc              (2*i+1)
+
+typedef long long LL;
+//LL  dx[]={1,0,-1,0};LL dy[]={0,1,0,-1}; //4 Direction
+//LL  dx[]={1,1,0,-1,-1,-1,0,1,0};LL dy[]={0,1,1,1,0,-1,-1,-1,0};//8 direction
+//LL  dx[]={2,1,-1,-2,-2,-1,1,2};LL dy[]={1,2,2,1,-1,-2,-2,-1};//Knight Direction
+//bool check(LL n, LL pos) {return (n & (1<<pos))>>pos;} //typecast 1 in case of int
+//LL  on(LL n, LL pos) {return n | (1<<pos);} //typecast 1 in case of int
+//LL  off(LL n, LL pos) {return n & ~(1<<pos);} //typecast 1 in case of int
+//bool operator < (const data &d) const{return cost<d.cost;} //reverse in priority queue
+
+const LL M = 200010, mod = 1000000007;
+
+struct data {
+    LL t, u, val;
+    data() {}
+};
+
+data query[M];
+vi A[M];
+LL st[M];
+LL ed[M];
+LL deg[M];
+LL value[M];
+LL new_n[M];
+LL sum[4*M], lazy[4*M];
+LL T = 0;
+
+void dfs(LL u)
+{
+    deg[u] = 1;
+    st[u] = ++T;
+    for (LL v : A[u]) dfs(v);
+    ed[u] = T;
+}
+
+LL bigMod(LL x, LL n)
+{
+    if (n==0) return 1;
+    LL temp=bigMod(x, n/2);
+    return n%2==0?(temp*temp)%mod:(x*((temp*temp)%mod))%mod;
+}
+
+void propagate(LL i, LL l, LL r)
+{
+    sum[i] = (sum[i] * lazy[i]) % mod;
+    if (l != r)
+    {
+        lazy[lc] = (lazy[lc] * lazy[i]) % mod;
+        lazy[rc] = (lazy[rc] * lazy[i]) % mod;
+    }
+    lazy[i] = 1;
+}
+
+void update(LL i, LL l, LL r, LL st, LL ed, LL val)
+{
+    propagate(i, l, r);
+    if (l >= st && r <= ed)
+    {
+        lazy[i] = (lazy[i] * val) % mod;
+        propagate(i, l, r);
+    }
+    else if (l > ed || r < st) return ;
+    else
+    {
+        LL m = (l+r)/2;
+        update(lc, l, m, st, ed, val);
+        update(rc, m+1, r, st, ed, val);
+        sum[i] = (sum[lc] + sum[rc]) % mod;
+    }
+}
+
+void update(LL i, LL l, LL r, LL x, LL val)
+{
+    propagate(i, l, r);
+    if (l == x && r == x) sum[i] = val;
+    else if (x >= l && x <= r)
+    {
+        LL m = (l+r)/2;
+        update(lc, l, m, x, val);
+        update(rc, m+1, r, x, val);
+        sum[i] = (sum[lc] + sum[rc]) % mod;
+    }
+}
+
+LL find_sum(LL i, LL l, LL r, LL st, LL ed)
+{
+    propagate(i, l, r);
+    if (l >= st && r <= ed) return sum[i];
+    else if (l > ed || r < st) return 0;
+    else
+    {
+        LL m = (l+r)/2;
+        return (find_sum(lc, l, m, st, ed) + find_sum(rc, m+1, r, st, ed)) % mod;
+    }
+}
+
+
+int main()
+{
+#ifndef ONLINE_JUDGE
+    freopen("/home/riaz/Documents/in.txt", "r", stdin);
+//    freopen("/home/riaz/Documents/in.txt", "w", stdout);
+#endif
+    ios_base::sync_with_stdio(false);
+
+    LL n = 1, q, i, j, k;
+
+    in2(value[1], q);
+    for (i = 0; i < q; i++)
+    {
+        in2(query[i].t, query[i].u);
+        if (query[i].t == 1)
+        {
+            n++;
+            in(query[i].val);
+            A[query[i].u].pb(n);
+            value[n] = query[i].val;
+            new_n[i] = n;
+        }
+    }
+
+    dfs(1);
+    fill(lazy, lazy+4*M, 1);
+    update(1, 1, n, st[1], value[1]);
+
+    for (i = 0; i < q; i++)
+    {
+        int u = query[i].u;
+        if (query[i].t == 1)
+        {
+            int v = new_n[i];
+
+            update(1, 1, n, st[u], ed[u], deg[u]+1);
+            update(1, 1, n, st[u], ed[u], bigMod(deg[u], mod-2));
+
+            k = (find_sum(1, 1, n, st[u], st[u]) * bigMod(value[u], mod-2)) % mod;
+            update(1, 1, n, st[v], (k * value[v]) % mod);
+            deg[u]++;
+        }
+        else
+        {
+            int div = (find_sum(1, 1, n, st[u], st[u]) * bigMod((deg[u] * value[u]) % mod, mod-2)) % mod;
+            k = (find_sum(1, 1, n, st[u], ed[u]) * bigMod(div, mod-2)) % mod;
+
+            pr(k);
+        }
+    }
+
+
+return 0;
+}

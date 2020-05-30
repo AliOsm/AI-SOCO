@@ -1,0 +1,180 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MAX_N = 3;
+const int Mod = 1e9 + 9;
+const int N = 3e5 + 10;
+
+void addSelf (int& x, int y) {
+	if ((x += y) >= Mod)
+		x -= Mod;
+}
+
+int add (int x, int y) {
+	return addSelf(x, y), x;
+}
+
+int mul (int x, int y) {
+	return (long long) x * y % Mod;
+}
+
+struct Matrix
+{
+    int row, col;
+    int M[MAX_N][MAX_N];
+
+    Matrix () {}
+    Matrix (int n, int m) {
+        this->row = n;
+        this->col = m;
+        memset(M, 0, sizeof M);
+    }
+
+    int* operator[](int i) {
+        return this->M[i];
+    }
+
+    Matrix Identity (int n) {
+        Matrix Res = Matrix(n, n);
+        for (int i = 0; i < n; i++)
+            Res[i][i] = 1;
+        return Res;
+    }
+
+    Matrix operator* (Matrix& a) {
+        assert(col == a.row);
+        Matrix Res = Matrix(row, a.col);
+        for (int i = 0; i < row; i++)
+            for (int j = 0; j < a.col; j++)
+                for (int k = 0; k < col; k++)
+                        addSelf(Res[i][j], mul(M[i][k], a[k][j]));
+        return Res;
+    }
+};
+
+struct Fibonacci {
+	int a, b;
+	Fibonacci() { a = b = 0; }
+	Fibonacci(int x, int y) :a(x), b(y) {};
+	Fibonacci operator+ (const Fibonacci f) {
+		return Fibonacci(add(a, f.a), add(b, f.b));
+	}
+	Fibonacci operator+= (const Fibonacci f) {
+		return (*this) = (*this) + f;
+	}
+} Lazy[10 * N];
+
+int Sum[4 * N];
+
+int n, m;
+int Arr[N];
+
+Matrix T[N];
+Matrix F[N];
+
+inline void PushLazy (int& Node, int& L, int& R) {
+	if (!Lazy[Node].a)	return;
+
+	int Mid = L + R >> 1;
+	Lazy[Node << 1] += Lazy[Node];
+
+	Matrix Fibo(2, 2);
+	Fibo[0][0] = Lazy[Node].a;
+	Fibo[0][1] = Lazy[Node].b;
+	Fibo = Fibo * F[Mid - L + 1];
+	Lazy[Node << 1 | 1] += Fibonacci(Fibo[0][0], Fibo[0][1]);
+
+	Matrix M(3, 3);
+	M[0][0] = M[0][2] = Lazy[Node].a;
+	M[0][1] = Lazy[Node].b;
+	M = M * T[R - L];
+	addSelf(Sum[Node], M[0][2]);
+
+	Lazy[Node] = Fibonacci();
+}
+
+void Build (int Node = 1, int L = 1, int R = n)
+{
+	if (L == R) {
+		Sum[Node] = Arr[L];
+		return;
+	}
+
+	int Mid = L + R >> 1;
+	Build (Node << 1, L, Mid);
+	Build (Node << 1 | 1, Mid + 1, R);
+
+	Sum[Node] = add(Sum[Node << 1], Sum[Node << 1 | 1]);
+}
+
+void Update (int& i, int& j, Fibonacci& val, int Node = 1, int L = 1, int R = n)
+{
+	PushLazy(Node, L, R);
+	if (L > j || R < i) return;
+	if (L >= i && R <= j) {
+		Lazy[Node] += val;
+
+		Matrix Fibo(2, 2);
+		Fibo[0][0] = val.a;
+		Fibo[0][1] = val.b;
+		Fibo = Fibo * F[R - L + 1];
+		val = Fibonacci(Fibo[0][0], Fibo[0][1]);
+
+		PushLazy(Node, L, R);
+		return;
+	}
+
+	int Mid = L + R >> 1;
+	Update (i, j, val, Node << 1, L, Mid);
+	Update (i, j, val, Node << 1 | 1, Mid + 1, R);
+
+	Sum[Node] = add(Sum[Node << 1], Sum[Node << 1 | 1]);
+}
+
+int Query (int& i, int& j, int Node = 1, int L = 1, int R = n)
+{
+	PushLazy(Node, L, R);
+	if (L > j || R < i) return 0;
+	if (L >= i && R <= j)
+		return Sum[Node];
+
+	int Mid = L + R >> 1;
+	int Q1 = Query (i, j, Node << 1, L, Mid);
+	int Q2 = Query (i, j, Node << 1 | 1, Mid + 1, R);
+
+	return add(Q1, Q2);
+}
+
+int main()
+{
+	Matrix Fibo(2, 2);
+	Matrix Trans(3, 3);
+	Fibo[1][0] = Fibo[0][1] = Fibo[1][1] = 1;
+	Trans[0][1] = Trans[1][2] = Trans[1][0] = Trans[1][1] = Trans[2][2] = 1;
+
+
+	T[0] = T[0].Identity(3);
+	F[0] = F[0].Identity(2);
+	for (int i = 1; i < N; i++)	{
+		T[i] = T[i - 1] * Trans;
+		F[i] = F[i - 1] * Fibo;
+	}
+
+	scanf("%d%d", &n, &m);
+	for (int i = 1; i <= n; i++)
+		scanf("%d", Arr + i);
+
+	Build();
+	while (m--) {
+		int t, L, R;
+		scanf("%d%d%d", &t, &L, &R);
+
+		if (t == 1) {
+			Fibonacci f(1, 1);
+			Update(L, R, f);
+		} else cout << Query(L, R) << '\n';
+	}
+
+	return 0;
+}

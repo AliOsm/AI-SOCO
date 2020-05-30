@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+
+#define pb push_back
+#define pp pop_back
+#define mp make_pair
+#define ld long double
+#define f first
+#define s second
+#define ll long long
+
+using namespace std;
+
+const int N = 1e5 + 5;
+
+const int mod = 1e9 + 7;
+
+struct node
+{
+	int add;
+	ll sum;
+	int cnt[21];
+	node()
+	{
+		add = sum = 0;
+		memset(cnt, 0, sizeof cnt);
+	}
+} T[N * 4];
+ 
+int n, a[N], m;
+
+node combine(node a, node b)
+{
+	node ans = node();
+	ans.sum = a.sum + b.sum;
+	for (int i = 0;i < 21;i++) ans.cnt[i] = a.cnt[i] + b.cnt[i];
+	ans.add = 0;
+	return ans;
+}
+
+void build(int v = 1, int tl = 1, int tr = n)
+{
+	if (tl == tr)
+	{
+		T[v].sum = a[tl];
+		for (int i = 0;i < 21;i++) T[v].cnt[i] = ((a[tl] >> i) & 1);
+		return;
+	}
+	int tm = (tl + tr) / 2;
+	build(v * 2, tl, tm);
+	build(v * 2 + 1, tm + 1, tr);
+	T[v] = combine(T[v * 2], T[v * 2 + 1]);
+}
+
+void push(int v, int tl, int tr)
+{
+	if (tl != tr)
+	{
+		T[v * 2].add ^= T[v].add;
+		T[v * 2 + 1].add ^= T[v].add;
+	}
+	T[v].sum = 0;
+	for (int i = 0;i < 21;i++)
+	{	
+		if ((T[v].add >> i) & 1) T[v].cnt[i] = (tr - tl + 1) - T[v].cnt[i];
+		T[v].sum += 1ll * (1 << i) * T[v].cnt[i];
+	}
+	T[v].add = 0;
+}
+
+ll get(int l, int r, int v = 1, int tl = 1, int tr = n)
+{
+	push(v, tl, tr);
+	if (tl > r || tr < l) return 0;
+	if (l <= tl && tr <= r) return T[v].sum;
+	int tm = (tl + tr) / 2;
+	return get(l, r, v * 2, tl, tm) + get(l, r, v * 2 + 1, tm + 1, tr);
+}
+
+void upd(int l, int r, int x, int v = 1, int tl = 1, int tr = n)
+{
+	push(v, tl, tr);
+	if (tl > r || tr < l) return;
+	if (l <= tl && tr <= r)
+	{
+		T[v].add ^= x;
+		push(v, tl, tr);
+		return;
+	}
+	int tm = (tl + tr) / 2;
+	upd(l, r, x, v * 2, tl, tm); upd(l, r, x, v * 2 + 1, tm + 1, tr);
+	T[v] = combine(T[v * 2], T[v * 2 + 1]);
+}
+
+int main()
+{
+  ios_base::sync_with_stdio(0);
+  cin >> n;
+  for (int i = 1;i <= n;i++) cin >> a[i];
+  build();                      
+  cin >> m;
+  for (int it = 0;it < m;it++)
+  {
+  	int t, l, r, x;
+  	cin >> t;
+  	if (t == 1)
+  	{
+  		cin >> l >> r;
+  		cout << get(l, r) << endl;
+  	}
+  	else
+  	{
+  		cin >> l >> r >> x;
+  		upd(l, r, x);
+    }
+  }
+	return 0;
+}

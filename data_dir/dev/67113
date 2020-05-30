@@ -1,0 +1,175 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#ifdef SG
+	#include <debug.h>
+#else
+	#define show(...)
+	#define debug(...)
+	#define deepen(...)
+	#define timer(...)
+#endif
+
+#define ARG4(_1,_2,_3,_4,...) _4
+
+#define forn3(i,l,r) for (int i = int(l); i < int(r); ++i)
+#define forn2(i,n) forn3 (i, 0, n)
+#define forn(...) ARG4(__VA_ARGS__, forn3, forn2) (__VA_ARGS__)
+
+#define ford3(i,l,r) for (int i = int(r) - 1; i >= int(l); --i)
+#define ford2(i,n) ford3 (i, 0, n)
+#define ford(...) ARG4(__VA_ARGS__, ford3, ford2) (__VA_ARGS__)
+
+#define ve vector
+#define pa pair
+#define tu tuple
+#define mp make_pair
+#define mt make_tuple
+#define pb push_back
+#define fs first
+#define sc second
+#define all(a) (a).begin(), (a).end()
+#define sz(a) ((int)(a).size())
+
+typedef long double ld;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef unsigned char uc;
+typedef pa<int, int> pii;
+typedef pa<int, ll> pil;
+typedef pa<ll, int> pli;
+typedef pa<ll, ll> pll;
+typedef ve<int> vi;
+
+const ld pi = 3.1415926535897932384626433832795l;
+
+template<typename T> inline auto sqr (T x) -> decltype(x * x) {return x * x;}
+template<typename T1, typename T2> inline bool umx (T1& a, T2 b) {if (a < b) {a = b; return 1;} return 0;}
+template<typename T1, typename T2> inline bool umn (T1& a, T2 b) {if (b < a) {a = b; return 1;} return 0;}
+
+const int N = 1000100;
+
+struct Input {
+	int n, k;
+	int v[N];
+	int c[N];	
+	
+	bool read () {
+		if (scanf("%d%d", &n, &k) != 2)
+			return 0;
+		forn(i, n)
+			scanf("%d", &v[i]);
+		forn(i, n)
+			scanf("%d", &c[i]);
+		return 1;
+	}
+
+	void init (const Input &input) {
+		*this = input;
+	}
+};
+
+struct Data: Input {
+	ld ans;
+		
+	void write () {
+		cout << (double)ans << endl;
+	}
+	
+	virtual void solve () {}
+	
+	virtual void clear () {
+		*this = Data();
+	}
+};
+
+struct Solution: Data {
+	int mx[21][N], mn[21][N];
+	int idx[N];
+
+	int get_min(int l, int r) {
+		int len = r - l + 1;
+		int i = idx[len];
+		return min(mn[i][l], mn[i][r - (1 << i) + 1]);
+	}
+	
+	int get_max(int l, int r) {
+		int len = r - l + 1;
+		int i = idx[len];
+		return max(mx[i][l], mx[i][r - (1 << i) + 1]);
+	}
+	
+	int res[N];
+	
+	void solve () {
+		memset(mx, -1, sizeof(mx));
+		memset(mn, 1, sizeof(mn));
+		memset(idx, -1, sizeof(idx));
+		forn(i, N) {
+			forn(j, 21) {
+				if (i & (1 << j)) {
+					idx[i] = j;
+				}
+			}
+		}
+		forn(i, n)
+			mx[0][i] = v[i], mn[0][i] = c[i];
+		forn(i, 1, 20)
+			forn(j, n) {
+				mx[i][j] = max(mx[i - 1][j], mx[i - 1][min(n - 1, j + (1 << (i - 1)))]);
+				mn[i][j] = min(mn[i - 1][j], mn[i - 1][min(n - 1, j + (1 << (i - 1)))]);
+			}
+		forn(i, n) {
+			int l = i, r = n - 1;
+			while (l < r) {
+				int m = (l + r + 1) >> 1;
+				if (100 * get_max(i, m) < get_min(i, m)) {
+					l = m;
+				} else {
+					r = m - 1;
+				}
+			}
+			res[i] = min(100 * get_max(i, l), get_min(i, l));
+			if (l + 1 < n) {
+				umx(res[i], min(100 * get_max(i, l + 1), get_min(i, l + 1)));
+			}
+		}
+		sort(res, res + n);
+		debug(res, res + n);
+		ans = 0;
+		ld c1 = 1.0, c2 = 1.0 * (n - k) / n;
+		forn(i, n) {
+			ans += (c1 - c2) * res[i];
+			c1 = c2;
+			c2 *= (n - k - 1 - i);
+			if (n - i - 1 != 0)
+				c2 /= (n - i - 1);
+		}	
+	}
+	
+	void clear () {
+		*this = Solution();
+	}
+};
+
+Solution sol;
+
+int main () {
+	cout.setf(ios::showpoint | ios::fixed);
+	cout.precision(20);
+#ifdef SG
+	freopen((problemname + ".in").c_str(), "r", stdin);
+//	freopen((problemname + ".out").c_str(), "w", stdout);
+	while (sol.read()) {
+		sol.solve();
+		sol.write();
+		sol.clear();
+	}
+#else
+    sol.read();
+    sol.solve();
+	sol.write();
+#endif
+	return 0;
+}

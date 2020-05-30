@@ -1,0 +1,253 @@
+#define _USE_MATH_DEFINES
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
+#include <complex>
+#include <cmath>
+#include <numeric>
+#include <bitset>
+#include <functional>
+#include <random>
+#include <ctime>
+
+using namespace std;
+
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+  cerr << name << ": " << arg1 << endl;
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+  const char* comma = strchr(names + 1, ',');
+  cerr.write(names, comma - names) << ": " << arg1 << " |";
+  __f(comma + 1, args...);
+}
+
+typedef long long int64;
+typedef pair<int64, int64> ii;
+const int INF = 1 << 29;
+const int MOD = 1e9 + 7;
+
+const int N = 1e5 + 10;
+const int K = 9;
+int mod, len;
+int factor[K];
+int powers[K][N * 30];
+
+int64 extended_gcd(int64 a, int64 b, int64& x, int64& y) {
+  int64 t;
+  if (b == 0)   {
+    x = 1, y = 0;
+    return a;
+  }
+  int64 d = extended_gcd(b, a % b, x, y);
+  t = x, x = y;
+  y = t - a / b * y;
+  return d;
+}
+
+struct Num {
+  int x;
+  int r[K];
+  Num(int x = 0): x(x) {
+    fill(r, r + len, 0);
+  }
+  Num operator +(const Num& rhs) const {
+    Num ret;
+    for (int i = 0; i < len; ++i) ret.r[i] = min(r[i], rhs.r[i]);
+    int L = x, R = rhs.x;
+    for (int i = 0; i < len; ++i) {
+      L = (int64)L * powers[i][r[i] - ret.r[i]] % mod;
+      R = (int64)R * powers[i][rhs.r[i] - ret.r[i]] % mod;
+    }
+    ret.x = (L + R) % mod;
+    return ret;
+  }
+  Num operator *(const Num& rhs) const {
+    Num ret;
+    for (int i = 0; i < len; ++i) ret.r[i] = r[i] + rhs.r[i];
+    ret.x = (int64)x * rhs.x % mod;
+    return ret;
+  }
+  Num inv() {
+    Num ret;
+    int64 u, v;
+    extended_gcd(x, mod, u, v);
+    u %= mod;
+    if (u < 0) u += mod;
+    for (int i = 0; i < len; ++i) ret.r[i] = -r[i];
+    ret.x = u;
+    return ret;
+  }
+  bool is_one() const {
+    if (x != 1) return false;
+    for (int i = 0; i < len; ++i) {
+      if (r[i]) return false;
+    }
+    return true;
+  }
+};
+
+struct Node {
+  int a, b;
+  Node *left, *right;
+  Num sum, prod;
+  void update(const Num& x) {
+    sum = sum * x;
+    prod = prod * x;
+  }
+  void pushdown() {
+    if (!prod.is_one()) {
+      left->update(prod);
+      right->update(prod);
+    }
+    prod = Num(1);
+  }
+  void pushup() {
+    sum = left->sum + right->sum;
+  }
+};
+
+Node pool[N << 1], *last;
+int v[N];
+
+Num convert(int x) {
+  Num ret(0);
+  for (int i = 0; i < len; ++i) {
+    while (x % factor[i] == 0) {
+      x /= factor[i];
+      ++ret.r[i];
+    }
+  }
+  ret.x = x;
+  return ret;
+}
+
+Node* build(int a, int b) {
+  Node* cur = last++;
+  cur->a = a;
+  cur->b = b;
+  cur->prod = Num(1);
+  if (a + 1 == b) {
+    cur->sum = convert(v[a]);
+    return cur;
+  }
+  cur->left = build(a, (a + b) / 2);
+  cur->right = build((a + b) / 2, b);
+  cur->pushup();
+  return cur;
+}
+
+int A, B;
+Num C;
+
+void insert(Node* cur) {
+  if (cur->a >= A && cur->b <= B) {
+    cur->update(C);
+    return;
+  }
+  cur->pushdown();
+  if ((cur->a + cur->b) / 2 > A) insert(cur->left);
+  if ((cur->a + cur->b) / 2 < B) insert(cur->right);
+  cur->pushup();
+}
+
+Num query(Node* cur) {
+  if (cur->a >= A && cur->b <= B) {
+    return cur->sum;
+  }
+  Num ret(0);
+  cur->pushdown();
+  if ((cur->a + cur->b) / 2 > A) ret = ret + query(cur->left);
+  if ((cur->a + cur->b) / 2 < B) ret = ret + query(cur->right);
+  return ret;
+}
+
+void debug(Node* cur, int dep) {
+  if (!cur) return;
+  for (int i = 0; i < dep; ++i) putchar(' ');
+  printf("[%d,%d):%d ", cur->a, cur->b, cur->sum.x);
+  for (int i = 0; i < len; ++i) printf("%d ", cur->sum.r[i]);
+  puts("");
+  debug(cur->left, dep + 1);
+  debug(cur->right, dep + 1);
+}
+
+int main() {
+  mt19937 mrand;
+  int n, m;
+  scanf("%d%d", &n, &mod);
+  // n = 100000;
+  // mod = 984754164;
+  int t = mod;
+  len = 0;
+  for (int i = 2; i * i <= mod; ++i) {
+    if (t % i == 0) {
+      while (t % i == 0) t /= i;
+      factor[len++] = i;
+    }
+  }
+  if (t > 1) factor[len++] = t;
+  for (int i = 0; i < n; ++i) {
+    scanf("%d", &v[i]);
+    // v[i] = mrand();
+  }
+  scanf("%d", &m);
+  // m = 100000;
+  for (int i = 0; i < len; ++i) {
+    auto& x = powers[i];
+    x[0] = 1;
+    for (int j = 1; j <= 30 * m; ++j) x[j] = (int64)x[j - 1] * factor[i] % mod;
+  }
+  last = pool;
+  Node* root = build(0, n);
+  // debug(root, 0);
+  for (int i = 0; i < m; ++i) {
+    scanf("%d", &t);
+    // t = mrand() % 3 + 1;
+    int x;
+    if (t == 1) {
+      // A = mrand() % n + 1;
+      // B = mrand() % n + 1;
+      // if (A > B) swap(A, B);
+      // x = mrand() % 100000 + 1;
+      scanf("%d%d%d", &A, &B, &x);
+      --A;
+      C = convert(x);
+      insert(root);
+    } else if (t == 2) {
+      // A = mrand() % n + 1;
+      // x = mrand() % 100000 + 1;
+      scanf("%d%d", &A, &x);
+      --A; B = A + 1;
+      C = convert(x).inv();
+      insert(root);
+    } else {
+      // A = mrand() % n + 1;
+      // B = mrand() % n + 1;
+      // if (A > B) swap(A, B);
+      scanf("%d%d", &A, &B);
+      --A;
+      auto ret = query(root);
+      x = ret.x;
+      for (int i = 0; i < len; ++i) {
+        x = (int64)x * powers[i][ret.r[i]] % mod;
+      }
+      printf("%d\n", x);
+    }
+  }
+  return 0;
+}

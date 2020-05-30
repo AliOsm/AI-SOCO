@@ -1,0 +1,292 @@
+#pragma comment (linker, "/STACK:64000000")
+
+#define _USE_MATH_DEFINES
+#define _CRT_NO_DEPRECEATE
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <cstring>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <memory.h>
+#include <sstream>
+#include <cassert>
+#include <ctime>
+#include <complex>
+
+#define pb push_back
+#define pll pair<ll, ll>
+#define pii pair<int, int>
+#define piiii pair<pii, pii>
+#define mp make_pair
+#define sq(x) ((x)*(x))
+#define tmin(x,y,z) (min(min((x),(y)),(z)))
+#define rand32() (((unsigned int)(rand()) << 16) | (unsigned int)(rand()))
+#define rand64() (((unsigned int64)(rand32()) << 16) | (unsigned int64)(rand32()))
+#define INF ((int)(1e9) + 1)
+#define LINF ((long long)(1e15))
+#define EPS (1e-8)
+#define PI (3.1415926535897932384626433832795)
+#define y1 asdf_1
+#define y0 asdf_2
+#define j0 jj0
+#define MOD 1000000007
+//#define HMOD 536870911
+#define HMOD ((long long)(1e18) + 3LL)
+//#ifdef _MY_DEBUG
+//#define HMOD 1000000007
+//#endif
+#define MAX 2000000000
+#define HBASE 1009
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef long double ldd;
+
+using namespace std;
+
+const int MAXN = 200005;
+
+struct query
+{
+	int v, type;
+};
+
+inline int add(int a, int b)
+{
+	int res = a + b;
+	if (res >= MOD)
+	{
+		res -= MOD;
+	}
+	return res;
+}
+
+inline int mul(int a, int b)
+{
+	return (int64)a * (int64)b % MOD;
+}
+
+inline int binpow(int a, int b)
+{
+	if (!b)
+	{
+		return 1;
+	}
+	if (b & 1)
+	{
+		return mul(binpow(a, b - 1), a);
+	}
+	else
+	{
+		int res = binpow(a, b >> 1);
+		return mul(res, res);
+	}
+}
+
+inline int back(int a)
+{
+	return binpow(a, MOD - 2);
+}
+
+struct node
+{
+	int val, d;
+
+	node()
+	{
+		val = 0;
+		d = 1;
+	}
+};
+
+struct segment_tree
+{
+	vector<node> tree;
+
+	segment_tree(){}
+
+	segment_tree(int n)
+	{
+		tree.resize((n << 2) + 1);
+	}
+
+	void push(int v, int tl, int tr)
+	{
+		if (tl != tr)
+		{
+			tree[v << 1].d = mul(tree[v << 1].d, tree[v].d);
+			tree[v << 1].val = mul(tree[v << 1].val, tree[v].d);
+			tree[(v << 1) + 1].d = mul(tree[(v << 1) + 1].d, tree[v].d);
+			tree[(v << 1) + 1].val = mul(tree[(v << 1) + 1].val, tree[v].d);
+			tree[v].d = 1;
+		}
+	}
+
+	void pull(int v, int tl, int tr)
+	{
+		if (tl != tr)
+		{
+			//push(v, tl, tr);
+			tree[v].val = add(tree[v << 1].val, tree[(v << 1) + 1].val);
+		}
+	}
+
+	int get_sum(int v, int tl, int tr, int l, int r)
+	{
+		if (l > r)
+		{
+			return 0;
+		}
+		push(v, tl, tr);
+		if (tl == l && tr == r)
+		{
+			return tree[v].val;
+		}
+		int tm = (tl + tr) >> 1;
+		return add(get_sum(v << 1, tl, tm, l, min(r, tm)), get_sum((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r));
+	}
+
+	void tree_mul(int v, int tl, int tr, int l, int r, int m)
+	{
+		if (l > r)
+		{
+			return;
+		}
+		push(v, tl, tr);
+		if (tl == l && tr == r)
+		{
+			tree[v].val = mul(tree[v].val, m);
+			tree[v].d = mul(tree[v].d, m);
+			return;
+		}
+		int tm = (tl + tr) >> 1;
+		tree_mul(v << 1, tl, tm, l, min(r, tm), m);
+		tree_mul((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r, m);
+		pull(v, tl, tr);
+	}
+
+	void tree_add(int v, int tl, int tr, int l, int r, int m)
+	{
+		if (l > r)
+		{
+			return;
+		}
+		push(v, tl, tr);
+		if (tl == l && tr == r)
+		{
+			tree[v].val = add(tree[v].val, m);
+			return;
+		}
+		int tm = (tl + tr) >> 1;
+		tree_add(v << 1, tl, tm, l, min(r, tm), m);
+		tree_add((v << 1) + 1, tm + 1, tr, max(l, tm + 1), r, m);
+		pull(v, tl, tr);
+	}
+};
+
+int m, n = 1;
+query qu[MAXN];
+int val[MAXN];
+int tin[MAXN], tout[MAXN], timer;
+vector <vector <int> > g;
+int parent[MAXN];
+int cnt[MAXN];
+int b[MAXN];
+segment_tree cap, c;
+
+void precalc()
+{
+	for (int i = 1; i < MAXN; i++)
+	{
+		b[i] = back(i);
+	}
+}
+
+int dfs(int v)
+{
+	tout[v] = tin[v] = ++timer;
+	for (int i = 0; i < g[v].size(); i++)
+	{
+		tout[v] = dfs(g[v][i]);
+	}
+	return tout[v];
+}
+
+void solve()
+{
+	precalc();
+	scanf ("%d%d", &val[1], &m);
+	g.resize(m + 1);
+	for (int i = 1; i <= m; i++)
+	{
+		scanf ("%d", &qu[i].type);
+		if (qu[i].type == 1)
+		{
+			++n;
+			scanf ("%d%d", &parent[n], &val[n]);
+			qu[i].v = n;
+			g[parent[n]].push_back(n);
+		}
+		else
+		{
+			scanf ("%d", &qu[i].v);
+		}
+	}
+	dfs(1);
+	cnt[1] = 1;
+	cap = segment_tree(n);
+	c = segment_tree(n);
+	c.tree_add(1, 1, n, 1, 1, 1);
+	cap.tree_add(1, 1, n, 1, 1, val[1]);
+	for (int i = 1; i <= m; i++)
+	{
+		if (qu[i].type == 1)
+		{
+			int v = qu[i].v;
+			cnt[parent[v]]++;
+			cnt[v] = 1;
+			int coeff = c.get_sum(1, 1, n, tin[parent[v]], tin[parent[v]]);
+			c.tree_add(1, 1, n, tin[v], tin[v], coeff);
+			c.tree_mul(1, 1, n, tin[parent[v]], tout[parent[v]], mul(cnt[parent[v]], b[cnt[parent[v]] - 1]));
+			cap.tree_add(1, 1, n, tin[v], tin[v], mul(coeff, val[v]));
+			cap.tree_mul(1, 1, n, tin[parent[v]], tout[parent[v]], mul(cnt[parent[v]], b[cnt[parent[v]] - 1]));
+		}
+		else
+		{
+			int v = qu[i].v;
+			int coeff = 1;
+			if (parent[v])
+			{
+				coeff = c.get_sum(1, 1, n, tin[parent[v]], tin[parent[v]]);
+			}
+			int sum = cap.get_sum(1, 1, n, tin[v], tout[v]);
+			printf ("%d\n", mul(sum, back(coeff)));
+		}
+	}
+}
+
+#define TASK "substr"
+
+int main()
+{
+    ios_base::sync_with_stdio(false); cin.tie(0);
+#ifdef _MY_DEBUG
+    freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+    //freopen(TASK ".in", "rt", stdin); freopen(TASK ".out", "wt", stdout);
+#endif
+    srand(1337);
+    solve();
+    return 0;
+}

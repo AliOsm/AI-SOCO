@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define MAXN (1 << 20)
+
+using namespace std;
+using namespace __gnu_pbds;
+
+template <typename T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+string a;
+int M, N;
+
+struct node
+{
+	int first, last, cnt;
+
+	node() {first = -1, last = -1;}
+	node(int s, int c)
+	{
+		first = s;
+		last = s;
+		cnt = c;
+	}
+};	
+
+node temp;
+
+int prec(int l)
+{
+	if(l <= 0) return 0;
+	return l - 1;
+}
+
+node merge(node _a, node _b, int l, int r)
+{
+	temp.first = _a.first;
+	temp.last = _b.last;
+	temp.cnt = _a.cnt + _b.cnt;
+
+	if(temp.last == -1)
+		temp.last = _a.last;
+	if(temp.first == -1)
+		temp.first = _b.first;
+
+	if(_b.first != -1 && _a.last != -1) 
+		temp.cnt += prec(max(0, (_b.first - _a.last - 1)));
+
+	//printf("[%d, %d] :   %d   %d , %d\n", l, r, temp.cnt, temp.first, temp.last);
+	
+	return temp;
+}
+
+struct segment_tree
+{
+	node tr[2 * MAXN];
+
+	void init(int l, int r, int idx)
+	{
+		//printf("%d %d %d\n", l, r, idx);
+
+		tr[idx].cnt = 0;
+
+		if(l == r)
+		{
+			if(a[l] != '.')
+				tr[idx] = node(l, 0);
+			else
+				tr[idx] = node(-1, 0);
+
+			return;
+		}
+
+		int mid = (l + r) >> 1;
+		init(l, mid, 2 * idx + 1);
+		init(mid + 1, r, 2 * idx + 2);
+	
+		tr[idx] = merge(tr[idx * 2 + 1], tr[idx * 2 + 2], l, r);
+	}
+
+	void update(int pos, char val, int l, int r, int idx)
+	{
+		if(l > pos || r < pos)
+			return;
+
+		if(l == r && l == pos)
+		{
+			if(val != '.') tr[idx] = node(l, 0);
+			else tr[idx] = node(-1, 0);
+
+			//printf("here:  %d  %c\n", pos, val);
+
+			return;
+		}
+
+		int mid = (l + r) >> 1;
+		update(pos, val, l, mid, 2 * idx + 1);
+		update(pos, val, mid + 1, r, 2 * idx + 2);
+
+		tr[idx] = merge(tr[2 * idx + 1], tr[2 * idx + 2], l, r);
+	}	
+};
+
+void read()
+{
+	scanf("%d", &N);
+	scanf("%d", &M);
+	cin >> a;
+}
+
+segment_tree t;
+
+void solve()
+{
+	for(int i = 0; i < MAXN - 1; i++)
+		t.tr[i] = node();
+
+	t.init(0, N - 1, 0);
+
+	for(int i = 0; i < M; i++)
+	{
+		int p;
+		string val;
+		cin >> p >> val;
+		p--;
+
+		t.update(p, val[0], 0, N - 1, 0);
+
+		if(t.tr[0].first == -1)
+			printf("%d\n", N - 1);
+		else
+			printf("%d\n", t.tr[0].cnt + prec(t.tr[0].first) + prec(N - 1 - t.tr[0].last));
+	}	
+}
+
+int main()
+{
+	read();
+	solve();
+	return 0;
+}

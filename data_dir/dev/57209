@@ -1,0 +1,218 @@
+//Desine sperare qui hic intras
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <cstdio>
+#include <queue>
+
+using namespace std;
+const int N = 1000000;
+
+struct edge {
+    int a, b, c, f, val;
+    int id, bc;
+};
+
+int cntV = 0;
+int d[N], pr[N], pre[N];
+vector<edge> e;
+vector<int> g[N];
+
+void init() {
+    e.clear();
+    while(cntV) {
+        cntV--;
+        g[cntV].clear();
+    }
+    cntV = 0;
+}
+
+void add_edge(int a, int b, int c, int val) {
+    edge edg;
+    edg.a = a;
+    edg.b = b;
+    edg.c = c;
+    edg.f = 0;
+    edg.val = val;
+    edg.id = e.size();
+    edg.bc = e.size() + 1;
+
+    e.push_back(edg);
+    g[a].push_back(edg.id);
+
+    edg.a = b;
+    edg.b = a;
+    edg.c = 0;
+    edg.f = 0;
+    edg.val = -val;
+    edg.id = e.size();
+    edg.bc = e.size() - 1;
+
+    e.push_back(edg);
+    g[b].push_back(edg.id);
+}
+
+bool dijkstra(int v, int u) {
+    for(int i = 0; i < cntV; i++) {
+        d[i] = (int)1e9;
+        pr[i] = -1;
+        pre[i] = -1;
+    }
+    d[v] = 0;
+
+    bool was = 1;
+    while(was) {
+        was = 0;
+        for(int j = 0; j < e.size(); j++) {
+            if(d[e[j].a] == (int)1e9)
+                continue;
+            if(e[j].c - e[j].f <= 0)
+                continue;
+            if(d[e[j].b] > d[e[j].a] + e[j].val) {
+                d[e[j].b] = d[e[j].a] + e[j].val;
+                pr[e[j].b] = e[j].a;
+                pre[e[j].b] = j;
+                was = 1;
+            }
+        }
+    }
+    return d[u] != (int)1e9;
+}
+
+pair<int, pair<int, int> > min_cost_max_flow(int v, int u) {
+    int flow = 0, sum = 0, ans = 0;
+    while(dijkstra(v, u)) {
+        vector<pair<int, int> > path;
+
+        int j = u;
+        while(j != v) {
+            path.push_back(make_pair(j, pre[j]));
+            j = pr[j];
+        }
+
+        reverse(path.begin(), path.end());
+
+        int cur_flow = (int)1e9;
+
+        for(int i = 0; i < path.size(); i++) {
+            int q = path[i].second;
+            cur_flow = min(cur_flow, e[q].c - e[q].f);
+        }
+
+        if(!cur_flow)
+            break;
+
+        flow += cur_flow;
+
+        for(int i = 0; i < path.size(); i++) {
+            int q = path[i].second;
+
+            e[q].f += cur_flow;
+            e[e[q].bc].f -= cur_flow;
+
+            sum += e[q].val * cur_flow;
+        }
+        ans = max(ans, -sum);
+    }
+    return make_pair(flow, make_pair(ans, sum));
+}
+
+string str[N];
+int strength[N], x[N], v1[N], v2[N];
+
+int main() {
+//    ios::sync_with_stdio(false);
+
+    int n, m;
+    cin >> n >> m;
+    for(int i = 0; i < n; i++) {
+        cin >> str[i] >> strength[i];
+    }
+
+    for(int i = 0; i < m; i++) {
+        cin >> x[i];
+    }
+
+    init();
+
+    int s = cntV++;
+    int t = cntV++;
+
+    for(int i = 0; i < m; i++) {
+        v1[i] = cntV++;
+        add_edge(s, v1[i], 1, 0);
+    }
+
+    for(int i = 0; i < n; i++) {
+        v2[i] = cntV++;
+        add_edge(v2[i], t, 1, 0);
+    }
+
+    for(int i = 0; i < m; i++) {
+        for(int j = 0; j < n; j++) {
+            if(str[j] == "ATK") {
+                if(strength[j] <= x[i]) {
+                    add_edge(v1[i], v2[j], 1, -(x[i] - strength[j]));
+                }
+            } else {
+                if(strength[j] < x[i]) {
+                    add_edge(v1[i], v2[j], 1, 0);
+                }
+            }
+        }
+    }
+
+    pair<int, pair<int, int> > p = min_cost_max_flow(s, t);
+
+    int ans = 0;
+    ans = max(ans, p.second.first);
+    if(p.first < n) {
+        cout << ans << "\n";
+        return 0;
+    }
+
+    init();
+    s = cntV++;
+    t = cntV++;
+
+    for(int i = 0; i < m; i++) {
+        v1[i] = cntV++;
+        add_edge(s, v1[i], 1, 0);
+    }
+
+    for(int i = 0; i < n; i++) {
+        v2[i] = cntV++;
+        add_edge(v2[i], t, 1, 0);
+    }
+
+    for(int i = 0; i < m; i++) {
+        for(int j = 0; j < n; j++) {
+            if(str[j] == "ATK") {
+                if(strength[j] <= x[i]) {
+                    add_edge(v1[i], v2[j], 1, -(x[i] - strength[j]));
+                }
+            } else {
+                if(strength[j] < x[i]) {
+                    add_edge(v1[i], v2[j], 1, 0);
+                }
+            }
+        }
+    }
+
+    int addic = cntV++;
+
+    for(int i = 0; i < m; i++) {
+        add_edge(v1[i], addic, 1, -x[i]);
+    }
+    add_edge(addic, t, m - n, 0);
+
+    p = min_cost_max_flow(s, t);
+
+    ans = max(ans, -p.second.second);
+
+    cout << ans << "\n";
+
+    return 0;
+}

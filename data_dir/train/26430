@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+
+const int N = 2e5 + 5 , M = 18;
+vector<int> adj[N];
+int par[N] , lvl[N] , in[N];
+
+void dfs(int node , int p = 0 , int l = 1) {
+    par[node] = p;
+    lvl[node] = l;
+    for (int child : adj[node]) {
+        if (child == p) continue;
+        dfs (child , node , l + 1);
+    }
+}
+
+int memo[N][M];
+int solve (int u , int k) {
+    if (!k) return par[u];
+    int &ret = memo[u][k];
+    if (~ret) return ret;
+    return ret = solve(solve(u , k - 1) , k - 1);
+}
+
+int LCA(int u , int v) {
+    if (lvl[u] < lvl[v])
+        swap(u , v);
+
+    for (int i = M ;i >= 0 ;i--)
+        if (lvl[solve(u , i)] >= lvl[v])
+            u = solve(u , i);
+
+    if (u == v)
+        return u;
+
+    for (int i = M ;i >= 0 ;i--)
+        if (solve(u , i) != solve(v , i))
+            u = solve(u , i) , v = solve(v , i);
+
+    return par[u];
+}
+
+int get_farthest(int n , vector<int> src) {
+    queue<int> q;
+    vector<int> vis(n + 1 , 0);
+
+    for (int s : src) {
+        q.push(s);
+        vis[s] = 1;
+    }
+
+    int cur;
+    while (q.size()) {
+        cur = q.front();
+        q.pop();
+        for (int child : adj[cur]) {
+            if (!vis[child]) {
+                vis[child] = 1;
+                q.push(child);
+            }
+        }
+    }
+
+    return cur;
+}
+
+vector<int> on_path;
+bool go(int node , int par , int target) {
+    on_path.push_back(node);
+    if (node == target)
+        return 1;
+
+    for (int child : adj[node])
+        if (child != par)
+            if (go(child , node , target))
+                return 1;
+
+    on_path.pop_back();
+    return 0;
+}
+
+void run_case() {
+    int n;
+    cin >> n;
+
+    for (int i = 0 ;i < n - 1 ;i++) {
+        int u , v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int a = get_farthest(n , {1});
+    int b = get_farthest(n , {a});
+    go(a , -1 , b);
+    int c = get_farthest(n , on_path);
+
+    if (c == a || c == b) {
+        for (int i = 1 ;i <= n ;i++)
+            if (i != a && i != b)
+                c = i;
+    }
+
+    dfs(a);
+    memset(memo , -1 , sizeof memo);
+
+    cout << lvl[b] + lvl[c] - lvl[LCA(b , c)] - 1 << '\n';
+    cout << a << ' ' << b << ' ' << c << '\n';
+}
+
+int main() {
+    ios::sync_with_stdio(0) , cin.tie(0) , cout.tie(0);
+#ifndef ONLINE_JUDGE
+    freopen("input.in" , "r" , stdin);
+#endif
+    int t = 1;
+    while (t--)
+        run_case();
+}

@@ -1,0 +1,117 @@
+#include <cstdio>
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <queue>
+#include <stack>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <complex>
+#include <memory.h>
+#include <time.h>
+
+using namespace std;
+
+typedef long long LL;
+
+const double g = 9.8;
+const double eps = 1e-9;
+
+int n, m;
+double v;
+double a[1 << 14];
+pair<double, double> W[1 << 17];
+
+int check(double x, double y, double angle, double & x0, double & y0)
+{
+	double c = cos(angle);
+	double s = sin(angle);
+
+	double t = x / (v * c);
+
+	x0 = x;
+	y0 = v * s * t - g * t * t / 2.0;
+	if (y0 < -eps)
+	{
+		t = 2.0 * v * s / g;
+		x0 = v * c * t;
+		y0 = 0;
+		return -1;
+	}
+	if (y0 - eps > y)
+	{
+		t = 2.0 * v * s / g;
+		x0 = v * c * t;
+		y0 = 0;
+		return 1;
+	}
+	return 0;
+}
+
+int main()
+{
+	scanf("%d%lf", &n, &v);
+	for(int i = 0; i < n; ++i)
+		scanf("%lf", &a[i]);
+	scanf("%d", &m);
+	for(int i = 0; i < m; ++i)
+		scanf("%lf%lf", &W[i].first, &W[i].second);
+	sort(W, W + m);
+
+	vector<pair<pair<double, double>, int> > seg;
+
+	double L = 0, R = acos(0.0) / 2.0;
+	for(int i = 0; i < m; ++i)
+	{
+		double qL = L, qR = R;
+		double x, y;
+		while (qR - qL > eps)
+		{
+			double M = (qL + qR) / 2.0;
+			if (check(W[i].first, W[i].second, M, x, y) == -1)
+				qL = M;
+			else
+				qR = M;
+		}
+		if (qL - L > eps)
+			seg.push_back(make_pair(make_pair(L, qL), -1));
+		L = qL;
+		qL = L, qR = R;
+		while (qR - qL > eps)
+		{
+			double M = (qL + qR) / 2.0;
+			if (check(W[i].first, W[i].second, M, x, y) == 1)
+				qR = M;
+			else
+				qL = M;
+		}
+		if (qL - L > eps)
+			seg.push_back(make_pair(make_pair(L, qL), i));
+		L = qL;
+	}
+	if (R - L > eps)
+		seg.push_back(make_pair(make_pair(L, R), -1));
+
+	for(int i = 0; i < n; ++i)
+	{
+		auto it = upper_bound(seg.begin(), seg.end(), make_pair(make_pair(a[i], a[i]), -2));
+		it--;
+		double x, y;
+		if (it->second != -1)
+		{
+			check(W[it->second].first, W[it->second].second, a[i], x, y);
+			printf("%.10lf %.10lf\n", x, y);
+		}
+		else
+		{
+			check(W[0].first, W[0].second, a[i], x, y);
+			printf("%.10lf %.10lf\n", x, y);
+		}
+	}
+
+	return 0;
+}

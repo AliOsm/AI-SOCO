@@ -1,0 +1,199 @@
+/*
+  ------------------------- Hachiikung ---------------------------------
+  ---------------------- Worrachate Bosri ------------------------------
+  ------ Faculty of Computer Engineering Chulalongkorn University ------
+*/
+#include<cstdio>
+#include<cstdlib>
+#include<cstring>
+#include<cmath>
+#include<iostream>
+#include<algorithm>
+#include<vector>
+#include<queue>
+#include<stack>
+#include<list>
+#include<set>
+#include<map>
+#include<string>
+#include<utility>
+using namespace std;
+#define REP(i,FN) for(int i=0;i<FN;i++)
+#define FOR(i,ST,FN) for(int i=ST;i<=FN;i++)
+#define FORD(i,FN,ST) for(int i=FN;i>=ST;i--)
+#define FORX(i,c) for(typeof(c.begin())i=c.begin();i!=c.end();i++)
+#define pause system("pause")
+#define S scanf
+#define P printf
+#define X first
+#define Y second
+#define pb push_back
+#define PII pair<int,int>
+#define mp make_pair
+#define sz size()
+#define eps 1e-8
+
+const int MOD(1000000007);
+const int INF((1<<30)-1);
+const int MAXN(1005);
+
+vector<int>prime;
+
+int p[35000], f[MAXN][MAXN], a[MAXN], prv[MAXN], visited[MAXN], st[MAXN];
+
+vector<PII>g[MAXN];
+
+bool dfs(int source,int sink,int num){
+
+    REP(i,num)
+        visited[i] = false;
+
+    int top = 0;
+
+    st[top++] = source;
+    visited[source] = true;
+
+    while(top > 0)
+    {
+        int node = st[--top];
+
+        if(node == sink) return true;
+
+        REP(i,num)
+        {
+            if(!visited[i] && f[node][i] > 0)
+            {
+                st[top++] = i;
+                visited[i] = true;
+                prv[i] = node;
+            }
+        }
+    }
+
+    return false;
+}
+
+int maxflow(int source,int sink,int num){
+
+    int flow = 0;
+
+    while(dfs(source,sink,num))
+    {
+        int k = INF;
+        for(int i=sink;i!=source;i=prv[i])
+            k = min(k, f[prv[i]][i]);
+        for(int i=sink;i!=source;i=prv[i])
+        {
+            f[prv[i]][i] -= k;
+            f[i][prv[i]] += k;
+        }
+        flow += k;
+    }
+
+    return flow;
+}
+
+int main(){
+
+    for(int i=2;i<=31700;i++)
+    {
+        if(!p[i])
+        {
+            prime.pb(i);
+            for(int j=i*i;j<=31700;j+=i)
+                p[j] = 1;
+        }
+    }
+
+    int n,m;
+    S("%d%d",&n,&m);
+    FOR(i,1,n)
+        S("%d",&a[i]);
+
+    int node = 2;
+
+    FOR(i,1,n)
+    {
+        int num = a[i];
+
+        REP(j,prime.sz)
+        {
+            if(prime[j] > num) break;
+
+            if(num % prime[j] == 0)
+            {
+                int cnt = 0;
+
+                while(num % prime[j] == 0)
+                {
+                    cnt++;
+                    num /= prime[j];
+                }
+
+                g[i].pb(PII(node, prime[j]));
+
+                if(i%2)
+                    f[0][node] = cnt;
+                else
+                    f[node][1] = cnt;
+                node++;
+            }
+        }
+
+        if(num > 1)
+        {
+            g[i].pb(PII(node, num));
+            if(i%2)
+                f[0][node] = 1;
+            else
+                f[node][1] = 1;
+            node++;
+        }
+    }
+
+    REP(i,m)
+    {
+        int x,y;
+        S("%d%d",&x,&y);
+
+        int k1 = 0, k2 = 0, num1 = a[x], num2 = a[y];
+
+        REP(j,prime.sz)
+        {
+            if(prime[j] > min(a[x], a[y])) break;
+
+            if(a[x] % prime[j] == 0 && a[y] % prime[j] == 0)
+            {
+                while(num1 % prime[j] == 0) num1 /= prime[j];
+                while(num2 % prime[j] == 0) num2 /= prime[j];
+
+                while(g[x][k1].Y != prime[j]) k1++;
+                while(g[y][k2].Y != prime[j]) k2++;
+
+                int u = g[x][k1].X;
+                int v = g[y][k2].X;
+
+                if(x%2)
+                    f[u][v] = INF;
+                else
+                    f[v][u] = INF;
+            }
+        }
+
+        if(num1 > 1 && num1 == num2)
+        {
+            while(g[x][k1].Y != num1) k1++;
+            while(g[y][k2].Y != num2) k2++;
+
+            int u = g[x][k1].X;
+            int v = g[y][k2].X;
+
+            if(x%2)
+                f[u][v] = INF;
+            else
+                f[v][u] = INF;
+        }
+    }
+
+    P("%d",maxflow(0,1,node));
+}

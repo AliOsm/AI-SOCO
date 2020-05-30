@@ -1,0 +1,202 @@
+#pragma GCC optimize ("Ofast")
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long int ll;
+#define ll long long int
+#define pb push_back
+#define fi first
+#define se second
+#define fr(i, a, b) for(int i = a; i <= b; i++)
+#define all(x) x.begin(), x.end()
+#define IO ios :: sync_with_stdio(0), cin.tie(0), cout.tie(0)
+#define pii pair<int,int>
+const int mod = 1e9 + 7;
+typedef long double f80;
+#ifndef LOCAL
+#define endl '\n'
+#endif
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+const int N = 1e5 + 5;
+struct node{
+    int u, v, w, id;
+};
+node e[N];
+int dsu[N];
+int root(int u){
+    if(u != dsu[u])
+        return dsu[u] = root(dsu[u]);
+    return u;
+}
+bool uni(int u,int v){
+    u = root(u), v = root(v);
+    if(u == v) return 0;
+    dsu[u] = v;
+    return 1;
+}
+int ans[N];
+struct BCC{
+    #define N 100005
+    vector<int> tree[N], g[N], B[N];
+    int U[N], V[N], temp[N], bcc[N], ind[N], T, cmpno, m, n;
+    bitset<N> vis, bridge;
+    vector<int> Q[N];
+    void init(int _n){
+        n = _n, cmpno = 0, T = 0, m = 0;
+    }
+    void reset(int n){
+        for(int i = 1; i <= n; i++){
+            g[i].clear(), tree[i].clear(), B[i].clear();
+            ind[i] = 0;
+        }
+        bridge.reset();
+    }
+    int adj(int u,int e){
+        return U[e] == u ? V[e] : U[e];
+    }
+    void addedge(int u,int v){
+        U[m] = u, V[m] = v;
+        g[u].pb(m), g[v].pb(m);
+        m++;
+    }
+    void get_bridges(){
+        for(int i = 1; i <= n; i++){
+            if(!vis[i])
+                dfs1(i, -1);
+        }
+        vis.reset();
+    }
+    void go(){
+        get_bridges();
+        for(int i = 1; i <= n; i++){
+            if(!vis[i]){
+                cmpno++;
+                dfs2(i);
+            }
+        }
+        vis.reset();
+    }
+    int dfs1(int u,int e){
+        vis[u] = 1;
+        temp[u] = T++;
+        int t = temp[u];
+        for(int id: g[u]){
+            int v = adj(u, id);
+            if(!vis[v])
+                t = min(t, dfs1(v, id));
+            else if(id != e)
+                t = min(t, temp[v]);
+        }
+        if(t == temp[u] && e != -1)
+            bridge[e] = 1;
+        return t;
+    }
+    void dfs2(int u){
+        int cur_cmp = cmpno;
+        Q[cur_cmp].pb(u);
+        bcc[u] = cur_cmp;
+        B[cur_cmp].pb(u);
+        vis[u]=1;
+        while(Q[cur_cmp].size() != ind[cur_cmp])
+        {
+        int u = Q[cur_cmp][ind[cur_cmp]];    
+        ind[cur_cmp]++;
+        for(int e: g[u])
+        {
+            int v = adj(u, e);
+            if(vis[v]) continue;
+            if(bridge[e])
+            {
+                cmpno++;
+                tree[cur_cmp].push_back(cmpno);
+                tree[cmpno].push_back(cur_cmp);
+                dfs2(v);
+            }
+            else
+            {
+                Q[cur_cmp].pb(v);
+                vis[v] = 1;
+                bcc[v] = cur_cmp;
+                B[cur_cmp].pb(v);
+            }
+        }
+    }
+    }
+    #undef N
+}B;
+map<int,int> ver;
+inline bool cmp(const node &a, const node &b){
+    return a.w < b.w;
+}
+
+void solve(){
+    int n, m;
+    cin >> n >> m;
+    fr(i, 1, n)
+        dsu[i] = i;
+    fr(i, 1, m){
+        int u, v, w;
+        cin >> u >> v >> w;
+        e[i] = {u, v, w, i};
+    }
+    sort(e + 1, e + m + 1, cmp);
+    fr(i, 1, m){
+        int w = e[i].w;
+        int jj = m;
+        ver.clear();
+        fr(j, i, m){
+            if(e[j].w != w){
+                jj = j - 1;
+                break;
+            }
+            ver[root(e[j].u)] = 0;
+            ver[root(e[j].v)] = 0;
+        }
+        int c = 0;
+        for(auto &it : ver)
+            it.se = ++c;
+        // cout << i << " " << jj << endl;
+        B.reset(ver.size());
+        B.init(ver.size());
+        fr(j, i, jj){
+            if(root(e[j].u) == root(e[j].v))
+                { ans[e[j].id] = 1; continue; } // none
+            B.addedge(ver[root(e[j].u)], ver[root(e[j].v)]);
+        }
+        B.get_bridges();
+        int cc = 0;
+        fr(j, i, jj){
+            if(root(e[j].u) == root(e[j].v)) continue;
+            if(B.bridge[cc])
+                ans[e[j].id] = 2; // all
+            cc++;
+        }
+        fr(j, i, jj)
+            uni(e[j].u, e[j].v);
+        i = jj;
+    }
+    fr(i, 1, m){
+        if(ans[i] == 2)
+            cout << "any" << endl;
+        else if(ans[i] == 1)
+            cout << "none" << endl;
+        else
+            cout << "at least one" << endl;
+    }
+}
+signed main()
+{
+    IO;
+    #ifdef LOCAL
+     freopen("inp.txt","r", stdin);
+    #endif
+    clock_t clk = clock();
+    int t;
+    // cin >> t;
+    t = 1;
+    while(t--){
+        solve();
+    }
+    cerr << endl << setprecision(10) << fixed << (double)(clock() - clk) / CLOCKS_PER_SEC;
+    return 0;
+}

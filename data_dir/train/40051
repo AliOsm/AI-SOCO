@@ -1,0 +1,85 @@
+#include<bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define pii pair<int,int>
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+using namespace std;
+const int MAXL = 22 , MAXN = 1e5 + 10 , MOD=1e9+7;
+int lca[MAXN][MAXL] , h[MAXN] , ps1[MAXN] , ps2[MAXN];
+int po[1000*1000 + 10];
+vector<pii> a[MAXN]; int ans1[MAXN] , ans2[MAXN];
+
+inline void make_lca(int v, int par){
+    lca[v][0] = par;
+    rep(i,1,MAXL) lca[v][i] = lca[lca[v][i-1]][i-1];
+}
+
+void dfs(int v , int p=0){
+    h[v]=h[p]+1; make_lca(v,p);
+    for(auto k:a[v]){
+        int u = k.first;
+        if(u==p)continue;
+        dfs(u, v);
+    }
+}
+
+
+int getPar(int v, int k){
+    rep(i,0,MAXL) if(k >> i & 1) v = lca[v][i];
+    return v;
+}
+
+int LCA(int v, int u){
+    if(h[v] < h[u]) swap(v, u);
+    v = getPar(v, h[v] - h[u]);
+    if(v == u) return v;
+    for(int i = MAXL - 1; i >= 0; i --)
+	  if(lca[v][i] != lca[u][i]) v = lca[v][i], u = lca[u][i];
+    return lca[v][0];
+}
+int make_ans(int v,int p=0){
+    int dir=0;
+    ll t=0;
+    for(auto k:a[v]){
+        int u=k.first;
+        if(u == p){dir=k.second; continue;}
+        t+=make_ans(u , v);
+        t=t%MOD;
+        ans1[v]+=ans1[u];
+        ans2[v]+=ans2[u];
+    }
+    ans1[v]+=ps1[v]; ans2[v]+=ps2[v];
+    if(dir == 1){
+        t+=po[ans2[v]];
+    }
+    else if(dir == -1){
+        t+=po[ans1[v]];
+    }
+    t=t%MOD;
+    return t;
+}
+
+main(){
+    ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+    int n; cin>>n;
+    for(int i=0;i<n-1;i++){
+        int u,v , d;
+        cin>>u>>v>>d;
+        if(d == 0){a[u].push_back({v , 0}); a[v].push_back({u , 0});}
+        else {a[u].push_back({v,1}); a[v].push_back({u , -1});}
+    }
+    dfs(1);
+    int K , s=1; cin>>K;
+    for(int i=0;i<K;i++){
+        int e; cin>>e;
+        int p=LCA(s , e);
+        ps1[s]++; ps1[p]--;
+        ps2[e]++; ps2[p]--;
+        s=e;
+    }
+    po[1]=1;
+    for(int i=2;i<1e6 + 10;i++){po[i]=2*po[i-1] + 1; po[i]=po[i]%MOD;}
+    int out = (int) make_ans(1);
+    cout<<out;
+}
+

@@ -1,0 +1,30 @@
+#include <bits/stdc++.h>
+#define nmax 300005
+#define lld long long
+using namespace std;
+char s[nmax];
+int ln;
+lld ans;
+int main()
+{
+    cin>>s;
+    ln = strlen(s);
+    for (int i=0;i<ln-2;++i)
+    {
+        int endd = min(i + 10, ln-1);
+        int l = i, rmin = 999999999;
+        for (int k=1;k<=5;++k)
+        {
+            for (int j=i;1;++j)
+            {
+                if (j + 2 * k > endd) break;
+                if (s[j] == s[j+k] && s[j] == s[j+2*k])
+                    rmin = min(rmin, j+2*k);
+            }
+        }
+        if (rmin == 999999999) continue;
+        ans += (ln - rmin);
+    }
+    cout<<ans<<'\n';
+    return 0;
+}

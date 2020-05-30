@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+typedef long long ll;
+using namespace std;
+struct node{
+	int prefdec, prefinc, prefhill;
+	int suffinc, suffdec, suffhill;
+	int hill;
+	int len;
+	ll l, r;
+	ll lazy;
+	void init(int v){
+		suffinc = prefdec = prefinc = suffdec = v;
+		prefhill = suffhill = 0;
+		hill = 0;
+		len = v;
+		l = r = lazy = 0;
+	}
+};
+
+node tr[1 << 22];
+void updateLazy(int i, int l, int r){
+	if(l != r) {
+		tr[i * 2].lazy += tr[i].lazy;
+		tr[i * 2 + 1].lazy += tr[i].lazy;
+	}
+	tr[i].l += tr[i].lazy;
+	tr[i].r += tr[i].lazy;
+	tr[i].lazy = 0;
+}
+
+void print(node C){
+	cerr<<C.len<<' '<<C.hill<<endl;
+	cerr<<C.l<<' '<<C.r<<endl;
+	cerr<<C.prefdec<<' '<<C.prefhill<<' '<<C.suffinc<<' '<<C.suffhill<<endl;
+	cerr<<"!!"<<endl;
+}
+
+void merge(node &C, node L, node R){
+	C.len = L.len + R.len;
+	C.l = L.l;
+	C.r = R.r;
+
+	C.prefdec = L.prefdec;
+	if(L.prefdec == L.len && L.r > R.l)
+		C.prefdec += R.prefdec;
+
+	C.prefinc = L.prefinc;
+	if(L.prefinc == L.len && L.r < R.l)
+		C.prefinc += R.prefinc;
+
+	C.suffdec = R.suffdec;
+	if(R.suffdec == R.len && L.r > R.l)
+		C.suffdec += L.suffdec;
+
+	C.suffinc = R.suffinc;
+	if(R.suffinc == R.len && L.r < R.l)
+		C.suffinc += L.suffinc;
+
+	C.prefhill = L.prefhill;
+	if(L.prefhill == L.len && L.r > R.l)
+		C.prefhill += R.prefdec;
+	if(L.prefinc == L.len && L.r < R.l)
+		C.prefhill = max(C.prefhill, L.len + R.prefhill);
+	if(L.prefinc == L.len && L.r != R.l)
+		C.prefhill = max(C.prefhill, L.len + R.prefdec);
+
+	C.suffhill = R.suffhill;
+	if(R.suffhill == R.len && L.r < R.l)
+		C.suffhill += L.suffinc;
+	if(R.suffdec == R.len && L.r > R.l)
+		C.suffhill = max(C.suffhill, R.len + L.suffhill);
+	if(R.suffdec == R.len && L.r != R.l)
+		C.suffhill = max(C.suffhill, R.len + L.suffinc);
+
+	C.hill = max(L.hill, R.hill);
+	if(L.r < R.l){
+		C.hill = max(C.hill, L.suffinc + R.prefinc);
+		C.hill = max(C.hill, L.suffinc + R.prefhill);
+	}
+	if(L.r > R.l){
+		C.hill = max(C.hill, L.suffdec + R.prefdec);
+		C.hill = max(C.hill, L.suffhill + R.prefdec);
+	}
+	if(L.r != R.l)
+		C.hill = max(C.hill, L.suffinc + R.prefdec);
+	C.hill = max(C.hill, max(C.prefhill, C.suffhill));
+	C.hill = max(C.hill, max(C.prefdec, C.prefinc));
+	C.hill = max(C.hill, max(C.suffdec, C.suffinc));
+}
+
+void update(int i, int l, int r, int a, int b, ll v){
+	updateLazy(i, l, r);
+	if(l > b || r < a)
+		return;
+
+	if(l >= a && r <= b){
+		tr[i].l += v;
+		tr[i].r += v;
+		if(l != r) {
+			tr[i * 2].lazy += v;
+			tr[i * 2 + 1].lazy += v;
+		}
+		return;
+	}
+
+	update(i * 2, l, (l + r) / 2, a, b, v);
+	update(i * 2 + 1, (l + r) / 2 + 1, r, a, b, v);
+	merge(tr[i], tr[i*2], tr[i*2+1]);
+}
+
+
+int getans(){
+	return tr[1].hill;
+}
+
+int n;
+void build(int i, int l, int r){
+	if(l == r){
+		tr[i].init(l < n);
+		return;
+	}
+	build(i * 2, l, (l + r) / 2);
+	build(i * 2 + 1, (l + r) / 2 + 1, r);
+}
+
+int main() {
+	scanf("%d", &n);
+	build(1, 0, (1<<19) - 1);
+	vector<int>a(n);
+	for(int i = 0; i< n; i++){
+		scanf("%d", &a[i]);
+		update(1, 0, (1<<19) - 1, i, i, a[i]);
+	}
+
+	int m; scanf("%d", &m);
+	while(m--){
+		int l, r, d; scanf("%d%d%d", &l, &r, &d);
+		update(1, 0, (1<<19) - 1, l - 1, r - 1, d);
+		printf("%d\n", getans());
+	}
+	return 0;
+}

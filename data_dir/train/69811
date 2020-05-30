@@ -1,0 +1,113 @@
+//IOI 2021
+#include <bits/stdc++.h>
+using namespace std;
+ 
+#define pb push_back
+#define ff first
+#define ss second
+#define int long long
+ 
+typedef long long ll;
+typedef pair<int, int> pii;
+ 
+const int MAXN = 100 * 1000 + 17;
+ 
+struct node {
+	int mx, mn, sum, lazy = -1;
+	void dmod(int l, int r, int val) {
+		mx %= val;
+		mn %= val;
+		sum = mx * (r - l);
+		lazy = val;
+	}
+	void chng(int val) {
+		mx = mn = sum = val;
+		lazy = -1;
+	}
+	void cheneg(int l, int r, int val) {
+		mx = mn = val;
+		lazy = val + 1;
+		sum = (r - l) * val;
+	}
+	node operator+(const node &x) const {
+		node res;
+		res.mx = max(mx, x.mx);
+		res.mn = min(mn, x.mn);
+		res.sum = sum + x.sum;
+		res.lazy = -1;
+		return res;
+	}
+};
+ 
+int n, q, a[MAXN];
+node seg[MAXN << 2];
+ 
+void relax(int v, int l, int r) {
+	if (seg[v].lazy != -1) {
+		seg[v << 1].cheneg(l, l + r >> 1, seg[v].mx);
+		seg[v << 1 | 1].cheneg(l + r >> 1, r, seg[v].mx);
+	}
+	seg[v].lazy = -1;
+}
+ 
+void mod(int lp, int rp, int val, int v = 1, int l = 1, int r = n + 1) {
+	if (rp <= l || r <= lp || seg[v].mx < val)
+		return;
+	if (lp <= l && r <= rp && seg[v].mx == seg[v].mn) {
+		seg[v].dmod(l, r, val);
+		return;
+	}
+	relax(v, l, r);
+	mod(lp, rp, val, v << 1, l, l + r >> 1);
+	mod(lp, rp, val, v << 1 | 1, l + r >> 1, r);
+	seg[v] = seg[v << 1] + seg[v << 1 | 1];
+}
+ 
+void change(int pos, int val, int v = 1, int l = 1, int r = n + 1) {
+	if (pos < l || r <= pos)
+		return;
+	if (l + 1 == r) {
+		seg[v].chng(val);
+		return;
+	}
+	relax(v, l, r);
+	change(pos, val, v << 1, l, l + r >> 1);
+	change(pos, val, v << 1 | 1, l + r >> 1, r);
+	seg[v] = seg[v << 1] + seg[v << 1 | 1];
+}
+ 
+int get(int lp, int rp, int v = 1, int l = 1, int r = n + 1) {
+	if (rp <= l || r <= lp)
+		return 0;
+	if (lp <= l && r <= rp)
+		return seg[v].sum;
+	relax(v, l, r);
+	return get(lp, rp, v << 1, l, l + r >> 1) + get(lp, rp, v << 1 | 1, l + r >> 1, r);
+}
+ 
+int32_t main() {
+	ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+	cin >> n >> q;
+	for (int i = 1; i <= n; i++)
+		cin >> a[i], change(i, a[i]);
+	while (q--) {
+		int t;
+		cin >> t;
+		if (t == 1) {
+			int l, r;
+			cin >> l >> r;
+			cout << get(l, ++r) << '\n';
+		}
+		else if (t == 2) {
+			int l, r, x;
+			cin >> l >> r >> x;
+			mod(l, ++r, x);
+		}
+		else {
+			int p, x;
+			cin >> p >> x;
+			change(p, x);
+		}
+	}
+	return 0;
+}

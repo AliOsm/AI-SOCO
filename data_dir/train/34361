@@ -1,0 +1,127 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(),(x).end()
+
+int n, m;
+long long seed, vax;
+
+long long Pow(long long a, long long b, long long mod)
+{
+    if(!b) return 1LL % mod;
+    long long r = Pow(a, b/2, mod);
+    r = (r * r) % mod;
+    if(b&1) r = (r * (a % mod)) % mod;
+    return r;
+}
+
+long long pot(long long a, long long b, long long mod)
+{
+	a%=mod;
+	long long ret=1;
+	while(b)
+	{
+		if (b&1)
+			ret=(ret*a)%mod;
+		a=(a*a)%mod;
+		b>>=1;
+	}
+	return ret%mod;
+}
+
+long long rnd()
+{
+    long long ret = seed;
+    seed = (seed * 7 + 13) % 1000000007;
+    return ret;
+}
+
+struct interval{
+    int l, r;
+    long long val;
+    interval(){}
+    interval(int l, int r, long long val):l(l), r(r), val(val){}
+    bool operator<(const interval& rhs) const{
+        if(l != rhs.l) return l < rhs.l;
+        return r < rhs.r;
+    }
+};
+
+set<interval> seg;
+vector<interval> cur;
+
+void cut(int v)
+{
+    auto it = seg.lower_bound({v, n+5, -1});
+    --it;
+    if(it->r == v) return;
+    auto temp = *it;
+    seg.erase(it);
+    seg.insert({temp.l, v, temp.val});
+    seg.insert({v+1, temp.r, temp.val});
+}
+
+void abi(int l, int r)
+{
+    cut(l-1);
+    cut(r);
+    cur.clear();
+    for(auto it = seg.lower_bound({l, -1, -1}); it->l <= r ; ++it)
+        cur.push_back(*it);
+}
+
+int main()
+{
+    cin >> n >> m >> seed >> vax;
+    seg.insert({0, 0, 0});
+    seg.insert({n+1, n+1, 0});
+    for(int i = 1 ; i <= n ; i++)
+        seg.insert({i, i, (rnd() % vax) + 1});
+    for(int q = 0 ; q < m ; q++){
+        int op, l, r, x, y;
+        op = rnd() % 4 + 1;
+        l = rnd() % n + 1;
+        r = rnd() % n + 1;
+        if(l > r) swap(l, r);
+        if(op == 3) x = rnd() % (r - l + 1) + 1;
+        else x = rnd() % vax + 1;
+        if(op == 4) y = rnd() % vax + 1;
+        abi(l, r);
+//        cout << op << " " << l << " " << r << " " << x;
+//        if(op == 4) cout << " " << y;
+//        cout << endl;
+        if(op == 1){
+            for(int i = 0 ; i < sz(cur) ; i++){
+                seg.erase(cur[i]);
+                seg.insert({cur[i].l, cur[i].r, cur[i].val + x});
+            }
+        }else if(op == 2){
+            for(int i = 0 ; i < sz(cur) ; i++){
+                seg.erase(cur[i]);
+            }
+            seg.insert({l, r, x});
+        }else if(op == 3){ // xth smallest
+            sort(cur.begin(), cur.end(), [](interval lhs, interval rhs){ return lhs.val < rhs.val; });
+            for(int i = 0 ; i < sz(cur) ; i++){
+                int len = cur[i].r - cur[i].l + 1;
+                long long val = cur[i].val;
+                if(x <= len){
+                    cout << val << endl;
+                    break;
+                }
+                x -= len;
+            }
+        }else{ // sum of powers
+            long long ret = 0;
+            for(int i = 0 ; i < sz(cur) ; i++){
+                int len = cur[i].r - cur[i].l + 1;
+                long long v = cur[i].val;
+                ret += 1LL * len * Pow(v, x, y);
+                ret %= y;
+            }
+            cout << ret << endl;
+        }
+    }
+    return 0;
+}

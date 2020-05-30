@@ -1,0 +1,126 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int maxn = 1e5 + 100;
+const int maxl = 20;
+
+vector <pair<int,int> > e;
+vector <int> adj[maxn];
+
+int dp[maxn], h[maxn], par[maxn][maxl], Par[maxn], sz[maxn];
+
+bool mark[maxn];
+
+int root(int v){return (Par[v] == v ? v : Par[v] = root(Par[v]));}
+
+void merge(int v,int u){
+	if((v = root(v)) == (u = root(u)))
+		return;
+	if(sz[v] < sz[u])
+		swap(v, u);
+	sz[v] += sz[u];
+	Par[u] = v;
+}
+
+void dfs_dp(int v,int p=-1){
+	mark[v] = true;
+	dp[v] = h[v];
+	for (int i = 0; i < adj[v].size(); i++){
+		int u = adj[v][i];
+		if(!mark[u]){
+			h[u] = h[v] + 1;
+			dfs_dp(u, v);
+			if(dp[u] < h[u])
+				merge(v, u);
+			dp[v] = min(dp[v], dp[u]);
+		}
+		else if(u != p)
+			dp[v] = min(dp[v], h[u]);
+	}
+}
+
+void dfs_lca(int v){
+	for (int i = 1; i < maxl; i++)
+		if(par[v][i - 1] != -1)
+			par[v][i] = par[par[v][i - 1]][i - 1];
+	
+	mark[v] = true;
+	for (int i = 0; i < adj[v].size(); i++){
+		int u = adj[v][i];
+		if(!mark[u]){
+			par[u][0] = v;
+			h[u] = h[v] + 1;
+			dfs_lca(u);
+		}
+	}
+}
+
+int get_lca(int v,int u){
+	if(h[v] < h[u])
+		swap(v, u);
+	for (int i = maxl-1; i >= 0; i--)
+		if(par[v][i] != -1 && h[par[v][i]] >= h[u])
+			v = par[v][i];
+	if(v == u)
+		return v;
+	for (int i = maxl-1; i >= 0; i--)
+		if(par[v][i] != -1 && par[v][i] != par[u][i])
+			v = par[v][i], u = par[u][i];
+
+	return par[v][0];
+}
+
+int dis(int v,int u){
+	return h[v] + h[u] - 2 * h[get_lca(v, u)];
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	
+	int n, m;
+	cin >> n >> m;
+	for (int i = 0; i < m; i++){
+		int v, u;
+		cin >> v >> u;
+		v--, u--;
+		adj[v].push_back(u);
+		adj[u].push_back(v);
+		e.push_back(make_pair(v, u));
+	}
+	
+	for (int i = 0; i < n; i++)
+		Par[i] = i;
+	dfs_dp(0);
+
+	for (int i = 0; i < n; i++)
+		adj[i].clear();
+	for (int i = 0; i < m; i++){
+		int v = e[i].first;
+		int u = e[i].second;
+		v = root(v), u = root(u);
+		if(v != u){
+			adj[v].push_back(u);
+			adj[u].push_back(v);
+		}
+	}
+
+	memset (mark, false, sizeof mark);
+	memset (h, 0, sizeof h);
+
+	for (int i = 0; i < n; i++)
+		if(!mark[i])
+			dfs_lca(i);
+
+	int k;
+	cin >> k;
+	for (int i = 0; i < k; i++){
+		int v, u;
+		cin >> v >> u;
+		v--, u--;
+		cout << dis(root(v), root(u)) << '\n';
+	}
+
+	return 0;
+}

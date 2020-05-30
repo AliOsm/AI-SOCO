@@ -1,0 +1,62 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 5;
+
+pair<int, int> cut(pair<int, int> l, pair<int, int> r) {
+  if (l.first == -1 || r.first == -1) return {-1, -1};
+  int lret = max(l.first, r.first);
+  int rret = min(l.second, r.second);
+  if (lret <= rret) {
+    return {lret, rret};
+  } else {
+    return {-1, -1};
+  }
+}
+
+bool in(pair<int, int> p, int v) {
+  return p.first <= v && v <= p.second;
+}
+
+int s[N], g[N];
+pair<int, int> wow[N];
+
+int be[N];
+
+int main() {
+  int n;
+  scanf("%d", &n);
+  for (int i = 0; i < n; i++) {
+    scanf("%d %d", s + i, g + i);
+  }
+  wow[n - 1] = {s[n - 1], s[n - 1] + g[n - 1]};
+  for (int i = n - 2; i >= 0; i--) {
+    pair<int, int> p = {s[i], s[i] + g[i]};
+    if (wow[i + 1].first != -1) {
+      wow[i] = cut(p, {wow[i+1].first - 1, wow[i+1].second + 1});
+    } else {
+      wow[i] = {-1, -1};
+    }
+  }
+  if (wow[0].first == -1) {
+    puts("-1");
+    return 0;
+  }
+  int now = wow[0].second;
+  be[0] = now;
+  long long ans = be[0] - s[0];
+  for (int i = 1; i < n; i++) {
+    for (int j = 1; j >= -1; j--) {
+      if (in(wow[i], now + j)) {
+        now += j;
+        be[i] = now;
+        ans += now - s[i];
+        break;
+      }
+    }
+  }
+  printf("%lld\n", ans);
+  for (int i = 0; i < n; i++) printf("%d ", be[i]);
+  return 0;
+}

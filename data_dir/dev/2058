@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+template<typename T>
+vector<T> compress(vector<T> A){
+    sort(A.begin(), A.end());
+    A.erase(unique(A.begin(), A.end()), A.end());
+    return A;
+}
+
+int pop_count(int bits){
+    bits = (bits & 0x55555555) + (bits >> 1 & 0x55555555);
+    bits = (bits & 0x33333333) + (bits >> 2 & 0x33333333);
+    bits = (bits & 0x0f0f0f0f) + (bits >> 4 & 0x0f0f0f0f);
+    bits = (bits & 0x00ff00ff) + (bits >> 8 & 0x00ff00ff);
+    return (bits & 0x0000ffff) + (bits >>16 & 0x0000ffff);
+}
+
+void chmax(int& a, int b){
+    a = max(a, b);
+}
+
+int nth_bit(int64_t num, int n){
+    return (num >> n) & 1;
+}
+
+int main(){
+    int N, M, K;
+    cin >> N >> M >> K;
+    vector<int> X, L(N), R(N);
+    for(int i=0; i<N; i++){
+        scanf("%d %d", &L[i], &R[i]);
+        L[i]--;
+        X.push_back(L[i]);
+        X.push_back(R[i]);
+    }
+    X.push_back(0);
+    X.push_back(M);
+    X = compress(X);
+    for(int i=0; i<N; i++){
+        L[i] = lower_bound(X.begin(), X.end(), L[i]) - X.begin();
+        R[i] = lower_bound(X.begin(), X.end(), R[i]) - X.begin();
+    }
+    int sz = X.size();
+    vector<vector<int>> L2idx(sz), R2idx(sz);
+    for(int i=0; i<N; i++){
+        L2idx[L[i]].push_back(i);
+        R2idx[R[i]].push_back(i);
+    }
+
+    bitset<8> used;
+    vector<int> G(N);
+    for(int i=0; i<sz; i++){
+        for(int j : R2idx[i]) used[G[j]] = 0;
+        for(int j : L2idx[i]){
+            for(int k=0; k<8; k++) if(!used[k]){
+                G[j] = k;
+                used[k] = 1;
+                break;
+            }
+        }
+    }
+
+    int pop2[256];
+    for(int j=0; j<256; j++) pop2[j] = pop_count(j) % 2;
+
+    static int dp[200010][256];
+    for(int i=0; i<sz; i++) for(int j=0; j<256; j++) dp[i][j] = -1e9;
+    dp[0][0] = 0;
+    for(int i=0; i<sz-1; i++){
+        int d = X[i+1] - X[i];
+        for(int j=0; j<256; j++){
+            if(dp[i][j] < 0) continue;
+            int j2 = j;
+            for(int idx : R2idx[i]) if(nth_bit(j, G[idx])) j2 -= 1<<G[idx];
+            chmax(dp[i+1][j2], dp[i][j] + pop2[j2]*d);
+        }
+        for(int idx : L2idx[i]){
+            int k = G[idx];
+            for(int j=0; j<256; j++) if(nth_bit(j, k) == 0){
+                int j2 = j + (1<<k);
+                chmax(dp[i+1][j2], dp[i+1][j] + (pop2[j2] - pop2[j])*d);
+            }
+        }
+    }
+    int ans = 0;
+    for(int j=0; j<256; j++) chmax(ans, dp[sz-1][j]);
+    cout << ans << endl;
+    return 0;
+}

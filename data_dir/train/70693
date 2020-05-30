@@ -1,0 +1,182 @@
+#include<iostream>
+#include<stdio.h>
+#include<cassert>
+#include<cstring>
+#include<time.h>
+#include<cstdlib>
+#include<cmath>
+#include<string>
+#include<sstream>
+#include<map>
+#include<set>
+#include<queue>
+#include<stack>
+#include<vector>
+#include<algorithm>
+#pragma comment(linker, "/STACK:16777216")
+#define pb push_back
+#define ppb pop_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define sz(x) (int)(x).size()
+#define LL long long
+#define bit __builtin_popcountll
+#define sqr(x) (x) * (x)
+#define forit(it,S) for(__typeof((S).begin()) it = (S).begin(); it != (S).end(); it++)
+using namespace std;
+typedef pair<int, int> pii;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+const int INF = (int)1e9;
+int x[7],y[7],dp[1 << 7][105][105];
+int cost[105][105],dx[] = {1,-1,0,0},dy[] = {0,0,1,-1},dist[205][205],prev[205][205];
+char s[105][105];
+int n,m,k;
+void print(int mask, int X, int Y) {
+    //cout << mask << " " << X << " " << Y << endl;
+    int b = 0;
+    int w = -1;
+    for (int i = 0; i < k; i++) {
+        if (mask & (1 << i)) {
+            b++;
+            w = i;
+        }
+    }
+    if (b == 1 && X == x[w] && Y == y[w]) {
+        s[X][Y] = 'X';
+        return;
+    }
+    if (b > 1) {
+        for (int sub = (mask - 1) & mask; sub > 0; sub = (sub - 1) & mask) {
+            if (dp[mask][X][Y] == dp[mask ^ sub][X][Y] + dp[sub][X][Y] - cost[X][Y]) {
+                print(mask ^ sub,X,Y);
+                print(sub,X,Y);
+                return;
+            }
+        }
+    }
+    for (int ii = 0; ii < n; ii++) {
+        for (int jj = 0; jj < m; jj++) {
+            if (ii == X && jj == Y) continue;
+            if (dp[mask][X][Y] == dp[mask][ii][jj] + dist[X * m + Y][ii * m + jj] - cost[ii][jj]) {
+                int iii = ii;
+                int jjj = jj;
+                while(X != ii || Y != jj) {
+                    s[ii][jj] = 'X';
+                    int id = prev[X * m + Y][ii * m + jj];
+                    ii = ii - dx[id];
+                    jj = jj - dy[id];
+                }
+                s[X][Y] = 'X';
+                print(mask,iii,jjj);
+                return;
+            }
+        }
+    }
+}
+int main()
+{
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt","r",stdin);
+    freopen("output.txt","w",stdout);
+    #endif
+    cin >> n >> m >> k;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> cost[i][j];
+        }
+    }
+    for (int i = 0; i < k; i++) {
+        cin >> x[i] >> y[i];
+        --x[i];
+        --y[i];
+    }
+    for (int mask = 1; mask < (1 << k); mask++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                dp[mask][i][j] = INF;
+            }
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            for (int ii = 0; ii < n; ii++) {
+                for (int jj = 0; jj < m; jj++) {
+                    dist[i * m + j][ii * m + jj] = INF;
+                }
+            }
+            priority_queue<pii> q;
+            dist[i * m + j][i * m + j] = cost[i][j];
+            q.push(mp(-dist[i * m + j][i * m + j],i * m + j));
+            while(!q.empty()) {
+                int ii = q.top().second / m;
+                int jj = q.top().second % m;
+                int dd = -q.top().first;
+                q.pop();
+                if (dd > dist[i * m + j][ii * m + jj]) continue;
+                for (int r = 0; r < 4; r++) {
+                    int xx = ii + dx[r];
+                    int yy = jj + dy[r];
+                    if (xx < 0 || xx >= n || yy < 0 || yy >= m) continue;
+                    if (dist[i * m + j][xx * m + yy] > dist[i * m + j][ii * m + jj] + cost[xx][yy]) {
+                        dist[i * m + j][xx * m + yy] = dist[i * m + j][ii * m + jj] + cost[xx][yy];
+                        prev[i * m + j][xx * m + yy] = r;
+                        q.push(mp(-dist[i * m + j][xx * m + yy],xx * m + yy));
+                    }
+                }
+            }
+        }
+    }
+    for (int mask = 1; mask < (1 << k); mask++) {
+        int b = 0;
+        int w = -1;
+        for (int i = 0; i < k; i++) {
+            if (mask & (1 << i)) {
+                b++;
+                w = i;
+            }
+        }
+        if (b > 1) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m; j++) {
+                    for (int sub = (mask - 1) & mask; sub > 0; sub = (sub - 1) & mask) {
+                        dp[mask][i][j] = min(dp[mask][i][j],dp[mask ^ sub][i][j] + dp[sub][i][j] - cost[i][j]);
+                    }
+                }
+            }
+        } else {
+            dp[mask][x[w]][y[w]] = cost[x[w]][y[w]];
+        }
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                for (int ii = 0; ii < n; ii++) {
+                    for (int jj = 0; jj < m; jj++) {
+                        dp[mask][i][j] = min(dp[mask][i][j],dp[mask][ii][jj] + dist[i * m + j][ii * m + jj] - cost[ii][jj]);
+                    }
+                }
+            }
+        }
+    }
+    int best = INF;
+    int X = -1;
+    int Y = -1;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            s[i][j] = '.';
+            if (best > dp[(1 << k) - 1][i][j]) {
+                best = dp[(1 << k) - 1][i][j];
+                X = i;
+                Y = j;
+            }           
+        }
+    }
+    cout << best << endl;
+    print((1 << k) - 1,X,Y);    
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            putchar(s[i][j]);
+        }
+        puts("");
+    }   
+    return 0;
+}

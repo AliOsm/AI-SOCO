@@ -1,0 +1,84 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 50 + 5, P = 998244353;
+int n, m, l[N], r[N], inv[N], p[N << 1], len[N << 1], dp[N][N << 1];
+
+int _sum(int a, int b) {
+	if ((a += b) >= P)
+		a -= P;
+	return a < 0? a + P: a;
+}
+
+int _mul(int a, int b) {
+	return a > P / b? 1LL * a * b % P: a * b;
+}
+
+int power(int a, int b) {
+	int ans = 1;
+	for ( ; b; a = _mul(a, a), b >>= 1)
+		ans = b & 1? _mul(ans, a): ans;
+	return ans;
+}
+
+int C(int n, int k) {
+	int ans = inv[k];
+	for (int i = 0; i < k; i++)
+		ans = _mul(ans, n - i);
+	return ans;
+}
+
+void prepare() {
+	for (int i = 0; i < n; i++) {
+		p[m++] = l[i];
+		p[m++] = ++r[i];
+	}
+	sort(p, p + m);
+	m = unique(p, p + m) - p;
+	for (int i = 0; i < m - 1; i++)
+		len[i] = p[i + 1] - p[i];
+	for (int i = 0; i < n; i++) {
+		l[i] = lower_bound(p, p + m, l[i]) - p;
+		r[i] = lower_bound(p, p + m, r[i]) - p;
+	}
+	for (int i = inv[0] = 1; i <= n; i++)
+		inv[i] = _mul(inv[i - 1], power(i, P - 2));
+}
+
+void calc_answer() {
+	for (int i = 0; i < n; i++)
+		for (int j = m - 2; ~j; j--) {
+			dp[i][j] = dp[i][j + 1];
+			for (int k = i; ~k && l[k] <= j && j < r[k]; k--)
+				dp[i][j] = _sum(dp[i][j], _mul(k? dp[k - 1][j + 1]: 1, C(len[j] + i - k, i - k + 1)));
+		}
+}
+
+void read_input() {
+	cin >> n;
+	for (int i = 0; i < n; i++)
+		cin >> l[i] >> r[i];
+}
+
+void solve() {
+	prepare();
+	calc_answer();
+}
+
+void write_output() {
+	int ans = dp[n - 1][0];
+	for (int i = 0; i < n; i++) {
+		int k = 0;
+		for (int j = l[i]; j < r[i]; j++)
+			k += len[j];
+		ans = _mul(ans, power(k, P - 2));
+	}
+	cout << ans;
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	read_input(), solve(), write_output();
+	return 0;
+}

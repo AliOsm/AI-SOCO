@@ -1,0 +1,89 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int n, q, mi[800005], ma[800005], lazy[800005], ans[800005], l[800005], r[800005];
+char x[200005];
+int cur;
+int ta, tb, tc;
+
+void merge(int i) {
+	int ia = i * 2;
+	int ib = i * 2 + 1;
+	mi[i] = min(mi[ia], mi[ib]);
+	ma[i] = max(ma[ia], ma[ib]);
+	ans[i] = max(ans[ia], ans[ib]);
+	ans[i] = max(ans[i], ma[ia] + l[ib]);
+	ans[i] = max(ans[i], r[ia] + ma[ib]);
+	l[i] = max(max(l[ia], l[ib]), ma[ib] - mi[ia] * 2);
+	r[i] = max(max(r[ia], r[ib]), ma[ia] - mi[ib] * 2);
+}
+
+void push(int i) {
+	if (lazy[i] == 0)
+		return;
+	for (int j = i * 2; j <= i * 2 + 1; j++) {
+		lazy[j] += lazy[i];
+		mi[j] += lazy[i];
+		ma[j] += lazy[i];
+		l[j] -= lazy[i];
+		r[j] -= lazy[i];
+	}
+	lazy[i] = 0;
+}
+
+void build(int lq, int rq, int i) {
+	if (lq + 1 == rq) {
+		if (lq)
+			if (x[lq] == '(')
+				cur++;
+			else
+				cur--;
+		mi[i] = ma[i] = cur;
+		l[i] = r[i] = -cur;
+		return;
+	}
+	int mii = (lq + rq) / 2;
+	build(lq, mii, i * 2);
+	build(mii, rq, i * 2 + 1);
+	merge(i);
+}
+
+void f1(int a, int b, int lq, int rq, int i) {
+	if (a == lq && b == rq) {
+		lazy[i] += tc;
+		mi[i] += tc;
+		ma[i] += tc;
+		l[i] -= tc;
+		r[i] -= tc;
+		return;
+	}
+	push(i);
+	int mii = (lq + rq) / 2;
+	if (a < mii)
+		f1(a, min(mii, b), lq, mii, i * 2);
+	if (mii < b)
+		f1(max(mii, a), b, mii, rq, i * 2 + 1);
+	merge(i);
+}
+
+int main() {
+	scanf("%d%d%s", &n, &q, x + 1);
+	n = strlen(x + 1) + 1;
+	build(0, n, 1);
+	printf("%d\n", ans[1]);
+	while (q--) {
+		scanf("%d%d", &ta, &tb);
+		if (ta > tb)
+			swap(ta, tb);
+		if (x[ta] != x[tb]) {
+			if (x[ta] == '(')
+				tc = -2;
+			else
+				tc = 2;
+			f1(ta, tb, 0, n, 1);
+			swap(x[ta], x[tb]);
+		}
+		printf("%d\n", ans[1]);
+	}
+}

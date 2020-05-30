@@ -1,0 +1,93 @@
+//g++ -std=c++14 -g -O2 -o ./a ./A.cpp
+#include <bits/stdc++.h>
+using namespace std;
+#define ff first
+#define ss second
+#define nl '\n'
+typedef long long ll;
+//////////////////////////////////////////////////////////////////////
+
+const int N = 5010;
+int n,block,ssz[N];
+ll dpup[N],dp[N];
+vector<pair<ll,int> > tr[N];
+
+void fssz(int x=1,int par=0){
+  ssz[x]=1;
+  dpup[x] = dp[x] = 0;
+  for(auto&it:tr[x])
+    if(it.ss!=par and it.ss!=block){
+      fssz(it.ss,x);
+      ssz[x]+=ssz[it.ss];
+      dpup[x] += it.ff*ssz[it.ss]+dpup[it.ss];
+    }
+}
+
+void pushdown(int &tot,int x=1,int par=0){
+  ll temp = dpup[x]+dp[x];
+  for(auto&it:tr[x])
+    if(it.ss!=par and it.ss!=block){
+      ll t2 = temp - it.ff*ssz[it.ss] - dpup[it.ss];
+      dp[it.ss] += t2 + it.ff*(tot-ssz[it.ss]);
+      pushdown(tot,it.ss,x);
+    }
+}
+
+int search(int x=1,int par=0){
+  int ret = x;
+  for(auto&it:tr[x])
+    if(it.ss!=par and it.ss!=block){
+      int temp = search(it.ss,x);
+      if(dp[temp]+dpup[temp] < dp[ret]+dpup[ret])
+	ret=temp;
+    }
+  return ret;
+}
+
+ll sumdis(int x=1,int par=0){
+  ll ret = dp[x]+dpup[x];
+  for(auto&it:tr[x])
+    if(it.ss!=par and it.ss!=block){
+      ret += sumdis(it.ss,x);
+    }
+  return ret;
+}
+
+ll ans ;
+void dfs0(int x=1,int par=0){
+  for(auto&it:tr[x])
+    if(it.ss!=par){
+      dfs0(it.ss,x);
+
+      block = it.ss;
+      fssz();fssz(block,x);
+      pushdown(ssz[1]);
+      pushdown(ssz[block],block,x);
+
+      int u = search();int v = search(block,x);
+      
+      ll cu = dp[u] + dpup[u] , cv = dp[v] + dpup[v];
+      
+      ll temp = ssz[1]*cv + ssz[block]*cu + it.ff*ssz[1]*ssz[block];
+      temp += (sumdis() + sumdis(block,x))/2;
+      
+      ans = min(ans , temp );
+    }
+}
+
+int main(){
+  ios::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+  
+  cin>>n;
+  for(int a,b,i=1;i<n;i++){
+    ll w;cin>>a>>b>>w;
+    tr[a].emplace_back(w,b);
+    tr[b].emplace_back(w,a);
+  }
+
+  ans = (ll)9e18;///seriously?
+  dfs0();
+  cout<<ans<<nl;
+  
+  return 0;
+}

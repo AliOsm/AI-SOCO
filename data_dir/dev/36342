@@ -1,0 +1,162 @@
+/*
+ * Autistic
+ */
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma comment(linker, "/STACK:1024000000,1024000000")
+#include <bits/stdc++.h>
+using namespace std;
+
+//#include <ext/pb_ds/tree_policy.hpp>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/rope>
+
+//using namespace __gnu_pbds;
+//using namespace __gnu_cxx;
+
+//template<class T> using orderd_set = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+
+#define S second
+#define F first
+#define pb push_back
+const int inf = 1e9;
+using ii = pair<int, int>;
+using ll = long long;
+using db = long double;
+
+const int N = 1e5 + 5, M = 2e5 + 5, K = 55, MOD = 1e9 + 7, MOD2 = 998244353;
+const ll MX = 1e15;
+const int blkSz = 250;
+const db EPS = 1e-7;
+const int PI = 3;
+int n, q;
+/*
+ * solving heavy is easy but how to solve light?
+ */
+vector<string> patterns;
+vector<int> light, heavy;
+
+vector<int> FAIL(string & pat) {
+
+	int m = pat.size();
+	vector<int> F(m + 1);
+	int i = 0, j = -1;
+	F[0] = -1;
+
+	while (i < m) {
+		while (j >= 0 && pat[i] != pat[j])
+			j = F[j];
+		i++, j++;
+		F[i] = j;
+	}
+
+	return F;
+}
+map<string, int>mp;
+int KMP_Search(string & txt, string & pat) {
+	if(mp.count(pat))
+		return mp[pat];
+	vector<int> F = FAIL(pat);
+	int i = 0, j = 0;
+	int n = txt.size(), m = pat.size();
+	int ret = 0;
+	while (i < n) {
+		while (j >= 0 && txt[i] != pat[j])
+			j = F[j];
+		i++, j++;
+		if (j == m)
+			j = F[j], ret++;
+	}
+
+	return mp[pat] = ret;
+}
+struct trie {
+
+	vector<int> occ;
+	trie * child[26];
+
+	trie() {
+		memset(child, 0, sizeof child);
+	}
+
+	void ins(int idx, int put, string & str) {
+		if (idx == str.size()) {
+			occ.pb(put);
+			return;
+		}
+		if (!child[str[idx] - 'a'])
+			child[str[idx] - 'a'] = new trie();
+		child[str[idx] - 'a']->ins(idx + 1, put, str);
+	}
+	int solve(int idx, int l, int r, string & str) {
+		int ret = upper_bound(occ.begin(), occ.end(), r)
+				- lower_bound(occ.begin(), occ.end(), l);
+		if (idx == str.size())
+			return ret;
+		if (child[str[idx] - 'a'])
+			ret += child[str[idx] - 'a']->solve(idx + 1, l, r, str);
+		return ret;
+	}
+} root;
+ll ans[blkSz][N];
+void handleHeavy(int idx) {
+	mp.clear();
+	for (int i = 0; i < n; i++) {
+		if(patterns[heavy[idx]].size() >= patterns[i].size())
+			ans[idx][i] = KMP_Search(patterns[heavy[idx]], patterns[i]);
+		if (i)
+			ans[idx][i] += ans[idx][i - 1];
+	}
+}
+void handleLight(int idx) {
+	root.ins(0, idx, patterns[idx]);
+}
+ll solveHeavy(int idx, int l, int r) {
+	idx = lower_bound(heavy.begin(), heavy.end(), idx) - heavy.begin();
+	return ans[idx][r] - (l ? ans[idx][l - 1] : 0);
+}
+int solveLight(int idx, int l, int r) {
+	int ret = 0;
+	for (int i = 0; i < patterns[idx].size(); i++) {
+		string x = patterns[idx].substr(i);
+		ret += root.solve(0, l, r, x);
+	}
+	return ret;
+}
+int main() {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#endif
+
+	cin >> n >> q;
+
+	patterns.resize(n);
+
+	for (int i = 0; i < n; i++) {
+		cin >> patterns[i];
+		if (patterns[i].size() >= blkSz) {
+			heavy.pb(i);
+		} else
+			light.pb(i);
+	}
+
+	for (int i = 0; i < heavy.size(); i++) {
+		handleHeavy(i);
+	}
+	for (auto & x : light)
+		handleLight(x);
+	while (q--) {
+		int k, l, r;
+		cin >> l >> r >> k;
+		--l, --r, --k;
+		if (patterns[k].size() >= blkSz) {
+			cout << solveHeavy(k, l, r) << '\n';
+		} else {
+			cout << solveLight(k, l, r) << '\n';
+		}
+	}
+
+	return 0;
+}

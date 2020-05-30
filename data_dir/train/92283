@@ -1,0 +1,148 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+string downcase(const string &s) {
+  string t = s;
+  for (int i = 0; i < t.size(); ++i) {
+    t[i] = tolower(t[i]);
+  }
+  return t;
+}
+
+int hh(const string &s) {
+  const int B = 311;
+  const int M = 1e9 + 9;
+  int res = 0;
+  for (int i = 0; i < s.size(); ++i) {
+    res = (1LL * res * B + s[i]) % M;
+  }
+  if (res < 0) res += M;
+  return res;
+}
+
+int ss(const string &s) {
+  const int B = 97;
+  const int M = 1e9 + 7;
+  int res = 0;
+  for (int i = s.size() - 1; ~i; --i) {
+    res = (1LL * res * B + s[i]) % M;
+  }
+  if (res < 0) res += M;
+  return res;
+}
+
+void tsort(const vector<vector<int>> &g, int u, vector<int> &vis, vector<int> &stk) {
+  for (int v : g[u]) {
+    if (vis[v]) continue;
+    vis[v] = 1;
+    tsort(g, v, vis, stk);
+  }
+  stk.emplace_back(u);
+}
+
+void ksrj(const vector<vector<int>> &g, int u, vector<int> &scc, const int sno) {
+  for (int v : g[u]) {
+    if (scc[v]) continue;
+    scc[v] = sno;
+    ksrj(g, v, scc, sno);
+  }
+}
+
+pair<int, int> dfs(const vector<vector<int>> &g, const vector<pair<int, int>> &w, vector<pair<int, int>> &dp, int u) {
+  if (dp[u].first < 1 << 30) return dp[u];
+  dp[u] = w[u];
+  for (int v : g[u]) {
+    dp[u] = min(dp[u], dfs(g, w, dp, v));
+  }
+  return dp[u];
+}
+
+signed main() {
+  ios::sync_with_stdio(false);
+  int N;
+  cin >> N;
+  vector<string> T(N);
+  for (int i = 0; i < N; ++i) {
+    cin >> T[i];
+    T[i] = downcase(T[i]);
+  }
+  int M;
+  cin >> M;
+  vector<pair<string, string>> D(M);
+  for (int i = 0; i < M; ++i) {
+    cin >> D[i].first >> D[i].second;
+    D[i].first = downcase(D[i].first);
+    D[i].second = downcase(D[i].second);
+  }
+  vector<pair<int, int>> hs(N + M * 2);
+  for (int i = 0; i < N; ++i) {
+    hs[i] = make_pair(hh(T[i]), ss(T[i]));
+  }
+  for (int i = 0; i < M; ++i) {
+    hs[N + i * 2] = make_pair(hh(D[i].first), ss(D[i].first));
+    hs[N + i * 2 + 1] = make_pair(hh(D[i].second), ss(D[i].second));
+  }
+  vector<pair<int, int>> dct = hs;
+  sort(dct.begin(), dct.end());
+  dct.erase(unique(dct.begin(), dct.end()), dct.end());
+  map<pair<int, int>, int> mp;
+  for (int i = 0; i < dct.size(); ++i) {
+    mp[dct[i]] = i;
+  }
+  vector<int> eg(dct.size()); // eg[i] := T[eg[i]] hashes to dct[i]
+  for (int i = 0; i < N; ++i) {
+    eg[mp[hs[i]]] = i;
+  }
+  for (int i = 0; i < M; ++i) {
+    eg[mp[hs[N + i * 2]]] = N + i * 2;
+    eg[mp[hs[N + i * 2 + 1]]] = N + i * 2 + 1;
+  }
+  vector<vector<int>> g(dct.size()), rg(dct.size());
+  for (int i = 0; i < M; ++i) {
+    pair<int, int> hsu = make_pair(hh(D[i].first), ss(D[i].first));
+    pair<int, int> hsv = make_pair(hh(D[i].second), ss(D[i].second));
+    if (hsu == hsv) continue;
+    if (!mp.count(hsu) || !mp.count(hsv)) continue;
+    g[mp[hsu]].emplace_back(mp[hsv]);
+    rg[mp[hsv]].emplace_back(mp[hsu]);
+  }
+  vector<int> vis(dct.size()), stk(dct.size());
+  for (int i = 0; i < dct.size(); ++i) {
+    if (vis[i]) continue;
+    vis[i] = 1;
+    tsort(g, i, vis, stk);
+  }
+  int scc_cnt = 0;
+  vector<int> scc(dct.size()); // scc[i] := i is of scc indexed scc[i]
+  for (auto it = stk.rbegin(); it != stk.rend(); ++it) {
+    if (scc[*it]) continue;
+    scc[*it] = ++scc_cnt;
+    ksrj(rg, *it, scc, scc_cnt);
+  } // sid2bst[i] := scc i is best at (#r, size)
+  vector<pair<int, int>> sid2bst(scc_cnt + 1, make_pair(1 << 30, 0));
+  for (int i = 0; i < dct.size(); ++i) {
+    const string &s = eg[i] < N ? T[eg[i]] : eg[i] - N & 1 ? D[eg[i] - N >> 1].second : D[eg[i] - N >> 1].first;
+    pair<int, int> rs = make_pair(0, s.size());
+    for (int j = 0; j < s.size(); ++j) {
+      rs.first += s[j] == 'r';
+    }
+    sid2bst[scc[i]] = min(sid2bst[scc[i]], rs);
+  }
+  vector<vector<int>> cg(scc_cnt + 1); // contracted graph, 1-idx
+  for (int i = 0; i < dct.size(); ++i) {
+    for (int j : g[i]) {
+      if (scc[i] != scc[j]) {
+        cg[scc[i]].emplace_back(scc[j]);
+      }
+    }
+  }
+  vector<pair<int, int>> dp(scc_cnt + 1, make_pair(1 << 30, 0));
+  pair<int, int64_t> ans;
+  for (int i = 0; i < N; ++i) {
+    int r, s;
+    tie(r, s) = dfs(cg, sid2bst, dp, scc[mp[hs[i]]]);
+    ans = make_pair(ans.first + r, ans.second + s);
+  }
+  cout << ans.first << ' ' << ans.second << endl;
+  return 0;
+}

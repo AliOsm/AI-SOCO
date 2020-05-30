@@ -1,0 +1,101 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+#define FOR(i,f,t) for(int i=f; i<t; i++)
+#define FORr(i,f,t) for(int i=f; i>t; i--)
+#define ri(x) scanf("%d",&x)
+#define rii(x,y) ri(x),ri(y)
+#define pb push_back
+#define ms(obj, val) memset(obj, val, sizeof(obj))
+
+typedef long long ll;
+const int MAXN = 2e5;
+
+char S[MAXN];
+int A[MAXN];
+int N, k, Q;
+
+
+int cnt[4*MAXN][10][10], lc[4*MAXN], rc[4*MAXN];
+int lazy[4*MAXN];
+
+void create(int id, int x, int l, int r){
+	ms(cnt[id], 0);
+	lc[id] = rc[id] = x;
+	cnt[id][x][x] = r-l-1;
+}
+void merge(int id, int L, int R){
+	FOR(i,0,k) FOR(j,0,k) cnt[id][i][j] = cnt[L][i][j]+cnt[R][i][j];
+	cnt[id][rc[L]][lc[R]]++;
+	lc[id] = lc[L];
+	rc[id] = rc[R];
+}
+
+void STB(int id=1, int l=0, int r=N){
+	lazy[id] = -1;
+	if(r-l < 2){
+		create(id, A[l], l, r);
+		return;
+	}
+	int M = (l+r)>>1, L=id<<1, R=L|1;
+	STB(L, l, M); STB(R, M, r);
+	merge(id, L, R);
+}
+
+void upd(int id, int l, int r, int x){
+	lazy[id] = x;
+	create(id, x, l, r);
+}
+
+void shift(int id, int l, int r){
+	if(lazy[id] == -1) return;
+	int M = (l+r)>>1, L=id<<1, R=L|1;
+	upd(L, l, M, lazy[id]);
+	upd(R, M, r, lazy[id]);
+	lazy[id] = -1;
+}
+
+void STU(int x, int y, int v, int id=1, int l=0, int r=N){
+	if(x>=r || l>=y) return;
+	if(x<=l && r<=y){
+		upd(id, l, r, v);
+		return;
+	}
+	shift(id, l, r);
+	int M = (l+r)>>1, L=id<<1, R=L|1;
+	STU(x, y, v, L, l, M);
+	STU(x, y, v, R, M, r);
+	merge(id, L, R);
+}
+
+char x[3], p[15];
+int pos[15];
+
+int main(){
+	rii(N,Q); ri(k);
+	scanf("%s",S);
+	FOR(i,0,N) A[i] = S[i]-'a';
+	STB();
+	
+	FOR(iq,0,Q){
+		int t; ri(t);
+		if(t==1){
+			int l,r; rii(l, r); scanf("%s",x);
+			STU(l-1,r,x[0]-'a');
+		}else{
+			scanf("%s",p);
+			FOR(i,0,k) pos[p[i]-'a']=i;
+			int ans = 1;
+			FOR(i,0,k) FOR(j,0,k){
+				if(pos[i] < pos[j]) continue;
+				ans+=cnt[1][i][j];
+			}
+			printf("%d\n",ans);
+		}
+	}
+}

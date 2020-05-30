@@ -1,0 +1,238 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <bits/stdc++.h>
+#include <unordered_map>
+#include <unordered_set>
+using namespace std;
+typedef long long          ll;
+typedef unsigned long long ull;
+typedef long double        ld;
+#define all(A)             A.begin(), A.end()
+#define rall(A)            A.rbegin(), A.rend()
+#define mem(A, B)          memset(A, B, sizeof A)
+#define sorta(A)           sort(all(A))
+#define sortd(A)           sort(rall(A))
+#define sortf(A, F)        sort(all(A), F)
+#define PI                 (acos(0.) * 2)
+#define eps                .000000001
+#define oo                 1000000000
+template <class T1, class T2> inline void remax(T1& A, T2 B){ if(A < B)A = B; }
+template <class T1, class T2> inline void remin(T1& A, T2 B){ if(A > B)A = B; }
+string ToString(ll num){ string ret; bool neg = false; if(num < 0)num *= ~0, neg = true; do{ ret += ((num % 10) + '0'); num /= 10; } while(num); if(neg)ret += '-'; reverse(all(ret)); return ret; }
+ll ToNumber(string s){ ll r = 0, p = 1; int e = (s[0] == '-'); for(int i = (int)s.size() - 1; i >= e; --i)r += (s[i] - '0') * p, p *= 10; if(e)r *= ~0; return r; }
+ll Gcd(ll a, ll b){ while(a %= b ^= a ^= b ^= a);  return b; }
+ll Power(ll base, ull power){ ll ret = 1; while(power){ if(power & 1)ret *= base; power >>= 1; base *= base; } return ret; }
+ll PowerMod(ll base, ull power, ll mod){ if(!power)return 1 % mod; if(power & 1)return (base * PowerMod(base, power - 1, mod)) % mod; return PowerMod((base * base) % mod, power >> 1, mod); }
+int Log(ll num, ll base){ int ret = 0; while(num){ ++ret; num /= base; } return ret; }
+
+
+struct node{
+	ll w;
+	int ind;
+	node(){}
+	node(ll w, int ind):w(w), ind(ind){}
+}tree[(2 << 17) - 1];
+queue<int> weights[100000];
+ll lazy[(2 << 17) - 1];
+int revAllPosition[100000];
+node merge(const node &l, const node &r){
+	if(l.w < r.w || (l.w == r.w && l.ind < r.ind))return l;
+	return r;
+}
+void build(int ind, int l, int r){
+	if(l == r){
+		int id = revAllPosition[l];
+		if(weights[id].empty())tree[ind] = node((ll)oo * oo, ~0);
+		else tree[ind] = node(weights[id].front(), id);
+		return;
+	}
+	int m = l + r >> 1;
+	build(ind + ind + 1, l, m);
+	build(ind + ind + 2, m + 1, r);
+	tree[ind] = merge(tree[ind + ind + 1], tree[ind + ind + 2]);
+}
+inline void propagate(int ind, ll val){
+	if(~tree[ind].ind)tree[ind].w += val;
+	lazy[ind] += val;
+}
+inline void push(int ind){
+	if(!lazy[ind])return;
+	propagate(ind + ind + 1, lazy[ind]);
+	propagate(ind + ind + 2, lazy[ind]);
+	lazy[ind] = 0;
+}
+void update(int ind, int l, int r, int a, int b, int val){
+	if(l > b || r < a)return;
+	if(l >= a && r <= b)return propagate(ind, val);
+	push(ind);
+	int m = l + r >> 1;
+	update(ind + ind + 1, l, m, a, b, val);
+	update(ind + ind + 2, m + 1, r, a, b, val);
+	tree[ind] = merge(tree[ind + ind + 1], tree[ind + ind + 2]);
+}
+void remove(int ind, int l, int r, int a){
+	if(l > a || r < a)return;
+	if(l == r){
+		int id = revAllPosition[l];
+		if(weights[id].empty())tree[ind] = node((ll)oo * oo, ~0);
+		else tree[ind] = node(lazy[ind] + weights[id].front(), id);
+		return;
+	}
+	push(ind);
+	int m = l + r >> 1;
+	remove(ind + ind + 1, l, m, a);
+	remove(ind + ind + 2, m + 1, r, a);
+	tree[ind] = merge(tree[ind + ind + 1], tree[ind + ind + 2]);
+}
+node query(int ind, int l, int r, int a, int b){
+	if(l > b || r < a)return node((ll)oo * oo, ~0);
+	if(l >= a && r <= b)return tree[ind];
+	push(ind);
+	int m = l + r >> 1;
+	return merge(query(ind + ind + 1, l, m, a, b), query(ind + ind + 2, m + 1, r, a, b));
+}
+int sparse[100000][18];
+int depth[100000];
+int n;
+void build(){
+	for(int i = 1; i < 18; ++i)
+		for(int j = 0; j < n; ++j)
+			if(~sparse[j][i - 1])sparse[j][i] = sparse[sparse[j][i - 1]][i - 1];
+			else sparse[j][i] = ~0;
+}
+int lca(int u, int v){
+	if(depth[u] < depth[v])swap(u, v);
+	if(depth[u] > depth[v])
+		for(int i = 17; ~i; --i)
+			if(depth[u] - (1 << i) >= depth[v])u = sparse[u][i];
+	if(u != v){
+		for(int i = 17; ~i; --i)
+			if(sparse[u][i] != sparse[v][i]){
+				u = sparse[u][i];
+				v = sparse[v][i];
+			}
+		u = sparse[u][0];
+	}
+	return u;
+}
+vector<int> adj[100000];
+int sz[100000];
+int chain[100000];
+int head[100000];
+int allPosition[100000];
+int in[100000];
+int out[100000];
+int chainInd, pos;
+void hld(int u = 0, int p = ~0){
+	int mx = 0, ind;
+	chain[u] = chainInd;
+	if(head[chainInd] == ~0)head[chainInd] = u;
+	in[u] = allPosition[u] = ++pos;
+	revAllPosition[pos] = u;
+	for(int &v : adj[u])
+		if(v != p && sz[v] > mx){
+			mx = sz[v];
+			ind = v;
+		}
+	if(!mx){
+		out[u] = pos;
+		return;
+	}
+	hld(ind, u);
+	for(int &v : adj[u])
+		if(v != p && v != ind){
+			++chainInd;
+			hld(v, u);
+		}
+	out[u] = pos;
+}
+node queryUp(int u, int v){
+	node ret = node((ll)oo * oo, ~0);
+	int uChain, vChain = chain[v];
+	while(true){
+		uChain = chain[u];
+		if(uChain == vChain)return merge(ret, query(0, 0, n - 1, allPosition[v], allPosition[u]));
+		ret = merge(ret, query(0, 0, n - 1, allPosition[head[uChain]], allPosition[u]));
+		u = head[uChain];
+		u = sparse[u][0];
+	}
+}
+void query(int u, int v, int k, vector<int> &vec){
+	int l = lca(u, v);
+	while(k--){
+		node cur = merge(queryUp(u, l), queryUp(v, l));
+		if(cur.w >= (ll)oo * oo)break;
+		vec.emplace_back(weights[cur.ind].front());
+		weights[cur.ind].pop();
+		remove(0, 0, n - 1, in[cur.ind]);
+	}
+}
+void dfs(int u = 0, int p = ~0, int d = 0){
+	sparse[u][0] = p;
+	depth[u] = d;
+	sz[u] = 1;
+	for(int &v : adj[u])
+		if(v != p){
+			dfs(v, u, d + 1);
+			sz[u] += sz[v];
+		}
+}
+inline void run(){
+	int m, q;
+	scanf("%d%d%d", &n, &m, &q);
+	for(int i = 1; i < n; ++i){
+		int u, v;
+		scanf("%d%d", &u, &v);
+		adj[--u].emplace_back(--v);
+		adj[v].emplace_back(u);
+	}
+	dfs();
+	mem(head, ~0);
+	pos = ~0;
+	hld();
+	build();
+	for(int i = 0; i < m; ++i){
+		int x;
+		scanf("%d", &x);
+		weights[--x].emplace(i);
+	}
+	build(0, 0, n - 1);
+	while(q--){
+		int a;
+		scanf("%d", &a);
+		if(a == 1){
+			vector<int> vec;
+			int u, v, k;
+			scanf("%d%d%d", &u, &v, &k);
+			query(--u, --v, k, vec);
+			k = (int)vec.size();
+			printf("%d", k);
+			for(int i = 0; i < k;)printf(" %d", ++vec[i++]);
+			puts("");
+		} else{
+			int u, k;
+			scanf("%d%d", &u, &k);
+			--u;
+			update(0, 0, n - 1, in[u], out[u], k);
+		}
+	}
+	for(int i = 0; i < n; ++i){
+		while(!weights[i].empty())weights[i].pop();
+		adj[i].clear();
+	}
+	mem(lazy, 0);
+	chainInd = 0;
+}
+int main(){
+	#ifdef LOCAL
+	FILE *input = freopen("in.in", "r", stdin);
+	freopen("out.out", "w", stdout);
+	while(!feof(input)){
+		run();
+		puts("");
+	}
+	printf("\n\ntime: %d ms\n", (int)(clock() * 1000. / CLOCKS_PER_SEC));
+	#else
+	run();
+	#endif
+	return 0;
+}

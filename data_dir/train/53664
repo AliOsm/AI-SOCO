@@ -1,0 +1,31 @@
+//https://codeforces.com/contest/1183/problem/E
+#include <bits/stdc++.h>
+#define loop(i,a,b) for(int i=a;i<b;i++)
+#define ll long long int
+using namespace std;
+ll dp[110][110];
+int main(){
+	ll n,k,ans=0;
+	string a;
+	cin >> n >> k >> a;
+	set<string> ct;
+	queue<string> q;
+	q.push(a);
+	ct.insert(a);
+	while(q.size() && ct.size() < k){
+		string v = q.front();
+		q.pop();
+		for(int i = 0; i < v.size() && ct.size()+1 <= k; ++i){
+			string nv = v;
+			nv.erase(i,1);
+			if(ct.count(nv) == 0){
+				ct.insert(nv);
+				ans+=(n-nv.size());
+				q.push(nv);
+			}
+		}
+	}
+	(ct.size() == k)?printf("%lld",ans): printf("-1");
+	return 0;
+}
+

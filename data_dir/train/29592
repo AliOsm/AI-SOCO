@@ -1,0 +1,191 @@
+#include<bits/stdc++.h>
+#define left sdfsdfsdf
+#define right dgdfgdf
+using namespace std;
+
+int next_int() {
+    int x = 0;
+    char c = getchar();
+
+    while (!isdigit(c)) {
+        c = getchar();
+    }
+
+    for (; isdigit(c); c = getchar()) {
+        x = x * 10 + c - '0';
+    }
+
+    return x;
+}
+
+const int max_n = 1e5, max_k = 20, max_c = 10;
+vector<int> e[max_n], a[max_n][max_k], liver[max_n];
+int tin[max_n], tout[max_n], jump[max_n][max_k], depth[max_n];
+
+vector<int> merge(const vector<int> &a, const vector<int> &b, int c = max_c + 1) {
+    vector<int> res;
+    int i = 0, j = 0, last = -1;
+
+    for (; i < a.size() && j < b.size(); last = res.back()) {
+        int val = a[i] < b[j] ? a[i++] : b[j++];
+
+        if (val != last) {
+            res.push_back(val);
+        }
+    }
+
+    for (; i < a.size(); i++, last = res.back())
+        if (last != a[i]) {
+            res.push_back(a[i]);
+        }
+
+    for (; j < b.size(); j++, last = res.back())
+        if (last != b[j]) {
+            res.push_back(b[j]);
+        }
+
+    while (res.size() > c) {
+        res.pop_back();
+    }
+
+    return res;
+}
+
+void dfs(int v = 0, int p = -1) {
+    static int timer = 0;
+    tin[v] = tout[v] = timer++;
+    jump[v][0] = p;
+
+    for (int i : liver[v]) {
+        a[v][0].push_back(i);
+    }
+
+    sort(a[v][0].begin(), a[v][0].end());
+
+    for (int i = 0; jump[v][i] != -1; i++) {
+        int u = jump[v][i];
+        jump[v][i + 1] = jump[u][i];
+        a[v][i + 1] = merge(a[v][i], a[u][i]);
+    }
+
+    for (int to : e[v])
+        if (to != p) {
+            depth[to] = depth[v] + 1;
+            dfs(to, v);
+            tout[v] = tout[to];
+        }
+}
+
+char is_upper(int p, int v) {
+    return tin[p] <= tin[v] && tout[v] <= tout[p];
+}
+
+void find_lca(int x, int y, int &lca) {
+    if (is_upper(x, y)) {
+        lca = x;
+        return;
+    }
+
+    if (is_upper(y, x)) {
+        lca = y;
+        return;
+    }
+
+    for (int i = max_k - 1; i >= 0; i--) {
+        int z = jump[x][i];
+
+        if (z != -1 && !is_upper(z, y)) {
+            x = z;
+        }
+    }
+
+    lca = jump[x][0];
+}
+
+void jump_to_root(int &v, int k) {
+    for (int i = 0; i < max_k; i++)
+        if (k & (1<<i)) {
+            v = jump[v][i];
+        }
+}
+
+void get_sequence(int p, int v, vector<int> &seq) {
+    int len = depth[v] - depth[p] + 1, j = log2(len);
+    vector<int> left, right;
+    left = a[v][j];
+
+    if (len != (1<<j)) {
+        jump_to_root(v, len - (1<<j));
+        right = a[v][j];
+    }
+
+    seq = merge(left, right);
+}
+
+main() {
+#ifdef T0RRES
+    freopen("1.txt", "r", stdin);
+#endif // T0RRES
+
+    for (int i = 0; i < max_n; i++)
+        for (int j = 0; j < max_k; j++) {
+            jump[i][j] = -1;
+        }
+
+    int n, m, q;
+    n = next_int();
+    m = next_int();
+    q = next_int();
+
+    for (int i = 1; i < n; i++) {
+        int x, y;
+        x = next_int();
+        y = next_int();
+        x--; y--;
+        e[x].push_back(y);
+        e[y].push_back(x);
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int v;
+        v = next_int();
+        v--;
+        liver[v].push_back(i);
+    }
+
+    dfs();
+
+    while (q--) {
+        int v, u, c;
+        v = next_int();
+        u = next_int();
+        c = next_int();
+        v--; u--;
+
+        if (v == u) {
+            c = min(c, (int) liver[v].size());
+            printf("%d ", c);
+
+            for (int i = 0; i < c; i++) {
+                printf("%d ", liver[v][i]);
+            }
+
+            printf("\n");
+            continue;
+        }
+
+        int lca;
+        find_lca(v, u, lca);
+        vector<int> left, right;
+        get_sequence(lca, v, left);
+        get_sequence(lca, u, right);
+        vector<int> ans = merge(left, right, c);
+        printf("%d ", ans.size());
+
+        for (int i : ans) {
+            printf("%d ", i);
+        }
+
+        printf("\n");
+    }
+}

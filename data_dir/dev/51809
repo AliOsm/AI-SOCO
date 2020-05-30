@@ -1,0 +1,210 @@
+#include "bits/stdc++.h"
+#define MAXN 100009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define stop exit(0);
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+const int BLOK=700;
+vector<int>adj[MAXN];
+vector<int>heavy;
+bool mark[MAXN],vis[MAXN];
+int cnt[MAXN],d[MAXN],arr[MAXN],n;
+int ans[MAXN],dp[MAXN],cnp[MAXN];
+PII range[MAXN];
+void add(int x){
+	cnt[d[x]]--;
+	if(d[x]==BLOK)
+		heavy.pb(x);
+	d[x]++;
+	cnt[d[x]]++;
+}
+void rem(int x){
+	cnt[d[x]]--;
+	d[x]--;
+	if(d[x]==BLOK)
+		heavy.ppb();
+	cnt[d[x]]++;	
+}
+int solve(){
+	int res=0,last=0;
+	priority_queue<int,vector<int>,greater<int> >q;
+	stack<int>st;
+	stack<PII>ts;
+	tr(it,heavy)
+		if(!vis[d[*it]]){
+			q.push(d[*it]);
+			vis[d[*it]]=1;
+			st.push(d[*it]);
+		}
+	for(int i=1;i<=BLOK;i++){
+		if(!cnt[i])
+			continue;	
+		int flag=0;
+		if(cnt[i] and last){
+			if(i+last>BLOK and !vis[i+last]){
+				vis[i+last]=1;
+				st.push(i+last);
+				q.push(i+last);
+			}
+			if(!mark[i+last]){
+				ts.push(mp(i+last,cnt[i+last]));
+				mark[i+last]=1;
+			}
+			cnt[i+last]++;
+			res+=i+last;
+			last=0;flag=true;
+		}
+		if((cnt[i]-flag)&1)
+			res+=(cnt[i]-flag-1)*i,last=i;
+		else
+			res+=(cnt[i]-flag)*i;	
+		if(cnt[i]-flag<=1)
+			continue;	
+		if(i*2>BLOK and !vis[i*2]){
+			st.push(i*2);
+			q.push(i*2);
+			vis[i*2]=1;
+		}	
+		if(!mark[i*2]){
+			ts.push(mp(i*2,cnt[i*2]));
+			mark[i*2]=1;
+		}
+		cnt[i*2]+=(cnt[i]-flag)/2;	
+	}	
+	while(!q.empty()){
+		int nd=q.top(),flag=0;
+		q.pop();
+		if(last){
+			if(!vis[nd+last]){
+				st.push(nd+last);
+				vis[nd+last]=1;
+				q.push(nd+last);
+			}	
+			if(!mark[nd+last]){
+				ts.push(mp(nd+last,cnt[nd+last]));
+				mark[nd+last]=1;
+			}
+			cnt[nd+last]++;
+			res+=nd+last;
+			last=0;flag=1;
+		}
+		if((cnt[nd]-flag)&1)
+			res+=(cnt[nd]-flag-1)*nd,last=nd;
+		else
+			res+=(cnt[nd]-flag)*nd;
+		if(cnt[nd]-flag<=1)
+			continue;	
+		if(!vis[nd*2]){
+			q.push(nd*2);
+			st.push(nd*2);
+			vis[nd*2]=1;
+		}	
+		if(!mark[nd*2]){
+			ts.push(mp(nd*2,cnt[nd*2]));
+			mark[nd*2]=1;
+		}
+		cnt[nd*2]+=(cnt[nd]-flag)/2;	
+	}	
+	while(!st.empty())	
+		vis[st.top()]=0,st.pop();
+	while(!ts.empty()){
+		cnt[ts.top().ff]=ts.top().ss;
+		mark[ts.top().ff]=0;
+		ts.pop();
+	}
+	return res;
+}
+bool cmp(int x,int y){
+	return (range[x].ss<range[y].ss);
+}
+int solve_naive(int l,int r){
+	int res=0;
+	priority_queue<int,vector<int>,greater<int> >q;
+	stack<int>st;
+	for(int i=l;i<=r;i++){
+		if(!cnp[arr[i]])
+			st.push(arr[i]);
+		cnp[arr[i]]++;
+	}
+	while(!st.empty()){
+		q.push(cnp[st.top()]);
+		cnp[st.top()]=0;
+		st.pop();
+	}
+	while(!q.empty()){
+		int i1=q.top();
+		q.pop();
+		if(q.empty())
+			break;
+		int i2=q.top();
+		q.pop();
+		res+=i1+i2;
+		q.push(i1+i2);	
+	}
+	return res;
+}
+int main(){
+	#ifndef ONLINE_JUDGE
+    freopen("file.in", "r", stdin);
+	#endif	
+	scanf("%d",&n);
+	//~ BLOK=sqrt(n);//delete it
+	for(int i=1;i<=n;i++){
+		scanf("%d",arr+i);
+		if(arr[i]==arr[i-1])
+			dp[i]=dp[i-1];
+		else
+			dp[i]=i-1;
+	}
+	int q;
+	scanf("%d",&q);
+	for(int i=1;i<=q;i++){
+		int l,r;
+		scanf("%d%d",&l,&r);
+		if(dp[r]<l)
+			continue;	
+		if(r-l+1<=BLOK){
+			ans[i]=solve_naive(l,r);
+			continue;
+		}
+		adj[(l-1)/BLOK+1].pb(i);
+		range[i]=mp(l,r);
+	}int limit=(n-1)/BLOK+1;
+	for(int i=1;i<=limit;i++){
+		if(adj[i].size()==0)
+			continue;
+		int node=i*BLOK;	
+		sort(all(adj[i]),cmp);
+		int p=node+1;
+		for(int j=0;j<int(adj[i].size());j++){
+			int ind=adj[i][j];
+			int l=range[ind].ff,r=range[ind].ss;
+			while(p<=r)
+				add(arr[p++]);	
+			for(int k=l;k<=node;k++)
+				add(arr[k]);
+			ans[ind]=solve();	
+			for(int k=node;k>=l;k--)
+				rem(arr[k]);
+			
+		}p--;
+		while(p>node)
+			rem(arr[p--]);	
+	}
+	for(int i=1;i<=q;i++)
+		printf("%d\n",ans[i]);
+	return 0;
+}

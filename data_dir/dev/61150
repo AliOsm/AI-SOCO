@@ -1,0 +1,85 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 5, H = 313, P = 1e9 + 21;
+int n, q, rev, pwr[N] = {1};
+struct Node {
+	bool st, en;
+	int len, a, h;
+	Node(): st(0), en(0), len(0), a(0), h(0) {};
+	bool operator==(Node x) {
+		return st == x.st && en == x.en && len == x.len && a == x.a && h == x.h;
+	}
+} seg[N << 2];
+string s;
+
+Node merge(Node L, Node R) {
+	if (L.en && R.st) {
+		R.h = (R.h - pwr[R.len - 1] + P) % P;
+		L.h = (L.h + P - 1LL) * rev % P;
+		L.a++, L.en = R.st = false;
+		if (!--L.len)
+			L.st = false;
+		if (!--R.len)
+			R.en = false;
+	}
+	if (L.len)
+		R.st = L.st;
+	if (!R.len)
+		R.en = L.en;
+	R.h = (R.h + 1LL * pwr[R.len] * L.h) % P;
+	R.a += L.a, R.len += L.len;
+	return R;
+}
+
+void build(int id = 1, int st = 0, int en = n) {
+	if (en - st == 1) {
+		seg[id].st = seg[id].en = s[st] - '0';
+		seg[id].h = s[st] - '0';
+		seg[id].len = 1;
+		return;
+	}
+	int mid = st + en >> 1;
+	build(id << 1, st, mid);
+	build(id << 1 | 1, mid, en);
+	seg[id] = merge(seg[id << 1], seg[id << 1 | 1]);
+}
+
+Node get(int l, int r, int id = 1, int st = 0, int en = n) {
+	if (r <= st || en <= l)
+		return Node();
+	if (l <= st && en <= r)
+		return seg[id];
+	int mid = st + en >> 1;
+	return merge(get(l, r, id << 1, st, mid), get(l, r, id << 1 | 1, mid, en));
+}
+
+void read_input() {
+	cin >> n >> s >> q;
+}
+
+void solve() {
+	for (int i = rev = 1; i < N; i++)
+		pwr[i] = 1LL * H * pwr[i - 1] % P;
+	for (int a = H, b = P - 2; b; a = 1LL * a * a % P, b >>= 1)
+		if (b & 1)
+			rev = 1LL * a * rev % P;
+	build();
+}
+
+void write_output() {
+	while (q--) {
+		int l1, l2, len;
+		cin >> l1 >> l2 >> len;
+		Node A = get(l1 - 1, l1 + len - 1);
+		Node B = get(l2 - 1, l2 + len - 1);
+		cout << (A == B? "YES\n": "NO\n");
+	}
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	read_input(), solve(), write_output();
+	return 0;
+}

@@ -1,0 +1,159 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ll, int> plli;
+typedef pair<double, double> pdd;
+typedef pair<string, int> psi;
+
+const ll oo = 1e15;
+
+const int N = 100100;
+
+typedef long long ll;
+
+
+int d[N],mxDist,mxNode,n,m,q,u,v,dsu[N],dp[N][20];
+ll sz[N];
+
+vector<int> g[N],have[N];
+vector<double> sum[N];
+pii best[N];
+
+map< pii , double > cache;
+
+int find(int u){
+	return dsu[u] == u ? u : dsu[u] = find(dsu[u]);
+}
+
+void dfs(int u,int p){
+	dp[u][0] = p;
+	if(d[u] > mxDist){
+		mxDist = d[u];
+		mxNode = u;
+	}
+	for (int i = 0; i < g[u].size(); ++i){
+		int v = g[u][i];
+		if(v == p)
+			continue;
+		d[v] = d[u]+1;
+		dfs(v,u);
+	}
+}
+int get(int u){
+	mxDist = -1;
+	d[u] = 0;
+	dfs(u,-1);
+	return mxNode;
+}
+
+int lca(int u , int v){
+	if(d[u] > d[v])
+		swap(v,u);
+	for(int i = 19 ; i >= 0 ; i--){
+		if(d[v] - (1 << i) >= d[u]){
+			v = dp[v][i];
+		}
+	}
+	if(v == u)
+		return u;
+	for(int i = 19 ; i >= 0 ; i--){
+		if(dp[u][i] != dp[v][i]){
+			u = dp[u][i];
+			v = dp[v][i];
+		}
+	}
+	return dp[u][0];
+}
+int dist(int u , int v){
+	return d[u] + d[v] - 2 * d[lca(u,v)];
+}
+int main() {
+	//freopen("input.txt", "r", stdin);
+	scanf("%d%d%d",&n,&m,&q);
+	for (int i = 1 ; i <= n; ++i)
+		dsu[i] = i;
+	for(int i = 0 ; i < m; i++){
+		scanf("%d%d",&u,&v);
+		g[u].push_back(v);
+		g[v].push_back(u);
+		if(find(u) != find(v)){
+			dsu[find(u)] = find(v);
+		}
+	}
+	for(int i = 1 ; i <= n ; i++){
+		if(find(i) == i){
+			best[i].first = get(i);
+			best[i].second = get(best[i].first);
+		}
+	}
+	memset(dp,-1,sizeof dp);
+	for (int i = 1 ; i <= n; ++i){
+		if(find(i) == i){
+			d[i] = 0;
+			dfs(i,-1);
+		}
+	}
+	for(int k = 1 ; k < 20 ; k++){
+		for(int i = 1 ; i <= n ; i++){
+			if(dp[i][k-1] == -1)
+				dp[i][k] = -1;
+			else{
+				dp[i][k] = dp[dp[i][k-1]][k-1];
+			}
+		}
+	}
+	for(int i =1 ; i <= n ; i++){
+		sz[find(i)]++;
+		have[find(i)].push_back(max(dist(i,best[find(i)].first),
+			dist(i,best[find(i)].second)));
+	}
+	for(int i = 1 ; i <= n ; i++){
+		if(i == find(i)){
+			sort(have[i].begin(),have[i].end());
+			sum[i].resize(have[i].size());
+			for(int j = 0 ; j < have[i].size();j++){
+				sum[i][j] = have[i][j];
+				if(j)
+					sum[i][j] += sum[i][j-1];
+
+			}
+		}
+	}
+	while(q--){
+		scanf("%d%d",&u,&v);
+		if(find(u) == find(v)){
+			puts("-1");
+			continue;
+		}
+		u = find(u);
+		v = find(v);
+		if(u < v)swap(u,v);
+		if(sz[find(v)] < sz[find(u)])swap(u,v);
+		if(cache.find(make_pair(u,v)) != cache.end()){
+			printf("%.9lf\n",cache[make_pair(u,v)]);
+			continue;	
+		}
+		ll dia = max(have[u].back(),have[v].back());
+		double res = 0;
+		double fn = 0;
+		for (int i = 0; i < have[u].size(); ++i){
+			double p = have[u][i];
+			int need = dia - 1 - p;
+			int idx = lower_bound(have[v].begin(),have[v].end(),need) - have[v].begin();
+			double all = sum[v].back() - (idx?sum[v][idx-1]:0);
+			fn += have[v].size() - idx;
+			res += all + (double)(have[v].size() - idx) * (p+1);
+		}
+		fn = 1ll*sz[u] * sz[v] - fn;
+		res += fn * dia;
+		res /= (double) (1ll*sz[u] * sz[v]);
+		cache[make_pair(u,v)] = res;
+		printf("%.9lf\n",res);
+	}
+	return 0;
+
+}

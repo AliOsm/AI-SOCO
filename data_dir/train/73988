@@ -1,0 +1,119 @@
+#include <iostream>
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+//#include <priority_queue>
+using namespace std;
+#define ll long long
+#define x first
+#define y second
+#define pii pair<int, int>
+#define pdd pair<double, double>
+#define L(s) (int)(s).size()
+#define VI vector<int>
+#define all(s) (s).begin(), (s).end()
+#define pb push_back
+#define mp make_pair
+#define inf 1000000000
+const int N = 400004;
+ll t[N << 2];
+int f[N << 2];
+int st[N], fn[N];
+int col[N];
+int n, m;
+VI a[N];
+int cur;
+
+void dfs(int v, int pr) {
+    st[v] = cur++;
+    for(int i = 0; i < L(a[v]); ++i) {
+        if (a[v][i] != pr) {
+            dfs(a[v][i], v);
+        }
+    }
+    fn[v] = cur;
+}
+
+inline void access(int v, int l, int r) {
+    if (f[v] != -1) {
+       if (l + 1 != r) {
+           f[2 * v + 1] = f[v];
+           f[2 * v + 2] = f[v];
+       }
+       t[v] = (1LL << f[v]);
+       f[v] = -1;
+    }
+}
+
+void put(int col, int v, int l, int r, int st, int fn) {
+    access(v, l, r);
+
+    if (l == st && r == fn) {
+        f[v] = col;
+        access(v, l, r);
+        return;
+    }
+
+    int mid = (l + r + 1) / 2;
+    if (st < mid) put(col, 2 * v + 1, l, mid, st, min(mid, fn));
+    if (fn > mid) put(col, 2 * v + 2, mid, r, max(st, mid), fn);
+    access(2 * v + 1, l, mid);
+    access(2 * v + 2, mid, r);
+    t[v] = t[2 * v + 1] | t[2 * v + 2];
+}
+
+ll get(int v, int l, int r, int st, int fn) {
+    access(v, l, r);
+
+    if (l == st && r == fn) {
+        return t[v];
+    }
+
+    int mid = (l + r + 1) / 2;
+    ll ans = 0;
+    if (st < mid) ans |= get(2 * v + 1, l, mid, st, min(mid, fn));
+    if (fn > mid) ans |= get(2 * v + 2, mid, r, max(st, mid), fn);
+    return ans;
+}
+int main() {
+    scanf("%d%d", &n, &m);
+    for(int i = 0; i < n; ++i) {
+        scanf("%d", &col[i]);
+        --col[i];
+    }
+    for(int i = 0; i < n - 1; ++i) {
+        int x, y; scanf("%d%d", &x, &y);
+        --x; --y; a[x].pb(y); a[y].pb(x);
+    }
+
+    memset(f, -1, sizeof(f));
+
+    dfs(0, -1);
+    for(int i = 0; i < n; ++i) {
+        put(col[i], 0, 0, cur, st[i], st[i] + 1);
+    }
+
+    while(m--) {
+        int tp; scanf("%d", &tp);
+        if (tp == 1) {
+            int node, ncol; scanf("%d%d", &node, &ncol);
+            --node; --ncol;
+            put(ncol, 0, 0, cur, st[node], fn[node]);
+        } else {
+            int node; scanf("%d", &node); --node;
+            ll mask = get(0, 0, cur, st[node], fn[node]);
+            int ans = 0;
+            for(int i = 0; i < 60; ++i) {
+                if (mask & (1LL << i)) ++ans;
+            }
+            printf("%d\n", ans);
+        }
+    }
+}

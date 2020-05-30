@@ -1,0 +1,45 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define pp pair<ll, int>
+#define ppp pair<int, pp>
+#define fi first
+#define se second
+#define esp 1e-15
+#define inf 1000000001
+#define mod 1000000007
+#define N 200010
+#define base 311097
+typedef long long ll;
+typedef long double ld;
+const long long oo = (ll)1e18;
+using namespace std;
+int n;
+ll a[N];
+ll b[N];
+ll f[N][2];
+ll T[N][2];
+
+int main() {
+    //freopen("in.in", "r", stdin);
+    //freopen("ou.ou", "w", stdout);
+    ios::sync_with_stdio(false);
+    cin >> n;
+    for (int i = 1; i <= n; i++) cin >> a[i];
+    for (int i = 1; i < n; i++)
+        b[i] = abs(a[i] - a[i + 1]);
+    n--;
+    for (int i = n; i >= 1; i--) {
+        f[i][0] = f[i + 1][1] + b[i];
+        f[i][1] = f[i + 1][0] - b[i];
+        T[i][0] = min(T[i + 1][1], f[i][0]);
+        T[i][1] = min(T[i + 1][0], f[i][1]);
+    }
+
+    ll ret = 0;
+    for (int i = 1; i <= n; i++) {
+        ret = max(ret, f[i][0] - T[i + 1][1]);
+    }
+    cout << ret;
+    /**/ return 0;
+}

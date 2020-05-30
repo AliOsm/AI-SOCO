@@ -1,0 +1,104 @@
+//#pragma comment(linker, "/stack:200000000")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma GCC opatimize("unroll-loops")
+#include <bits/stdc++.h>
+using namespace std;
+#pragma GCC diagnostic ignored "-Wmissing-declarations"
+#define FINAL_OUT(x) {cout << (x) << '\n'; exit(0); }
+
+int const z = 'z' - 'a' + 1;
+
+vector<int> mostlens(const string& s) {
+    vector<int> res(z, 0);
+    char pr = '0';
+    int cnt = 0;
+    for (char c : s) {
+        if (pr != c) {
+            pr = c;
+            cnt = 0;
+        }
+        res[c - 'a'] = max(res[c - 'a'], ++cnt);
+    }
+    return res;
+}
+
+pair<char, int> getpref(string s, bool rev = false) {
+    if (rev)
+        reverse(begin(s), end(s));
+    pair<char, int> res = {s[0], 1};
+    for (size_t i = 1; i < s.length(); ++i)
+        if (s[i] == s[0])
+            ++res.second;
+        else
+            break;
+    return res;
+}
+
+int main() {
+//    freopen("in.txt","r", stdin);
+//    cout << fixed << setprecision(15);
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+
+    int n;
+    cin >> n;
+    vector<string> a(n);
+    for (auto& s : a)
+        cin >> s;
+
+    reverse(begin(a), end(a));
+    vector<vector<int>> dp(z, vector<int>(4, 0));
+
+    {
+        if (count(begin(a[0]), end(a[0]), a[0][0]) == a[0].length())
+            dp[a[0][0] - 'a'][3] = a[0].length();
+
+        auto cnts = mostlens(a[0]);
+        for (int i = 0; i < z; ++i)
+            dp[i][0] = cnts[i];
+
+        auto pa = getpref(a[0]);
+        dp[pa.first - 'a'][1] = pa.second;
+        pa = getpref(a[0], true);
+        dp[pa.first - 'a'][2] = pa.second;
+    }
+
+    for (int i = 1; i < n; ++i) {
+        vector<vector<int>> ndp(z, vector<int>(4, 0));
+        auto cnts = mostlens(a[i]);
+        for (int j = 0; j < z; ++j) {
+            ndp[j][0] = dp[j][0];
+            if (dp[j][3] > 0)
+                ndp[j][0] = max(ndp[j][0], dp[j][3] * (1 + cnts[j]) + cnts[j]);
+            if (cnts[j] > 0)
+                ndp[j][0] = max(ndp[j][0], dp[j][2] + 1 + dp[j][1]);
+        }
+
+        if (count(begin(a[i]), end(a[i]), a[i][0]) == a[i].length() && dp[a[i][0] - 'a'][3] > 0)
+            ndp[a[i][0] - 'a'][3] = (a[i].length() + 1) * dp[a[i][0] - 'a'][3] + a[i].length();
+
+        auto pa = getpref(a[i]);
+        for (int j = 0; j < z; ++j) {
+            ndp[j][1] = dp[j][1];
+            if (pa.first == 'a' + j && dp[j][3] > 0)
+                ndp[j][1] = max(dp[j][1], dp[j][3] * (1 + pa.second) + pa.second);
+        }
+        pa = getpref(a[i], true);
+        for (int j = 0; j < z; ++j) {
+            ndp[j][2] = dp[j][2];
+            if (pa.first == 'a' + j && dp[j][3] > 0)
+                ndp[j][2] = max(dp[j][2], dp[j][3] * (1 + pa.second) + pa.second);
+        }
+
+        dp.swap(ndp);
+    }
+
+    int res = 0;
+
+    for (int i = 0; i < z; ++i)
+        res = max(res, *max_element(dp[i].begin(), dp[i].end()));
+
+    cout << res << endl;
+}
+

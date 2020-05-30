@@ -1,0 +1,111 @@
+# pragma comment(linker, "/STACK: 2000000")
+# include <stdio.h>
+# include <bits/stdc++.h>
+using namespace std;
+# define fi cin
+# define fo cout
+# define x first
+# define y second
+# define ll long long
+# define IOS ios_base :: sync_with_stdio(0);cin.tie(0)
+# define p(v) cerr << #v << " = " << v << '\n';
+# define p2(v) cerr << #v << " = " << (complex < int > (v.x,v.y)) << '\n'
+# define vi vector < int >
+# define vll vector < ll >
+# define pii pair < int , int >
+const int mod = 1e9 + 9;
+int s[1 << 20];
+int f[1 << 20];
+int get(int a,int b,int k)
+{
+    if (!k) return 0;
+    if (k == 1) return a;
+    if (k == 2) return b;
+    return (1ll * a * f[k - 2] + 1ll * b * f[k - 1]) % mod;
+}
+int sum(int a,int b,int k)
+{
+    return (1ll * mod + get(a,b,k + 2) - get(a,b,2)) % mod;
+}
+int main(void)
+{
+    #ifdef CF
+    freopen("input","r",stdin);
+    #endif // CF
+    srand(time(0));
+    fo << fixed << setprecision(7);
+    cerr << fixed << setprecision(7);
+    f[0] = 0;
+    f[1] = 1;
+    for (int i = 2;i <= 1e6;++i)
+        f[i] = (f[i - 1] + f[i - 2]) % mod;
+    int n,m;
+    IOS;
+    fi>>n>>m;
+    for (int i = 1;i <= n;++i)
+        fi>>s[i];
+    for (int i = 1;i <= n;++i)
+        (s[i] += s[i-1]) %= mod;
+    auto G = [&](int l,int r)
+    {
+        int ans = (s[r] - s[l-1]) % mod;
+        (ans += mod) %= mod;
+        return ans;
+    };
+    static pair < int , int > Lazy[1 << 22];
+    static int t[1 << 22];
+    auto lazy = [&](auto p,auto u,auto node)
+    {
+        (t[node] += sum(Lazy[node].x,Lazy[node].y,u - p + 1)) %= mod;
+        int m = (p + u) / 2;
+        if (p != u)
+        {
+            (Lazy[node << 1].x += Lazy[node].x) %= mod;
+            (Lazy[node << 1].y += Lazy[node].y) %= mod;
+            (Lazy[node << 1 | 1].x += get(Lazy[node].x,Lazy[node].y,m + 2 - p)) %= mod;
+            (Lazy[node << 1 | 1].y += get(Lazy[node].x,Lazy[node].y,m + 3 - p)) %= mod;
+        }
+        Lazy[node] = {0,0};
+    };
+    function < void(int,int,int,int,int) > U = [&](int p,int u,int l,int r,int node)
+    {
+        lazy(p,u,node);
+        if (l <= p && u <= r)
+        {
+            (Lazy[node].x += get(1,1,p - l + 1)) %= mod;
+            (Lazy[node].y += get(1,1,p - l + 2)) %= mod;
+            return 0;
+        }
+        int m = (p + u) / 2;
+        if (l <= m)
+            U(p,m,l,r,node << 1);
+        if (m+1<=r)
+            U(m+1,u,l,r,node << 1 | 1);
+        lazy(p,m,node << 1);
+        lazy(m+1,u,node << 1 | 1);
+        t[node] = (t[node << 1] + t[node << 1 | 1]) % mod;
+    };
+    function < int(int,int,int,int,int) > Q = [&](int p,int u,int l,int r,int node)
+    {
+        lazy(p,u,node);
+        if (l <= p && u <= r) return t[node];
+        int ans = 0;
+        int m = (p + u) / 2;
+        if (l <= m) (ans += Q(p,m,l,r,node << 1)) %= mod;
+        if (m+1<=r) (ans += Q(m+1,u,l,r,node << 1 | 1)) %= mod;
+        return ans;
+    };
+    while (m --)
+    {
+        int op,l,r;
+        fi>>op>>l>>r;
+        if (op == 1)
+            U(1,n,l,r,1);
+        else
+            fo << (G(l,r) + Q(1,n,l,r,1)) % mod << '\n';
+    }
+    cerr << "Time elapsed :" << clock() * 1000.0 / CLOCKS_PER_SEC << " ms" << '\n';
+    return 0;
+}
+
+

@@ -1,0 +1,179 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+vector <pair <int, pair <int, int> > > panels;
+vector <int> graph[100010]; // a -> b: a < b
+map <int, int> mp;
+int L[100010], R[100010];
+int dp[100010];
+
+#define T (1<<18)
+struct node {int val; bool delay;};
+node tree[2*T];
+
+void init(void){
+    int i;
+    REP(i,2*T){
+        tree[i].val = -1;
+        tree[i].delay = false;
+    }
+}
+
+void update_query(int L, int R, int val, int id = 1, int low = 0, int high = T){
+    if(L <= low && R >= high){
+        tree[id].val = val;
+        tree[id].delay = true;
+        return;
+    }
+    
+    int mid = (low + high) / 2;
+    
+    if(tree[id].delay){
+        tree[id].delay = false;
+        tree[2*id].val = tree[2*id+1].val = tree[id].val;
+        tree[2*id].delay = tree[2*id+1].delay = true;
+    }
+    
+    if(L < mid) update_query(L, R, val, 2*id, low, mid);
+    if(R > mid) update_query(L, R, val, 2*id+1, mid, high);
+    tree[id].val = max(tree[2*id].val, tree[2*id+1].val);
+}
+
+int max_query(int L, int R, int id = 1, int low = 0, int high = T){
+    if(L <= low && R >= high) return tree[id].val;
+    
+    int mid = (low + high) / 2;
+    
+    if(tree[id].delay){
+        tree[id].delay = false;
+        tree[2*id].val = tree[2*id+1].val = tree[id].val;
+        tree[2*id].delay = tree[2*id+1].delay = true;
+    }
+    
+    int ans = 0;
+    if(L < mid) ans = max(ans, max_query(L, R, 2*id, low, mid));
+    if(R > mid) ans = max(ans, max_query(L, R, 2*id+1, mid, high));
+    return ans;
+}
+
+/*
+int a[T];
+
+void init(void){
+    int i;
+    REP(i,T) a[i] = -1;
+}
+
+void update_query(int L, int R, int val){
+    int i;
+    for(i=L;i<R;i++) a[i] = max(a[i], val);
+}
+
+int max_query(int L, int R){
+    int ans = -1;
+    int i;
+    for(i=L;i<R;i++) ans = max(ans, a[i]);
+    return ans;
+}
+*/
+
+bool check(int a, int b){
+    if(a == -1) return false;
+    int low = max(L[a], L[b]), high = min(R[a], R[b]);
+    int tmp = max_query(low, high);
+    return (tmp == a);
+}
+
+void construct(int N, bool reverse){
+    int i;
+    
+    init();
+    REP(i,N){
+        int b = i;
+        int a = max_query(L[b], L[b]+1);
+        
+        if(check(a, b)){
+            // a < b
+            if(!reverse){
+                graph[a].push_back(b);
+            } else {
+                graph[N-1-b].push_back(N-1-a);
+            }
+        }
+        
+        a = max_query(R[b]-1, R[b]);
+        if(check(a, b)){
+            // a < b
+            if(!reverse){
+                graph[a].push_back(b);
+            } else {
+                graph[N-1-b].push_back(N-1-a);
+            }
+        }
+        
+        update_query(L[i], R[i], i);
+    }
+}
+
+int main(void){
+    int N,H,i,j;
+    
+    int ten = 1000000000;
+    
+    scanf("%d%d", &N, &H);
+    REP(i,N){
+        int h,l,r;
+        scanf("%d%d%d", &h, &l, &r);
+        panels.push_back(make_pair(h, make_pair(l, r)));
+    }
+    panels.push_back(make_pair(0, make_pair(-ten, ten)));
+    panels.push_back(make_pair(H, make_pair(-ten, ten)));
+    sort(panels.begin(),panels.end());
+    N += 2;
+    
+    REP(i,N) mp[panels[i].second.first] = mp[panels[i].second.second] = 0;
+    int X = 0;
+    foreach(mp,itr){
+        (itr->second) = X;
+        X++;
+    }
+    
+    REP(i,N){
+        L[i] = mp[panels[i].second.first];
+        R[i] = mp[panels[i].second.second];
+    }
+    
+    construct(N, false);
+    reverse(L, L+N);
+    reverse(R, R+N);
+    construct(N, true);
+    
+    dp[0] = 2 * ten;
+    REP(i,N) REP(j,graph[i].size()){
+        int a = i, b = graph[i][j];
+        int common = min(panels[a].second.second, panels[b].second.second) - max(panels[a].second.first, panels[b].second.first);
+        dp[b] = max(dp[b], min(dp[a], common));
+    }
+    
+    cout << dp[N-1] << endl;
+    
+    return 0;
+}

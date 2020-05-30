@@ -1,0 +1,130 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair<ll, ll> pll;
+const int N = 1e5 + 100, SQ = sqrt(N) + 5;
+const ll inF = 1e18;
+
+int n;
+ll now, ans, a[N], w[N];
+struct segment {
+	ll l, r, cnt, sum;
+	vector<int> ele;
+	vector<pll> vec;
+	void build(int L, int R) {
+		l = L;
+		r = R;
+		for (int i = l; i < r; i++) {
+			w[i] = a[i];
+			ele.push_back(i);
+		}
+		sort(ele.begin(), ele.end(), [](int i, int j) {
+			return a[i] < a[j];
+		});
+		ready();
+	}
+	void ready() {
+		for (int i = l; i < r; i++)
+			w[i] += sum + cnt * a[i];
+		cnt = sum = 0;
+		vec.clear();
+		for (int x: ele) {
+			//cerr << "INS " << x << '\n';
+			while (vec.size()) {
+				ll t = vec.back().first;
+				ll last = vec.back().second;
+				if (a[x] == a[last]) {
+					if (w[x] > w[last])
+						vec.pop_back();
+					else
+						break;
+					continue;
+				}
+				ll T = (w[last] - w[x] + a[x] - a[last] - 1) / (a[x] - a[last]);
+				if (T <= t || w[last] <= w[x])
+					vec.pop_back();
+				else
+					break;
+			}
+			if (vec.empty())
+				vec.push_back(pll(0, x));
+			else {
+				int last = vec.back().second;
+				if (a[x] == a[last])
+					continue;
+				ll T = (w[last] - w[x] + a[x] - a[last] - 1) / (a[x] - a[last]);
+				vec.push_back(pll(max(0LL, T), x));
+			}
+		}
+		//for (pll p: vec)
+		//	cerr << p.first << ' ' << p.second << ' ' << w[p.second] << ' ' << a[p.second] << '\n';
+		//cerr << "***\n";
+		reverse(vec.begin(), vec.end());
+	}
+	void add_sum(ll x) {
+		sum += x;
+	}
+	void del(int x) {
+		w[x] = -inF;
+		for (int i = l; i < x; i++)
+			w[i] += a[x];
+		for (int i = x + 1; i < r; i++)
+			w[i] += a[i];
+		ready();
+	}
+	void add_cnt() {
+		cnt++;
+		while (vec.size() >= 2 && cnt >= vec[vec.size() - 2].first)
+			vec.pop_back();
+	}
+} part[SQ];
+
+void input() {
+	cin >> n;
+	for (int i = 0; i < n; i++)
+		cin >> a[i];
+}
+
+void ready(int dex) {
+	int l = dex * SQ, r = min(n, l + SQ);
+}
+
+void build() {
+	for (int dex = 0; dex * SQ < n; dex++)
+		part[dex].build(dex * SQ, min(dex * SQ + SQ, n));
+}
+
+void add(int x) {
+	int me = x / SQ;
+	for (int i = 0; i < me; i++)
+		part[i].add_sum(a[x]);
+	part[me].del(x);
+	for (int i = me + 1; i * SQ < n; i++)
+		part[i].add_cnt();
+}
+
+void solve() {
+	for (int round = 1; round <= n; round++) {
+		ll dex, val = -inF;
+		for (int i = 0; i * SQ < n; i++) {
+			ll x = part[i].vec.back().second;
+			ll y = w[x] + part[i].sum + part[i].cnt * a[x];
+			if (y > val) {
+				dex = x;
+				val = y;
+			}
+		}
+		//cerr << dex + 1 << '\n';
+		add(dex);
+		ans = max(ans, now += val);
+	}
+}
+
+int main() {
+	ios::sync_with_stdio(false), cin.tie(0);
+	input();
+	build();
+	solve();
+	cout << ans;
+}

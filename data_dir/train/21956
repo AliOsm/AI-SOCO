@@ -1,0 +1,134 @@
+#include <deque>
+#include <iostream>
+using namespace std;
+
+class S {
+	public:
+		S *gg[26], *f;
+		int output;
+
+		~S() {
+			for (int a = 0; a < 26; a++) {
+				S *s = gg[a];
+				if (s != NULL && s != this)
+					delete(s);
+			}
+		}
+};
+
+class T {
+	public:
+		string *keywords;
+		int k;
+		S *s0;
+
+		T(int k) {
+			keywords = new string[k];
+			this->k = 0;
+		}
+
+		void enter(string &aa) {
+			S *s = s0;
+			int j;
+			for (j = 0; j < (int) aa.length(); j++) {
+				int a = aa[j] - 'a';
+				if (s->gg[a] == NULL)
+					break;
+				s = s->gg[a];
+			}
+			for ( ; j < (int) aa.length(); j++) {
+				int a = aa[j] - 'a';
+				s = s->gg[a] = new S();
+			}
+			s->output = 1;
+			keywords[k++] = aa;
+		}
+
+		void bfs() {
+			deque<S*> queue;
+			for (int a = 0; a < 26; a++)
+				if (s0->gg[a] == NULL)
+					s0->gg[a] = s0;
+				else {
+					s0->gg[a]->f = s0;
+					queue.push_back(s0->gg[a]);
+				}
+			while (!queue.empty()) {
+				S *r = queue.front();
+				queue.pop_front();
+				for (int a = 0; a < 26; a++) {
+					S *s_ = r->gg[a];
+					if (s_ != NULL) {
+						queue.push_back(s_);
+						S *s = r->f;
+						while (s->gg[a] == NULL)
+							s = s->f;
+						s_->f = s->gg[a];
+						s_->output += s_->f->output;
+					}
+				}
+			}
+		}
+
+		int match(string &aa) {
+			S *s = s0;
+			int output = 0;
+			for (int i = 0; i < (int) aa.length(); i++) {
+				int a = aa[i] - 'a';
+				while (s->gg[a] == NULL)
+					s = s->f;
+				s = s->gg[a];
+				output += s->output;
+			}
+			return output;
+		}
+};
+
+void add(T *tt[], string &aa) {
+	int b = 0;
+	while (tt[b] != NULL && tt[b]->k != 0)
+		b++;
+	if (tt[b] == NULL)
+		tt[b] = new T(1 << b);
+	T *t = tt[b];
+	t->s0 = new S();
+	t->enter(aa);
+	while (b > 0) {
+		T *t_ = tt[--b];
+		while (t_->k > 0)
+			t->enter(t_->keywords[--t_->k]);
+		delete(t_->s0);
+	}
+	t->bfs();
+}
+
+int count(T *tt[], string &aa, int k) {
+	if (k == 0)
+		return 0;
+	int sum = 0;
+	for (int b = 0; 1 << b <= k && tt[b] != NULL; b++)
+		if (tt[b]->k > 0)
+			sum += tt[b]->match(aa);
+	return sum;
+}
+
+int main() {
+	T *t1[19] = {}, *t2[19] = {};
+	int k1 = 0, k2 = 0, m;
+	cin >> m;
+	while (m-- > 0) {
+		int t;
+		string aa;
+		cin >> t >> aa;
+		if (t == 1) {
+			add(t1, aa);
+			k1++;
+		} else if (t == 2) {
+			add(t2, aa);
+			k2++;
+		} else
+			cout << count(t1, aa, k1) - count(t2, aa, k2) << endl;
+	}
+	return 0;
+}
+

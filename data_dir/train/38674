@@ -1,0 +1,134 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef pair<int, int> PII;
+
+const int MAXN = 4e5+7;
+PII tr[4*MAXN];
+int lz[4*MAXN];
+int x[MAXN];
+
+
+///1. Merge left and right
+PII combine (const PII &left, const PII &right) {
+    if (left.first != right.first)  return min(left, right);
+    return PII(left.first, left.second+right.second);
+}
+
+void build(int u, int st, int en) {
+    if (st==en) {
+        tr[u] = {0, x[st+1]-x[st]};
+        lz[u] = 0;
+    }
+    else {
+        int mid = (st+en)/2;
+        build(2*u, st, mid);
+        build(2*u+1, mid+1, en);
+        tr[u] = combine(tr[2*u], tr[2*u+1]);
+        lz[u] = 0;
+    }
+}
+
+///2. Push lazy down and merge lazy
+void propagate(int u, int st, int en) {
+    tr[u].first += lz[u];
+    if (st!=en) {
+        lz[2*u] += lz[u];
+        lz[2*u+1] += lz[u];
+    }
+    lz[u] = 0;
+}
+
+void update(int u, int st, int en, int l, int r, int x) {
+    propagate(u, st, en);
+    if (r<st || en<l)  return;
+    else if (l<=st && en<=r) {
+        lz[u] += x;             ///4. Merge lazy
+        propagate(u, st, en);
+    }
+    else {
+        int mid = (st+en)/2;
+        update(2*u, st, mid, l, r, x);
+        update(2*u+1, mid+1, en, l, r, x);
+        tr[u] = combine(tr[2*u], tr[2*u+1]);
+    }
+}
+
+PII query(int u, int st, int en, int l, int r) {
+    propagate(u, st, en);
+    if (r<st || en<l || l>r)           return PII(2e9+7, 0);
+    else if (l<=st && en<=r)    return tr[u];
+    else {
+        int mid = (st+en)/2;
+        return combine(query(2*u, st, mid, l, r), query(2*u+1, mid+1, en, l, r));
+    }
+}
+
+
+
+struct Query {
+    int l, r, id;
+};
+
+int pos[MAXN], len[MAXN];
+int ans[MAXN];
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n;
+    cin>>n;
+
+    map<int, int> mp;
+    for (int i=1; i<=n; i++) {
+        cin>>pos[i]>>len[i];
+        mp[pos[i]] = mp[pos[i]+len[i]] = 0;
+    }
+
+    int cnt = 0;
+    for (auto &pr: mp) {
+        ++cnt;
+        pr.second = cnt;
+        x[cnt] = pr.first;
+    }
+    x[cnt+1] = 2e9+7;
+
+    build(1, 1, cnt);
+    for (int i=1; i<=n; i++) {
+        int l = mp[pos[i]];
+        int r = mp[pos[i] + len[i]];
+        update(1, 1, cnt, l, r-1, 1);
+    }
+
+    int q;
+    cin>>q;
+
+    vector<Query> queries;
+    for (int i=0; i<q; i++) {
+        int l, r;
+        cin>>l>>r;
+        queries.push_back({l, r, i});
+    }
+
+    sort(queries.begin(), queries.end(), [](Query a, Query b) {return a.l < b.l;});
+
+    int st = 1;
+    for (auto qq: queries) {
+        while (st < qq.l) {
+            int l = mp[pos[st]];
+            int r = mp[pos[st] + len[st]];
+            assert(l && r);
+            update(1, 1, cnt, l, r-1, -1);
+            ++st;
+        }
+        auto pr = query(1, 1, cnt, mp[pos[qq.l]], mp[pos[qq.r]]-1);
+        if (pr.first)   ans[qq.id] = 0;
+        else            ans[qq.id] = pr.second;
+
+    }
+
+    for (int i=0; i<q; i++) cout<<ans[i]<<"\n";
+
+}
+

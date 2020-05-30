@@ -1,0 +1,42 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define pb push
+#define ll long long
+#define maxn 200005
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+#define ms1(i) memset(i,-1,sizeof(i));
+#define F first
+#define S second
+int n,k;
+char x[200005];
+vector<pair<int,int> >v[200005];
+priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int> > > q;
+ll ans;
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	while(cin >> n >> k >> x){
+		f(n){
+			if(x[i]=='1'){
+				v[max(0,i-k)].push_back({i+1,i+k+1});
+			}
+			else{
+				v[i].push_back({i+1,i+1});
+			}
+		}
+		q.pb({0,0});
+		f(n){
+			ll best = q.top().F;
+			while(!q.empty()&&q.top().S<=i){
+				q.pop();
+			}
+			for(auto j:v[i]){
+				q.pb({best+j.F,j.S});
+			}
+		}
+		cout<<q.top().F<<endl;
+	}
+}

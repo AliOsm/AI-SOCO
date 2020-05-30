@@ -1,0 +1,108 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define MAX 100005
+#define MAX_L 21
+#define ll long long int
+
+vector<int>adj[MAX];
+
+ll N;
+ll Pre[MAX+7][MAX_L];
+ll Par[MAX+7];
+ll Lvl[MAX+7];
+
+void dfs(int u,int p){
+    for(int i=0;i<adj[u].size();i++){
+        int v=adj[u][i];
+        if(v==p) continue;
+
+        Lvl[v]=Lvl[u]+1;
+        Par[v]=u;
+        dfs(v,u);
+    }
+}
+
+void Process(){
+    ll i,j;
+    for( i=0;i<N;i++ ){
+        for( j=0;1<<j<N;j++ ) Pre[i][j] = -1;
+    }
+    for( i=0;i<N;i++ ) Pre[i][0] = Par[i];
+    for( j=1;1<<j<N;j++ ){
+        for( i=0;i<N;i++ ){
+            if( Pre[i][j-1] != -1 ){
+                Pre[i][j] = Pre[Pre[i][j-1]][j-1];
+            }
+        }
+    }
+}
+
+ll Query(ll p,ll q){
+    ll i,Log;
+
+    if( Lvl[p]<Lvl[q]) swap( p,q );
+
+    for( Log=1;1<<Log <= Lvl[p];Log++ );
+    Log--;
+
+    for( i=Log;i>=0;i-- ){
+        if( Lvl[p] - (1<<i) >= Lvl[q] ) p = Pre[p][i];
+    }
+
+    if( p==q ) return p;
+
+    for( i=Log;i>=0;i-- ){
+        if( Pre[p][i]!=-1 && Pre[p][i]!=Pre[q][i] ){
+            p = Pre[p][i];
+            q = Pre[q][i];
+        }
+    }
+    return Par[p];
+}
+
+int main(){
+    int q,p;
+    scanf("%I64d %d",&N,&q);
+
+    for(int i=2;i<=N;i++){
+        scanf("%d",&p);
+        adj[p-1].push_back(i-1);
+        adj[i-1].push_back(p-1);
+    }
+
+    Par[0]=-1;
+    Lvl[0]=0;
+    dfs(0,-1);
+    Process();
+
+    ll a,b,c;
+    for(int i=1;i<=q;i++){
+        scanf("%I64d %I64d %I64d",&a,&b,&c);
+        a--;
+        b--;
+        c--;
+        int x=Query(a,b);
+        int y=Query(b,c);
+        int z=Query(c,a);
+
+        ll ans;
+
+
+        if(y==z){
+            ans=Lvl[a]-Lvl[x]+1;
+            ans=max(ans,Lvl[b]-Lvl[x]+1);
+            ans=max(ans,Lvl[c]-Lvl[y]+Lvl[x]-Lvl[y]+1);
+        }
+        else if(x==y){
+            ans=Lvl[c]-Lvl[z]+1;
+            ans=max(ans,Lvl[a]-Lvl[z]+1);
+            ans=max(ans,Lvl[b]-Lvl[x]+Lvl[z]-Lvl[x]+1);
+        }
+        else{
+            ans=Lvl[b]-Lvl[y]+1;
+            ans=max(ans,Lvl[c]-Lvl[y]+1);
+            ans=max(ans,Lvl[a]-Lvl[z]+Lvl[y]-Lvl[z]+1);
+        }
+        printf("%I64d\n",ans);
+    }
+}

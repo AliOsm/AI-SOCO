@@ -1,0 +1,117 @@
+//#pragma GCC optmize("O3")
+#include <bits/stdc++.h>
+
+//#include <ext/numeric>
+
+using namespace std;
+set<pair<int, int>> stt[20];
+long long ans = 0;
+long long cum[1000005];
+int arr[100005];
+
+void pre() {
+    for (int i = 0; i < 20; ++i) {
+        stt[i].insert({-5, -5});
+        stt[i].insert({1e6, 1e6});
+    }
+    for (int i = 1; i <= 100000; ++i) {
+        cum[i] = cum[i - 1] + i;
+    }
+}
+
+void add(int sidx, int idx) {
+    set<pair<int, int>> &st = stt[sidx];
+    auto it1 = st.lower_bound({idx, idx});
+    auto it2 = it1--;
+    if (idx > it1->second + 1 && idx < it2->first - 1) {
+        ans += (1ll << sidx);
+        st.insert({idx, idx});
+        return;
+    }
+    if (idx == it1->second + 1 && idx == it2->first - 1) {
+        ans -= (1ll << sidx) * cum[it2->second - it2->first + 1];
+        ans -= (1ll << sidx) * cum[it1->second - it1->first + 1];
+        ans += (1ll << sidx) * cum[it2->second - it1->first + 1];
+        st.insert({it1->first, it2->second});
+        st.erase(it1);
+        st.erase(it2);
+        return;
+    }
+    if (idx == it1->second + 1) {
+        ans += (1ll << sidx) * (idx - it1->first + 1);
+        st.insert({it1->first, idx});
+        st.erase(it1);
+    }
+    if (idx == it2->first - 1) {
+        ans += (1ll << sidx) * (it2->second - idx + 1);
+        st.insert({idx, it2->second});
+        st.erase(it2);
+    }
+}
+
+int a, b;
+
+void del(int sidx, int idx) {
+    set<pair<int, int>> &st = stt[sidx];
+    auto it = st.upper_bound({idx, 1e6});
+    --it;
+    ans -= (1ll << sidx) * cum[it->second - it->first + 1];
+
+    if (idx == it->first) {
+        a = it->first + 1, b = it->second;
+        st.erase(it);
+        if (a <= b) {
+            ans += (1ll << sidx) * cum[b - a + 1];
+            st.insert({a, b});
+        }
+        return;
+    }
+    if (idx == it->second) {
+        a = it->first, b = it->second - 1;
+        st.erase(it);
+        if (a <= b) {
+            ans += (1ll << sidx) * cum[b - a + 1];
+            st.insert({a, b});
+        }
+        return;
+    }
+    a = it->first, b = it->second;
+    st.erase(it);
+    ans += (1ll << sidx) * cum[b - idx];
+    ans += (1ll << sidx) * cum[idx - a];
+    st.insert({a, idx - 1});
+    st.insert({idx + 1, b});
+}
+
+int main() {
+    //freopen("in.txt", "r", stdin);
+    pre();
+    int n, x, q, idx, v;
+    scanf("%d %d", &n, &q);
+    for (int i = 1; i <= n; ++i) {
+        scanf("%d", &x);
+
+        arr[i] = x;
+        for (int j = 0; j < 20; ++j) {
+            if (x & 1) add(j, i);
+            x /= 2;
+        }
+    }
+
+
+
+    while (q--) {
+        scanf("%d %d", &idx, &v);
+        x = arr[idx];
+        for (int j = 0; j < 20; ++j) {
+            if (x & 1) del(j, idx);
+            x /= 2;
+        }
+        arr[idx] = x = v;
+        for (int j = 0; j < 20; ++j) {
+            if (x & 1) add(j, idx);
+            x /= 2;
+        }
+        printf("%lld\n", ans);
+    }
+}

@@ -1,0 +1,24 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> a(n), b(n);
+    vector<pair<int, int>> c(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i] >> b[i];
+        c[i] = make_pair(b[i] - a[i], i);
+    }
+    sort(begin(c), end(c));
+    ll ans = 0;
+    for (ll i = 0, j; i < n; ++i) {
+        j = c[i].second;
+        ans += i * a[j] + (n - 1 - i) * b[j];
+    }
+    cout << ans;
+    return 0;
+}

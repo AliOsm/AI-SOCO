@@ -1,0 +1,124 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+using namespace std;
+using namespace __gnu_pbds ;
+#define ll int
+#define ld long double
+#define rep(i,a,b) for(ll i=a;i<b;i+=1)
+#define all(c) (c).begin(),(c).end()
+#define pb push_back
+#define sz(a) int((a).size())
+#define hell (ll)1000000007
+#define f first
+#define s second
+#define sll(x) scanf("%lld",&x)
+#define si(x) scanf("%d",&x)
+typedef tree< ll , null_type , less<ll> , rb_tree_tag , tree_order_statistics_node_update > ordered_set ;
+ll t = 1 , cur = 0 ;
+const ll N = 500005 ;
+vector<ll> graph[N] , Tree(8*N,0) , lazy(8*N,-1) , par(N,0) ;
+pair<ll,ll> intervals[N] ;
+void dfs( ll child , ll parent )
+{
+    par[child]=parent;
+    intervals[child].f = ++cur ;
+    for( auto u : graph[child] )
+        if( u != parent ) 
+            dfs( u , child ) ;
+    intervals[child].s = cur ;
+}
+void update( ll node , ll start , ll end , ll aa , ll bb , ll x )
+{
+    ll lc = 2*node , rc = lc + 1 , mid = (start+end)/2 ;
+    if( lazy[node] != -1 ){
+        Tree[node] = (end-start+1)*lazy[node];
+        if( start != end ){
+            lazy[lc] = lazy[node];
+            lazy[rc] = lazy[node];
+        }
+        lazy[node]=-1;
+    }
+    if( start > end || start > bb || end < aa )
+        return ;
+    if( aa <= start and end <= bb ){
+        Tree[node] = x*(end-start+1);
+        if( start != end ){
+            lazy[lc] = x ; 
+            lazy[rc] = x ;
+        }
+        lazy[node] = -1 ;
+        return;
+    }
+    update( lc , start , mid , aa , bb , x ) ;
+    update( rc , mid + 1 , end, aa , bb , x ) ;
+    Tree[node] = Tree[lc] + Tree[rc] ;
+}
+ll query( ll node , ll start , ll end , ll aa , ll bb )
+{
+    ll lc = node*2 , rc = lc + 1 , mid = (start+end)/2 ;
+    if( lazy[node] != -1 ){
+        Tree[node] = lazy[node]*(end-start+1);
+        if( start != end ){
+            lazy[lc] = lazy[node] ;
+            lazy[rc] = lazy[node] ;
+        }
+        lazy[node] = -1 ;
+    }
+    if( start > end || start > bb || end < aa )return 0 ;
+    if( aa <= start and end <= bb )
+        return Tree[node] ;
+    ll ql = query( lc , start , mid , aa , bb );
+    ll qr = query( rc , mid+1 , end , aa , bb );
+    return ql + qr ;
+}
+void solve()
+{
+    ll n , x , y ;
+    cin >> n ;
+    rep( i , 1 , n )
+    {
+        cin >> x >> y ;
+        graph[x].pb(y);
+        graph[y].pb(x);
+    }   
+    dfs(1,0);
+    ll q ;
+    cin >> q ;
+    while( q-- )
+    {
+        ll type , ver ;
+        cin >> type >> ver ;
+        if( type == 1 )
+        {
+            ll tmp = query(1,1,n,intervals[ver].f,intervals[ver].s);
+            if( tmp == intervals[ver].s-intervals[ver].f+1)continue;
+            if(par[ver])update(1,1,n,intervals[par[ver]].f,intervals[par[ver]].f,0);
+            update(1,1,n,intervals[ver].f,intervals[ver].s,1);
+        }
+        else if( type == 2 )
+        {
+            update(1,1,n,intervals[ver].f,intervals[ver].f,0);
+        }
+        else
+        {
+            ll tmp = query(1,1,n,intervals[ver].f,intervals[ver].s) ;
+            if( tmp == intervals[ver].s-intervals[ver].f+1 )
+                cout << "1\n" ;
+            else
+                cout << "0\n" ;
+        }
+    }
+}
+signed main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+    //cin>>t;
+    while(t--)
+        solve() ;
+    return 0 ;
+}

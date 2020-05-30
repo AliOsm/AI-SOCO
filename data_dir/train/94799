@@ -1,0 +1,61 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 5010;
+int n, k;
+string s, ans;
+bool ok[N][N];
+
+struct node{
+	int cnt[2], sum[2];
+	node *ptr[2];
+	node() {
+		for(int i = 0; i < 2; i++)
+			cnt[i] = sum[i] = 0, ptr[i] = NULL;
+	}
+}*root;
+
+void insert(int i) {
+	node *cur = root;
+	for(int j = i; j < n; j++) {
+		int id = s[j] - 'a';
+		if(!cur->ptr[id]) cur->ptr[id] = new node();
+		cur->cnt[id] += ok[i][j];
+		cur = cur->ptr[id];
+	}
+}
+
+int subdfs(node *cur) {
+	for(int i = 0; i < 2; i++) if(cur->ptr[i])
+		cur->sum[i] += subdfs(cur->ptr[i]) + cur->cnt[i];
+	return cur->sum[0] + cur->sum[1];
+}
+
+void kth(node *cur, int k) {
+	if(k <= 0 || (!cur->ptr[0] && !cur->ptr[1])) return;
+	if(!cur->ptr[0]) { ans += "b"; k -= cur->cnt[1]; kth(cur->ptr[1],k); }
+	else if(!cur->ptr[1]) { ans += "a"; k -= cur->cnt[0]; kth(cur->ptr[0],k); }
+	else if(k <= cur->sum[0]) { ans += "a"; k -= cur->cnt[0]; kth(cur->ptr[0],k); }
+	else { ans += "b"; k -= (cur->cnt[1] + cur->sum[0]); kth(cur->ptr[1],k); }
+}
+
+int main() {
+	ios_base::sync_with_stdio(0);cin.tie(0);
+	cin >> s >> k; n = s.size();
+
+	for(int l = 1; l <= n; l++) {
+		for(int i = 0; i+l-1 < n; i++) {
+			int j = i+l-1;
+			if(s[i] == s[j] && l < 6) ok[i][j] = true;
+			else if(s[i] == s[j] && ok[i+2][j-2]) ok[i][j] = true;
+		}
+	}
+
+	root = new node();
+	for(int i = 0; i < n; i++)
+		insert(i);
+	subdfs(root);
+	kth(root,k);
+	cout << ans;
+	return 0;
+}

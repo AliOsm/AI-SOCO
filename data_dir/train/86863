@@ -1,0 +1,234 @@
+#include<bits/stdc++.h>
+#define lf double
+#define ll long long
+#define ull unsigned ll
+#define ii pair<int,int>
+#define li pair<ll,int>
+#define iii pair<ii,int>
+#define iiii pair<ii,ii>
+#define iiii2 pair<int,iii>
+#define lii pair<ll,ii>
+#define lolo pair<ll,ll>
+#define heap priority_queue
+#define mp make_pair
+#define st first
+#define nd second
+#define pb push_back
+#define pf push_front
+#define ppb pop_back
+#define ppf pop_front
+#define all(x) x.begin(),x.end()
+#define len(x) strlen(x)
+#define sz(x) (int) x.size()
+#define orta ((bas+son)/2)
+#define min3(x,y,z) min(min(x,y),z)
+#define max3(x,y,z) max(max(x,y),z)
+#define umin(x,y) x=min(x,y)
+#define umax(x,y) x=max(x,y)
+#define dbgs(x) cerr<<(#x)<<" --> "<<(x)<<" "
+#define dbg(x) cerr<<(#x)<<" --> "<<(x)<<endl;getchar()
+#define MOD 1000000007
+#define inf 1000000001
+#define N 100005
+#define LOG 20
+#define magic 100
+#define MAX 1000005
+#define KOK 350
+#define EPS 0.000000000001
+#define pw(x) (1<<(x))
+#define PI 3.1415926535
+using namespace std;
+
+struct SEG {
+
+	int size;
+	int pre[LOG],suf[LOG];
+	ll cnt;
+
+} S[N*4];
+
+int n,m,x,y,t,VAL;
+int a[N];
+
+SEG create(int val) {
+
+	SEG Res;
+
+	Res.size=1;
+	Res.cnt=(val>=VAL);
+
+	for(int i=0;i<LOG;i++) {
+
+		if(val&(pw(i))) {
+
+			Res.suf[i]=Res.pre[i]=1;
+
+		}
+		else {
+
+			Res.suf[i]=Res.pre[i]=inf;
+
+		}
+
+	}
+
+	return Res;
+
+}
+
+SEG merge(SEG A,SEG B) {
+
+	SEG Res;
+
+	Res.cnt=A.cnt+B.cnt;
+	Res.size=A.size+B.size;
+
+	int OK[LOG]={0};
+	int cur=0;
+
+	ii PRE[LOG],SUF[LOG+1];
+
+	for(int i=0;i<LOG;i++) {
+	
+		PRE[i]={B.pre[i],i};
+		SUF[i]={A.suf[i],i};
+
+	}
+
+	sort(PRE,PRE+LOG);
+	sort(SUF,SUF+LOG,greater<ii>());
+
+	SUF[LOG]={1,-1};
+
+	int last=-1;
+
+	for(int i=0;i<LOG;i++) {
+
+		if(SUF[i].st!=inf) {
+
+			cur|=pw(SUF[i].nd);
+			OK[SUF[i].nd]++;
+
+		}
+
+	}
+
+	for(int i=0;i<=LOG;i++) {
+
+		if(SUF[i].st==inf) continue ;
+
+		while(cur<VAL && last+1<LOG && PRE[last+1].st!=inf) {
+
+			last++;
+
+			cur|=pw(PRE[last].nd);
+
+			OK[PRE[last].nd]++;
+
+		}
+
+		if(cur<VAL) break ;	
+
+		int L,R=B.size-(~last?PRE[last].st-1:0);
+
+		if(i!=0 && SUF[i-1].st!=inf) L=SUF[i-1].st-SUF[i].st;
+		else L=A.size-SUF[i].st+1;
+
+		Res.cnt+=1ll*L*R;
+
+		if(i==LOG) break ;
+
+		OK[SUF[i].nd]--;
+
+		if(!OK[SUF[i].nd]) cur^=(pw(SUF[i].nd));
+
+	}
+
+	for(int i=0;i<LOG;i++) {
+
+		Res.pre[i]=min(A.pre[i],B.pre[i]+A.size);
+		Res.suf[i]=min(B.suf[i],A.suf[i]+B.size);
+
+	}
+
+	return Res;
+
+}
+
+SEG get(int node,int bas,int son,int x,int y) {
+
+	if(bas>=x && son<=y) return S[node];
+
+	if(orta>=x) {
+
+		if(orta+1<=y) return merge(get(node*2,bas,orta,x,y),get(node*2+1,orta+1,son,x,y));
+		else return get(node*2,bas,orta,x,y);
+
+	}
+	else return get(node*2+1,orta+1,son,x,y);
+
+}
+
+void up(int node,int bas,int son,int x,int val) {
+
+	if(bas>x || son<x) return ;
+
+	if(bas==x && son==x) {
+
+		S[node]=create(val);
+
+		return ;
+
+	}
+
+	up(node*2,bas,orta,x,val);
+	up(node*2+1,orta+1,son,x,val);
+
+	S[node]=merge(S[node*2],S[node*2+1]);
+
+}
+
+void build(int node,int bas,int son) {
+
+	if(bas==son) {
+
+		S[node]=create(a[bas]);
+
+		return ;
+
+	}
+
+	build(node*2,bas,orta);
+	build(node*2+1,orta+1,son);
+
+	S[node]=merge(S[node*2],S[node*2+1]);
+
+}
+
+int main() {
+
+	#if 0
+	freopen("input.txt","r",stdin);
+
+	#endif
+
+	scanf("%d %d %d",&n,&m,&VAL);
+
+	for(int i=1;i<=n;i++) {
+
+		scanf("%d",&a[i]);
+
+	}
+
+	build(1,1,n);
+
+	while(m--) {
+
+		scanf("%d %d %d",&t,&x,&y);
+
+		if(t==1) up(1,1,n,x,y);
+		else printf("%lld\n",get(1,1,n,x,y).cnt);
+
+	}
+
+}

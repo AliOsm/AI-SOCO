@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int sz = 1e5 + 10;
+
+using ll = long long;
+
+struct info {
+    ll prop, sum;
+} tree[ sz * 4 ];
+ll ar[sz];
+
+void propagate( int node ) {
+    int left = node << 1;
+    int right = left | 1;
+
+    if( tree[node].prop != -1 ) {
+        tree[left].sum = tree[node].prop;
+        tree[right].sum = tree[node].prop;
+        tree[node].sum = max( tree[left].sum, tree[right].sum );
+        tree[left].prop = tree[node].prop;
+        tree[right].prop = tree[node].prop;
+        tree[node].prop = -1;
+    }
+}
+
+void build( int node, int b, int e ) {
+    tree[node].prop = -1;
+    if( b == e ) {
+        tree[node].sum = ar[b];
+        return;
+    }
+    
+    int left = node << 1;
+    int right = left | 1;
+    int mid = (b + e) >> 1;
+    
+    build( left, b, mid );
+    build( right, mid+1, e );
+    
+    tree[node].sum = max( tree[left].sum, tree[right].sum );
+}
+
+void update( int node, int b, int e, int i, int j, ll x ) {
+//    cerr << b << " " << e << " " << i << " " << j << " " << x << "\n";
+    if( i > e || j < b ) {
+        return;
+    }
+    if( b >= i && e <= j ) {
+        tree[node].sum = x;
+        tree[node].prop = x;
+        return;
+    }
+
+    int left = node << 1;
+    int right = left | 1;
+    int mid = (b + e) >> 1;
+
+    propagate( node );
+
+    update(left, b, mid, i, j, x);
+    update(right, mid + 1, e, i, j, x);
+
+    tree[node].sum = max( tree[left].sum, tree[right].sum );
+}
+
+ll query( int node, int b, int e, int i, int j ) {
+    if( i > e || j < b ) {
+        return 0;
+    }
+    if( b >= i and e <= j ) {
+        return tree[node].sum;
+    }
+
+    int left = node << 1;
+    int right = left | 1;
+    int mid = (b + e) >> 1;
+
+    propagate( node );
+
+    ll p1 = query( left, b, mid, i, j );
+    ll p2 = query( right, mid + 1, e, i, j );
+
+    return max( p1, p2 );
+}
+
+int main() {
+    #ifdef CLown1331
+        freopen( "in.txt", "r", stdin );
+    #endif /// CLown1331
+    int n, m;
+    ll hand;
+    while( cin >> n ) {
+        for( int i=0; i<n; i++ ) cin >> ar[i];
+        build( 1, 0, n-1 );
+        cin >> m;
+        for( int i=0,x,w; i<m; i++ ) {
+            cin >> w >> x;
+            hand = query( 1, 0, n-1, 0, w-1 );
+            hand += x;
+            update( 1, 0, n-1, 0, w-1, hand );
+            hand -= x;
+            cout << hand << "\n";
+        }
+    }
+    return 0;
+}

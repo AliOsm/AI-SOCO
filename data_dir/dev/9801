@@ -1,0 +1,193 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <set>
+#include <stack>
+#include <queue>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <cmath>
+
+#define ll long long
+
+using namespace std;
+
+const int MOD = 1000000007;
+
+int l[523456];
+int r[523456];
+
+set<pair<int, int> > stLeft;
+int n, k;
+
+
+void deleteFromLeft(int & L, int & R)
+{
+    set<pair<int, int> > ::iterator it = stLeft.lower_bound(make_pair(L, R));
+    
+    if(it == stLeft.begin())
+        return;
+    --it;
+    if(it->second == L-1)
+    {
+        pair<int, int> pp = make_pair(it->first, R);
+        stLeft.erase(it);
+        L = pp.first;
+        R = pp.second;
+    }
+}
+void deleteFromRight(int & L, int & R)
+{
+    set<pair<int, int> >::iterator it = stLeft.lower_bound(make_pair(L, R));
+    if(it == stLeft.end())
+        return;
+    
+    if(it->first == R+1)
+    {
+        pair<int, int> pp = make_pair(L, it->second);
+        stLeft.erase(it);
+        L = pp.first;
+        R = pp.second;
+    }
+}
+
+void checkL(int & m)
+{
+    if(stLeft.size() == 0)
+        return;
+    set<pair<int, int> >::iterator it = stLeft.lower_bound(make_pair(m, 1e9));
+    if(it != stLeft.begin())
+        --it;
+    if(it->first > m || it->second < m)
+        return;
+    if(it->first == 1)
+        m = it->second + 1;
+    else
+        m = it->first - 1;
+}
+void checkR(int & m)
+{
+    if(stLeft.size() == 0)
+        return;
+    set<pair<int, int> >::iterator it = stLeft.lower_bound(make_pair(m, 1e9));
+    if(it != stLeft.begin())
+        --it;
+    if(it->first > m || it->second < m)
+        return;
+    if(it->second == n)
+        m = it->first - 1;
+    else
+        m = it->second + 1;
+}
+
+
+int main()
+{
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+    int m;
+    cin >> n >> k >> m;
+    string ss;
+    string s;
+    cin >> s;
+    ss = s;
+    int sum = 0;
+    stack<int> st;
+    for(int i = 0; i < s.size(); ++i)
+    {
+        if(s[i] == '(')
+            st.push(i);
+        else
+        {
+            l[i+1] = st.top()+1;
+            r[st.top()+1] = i+1;
+            st.pop();
+        }
+    }
+
+    cin >> s;
+
+    for(int i = 0; i < s.size(); ++i)
+    {
+        if(s[i] == 'L')
+        {
+            --m;
+            checkL(m);
+        } else if(s[i] == 'R')
+        {
+            ++m;
+            checkR(m);
+        }
+        else 
+        {
+            int L, R;
+            if(r[m])
+            {
+                L = m;
+                R = r[m];
+            }
+            else
+            {
+                L = l[m];
+                R = m;
+            }
+            vector<pair<int, int> > neededToDel;
+            set<pair<int, int> >::iterator it = stLeft.lower_bound(make_pair(L, 1e9));
+            while(it != stLeft.end() && it->first < R)
+            {
+                neededToDel.push_back(*it);
+                ++it;
+            }
+            for(int j = 0; j < neededToDel.size(); ++j)
+                stLeft.erase(neededToDel[j]);
+            deleteFromLeft(L, R);
+            deleteFromRight(L, R);
+            stLeft.insert(make_pair(L, R));
+            checkR(m);
+        }
+    }
+    vector<bool> used(ss.size(), 1);
+    for(set<pair<int, int> >::iterator it = stLeft.begin(); it != stLeft.end(); ++it)
+    {
+        int L = it->first;
+        int R = it->second;
+        for(int i = L-1; i < R; ++i)
+        {
+            if(used[i] == 0)
+                cout << "PLOHO\n";
+            used[i] = 0;
+        }
+    }
+    for(int i = 0; i < ss.size(); ++i)
+        if(used[i])
+            cout << ss[i];
+    cout << endl;
+
+	return 0;
+}
+
+/*
+
+12 1 4
+((())(()()))
+DRRRRDLDD
+(()())
+
+
+6 4 1
+(())
+RDLR
+()
+
+8 4 5
+(())()()
+D
+
+
+8 4 5
+(())()()
+RDLD
+
+*/

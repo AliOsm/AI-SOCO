@@ -1,0 +1,171 @@
+#pragma GCC optimize "-O3"
+#pragma GCC target("avx,avx2,fma")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx") 
+#include"bits/stdc++.h"
+using namespace std;
+
+#define MAX 300012
+
+int n;
+int k;
+
+vector<pair<int, int> > v;
+
+set<pair<pair<int, int>,int> > s;
+
+
+int a;
+int b;
+
+vector<pair<int, int> > ev[MAX];
+
+long long int bit[MAX];
+
+inline void add(int i, int x) {
+	bit[i] += x;
+	/*i++;
+	i = MAX - i - 3;
+	while (i < MAX) {
+		bit[i] += x;
+		i += i & -i;
+	}*/
+}
+long long int sum(int i) {
+	long long int r = 0;
+	i++;
+	i = MAX - i - 3;
+	while (i) {
+		r += bit[i];
+		i -= i & -i;
+	}
+	return r;
+}
+long long int bit2[MAX];
+inline void add2(int i, long long int x) {
+	i++;
+	i = MAX - i - 3;
+	while (i < MAX) {
+		bit2[i] += x;
+		i += i & -i;
+	}
+}
+long long int sum2(int i) {
+	long long int r = 0;
+	i++;
+	i = MAX - i - 3;
+	while (i) {
+		r += bit2[i];
+		i -= i & -i;
+	}
+	return r;
+}
+long long int S;
+long long int tmp_w;
+inline long long int cn(long long int len) {
+	memset(bit, 0, sizeof(bit));
+	memset(bit2, 0, sizeof(bit2));
+	long long int ww = 0;
+	long long int cur = 0;
+	long long int sm = 0;
+	int idx = 0;
+	long long int ws = 0;
+	for (int i = 0; i < v.size(); i++) {
+		for (auto el : ev[i]) {
+			int id = el.first;
+			int add21 = el.second;
+			add(id, add21);
+			if (id >= idx) {
+				ws += add21;
+			}
+			add2(id, add21*(id + 1LL));
+			sm += add21 * (id+1LL);
+		}
+		while (idx+1<=i&&ws-bit[idx] >= len) {
+			ws -= bit[idx];
+			idx++;
+		}
+		while (idx >=0 && ws < len) {
+			idx--;
+			ws += bit[idx];
+		}
+		if (idx >= 0) {
+			int j = idx;
+			if (true) {
+				ww += j + 1;
+				cur += sm;
+				cur -= (sum2(j + 1) - (ws-bit[j])*(j + 1LL));
+				//break;
+			}
+		}
+	}
+	S = cur;
+	tmp_w = ww;
+	return ww;
+}
+
+int main() {
+	cin >> n >> k;
+	for (int i = 0; i < n; i++) {
+		int a, b;
+		scanf("%d%d", &a, &b);
+		a--;
+		b--;
+		v.push_back(make_pair(a, b));
+	}
+	for (int i = 0; i < v.size(); i++) {
+		int lef2 = v[i].first;
+		int rig2 = v[i].second;
+		vector<pair<pair<int, int>, int> > add;
+		if (s.size()) {
+			auto it = s.lower_bound(make_pair(make_pair(lef2, lef2), -1));
+			if (it != s.begin() && (prev(it))->first.second >= lef2) {
+				it = prev(it);
+			}
+
+			while (it != s.end()) {
+				if ((*it).first.first > rig2)break;
+				int il = max((*it).first.first, lef2);
+				int ir = min((*it).first.second, rig2);
+				int lef = (*it).first.first;
+				int rig = (*it).first.second;
+				int col = (*it).second;
+				if (il <= ir) {
+					ev[i].push_back(make_pair((*it).second, -(ir - il)));
+					if (lef < il) {
+						add.push_back(make_pair(make_pair(lef, il), col));
+					}
+					if (ir < rig) {
+						add.push_back(make_pair(make_pair(ir, rig), col));
+					}
+				}
+				it = next(it);
+				s.erase(prev(it));
+			}
+		}
+		add.push_back(make_pair(make_pair(lef2, rig2), i));
+		ev[i].push_back(make_pair(i, rig2 - lef2));
+		for (auto &el : add) {
+			s.insert(el);
+		}
+	}
+	long long int mint = 0;
+	long long int maxt = 1000000000LL;
+	while (mint + 1LL < maxt) {
+		long long int mid = (mint + maxt) / 2LL;
+		if (cn(mid) >= k) {
+			mint = mid;
+		}
+		else {
+			maxt = mid;
+		}
+	}
+	if (cn(maxt) < k) {
+		maxt = mint;
+	}
+	else {
+		mint = maxt;
+	}
+	cn(mint);
+	printf("%lld\n", S-mint*(tmp_w-k));
+	return 0;
+}

@@ -1,0 +1,75 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int MAX=2e5+9,lg=20;
+int n,m,q,h[MAX],dis[MAX],f[MAX],col[MAX],par[MAX][lg],up[MAX],down[MAX];
+vector<pair<int,int> > g[MAX],edge;
+vector<int> gg[MAX];
+bool mark[MAX],e[MAX];
+int dfs(int v,int p=-1)
+{
+	int ret=1e9;
+	mark[v]=true;
+	for (auto u:g[v])
+		if (u.second!=p && !mark[u.first])
+		{
+			h[u.first]=h[v]+1;
+			int p=dfs(u.first,u.second);
+			if (p<=h[v]) e[u.second]=true,ret=min(ret,p);
+		}
+		else if (u.second!=p) ret=min(ret,h[u.first]),e[u.second]=true;
+	return ret;
+}
+int root(int v){return f[v]<0?v:f[v]=root(f[v]);}
+void merge(int v,int u)
+{
+	if ((v=root(v))==(u=root(u))) return ;
+	if (f[v]>f[u]) swap(v,u);
+	f[v]+=f[u],f[u]=v;
+}
+void dfss(int v,int rt,int p=-1)
+{
+	col[v]=rt,mark[v]=true;
+	for (auto u:gg[v])
+		if (u!=p) 
+		{
+			par[u][0]=v,dis[u]=dis[v]+1;
+			for (int i=1;i<lg;i++) par[u][i]=par[par[u][i-1]][i-1];
+			dfss(u,rt,v);
+		}
+}
+int parent(int v,int h){for (int i=0;i<lg;i++) if (h>>i&1) v=par[v][i]; return v;}
+int lca(int v,int u)
+{
+	if (dis[v]<dis[u]) swap(v,u);
+	v=parent(v,dis[v]-dis[u]);
+	if (v==u) return v;
+	for (int i=lg-1;i>=0;i--) if (par[v][i]!=par[u][i]) v=par[v][i],u=par[u][i];
+	return par[v][0];
+}
+void dfsss(int v,int p=-1)
+{
+	mark[v]=true;
+	for (auto u:gg[v])  if (u!=p) dfsss(u,v),down[v]+=down[u],up[v]+=up[u];
+	if (down[v] && up[v]) cout<<"No",exit(0);
+}
+int main()
+{
+	memset(f,-1,sizeof f);
+	cin>>n>>m>>q;
+	for (int i=0,v,u;i<m;i++) cin>>v>>u,v--,u--,g[u].push_back({v,i}),g[v].push_back({u,i}),edge.push_back({v,u});
+	for (int i=0;i<n;i++) if (!mark[i]) dfs(i);	
+	for (int i=0;i<m;i++) if (e[i]) merge(edge[i].first,edge[i].second);
+	for (int i=0;i<m;i++) if (!e[i]) gg[root(edge[i].first)].push_back(root(edge[i].second)),gg[root(edge[i].second)].push_back(root(edge[i].first));
+	memset(mark,0,sizeof mark);
+	for (int i=0;i<n;i++) if (f[i]<0 && !mark[i]){for (int j=0;j<lg;j++) par[i][j]=i; dfss(i,i);}
+	for (int i=0,v,u;i<q;i++)
+	{
+		cin>>v>>u,v=root(v-1),u=root(u-1);
+		if (v==u) continue;
+		if (col[v]!=col[u]) return cout<<"No",0;
+		up[v]++,down[u]++,up[lca(v,u)]--,down[lca(v,u)]--;
+	}
+	memset(mark,0,sizeof mark);
+	for (int i=0;i<n;i++) if (f[i]<0 && !mark[i]) dfsss(i);
+	cout<<"Yes";
+}

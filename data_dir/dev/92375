@@ -1,0 +1,116 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int lg = 18;
+const int maxn = (1 << lg) - 2;
+
+vector <int> g[maxn];
+bool used[maxn];
+long long cnt[maxn];
+long long f_in[maxn];
+long long f_out[maxn];
+int pr[lg + 1][maxn];
+int n, m;
+int t_in[maxn];
+int t_out[maxn];
+int timer = 0;
+int to_root[maxn];
+
+void dfs_(int v, int pre = 0) {
+    t_in[v] = timer++;
+    used[v] = true;
+    pr[0][v] = pre;
+    for (int i = 1; i <= lg; i++) {
+        pr[i][v] = pr[i - 1][pr[i - 1][v]];
+    }
+    cnt[v] = 1;
+    for (auto u : g[v]) {
+        if (used[u])
+            continue;
+        dfs_(u, v);
+        cnt[v] += cnt[u];
+        f_in[v] += f_in[u] + cnt[u];
+    }
+    t_out[v] = timer++;
+}
+
+void dfs_in(int v) {
+    used[v] = true;
+    for (auto u : g[v]) {
+        if (used[u])
+            continue;
+        f_out[u] = f_out[v] + f_in[v] - f_in[u] - cnt[u] + n - cnt[u];
+        to_root[u] = to_root[v] + 1;
+        dfs_in(u);
+    }
+}
+
+inline bool upper(int a, int b) {
+    return t_in[a] <= t_in[b] && t_out[b] <= t_out[a];
+}
+
+int get_up(int v, int len) {
+    for (int i = lg; i >= 0; i--) {
+        if (len - (1 << i) >= 0)
+        {
+            len -= (1 << i);
+            v = pr[i][v];
+        }
+    }
+    return v;
+}
+
+int lca(int a, int b) {
+    if (upper(a, b))
+        return a;
+    if (upper(b, a))
+        return b;
+    for (int i = lg; i >= 0; i--) {
+        if (!upper(pr[i][a], b))
+            a = pr[i][a];
+    }
+    return pr[0][a];
+}
+
+int main() {
+    ios_base :: sync_with_stdio(false);
+    cin.tie(0);
+    cin >> n >> m;
+    for (int i = 0; i < n - 1; i++) {
+        int x, y;
+        cin >> x >> y;
+        x--; y--;
+        g[x].push_back(y);
+        g[y].push_back(x);
+    }
+    dfs_(0);
+    for (int i = 0; i < n; i++)
+        used[i] = false;
+    dfs_in(0);
+    for (int i = 0; i < n; i++)
+        used[i] = false;
+    cout.precision(10);
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        cin >> x >> y;
+        x--; y--;
+        int lca_ = lca(x, y);
+        long long len = to_root[x] + to_root[y] - 2 * to_root[lca_];
+        if (lca_ != x && lca_ != y) {
+            long long all = (len + 1) * cnt[x] * cnt[y] + f_in[x] * cnt[y] + f_in[y] * cnt[x];
+            cout << fixed << (double) all / cnt[x] / cnt[y] << endl;
+        } else {
+            if (to_root[y] < to_root[x]) {
+                swap(x, y);
+            }
+            int dist = to_root[y] - to_root[x] - 1;
+            int ne = get_up(y, dist);
+            long long cnxx = n - cnt[ne];
+            long long sumx = f_in[x] + f_out[x] - f_in[ne] - cnt[ne];
+            long long all = (len + 1) * cnt[y] * cnxx + sumx * cnt[y] + f_in[y] * cnxx;
+            cout << fixed << (double) all / cnxx / cnt[y] << endl;
+        }
+    }
+    return 0;
+}

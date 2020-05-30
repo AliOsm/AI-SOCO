@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+namespace FFT {
+    typedef complex<double> base;
+
+    const double C_PI = acos(-1);
+    void fft(vector<base> &a, bool invert) {
+        int n = a.size();
+        for(int i = 0, j = 0; i < n; ++i) {
+            if (i > j) {
+                swap(a[i], a[j]);
+            }
+            for (int k = n / 2; (j ^= k) < k; k /= 2);
+        }
+        for(int len = 2; len <= n; len *= 2) {
+            double ang = 2 * C_PI / len * (invert ? -1 : 1);
+            base wlen(cos(ang), sin(ang));
+            for(int i = 0; i < n; i += len) {
+                base w(1);
+                fori(j, 0, len / 2) {
+                    if((j & 511) == 511) {
+                        w = base(cos(ang * j), sin(ang * j)); 
+                    }
+                    base u = a[i + j], v = a[i + j + len / 2] * w;
+                    a[i + j] = u + v;
+                    a[i + j + len / 2] = u - v;
+                    w *= wlen;
+                }
+            }
+        }
+        if(invert) {
+            fori(i, 0, n) {
+                a[i] /= n;
+            }
+        }
+    }
+
+    vector<int> multiply(const vector<int> &a, const vector<int> &b, const int MOD) {
+        vector<base> fa(a.begin(), a.end()), fb(b.begin(), b.end());
+        int n = 1;
+        while(n < (int) max(a.size(), b.size())) {
+            n *= 2;
+        }
+        n *= 2;
+        fa.resize(n);
+        fb.resize(n);
+        fft(fa, false);
+        fft(fb, false);
+        fori(i, 0, n) {
+            fa[i] *= fb[i];
+        }
+        fft(fa, true);
+        vector<int> res;
+        res.resize(n);
+        fori(i, 0, n) {
+            res[i] = ((ll) (fa[i].real() + (fa[i].real() > 0 ? 0.5 : -0.5))) % MOD;
+        }
+        return res;
+    }
+}
+
+const int MAX = 1e6 + 6;
+const int MOD = 1e9 + 7;
+char str[MAX];
+bool bad[MAX];
+int n;
+
+int main() {
+	int t;
+	scanf("%d", &t);
+	while(t--) {
+		scanf("%d", &n);
+		scanf("%s", str);
+			
+		vector<int> A(n, 0), B(n, 0);
+		fori(i, 0, n) {
+			if(str[i] == 'V') {
+				A[i] = 1;
+			}
+			else if(str[i] == 'K') {
+				B[n - i - 1] = 1;
+			}
+		}
+
+		vector<int> C = FFT::multiply(A, B, MOD);
+		fori(i, 0, n + 1) {
+			bad[i] = false;
+		}
+		fori(i, 0, C.size()) {
+			if(C[i] > 0) {
+				bad[abs(i - n + 1)] = true;
+			}
+		}
+		vector<int> ans;
+		fori(i, 1, n + 1) {
+			bool good = true;
+			for(int j = i; j <= n; j += i) {
+				if(bad[j]) {
+					good = false;
+					break;
+				}
+			}
+			if(good) {
+				ans.push_back(i);
+			}
+		}
+		printf("%d\n", (int) ans.size());
+		for(auto &each : ans) {
+			printf("%d ", each);
+		}
+		printf("\n");
+	}
+
+	return 0;
+}
+

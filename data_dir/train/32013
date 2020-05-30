@@ -1,0 +1,99 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	1000000
+#define Q	1000000
+
+int *xx;
+
+int compare(const void *a, const void *b) {
+	int i = *(int *) a;
+	int j = *(int *) b;
+
+	return xx[i] - xx[j];
+}
+
+int ii[N], hh[Q];
+long long ss[N], cc[N];
+
+void update(long long *ft, int i, int n, int x) {
+	while (i < n) {
+		ft[i] += x;
+		i |= i + 1;
+	}
+}
+
+long long query(long long *ft, int i) {
+	long long x = 0;
+
+	while (i >= 0) {
+		x += ft[i];
+		i &= i + 1, i--;
+	}
+	return x;
+}
+
+void solve(int *aa, int n, int *ll, int *rr, long long *ans, int q) {
+	static int qu[N], pp[N];
+	int h_, i, i_, cnt;
+
+	cnt = 0;
+	for (i = 0; i < n; i++) {
+		while (cnt && aa[qu[cnt - 1]] <= aa[i])
+			cnt--;
+		pp[i] = cnt == 0 ? 0 : qu[cnt - 1] + 1;
+		qu[cnt++] = i;
+	}
+	memset(ss, 0, n * sizeof *ss);
+	memset(cc, 0, n * sizeof *cc);
+	for (i = 0; i < n; i++)
+		update(ss, i, n, pp[i]);
+	xx = pp, qsort(ii, n, sizeof *ii, compare);
+	xx = ll, qsort(hh, q, sizeof *hh, compare);
+	for (h_ = 0, i_ = 0; h_ < q; h_++) {
+		int h = hh[h_], l = ll[h], r = rr[h];
+
+		while (i_ < n && pp[i = ii[i_]] < l) {
+			update(ss, i, n, -pp[i]);
+			update(cc, i, n, 1);
+			i_++;
+		}
+		ans[h] += query(ss, r) - query(ss, l - 1)
+			+ (query(cc, r) - query(cc, l - 1)) * l;
+	}
+}
+
+int main() {
+	static int aa[N], ll[Q], rr[Q];
+	static long long ans[Q];
+	int n, q, h, i, j, tmp;
+
+	scanf("%d%d", &n, &q);
+	for (i = 0; i < n; i++)
+		scanf("%d", &aa[i]);
+	for (h = 0; h < q; h++)
+		scanf("%d", &ll[h]), ll[h]--;
+	for (h = 0; h < q; h++)
+		scanf("%d", &rr[h]), rr[h]--;
+	for (i = 0; i < n; i++)
+		ii[i] = i;
+	for (h = 0; h < q; h++)
+		hh[h] = h;
+	solve(aa, n, ll, rr, ans, q);
+	for (i = 0, j = n - 1; i < j; i++, j--)
+		tmp = aa[i], aa[i] = aa[j], aa[j] = tmp;
+	for (h = 0; h < q; h++) {
+		int l = n - 1 - rr[h];
+		int r = n - 1 - ll[h];
+
+		ll[h] = l;
+		rr[h] = r;
+	}
+	solve(aa, n, ll, rr, ans, q);
+	for (h = 0; h < q; h++)
+		printf("%lld ", (long long) n * (rr[h] - ll[h] + 1) - ans[h]);
+	printf("\n");
+	return 0;
+}

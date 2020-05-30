@@ -1,0 +1,141 @@
+#include<bits/stdc++.h>
+#define F first
+#define S second
+#define pii pair<int,int>
+#define pb push_back
+typedef long long ll;
+using namespace std;
+const int N = 1000;
+bool m[N][N] , dir[N][N] , t[N][N] , mp[N][N];
+vector<int> adj[N] , dig[N] , rev_dig[N] , tree[N];
+bool _vis[N] , s_vis[N] , rev_vis[N];
+int h[N] , comp , cmp[N] , st[N] , en[N] , tim;
+vector<int> topol , mol[N];
+vector<pii> edg;
+
+void dir_dfs(int v){
+    _vis[v] = true;
+    for(auto u : adj[v]){
+        if(_vis[u]){
+            if(dir[u][v] || dir[v][u])continue;
+            if(h[u] == h[v] - 1){
+                dir[u][v] = true;
+                dig[u].pb(v); rev_dig[v].pb(u);
+                edg.pb({u , v});
+            }else {
+                dir[v][u] = true;
+                dig[v].pb(u); rev_dig[u].pb(v);
+                edg.pb({u , v});
+            }continue;
+        }
+        h[u] = h[v] + 1;
+        dir_dfs(u);
+    }
+}
+
+void s_dfs(int v){
+    s_vis[v] = true;
+    for(auto u : dig[v]){
+        if(!s_vis[u])s_dfs(u);
+    }
+    topol.pb(v);
+}
+
+void rev_dfs(int v ,int comp){
+    rev_vis[v] = true;
+    cmp[v] = comp; mol[comp].pb(v);
+    for(auto u : rev_dig[v]){
+        if(!rev_vis[u])rev_dfs(u , comp);
+    }
+}
+
+void SCC(int v){
+    s_dfs(v);
+    reverse(topol.begin() , topol.end());
+    //for(auto u : topol)cout <<u <<" ** "; cout << endl;
+    for(auto u : topol){
+        if(!rev_vis[u])rev_dfs(u , comp++);
+    }
+}
+
+void last_dfs(int v , int p = -1){
+    st[v] = tim++;
+    for(auto u : tree[v]){
+        if(u == p)continue;
+        last_dfs(u , v);
+    }en[v] = tim;
+}
+
+int get_ans_comp(int v){
+    edg.clear();
+    dir_dfs(v);
+    /*for(int i=1;i<=4;i++){
+        cout << i << " --> \n";
+        for(auto u : dig[i])cout << u << " "; cout << endl;
+        for(auto u : rev_dig[i])cout << u <<" "; cout << endl;
+    }*/
+    topol.clear();
+    int L = comp;
+    SCC(v);
+    int R = comp;
+    if(R - L < 2)return 0;
+    if(edg.size() == 1){cout << -1 << '\n'; exit(0);}
+    for(auto X : edg){
+        int x = X.F , y = X.S;
+        if(cmp[x] == cmp[y])continue;
+        if(t[cmp[x]][cmp[y]])continue;
+        t[cmp[x]][cmp[y]] = t[cmp[y]][cmp[x]] = true;
+        tree[cmp[x]].pb(cmp[y]);
+        tree[cmp[y]].pb(cmp[x]);
+    }
+    vector<pii> leaf; int id = -1;
+    for(int i=L;i<R;i++){
+        if(tree[i].size() == 1)leaf.pb({0 , i});
+        else id = i;
+    }
+    last_dfs(id);
+    for(int i=0;i<leaf.size();i++){
+        int u = leaf[i].S;
+        leaf[i].F = st[u];
+    }sort(leaf.begin() , leaf.end());
+    int sz = leaf.size();
+    vector<pii> new_yal;
+    for(int i=0;i<sz/2;i++){
+        int u = leaf[i].S , w = leaf[i + sz/2].S;
+        new_yal.pb({u , w});
+    }
+    if(sz % 2 == 1)new_yal.pb({leaf[0].S , leaf[sz - 1].S});
+    for(auto T : new_yal){
+        bool is_it = false;
+        int w = T.F , z = T.S;
+        for(auto u : mol[w]){
+            if(is_it)break;
+            for(auto uu : mol[z]){
+                if(is_it)break;
+                if(!m[u][uu]){is_it = true; m[u][uu] = m[uu][u] = true;}
+            }
+        }
+    }
+    return (sz + 1)/2;
+}
+
+int main(){
+    ios_base::sync_with_stdio(0); cin.tie(0);
+    int n , e; cin >> n >> e;
+    for(int i=0;i<e;i++){
+        int u , v; cin >> u >> v;
+        m[u][v] = m[v][u] = true;
+        mp[u][v] = mp[v][u] = true;
+        adj[u].pb(v); adj[v].pb(u);
+    }ll ans = 0;
+    for(int i=1;i<=n;i++){
+        if(_vis[i])continue;
+        ans += get_ans_comp(i);
+    }
+    cout << ans << '\n';
+    for(int i=1;i<=n;i++){
+        for(int j=1;j<=i;j++){
+            if(!mp[i][j] && m[i][j])cout << i << ' ' << j << '\n';
+        }
+    }
+}

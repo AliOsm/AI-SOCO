@@ -1,0 +1,177 @@
+#include <map>
+#include <set>
+#include <list>
+#include <cmath>
+#include <ctime>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <string>
+#include <bitset>
+#include <cstdio>
+#include <limits>
+#include <vector>
+#include <climits>
+#include <cstring>
+#include <cstdlib>
+#include <fstream>
+#include <numeric>
+#include <sstream>
+#include <cassert>
+#include <iomanip>
+#include <iostream>
+#include <algorithm>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+#define f first
+#define s second
+#define pb push_back
+#define pp pop_back
+#define mp make_pair
+#define ll long long
+#define ld double
+#define PI pair < int, char > 
+
+const int N = 3e5 + 123;
+const ld Pi = acos(-1);
+const ll Inf = 1e18;
+const int inf = 1e9;
+
+struct trie {
+  map < char, int > to;
+  trie() {
+    to.clear();
+  }
+};
+vector < trie > t;
+
+int n, cnt[N], sz[N], Sz, num[N * 100], Add, rt[N], fuck[N];
+vector < PI > g[N], back;
+int New() {
+  t.pb(trie());
+  return ++Sz;
+}
+
+void go(int v, int p, int lvl, int par) {
+  for (int it = 0;it < g[v].size();it++) {
+    int to = g[v][it].f;
+    char c = g[v][it].s;
+    if (to != p) {
+      if (!t[par].to.count(c)) {
+        Add++;
+        int x = New();
+        t[par].to[c] = x;
+        back.pb({par, c});
+      }
+      go(to, v, lvl, t[par].to[c]);
+    }
+  }
+}
+
+void goo(int v, int p, int lvl, int par) {
+  for (int it = 0;it < g[v].size();it++) {
+    int to = g[v][it].f;
+    char c = g[v][it].s;
+    if (to != p) {
+      if (!t[par].to.count(c)) {
+        num[lvl]++;
+        int x = New();
+        t[par].to[c] = x;
+      }
+      goo(to, v, lvl, t[par].to[c]);
+    }
+  }
+}
+void Go_back() {
+  while(back.size()) {
+    char c = back.back().s;
+    int v = back.back().f;
+    t[v].to.erase(c);
+    back.pp();
+  }
+  while(Add) {
+    t.pp();
+    Add--;
+    Sz--;
+  }
+}
+
+int lim = 0;
+
+void dfs(int v = 1, int lvl = 1, int p = 1) {
+  int b = -1;
+  lim = max(lim, lvl);
+  sz[v] = 1;
+  fuck[lvl]++;
+  for (int it = 0;it < g[v].size();it++) {
+    int to = g[v][it].f;
+    char c = g[v][it].s;
+    if (to != p) {
+      dfs(to, lvl + 1, v);
+      sz[v] += sz[to];
+      if (b == -1 || sz[to] > sz[g[v][b].f]) {
+        b = it;
+      }
+    }
+  }
+  if (b != -1) {
+   for (int it = 0;it < g[v].size();it++) {
+      int to = g[v][it].f;
+      if (it == b || to == p) {
+        continue;
+      }
+      go(to, v, lvl, rt[g[v][b].f]);
+    } 
+    if (num[rt[g[v][b].f]] > 1 || Add > 0) {
+      cnt[lvl] += num[rt[g[v][b].f]] + Add - 1;  
+    }
+    Go_back();
+    rt[v] = New();
+    t[rt[v]].to[g[v][b].s] = rt[g[v][b].f];
+    num[rt[v]] = num[rt[g[v][b].f]] + 1;
+    for (int it = 0;it < g[v].size();it++) {
+      int to = g[v][it].f;
+      char c = g[v][it].s;
+      if (it == b || to == p) {
+        continue;
+      }
+      if (!t[rt[v]].to.count(c)) {
+        num[rt[v]]++;
+        int x = New();
+        t[rt[v]].to[c] = x;
+      }
+      goo(to, v, rt[v], t[rt[v]].to[c]);
+    } 
+  } else {
+    rt[v] = New();
+    num[rt[v]] = 1;
+  }
+}
+int main() {
+  #ifdef wws
+    freopen("in", "r", stdin);
+   // freopen("out", "w", stdout);
+  #endif 
+  ios_base::sync_with_stdio(0);
+  cin >> n;
+  t.pb(trie());
+  for (int i = 1;i < n;i++) {
+    int u, v;
+    char c;
+    cin >> u >> v >> c;
+    g[u].pb({v, c});
+    g[v].pb({u, c});
+  }
+  dfs();
+  pair < int, int > ans = mp(inf, 0);
+  for (int i = 1;i < lim;i++) {
+    fuck[i] += fuck[i - 1];
+    ans = min(ans, {cnt[i] + fuck[i], i});
+  }
+  cout << ans.f << endl;
+  cout << ans.s << endl;
+  return 0;
+}

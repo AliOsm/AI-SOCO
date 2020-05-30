@@ -1,0 +1,136 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma GCC optimize("unroll-loops")
+
+#include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+#define DEBUG
+#ifdef DEBUG
+#define debug(...) __f(#__VA_ARGS__, __VA_ARGS__)
+	template <typename Arg1>
+	void __f(const char* name, Arg1&& arg1)
+	{
+		cerr << name << " = " << arg1 << endl;
+	}
+	template <typename Arg1, typename... Args>
+	void __f(const char* names, Arg1&& arg1, Args&&... args)
+	{
+		const char* comma = strchr(names + 1, ','); cerr.write(names, comma - names) << " = " << arg1 << " || ";
+		__f(comma+1, args...);
+	}
+#else
+#define debug(...)
+#endif
+
+template <class Ch, class Tr, class Container>
+basic_ostream <Ch, Tr> & operator << (basic_ostream <Ch, Tr> & os, Container const& x) {
+    os << "{ ";
+    for(auto& y : x) os << y << " ; ";
+    return os << "}";
+}
+
+template <class X, class Y>
+ostream & operator << (ostream & os, pair <X, Y> const& p) {
+	return os << "[ " << p.first << ", " << p.second << "]" ;
+}
+
+#define FAST_IO std::ios::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+#define ll long long int
+#define pb push_back
+#define mp make_pair
+#define ld long double
+#define sz(a) (ll)(a).size()
+#define endl "\n"
+
+// priority_queue<ll, vector<ll>, less<ll>>pq;     // Max Heap
+// priority_queue<ll, vector<ll>, greater<ll>>pq;  // Min Heap
+
+typedef tree<ll,null_type,less<ll>,rb_tree_tag,tree_order_statistics_node_update> ordered_set;
+//K-th smallest
+//cout << k << "kth (1 based indexing) smallest: " << *A.find_by_order(k - 1) << endl;
+//NO OF ELEMENTS < X
+//cout << "No of elements less than " << X << " are " << A.order_of_key(X) << endl;
+
+const int MAXN = 1e5 + 5;
+
+struct lec
+{
+	ll s1, e1, s2, e2;
+};
+
+ll n, dp1[MAXN][20], dp2[MAXN][20], lg[MAXN], pp[20];
+vector<lec>v;
+vector<pair<ll,ll>>vv;
+
+void precompute()
+{
+	lg[1] = 0;
+	for(int i=2;i<MAXN;i++) lg[i] = lg[i / 2] + 1;
+	pp[0] = 1;
+	for(ll i=1;i<20;i++) pp[i] = pp[i - 1] * 2;
+}
+
+void check(ll val)
+{
+	sort(vv.begin(), vv.end());
+	vector<ll> var1(n), var2(n), var3(n), var4(n);
+	for(int i=0;i<n;i++)
+	{	
+		if(val == 1) var1[i] = v[vv[i].second].s1, var2[i] = v[vv[i].second].e1 + 1, var3[i] = v[vv[i].second].s2, var4[i] = v[vv[i].second].e2;
+		else var1[i] = v[vv[i].second].s2, var2[i] = v[vv[i].second].e2 + 1, var3[i] = v[vv[i].second].s1, var4[i] = v[vv[i].second].e1;
+	}
+	for(int i=0;i<n;i++) dp1[i][0] = var3[i], dp2[i][0] = var4[i];
+	for(int j=1;j<20;j++)
+		for(int i=0;i + pp[j - 1]<n;i++)
+		{	
+			dp1[i][j] = max(dp1[i][j - 1], dp1[i + pp[j - 1]][j - 1]);
+			dp2[i][j] = min(dp2[i][j - 1], dp2[i + pp[j - 1]][j - 1]);
+    	}
+    for(int i=1;i<n;i++)
+    {
+    	ll z = -1;
+    	ll st = lower_bound(vv.begin(), vv.end(), mp(var1[i], z)) - vv.begin();
+    	ll en = lower_bound(vv.begin(), vv.end(), mp(var2[i], z)) - vv.begin();
+    	en -= 2;
+    	if(st > en) continue;
+    	ll x = lg[en - st + 1];
+    	ll maxl = max(dp1[st][x], dp1[en - pp[x] + 1][x]);
+    	ll minr = min(dp2[st][x], dp2[en - pp[x] + 1][x]);
+    	if(maxl > var4[i] || minr < var3[i])
+    	{
+    		cout << "NO" << endl;
+    		exit(0);
+    	}
+    }
+}
+
+int main()
+{
+	FAST_IO;
+
+	cin >> n;
+	for(int i=0;i<n;i++)
+	{
+		ll a, b, c, d;
+		cin >> a >> b >> c >> d;
+		v.pb({a, b, c, d});
+	}
+	if(n == 1)
+	{
+		cout << "YES" << endl;
+		return 0;
+	}
+	precompute();
+	for(int i=0;i<n;i++) vv.pb(mp(v[i].e1, i));
+	check(1);
+    vv.clear();
+    for(int i=0;i<n;i++) vv.pb(mp(v[i].e2, i));
+	check(2);
+    cout << "YES" << endl;
+    return 0;
+}

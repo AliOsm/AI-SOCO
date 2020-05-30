@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define mp make_pair
+#define pb push_back
+
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef unordered_map<int, int> umap;
+
+const int MAXN = 100100;
+const int MAXM = 2 * MAXN;
+
+int n, M;
+vector<pii> g[MAXN];
+int was[MAXN];
+int sz[MAXN];
+ll res;
+int inv[MAXN];
+int ten[MAXN];
+
+void addEdge(int a, int b, int c) {
+  g[a].pb(mp(b, c));
+  g[b].pb(mp(a, c));
+}
+
+void calcSz(int v, int p = -1) {
+  sz[v] = 1;
+  for (int i = 0; i < (int)g[v].size(); ++i) {
+    int to = g[v][i].first;
+    if (!was[to] && to != p) {
+      calcSz(to, v);
+      sz[v] += sz[to];
+    }
+  }  
+}
+
+int findCentroid(int v, int p, int totalSz) {
+  for (int i = 0; i < (int)g[v].size(); ++i) {
+    int to = g[v][i].first;
+    if (!was[to] && to != p && sz[to] > totalSz / 2) {
+      return findCentroid(to, v, totalSz);
+    }
+  }  
+  return v;
+}
+
+void calc1(int v, int cur, umap &cnt, int dep = 1, int p = -1) {
+  ++cnt[cur];
+  for (int i = 0; i < (int)g[v].size(); ++i) {
+    int to = g[v][i].first;
+    int w = g[v][i].second;
+    if (!was[to] && to != p) {
+      calc1(to, (w * 1ll * ten[dep] + cur) % M, cnt, dep + 1, v);
+    }
+  }
+}
+
+void calc2(int v, int cur, umap &cnt, int dep = 1, int p = -1) {
+  int y = (M - cur) % M;
+  y = y * 1ll * inv[dep] % M;
+  if (cnt.count(y)) {
+    res += cnt[y];
+  }
+  for (int i = 0; i < (int)g[v].size(); ++i) {
+    int to = g[v][i].first;
+    int w = g[v][i].second;
+    if (!was[to] && to != p) {
+      calc2(to, (cur * 10ll + w) % M, cnt, dep + 1, v);
+    }
+  }
+}
+
+void buildCentroid(int v) {
+  calcSz(v);
+  int centroid = findCentroid(v, -1, sz[v]);
+  was[centroid] = true;
+  vector<umap> cnt(g[centroid].size());
+  umap total;
+  for (int i = 0; i < (int)g[centroid].size(); ++i) {
+    int to = g[centroid][i].first;
+    int w = g[centroid][i].second;
+    if (!was[to]) {
+      calc1(to, w % M, cnt[i]);
+      for (auto it : cnt[i]) {
+        total[it.first] += it.second;
+      }
+    }
+  }
+  res += total[0]++;
+  for (int i = 0; i < (int)g[centroid].size(); ++i) {
+    int to = g[centroid][i].first;
+    int w = g[centroid][i].second;
+    if (was[to]) continue;
+    for (auto it : cnt[i]) {
+      total[it.first] -= it.second;
+    }
+    calc2(to, w % M, total);
+    for (auto it : cnt[i]) {
+      total[it.first] += it.second;
+    }
+  }
+  for (int i = 0; i < (int)g[centroid].size(); ++i) {
+    int to = g[centroid][i].first;
+    if (!was[to]) {
+      buildCentroid(to);
+    }
+  }
+}
+
+void gcdex(int a, int b, int &x, int &y) {
+  if (!b) {
+    x = 1; y = 0;
+  } else {
+    int xx, yy;
+    gcdex(b, a % b, xx, yy);
+    x = yy;
+    y = xx - a / b * yy;
+  }
+}
+
+int main() {
+#ifdef LOCAL
+  freopen("input.txt", "r", stdin);
+  freopen("output.txt", "w", stdout);
+#endif
+  scanf("%d%d", &n, &M);
+  gcdex(10, M, inv[1], inv[0]);
+  inv[1] %= M;
+  if (inv[1] < 0) inv[1] += M;
+  inv[0] = 1;
+  ten[0] = 1;
+  for (int i = 1; i < MAXN; ++i) {
+    ten[i] = ten[i - 1] * 10ll % M;
+  }
+  for (int i = 2; i < MAXN; ++i) {
+    inv[i] = inv[i - 1] * 1ll * inv[1] % M;
+  }
+  for (int i = 1, a, b, c; i < n; ++i) {
+    scanf("%d%d%d", &a, &b, &c);
+    addEdge(a, b, c);
+  }  
+  buildCentroid(1);
+  printf("%lld\n", res);
+  return 0;
+}

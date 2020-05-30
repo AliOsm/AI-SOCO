@@ -1,0 +1,171 @@
+//In the name of Allah
+
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int , int> pii;
+
+const int N = 2e5+10 , mod = 1e9+7 , L = 20;
+const ll inf = 1e18+10;
+
+int x[N] , y[N] , w[N] , cmp[N] , par[N][L] , h[N];
+ll dis[N] , dist[N][L] , calc[N][2 * L + 5];
+vector < pair <ll , ll> > e , g[N] , G[N];
+vector <int> r;
+
+inline int pr(int v){
+	if(cmp[v] == v)
+		return v;
+	cmp[v] = pr(cmp[v]);
+	return cmp[v];
+}
+
+void pre_dfs(int v , int p , int d){
+	par[v][0] = p;
+	dist[v][0] = d;
+	for(int i = 1 ; i < L ; i++){
+		par[v][i] = par[par[v][i - 1]][i - 1];
+		dist[v][i] = dist[v][i - 1] + dist[par[v][i - 1]][i - 1];
+	}
+	for(auto a : g[v]){
+		int u = a.first;
+		if(u != p){
+			h[u] = h[v] + 1;
+			pre_dfs(u , v , a.second);
+		}
+	}
+}
+
+inline pair <int , ll> f_par(int v , int hei){
+	ll d = 0;
+	for(int i = 0 ; i < L ; i++)
+		if((1 << i) & hei){
+			d += dist[v][i];
+			v = par[v][i];
+		}
+	return make_pair(v , d);
+}
+
+ll f_dis(int u , int v){
+	if(h[u] > h[v])
+		swap(u , v);
+	auto a = f_par(v , h[v] - h[u]);
+	v = a.first;
+	ll ret = a.second;
+	if(u == v)
+		return ret;
+	for(int i = L - 1 ; i >= 0 ; i--){
+		if(par[v][i] != par[u][i]){
+			ret += dist[v][i] + dist[u][i];
+			u = par[u][i];
+			v = par[v][i];
+		}
+	}
+	return ret + dist[v][0] + dist[u][0];
+}
+
+inline void add(int u , int v){
+	for(int j = 0 ; j < r.size() ; j++){
+		int x = r[j];
+		ll d1 = calc[u][j];
+		ll d2 = calc[v][j];
+		if(x != u){
+			G[u].push_back({x , d1});
+			G[x].push_back({u , d1});
+		}
+		if(x != v){
+			G[v].push_back({x , d2});
+			G[x].push_back({v , d2});
+		}
+	}
+}
+
+void dijekstra(int v){
+	dis[v] = 0;
+	set < pair < ll , int > > s;
+	s.insert({0ll , v});
+	while(s.size()){
+		auto a = *s.begin();
+		s.erase(s.begin());
+		int u = a.second;
+		for(auto p : G[u])
+			if(dis[p.first] > dis[u] + p.second){
+				s.erase({dis[p.first] , p.first});
+				dis[p.first] = dis[u] + p.second;
+				s.insert({dis[p.first] , p.first});
+			}
+	}
+}
+
+inline void rem(int u , int v){
+	for(int x : r){
+		if(u != x){
+			G[u].pop_back();
+			G[x].pop_back();
+		}
+		if(v != x){
+			G[v].pop_back();
+			G[x].pop_back();
+		}
+	}
+}
+
+
+int32_t main(){
+	ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+	for(int i = 0 ; i < N ; i++)
+		dis[i] = inf;
+	int n , m;
+	scanf("%d%d" , &n , &m);
+	for(int i = 0 ; i < m ; i++){
+		scanf("%d%d%d" , &x[i] , &y[i] , &w[i]);
+		x[i]--; y[i]--;
+		e.push_back({w[i] , i});
+	}
+	for(int i = 0 ; i < n ; i++)
+		cmp[i] = i;
+	sort(e.begin() , e.end());
+	for(auto p : e){
+		int i = p.second;
+		if(pr(x[i]) != pr(y[i])){
+			cmp[cmp[x[i]]] = cmp[y[i]];
+			g[x[i]].push_back({y[i] , w[i]});
+			g[y[i]].push_back({x[i] , w[i]});
+		}
+		else{
+			G[x[i]].push_back({y[i] , w[i]});
+			G[y[i]].push_back({x[i] , w[i]});
+			r.push_back(x[i]);
+			r.push_back(y[i]);
+		}
+	}
+	sort(r.begin() , r.end());
+	r.resize(unique(r.begin() , r.end()) - r.begin());
+	pre_dfs(0 , 0 , 0);
+	for(int i = 0 ; i < r.size() ; i++)
+		for(int j = i + 1 ; j < r.size() ; j++){
+			ll d = f_dis(r[i] , r[j]);
+			G[r[i]].push_back({r[j] , d});
+			G[r[j]].push_back({r[i] , d});
+		}
+	for(int i = 0 ; i < n ; i++)
+		for(int j = 0 ; j < r.size() ; j++)
+			calc[i][j] = f_dis(i , r[j]);
+	int q;
+	scanf("%d" , &q);
+	for(int i = 0 ; i < q ; i++){
+		int u , v;
+		scanf("%d%d" , &u , &v);
+		u--; v--;
+		ll ret = f_dis(u , v);
+		add(u , v);
+		dijekstra(u);
+		printf("%I64d\n" , min(ret , dis[v]));
+		rem(u , v);
+		for(int z : r)
+			dis[z] = inf;
+		dis[u] = inf; dis[v] = inf;
+	}
+	return 0;
+}

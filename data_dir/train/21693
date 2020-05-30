@@ -1,0 +1,150 @@
+//              +-- -- --++-- +-In the name of ALLAH-+ --++-- -- --+              \\
+
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define _sz(x) (int)x.size()
+
+using namespace std ;
+using ll = long long ;
+using ld = long double ;
+using pii = pair <int , int> ;
+
+int const N = 5e5 + 20 , LG = 20  ;
+int n ;
+int par[LG][N] , h[N] ;
+string s ;
+
+pair <pii , int> tmp[N] ;
+int pos[LG][N] ;
+int id[N] ;
+
+ll ans ;
+
+struct node {
+	int mn , val ;
+} seg[N << 2] ;
+
+inline void shift (int v) {
+	int lc = v << 1 , rc = lc | 1 ;
+	seg[lc].val += seg[v].val ;
+	seg[lc].mn += seg[v].val ;
+	seg[rc].val += seg[v].val ;
+	seg[rc].mn += seg[v].val ;
+	seg[v].val = 0 ;
+}
+
+void add (int l , int r , int val , int v = 1 , int s = 0 , int e = n) {
+	if (r <= s || e <= l) return ;
+	if (l <= s && e <= r) {
+		seg[v].mn += val ;
+		seg[v].val += val ;
+		return ;
+	}
+
+	shift(v) ;
+
+	int mid = (s + e) >> 1 , lc = v << 1 , rc = lc | 1 ;
+	add(l , r , val , lc , s , mid) ;
+	add(l , r , val , rc , mid , e) ;
+
+	seg[v].mn = min(seg[lc].mn , seg[rc].mn) + seg[v].val ;
+}
+
+int find (int l , int r , int v = 1 , int s = 0 , int e = n) {
+	if (r <= s || e <= l || seg[v].mn > 0) return -1 ;
+	if (e - s == 1) return s ;
+
+	shift(v) ;
+
+	int mid = (s + e) >> 1 , lc = v << 1 , rc = lc | 1 ;
+	
+	int ret = find(l , r , lc , s , mid) ;
+	if (ret == -1) ret = find(l , r , rc , mid , e) ;
+
+	return ret ;
+}
+
+
+inline int lcp (int a , int b) {
+	int res = 0 ;
+
+	for (int i = LG - 1 ; a < n && b < n && i >= 0 ; i --) {
+		if (pos[i][a] == pos[i][b]) {
+			a += (1 << i) ;
+			b += (1 << i) ;
+			res += (1 << i) ;
+		}
+	}
+
+	return res ;
+}
+
+inline bool cmp (int a , int b) {
+	return pos[LG - 1][a] < pos[LG - 1][b] ;
+}
+
+int main(){
+	ios::sync_with_stdio(false) , cin.tie(0) , cout.tie(0) ;
+
+	cin >> n ;
+	cin >> s ;
+
+	memset(par , -1 , sizeof par) ;
+
+	for (int i = n - 1 ; i >= 0 ; i --) {
+		pos[0][i] = s[i] ;
+		add(i , n , (s[i] == '(' ? 1 : -1)) ;
+
+		if (s[i] == ')') continue ;
+
+		int id = find(i , n) ;
+
+		if (id == -1) continue ;
+
+		par[0][i] = id + 1 ;
+		h[i] = h[id + 1] + 1 ;
+	}
+
+	for (int d = 1 ; d < LG ; d ++)
+		for (int i = 0 ; i < n ; i ++)
+			if (~par[d - 1][i]) par[d][i] = par[d - 1][par[d - 1][i]] ;
+
+	iota(id , id + n , 0) ;
+
+	for (int d = 1 ; d < LG ; d ++) {
+		for (int i = 0 ; i < n ; i ++) {
+			tmp[i] = {{pos[d - 1][i] , -1} , i} ;
+			if (i + (1 << (d - 1)) < n) tmp[i].F.S = pos[d - 1][i + (1 << (d - 1))] ;
+		}
+
+		sort(tmp , tmp + n) ;
+
+		for (int i = 0 , cur = 0 ; i < n ; i ++) {
+			if (i && tmp[i].F != tmp[i - 1].F) cur ++ ;
+			pos[d][tmp[i].S] = cur ;
+		}
+	}
+
+	sort(id , id + n , cmp) ;
+
+	for (int i = 0 ; i < n ; i ++) {
+		int j = id[i] , len = 0 ;
+		if (i) len = lcp(id[i - 1] , id[i]) ;
+
+		if (!len) {
+			ans += h[j] ;
+			continue ;
+		}
+
+		int l = j + len , k = j ;
+
+		for (int d = LG - 1 ; d >= 0 ; d --)
+			if (~par[d][k] && par[d][k] <= l) k = par[d][k] ;
+
+		ans += h[k] ;
+	}
+
+	cout << ans << '\n' ;
+}

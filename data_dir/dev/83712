@@ -1,0 +1,181 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma GCC optimize("unroll-loops")
+
+#include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+#define ll long long int
+#define pb push_back
+#define mp make_pair
+#define ld long double
+#define sz(a) (ll)(a).size()
+#define endl "\n"
+
+typedef tree<pair<ll,ll> ,null_type,less<pair<ll,ll> >,rb_tree_tag,tree_order_statistics_node_update> ordered_set;
+//K-th smallest
+//cout << k << "kth smallest: " << *A.find_by_order(k-1) << endl;
+//NO OF ELEMENTS < X
+//cout << "No of elements less than " << X << " are " << A.order_of_key(X) << endl;
+
+const int MAXN = 100005;
+const int LMAXN = 20;
+
+ll parent[MAXN], p[MAXN][LMAXN], level[MAXN], ssize[MAXN], temp_par[MAXN], ans[MAXN], n, m;
+set<ll>adj[MAXN];
+
+/////// ***** Precomputation  ******/////////
+
+void precom()                                        // for calculating 2^k th parent of every node
+{
+	for(int i = 0 ; i < n ; i++)
+		for(int j = 0 ; (1ll << j) < n ; j++)
+			p[i][j]=-1;
+	for(int i = 0 ; i < n ; i++)
+		p[i][0] = parent[i];
+	for(int j = 1 ; (1ll << j) < n ; j++)
+		for(int i = 0 ; i < n ; i++)
+			if(p[i][j - 1] != -1)
+				p[i][j] = p[p[i][j - 1]][j - 1];
+}
+
+ll lca(ll u, ll v)
+{
+	if(min(level[u], level[v]) == level[u]) swap(u, v);
+	ll dist = level[u] - level[v];
+	while(dist)
+	{
+		ll raise = log2(dist);
+		u=p[u][raise];
+		dist -= (1ll<<raise);
+	}
+	if(u == v) return u;
+	for(int j = log(MAXN) ; j >= 0 ; j--)
+	{
+		if(p[u][j] != -1 && p[u][j] != p[v][j])
+		{
+			u = p[u][j];
+			v = p[v][j];
+		}
+	}
+	return parent[u];
+}
+
+void dfs(ll node, ll par, ll lev)                              // dfs to set parent and calculate levels
+{
+	level[node] = lev;
+	for(auto it : adj[node])
+	{
+		if(it == par) continue;
+		parent[it] = node;
+		dfs(it, node, lev + 1);
+	}		
+}
+
+ll dist(ll a, ll b)
+{
+	return level[a] + level[b] - 2 * level[lca(a, b)];
+}
+////////// ***** End of precomputation ****** //////////
+
+///////// ****** Centroid Decomposition ****** ////////
+
+ll tot = 0;
+
+void dfs1(ll node, ll par)            // To calculate subtree size
+{
+	tot += 1;
+	ssize[node] = 1;
+	for(auto it : adj[node])
+	{
+		if(it == par) continue;
+		dfs1(it, node);
+		ssize[node] += ssize[it];
+	}
+}
+
+ll dfs2(ll node, ll par)              // To find centroid
+{
+	for(auto it : adj[node])
+	{
+		if(it == par) continue;
+		if(ssize[it] > tot / 2) return dfs2(it, node);
+	}
+	return node;
+}
+
+void decompose(ll node, ll par)
+{
+	tot = 0;
+	dfs1(node, -1);
+	ll centroid = dfs2(node, -1);
+	if(par == -1) temp_par[centroid] = centroid;
+	else temp_par[centroid] = par;
+	for(auto it : adj[centroid])
+	{
+		adj[it].erase(centroid);
+		decompose(it, centroid);
+	}
+	adj[centroid].clear();
+}
+
+////// ****** End of Centroid Decomposition ******** ///////
+
+/////// *****  Handle Queries ***** ////////
+
+void update(ll node)
+{
+	ll temp = node;
+	while(1)
+	{
+		ans[temp] = min(ans[temp], dist(temp, node));
+		if(temp == temp_par[temp]) break;
+		temp = temp_par[temp];
+	}
+}
+
+ll query(ll node)
+{
+	ll res = 1e18, temp = node;
+	while(1)
+	{
+		res = min(res, ans[temp] + dist(temp, node));
+		if(temp == temp_par[temp]) break;
+		temp = temp_par[temp];
+	}
+	return res;
+}
+
+////// ****** End ***** /////////
+int main()
+{
+	std::ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+
+	cin >> n >> m;
+	for(int i=0;i<n-1;i++)
+	{
+		ll u, v;
+		cin >> u >> v;
+		adj[u - 1].insert(v - 1);
+		adj[v - 1].insert(u - 1);
+	} 	   
+	dfs(0, - 1, 0);
+	precom();
+	decompose(0, -1);
+	for(int i=0;i<n;i++) ans[i] = 1e18;
+	update(0);
+	for(int i=0;i<m;i++)
+	{
+		ll type, node;
+		cin >> type >> node;
+		if(type == 1) update(node - 1);
+		else cout << query(node - 1) << endl;
+	}
+    return 0;
+}

@@ -1,0 +1,85 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define sc( x ) scanf( "%d" , &x )
+#define REP( i , n ) for( int i = 0 ; i < n ; ++i )
+#define clr( t , val ) memset( t , val , sizeof( t ) )
+
+#define pb push_back
+#define all( v ) v.begin() , v.end()
+#define SZ( v ) ((int)(v).size())
+
+#define mp make_pair
+#define fi first
+#define se second
+
+#define N 26
+
+typedef long long ll;
+typedef vector< int > vi;
+
+int n = 26;
+vi G[ N + 5 ];
+int main(){
+    ios_base :: sync_with_stdio( 0 );
+    int m;
+    while( cin >> m ){
+        vector< string > S( m );
+        REP( i , m ) cin >> S[ i ];
+        REP( i , N ) G[ i ].clear();
+        vi ind( n );
+        for( int i = 1 ; i < m ; ++i ){
+            string s = S[ i - 1 ] , t = S[ i ];
+            for( int j = 0 ; j < SZ( s ) && j < SZ( t ) ; ++j )
+                if( s[ j ] != t[ j ] ){
+                    int u = s[ j ] - 'a' , v = t[ j ] - 'a';
+                    G[ u ].pb( v );
+                    ind[ v ] ++;
+                    break;
+                }
+        }
+        bool ok = 1;
+        for( int i = 1 ; i < m ; ++i ){
+            if( SZ( S[ i ] ) < SZ( S[ i - 1 ] ) ){
+                string t = S[ i ] , s = S[ i - 1 ].substr( 0 , SZ( S[ i ] ) );
+                if( s == t ) ok = 0;
+            }
+        }
+        if( !ok ){
+            cout << "Impossible\n";
+            continue;
+        }
+        queue< int > Q;
+        REP( i , n ) if( !ind[ i ] ) Q.push( i );
+        if( !SZ( Q ) ){
+            cout << "Impossible\n";
+            continue;
+        }
+        vi ord;
+        while( !Q.empty() ){
+            int u = Q.front();
+            Q.pop();
+            ord.pb( u );
+            REP( i , SZ( G[ u ] ) ){
+                int v = G[ u ][ i ];
+                ind[ v ] --;
+                if( !ind[ v ] ){
+                    Q.push( v );
+                }
+            }
+        }
+        if( SZ( ord ) != n ){
+            cout << "Impossible\n";
+            continue;
+        }
+        bool fail = 0;
+        REP( i , n ) if( ind[ i ] ) fail = 1;
+        if( fail ){
+            cout << "Impossible\n";
+            continue;
+        }
+ 
+        REP( i , n ) cout << char( 'a' + ord[ i ] );
+        cout << '\n';
+    }
+}

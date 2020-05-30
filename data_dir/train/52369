@@ -1,0 +1,124 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int maxn=2e6+7;
+const int inf=INT_MAX;
+const ll inff=1e18;
+const int mod=998244353;
+#define pii pair<int,int>
+#define mkp make_pair
+#define F first
+#define S second
+#define pb push_back
+#define sz(v) ((int)(v).size())
+#define all(v) (v).begin(),(v).end()
+//#define int ll
+
+#ifdef HNO2
+#define IOS
+#else
+#define endl '\n'
+#define IOS ios::sync_with_stdio(0); cin.tie(0);
+#endif // HNO2
+
+int n,q,type;
+int _cnt=1;
+const int B=387;
+vector<int> G[maxn],v[maxn],heavy;
+int num[maxn],rnum[maxn],indeg[maxn],siz[maxn];
+int X,Y,con[maxn],d[maxn],f[maxn],total=0;
+
+int ppow(int A,int b)
+{
+    if (b==0) return 1;
+    int ret=ppow(A,b/2);
+    ret=ret*1ll*ret%mod;
+    if (b&1) ret=ret*1ll*A%mod;
+    return ret;
+}
+
+void add(int x,int dd)
+{
+    for (int i=x;i<=n;i+=(i&(-i))) d[i]=(d[i]+dd)%mod;
+}
+
+ll query(int x)
+{
+    int ret=0;
+    for (int i=x;i>0;i-=(i&(-i))) ret=(ret+d[i])%mod;
+    return ret;
+}
+
+void dfs(int now,int p)
+{
+    siz[now]=1;
+    num[now]=_cnt,rnum[_cnt]=now;
+    _cnt++;
+    for (int i:G[now])
+    {
+        if (i!=p)
+        {
+            v[now].pb(_cnt);
+            dfs(i,now);
+            siz[now]+=siz[i];
+        }
+    }
+    v[now].pb(_cnt);
+}
+
+int32_t main()
+{
+    IOS
+    cin>>n>>q;
+    int invn=ppow(n,mod-2);
+    for (int i=1;i<=n-1;i++)
+    {
+        cin>>X>>Y;
+        G[X].pb(Y);
+        G[Y].pb(X);
+        indeg[X]++;
+        indeg[Y]++;
+    }
+    for (int i=1;i<=n;i++)
+        if (indeg[i]>=B) heavy.pb(i);
+    dfs(1,-1);
+    while (q--)
+    {
+        cin>>type;
+        if (type==1)
+        {
+            cin>>X>>Y;
+            if (indeg[X]<B)
+            {
+                total=(total+ll(siz[X])*invn%mod*Y%mod)%mod;
+                add(num[X],ll(mod)-ll(siz[X])*invn%mod*Y%mod);
+                add(v[X].back(),ll(siz[X])*invn%mod*Y%mod);
+                f[X]=(f[X]+Y)%mod;
+                for (int i=0;i<sz(v[X])-1;i++)
+                {
+                    add(v[X][i],ll(n-siz[rnum[v[X][i]]])*invn%mod*Y%mod);
+                    add(v[X][i+1],ll(mod)-ll(n-siz[rnum[v[X][i]]])*invn%mod*Y%mod);
+                }
+            }
+            else con[X]=(con[X]+Y*1ll*invn%mod)%mod;
+        }
+        else
+        {
+            cin>>X;
+            int ans=(ll(query(num[X]))+f[X]+total)%mod;
+            for (int i:heavy)
+            {
+                if (i==X) ans=(ans+con[i]*1ll*n%mod)%mod;
+                else
+                {
+                    auto now=upper_bound(all(v[i]),num[X]);
+                    if (now==v[i].begin()||now==v[i].end()) ans=(ans+con[i]*1ll*(siz[i])%mod)%mod;
+                    else ans=(ans+con[i]*1ll*(n-siz[rnum[(*(prev(now)))]])%mod)%mod;
+                }
+            }
+            cout<<ans<<endl;
+        }
+    }
+}
+

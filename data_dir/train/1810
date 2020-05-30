@@ -1,0 +1,71 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define  ll long long
+const int N = 2e5 + 5;
+int tree[N << 2][2];
+int lazy[N << 2][2];
+
+void propagate(int i, int l, int r, bool wh) {
+    if (!lazy[i][wh]) return;
+    tree[i][wh] += lazy[i][wh];
+    if (l != r) {
+        lazy[i << 1][wh] += lazy[i][wh];
+        lazy[i << 1 | 1][wh] += lazy[i][wh];
+    }
+    lazy[i][wh] = 0;
+}
+
+bool range = 0;
+
+void update(int i, int l, int r, int a, int b, int v, bool wh) {
+    propagate(i, l, r, wh);
+    if (l > b || r < a) return;
+    if (l >= a && r <= b) {
+        lazy[i][wh] = v;
+        if (!range) tree[i][wh] = 0;
+        return propagate(i, l, r, wh);
+    }
+    int mid = l + r >> 1;
+    update(i << 1, l, mid, a, b, v, wh);
+    update(i << 1 | 1, mid + 1, r, a, b, v, wh);
+    tree[i][wh] = min(tree[i << 1][wh], tree[i << 1 | 1][wh]);
+}
+
+int get(int i, int l, int r, int a, int b, bool wh) {
+    propagate(i, l, r, wh);
+    if (l > b || r < a) return 1e9;
+    if (l >= a && r <= b) return tree[i][wh];
+    int mid = l + r >> 1;
+    return min(get(i << 1, l, mid, a, b, wh), get(i << 1 | 1, mid + 1, r, a, b, wh));
+}
+
+int a[N], b[N];
+int dp[N];
+
+int main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    for (int i = 0; i < 4 * N; i++) tree[i][0] = tree[i][1] = 1e9;
+    int n, c;
+    cin >> n >> c;
+    for (int i = 1; i < n; i++)cin >> a[i];
+    for (int i = 1; i < n; i++) cin >> b[i];
+    dp[0] = 0;
+    range = 0;
+    update(1, 0, n, 0, 0, 0, 0);
+    update(1, 0, n, 0, 0, 0, 1);
+    for (int i = 1; i < n; i++) {
+        range = 1;
+        update(1, 0, n, 0, i - 1, a[i], 0);
+        update(1, 0, n, 0, i - 1, b[i], 1);
+        dp[i] = min(get(1, 0, n, 0, i - 1, 0), get(1, 0, n, 0, i - 1, 1) + c);
+        range = 0;
+        update(1, 0, n, i, i, dp[i], 0);
+        update(1, 0, n, i, i, dp[i], 1);
+    }
+    for (int i = 0; i < n; i++) cout << dp[i] << " \n"[i + 1 == n];
+
+    return 0;
+}

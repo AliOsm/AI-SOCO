@@ -1,0 +1,48 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {
+    std::ios::sync_with_stdio(false); 
+    cin.tie(nullptr);
+    
+    int n, m;
+    cin >> n >> m;
+    vector<vector<int>> a(n, vector<int>(m));
+    vector<vector<int>> b(a);
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            cin >> a[i][j];
+        }
+    }   
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            cin >> b[i][j];
+        }
+    }   
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (a[i][j] > b[i][j]) {
+                swap(a[i][j], b[i][j]);
+            }
+        }
+    }
+    bool ok = true;
+    for (int i = 0; ok && i < n; ++i) {
+        for (int j = 1; ok && j < m; ++j) {
+            if (a[i][j - 1] >= a[i][j] || b[i][j - 1] >= b[i][j]) {
+                ok = false;
+            }
+        }
+    }
+    for (int j = 0; ok && j < m; ++j) {
+        for (int i = 1; ok && i < n; ++i) {
+            if (a[i - 1][j] >= a[i][j] || b[i - 1][j] >= b[i][j]) {
+                ok = false;
+            }
+        }
+    }
+    cout << (ok ? "Possible" : "Impossible") << "\n";
+    
+    return 0;
+}

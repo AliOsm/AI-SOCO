@@ -1,0 +1,196 @@
+#include <iostream>
+#include <complex>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+typedef long double ld;
+typedef complex<ld> cd;
+typedef vector<cd> vcd;
+typedef vector<int> vi;
+typedef vector<ld> vd;
+
+const ld pi = acos(-1);
+
+void fft(vcd &a, bool inv) {
+    int n = a.size();
+    int m = 0;
+    while (1 << m < n) m++;
+    vector<int> rev(n);
+    for (int i = 1, j = -1; i < n; i++) {
+        if ((i & (i - 1)) == 0) j++;
+        rev[i] = rev[i ^ (1 << j)] | (1 << (m - 1 - j));
+    }
+    for (int i = 0; i < n; i++) if (i < rev[i]) swap(a[i], a[rev[i]]);
+
+    for (int len = 1; len < n; len <<= 1) {
+        ld wAngle = pi / len;
+        if (inv) wAngle = -wAngle;
+        cd w = cd(cos(wAngle), sin(wAngle));
+        for (int i = 0; i < n; i += len * 2) {
+            cd W(1, 0);
+            for (int j = 0; j < len; j++, W *= w) {
+                cd x = a[i + j];
+                cd y = a[i + j + len] * W;
+                a[i + j] = x + y;
+                a[i + j + len] = x - y;
+            }
+        }
+    }
+
+    if (inv) for (cd &x : a) x /= n;
+}
+
+void fft(vd &real, vd &imag, bool inv) {
+    int n = real.size();
+    int m = 0;
+    while (1 << m < n) m++;
+    vi rev(n);
+    for (int i = 1, j = -1; i < n; i++) {
+        if ((i & (i - 1)) == 0) j++;
+        rev[i] = rev[i ^ (1 << j)] | (1 << (m - 1 - j));
+    }
+    for (int i = 0; i < n; i++) if (i < rev[i]) swap(real[i], real[rev[i]]), swap(imag[i], imag[rev[i]]);
+
+    for (int len = 1; len < n; len <<= 1) {
+        ld angle = pi / len;
+        if (inv) angle = -angle;
+        ld angleReal = cos(angle);
+        ld angleImag = sin(angle);
+        for (int i = 0; i < n; i += len * 2) {
+            ld wReal = 1;
+            ld wImag = 0;
+            for (int j = 0; j < len; j++) {
+                ld real1 = real[i + j];
+                ld imag1 = imag[i + j];
+                ld real2 = real[i + j + len];
+                ld imag2 = imag[i + j + len];
+
+                ld real3 = real2 * wReal - imag2 * wImag;
+                ld imag3 = real2 * wImag + imag2 * wReal;
+
+                real[i + j] = real1 + real3;
+                imag[i + j] = imag1 + imag3;
+                real[i + j + len] = real1 - real3;
+                imag[i + j + len] = imag1 - imag3;
+
+                ld nextWReal = wReal * angleReal - wImag * angleImag;
+                ld nextWImag = wReal * angleImag + wImag * angleReal;
+                wReal = nextWReal;
+                wImag = nextWImag;
+            }
+        }
+    }
+
+    if (inv) for (int i = 0; i < n; i++) real[i] /= n, imag[i] /= n;
+}
+
+vcd copy(vcd &a, int n) {
+    vcd b(n);
+    for (int i = 0; i < a.size(); i++) b[i] = a[i];
+    return b;
+}
+
+vd copy(vd &a, int n) {
+    vd b(n);
+    for (int i = 0; i < a.size(); i++) b[i] = a[i];
+    return b;
+}
+
+void compress(vcd &a) {
+    int last = 0;
+    for (int i = 0; i < a.size(); i++) {
+        if (a[i].real() < 0.1) {
+            a[i] = cd(0, 0);
+        } else {
+            last = i;
+            a[i] = cd(1, 0);
+        }
+    }
+    a.resize(last + 1);
+}
+
+void compress(vd &a) {
+    int last = 0;
+    for (int i = 0; i < a.size(); i++) {
+        if (a[i] < 0.1) {
+            a[i] = 0;
+        } else {
+            last = i;
+            a[i] = 1;
+        }
+    }
+    a.resize(last + 1);
+
+}
+
+int highestBit(int n) {
+    int m = 0;
+    while (1 << m <= n) m++;
+    return 1 << (m - 1);
+}
+
+vcd operator*(vcd &a, vcd &b) {
+    int n = highestBit(max(a.size(), b.size()) - 1) << 2;
+    vcd c = copy(a, n);
+    vcd d = copy(b, n);
+    fft(c, false);
+    fft(d, false);
+    for (int i = 0; i < n; i++) c[i] *= d[i];
+    fft(c, true);
+    compress(c);
+    return c;
+}
+
+vd operator*(vd &a, vd &b) {
+    int n = highestBit(max(a.size(), b.size()) - 1) << 2;
+    vd aReal = copy(a, n), aImag(n);
+    vd bReal = copy(b, n), bImag(n);
+    fft(aReal, aImag, false);
+    if (a == b) {
+        bReal = aReal;
+        bImag = aImag;
+    } else {
+        fft(bReal, bImag, false);
+    }
+    for (int i = 0; i < n; i++) {
+        ld real = aReal[i] * bReal[i] - aImag[i] * bImag[i];
+        ld imag = aReal[i] * bImag[i] + aImag[i] * bReal[i];
+        aReal[i] = real;
+        aImag[i] = imag;
+    }
+    fft(aReal, aImag, true);
+    compress(aReal);
+    return aReal;
+}
+
+vcd operator^(vcd &a, int p) {
+    if (p == 1) return a;
+    vcd b = a ^ (p / 2);
+    b = b * b;
+    if (p & 1) b = b * a;
+    return b;
+}
+
+vd operator^(vd &a, int p) {
+    if (p == 1) return a;
+    vd b = a ^ (p / 2);
+    b = b * b;
+    if (p & 1) b = b * a;
+    return b;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    vd have(1001);
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        have[x] = 1;
+    }
+    compress(have);
+    have = have ^ k;
+    for (int i = 0; i < have.size(); i++) if (have[i]) cout << i << ' ';
+}

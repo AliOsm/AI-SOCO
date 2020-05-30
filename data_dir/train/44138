@@ -1,0 +1,237 @@
+#include "bits/stdc++.h"
+#define MAXN 300009
+#define INF 998244353 
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+int mod(ll x){
+	return (x%INF);	
+}
+int Fe(int x,ll y){
+	if(!y)
+		return 1;
+	int h=Fe(x,y/2);
+	h=mod(h*1LL*h);
+	if(y&1)
+		h=mod(h*1LL*x);
+	return h;			
+}
+int cnt[MAXN],fac[MAXN],inz[MAXN];
+/**
+ *    author:  tourist
+ *    created: 27.05.2018 19:00:11       
+**/
+//----------------------------
+const int md = 998244353;
+ 
+inline void add(int &a, int b) {
+  a += b;
+  if (a >= md) a -= md;
+}
+ 
+inline void sub(int &a, int b) {
+  a -= b;
+  if (a < 0) a += md;
+}
+ 
+inline int mul(int a, int b) {
+#if !defined(_WIN32) || defined(_WIN64)
+  return (int) ((long long) a * b % md);
+#endif
+  unsigned long long x = (long long) a * b;
+  unsigned xh = (unsigned) (x >> 32), xl = (unsigned) x, d, m;
+  asm(
+    "divl %4; \n\t"
+    : "=a" (d), "=d" (m)
+    : "d" (xh), "a" (xl), "r" (md)
+  );
+  return m;
+}
+ 
+inline int power(int a, long long b) {
+  int res = 1;
+  while (b > 0) {
+    if (b & 1) {
+      res = mul(res, a);
+    }
+    a = mul(a, a);
+    b >>= 1;
+  }
+  return res;
+}
+ 
+inline int inv(int a) {
+  a %= md;
+  if (a < 0) a += md;
+  int b = md, u = 0, v = 1;
+  while (a) {
+    int t = b / a;
+    b -= t * a; swap(a, b);
+    u -= t * v; swap(u, v);
+  }
+  assert(b == 1);
+  if (u < 0) u += md;
+  return u;
+}
+ 
+namespace ntt {
+  int base = 1;
+  vector<int> roots = {0, 1};
+  vector<int> rev = {0, 1};
+  int max_base = -1;
+  int root = -1;
+ 
+  void init() {
+    int tmp = md - 1;
+    max_base = 0;
+    while (tmp % 2 == 0) {
+      tmp /= 2;
+      max_base++;
+    }
+    root = 2;
+    while (true) {
+      if (power(root, 1 << max_base) == 1) {
+        if (power(root, 1 << (max_base - 1)) != 1) {
+          break;
+        }
+      }
+      root++;
+    }
+  }
+ 
+  void ensure_base(int nbase) {
+    if (max_base == -1) {
+      init();
+    }
+    if (nbase <= base) {
+      return;
+    }
+    assert(nbase <= max_base);
+    rev.resize(1 << nbase);
+    for (int i = 0; i < (1 << nbase); i++) {
+      rev[i] = (rev[i >> 1] >> 1) + ((i & 1) << (nbase - 1));
+    }
+    roots.resize(1 << nbase);
+    while (base < nbase) {
+      int z = power(root, 1 << (max_base - 1 - base));
+      for (int i = 1 << (base - 1); i < (1 << base); i++) {
+        roots[i << 1] = roots[i];
+        roots[(i << 1) + 1] = mul(roots[i], z);
+      }
+      base++;
+    }
+  }
+ 
+  void fft(vector<int> &a) {
+    int n = (int) a.size();
+    assert((n & (n - 1)) == 0);
+    int zeros = __builtin_ctz(n);
+    ensure_base(zeros);
+    int shift = base - zeros;
+    for (int i = 0; i < n; i++) {
+      if (i < (rev[i] >> shift)) {
+        swap(a[i], a[rev[i] >> shift]);
+      }
+    }
+    for (int k = 1; k < n; k <<= 1) {
+      for (int i = 0; i < n; i += 2 * k) {
+        for (int j = 0; j < k; j++) {
+          int x = a[i + j];
+          int y = mul(a[i + j + k], roots[j + k]);
+          a[i + j] = x + y - md;
+          if (a[i + j] < 0) a[i + j] += md;
+          a[i + j + k] = x - y + md;
+          if (a[i + j + k] >= md) a[i + j + k] -= md;
+        }
+      }
+    }
+  }
+ 
+  vector<int> multiply(vector<int> a, vector<int> b, int eq = 0) {
+    int need = (int) (a.size() + b.size() - 1);
+    int nbase = 0;
+    while ((1 << nbase) < need) nbase++;
+    ensure_base(nbase);
+    int sz = 1 << nbase;
+    a.resize(sz);
+    b.resize(sz);
+    fft(a);
+    if (eq) b = a; else fft(b);
+    int inv_sz = inv(sz);
+    for (int i = 0; i < sz; i++) {
+      a[i] = mul(mul(a[i], b[i]), inv_sz);
+    }
+    reverse(a.begin() + 1, a.end());
+    fft(a);
+    a.resize(need);
+    return a;
+  }
+ 
+  vector<int> square(vector<int> a) {
+    return multiply(a, a, 1);
+  }
+}
+
+//-----------------------------
+int C(int x,int y){
+	if(x<y)	
+		return 0;
+	return mod(fac[x]*1LL*mod(inz[x-y]*1LL*inz[y]));	
+}
+int ans[MAXN<<2];
+void solve(int x){
+	int one=0,two=0;
+	for(int i=1;i<x;i++){
+		if(cnt[i]>=2)
+			two++;
+		else if(cnt[i])
+			one++;		
+	}
+	vector<int>p(one+1),q(two*2+1);
+	for(int i=0;i<=one;i++)
+		p[i]=mod(Fe(2,i)*1LL*C(one,i));
+	for(int i=0;i<=two*2;i++)
+		q[i]=C(2*two,i);
+	vector<int>pq=ntt::multiply(p, q);
+	for(int i=0;i<pq.size();i++)
+		ans[(i+x+1)*2]=mod(ans[(i+x+1)*2]+pq[i]);
+}
+int main(){
+ //   freopen("file.in", "r", stdin);
+    fac[0]=inz[0]=1;
+    int n,k;
+    scanf("%d%d",&n,&k);
+    for(int i=1;i<=n;i++){
+    	int x;
+		scanf("%d",&x);	
+		cnt[x]++;
+    	fac[i]=mod(fac[i-1]*1LL*i);
+		inz[i]=Fe(fac[i],INF-2);
+    }
+    for(int i=1;i<=k;i++){
+    	int x;
+		scanf("%d",&x);
+		solve(x);	
+    }
+    int q;
+    scanf("%d",&q);
+    while(q--){
+    	int x;
+		scanf("%d",&x);
+		printf("%d\n",ans[x]);	
+    }
+	return 0;
+}

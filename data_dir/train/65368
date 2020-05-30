@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 400010;
+const int oo = 1e9;
+
+struct ramp {
+	int x, d, t, p;
+} ramps[N];
+
+int n;
+map<int,int> num;
+vector< pair<pair<int,int>, int> > edges[N];
+vector<int> points;
+vector<int> ans;
+
+int d[N];
+pair<int,int> par[N];
+set< pair<int,int> > s;
+
+int dijkstra(int p, int q) {
+	for (int i = 0; i < points.size(); ++i) {
+		d[i] = oo;
+		par[i] = make_pair(-1, -1);
+	}
+	d[p] = 0;
+	s.insert( make_pair(0, p) );
+	while (!s.empty()) {
+		int v = s.begin()->second;
+		s.erase(s.begin());
+		for (int i = 0; i < edges[v].size(); ++i) {
+			int u = edges[v][i].first.first;
+			int w = edges[v][i].first.second;
+			if (d[v] + w < d[u]) {
+				s.erase( make_pair(d[u], u) );
+				d[u] = d[v] + w;
+				// cerr << "NOW: " << u << " -> " << d[u] << '\n';
+				par[u] = make_pair( v, edges[v][i].second );
+				s.insert( make_pair(d[u], u) );
+			}
+		}
+	}
+	return d[q];
+}
+
+int main() {
+	int len;
+	cin >> n >> len;
+	for (int i = 0; i < n; ++i) {
+		cin >> ramps[i].x >> ramps[i].d >> ramps[i].t >> ramps[i].p;
+		if (ramps[i].x - ramps[i].p >= 0) {
+			points.push_back(ramps[i].x - ramps[i].p);
+			points.push_back(ramps[i].x + ramps[i].d);
+		}
+	}
+	points.push_back(0);
+	points.push_back(len);
+	sort(points.begin(), points.end());
+	points.resize(unique(points.begin(), points.end()) - points.begin());
+	for (int i = 0; i < points.size(); ++i) {
+		num[points[i]] = i;
+	}
+	for (int i = 0; i < points.size() - 1; ++i) {
+		edges[i].push_back( make_pair( make_pair(i + 1, points[i + 1] - points[i]), 0 ) );
+		edges[i + 1].push_back( make_pair( make_pair(i, points[i + 1] - points[i]), 0 ) );
+	}
+	for (int i = 0; i < n; ++i) {
+		if (ramps[i].x - ramps[i].p >= 0) {
+			edges[num[ramps[i].x - ramps[i].p]].push_back( make_pair( make_pair(num[ramps[i].x + ramps[i].d], ramps[i].p + ramps[i].t), i + 1 ) );
+		}
+	}
+	cout << dijkstra(num[0], num[len]) << '\n';
+	int cur = num[len];
+	while (par[cur].first != -1) {
+		if (par[cur].second) {
+			ans.push_back(par[cur].second);
+		}
+		cur = par[cur].first;
+	}
+	cout << ans.size() << '\n';
+	for (int i = ans.size() - 1; i >= 0; --i)
+		cout << ans[i] << ' ';
+	cout << '\n';
+	return 0;
+}

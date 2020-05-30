@@ -1,0 +1,191 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <cstdio>
+#include <iomanip>
+#include <fstream>
+#include <cassert>
+#include <cstring>
+#include <unordered_set>
+#include <unordered_map>
+#include <numeric>
+#include <ctime>
+#include <bitset>
+#include <complex>
+#include <random>
+
+using namespace std;
+
+const int N = 1e5 + 7;
+const int LIM = 21;
+
+int used[N];
+int add[N];
+int pr[N];
+int h[N];
+vector<int> g[N];
+
+vector<int> sn;
+
+int up[LIM][N];
+int mx[LIM][N];
+
+void dfs(int cur, int p, int ch) {
+    h[cur] = ch;
+    sn.push_back(cur);
+    pr[cur] = p;
+    used[cur] = 1;
+    for (auto t : g[cur]) {
+        if (t == p) continue;
+        if (used[t]) {
+            if (h[t] < h[cur]) {
+                add[cur]++;
+                add[t]--;
+            }
+        } else {
+            dfs(t, cur, ch + 1);
+        }
+    }
+}
+
+int val[N];
+
+void dfsv(int cur) {
+    used[cur] = 1;
+    for (auto t : g[cur]) {
+        if (!used[t]) {
+            dfsv(t);
+            val[cur] += val[t];
+        }
+    }
+    val[cur] += add[cur];
+}
+
+vector<pair<int, int>> ans;
+
+void dfsans(int cur, int p) {
+    used[cur] = 1;
+    for (auto t : g[cur]) {
+        if (t == p) continue;
+        if (used[t]) {
+            //check max
+            if (h[t] > h[cur]) continue;
+            int ok = 1;
+            {
+                int dl = (h[cur] - h[t]);
+                int v = cur;
+                int cm = 0;
+                for (int i = LIM - 1; i >= 0; i--) {
+                    if ((dl >> i) & 1) {
+                        cm = max(cm, mx[i][v]);
+                        v = up[i][v];
+                    }
+                }
+                if (cm > 1) ok = 0;
+            }
+            // cerr << cur + 1 << ' ' << t + 1 << endl;
+            // cerr << "ok " << ok << endl;
+            if (!ok) continue;
+            {
+                int v = cur;
+                while (v != t) {
+                    ans.push_back({v, pr[v]});
+                    v = pr[v];
+                }
+                ans.push_back({cur, t});
+            }
+        } else {
+            dfsans(t, cur);
+        }
+    }
+}
+
+void init_ups(vector<int> to) {
+    for (auto t : to) {
+        up[0][t] = pr[t];
+        mx[0][t] = val[t];
+    }
+    for (int i = 0; i + 1 < LIM; i++) {
+        for (auto t : to) {
+            int mid = up[i][t];
+            if (mid == -1) {
+                up[i + 1][t] = -1;
+                mx[i + 1][t] = -1;
+            } else {
+                up[i + 1][t] = up[i][mid];
+                mx[i + 1][t] = max(mx[i][t], mx[i][mid]);
+            }
+        }
+    }
+
+}
+
+void solve_comp(int i) {
+    sn.clear();
+    dfs(i, -1, 0);
+    for (auto t : sn) {
+        used[t] = 0;
+    }
+    // cerr << "pr" << endl;
+    // for (int j = 0; j < 3; j++) {
+    //     cerr << pr[j] + 1 << ' ';
+    // }
+    // cerr << endl;
+    dfsv(i);
+    // cerr << "val" << endl;
+    // for (int j = 0; j < 3; j++) {
+    //     cerr << val[j] << ' ';
+    // }
+    // cerr << endl;
+    init_ups(sn);
+    for (auto t : sn) {
+        used[t] = 0;
+    }
+    dfsans(i, -1);
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    for (int i = 0; i < LIM; i++) {
+        for (int j = 0; j < N; j++) {
+            up[i][j] = -1;
+            mx[i][j] = -1;
+        }
+    }
+
+    int n, m;
+    cin >> n >> m;
+    map<pair<int, int>, int> ind;
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        u--;
+        v--;
+        g[u].push_back(v);
+        g[v].push_back(u);
+        ind[{u, v}] = i;
+        ind[{v, u}] = i;
+    }
+    for (int i = 0; i < n; i++) {
+        if (!used[i]) {
+            solve_comp(i);
+        }
+    }
+    vector<int> res;
+    for (auto t : ans) {
+        res.push_back(ind[t]);
+    }
+    sort(res.begin(), res.end());
+    cout << res.size() << endl;
+    for (auto t : res) {
+        cout << t + 1 << ' ';
+    }
+    cout << endl;
+}   

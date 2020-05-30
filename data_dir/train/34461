@@ -1,0 +1,133 @@
+#include<bits/stdc++.h>
+#define MOD 1000000007
+#define ll long long
+#define mp make_pair
+#define pb push_back 
+#define N 100010
+using namespace std;
+int ct = 0, dp[N][20], level[N], parent[N], visited[N];
+set<int> pw[N][20];
+vector<int> A[N], graph[N];
+set<int> inst(vector<int> A){
+	set<int> res;
+	for(int i = 0; i < min((int)A.size(), 10); i++)
+		res.insert(A[i]);
+	return res;
+}
+int lca(int a,int b){
+	int lg;
+	if(level[a]<level[b])swap(a,b);
+	for(lg=0;(1<<lg)<=level[a];lg++);
+	for(int i=lg-1;i>=0;i--)
+		if((level[a]-(1<<i))>=level[b]){
+			a=dp[a][i];
+		}
+	if(a==b)
+		return a;
+	for(int i=lg;i>=0;i--){
+		if(dp[a][i]!=dp[b][i]){
+			a=dp[a][i];
+			b=dp[b][i];
+		}
+	}
+	return parent[a];
+}
+void precal(int s){
+	visited[s] = 1;
+	level[s] = ct;
+	sort(A[s].begin(), A[s].end());
+	for(int i = 0; i < graph[s].size(); i++){
+		if(!visited[graph[s][i]]){
+			ct++;
+			dp[graph[s][i]][0] = s;
+			parent[graph[s][i]] = s;
+			pw[graph[s][i]][0] = inst(A[s]);
+			//pw[graph[s][i]][0].insert(graph[s][i]);
+			precal(graph[s][i]);
+			ct--;
+		}
+	}
+}
+void mergeit(set<int>& A, set<int>& B){
+	
+	for(auto i = B.begin(); i != B.end(); i++){
+		if(A.size() < 10){
+			A.insert(*i);
+		}
+		else if(*A.rbegin() > *i && A.find(*i) == A.end()){
+			A.erase(*A.rbegin());
+			A.insert(*i);
+		}
+	}
+}
+void printit(set<int> A){
+	cout << "CONTENTS\n";
+	for(auto i = A.begin(); i != A.end(); i++){
+		cout << *i + 1 << " ";
+	}
+	cout << '\n';
+}
+int main(){
+	ios::sync_with_stdio(false);
+	cin.tie(NULL);
+	int n, m, q;
+	cin >> n >> m >> q;
+	for(int i = 0; i < n - 1; i++){
+		int a, b;
+		cin >> a >> b;
+		graph[a - 1].pb(b - 1);
+		graph[b - 1].pb(a - 1);
+	}
+	memset(parent, -1, sizeof(parent));
+	memset(visited, 0, sizeof(visited));
+	memset(dp, -1, sizeof(dp));
+	for(int i = 0; i < m; i++){
+		int x;
+		cin >> x;
+		A[x - 1].pb(i);
+	}
+	precal(0);
+	for(int j = 1; j < 20; j++){
+		for(int i = 0; i < n; i++){
+			if(dp[i][j - 1] != -1){
+				dp[i][j] = dp[dp[i][j - 1]][j - 1];
+				pw[i][j] = pw[i][j - 1];
+				mergeit(pw[i][j], pw[dp[i][j - 1]][j - 1]);
+			}
+		}
+	}
+	while(q--){
+		int v, u, a;
+		cin >> v >> u >> a;
+		v--;
+		u--;
+		//cout << u + 1 << " " << v + 1 << " " << lca(u, v) + 1 << "LA\n";
+		int x = lca(u, v);
+		//assert(x >= 0);
+		int nv = u;
+		set<int> cur = inst(A[u]);
+		for(int i = 0; i < min(int(A[v].size()), 10); i++)
+			cur.insert(A[v][i]);
+		for(int i = 19; i >= 0; i--){
+			if(level[nv] - (1 << i) >= level[x]){
+				mergeit(cur, pw[nv][i]);
+				nv = dp[nv][i];
+			}
+		}
+		//cerr << nv + 1 << " " << "REACHED\n";
+		nv = v;
+		for(int i = 19; i >= 0; i--){
+			if(level[nv] - (1 << i) >= level[x]){
+				mergeit(cur, pw[nv][i]);
+				nv = dp[nv][i];
+			}
+		}
+		int iter = 0 ;
+		cout << min(a, (int)cur.size()) << ' ';
+		for(auto i = cur.begin(); i != cur.end() && iter < a; i++, iter++){
+			cout << *i + 1 << " ";
+		}
+		cout << '\n';
+	}
+
+}

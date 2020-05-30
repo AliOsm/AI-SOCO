@@ -1,0 +1,11 @@
+#include <bits/stdc++.h>
+using namespace std;
+int main()
+{
+    string s;
+    cin >> s;
+    s = "0" + s;
+    int n = s.length();
+    int x = stoi(s.substr(n - 2));
+    cout << (x % 4 == 0 ? 4 : 0) << endl;
+}

@@ -1,0 +1,131 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 300010;
+
+unsigned long long p[N];
+
+struct segtree {
+    struct node {
+        // don't forget to set default value (used for leaves)
+        // not necessarily neutral element!
+        int sz;
+        unsigned long long sum1, sum2;
+        node() {
+            sum1 = 0;
+            sum2 = 0;
+            sz = 0;
+        }
+    };
+
+    node unite(const node &a, const node &b) const {
+        node res;
+        res.sum1 = a.sum1 * p[b.sz] + b.sum1;
+        res.sum2 = a.sum2 + b.sum2 * p[a.sz];
+        res.sz = a.sz + b.sz;
+        return res;
+    }
+
+    inline void pull(int x, int z) {
+        tree[x] = unite(tree[x + 1], tree[z]);
+    }
+
+    int n;
+    vector<node> tree;
+
+    void build(int x, int l, int r) {
+        if (l == r) {
+            tree[x].sz = 1;
+            return;
+        }
+        int m = (l + r) >> 1;
+        int z = x + ((m - l + 1) << 1);
+        build(x + 1, l, m);
+        build(z, m + 1, r);
+        pull(x, z);
+    }
+
+    node get(int x, int l, int r, int ll, int rr) {
+        if (ll <= l && r <= rr) {
+            return tree[x];
+        }
+        int y = (l + r) >> 1;
+        int z = x + ((y - l + 1) << 1);
+        node res;
+        if (rr <= y) {
+            res = get(x + 1, l, y, ll, rr);
+        } else {
+            if (ll > y) {
+                res = get(z, y + 1, r, ll, rr);
+            } else {
+                res = unite(get(x + 1, l, y, ll, rr), get(z, y + 1, r, ll, rr));
+            }
+        }
+        pull(x, z);
+        return res;
+    }
+
+    void modify(int x, int l, int r, int pos) {
+        if (l == r) {
+            tree[x].sum1 = 1;
+            tree[x].sum2 = 1;
+            return;
+        }
+        int m = (l + r) >> 1;
+        int z = x + ((m - l + 1) << 1);
+        if (pos <= m) {
+            modify(x + 1, l, m, pos);
+        }
+        else {
+            modify(z, m + 1, r, pos);
+        }
+        pull(x, z);
+    }
+
+    segtree () {
+    }
+    segtree(int n) : n(n) {
+        assert(n > 0);
+        tree.resize(2 * n - 1);
+        build(0, 0, n - 1);
+    }
+
+    unsigned long long get1(int ll, int rr) {
+        assert(0 <= ll && ll <= rr && rr <= n - 1);
+        return get(0, 0, n - 1, ll, rr).sum1;
+    }
+
+    unsigned long long get2(int ll, int rr) {
+        assert(0 <= ll && ll <= rr && rr <= n - 1);
+        return get(0, 0, n - 1, ll, rr).sum2;
+    }
+
+
+
+    void modify(int pos) {
+        modify(0, 0, n - 1, pos);
+    }
+};
+int a[N];
+int main() {
+    int n;
+    scanf("%d", &n);
+    segtree st(n + 1);
+    for (int i = 1; i <= n; i++) {
+        scanf("%d", &a[i]);
+    }
+    p[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        p[i] = p[i - 1] * 10007;
+    }
+    for (int i = 1; i <= n; i++) {
+        int k = min(a[i] - 1, n - a[i]);
+        if (st.get1(a[i] - k, a[i]) != st.get2(a[i], a[i] + k)) {
+            puts("YES");
+            return 0;
+        }
+        st.modify(a[i]);
+    }
+    puts("NO");
+    return 0;
+}

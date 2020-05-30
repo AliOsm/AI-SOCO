@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+const int oo = 1E9;
+const int MAXN = 300010;
+
+int n;
+int in[2][MAXN];
+
+vi Fpos(vector<ll> on){
+  vi res(n, oo);
+  map<ll, int> pos;
+
+  ll sum = 0;
+  pos[0] = n;
+  for(int i = n - 1;i >= 0;--i){
+    sum += on[i];
+    if(pos.count(sum)) res[i] = pos[sum] - 1;
+    pos[sum] = i;
+  }
+
+  for(int i = n - 2;i >= 0;--i)
+    relaxMin(res[i], res[i + 1]);
+
+  res.pb(oo);
+  return res;
+}
+
+struct Compare{
+  bool operator()(const pii& f, const pii& s) const{
+    return mp(f.fi + f.se, f.fi) <
+           mp(s.fi + s.se, s.fi);
+  }
+};
+
+set<pii, Compare> use;
+map<pii, int> dp;
+
+void AddState(int x, int y, int v){
+  pii state(x, y);
+  use.insert(state);
+  if(!dp.count(state)) dp[state] = v;
+  else relaxMax(dp[state], v);
+}
+
+int main(){
+  scanf("%d", &n);
+  for(int i = 0;i < n;++i)
+    scanf("%d", &in[0][i]);
+  for(int i = 0;i < n;++i)
+    scanf("%d", &in[1][i]);
+
+  auto top = Fpos(vector<ll>(in[0], in[0] + n));
+  auto bot = Fpos(vector<ll>(in[1], in[1] + n));
+
+  vector<ll> sum(in[0], in[0] + n);
+  for(int i = 0;i < n;++i) sum[i] += in[1][i];
+  auto two = Fpos(sum);
+
+  int ans = 0;
+  use.insert(mp(0, 0));
+  dp[mp(0, 0)] = 0;
+
+  while(!use.empty()){
+    auto c = *use.begin();
+    use.erase(c);
+
+    int v = dp[c];
+    relaxMax(ans, v);
+
+    if(max(c.fi, c.se) < n){
+      int e = two[max(c.fi, c.se)];
+      if(e < oo) AddState(e + 1, e + 1, v + 1);
+    }
+
+    int ptop = top[c.fi];
+    int pbot = bot[c.se];
+    if(ptop < oo && pbot >= ptop)
+      AddState(ptop + 1, c.se, v + 1);
+    if(pbot < oo && ptop >= pbot)
+      AddState(c.fi, pbot + 1, v + 1);
+  }
+
+  printf("%d\n", ans);
+  return 0;
+}

@@ -1,0 +1,155 @@
+#pragma GCC optimize ("O3")
+#include <bits/stdc++.h>
+#define ll long long
+using namespace std;
+const int N = 1e5 + 5, M = 2 * N + 2;
+
+int head[N], nxt[M], to[M], ne, n;
+
+void init(){
+    ne = 0;
+    memset(head, -1, n * sizeof head[0]);
+}
+
+void addEdge(int f, int t){
+    to[ne] = t;
+    nxt[ne] = head[f];
+    head[f] = ne++;
+}
+
+void addBiEdge(int a, int b){
+    addEdge(a, b);
+    addEdge(b, a);
+}
+
+int dep[N], height[M];
+int nodetoindex[M], indextonode[M], sz;
+
+void dfs(int u = 0, int par = -1, int lvl = 0){
+    dep[u] = lvl;
+    nodetoindex[u] = sz;
+    indextonode[sz] = u;
+    height[sz++] = lvl;
+    for(int e = head[u] ; ~e ; e = nxt[e]){
+        int v = to[e];
+        if(v == par)continue;
+        dfs(v, u, lvl + 1);
+        nodetoindex[u] = sz;
+        indextonode[sz] = u;
+        height[sz++] = lvl;
+    }
+}
+
+const int range = 2 * N + 5;
+
+int LG[range], sparse[18][range];
+inline int idx_query(int i, int j){
+    return (height[i] < height[j]) ? i : j;
+}
+void build_sparse(){
+    LG[0] = -1;
+    for(int i = 0 ; i < sz ; ++i){
+        LG[i + 1] = LG[i] + !(i & (i + 1));
+        sparse[0][i] = i;
+    }
+    for(int lg = 1 ; (1 << lg) <= sz ; ++lg){
+        for(int i = 0 ; i + (1 << lg) <= sz ; ++i){
+            int I = sparse[lg - 1][i];
+            int J = sparse[lg - 1][i + (1 << (lg - 1))];
+            sparse[lg][i] = idx_query(I, J);
+        }
+    }
+}
+int idx(int l, int r){
+    if(l > r)swap(l, r);
+    int sz = r - l + 1;
+    int lg = LG[sz];
+    int i = sparse[lg][l];
+    int j = sparse[lg][r - (1 << lg) + 1];
+    return idx_query(i, j);
+}
+
+int getLca(int u, int v){
+    u = nodetoindex[u];
+    v = nodetoindex[v];
+    return indextonode[idx(u, v)];
+}
+
+int getDis(int u, int v){
+    int lca = getLca(u, v);
+    return dep[u] + dep[v] - 2 * dep[lca];
+}
+
+int dis[N], inQ[N];
+vector<int> Nodes, tmp;
+queue<pair<int, int> > Queries;
+
+
+void solve(){
+
+    while(Queries.size()){
+        int t = Queries.front().first;
+        int u = Queries.front().second;
+        Queries.pop();
+        if(t == 1){
+            if(!inQ[u])
+                Nodes.emplace_back(u), ++inQ[u], tmp.emplace_back(u);
+            continue;
+        }
+        int mn = dis[u];
+        for(auto v : tmp)
+            mn = min(mn, getDis(u, v));
+        printf("%d\n", mn);
+    }
+
+    tmp.clear();
+
+    sz = 0;
+    memset(dis, -1, n * sizeof dis[0]);
+
+    queue<int> q;
+    for(auto u : Nodes)
+        q.push(u), dis[u] = 0;
+
+    while(q.size()){
+        int u = q.front();
+        q.pop();
+        for(int e = head[u] ; ~e ; e = nxt[e]){
+            int v = to[e];
+            if(~dis[v])continue;
+            q.push(v);
+            dis[v] = dis[u] + 1;
+        }
+    }
+
+}
+
+int main(){
+    int q;
+    scanf("%d%d", &n, &q);
+    init();
+    for(int i = 1 ; i < n ; ++i){
+        int u, v;
+        scanf("%d%d", &u, &v);
+        addBiEdge(--u, --v);
+    }
+
+    dfs();
+    build_sparse();
+
+    inQ[0] = 1;
+    Nodes.emplace_back(0);
+    solve();
+
+    sz = 0;
+    int sq = sqrt(q);
+
+    while(q--){
+        ++sz;
+        int t, u;
+        scanf("%d%d", &t, &u);
+        Queries.emplace(t, --u);
+        if(sz == sq)solve();
+    }
+    solve();
+}

@@ -1,0 +1,77 @@
+//AUTHOR : TIRTH JARSANIA
+//COLLEGE : DAIICT
+
+#include<bits/stdc++.h>
+using namespace std;
+
+#define bp __builtin_popcountll
+#define ll long long int
+#define ld long double
+#define pb push_back
+#define ff first
+#define ss second
+#define pii pair<ll,ll>
+#define precision(x,d) cout<<fixed<<setprecision(d)<<x
+#define minQueue priority_queue<pii,vector<pii>,greater<pii> > 
+#define maxQueue priority_queue<pii> 
+#define FAST ios_base::sync_with_stdio(false),cin.tie(0),cout.tie(0);
+
+ll const mod = 1e9+7;
+ll const N = 1e6;
+ll binpow(ll a,ll b)
+{
+    ll res = 1;
+    a %= mod;
+    while( b)
+    {
+        if( (b&1) ) res = ( res*a)%mod;
+        a = (a*a)%mod;
+        b >>= 1;
+    }
+    return res;
+}
+ll fact[N+1];
+ll inv[N+1];
+ll pre()
+{
+    fact[0]=1;
+    inv[0]=1;
+    for(int i=1;i<=N;i++)
+    {
+        fact[i]=(fact[i-1]*i)%mod;
+        inv[i]=binpow(fact[i],mod-2)%mod;
+    }
+}
+ll ncr(ll n,ll r)
+{
+    if(n<r) return 0;
+    if(r==0 || r==n) return 1;
+    return (((fact[n]*inv[r])%mod)*inv[n-r])%mod;
+}
+int main()
+{
+    pre();
+    ll n,m;
+    cin>>n>>m;
+   
+    ll ans1=1;
+    for(ll i=1;i<=n;i++)
+    {
+        ll n1=i;
+        ll n2=n-i;
+        if(n1<=n2)
+        {
+            ans1=(ans1+ncr(n2,n1))%mod;
+        }
+    }
+    for(ll i=1;i<=m;i++)
+    {
+        ll n1=i;
+        ll n2=m-i;
+        if(n1<=n2)
+        {
+            ans1=(ans1+ncr(n2,n1))%mod;
+        }
+    }
+    cout<<(ans1*2)%mod;
+}

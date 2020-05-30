@@ -1,0 +1,125 @@
+#include <algorithm>
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#include <set>
+#include <map>
+using namespace std;
+
+#define F first
+#define S second
+#define P_B push_back
+#define size(x) (int)x.size()
+#define all(x) x.begin(), x.end()
+#define FR(i, a, b) for(int i = a; i < b; i++)
+#define ROF(i, a, b) for(int i = a; i >= b; i--)
+#define fast ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+
+typedef long long ll;
+typedef pair <int, int> pii;
+typedef pair <ll, ll> pll;
+
+//const int mod = 1000 * 1000 * 1000 + 7;
+const int MAXN = 1000 * 100 + 10, SQ = 300;
+vector <int> graph[MAXN], t[MAXN];
+vector <pii> vec[MAXN];
+int c[MAXN], ans[MAXN];
+set <pii> st[2][MAXN];
+bool mark[MAXN];
+
+void dfs(int v)
+{
+	mark[v] = true;
+	FR(i, 0, SQ)
+		t[v].P_B(0);
+	t[v][1]++;
+	st[0][v].insert({c[v], 1});
+	for(auto u: graph[v])
+		if(!mark[u])
+		{
+			dfs(u);
+			if(size(st[0][u]) + size(st[1][u]) > size(st[0][v]) + size(st[1][v]))
+			{
+				st[0][u].swap(st[0][v]);
+				st[1][u].swap(st[1][v]);
+				t[u].swap(t[v]);
+			}
+			FR(j, 0, 2)
+			{
+				for(auto x: st[j][u])
+				{
+					auto it1 = st[0][v].lower_bound({x.F, -1});
+					auto it2 = st[1][v].lower_bound({x.F, -1});
+					pii new_x = x;
+					if(it1 != st[0][v].end() && it1 -> F == x.F)
+					{
+						t[v][it1 -> S]--;
+						x.S += (it1 -> S);
+						st[0][v].erase(it1);
+					}
+					else if(it2 != st[1][v].end() && it2 -> F == x.F)
+					{
+						x.S += (it2 -> S);
+						st[1][v].erase(it2);
+					}
+					if(x.S < SQ)
+					{
+						t[v][x.S]++;
+						st[0][v].insert(x);
+					}
+					else
+						st[1][v].insert(x);
+				}
+			}
+			st[0][u].clear();
+			st[1][u].clear();
+			t[u].clear();
+		}
+	for(auto q: vec[v])
+		if(q.F < SQ)
+		{
+			ans[q.S] = size(st[1][v]);
+			FR(i, q.F, SQ)
+				ans[q.S] += t[v][i];
+		}
+		else
+		{
+			for(auto x: st[1][v])
+				if(x.S >= q.F)
+					ans[q.S]++;
+		}
+}
+
+int main()
+{
+	int n, q;
+	scanf("%d %d", &n, &q);
+	FR(i, 0, n)
+		scanf("%d", c + i);
+	FR(i, 0, n - 1)
+	{
+		int a, b;
+		scanf("%d %d", &a, &b);
+		a--, b--;
+		graph[a].P_B(b);
+		graph[b].P_B(a);
+	}
+
+	FR(i, 0, q)
+	{
+		int v, k;
+		scanf("%d %d", &v, &k);
+		vec[v - 1].P_B({k, i});
+	}
+
+	FR(i, 0, n)
+		sort(all(vec[i]));
+
+	dfs(0);
+
+	FR(i, 0, q)
+		printf("%d\n", ans[i]);
+	return 0;
+}
+

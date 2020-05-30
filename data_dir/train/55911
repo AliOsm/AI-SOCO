@@ -1,0 +1,243 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("no-stack-protector")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,popcnt,abm,mmx,tune=native")
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stdio.h>
+#include <cstdio>
+#include <math.h>
+#include <cmath>
+#include <string>
+#include <cstring>
+#include <queue>
+#include <deque>
+#include <random>
+#include <iomanip>
+#include <bitset>
+
+using namespace std;
+
+template<typename T> void uin(T &a, T b) {
+    if (b < a) {
+        a = b;
+    }
+}
+
+template<typename T> void uax(T &a, T b) {
+    if (b > a) {
+        a = b;
+    }
+}
+
+#define int long long
+#define left left228
+#define right right228
+#define prev prev228
+#define mp make_pair
+#define all(v) v.begin(), v.end()
+#define forn(i, n) for (int i = 0; i < (int)n; ++i)
+#define firn(i, n) for (int i = 1; i < (int)n; ++i)
+#define x first
+#define y second
+
+const int N = 228228, LG = 20;
+const int INF = 1e17 + 228;
+
+vector<int> g[N];
+vector< pair<int, int> > gr[N];
+int h[N], tin[N], tout[N], timer = 0;
+int p[N][LG];
+
+void dfs(int v, int par = 1) {
+    h[v] = (par == v ? 0 : h[par] + 1);
+    p[v][0] = par;
+    for (int k = 1; k < LG; ++k) {
+        p[v][k] = p[p[v][k - 1]][k - 1];
+    }
+    tin[v] = timer++;
+    for (int to : g[v]) {
+        if (to != par) dfs(to, v);
+    }
+    tout[v] = timer++;
+}
+bool anc(int u, int v) { return tin[u] <= tin[v] && tout[u] >= tout[v]; }
+int get_lca(int u, int v) {
+    if (anc(u, v)) return u;
+    if (anc(v, u)) return v;
+    for (int k = LG - 1; k + 1; --k) {
+        if (!anc(p[u][k], v)) u = p[u][k];
+    }
+    return p[u][0];
+}
+
+
+struct tri
+{
+    int d, id, go, v;
+    tri() {}
+
+    tri(int _d, int _id, int _go, int _v) {d = _d, id = _id, go = _go, v = _v;}
+};
+bool operator<(tri fir, tri sec) {
+    if (fir.d < sec.d) return 1;
+    if (fir.d > sec.d) return 0;
+    if (fir.id < sec.id) return 1;
+    if (fir.id > sec.id) return 0;
+    if (fir.go > sec.go) return 1;
+    if (fir.go < sec.go) return 0;
+    return fir.v < sec.v;
+}
+bool operator==(tri a, tri b) {
+    return a.d == b.d && a.id == b.id && a.go == b.go && a.v == b.v;
+}
+bool operator>(tri fir, tri sec) {
+    return !(fir < sec) && !(fir == sec);
+}
+
+tri dist[N];
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    int n;
+    cin >> n;
+    for (int i = 0; i < n - 1; ++i) {
+        int u, v;
+        cin >> u >> v;
+        g[u].emplace_back(v);
+        g[v].emplace_back(u);
+    }
+    dfs(1);
+    int Q;
+    cin >> Q;
+    while(Q--) {
+        int k, m;
+        cin >> k >> m;
+        vector<int> virus(k), speed(k);
+        for (int i = 0; i < k; ++i) {
+            cin >> virus[i] >> speed[i];
+        }
+        vector<int> imp(m);
+        for (int i = 0; i < m; ++i) {
+            cin >> imp[i];
+        }
+        vector<int> all;
+        for (int i : imp) {
+            all.emplace_back(i);
+        }
+        for (int i = 0; i < k; ++i) {
+            all.emplace_back(virus[i]);
+        }
+        sort(all.begin(), all.end(), [&] (int u, int v) {
+            return tin[u] < tin[v];
+        });
+        int SS = (int)all.size();
+        for (int i = 0; i < SS - 1; ++i) {
+            all.emplace_back(get_lca(all[i], all[i + 1]));
+        }
+        sort(all.begin(), all.end());
+        all.erase(unique(all.begin(), all.end()), all.end());
+        sort(all.begin(), all.end(), [&] (int u, int v) {
+            return tin[u] < tin[v];
+        });
+        for (int i : all) {
+            gr[i].clear();
+            dist[i] = {INF, INF, -INF, i};
+        }
+        vector<int> st;
+        for (int v : all) {
+            while (!st.empty() && !anc(st.back(), v)) st.pop_back();
+            if (!st.empty()) {
+                int par = st.back();
+                gr[par].emplace_back(v, h[v] - h[par]);
+                gr[v].emplace_back(par, h[v] - h[par]);
+            }
+            st.push_back(v);
+        }
+        set< tri > q;
+        for (int i = 0; i < k; ++i) {
+            q.insert(tri(0, i, 0, virus[i]));
+            dist[virus[i]] = tri(0, i, 0, virus[i]);
+        }
+        while (!q.empty()) {
+            tri pa = *q.begin();
+            q.erase(pa);
+
+            int dst = pa.d;
+            int id = pa.id;
+            int rest = pa.go;
+            int v = pa.v;
+            for (pair<int, int> go : gr[v]) {
+                int to = go.first;
+                int w = go.second;
+                int new_dst = 0;
+                int new_id = id;
+                int new_rest = 0;
+                if (rest >= w) {
+                    new_rest = rest - w;
+                    new_dst = dst;
+                } else {
+                    w -= (rest + 1);
+                    new_rest = speed[id] - 1;
+                    new_dst = dst + 1;
+                    int steps = w / (speed[id]);
+                    int rem = w % (speed[id]);
+                    new_dst += steps;
+                    new_rest = (new_rest - rem + speed[id]) % (speed[id]);
+                }
+                if (tri(new_dst, new_id, new_rest, to) < dist[to]) {
+                    if (q.find(dist[to]) != q.end()) {
+                        q.erase(dist[to]);
+                    }
+                    dist[to] = tri(new_dst, new_id, new_rest, to);
+                    q.insert(dist[to]);
+                }
+            }
+        }
+        for (int i = 0; i < m; ++i) {
+            cout << dist[imp[i]].id + 1 << ' ';
+        }
+        cout << '\n';
+    }
+    return 0;
+
+}
+
+/*
+3
+1 1 2
+2 2 2
+3 3 2
+2 1 1
+3 2 1
+
+
+2 2
+1 1 2
+2 2 2
+1 2 3
+2 1 1
+
+2
+2 1 2 2 3
+2 2 2 1 1
+
+5
+1 2
+2 3
+3 4
+3 5
+1
+2 3
+1 2
+4 3
+2 3 5
+
+*/

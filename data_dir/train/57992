@@ -1,0 +1,149 @@
+ #include <bits/stdc++.h>
+using namespace std;
+
+#define fora(i, n) for (int i = 0; i < n; ++i)
+#define forb(i, n) for (int i = 1; i <=n; ++i)
+#define forc(i, n) for (const auto &i : n)
+#define mp make_pair
+#define pb push_back
+#define eb emplace_back
+#define sz(x) (int)(x).size()
+#define all(x) begin(x), end(x)
+
+using ll = long long;
+using ld = long double;
+
+vector<vector<int>> adjlist;
+
+int counter, sccCounter;
+vector<bool> visited, inStack;
+vector<vector<int>> sccs;
+vector<int> d, low, idx;
+stack<int> s;
+
+void visit(int v) {
+	visited[v] = true;
+	d[v] = low[v] = counter++;
+	s.push(v); inStack[v] = true;
+
+	for (auto u : adjlist[v]) {
+		if (!visited[u]) {
+			visit(u);
+			low[v] = min(low[v], low[u]);
+		} else if (inStack[u]) {
+			low[v] = min(low[v], low[u]);
+		}
+	}
+	if (d[v] == low[v]) {
+		sccs.push_back({});
+		int u;
+		do {
+			u = s.top(); s.pop(); inStack[u] = false;
+			idx[u] = sccCounter;
+			sccs[sccCounter].push_back(u);
+		} while (u != v);
+		sccCounter++;
+	}
+}
+
+void scc() {
+	visited.assign(adjlist.size(), false);
+	inStack.assign(adjlist.size(), false);
+	d.assign(adjlist.size(), -1);
+	low.assign(adjlist.size(), -1);
+	idx.resize(adjlist.size(), -1);
+
+	counter = sccCounter = 0;
+	for (int i = 0; i < sz(adjlist); ++i) {
+		if (!visited[i]) visit(i);
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	int n;
+	cin >> n;
+	adjlist = vector<vector<int>>(n);
+	fora(i, n) fora(j, n) {
+		int k;
+		cin >> k;
+		if (k == 0) continue;
+		adjlist[i].pb(j);
+	}
+
+	scc();
+
+	int depth = sccCounter * 3;
+	int width = sccCounter * 3;
+	int height = 10 + 2 * sccCounter;
+
+	vector<vector<vector<char>>> res(
+		depth, vector<vector<char>>(
+			width, vector<char>(
+				height, '.')));
+
+	for (int i = 2; i < depth; i += 3) {
+		fora(j, width) fora(k, 10) {
+			res[i][j][k] = '#';
+		}
+	}
+
+	fora(i, sccCounter) {
+		fora(j, sz(sccs[i])) {
+			res[3 * i][3 * i][j] = (char)('1' + sccs[i][j]);
+		}
+		if (i == 0) continue;
+
+		for (int j = 10; j < height; ++j) {
+			fora(k, width) {
+				res[3 * i][k][j] = '#';
+			}
+		}
+		fora(j, height) {
+			fora(k, width) {
+				res[3 * i + 1][k][j] = '#';
+			}
+		}
+		for (int j = 10; j < height; ++j) {
+			res[3 * i - 1][3 * i][j] = '#';
+			res[3 * i][3 * i][j] = '.';
+		}
+		fora(j, width) {
+			res[3 * i - 1][j][10 + 2 * i] = '#';
+			res[3 * i][j][10 + 2 * i] = '.';
+		}
+
+		fora(j, sccCounter) fora(k, sccCounter) {
+			res[3 * i + 1][3 * j + 1][10 + 2 * k] = '.';
+			if (j == i) continue;
+			if (k == i) continue;
+			res[3 * i][3 * j + 1][10 + 2 * k] = '.';
+		}
+
+		fora(j, width) {
+			if (j == 3 * i) continue;
+			res[3 * i][j][9] = '#';
+		}
+
+		forc(u, sccs[i]) {
+			forc(y, adjlist[u]) {
+				int t = idx[y];
+				if (t == i) continue;
+				res[3 * i][3 * i + 1][10 + 2 * t] = '.';
+			}
+		}
+	}
+
+	cout << width << " " << height << " " << depth << endl;
+	for (int i = depth - 1; i >= 0; --i) {
+		for (int j = height - 1; j >= 0; --j) {
+			fora(k, width) {
+				cout << res[i][k][j];
+			}
+			cout << '\n';
+		}
+		cout << '\n';
+	}
+}

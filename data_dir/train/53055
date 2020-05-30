@@ -1,0 +1,159 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+vector<int> adj[2*100005];
+int st[2*100005],en[2*100005];
+long long sum[2*100005];
+long long btree1[4*4*100005];
+long long btree2[4*4*100005];
+int cur;
+int n;
+
+void build1(int node,int l,int r)
+{
+    if(l==r)
+    {
+        btree1[node]=-(1LL<<60);
+        return;
+    }
+    int mid=(l+r)/2;
+    build1(node*2,l,mid);
+    build1(node*2+1,mid+1,r);
+    btree1[node]=max(btree1[node*2],btree1[node*2+1]);
+}
+
+void build2(int node,int l,int r)
+{
+    if(l==r)
+    {
+        btree2[node]=-(1LL<<60);
+        return;
+    }
+    int mid=(l+r)/2;
+    build2(node*2,l,mid);
+    build2(node*2+1,mid+1,r);
+    btree2[node]=max(btree2[node*2],btree2[node*2+1]);
+}
+
+
+void update1(int node,int l,int r,int ind,long long val)
+{
+    if(ind<l||ind>r)
+        return;
+    if(l==r)
+    {
+        btree1[node]=val;
+        return;
+    }
+    int mid=(l+r)/2;
+    update1(node*2,l,mid,ind,val);
+    update1(node*2+1,mid+1,r,ind,val);
+    btree1[node]=max(btree1[node*2],btree1[node*2+1]);
+}
+
+long long query1(int node,int l,int r,int ql,int qr)
+{
+    if(l>qr||r<ql)
+        return -(1LL<<60);
+    if(ql<=l&&r<=qr)
+        return btree1[node];
+    int mid=(l+r)/2;
+    return max(query1(node*2,l,mid,ql,qr),query1(node*2+1,mid+1,r,ql,qr));
+}
+
+void update2(int node,int l,int r,int ind,long long val)
+{
+    if(ind<l||ind>r)
+        return;
+    if(l==r)
+    {
+        btree2[node]=val;
+        return;
+    }
+    int mid=(l+r)/2;
+    update2(node*2,l,mid,ind,val);
+    update2(node*2+1,mid+1,r,ind,val);
+    btree2[node]=max(btree2[node*2],btree2[node*2+1]);
+}
+
+long long query2(int node,int l,int r,int ql,int qr)
+{
+    if(l>qr||r<ql)
+        return -(1LL<<60);
+    if(ql<=l&&r<=qr)
+        return btree2[node];
+    int mid=(l+r)/2;
+    return max(query2(node*2,l,mid,ql,qr),query2(node*2+1,mid+1,r,ql,qr));
+}
+
+void dfs(int node,int pa)
+{
+    st[node]=cur;
+    cur++;
+    int i;
+    for(i=0;i<adj[node].size();i++)
+    {
+        int cnode=adj[node][i];
+        if(cnode==pa)
+            continue;
+        dfs(cnode,node);
+        sum[node]+=sum[cnode];
+    }
+    en[node]=cur;
+    cur++;
+    update1(1,0,2*n-1,st[node],sum[node]);
+    update2(1,0,2*n-1,en[node],sum[node]);
+}
+
+int main()
+{
+    cin >> n;
+    int i;
+    for(i=1;i<=n;i++)
+        cin >> sum[i];
+    for(i=0;i<n-1;i++)
+    {
+        int x,y;
+        cin >> x >> y;
+        adj[x].push_back(y);
+        adj[y].push_back(x);
+    }
+    build1(1,0,2*n-1);
+    build2(1,0,2*n-1);
+    dfs(1,-1);
+    long long ans=-(1LL<<60);
+    bool okk=0;
+    for(i=1;i<=n;i++)
+    {
+        int x=0,y=st[i]-1;
+        int x2=en[i]+1,y2=2*n-1;
+        if(x<=y)
+        {
+            long long val=query2(1,0,2*n-1,x,y);
+            if(val>-(1LL<<60))
+            {
+                ans=max(ans,sum[i]+val);
+                okk=1;
+            }
+            //cout << i << " " << x << " " << y << endl;
+        }
+        if(x2<=y2)
+        {
+            long long val=query1(1,0,2*n-1,x2,y2);
+            if(val>-(1LL<<60))
+            {
+                ans=max(ans,sum[i]+val);
+                okk=1;
+            }
+            //cout << i << " " << x << " " << y << endl;
+        }
+    }
+    if(!okk)
+    {
+        cout << "Impossible" << endl;
+        return 0;
+    }
+    cout << ans << endl;
+    return 0;
+}

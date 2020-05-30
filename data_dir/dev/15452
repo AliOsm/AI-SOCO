@@ -1,0 +1,246 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+using namespace std;
+template<class T, class T2> inline void chkmax(T &x, const T2 &y) { if(x < y) x = y; }
+template<class T, class T2> inline void chkmin(T &x, const T2 &y) { if(x > y) x = y; }
+const int MAXN = (1 << 20);
+
+random_device rd;
+mt19937 mt(rd());
+
+int answer[MAXN];
+int read_int();
+
+struct treap
+{
+	struct node
+	{
+		int mn, mx, idx, val, ans, prior, lazy_ans, lazy_val;
+		node *l, *r;
+
+		node() { l = nullptr; r = nullptr; mn = 0; mx = 0; idx = 0; val = 0; ans = 0; prior = 0; lazy_val = 0; lazy_ans = 0; }
+		node(int _val)
+		{
+			val = _val;
+			idx = 0;
+			ans = 0;
+			mn = _val;
+			mx = _val;
+			prior = mt();
+			lazy_ans = 0;
+			lazy_val = 0;
+			l = nullptr;
+			r = nullptr;
+		}
+	};
+
+	typedef node* pnode;
+
+	void push(pnode &t)
+	{
+		if(!t) return;
+
+		if(t->lazy_ans)
+		{
+			t->ans += t->lazy_ans;
+			if(t->l) t->l->lazy_ans += t->lazy_ans;
+			if(t->r) t->r->lazy_ans += t->lazy_ans;
+			t->lazy_ans = 0;
+		}
+
+		if(t->lazy_val)
+		{
+			t->val += t->lazy_val;
+			t->mx += t->lazy_val;
+			t->mn += t->lazy_val;
+
+			if(t->l) t->l->lazy_val += t->lazy_val;
+			if(t->r) t->r->lazy_val += t->lazy_val;
+			t->lazy_val = 0;
+		}
+	}
+
+	void reset(pnode &t)
+	{
+		if(!t) return;
+		 t->mx = t->val;
+		 t->mn = t->val;
+	}
+
+	void combine(pnode &t, pnode l, pnode r)
+	{
+		if(!l) { t = r; return; }
+		if(!r) { t = l; return; }
+
+		t->mn = min(l->mn, r->mn);
+		t->mx = max(l->mx, r->mx);
+	}
+
+	void operation(pnode &t)
+	{
+		if(!t) return;
+
+		reset(t);
+		push(t->l);
+		push(t->r);
+
+		combine(t, t->l, t);
+		combine(t, t, t->r);
+	}
+
+	void merge(pnode &t, pnode l, pnode r)
+	{
+		push(l); push(r);
+		if(!l) { t = r; return; }
+		if(!r) { t = l; return; }
+
+		if(l->prior > r->prior)
+			merge(l->r, l->r, r), t = l;
+		else
+			merge(r->l, l, r->l), t = r;
+
+		operation(t);
+	}
+
+	void merge_op(pnode &t, pnode l, pnode r)
+	{
+		push(l); push(r);
+		if(!l) { t = r; return; }
+		if(!r) { t = l; return; }
+
+		if(l->prior < r->prior)
+			swap(l, r);
+
+		pnode L, R;
+		split(r, L, R, l->val - mt() % 2);
+		merge_op(l->r, l->r, R);
+		merge_op(l->l, L, l->l);
+
+		t = l;
+		operation(t);
+	}
+
+	void split(pnode t, pnode &l, pnode &r, int k)
+	{
+        push(t);
+        if(!t) { l = nullptr; r = nullptr; return; }
+
+		if(t->val <= k)
+			split(t->r, t->r, r, k), l = t;
+		else
+			split(t->l, l, t->l, k), r = t;
+
+		operation(t);
+	}
+
+	pnode root;
+	treap() { root = nullptr; }
+
+	void insert(int val, int ans, int idx)
+	{
+		if(!root)
+		{
+            root = new node(val);
+            root->ans = ans;
+            root->idx = idx;
+            return;
+		}
+
+		pnode r, mid = new node(val);
+		mid->ans = ans;
+		mid->idx = idx;
+
+		split(root, root, r, val);
+		merge(root, root, mid);
+		merge(root, root, r);
+	}
+
+	void update(int value)
+	{
+		pnode l, r;
+		split(root, l, r, value - 1);
+
+		if(!r)
+		{
+			merge(root, l, r);
+			return;
+		}
+
+		r->lazy_ans += 1;
+		r->lazy_val -= value;
+		push(r);
+		operation(r);
+		
+		merge_op(root, l, r);
+	}
+
+	void dfs(pnode t)
+	{
+		if(!t) return;
+		push(t); answer[t->idx] = t->ans;
+		dfs(t->l);
+		dfs(t->r);
+	}
+};
+int n, m;
+pair<int, int> a[MAXN];
+int q[MAXN];
+
+void read()
+{
+	n = read_int();
+	for(int i = 0; i < n; i++)
+	{
+		a[i].second = read_int();
+		a[i].first = read_int();
+		a[i].first *= -1;
+	}
+
+	m = read_int();
+	for(int i = 0; i < m; i++)
+		q[i] = read_int();
+}
+
+treap t;
+
+void solve()
+{
+	for(int i = 0; i < m; i++)
+		t.insert(q[i], 0, i);
+
+	sort(a, a + n);
+	for(int i = 0; i < n; i++)
+		t.update(a[i].second);
+
+	t.dfs(t.root);
+
+	for(int i = 0; i < m; i++)
+		cout << answer[i] << " ";
+	cout << endl;
+}
+
+int32_t main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+
+const int maxl = 100000;
+char buff[maxl];
+int ret_int, pos_buff = 0;
+
+void next_char() { if(++pos_buff == maxl) fread(buff, 1, maxl, stdin), pos_buff = 0; }
+
+int read_int()
+{
+	ret_int = 0;
+	for(; buff[pos_buff] < '0' || buff[pos_buff] > '9'; next_char());
+	for(; buff[pos_buff] >= '0' && buff[pos_buff] <= '9'; next_char())
+		ret_int = ret_int * 10 + buff[pos_buff] - '0';
+	return ret_int;
+}

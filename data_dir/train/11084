@@ -1,0 +1,123 @@
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <string>
+using namespace std;
+
+const int MOD = 998244353;
+
+const int UP = 0, DOWN = 1, EQ = 2;
+
+int n, a[100010];
+int d[2][210][3];
+int p[210][3];
+
+void shiftD() {
+    for (int type = 0; type < 3; type++) {
+        for (int v = 1; v <= 200; v++) {
+            d[0][v][type] = d[1][v][type];
+            d[1][v][type] = 0;
+        }
+    }
+}
+
+void calcP() {
+    for (int type = 0; type < 3; type++) {
+        p[0][type] = d[0][0][type];
+        for (int v = 1; v <= 200; v++)
+            p[v][type] = (p[v - 1][type] + d[0][v][type]) % MOD;
+    }
+}
+
+int sum(int vl, int vr, int type) {
+    if (vl > vr)
+        return 0;
+    if (vl == 0)
+        return p[vr][type];
+    int res = p[vr][type];
+    res -= p[vl - 1][type];
+    res += MOD;
+    return res % MOD;
+}
+
+void calcD1(int v) {
+    {
+        d[1][v][UP] += sum(1, v - 1, UP); d[1][v][UP] %= MOD;
+        d[1][v][UP] += sum(1, v - 1, EQ); d[1][v][UP] %= MOD;
+        d[1][v][UP] += sum(1, v - 1, DOWN); d[1][v][UP] %= MOD;
+    }
+    {
+        d[1][v][EQ] += d[0][v][UP]; d[1][v][EQ] %= MOD;
+        d[1][v][EQ] += d[0][v][EQ]; d[1][v][EQ] %= MOD;
+        d[1][v][EQ] += d[0][v][DOWN]; d[1][v][EQ] %= MOD;
+    }
+    {
+        d[1][v][DOWN] += sum(v + 1, 200, EQ); d[1][v][DOWN] %= MOD;
+        d[1][v][DOWN] += sum(v + 1, 200, DOWN); d[1][v][DOWN] %= MOD;
+    }
+}
+
+
+int main() {
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+
+    int n;
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &a[i]);
+    }
+
+
+    if (a[0] != -1 && a[1] != -1) {
+        if (a[0] < a[1])
+            d[1][a[1]][UP] = 1;
+        else if (a[0] > a[1])
+            d[1][a[1]][DOWN] = 0;
+        else
+            d[1][a[1]][EQ] = 1;
+    } else if (a[0] != -1 && a[1] == -1) {
+        d[1][a[0]][EQ] = 1;
+        for (int i = a[0] + 1; i <= 200; i++)
+            d[1][i][UP] = 1;
+    } else if (a[0] == -1 && a[1] != -1) {
+        for (int i = 1; i < a[1]; i++)
+            d[1][a[1]][UP]++;
+        d[1][a[1]][EQ] = 1;
+    } else if (a[0] == -1 && a[1] == -1) {
+        for (int i = 1; i <= 200; i++) {
+            d[1][i][EQ]++;
+            for (int j = i + 1; j <= 200; j++)
+                d[1][j][UP]++;
+        }
+    }
+
+
+    for (int i = 2; i < n; i++) {
+        shiftD();
+        calcP();
+        if (a[i] != -1) {
+            calcD1(a[i]);
+        } else {
+            for (int v = 1; v <= 200; v++)
+                calcD1(v);
+        }
+    }
+
+    shiftD();
+    calcP();
+    if (n == 2)
+        printf("%d", p[200][EQ]);
+    else
+        printf("%d", (p[200][DOWN] + p[200][EQ]) % MOD);
+}

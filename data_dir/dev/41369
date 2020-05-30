@@ -1,0 +1,177 @@
+#include<bits/stdc++.h> 
+#include <bitset>
+#include <ext/pb_ds/assoc_container.hpp> 
+#include <ext/pb_ds/tree_policy.hpp> 
+#include <chrono>
+#include <random>
+#define IOS ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define max(a,b) (a>b?a:b)
+#define min(a,b) (a<b?a:b)
+#define REP(i,a,b) for(int i=int(a);i<=int(b);i++)
+#define MOD 1000000007
+#define MOD2 1000000009
+#define INF 2000000000
+#define DESPACITO 1000000000000000
+#define E 998244353
+#define pb push_back
+#define mp make_pair
+#define double long double
+#define pdd pair<double,double>
+#define ll long long
+
+using namespace std;
+//using namespace __gnu_pbds;
+ 
+//typedef tree<int, null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update> pbds;
+
+int n;
+map<int,vector<int>>m;
+pair<int,int>inp[500001];
+pair<ll,int> tree[2000001];
+ll lazy[2000005];
+ll finarr[500005];
+pair<int,pair<int,int>>arr[500001];
+
+void Create(int node,int start,int end)
+{
+    if(start == end)
+    {
+        tree[node].first = finarr[start];
+        tree[node].second = start;
+    }
+    else
+    {
+        int mid = (start+end)/2;
+        Create(2*node,start,mid);
+        Create(2*node+1,mid+1,end);
+        if(tree[2*node].first >= tree[2*node+1].first)
+            tree[node] = tree[2*node];
+        else
+            tree[node] = tree[2*node+1];
+    }
+}
+
+void updateRange(int node,int start,int end,int L,int R,ll val)
+{
+    if(lazy[node] != 0)
+    {
+        tree[node].first += lazy[node];
+        if(start != end)
+        {
+            lazy[2*node] += lazy[node];
+            lazy[2*node + 1] += lazy[node];
+        }
+        lazy[node] = 0;
+    }
+    if(start>end or start>R or end <L or L>R)
+        return;
+    if(start >= L && end <= R)
+    {
+        tree[node].first +=val;
+        if(start != end)
+        {
+            lazy[2*node]+=val;
+            lazy[2*node+1]+=val;
+        }
+        return;
+    }
+    int mid = (start+end)/2;
+    updateRange(2*node,start,mid,L,R,val);
+    updateRange(2*node+1,mid+1,end,L,R,val);
+    if(tree[2*node].first >= tree[2*node+1].first)
+        tree[node] = tree[2*node];
+    else
+        tree[node] = tree[2*node+1];
+}
+
+pair<ll,int> query(int node,int start,int end,int l,int r)
+{
+    if(start>end or l>r or end<l or  start>r)
+        return mp(-DESPACITO, n+1);
+    if(lazy[node] != 0)
+    {
+        tree[node].first += lazy[node];
+        if(start != end)
+        {
+            lazy[2*node] += lazy[node];
+            lazy[2*node + 1] += lazy[node];
+        }
+        lazy[node] = 0;
+    }
+    if(start >= l && end <= r)
+        return  tree[node];
+    int mid = (start+end)/2;
+    pair<ll,int>p = query(2*node,start,mid,l,r);
+    pair<ll,int> q = query(2*node+1,mid+1,end,l,r);
+    if(p.first >= q.first)
+        return p;
+    else
+        return  q;
+}
+
+int main()
+{
+    IOS;
+    #ifndef ONLINE_JUDGE
+        freopen("input.txt","r",stdin);
+        freopen("output.txt","w",stdout);
+    #endif
+    cin >>  n;
+    REP(i,1,n)
+    {
+        ll c;
+        cin >> inp[i].first >> inp[i].second >> c;
+        if(inp[i].first < inp[i].second)
+            swap(inp[i].first, inp[i].second);
+        arr[i] = mp(inp[i].first, mp(inp[i].second, c));
+    }
+    sort(arr+1, arr + n +1);
+    ll sum = 0;
+    REP(i,1,n)
+    {
+        sum+=  (arr[i].second.second);
+        finarr[i] = sum - (arr[i].first);
+        if(i > 1  && (arr[i].first != arr[i-1].first))
+        {
+            for(int j = i-1; j>=1; j--)
+            {
+                if(arr[j].first != arr[i-1].first)
+                    break;
+                finarr[j] = finarr[i-1];
+            }
+        }
+        m[(arr[i].second.first)].pb(i);
+    }
+    for(int j = n; j>=1; j--)
+    {
+        if(arr[j].first != arr[n].first)
+                break;
+        finarr[j] = finarr[n];
+    }
+    finarr[n+1] = -DESPACITO;
+    Create(1,1,n);
+    ll maxim = 0;
+    ll lx = INF, ly = INF, rx = INF, ry = INF;
+    for(auto it:m)
+    {
+        int val = (it.first);
+        pair<ll,int> x = query(1,1,n,1,n);
+        ll A = (x.first) + val;
+        //cerr  << idx <<  " " << A << "\n";
+        if(maxim < A)
+        {
+            maxim = A;
+            lx =  ly = val;
+            rx = ry = (arr[x.second].first);
+        }
+        for(auto it2:(it.second))
+        {
+            ll v = query(1,1,n,it2,it2).first;
+            v  -= DESPACITO;
+            updateRange(1,1,n,it2,it2,v);
+            updateRange(1,1,n,it2+1,n,(-arr[it2].second.second));
+        }
+    }
+    cout << maxim << "\n";
+    cout << lx <<  " " << ly << " " << rx  << " " << ry;
+}

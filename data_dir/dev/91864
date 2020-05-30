@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+#define err(args...) {}
+#ifdef DEBUG
+#include "_debug.cpp"
+#include "callable.hpp/callable.hpp"
+#endif
+#define endl '\n'
+using namespace std;
+using ll = long long;
+#ifndef __VEC2D_INCLUDED_
+#define __VEC2D_INCLUDED_
+template <typename T>
+struct vec2D {
+    T x, y;
+    vec2D(T x, T y) : x(x), y(y) {}
+    bool operator==(const vec2D& v) const { return x == v.x and y == v.yl; }
+    bool operator!=(const vec2D& v) const { return not (*this == v); }
+    bool operator< (const vec2D& v) const { return x < v.x or (x == v.x and y < v.y); }
+    bool operator<=(const vec2D& v) const { return *this < v or *this == v; }
+    bool operator> (const vec2D& v) const { return not (*this <= v); }
+    bool operator>=(const vec2D& v) const { return *this > v or *this == v; }
+    vec2D operator*(const T c) const { return {c * x, c * y}; }
+    vec2D operator/(const T c) const { return {x / c, y / c}; }
+    vec2D operator+(const vec2D& v) const { return {x + v.x, y + v.y}; }
+    vec2D operator-() const { return {-x, -y}; }
+    vec2D operator-(const vec2D& v) const { return *this + -v; }
+    T operator*(const vec2D& v) const { return x * v.y - y * v.x; } // cross product
+    T operator^(const vec2D& v) const { return x * v.x + y * v.y; } // dot product
+    vec2D& operator=(const vec2D& v) { x = v.x, y = v.y; return *this; }
+    vec2D& operator*=(const T c) { return *this = *this * c; }
+    vec2D& operator/=(const T c) { return *this = *this / c; }
+    vec2D& operator+=(const vec2D& v) { return *this = *this + v; }
+    vec2D& operator-=(const vec2D& v) { return *this = *this - v; }
+    T squared_norm() { return *this ^ *this; }
+    long double norm() { return sqrt(squared_norm()); }
+    vec2D normalized() { return *this / norm(); }
+    long double scalar_project(const vec2D& v) {
+        return *this ^ v / v.norm();
+    }
+    vec2D vector_project(const vec2D& v) {
+        return scalar_project(v) * v.normalized();
+    }
+    vec2D rotate(T theta) {
+        return {cos(theta) * x - sin(theta) * y, sin(theta) * x + cos(theta) * y};
+    }
+};
+template <typename T>
+vec2D<T> operator*(const T c, const vec2D<T>& v) { return {c * v.x, c * v.y}; }
+template <typename T>
+ostream& operator<<(ostream& os, const vec2D<T>& v) { return os << "(" << v.x << ", " << v.y << ")"; }
+template <typename T>
+istream& operator>>(istream& is, vec2D<T>& v) { return is >> v.x >> v.y; }
+#endif
+template <typename Function>
+long double bsearch(long double L, long double R, const Function& can, bool left_feasible = true) {
+#ifdef DEBUG
+    using actual_type = typename callable_traits<Function>::function_type;
+    using expected_type = typename callable_traits<bool(long double)>::function_type;
+    static_assert(is_same<actual_type, expected_type>::value, "bsearch 'can' must be bool(double)");
+#endif
+    long double& feasible = left_feasible ? L : R;
+    long double& infeasible = left_feasible ? R : L;
+    for(int i = 0; i < 1000000; i++) {
+        long double M = (L + R) / 2;
+        (can(M) ? feasible : infeasible) = M;
+    }
+    return feasible;
+}
+const long double PI = acos(-1.0l);
+ll sq(ll x) { return x * x; }
+bool inside(long double x2, long double y2, long double r2, const vec2D<long double>& v) {
+    return (v - vec2D<long double>{x2, y2}).squared_norm() <= r2 * r2;
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    ll x1, y1, r1, x2, y2, r2;
+    cin >> x1 >> y1 >> r1 >> x2 >> y2 >> r2;
+    ll dx = x1 - x2;
+    ll dy = y1 - y2;
+    ll d2 = dx * dx + dy * dy;
+    if(d2 <= sq(max(r1, r2) - min(r1, r2))) {
+        cout << fixed << setprecision(7) << min(PI * r1 * r1, PI * r2 * r2) << endl;
+    } else if(d2 >= sq(r1 + r2)) {
+        cout << 0 << endl;
+    } else {
+        long double theta1 = bsearch(0, PI, [&](long double theta) {
+            vec2D<long double> v = {x2 - x1, y2 - y1};
+            return inside(x2, y2, r2, v.normalized().rotate(theta) * r1 + vec2D<long double>{x1, y1});
+        });
+        long double theta2 = bsearch(0, PI, [&](long double theta) {
+            vec2D<long double> v = {x1 - x2, y1 - y2};
+            return inside(x1, y1, r1, v.normalized().rotate(theta) * r2 + vec2D<long double>{x2, y2});
+        });
+        long double a1 = theta1 * r1 * r1 - r1 * sin(theta1) * r1 * cos(theta1);
+        long double a2 = theta2 * r2 * r2 - r2 * sin(theta2) * r2 * cos(theta2);
+        cout << fixed << setprecision(7) << a1 + a2 << endl;
+    }
+    return 0;
+}

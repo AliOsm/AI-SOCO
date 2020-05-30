@@ -1,0 +1,48 @@
+#include <algorithm>
+#include <iostream>
+#include <utility>
+#include <vector>
+
+typedef unsigned int uint;
+
+void solve(size_t n, size_t m, std::vector<int>& a, std::vector<int>& b) {
+	std::sort(std::begin(a), std::end(a));
+
+	std::vector<std::pair<int, size_t>> b_indexed(m);
+	for (size_t j = 0; j < m; ++j) b_indexed[j] = std::pair<int, size_t>(b[j], j);
+
+	std::sort(std::begin(b_indexed), std::end(b_indexed));
+
+	size_t i = 0, j = 0;
+
+	std::vector<uint> prefix_sum_permuted_answer(m);
+	while (i < n && j < m) {
+		if (a[i] <= b_indexed[j].first) {
+			++prefix_sum_permuted_answer[j];
+			++i;
+		} else ++j;
+	}
+
+	std::vector<uint> permuted_answer(m);
+	permuted_answer[0] = prefix_sum_permuted_answer[0];
+	for (size_t j = 1; j < m; ++j) 
+		permuted_answer[j] = permuted_answer[j - 1] + prefix_sum_permuted_answer[j];
+
+	std::vector<uint> answer(m);
+	for (size_t j = 0; j < m; ++j) answer[b_indexed[j].second] = permuted_answer[j];
+
+	for (size_t j = 0; j < m; ++j) std::cout << answer[j] << " ";
+}
+
+int main() {
+	size_t n, m;
+	std::cin >> n >> m;
+
+	std::vector<int> a(n), b(m);
+	for (size_t i = 0; i < n; ++i) std::cin >> a[i];
+	for (size_t j = 0; j < m; ++j) std::cin >> b[j];
+
+	solve(n, m, a, b);
+
+	return 0;
+}

@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define Left Node << 1
+#define Right Node << 1 | 1
+
+using namespace std;
+
+const int N = 1e5 + 100;
+
+int n;
+int Arr[N];
+
+struct SegmentTree
+{
+	int Seg[5 * N];
+	int Lazy[10 * N];
+
+	void Build (int i, int Node = 1, int L = 1, int R = n) {
+		if (L == R) {
+			Seg[Node] = ((Arr[L] >> i) & 1);
+			return;
+		}
+
+		int Mid = L + R >> 1;
+		Build (i, Left, L, Mid);
+		Build (i, Right, Mid + 1, R);
+
+		Seg[Node] = Seg[Left] + Seg[Right];
+	}
+
+	void PushLazy (int Node, int L, int R) {
+		if (!Lazy[Node]) return;
+
+		Lazy[Left] ^= Lazy[Node];
+		Lazy[Right] ^= Lazy[Node];
+
+		Seg[Node] = (R - L + 1) - Seg[Node];
+		Lazy[Node] = 0;
+	}
+
+	void Update (int i, int j, int Node = 1, int L = 1, int R = n) {
+		PushLazy (Node, L, R);
+		if (i > R || j < L) return;
+		if (L >= i && R <= j) {
+			Lazy[Node] ^= 1;
+			PushLazy(Node, L, R);
+			return;
+		}
+
+		int Mid = L + R >> 1;
+		Update (i, j, Left, L, Mid);
+		Update (i, j, Right, Mid + 1, R);
+
+		Seg[Node] = Seg[Left] + Seg[Right];
+	}
+
+	int Query (int i, int j, int Node = 1, int L = 1, int R = n) {
+		PushLazy (Node, L, R);
+		if (i > R || j < L) return 0;
+		if (L >= i && R <= j)
+			return Seg[Node];
+
+		int Mid = L + R >> 1;
+		int Q1 = Query (i, j, Left, L, Mid);
+		int Q2 = Query (i, j, Right, Mid + 1, R);
+
+		return Q1 + Q2;
+	}
+} Bits[25];
+
+
+int main()
+{
+	scanf ("%d", &n);
+	for (int i = 1; i <= n; i++)
+		scanf ("%d", Arr + i);
+
+	for (int i = 0; i < 25; i++)
+		Bits[i].Build(i);
+
+	int q;	scanf ("%d", &q);
+	while (q--) 
+	{
+		int t;		scanf ("%d", &t);
+		int L, R;	scanf ("%d%d", &L, &R);
+
+		if (t == 1) {
+			ll Ans = 0;
+			for (int i = 0; i < 25; i++)
+				Ans += (1LL << i) * Bits[i].Query(L, R);
+			printf("%I64d\n", Ans);
+		} else {
+			int x;	scanf("%d", &x);
+			for (int i = 0; i < 25; i++)	
+				if (x & (1 << i))
+					Bits[i].Update (L, R);
+		}
+	}
+	return 0;
+}

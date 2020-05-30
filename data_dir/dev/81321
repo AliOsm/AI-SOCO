@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 100;
+
+set< pair<pair<int, int>, int> > Range;
+set< pair<pair<int, int>, int> > Added;
+
+int Max[5 * N];
+int Lazy[10 * N];
+
+void PushLazy(int Node)
+{
+	if (!Lazy[Node]) return;
+
+	Lazy[Node << 1] += Lazy[Node];
+	Lazy[Node << 1 | 1] += Lazy[Node];
+	Max[Node] += Lazy[Node];
+
+	Lazy[Node] = 0;
+}
+
+void Update (int i, int j, int Val, int Node = 1, int L = 1, int R = N)
+{
+	PushLazy(Node);
+
+	if (L > j || R < i) return;
+	if (L >= i && R <= j){
+		Lazy[Node] += Val;
+		PushLazy(Node);
+		return;
+	}
+
+	int Mid = L + R >> 1;
+	Update(i, j, Val, Node << 1, L, Mid);
+	Update(i, j, Val, Node << 1 | 1, Mid + 1, R);
+
+	Max[Node] = max(Max[Node << 1], Max[Node << 1 | 1]);
+}
+
+int Query(int Node = 1, int L = 1, int R = N) {
+	PushLazy(Node);
+	return Max[Node];
+}
+
+int main()
+{
+	ios::sync_with_stdio(0);
+	cin.tie(0);	cout.tie(0);
+
+	int n;	cin >> n;
+	int k;	cin >> k;
+
+	for (int i = 0; i < n; i++) {
+		int l, r;	cin >> l >> r;
+		Range.insert({{l, r}, i});
+	}
+
+	vector<int> Ans;
+	for (auto x : Range)
+	{
+		Update(x.first.first, x.first.second, 1);
+		Added.insert({{x.first.second, x.first.first}, x.second});
+
+		int Cur = Query();
+	
+		if (Cur <= k) continue;
+
+		auto Last = *Added.rbegin();
+		Update(Last.first.second, Last.first.first, -1);
+
+		Ans.push_back(Last.second);
+		Added.erase(Last);
+	}
+
+	sort(Ans.begin(), Ans.end());
+
+	cout << Ans.size() << '\n';
+	for (auto i : Ans)
+		cout << i + 1 << ' ';
+	cout << '\n';
+	return 0;
+}

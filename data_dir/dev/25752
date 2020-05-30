@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 300005;
+int n, n2;
+int p[MAXN];
+pair<int, int> tmp[MAXN];
+pair<int, int> tree[16][4 * MAXN];
+
+void build(int i, int j, int l, int r)
+{
+	if (l == r)
+	{
+		tree[j][i] = tmp[l];
+		return;
+	}
+	build(2*i, j, l, (l + r) / 2);
+	build(2*i + 1, j, (l + r) / 2 + 1, r);
+	pair<int, int> L, R;
+	L = tree[j][2*i];
+	R = tree[j][2*i + 1];
+	tree[j][i].first = min(L.first, R.first);
+	tree[j][i].second = max(L.second, R.second);
+}
+
+pair<int, int> get(int i, int j, int l, int r, int x, int y)
+{
+	if (l >= x && r <= y)
+		return tree[j][i];
+	int mid = (l + r) / 2;
+	if (x > mid)
+		return get(2*i + 1, j, (l + r) / 2 + 1, r, x, y);
+	if (y <= mid)
+		return get(2*i, j, l, (l + r) / 2, x, y);
+	pair<int, int> L, R;
+	L = get(2*i, j, l, (l + r) / 2, x, y);
+	R = get(2*i + 1, j, (l + r) / 2 + 1, r, x, y);
+	return make_pair(min(L.first, R.first), max(L.second, R.second));
+}
+
+int cover(int L, int R)
+{
+	return R - L + 1;
+}
+
+pair<int, int> get(int L, int R, int j)
+{
+	L = max(L, 0);
+	R = min(R, n2);
+	return get(1, j, 0, n2, L, R);
+}
+
+void init() {
+	for (int i = 0; i <= n2; i++)
+	{
+		tmp[i].first = i - p[i%n];
+		tmp[i].second = i + p[i%n];
+	}
+	build(1, 0, 0, n2);
+	for (int j = 1; j < 16; j++)
+	{
+		for (int i = 0; i <= n2; i++)
+		{
+			pair<int, int> range = get(i, i, j-1);
+			range = get(range.first, range.second, j - 1);
+			tmp[i] = range;
+		}
+		build(1, j, 0, n2);
+	}
+}
+
+int res[MAXN];
+void solve()
+{
+	if (n == 1)
+	{
+		res[0] = 0;
+		return;
+	}
+	for (int i = 0; i < n; i++)
+	{	
+		int L = n + i;
+		int R = n + i;
+		int ans = 0;
+		for (int j = 15; j >= 0; j--)
+		{
+			pair<int, int> range = get(L, R, j);
+			if (cover(range.first, range.second) >= n)
+				continue;
+			ans += (1<<j);
+			L = range.first;
+			R = range.second;
+		}
+		res[i] = ans + 1;
+	}
+}
+
+int main()
+{
+	scanf("%d", &n);
+	n2 = 3*n - 1;
+	for (int i = 0; i < n; i++)
+		scanf("%d", p + i);
+	init();
+	solve();
+	for (int i = 0; i < n; i++)
+	{
+		printf("%d ", res[i]);
+	}
+}

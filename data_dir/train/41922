@@ -1,0 +1,197 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vl;
+typedef pair<int,int> pii;
+typedef pair<ll, ll> pll;
+typedef vector<pii> vii;
+typedef vector<pll> vll;
+
+#define PB push_back
+//#define PB emplace_back
+#define F first
+#define S second
+#define MP make_pair
+#define endl '\n'
+
+const double eps = 1e-9;
+const int inf = 2000000000;
+const ll infLL = 9000000000000000000;
+#define MOD 1000000007
+
+#define mem(a,b) memset(a, b, sizeof(a) )
+#define gcd(a,b) __gcd(a,b)
+#define lcm(a,b) (a*(b/gcd(a,b)))
+
+#define optimize() ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define fraction() cout.unsetf(ios::floatfield); cout.precision(10); cout.setf(ios::fixed,ios::floatfield);
+
+//
+//debug
+template<typename F,typename S>ostream&operator<<(ostream&os,const pair<F,S>&p){return os<<"("<<p.first<<", "<<p.second<<")";}
+template<typename T>ostream&operator<<(ostream&os,const vector<T>&v){os<<"{";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"}";}
+template<typename T>ostream&operator<<(ostream&os,const set<T>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<",";os<<*it;}return os<<"]";}
+template<typename T>ostream&operator<<(ostream&os,const multiset<T>&v) {os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"]";}
+template<typename F,typename S>ostream&operator<<(ostream&os,const map<F,S>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<it->first<<" = "<<it->second;}return os<<"]";}
+#define dbg(args...) do {cerr << #args << " : "; faltu(args); } while(0)
+void faltu(){cerr << endl;}
+template<typename T>void faltu(T a[],int n){for(int i=0;i<n;++i)cerr<<a[i]<<' ';cerr<<endl;}
+template<typename T,typename...hello>void faltu(T arg,const hello&...rest){cerr<<arg<<' ';faltu(rest...);}
+//#else
+//#define dbg(args...)
+
+#define UNVISITED 0
+#define EXPLORED 1
+#define VISITED 2
+const int mx = 1e4+4;
+int n;
+vi adjlist[mx];
+map<pii, int> mp;
+int vis[mx];
+int col[mx];
+int cnt;
+vector<int> vec;
+vector<int> store;
+int dp_inco[mx];
+int dp_co[mx];
+int helper_up_inco[mx], helper_down_inco[mx];
+int helper_up_co[mx], helper_down_co[mx];
+vector<int> span;
+int vis_hmm[mx];
+int ul;
+
+void dfs( int u, int par )
+{
+	vector<int> temp;
+	vis[u] = EXPLORED;
+	for( auto v : adjlist[u] ) {
+		if( vis[v] == UNVISITED ) {
+			temp.PB(v);
+			col[v] = 1-col[u];
+			dfs( v, u );
+			store.PB(mp[MP(u,v)]);
+		}
+		else if( vis[v] == EXPLORED && v != par ) {
+			if( col[v] == col[u] ) vec.PB( mp[MP(v, u)] );
+			store.PB( mp[MP(u,v)] );
+			if( col[v] == col[u] ) {
+				++helper_down_inco[u];
+				++helper_up_inco[v];
+			}
+			else {
+				++helper_down_co[u];
+				++helper_up_co[v];
+			}
+		}
+	}
+	vis[u] = VISITED;
+	if( par == 0 ) return;
+	for( auto v : temp ) {
+		dp_inco[u] += dp_inco[v];
+	}
+	dp_inco[u] -= helper_up_inco[u];
+	dp_inco[u] += helper_down_inco[u];
+
+	for( auto v : temp ) {
+		dp_co[u] += dp_co[v];
+	}
+	dp_co[u] -= helper_up_co[u];
+	dp_co[u] += helper_down_co[u];
+
+}
+
+void dfs2( int u, int par )
+{
+	//dbg(u, dp[u]);
+	vis_hmm[u] = EXPLORED;
+	for( auto v : adjlist[u] ) {
+		if( vis_hmm[v] == UNVISITED ) {
+			dfs2( v, u );
+			if( dp_inco[v] == (int)vec.size() && !dp_co[v] ) {
+				span.PB( mp[MP(u,v)] );
+			}
+		}
+	}
+	vis_hmm[u] = VISITED;
+}
+
+vector<int> ans1, ans2, ans;
+
+int main()
+{
+	optimize();
+	int n, m;
+	cin >> n >> m;
+	for( int i = 0; i < m; ++i ) {
+		int u, v;
+		cin >> u >> v;
+		mp[MP(u, v)] = i;
+		mp[MP(v, u)] = i;
+		adjlist[u].PB(v);
+		adjlist[v].PB(u);
+	}
+	for( int i = 1; i <= n; ++i ) {
+		store.clear();
+		vec.clear();
+		span.clear();
+		if( vis[i] == VISITED ) continue;
+		dfs(i, 0);
+		dfs2(i, 0);
+		//dbg(vec);
+		if( vec.empty() ) {
+			for( auto x : store ) ans1.PB(x+1);
+			continue;
+		}
+		if( vec.size() > 1 ) {
+			++cnt;
+			if( span.empty() ) {
+				cout << 0 << endl;
+				return 0;
+			}
+			for( auto x : span ) ans2.PB(x+1);
+		}
+		else {
+			++cnt;
+			ans2.PB(vec[0]+1);
+			for( auto x : span ) ans2.PB(x+1);
+		}
+	}
+	if( cnt > 1 ) {
+		cout << 0 << endl;
+		return 0;
+	}
+	sort( ans1.begin(), ans1.end() );
+	sort( ans2.begin(), ans2.end() );
+	//dbg(ans1);
+	//dbg(ans2);
+	if( !ans2.empty() ) {
+		cout << (int)ans2.size() << endl;
+		for( auto x : ans2 ) cout << x << " "; cout << endl;
+	}
+	else {
+		cout << (int)ans1.size() << endl;
+		for( auto x : ans1 ) cout << x << " "; cout << endl;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

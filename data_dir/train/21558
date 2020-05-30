@@ -1,0 +1,212 @@
+//#pragma GCC optimize("Ofast,no-stack-protector")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx")
+//#pragma GCC target("avx,tune=native")
+// Anand Jaisingh
+
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+#define pii pair<int,int>
+#define pll pair< ll , ll >
+#define vi vector<int>
+#define vvi vector< vi >
+
+const int maxn=(int)(1e5+5);
+const ll mod=(ll)(1e9+7);
+int arr[maxn];
+vector<int> al[maxn];
+int tin[maxn],tout[maxn],level[maxn];
+int t=0;
+pair< pii ,pii > tree[4*maxn];
+const int LN=18;
+int st[LN][maxn];
+
+bool isAnc(int u,int v)
+{
+    return tin[u]<=tin[v] && tout[u]>=tout[v];
+}
+
+int lca(int u,int v)
+{
+    if(isAnc(u,v))
+    {
+        return u;
+    }
+
+    if(isAnc(v,u))
+    {
+        return v;
+    }
+
+    for(int i=LN-1;i>=0;i--)
+    {
+        if(!isAnc(st[i][u],v))
+        {
+            u=st[i][u];
+        }
+    }
+
+    return st[0][u];
+}
+
+void dfs(int u,int p,int curr)
+{
+    tin[u]=++t;level[u]=curr;
+
+    arr[t]=u;
+
+    st[0][u]=p;
+
+    for(int x:al[u])
+    {
+        if(x!=p)
+        {
+            dfs(x,u,curr+1);
+        }
+    }
+
+    tout[u]=t;
+}
+
+pair< pii,pii > merge(pair< pii,pii > &a,pair< pii ,pii >& b)
+{
+    vector<int> v;
+
+    v.pb(a.first.first);v.pb(a.first.second);
+
+    v.pb(b.first.first);v.pb(b.first.second);
+
+    sort(v.begin(),v.end());
+
+    pair< pii,pii > ret;
+
+    ret.first.first=v[3];ret.first.second=v[2];
+
+    v.clear();
+
+    v.pb(a.second.first);v.pb(a.second.second);
+
+    v.pb(b.second.first);v.pb(b.second.second);
+
+    sort(v.begin(),v.end());
+
+    ret.second.first=v[0];ret.second.second=v[1];
+
+    return ret;
+}
+
+void build(int node,int s,int e)
+{
+    if(s>e)
+    {
+        return;
+    }
+
+    if(s==e)
+    {
+        tree[node].first.first=tin[s];
+
+        tree[node].first.second=INT_MIN;
+
+        tree[node].second.first=tin[s];
+
+        tree[node].second.second=INT_MAX;
+    }
+
+    else
+    {
+        int mid=(s+e)>>1;
+
+        build(node<<1,s,mid);build(node<<1|1,mid+1,e);
+
+        tree[node]=merge(tree[node<<1],tree[node<<1|1]);
+    }
+}
+
+pair < pii,pii > query(int node,int s,int e,int l,int r)
+{
+    if(s>e || l>e || r<s)
+    {
+        return {{INT_MIN,INT_MIN},{INT_MAX,INT_MAX}};
+    }
+
+    if(l<=s && r>=e)
+    {
+        return tree[node];
+    }
+
+    else
+    {
+        int mid=(s+e)>>1;
+
+        pair< pii,pii > left=query(node<<1,s,mid,l,r),right=query(node<<1|1,mid+1,e,l,r);
+
+        return merge(left,right);
+    }
+}
+
+
+int main()
+{
+    ios_base::sync_with_stdio(0);cin.tie(0);
+
+    int n,q;scanf("%d %d",&n,&q);
+
+    for(int i=2;i<=n;i++)
+    {
+        int pi;scanf("%d",&pi);
+
+        al[pi].pb(i);
+    }
+
+    dfs(1,1,0);
+
+    for(int i=1;i<LN;i++)
+    {
+        for(int j=1;j<=n;j++)
+        {
+            st[i][j]=st[i-1][st[i-1][j]];
+        }
+    }
+
+    build(1,1,n);
+
+    while(q>0)
+    {
+        int l,r;
+
+        scanf("%d %d",&l,&r);
+
+        pair< pii,pii > now=query(1,1,n,l,r);
+
+        int x=arr[now.second.first],y=arr[now.second.second],z=arr[now.first.first],k=arr[now.first.second];
+
+        int val1=level[lca(x,k)],val2=level[lca(y,z)];
+
+    //    cout<<x<<" "<<y<<" "<<z<<" "<<k<<endl;
+
+        if(val1>=val2)
+        {
+            //cout<<z<<" "<<val1<<endl;
+
+            printf("%d %d\n",z,val1);
+        }
+
+        else
+        {
+            //cout<<x<<" "<<val2<<endl);
+
+            printf("%d %d\n",x,val2);
+        }
+
+        q--;
+    }
+
+    return 0;
+}

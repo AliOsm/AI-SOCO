@@ -1,0 +1,36 @@
+// In the name of Allah the Lord of the Worlds.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int MAX = 50000+9;
+int dp[MAX][505] , ans = 0 , n , m;
+vector<int>edges[MAX];
+
+void f(int u , int par = -1)
+{
+    dp[u][0] = 1;
+    for(auto v : edges[u]){
+        if(v!=par){
+            f(v , u);
+            for(int i=1;i<=m;i++)ans+=dp[u][i-1]*dp[v][m-i];
+            for(int i=1;i<=m;i++)dp[u][i]+=dp[v][i-1];
+        }
+    }
+}
+
+int main(void)
+{
+    scanf("%d %d",&n , &m);
+    for(int i=0;i<n-1;i++){
+        int in1 , in2;
+        scanf("%d %d",&in1 , &in2);
+        edges[in1].push_back(in2);
+        edges[in2].push_back(in1);
+    }
+    f(1);
+    printf("%d\n",ans);
+
+    return 0;
+}

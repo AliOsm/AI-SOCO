@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+using namespace std;
+int col[100010][2],row[100010][2],ru[200010][2],lu[200010][2];
+int use[100],x[100010],y[100010];
+int main()
+{
+    int n,m;
+    while (scanf("%d%d",&n,&m)==2)
+    {
+        memset(col,-1,sizeof(col));
+        memset(row,-1,sizeof(row));
+        memset(ru,-1,sizeof(ru));
+        memset(lu,-1,sizeof(lu));
+        for (int i=0;i<m;i++)
+            scanf("%d%d",&x[i],&y[i]);
+        for (int i=0;i<m;i++)
+        {
+            if (row[x[i]][0]==-1) row[x[i]][0]=row[x[i]][1]=y[i];
+            else
+            {
+                row[x[i]][0]=min(row[x[i]][0],y[i]);
+                row[x[i]][1]=max(row[x[i]][1],y[i]);
+            }
+
+            if (col[y[i]][0]==-1) col[y[i]][0]=col[y[i]][1]=x[i];
+            else
+            {
+                col[y[i]][0]=min(col[y[i]][0],x[i]);
+                col[y[i]][1]=max(col[y[i]][1],x[i]);
+            }
+
+            if (lu[x[i]-y[i]+100000][0]==-1) lu[x[i]-y[i]+100000][0]=lu[x[i]-y[i]+100000][1]=y[i];
+            else
+            {
+                lu[x[i]-y[i]+100000][0]=min(lu[x[i]-y[i]+100000][0],y[i]);
+                lu[x[i]-y[i]+100000][1]=max(lu[x[i]-y[i]+100000][1],y[i]);
+            }
+
+            if (ru[x[i]+y[i]][0]==-1) ru[x[i]+y[i]][0]=ru[x[i]+y[i]][1]=y[i];
+            else
+            {
+                ru[x[i]+y[i]][0]=min(ru[x[i]+y[i]][0],y[i]);
+                ru[x[i]+y[i]][1]=max(ru[x[i]+y[i]][1],y[i]);
+            }
+        }
+        memset(use,0,sizeof(use));
+        for (int i=0;i<m;i++)
+        {
+            int xx=x[i],yy=y[i],cnt=0;
+            if (row[xx][0]!=yy) cnt++;
+            if (row[xx][1]!=yy) cnt++;
+            if (col[yy][0]!=xx) cnt++;
+            if (col[yy][1]!=xx) cnt++;
+            if (lu[xx-yy+100000][0]!=yy) cnt++;
+            if (lu[xx-yy+100000][1]!=yy) cnt++;
+            if (ru[xx+yy][0]!=yy) cnt++;
+            if (ru[xx+yy][1]!=yy) cnt++;
+            use[cnt]++;
+        }
+        for (int i=0;i<=8;i++)
+            printf("%d ",use[i]);
+        printf("\n");
+    }
+    return 0;
+}

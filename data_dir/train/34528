@@ -1,0 +1,50 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define LL long long
+#define LD long double
+#define pb push_back
+#define sz(a) (int)a.size()
+#define all(a) a.begin(),a.end()
+#define rall(a) a.rbegin(),a.rend()
+#define debug(x) cerr << #x << " is " << x << endl;
+using namespace std;
+int const MAXN = 2e6 + 9;
+int a[MAXN];
+int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    int T;
+    cin >> T;
+    while(T--){
+        int n;
+        cin >> n;
+        vector<int> out;
+        for(int i = 0; i < n; i++){
+            cin >> a[i];
+        }
+        sort(a,a+n);
+        if (n % 2){
+            out.pb(a[n/2]);
+            int i = n /2 - 1;
+            int j = n /2 + 1;
+            while ( i >= 0 && j < n){
+                out.pb(a[i]);
+                out.pb(a[j]);
+                i--;
+                j++;
+            }
+        }else{
+            out.pb(a[n/2]);
+            int i = n / 2 - 1;
+            int j = n / 2 + 1;
+            while ( i >= 0 && j < n){
+                out.pb(a[i]);
+                out.pb(a[j]);
+                i--;
+                j++;
+            }
+            out.pb(a[0]);
+        }
+        for(auto cur : out) cout << cur << ' ';
+        cout << endl;
+    }
+}

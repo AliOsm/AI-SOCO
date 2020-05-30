@@ -1,0 +1,100 @@
+#pragma GCC optimize("Ofast")
+#include <bits/stdc++.h>
+#define isz(x) (int)(x).size()
+#define all(x) (x).begin(),(x).end()
+const int mod = 998244353;
+using ll = long long;
+struct Key {
+    int p, lt, rt;
+    ll operator()() const {
+        return rt | ((lt | (ll(p) << 16)) << 16);
+    }
+};
+bool operator<(Key a, Key b) { return a() < b(); }
+template<bool debug = 0>
+struct Brute1 {
+    
+    bool equal(char a, char b) {
+        return a == '*' || b == '*' || a == b;
+    }
+    int answ{0};
+    std::string s,t,res;
+    int need;
+    std::unordered_map<ll,int> cache;
+    Brute1(std::string s_, std::string t_) : s(s_), t(t_),need(isz(t)) {
+        cache.reserve((int)2e7);
+        while (isz(t) < isz(s)) t += '*';
+        //res = std::string(isz(s), '?');
+        for (int last = isz(s)-1; last >= need-1; last--) {
+            debug && std::cout << "last = " << last+1 << std::endl;
+            res = std::string(isz(s), '?');
+            answ += brute(last,0,last);
+            if (answ >= mod) answ -= mod;
+        }
+        //std::cout << "number of states = " << isz(cache) << std::endl;
+    }
+    int brute(int p, int lt, int rt,int dep=0) {
+        // посмотрим на последний символ: он был добавлен либо в конец, либо в начало
+        debug && std::cout << std::string(dep*4,' ') << "Brute1: res = " << res << ", p = " << p << std::endl;
+        // в начало:
+        if (p < 0) return 1;
+        Key key{p,lt,rt};
+        auto it = cache.find(key());
+        if (it != cache.end()) return it->second;
+        int curr = 0;
+        if (equal(s[p], t[lt])) {
+            res[lt] = s[p];
+            curr+=brute(p-1,lt+1,rt,dep+1);
+            res[lt] = '?';
+        }
+        if (equal(s[p], t[rt])) {
+            res[rt] = s[p];
+            curr+=brute(p-1,lt,rt-1,dep+1);
+            if (curr >= mod) curr -= mod;
+            res[rt] = '?';
+        }
+        return cache[key()] = curr;
+    }
+};
+template<bool debug = 0>
+struct Brute2 {
+    int answ{0};
+    std::string s, t;
+    std::deque<char> tmp{};
+    Brute2(std::string s_, std::string t_) : s(s_), t(t_) {
+        brute(0);
+    }
+    void brute(int p) {
+        if (isz(tmp) >= isz(t)) {
+            bool ok(1);
+            for (int i = 0; i < isz(t); i++) ok &= tmp[i] == t[i];
+            answ+=ok;
+            if (ok) {
+                debug && std::cout << "Brute2: " << std::string(tmp.begin(),tmp.end()) << std::endl;
+            }
+        }
+        if (p == isz(s)) return;
+        tmp.push_front(s[p]);
+        brute(p+1);
+        tmp.pop_front();
+        tmp.push_back(s[p]);
+        brute(p+1);
+        tmp.pop_back();
+    }
+};
+int main() {
+	/*
+    {
+        std::string s(3000,'a'), t(1500, 'a');
+        std::cout << Brute1<0>(s,t).answ << std::endl;
+        return 0;
+    }
+    */
+    for (std::string s, t; std::cin >> s >> t; ) {
+        std::cout << Brute1<0>(s,t).answ << std::endl;
+        /*int answ1 = Brute1<0>(s,t).answ;
+        int answ2 = Brute2<0>(s,t).answ;
+        std::cout << answ1 << ' ' << answ2 << std::endl;*/
+    }
+    return 0;
+}

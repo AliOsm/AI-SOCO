@@ -1,0 +1,106 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 5, LG = 16 + 4;
+int n, q, h[N], St[N], V[N], par[N][LG];
+vector<int> adj[N];
+struct node {
+	int lca, st, en;
+} seg[N << 2];
+
+void dfs(int u) {
+	static int time = 0;
+	for (int i = 0; i < LG - 1; i++)
+		par[u][i + 1] = par[par[u][i]][i];
+	V[St[u] = time++] = u;
+	for (auto v: adj[u]) {
+		h[v] = h[u] + 1;
+		par[v][0] = u;
+		dfs(v);
+	}
+}
+
+inline int get_par(int u, int k) {
+	for (int i = 0; i < LG; i++)
+		if (k >> i & 1)
+			u = par[u][i];
+	return u;
+}
+
+inline int lca(int u, int v) {
+	if (!~u || !~v)
+		return ~u? u: v;
+	if (h[u] > h[v])
+		swap(u, v);
+	v = get_par(v, h[v] - h[u]);
+	if (u == v)
+		return u;
+	for (int i = LG - 1; ~i; i--)
+		if (par[u][i] ^ par[v][i]) {
+			u = par[u][i];
+			v = par[v][i];
+		}
+	return par[u][0];
+}
+
+inline node merge(node a, node b) {
+	if (!~a.st || !~b.st)
+		return ~a.st? a: b;
+	return {lca(a.lca, b.lca), St[a.st] < St[b.st]? a.st: b.st, St[a.en] > St[b.en]? a.en: b.en};
+}
+
+void build(int id = 1, int st = 0, int en = n) {
+	if (en - st == 1) {
+		seg[id] = {st, st, st};
+		return;
+	}
+	int mid = st + en >> 1;
+	build(id << 1, st, mid);
+	build(id << 1 | 1, mid, en);
+	seg[id] = merge(seg[id << 1], seg[id << 1 | 1]);
+}
+
+node get(int l, int r, int id = 1, int st = 0, int en = n) {
+	if (r <= st || en <= l)
+		return {-1, -1, -1};
+	if (l <= st && en <= r)
+		return seg[id];
+	int mid = st + en >> 1;
+	return merge(get(l, r, id << 1, st, mid), get(l, r, id << 1 | 1, mid, en));
+}
+
+inline void read_input() {
+	cin >> n >> q;
+	for (int i = 1; i < n; i++) {
+		int u;
+		cin >> u;
+		adj[--u].push_back(i);
+	}
+}
+
+inline void solve(int l, int r) {
+	node x = get(l, r);
+	int u = lca(get(l, x.st).lca, get(x.st + 1, r).lca);
+	int v = lca(get(l, x.en).lca, get(x.en + 1, r).lca);
+	if (h[u] > h[v])
+		cout << ++x.st << ' ' << h[u] << endl;
+	else
+		cout << ++x.en << ' ' << h[v] << endl;
+}
+
+inline void write_output() {
+	dfs(0);
+	build();
+	while (q--) {
+		int l, r;
+		cin >> l >> r;
+		solve(--l, r);
+	}
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	read_input(), write_output();
+	return 0;
+}

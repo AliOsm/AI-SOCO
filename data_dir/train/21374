@@ -1,0 +1,31 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <vector>
+#include <algorithm>
+using namespace std;
+int main() {
+	int n;
+	int a[2010];
+	cin>>n;
+	for (int i = 0; i < 2 * n; ++i) {
+		cin>>a[i];
+	}
+	sort(a, a + 2 * n);
+	int sum1 = 0;
+	int sum2 = 0;
+	for (int i = 0; i < 2 * n; ++i) {
+		if (i < n) sum1 += a[i];
+		else sum2 += a[i];
+	}
+	if (sum1 == sum2) {
+		cout<<"-1"<<endl;
+	} else {
+		for (int i = 0; i < 2 * n; ++i) {
+			cout<<a[i];
+			if (i < 2 * n - 1) cout<<" ";
+			else cout<<endl;
+		}
+	}
+	return 0;
+}

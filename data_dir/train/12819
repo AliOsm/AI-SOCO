@@ -1,0 +1,63 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+ 
+int a, b, c, d;
+int cnt[4];
+ 
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> a >> b >> c >> d;
+    for (int start = 0; start < 4; start++) {
+        cnt[0] = a;
+        cnt[1] = b;
+        cnt[2] = c;
+        cnt[3] = d;
+        if (cnt[start] == 0) continue;
+        vector<int> ans;
+        int cur = start;
+        while (true) {
+            ans.push_back(cur);
+            cnt[cur]--;
+            if (cur == 0) {
+                if (cnt[cur+1] > 0) {
+                    cur++;
+                }
+                else break;
+            }
+            else if (cur == 1) {
+                if (cnt[cur-1] > 0) {
+                    cur--;
+                }
+                else if (cnt[cur+1] > 0) {
+                    cur++;
+                }
+                else break;
+            }
+            else if (cur == 2) {
+                if (cnt[cur+1] > 0) {
+                    cur++;
+                }
+                else if (cnt[cur-1] > 0) {
+                    cur--;
+                }
+                else break;
+            }
+            else {
+                if (cnt[cur-1] > 0) {
+                    cur--;
+                }
+                else break;
+            }
+        }
+        if (ans.size() == a+b+c+d) {
+            cout << "YES\n";
+            for (int i: ans) {
+                cout << i << ' ';
+            }
+            cout << '\n';
+            return 0;
+        }
+    }
+    cout << "NO\n";
+}

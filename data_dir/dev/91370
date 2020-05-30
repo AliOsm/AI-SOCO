@@ -1,0 +1,134 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 5, M = 1e5 + 5; // array len / number of queries
+int n, q, k;
+int arr[N], st[M], en[M], ind[M];
+int new_pre[N], new_suff[N], new_pre_comp[N], new_suff_comp[N];
+int pre_freq[4 * N], suff_freq[4 * N];
+long long cum[N] , ans[M] , cnt;
+
+long long sum(int l, int r) {
+    if (!l) return cum[r];
+    return cum[r] - cum[l - 1];
+}
+
+void add(int i, bool side, int b) {
+    if (side)
+        cnt += pre_freq[new_pre_comp[i]] + (sum(b, i) == k);
+    else
+        cnt += suff_freq[new_suff_comp[i]] + (sum(i, b) == k);
+
+    pre_freq[new_pre[i]]++;
+    suff_freq[new_suff[i]]++;
+}
+
+void rem(int i, bool side, int b) {
+    pre_freq[new_pre[i]]--;
+    suff_freq[new_suff[i]]--;
+
+    if (side)
+        cnt -= pre_freq[new_pre_comp[i]] + (sum(b, i) == k);
+    else
+        cnt -= suff_freq[new_suff_comp[i]] + (sum(i, b) == k);
+}
+
+void mo() {
+    int bsz = sqrt(n);
+    sort(ind, ind + q, [bsz](int i, int j) {
+        int ibid = st[i] / bsz, jbid = st[j] / bsz;
+        return tie(ibid, en[i]) < tie(jbid, en[j]);
+    });
+
+    int s = 0, e = -1;
+    for (int j = 0; j < q; j++) {
+        int i = ind[j];
+        if (st[i] <= s) {
+            while (s > st[i])
+                add(--s, 0, e);
+            while (s < st[i])
+                rem(s++, 0, e);
+            while (e > en[i])
+                rem(e--, 1, s);
+            while (e < en[i])
+                add(++e, 1, s);
+        } else {
+            while (e > en[i])
+                rem(e--, 1, s);
+            while (e < en[i])
+                add(++e, 1, s);
+            while (s > st[i])
+                add(--s, 0, e);
+            while (s < st[i])
+                rem(s++, 0, e);
+        }
+
+        ans[i] = cnt;
+    }
+}
+
+void compress() {
+    map<long long, int> mp;
+
+    long long s = 0;
+    for (int i = 0; i < n; i++) {
+        s += arr[i];
+        cum[i] = s;
+        mp[s], mp[s - k];
+    }
+
+    s = 0;
+    for (int i = n - 1; i >= 0; i--) {
+        s += arr[i];
+        mp[s], mp[s - k];
+    }
+
+    int nxt = 0;
+    for (auto &p : mp)
+        p.second = nxt++;
+
+    for (int i = 0; i < n; i++) {
+        new_pre[i] = mp[cum[i]];
+        new_pre_comp[i] = mp[cum[i] - k];
+    }
+
+    s = 0;
+    for (int i = n - 1; i >= 0; i--) {
+        s += arr[i];
+        new_suff[i] = mp[s];
+        new_suff_comp[i] = mp[s - k];
+    }
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+    freopen("input.in", "r", stdin);
+#endif
+    scanf("%d%d", &n, &k);
+    for (int i = 0; i < n; i++) {
+        scanf("%d", arr + i);
+        arr[i] = arr[i] == 2 ? -1 : 1;
+    }
+
+
+    int v;
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &v);
+        arr[i] *= v;
+    }
+
+    compress();
+
+    scanf("%d", &q);
+    for (int i = 0; i < q; i++) {
+        scanf("%d%d", st + i, en + i);
+        st[i]--, en[i]--;
+        ind[i] = i;
+    }
+
+    mo();
+
+    for (int i = 0; i < q; i++)
+        printf("%lld\n", ans[i]);
+}

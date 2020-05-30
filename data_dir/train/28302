@@ -1,0 +1,138 @@
+#include <algorithm>
+#include <iostream>
+#include <valarray>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
+#include <numeric>
+#include <complex>
+#include <cstdio>
+#include <string>
+#include <vector>
+#include <bitset>
+#include <ctime>
+#include <cmath>
+#include <queue>
+#include <deque>
+#include <map>
+#include <set>
+#include <ext/algorithm>
+
+using namespace std;
+
+#define FOREACH(i, c) for(__typeof((c).begin()) i = (c).begin(); i != (c).end(); ++i)
+#define FOR(i, a, n) for (int i = (a); i < int(n); ++i)
+#define error(x) cout << #x << " = " << (x) << endl;
+#define all(n) (n).begin(), (n).end()
+#define Size(n) ((int)(n).size())
+#define mk make_pair
+#define pb push_back
+#define F first
+#define S second
+#define X real()
+#define Y imag()
+
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef complex<double> point;
+
+template <class P, class Q> void smin(P &a, Q b) { if (b < a) a = b; } 
+template <class P, class Q> void smax(P &a, Q b) { if (b > a) a = b; } 
+template <class P, class Q> bool in(const P &a, const Q &b) { return a.find(b) != a.end(); }
+
+const int MAXN = 333;
+
+int n, v, e;
+int par[MAXN];
+vector<int> adj[MAXN];
+vector<ll> a, b;
+vector<pair<pii, ll> > operations;
+bool change;
+
+int find(int x) {
+	if (x != par[x]) par[x] = find(par[x]);
+	return par[x];
+}
+
+void join(int a, int b) {
+	par[find(a)] = find(b);
+}
+
+ll give(int x, int y, ll amount) {
+	smin(amount, v-a[y]);
+	smin(amount, a[x]);
+	if (amount) {
+		operations.pb(mk(pii(x, y), amount));
+		a[x] -= amount;
+		a[y] += amount;
+		change = true;
+	}
+	FOR(i, 0, n) assert(a[i] <= v && 0 <= a[i]);
+	return amount;
+}
+
+ll dfs(int pos, int par) {
+	ll total = 0;
+	FOREACH(it, adj[pos]) if (*it != par) total += dfs(*it, pos);
+
+
+	total += a[pos]-b[pos];
+
+	if (par == -1) return total;
+
+	if (total > 0)
+		total -= give(pos, par, total);
+	else if (total < 0)
+		total += give(par, pos, -total);
+
+	return total;
+}
+
+ll get_total(int pos, int par) {
+	ll total = a[pos]-b[pos];
+	FOREACH(it, adj[pos]) if (*it != par) total += dfs(*it, pos);
+	return total;
+}
+
+int main() {
+	ios::sync_with_stdio(false);
+
+	FOR(i, 0, MAXN) par[i] = i;
+
+	cin >> n >> v >> e;
+
+	a.resize(n); FOR(i, 0, n) cin >> a[i];
+	b.resize(n); FOR(i, 0, n) cin >> b[i];
+
+	while (e--) {
+		int x, y;
+		cin >> x >> y;
+		x--; y--;
+
+		if (find(x) != find(y)) {
+			join(x, y);
+			adj[x].pb(y);
+			adj[y].pb(x);
+		}
+	}
+
+	FOR(i, 0, n) {
+		change = true;
+		while (change) {
+			change = false;
+			if (dfs(i, -1) != 0) {
+				cout << "NO" << endl;
+				return 0;
+			}
+		}
+	}
+	
+	cout << Size(operations) << "\n";
+	FOREACH(it, operations) cout << it->F.F+1 << " " << it->F.S+1 << " " << it->S << "\n";
+	return 0;
+}
+

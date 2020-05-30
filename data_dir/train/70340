@@ -1,0 +1,199 @@
+
+// ~/BAU/ACM-ICPC/Teams/OverflowLimitExceeded/Corvus
+// ~/sudo apt-get verdict Accpeted
+
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <memory.h>
+#include <limits.h>
+#include <math.h>
+#include <string.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+const int N = 20005;
+const ll MOD = 1e9 + 7;
+
+int n, curLen, suf[N], ord[N], newOrd[N], f[N], LCP[N];
+char t[N];
+string s, a, b;
+vector<string> sufs;
+
+bool cmp(int a, int b) {
+	return ord[a] < ord[b] || (ord[a] == ord[b] && ord[a + curLen] < ord[b + curLen]);
+}
+
+void build() {
+	f[0] = 0;
+	for (int i = 1, len = 0; i < b.size(); i++) {
+		while (len && b[i] != b[len])
+			len = f[len - 1];
+		if (b[i] == b[len])
+			len++;
+		f[i] = len;
+	}
+
+	n++;
+	for (int i = 0; i < n; i++) {
+		suf[i] = i;
+		ord[i] = s[i];
+	}
+
+	for (int len = 1; ; len *= 2) {
+		curLen = len;
+		sort(suf, suf + n, cmp);
+		newOrd[0] = 0;
+		for (int i = 1; i < n; i++)
+			newOrd[i] = newOrd[i - 1] + (cmp(suf[i - 1], suf[i]));
+		for (int i = 0; i < n; i++)
+			ord[suf[i]] = newOrd[i];
+		if (newOrd[n - 1] == n - 1)
+			break;
+	}
+
+	for (int i = 0; i < n; i++)
+		sufs.push_back(s.substr(suf[i]));
+
+	LCP[0] = 0;
+	for (int i = 1; i < n; i++) {
+		int j = 0;
+		while (j < sufs[i - 1].size() && j < sufs[i].size() && sufs[i - 1][j] == sufs[i][j])
+			j++;
+		LCP[i] = j;
+	}
+
+	vector<int> inv(n, 0);
+	for (int i = 0; i < n; i++)
+		inv[suf[i]] = i;
+
+	for (int i = 0, k = 0; i < n; i++) {
+		if (inv[i] == 0) {
+			k = 0;
+			continue;
+		}
+		int j = suf[inv[i] - 1];
+
+		while (i + k < n && j + k < n && s[i + k] == s[j + k])
+			k++;
+
+		LCP[inv[i]] = k;
+
+		if (k) k--;
+	}
+}
+
+vector<int> matchB(int u) {
+	vector<int> v;
+	for (int i = 0, len = 0; i < sufs[u].size(); i++) {
+		while (len && sufs[u][i] != b[len])
+			len = f[len - 1];
+		if (sufs[u][i] == b[len])
+			len++;
+		if (len == b.size()) {
+			if(i >= a.size()-1) v.push_back(i);
+			len = f[len - 1];
+		}
+	}
+
+	return v;
+}
+
+bool startWithA(int u) {
+	if (sufs[u].size() < a.size())
+		return 0;
+
+	int i;
+	for (i = 0; i < a.size(); i++)
+		if (sufs[u][i] != a[i])
+			break;
+	return i == a.size();
+}
+
+string substring(string &s, int a, int b) {
+	string res = "";
+	for (int i = a; i <= b; i++)
+		if (s[i] != ' ')
+			res += s[i];
+	return res;
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.in", "r", stdin);
+#endif
+
+	scanf("%s", t);
+	s = string(t);
+	scanf("%s", t);
+	a = string(t);
+	scanf("%s", t);
+	b = string(t);
+
+	if (s.find(a) == string::npos || s.find(b) == string::npos) {
+		puts("0");
+		return 0;
+	}
+
+	if ((s.substr((int)s.find(a))).find(b) == string::npos) {
+		puts("0");
+		return 0;
+	}
+
+	n = s.size();
+	build();
+
+	int l = 0, r = n - 1, m, x = -1, y = -1;
+	while (l <= r) {
+		m = (l + r) / 2;
+		if (startWithA(m)) {
+			x = m;
+			r = m - 1;
+		}
+		else if (sufs[m] > a)
+			r = m - 1;
+		else l = m + 1;
+
+	}
+
+	l = 0, r = n - 1;
+	while (l <= r) {
+		m = (l + r) / 2;
+		if (startWithA(m)) {
+			y = m;
+			l = m + 1;
+		}
+		else if (sufs[m] > a)
+			r = m - 1;
+		else l = m + 1;
+	}
+
+	if (x == -1 || y == -1) {
+		puts("0");
+		return 0;
+	}
+
+	int ans = matchB(x).size();
+
+	for (int i = x + 1; i <= y; i++) {
+		vector<int> v = matchB(i);
+		ans += v.size() - (lower_bound(v.begin(), v.end(), LCP[i]) - v.begin());
+	}
+
+	printf("%d\n", ans);
+
+	return 0;
+}

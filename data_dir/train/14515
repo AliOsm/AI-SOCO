@@ -1,0 +1,94 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define oo 666666666
+#define ll long long
+#define ld long double
+
+void turnOn(vector<array<ll,2>>&seg, int c, int l, int r, int idx, ll val)
+{
+    if(l==r)
+    {
+        seg[c][0]=1;
+        seg[c][1]=val;
+        return;
+    }
+    int m = (l+r)/2;
+    if(idx<=m)turnOn(seg,2*c,l,m,idx,val);
+    else turnOn(seg,2*c+1,m+1,r,idx,val);
+
+    seg[c][0]=seg[2*c][0]+seg[2*c+1][0];
+    seg[c][1]=seg[2*c][1]+seg[2*c+1][1];
+}
+
+ll TakeFirstK(vector<array<ll,2>>&seg, int c, int l, int r, int k)
+{
+    if(seg[c][0] <= k)return seg[c][1];
+    if(l==r || k==0)return 0;
+    int m = (l+r)/2;
+    if(seg[2*c][0] > k)return TakeFirstK(seg,2*c,l,m,k);
+    return seg[2*c][1] + TakeFirstK(seg,2*c+1,m+1,r,k-seg[2*c][0]);
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+    int tc;
+    cin>>tc;
+
+    while(tc--)
+    {
+        ll n,m,t;
+        cin>>n>>m>>t;
+        map<int,vector<int>>mp;
+        for(int i=0; i<n; i++)
+            {
+                int x;
+                cin>>x;
+                mp[x].push_back(i+1);
+            }
+        array<ll,2>ats = {0,1};
+
+        vector<array<ll,2>>seg(4*n+4);
+
+        for(auto&p : mp)
+        {
+            for(auto&idx:p.second)
+                turnOn(seg,1,1,n,idx,p.first);
+
+            int l = 0, r = seg[1][0];
+            while(l < r)
+            {
+                int mi = (l+r+1)/2;
+                if(TakeFirstK(seg,1,1,n,mi)*2 <= t)
+                    l=mi;
+                else
+                    r=mi-1;
+            }
+
+            //cout<<" "<<r<<" "<<TakeFirstK(seg,1,1,n,r)*2<<" "<<t<<" <><><><\n";
+
+            ll takeWithBreaks = r/m*m;
+            ll timeLeft = t - TakeFirstK(seg,1,1,n,takeWithBreaks);
+
+            l = 0, r = min(takeWithBreaks+m, seg[1][0]);
+            while(l < r)
+            {
+                int mi = (l+r+1)/2;
+                if(TakeFirstK(seg,1,1,n,mi) <= timeLeft)
+                    l=mi;
+                else
+                    r=mi-1;
+            }
+
+            //cout<<" "<<p.first<<" "<<takeWithBreaks<<" "<<timeLeft<<" "<<r<<" <<<\n";
+
+            if(r > ats[0])
+            {
+                ats[0]=r;
+                ats[1]=p.first;
+            }
+        }
+
+        cout<<ats[0]<<" "<<ats[1]<<"\n";
+    }
+}

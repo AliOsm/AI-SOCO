@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <stack>
+#include <map>
+#include <string.h>
+#include <string>
+#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <math.h>
+#include <vector>
+#include <set>
+#include <queue>
+#include <climits>
+using namespace std;
+#define ll long long
+#define mp make_pair
+//#define ld long double
+const int mod = (1e9) + 7;
+const int siz = (1e5) + 100;
+int n, fact[siz], eo[75][2], oc[75], dp[75][550000], masks[75];
+bool np[75];
+vector<int> primes;
+int power(int x, int y) {
+	if (y == 0)
+		return 1;
+	int p = power(x, y / 2);
+	p = ((ll)p*p) % mod;
+	return (y%2==0?p:((ll)p*x)%mod);
+}
+void fillfact() {
+	fact[0] = 1;
+	for (int i = 1; i <= 100000; i++) {
+		fact[i] = ((ll)fact[i - 1] * i) % mod;
+	}
+}
+int ncr(int x, int y) {
+	int numer = fact[x];
+	int denom = ((ll)fact[y] * fact[x - y]) % mod;
+	denom = power(denom, mod-2);
+	return ((ll)numer*denom) % mod;
+}
+void sieve() {
+	for (int i = 2; i*i <= 70; i++) {
+		if (np[i])
+			continue;
+		for (int j = i*i; j <= 70; j += i) {
+			np[j] = true;
+		}
+	}
+	for (int i = 2; i <= 70; i++) {
+		if (!np[i])
+			primes.push_back(i);
+	}
+}
+void filleo() {
+	for (int i = 1; i <= 70; i++) {
+		for (int j = 0; j <= oc[i]; j += 2) {
+			eo[i][0] = ((ll)eo[i][0] + ncr(oc[i], j)) % mod;
+		}
+		for (int j = 1; j <= oc[i]; j += 2) {
+			eo[i][1] = ((ll)eo[i][1] + ncr(oc[i], j)) % mod;
+		}
+	}
+}
+void fillmasks() {
+	for (int i = 1; i <= 70; i++) {
+		int k = i;
+		for (int j = 0; j < primes.size(); j++) {
+			while (k%primes[j] == 0) {
+				masks[i] ^= (1<<j);
+				k /= primes[j];
+			}
+		}
+	}
+}
+int solve(int i, int j) {
+	if (i == 71) {
+		if (j == 0)
+			return 1;
+		return 0;
+	}
+	if (dp[i][j] != -1)
+		return dp[i][j];
+	int v1 = ((ll)eo[i][0] * solve(i + 1, j )) % mod;
+	int v2 = ((ll)eo[i][1] * solve(i + 1, j^masks[i])) % mod;
+	return dp[i][j] = ((ll)v1 + v2) % mod;
+}
+int main()
+{
+	scanf("%d", &n);
+	for (int i = 0; i < n; i++) {
+		int t;
+		scanf("%d", &t);
+		oc[t]++;
+	}
+	memset(dp, -1, sizeof dp);
+	sieve();
+	fillfact();
+	filleo();
+	fillmasks();
+	printf("%d\n", ((ll)solve(1,0)+(mod - 1))%mod);
+	return 0;
+}

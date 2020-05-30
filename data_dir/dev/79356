@@ -1,0 +1,80 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 10;
+
+vector <int> G[N];
+vector <int> rec;
+int dep[N], p[N], dp[N], ans[N], dia[N];
+int k;
+
+void dfs(int x, int fa, int now){
+	dep[x] = now; p[x] = fa; dp[x] = dep[x];
+	for (auto it : G[x]){
+		if (it == fa) continue;
+		dfs(it, x, now + 1);
+		dp[x] = max(dp[x], dp[it]);
+	}
+}
+
+void solve(int x, int now, int step){
+	ans[x] = now; now += step;
+	if (now == 0) now = k;
+	if (now > k) now -= k;
+	for (auto it : G[x]){
+		if (it == p[x]) continue;
+		solve(it, now, step);
+	}
+}
+
+int main(){
+	int n, maxx, far, dialen;
+	scanf("%d %d",&n,&k);
+	for (int i = 1, u, v; i <= n - 1; i++){
+		scanf("%d %d",&u,&v);
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+	dfs(1, 0, 1);
+	if (k == 2){
+		printf("Yes\n");
+		for (int i = 1; i <= n; i++){
+			if (dep[i] & 1) printf("1 ");
+			else printf("2 ");
+		}
+		printf("\n");
+		return 0;
+	}
+	maxx = 1;
+	for (int i = 2; i <= n; i++){
+		if (dep[i] > dep[maxx]) maxx = i;
+	}
+	dfs(maxx, 0, 1);
+	far = 1;
+	for (int i = 2; i <= n; i++){
+		if (dep[i] > dep[far]) far = i; 
+	}
+	dialen = dep[far];
+	for (int i = far; i; i = p[i]){
+		rec.push_back(i);
+		dia[i] = 1;
+	}
+	for (int i = (int)rec.size() - 1, now = 1; ~i; i--, now = now % k + 1) ans[rec[i]] = now;
+	for (int i = (int)rec.size() - 1; ~i; i--){
+		for (auto it : G[rec[i]]){
+			if (it == p[i] || dia[it]) continue;
+			if (dp[it] >= k && dp[it] + dialen - dep[rec[i]] * 2 + 1 >= k){
+				printf("No\n");
+				return 0;
+			}
+			else if (dp[it] >= k) solve(it, ans[rec[i]] % k + 1, 1);
+			else if (dp[it] + dialen - dep[rec[i]] * 2 + 1 >= k)
+				solve(it, (ans[rec[i]] + k - 2) % k + 1, -1);
+			else solve(it, 1, 0);
+		}
+	}
+	printf("Yes\n");
+	for (int i = 1; i <= n; i++) printf("%d ", ans[i]);
+	printf("\n");
+	return 0;
+}

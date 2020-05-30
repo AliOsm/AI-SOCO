@@ -1,0 +1,167 @@
+#include<bits/stdc++.h>
+using namespace std;
+ 
+#define ll long long
+#define all(aaa) aaa.begin(), aaa.end()
+
+const int N = 40, H = N / 2;
+int w[N][N], adj[H], col[N], dp[H + 1][1 << H];
+bool bipartite = true;
+int one_vertex_comp_ct = 0, comp_ct = 0;
+int n, m;
+
+void calcAdjArray(vector<vector<int>> a) {
+    int n = a.size();
+
+    fill(adj, adj + H, 0);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (a[i][j]) {
+                adj[i] |= 1 << j;
+            }
+        }
+    }
+}
+
+vector<int> calcHalfWithout11(vector<vector<int>> a) {
+    int n = a.size();
+    calcAdjArray(a);
+
+    vector<int> v(1 << n);
+
+    for (int i = 0; i < (1 << n); i++) {
+        v[i] = 1;
+        for (int j = 0; j < n; j++) {
+            if ((i >> j) & 1) {
+                if (i & adj[j]) {
+                    v[i] = 0;
+                    break;
+                }
+            }
+        }
+    }
+
+    return v;
+}
+
+vector<vector<int>> getMatrix(int l, int r) {
+    vector<vector<int>> v(r - l + 1, vector<int>(r - l + 1));
+
+    for (int i = l; i <= r; i++) {
+        for (int j = l; j <= r; j++) {
+            if (w[i][j]) {
+                v[i - l][j - l] = 1;
+            }
+        }
+    }
+    return v;
+}
+
+vector<int> calcSum(int sz, vector<int> v) {
+    for (int i = 0; i <= sz; i++) {
+        fill(dp[i], dp[i] + (1 << sz), 0);
+    }
+    for (int i = 0; i < (1 << sz); i++) {
+        dp[0][i] = v[i];
+    }
+    for (int i = 0; i < sz; i++) {
+        for (int j = 0; j < (1 << sz); j++) {
+            dp[i + 1][j] = dp[i][j];
+            if ((j >> i) & 1)
+                dp[i + 1][j] += dp[i][j ^ (1 << i)];
+        }
+    }
+    for (int i = 0; i < (1 << sz); i++) {
+        v[i] = dp[sz][i];
+    }
+    return v;
+}
+
+ll calcWithout11(int n) {
+    int h1_sz = n / 2, h2_sz = n - h1_sz;
+
+    vector<int> h2 = calcHalfWithout11(getMatrix(h1_sz, n - 1)),
+        h1 = calcHalfWithout11(getMatrix(0, h1_sz - 1));
+    
+    ll ans = 0;
+    h2 = calcSum(h2_sz, h2);
+
+    fill(adj, adj + h1_sz, 0);
+
+    for (int i = 0; i < h1_sz; i++) {
+        for (int j = h1_sz; j < n; j++) {
+            if (w[i][j]) {
+                adj[i] |= 1 << (j - h1_sz);
+            }
+        }
+    }
+
+    for (int i = 0; i < (1 << h1_sz); i++) {
+        if (h1[i]) {
+            int m = (1 << h2_sz) - 1;
+            for (int j = 0; j < h1_sz; j++) {
+                if ((i >> j) & 1)
+                    m &= ~adj[j];
+            }
+            ans += h2[m];
+        }
+    }
+
+    return ans;
+}
+
+int dfs(int node, int c) {
+    col[node] = c;
+    int sz = 1;
+    for (int i = 0; i < n; i++) {
+        if (w[node][i]) {
+            if (!col[i]) {
+                sz += dfs(i, 3 - c);
+            }
+            else if (col[i] == col[node]) {
+                bipartite = false;
+            }
+        }
+    }
+    return sz;
+}
+
+signed main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        cin >> x >> y;
+        x--, y--;
+        w[x][y] = w[y][x] = 1;
+    }
+
+    ll ans = calcWithout11(n) * 2;
+
+    for (int i = 0; i < n; i++) {
+        if (!col[i]) {
+            int sz = dfs(i, 1);
+            comp_ct++;
+            if (sz == 1)
+                one_vertex_comp_ct++;
+        }
+    }
+
+    ans += (1ll << comp_ct) - (1ll << one_vertex_comp_ct) * 2;
+
+    if (bipartite)
+        ans -= (1ll << comp_ct);
+
+    if (m == 0)
+        ans += (1ll << n);
+
+    ans = (1ll << n) - ans;
+
+    cout << ans;
+
+    return 0;
+}  

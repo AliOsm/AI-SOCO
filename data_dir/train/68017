@@ -1,0 +1,106 @@
+#include<bits/stdc++.h>
+using namespace std;
+int n,m,a,b,timer = 0,sz[100001],tin[100001],tout[100001],dep[100001],lca[100001][21];
+vector<int>v[100001];
+void LCA(int x, int p)
+{
+  tin[x] = ++ timer;
+  lca[x][0] = p;
+  for(int i=1; i<20; i++)
+    lca[x][i] = lca[lca[x][i-1]][i-1];
+  for(int i=0; i<v[x].size(); i++)
+    if(v[x][i] != p) LCA(v[x][i],x);
+  tout[x] = ++ timer;
+}
+bool Upper(int x, int y)
+{
+  if(!x || !y) return true;
+  if(tin[x] <= tin[y] && tout[x] >= tout[y]) return true; return false;
+}
+int getLCA(int x, int y)
+{
+  if(Upper(x,y)) return x;
+  if(Upper(y,x)) return y;
+  for(int i=19; i>=0; i--)
+    if(!Upper(lca[x][i],y)) x = lca[x][i]; 
+  return lca[x][0];
+}
+int dist(int x, int y)
+{
+  int ans = 1;
+  if(Upper(x,y)) return dep[y] - dep[x];
+  if(Upper(y,x)) return dep[x] - dep[y];
+  for(int i=19; i>=0; i--)
+    if(!(Upper(lca[x][i],y))) ans += (1<<i), x = lca[x][i];
+  x = lca[x][0];
+  return dep[y] - dep[x] + ans;
+}
+int dfs(int x, int p, int z)
+{
+  dep[x] = z;
+  for(int i=0; i<v[x].size(); i++)
+  {
+    if(v[x][i] == p) continue;
+    sz[x] += dfs(v[x][i],x,z+1);
+  }
+  sz[x] ++;
+  return sz[x];
+}
+int get(int u, int dist)
+{
+  for(int i=19; i>=0; i--)
+  {
+    if(!dist) break;
+    if((1<<i) <= dist) 
+    {
+      u = lca[u][i];
+      dist -= (1<<i);
+    }
+  }
+  return u;
+}
+int go(int x, int y)
+{
+  for(int i=20; i>=0; i--)
+    if(!(Upper(lca[y][i],x))) y = lca[y][i];
+  return y;
+}
+int main()
+{
+  cin >> n;
+  for(int i=1; i<n; i++)
+  {
+    cin >> a >> b;
+    v[a].push_back(b);
+    v[b].push_back(a);
+  }
+  dfs(1,0,0);
+  LCA(1,0);
+  cin >> m;
+  while(m --)
+  {
+    cin >> a >> b;
+    if(dep[a] < dep[b]) swap(a,b);
+    int x = dist(a,b);
+    int u = get(a,x/2);
+    int LCAx = getLCA(a,b);
+    //cout << "dist(" << a << "," << b << ") = " << x << endl;
+    //cout << "get(" << a << "," << x / 2 << ") = " << u << endl;
+    //cout << "LCA = " << LCAx << endl;
+    if(a == b) cout << n << endl;
+    else
+      if(x % 2) cout << 0 << endl;
+    else
+      if(LCAx == u)
+      {
+        int p = go(u,a);
+        int q = go(u,b);
+        cout << n - sz[q] - sz[p] << endl;
+      }
+    else
+    {
+      int u2 = get(a,x/2-1);
+      cout << sz[u] - sz[u2] << endl;
+    }
+  }
+}

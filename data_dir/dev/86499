@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const int INF = 1000000000;
+const int MX = 500;
+
+struct Edge {
+	int v, cap, f;
+} e[105 * 105 * 4 * 20];
+
+vector<int> neigh[MX];
+
+int ee;
+void addEdge(int u, int v, int cap) {
+	e[ee].v = v;
+	e[ee].cap = cap;
+	neigh[u].push_back(ee);
+	ee++;
+	
+	e[ee].v = u;
+	neigh[v].push_back(ee);
+	ee++;
+}
+
+uint32_t g[MX];
+int dist[MX];
+bool bfs(int S, int T) {
+	static int Q[MX];
+	int L = 0, R = 0;
+	memset(dist, -1, sizeof dist);
+	dist[S] = 0;
+	Q[R++] = S;
+	
+	while (L < R) {
+		int cur = Q[L++];
+		for (int i : neigh[cur]) {
+			if (e[i].cap == e[i].f) continue;
+			if (dist[e[i].v] == -1) {
+				dist[e[i].v] = dist[cur] + 1;
+				Q[R++] = e[i].v;
+			}
+		}
+	}
+	
+	return dist[T] != -1;
+}
+int dfs(int v, int f, int T) {
+	if (v == T || !f) return f;
+	while (g[v] < neigh[v].size()) {
+		int i = neigh[v][g[v]];
+		if (dist[e[i].v] == dist[v] + 1 && e[i].cap > e[i].f) {
+			int tmp = dfs(e[i].v, min(f, e[i].cap - e[i].f), T);
+			if (tmp) {
+				e[i].f += tmp;
+				e[i ^ 1].f -= tmp;
+				return tmp;
+			}
+		}
+		g[v]++;
+	}
+	return 0;
+}
+int dinic(int S, int T)
+{
+	int res = 0;
+	while (bfs(S, T)) {
+		memset(g, 0, sizeof g);
+		while (int f = dfs(S, INF, T)) {
+			res += f;
+		}
+	}
+	return res;
+}
+
+struct Rect {
+	int x1, x2, y1, y2;
+} rect[55];
+
+int main()
+{
+	int n, m;
+	ignore = scanf("%d %d", &n, &m);
+	
+	for (int i = 0; i < m; i++) {
+		ignore = scanf("%d %d %d %d", &rect[i].x1, &rect[i].y1, &rect[i].x2, &rect[i].y2);
+	}
+	
+	vector<pair<int, int>> vert, hor;
+	{
+		vector<int> ev;
+		for (int i = 0; i < m; i++) {
+			ev.emplace_back(rect[i].x1);
+			ev.emplace_back(rect[i].x2 + 1);
+		}
+		sort(ev.begin(), ev.end());
+		for (int i = 0; i + 1 < (int)ev.size(); i++) {
+			hor.emplace_back(ev[i], ev[i + 1]);
+		}
+	}
+	
+	{
+		vector<int> ev;
+		for (int i = 0; i < m; i++) {
+			ev.emplace_back(rect[i].y1);
+			ev.emplace_back(rect[i].y2 + 1);
+		}
+		sort(ev.begin(), ev.end());
+		for (int i = 0; i + 1 < (int)ev.size(); i++) {
+			vert.emplace_back(ev[i], ev[i + 1]);
+		}	
+	}
+	
+	/*
+	for (auto h : hor) {
+		printf("[%d %d)\n", h.first, h.second);
+	}
+	printf("\n");
+	for (auto v : vert) {
+		printf("[%d %d)\n", v.first, v.second);
+	} printf("\n");
+	*/
+	
+	for (int i = 0; i < (int)hor.size(); i++) {
+		for (int j = 0; j < (int)vert.size(); j++) {
+			int x = hor[i].first, y = vert[j].first;
+			
+			bool any = false;
+			for (int t = 0; t < m; t++) {
+				if (rect[t].x1 <= x && x <= rect[t].x2 && rect[t].y1 <= y && y <= rect[t].y2) {
+					any = true;
+					break;
+				}
+			}
+			
+			if (any) {
+				//printf("%d->%d\n", i, j);
+				addEdge(i, j + 105, INF);
+			}
+		}
+	}
+	for (int i = 0; i < (int)hor.size(); i++) {
+		addEdge(400, i, hor[i].second - hor[i].first);
+	}
+	for (int j = 0; j < (int)vert.size(); j++) {
+		addEdge(j + 105, 401, vert[j].second - vert[j].first);
+	}
+	
+	int res = dinic(400, 401);
+	printf("%d\n", res);
+}

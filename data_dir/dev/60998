@@ -1,0 +1,156 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+
+const int infinite=1000000000;
+
+void minimize(pair<int,int> &a,pair<int,int> b)
+{
+  a=min(a,b);
+}
+
+pair<int,int> operator+(pair<int,int> p1,pair<int,int> p2)
+{
+  return pair<int,int> (p1.first+p2.first,p1.second+p2.second);
+}
+
+int kmovi[8]={-1,-2,-2,-1,1,2,2,1};
+int kmovj[8]={2,1,-1,-2,-2,-1,1,2};
+
+int tmovi[4]={0,-1,0,1};
+int tmovj[4]={1,0,-1,0};
+
+int bmovi[4]={1,-1,-1,1};
+int bmovj[4]={1,1,-1,-1};
+
+struct elem {
+  int p,i,j;
+  elem() {}
+  elem(int p,int i,int j):p(p),i(i),j(j) {}
+};
+
+int n;
+
+bool inside(int i,int j)
+{
+  return 0<=i and i<n and 0<=j and j<n;
+}
+
+void add(int p,int i,int j,pair<int,int> d,pair<int,int> dist[3][10][10],vector<elem> &v)
+{
+  if (not inside(i,j)) return;
+  if (dist[p][i][j]<=d) return;
+  dist[p][i][j]=d;
+  v.push_back(elem(p,i,j));
+}
+
+void compute(int pini,int iini,int jini,pair<int,int> dist[3][10][10])
+{
+  for (int p=0;p<3;p++)
+    for (int i=0;i<n;i++)
+      for (int j=0;j<n;j++)
+	dist[p][i][j]=pair<int,int> (infinite,infinite);
+  dist[pini][iini][jini]=pair<int,int> (0,0);
+  vector<elem> v;
+  v.push_back(elem(pini,iini,jini));
+  while (not v.empty()) {
+    vector<elem> nextv;
+    for (int iv=0;iv<int(v.size());iv++) {
+      elem e=v[iv];
+      int p=e.p;
+      int i=e.i;
+      int j=e.j;
+      for (int dir=0;dir<8;dir++) {
+	int nexti=i+kmovi[dir];
+	int nextj=j+kmovj[dir];
+	add(0,nexti,nextj,dist[p][i][j]+pair<int,int> (1+(p!=0),p!=0),dist,nextv);
+      }
+      for (int dir=0;dir<4;dir++) {
+	for (int steps=1;;steps++) {
+	  int nexti=i+steps*tmovi[dir];
+	  int nextj=j+steps*tmovj[dir];
+	  if (not inside(nexti,nextj)) break;
+	  add(1,nexti,nextj,dist[p][i][j]+pair<int,int> (1+(p!=1),p!=1),dist,nextv);
+	}
+      }
+      for (int dir=0;dir<4;dir++) {
+	for (int steps=1;;steps++) {
+	  int nexti=i+steps*bmovi[dir];
+	  int nextj=j+steps*bmovj[dir];
+	  if (not inside(nexti,nextj)) break;
+	  add(2,nexti,nextj,dist[p][i][j]+pair<int,int> (1+(p!=2),p!=2),dist,nextv);
+	}
+      }
+    }
+    v=nextv;
+  }
+}
+
+pair<int,int> dist[3][10][10][3][10][10];
+
+void write(int pini,int iini,int jini,int pfin)
+{
+  for (int i=0;i<n;i++) {
+    for (int j=0;j<n;j++) {
+      pair<int,int> P=dist[pini][iini][jini][pfin][i][j];
+      cout<<"("<<P.first<<","<<P.second<<")";
+    }
+    cout<<endl;
+  }
+  cout<<endl;
+}
+
+void compute()
+{
+  for (int p=0;p<3;p++)
+    for (int i=0;i<n;i++)
+      for (int j=0;j<n;j++)
+	compute(p,i,j,dist[p][i][j]);
+}
+
+const int limit=1000;
+
+pair<int,int> position[limit];
+pair<int,int> cost[limit][3];
+
+int main()
+{
+  cin>>n;
+  compute();
+  for (int i=0;i<n;i++) {
+    for (int j=0;j<n;j++) {
+      int x;
+      cin>>x;
+      x--;
+      position[x]=pair<int,int> (i,j);
+    }
+  }
+  //write(0,0,0,0);
+  //write(0,0,0,1);
+  //write(0,0,0,2);
+  for (int x=1;x<n*n;x++)
+    for (int p=0;p<3;p++)
+      cost[x][p]=pair<int,int> (infinite,infinite);
+  for (int x=0;x<n*n-1;x++) {
+    int i=position[x].first;
+    int j=position[x].second;
+    //cout<<"x "<<x<<" i "<<i<<" j "<<j<<endl;
+    //for (int p=0;p<3;p++) {
+    //pair<int,int> P=cost[x][p];
+    //cout<<"("<<P.first<<","<<P.second<<")";
+    //}
+    //cout<<endl;
+    int nexti=position[x+1].first;
+    int nextj=position[x+1].second;
+    for (int p=0;p<3;p++)
+      for (int nextp=0;nextp<3;nextp++)
+	minimize(cost[x+1][nextp],cost[x][p]+dist[p][i][j][nextp][nexti][nextj]);
+  }
+  pair<int,int> sol(infinite,infinite);
+  for (int p=0;p<3;p++)
+    minimize(sol,cost[n*n-1][p]);
+  cout<<sol.first<<" "<<sol.second<<endl;
+}
+

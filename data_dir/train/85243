@@ -1,0 +1,159 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int MAX = 1e5 + 5;
+vector<int> adj[MAX], which[MAX];
+int sz[MAX], ans[MAX];
+bool computed[MAX];
+int tree_size, n, m, k;
+
+int calc_size(int source, int father) {
+	sz[source] = 1;
+	tree_size++;
+	for(auto &each : adj[source]) {
+		if(each != father && !computed[each]) {
+			sz[source] += calc_size(each, source);
+		}
+	}
+	return sz[source];
+}
+
+int find_centroid(int source, int father) {
+	for(auto &each : adj[source]) {
+		if(each != father && !computed[each] && sz[each] > tree_size / 2) {
+			return find_centroid(each, source);	
+		}
+	}
+	return source;
+}
+
+void build_centroid(int source, int last_centroid) {
+	tree_size = 0;
+	calc_size(source, -1);
+	int centroid = find_centroid(source, -1);
+	if(last_centroid == -1) {
+		ans[centroid] = 1;
+	}
+	else {
+		ans[centroid] = ans[last_centroid] + 1;
+	}
+	computed[centroid] = true;
+	for(auto &each : adj[centroid]) {
+		if(!computed[each]) {
+			build_centroid(each, centroid);
+		}
+	}
+}
+
+int main() {
+	scanf("%d %d", &n, &m);
+	vector<ii> edges;
+	fori(i, 0, m) {
+		int a, b;
+		scanf("%d %d", &a, &b);
+		if(a > b) {
+			swap(a, b);
+		}
+		edges.emplace_back(a, b);
+	}
+
+	sort(edges.begin(), edges.end(), [=] (const ii &lhs, const ii &rhs) {
+		int a = min(lhs.second - lhs.first - 1, n - (lhs.second - lhs.first - 1) - 2);
+		int b = min(rhs.second - rhs.first - 1, n - (rhs.second - rhs.first - 1) - 2);
+		return a < b;
+	});
+
+	set<int> alive;
+	fori(i, 1, n + 1) {
+		alive.insert(i);
+	}
+
+	vector< vector<int> > regions;
+	for(auto &each : edges) {
+		int a, b;
+		tie(a, b) = each;
+		vector<int> current_region;
+		vector<int> to_erase;
+		if(b - a - 1 < n - (b - a - 1) - 2) { // [a..b]
+			for(auto it = alive.lower_bound(a); it != alive.end() && *it <= b; it++) {
+				current_region.push_back(*it);
+				if(*it != a && *it != b) {
+					to_erase.push_back(*it);
+				}
+			}
+		}
+		else { // [b..n] U [1..a]
+			for(auto it = alive.lower_bound(b); it != alive.end() && *it <= n; it++) {
+				current_region.push_back(*it);
+				if(*it != a && *it != b) {
+					to_erase.push_back(*it);
+				}
+			}
+			for(auto it = alive.begin(); it != alive.end() && *it <= a; it++) {
+				current_region.push_back(*it);
+				if(*it != a && *it != b) {
+					to_erase.push_back(*it);
+				}
+			}
+		}
+		for(auto &vertex : to_erase) {
+			alive.erase(vertex);
+		}
+		sort(current_region.begin(), current_region.end(), greater<int>());
+		regions.push_back(current_region);
+	}
+	
+	vector<int> last_region;
+	for(auto &each : alive) {
+		last_region.push_back(each);
+	}
+	sort(last_region.begin(), last_region.end(), greater<int>());
+	regions.push_back(last_region);
+	
+	sort(regions.begin(), regions.end());
+
+	k = regions.size();
+
+	fori(i, 0, regions.size()) {
+		for(auto &each : regions[i]) {
+			which[each].push_back(i + 1);
+		}
+	}
+
+
+	for(auto &each : edges) {
+		int a, b;
+		tie(a, b) = each;
+		vector<int> *p1 = &which[a], *p2 = &which[b];
+		if(p1->size() > p2->size()) {
+			swap(p1, p2);
+		}
+		vector<int> u;
+		for(auto region : *p1) {
+			auto it = lower_bound(p2->begin(), p2->end(), region);
+			if(it != p2->end() && *it == region) {
+				u.push_back(*it);
+			}
+		}
+		adj[u[0]].push_back(u[1]);
+		adj[u[1]].push_back(u[0]);
+	}
+
+	build_centroid(1, -1);
+
+	fori(i, 1, k + 1) {
+		printf("%d ", ans[i]);
+	}
+	puts("");
+
+	return 0;
+}
+

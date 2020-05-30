@@ -1,0 +1,39 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 5e3 + 5;
+const int M = 1e9 + 7;
+int n;
+int dp[N][N];
+bool a[N];
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  cout.tie(0);
+
+  cin >> n;
+  for (int i = 1; i <= n; i++) {
+    char x;
+    cin >> x;
+    a[i] = (x == 'f');
+  }
+  dp[1][1] = 1;
+  for (int i = 2; i <= n; i++) {
+    if (a[i - 1]) {
+      for (int j = 1; j <= n; j++)
+        dp[i][j] = dp[i - 1][j - 1] % M;
+    } else {
+      for (int j = n; j >= 1; j--)
+        dp[i][j] = (dp[i - 1][j] + dp[i][j + 1]) % M;
+    }
+  }
+  int ans = 0;
+  for (int i = 1; i <= n; i++) {
+    ans = (ans + dp[n][i]) % M;
+  }
+  cout << (ans % M + M) % M << '\n';
+
+  return 0;
+}

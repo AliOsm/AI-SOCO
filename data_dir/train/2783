@@ -1,0 +1,126 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+template<typename T>
+void out(T x) { cout << x << endl; exit(0); }
+#define watch(x) cout << (#x) << " is " << (x) << endl
+
+const int maxn = 1e6 + 5;
+struct bit {
+  int n;
+  vector<ll> t;
+  bit() {}
+  void init(int n) {
+    this->n = n;
+    t.resize(n+10);
+  }
+  void inc(int idx, ll dx) {
+    while (idx<=n) {
+      t[idx] += dx;
+      idx += idx&-idx;
+    }
+  }
+  ll get(ll i) {
+    ll res=0;
+    while (i>0) {
+      res += t[i];
+      i -= i&-i;
+    }
+    return res;
+  }
+};
+
+int n;
+int a[maxn];
+int ai[maxn];
+bit t;
+
+ll ans[maxn];
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0);  cout.tie(0);
+
+  cin>>n;
+  for (int i=1; i<=n; i++) {
+    cin>>a[i];
+    ai[a[i]]=i;
+  }
+  t.init(n+10);
+  for (int i=1; i<=n; i++) {
+    ll inv = a[i]-1 - t.get(a[i]-1);
+    ans[a[i]] = inv;
+    t.inc(a[i],+1);
+  }
+  
+  for (int x=2; x<=n; x++) {
+    ans[x] += ans[x-1];
+  }
+
+  ////////////////
+  auto insert = [](ll x, set<ll>& s, ll& sum) {
+    s.insert(x);
+    sum += x;
+  };
+  auto erase = [](ll x, set<ll>& s, ll& sum) {
+    assert(s.count(x));
+    s.erase(x);
+    sum -= x;
+  };
+
+  auto debug = [](int x, ll med, set<ll>& L, set<ll>& R, ll Lsum, ll Rsum) {
+    cout<<x<<": median "<<med<<" Lsum: "<<Lsum<<" Rsum: "<<Rsum<<endl;
+    cout<<"L: ";
+    for (auto x: L) cout<<x<<" ";
+    cout<<endl;
+    cout<<"R: ";
+    for (auto x: R) cout<<x<<" ";
+    cout<<endl;
+  };
+
+  auto asum = [](ll l, ll r) {
+    if (l > r) return 0LL;
+    return r*(r+1)/2LL - (l-1)*l/2LL;
+  };
+
+  set<ll> L, R;
+  ll Lsum=0, Rsum=0;
+  
+  for (int x=1; x<=n; x++) {
+    insert(ai[x], L, Lsum);
+    if (!R.empty() && *L.rbegin() > *R.begin()) {
+      ll d = *L.rbegin();
+      erase(d, L, Lsum);
+      insert(d, R, Rsum);
+    }
+    while (int(L.size()) > 1 + int(R.size())) {
+      int d = *L.rbegin();
+      erase(d, L, Lsum);
+      insert(d, R, Rsum);
+    }
+    while (int(R.size()) > int(L.size())) {
+      int d = *R.begin();
+      erase(d, R, Rsum);
+      insert(d, L, Lsum);
+    }
+    
+    ll median = *L.rbegin();
+    erase(median, L, Lsum);
+    
+    ll res = asum(median-int(L.size()), median-1) - Lsum + Rsum - asum(median+1,median+int(R.size()));
+    //debug(x, median, L, R, Lsum, Rsum);
+    //cout<<x<<": "<<res<<endl;
+    ans[x] += res;
+    insert(median, L, Lsum);
+  }
+  
+
+  for (int i=1; i<=n; i++) {
+    cout<<ans[i]<<" ";
+  }
+  cout<<endl;  
+
+  return 0;
+}
+// don't forget to read in the input :^)

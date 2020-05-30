@@ -1,0 +1,251 @@
+#include<bits/stdc++.h>
+#define lf double
+#define ll long long
+#define ull unsigned ll
+#define ii pair<int,int>
+#define li pair<ll,ll>
+#define iii pair<ii,int>
+#define iiii pair<ii,ii>
+#define iiii2 pair<int,iii>
+#define lli pair<ll,int>
+#define pll pair<ll,ll>
+#define heap priority_queue
+#define mp make_pair
+#define st first
+#define nd second
+#define pb push_back
+#define pf push_front
+#define ppb pop_back
+#define ppf pop_front
+#define all(x) x.begin(),x.end()
+#define len(x) strlen(x)
+#define sz(x) (int) x.size()
+#define orta ((bas+son)/2)
+#define min3(x,y,z) min(min(x,y),z)
+#define max3(x,y,z) max(max(x,y),z)
+#define dbgs(x) cerr<<(#x)<<" --> "<<(x)<<" "
+#define dbg(x) cerr<<(#x)<<" --> "<<(x)<<endl;getchar()
+#define MOD 1000000007
+#define inf 1000000000
+#define N 100005
+#define LOG 20
+#define magic 100
+#define M 10000000
+#define KOK 600
+#define EPS 0.0025
+#define pw(x) (1<<(x))
+#define PI 3.1415926535
+#define log sfeefw
+using namespace std;
+
+struct PS {
+
+	int cons;
+	int pre,suf;
+	int sz;
+	int ch[2];
+
+	void reset() {cons=pre=suf=sz=ch[0]=ch[1]=0;}
+
+} S[N*40];
+
+int n,x,q,l,r,w,tot;
+int tut[N],Map[N],reg[40*N],b[N];
+ii a[N];
+
+void merge(PS &to,PS x,PS y) {
+
+	to.cons=max3(x.cons,y.cons,x.suf+y.pre);
+	to.pre=x.pre+(x.pre==x.sz)*y.pre;
+	to.suf=y.suf+(y.suf==y.sz)*x.suf;
+	to.sz=x.sz+y.sz;
+
+}
+
+PS get(int node,int bas,int son,int x,int y) {
+
+	PS res,l,r;
+
+	l.reset();r.reset();
+
+	if(bas>=x && son<=y) return S[node];
+
+	if(orta>=x) l=get(S[node].ch[0],bas,orta,x,y);
+	if(orta+1<=y) r=get(S[node].ch[1],orta+1,son,x,y);
+
+	if(!l.sz) res=r;
+	else if(!r.sz) res=l;
+	else merge(res,l,r);
+
+	return res;
+
+}
+
+void up(int w,int onode,int node,int bas,int son,int x,int y) {
+
+	if(bas>=x && son<=y) {
+
+		S[node].cons=S[node].pre=S[node].suf=1;
+		S[node].sz=1;
+
+		return ;
+
+	}
+
+	if(orta>=x) {
+
+		if(!S[node].ch[0] || reg[S[node].ch[0]]!=w) {
+
+			S[node].ch[0]=++tot;
+			reg[tot]=w;
+
+		}
+
+		if(!S[node].ch[1]) {
+
+			S[node].ch[1]=S[onode].ch[1];
+
+		}
+
+		up(w,S[onode].ch[0],S[node].ch[0],bas,orta,x,y);
+
+	}
+	else {
+
+		if(!S[node].ch[1] || reg[S[node].ch[1]]!=w) {
+
+			S[node].ch[1]=++tot;
+			reg[tot]=w;
+
+		}
+
+		if(!S[node].ch[0]) {
+
+			S[node].ch[0]=S[onode].ch[0];
+
+		}
+
+		up(w,S[onode].ch[1],S[node].ch[1],orta+1,son,x,y);
+
+	}
+
+	merge(S[node],S[S[node].ch[0]],S[S[node].ch[1]]);
+
+}
+
+void build(int w,int node,int bas,int son) {
+
+	if(bas==son) {
+
+		S[node].reset();
+		S[node].sz=1;
+
+		return ;
+
+	}
+
+	S[node].ch[0]=++tot;
+	reg[tot]=w;
+
+	build(w,S[node].ch[0],bas,orta);
+
+	S[node].ch[1]=++tot;
+	reg[tot]=w;
+
+	build(w,S[node].ch[1],orta+1,son);
+
+	merge(S[node],S[S[node].ch[0]],S[S[node].ch[1]]);
+
+}
+
+int main() {
+
+	scanf("%d",&n);
+
+	for(int i=1;i<=n;i++) {
+
+		scanf("%d",&x);
+
+		a[i]={x,i};
+
+	}	
+
+	sort(a+1,a+1+n);
+
+	int cnt=0;
+
+	for(int i=1;i<=n;i++) {
+
+		++cnt;
+
+		while(i+1<=n && a[i].st==a[i+1].st) {
+
+			b[a[i].nd]=cnt;
+			i++;
+
+		}
+
+		Map[cnt]=a[i].st;
+
+		b[a[i].nd]=cnt;	
+
+	}
+
+	tut[cnt+1]=++tot;
+	reg[tot]=cnt+1;
+
+	build(cnt+1,tut[cnt+1],1,n);
+
+	int last=n;
+
+	for(int i=cnt;i>=1;i--) {
+
+		tut[i]=++tot;
+		reg[tot]=i;
+
+		while(last>=1 && b[a[last].nd]==i) {
+
+			up(i,tut[i+1],tut[i],1,n,a[last].nd,a[last].nd);
+
+			last--;
+
+		}
+
+	}
+
+	assert(tot<N*80);
+
+	scanf("%d",&q);
+
+	while(q--) {
+
+		scanf("%d %d %d",&l,&r,&w);
+
+		int bas=1,son=cnt;
+
+		while(bas<=son) {
+
+			int cns=get(tut[orta],1,n,l,r).cons;
+
+			//dbgs(orta);dbg(cns);
+
+			if(cns<w) {
+
+				son=orta-1;
+
+			}
+			else {
+
+				bas=orta+1;
+
+			}
+
+		}
+
+		//dbg(son);
+
+		printf("%d\n",Map[son]);
+
+	}
+
+}

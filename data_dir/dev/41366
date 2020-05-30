@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef complex<ld> point;
+#define F first
+#define S second
+
+struct seg_tree
+{
+	vector<int> st, lazy;
+
+	seg_tree(int n) : st(4*n), lazy(4*n) {}
+
+	void build(int cur, int b, int e, vector<int> &a)
+	{
+		if (b+1 == e)
+		{
+			st[cur] = a[b];
+			return;
+		}
+
+		int m = (b+e) >> 1;
+		build(cur<<1, b, m, a);
+		build(cur<<1|1, m, e, a);
+		st[cur] = min(st[cur<<1], st[cur<<1|1]);
+	}
+
+	void push(int cur)
+	{
+		st[cur<<1] += lazy[cur];
+		st[cur<<1|1] += lazy[cur];
+		lazy[cur<<1] += lazy[cur];
+		lazy[cur<<1|1] += lazy[cur];
+		lazy[cur] = 0;
+	}
+
+	void update(int cur, int b, int e, int l, int r)
+	{
+		if (l <= b && e <= r)
+		{
+			--st[cur];
+			--lazy[cur];
+			return;
+		}
+
+		push(cur);
+		int m = (b+e)>>1;
+		if (l < m)
+			update(cur<<1, b, m, l, r);
+		if (m < r)
+			update(cur<<1|1, m, e, l, r);
+		st[cur] = min(st[cur<<1], st[cur<<1|1]);
+	}
+
+	int query(int cur, int b, int e, int l, int r)
+	{
+		if (l <= b && e <= r)
+			return st[cur];
+
+		push(cur);
+		int m = (b+e)>>1, ans = 1<<30;
+
+		if (l < m)
+			ans = query(cur<<1, b, m, l, r);
+		if (m < r)
+			ans = min(ans, query(cur<<1|1, m, e, l, r));
+		return ans;
+	}
+};
+
+int main()
+{
+	#ifdef DGC
+		freopen("a.txt", "r", stdin);
+		//freopen("out.txt", "w", stdout);
+	#endif
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int n, q;
+	cin >> n >> q;
+	vector<int> a(n);
+	for (auto &i : a)
+		cin >> i;
+
+	vector<vector<pair<int, int>>> s(n), s2(n);
+	for (int l, r, i = 1; i <= q; ++i)
+	{
+		cin >> l >> r;
+		s[--r].push_back({ --l, i });
+		s2[l].push_back({ r, i });
+	}
+
+	vector<int> dp(n), dp2(n);
+
+	seg_tree st(n+1);
+	st.build(1, 0, n, a);
+
+	for (int i = 0; i < n; ++i)
+	{
+		dp[i] = st.query(1, 0, n, 0, i+1);
+		for (auto j : s[i])
+			st.update(1, 0, n, j.F, i+1);
+	}
+
+	seg_tree st2(n+1);
+	st2.build(1, 0, n, a);
+
+	for (int i = n-1; i >= 0; --i)
+	{
+		dp2[i] = st2.query(1, 0, n, i, n);
+		for (auto j : s2[i])
+			st2.update(1, 0, n, i, j.F+1);
+	}
+
+	int mx = -1, pos;
+	for (int i = 0; i < n; ++i)
+		if (a[i] - min(dp[i], dp2[i]) > mx)
+			mx = a[i] - min(dp[i], dp2[i]), pos = i;
+
+	cout << mx << "\n";
+	vector<int> ans;
+	for (int i = 0; i < n; ++i)
+		for (auto j : s2[i])
+			if (i > pos || j.F < pos)
+				ans.push_back(j.S);
+
+	cout << ans.size() << "\n";
+	for (auto &i : ans)
+		cout << i << " \n"[&i==&ans.back()];
+
+	return 0;
+}

@@ -1,0 +1,137 @@
+#include<cstdio>
+#include<cstring>
+#include<algorithm>
+#include<queue>
+using namespace std;
+const int MAXN = 100010;
+const int MAXM = 1000010;
+const int INF = 1000000000;
+struct Edge
+{
+    int u, v, cap, cost;
+    int next;
+	Edge(){}
+	Edge(int u,int v,int cap,int cost,int next):u(u),v(v),cap(cap),cost(cost),next(next){}
+}edge[MAXM*4];
+
+int NE;
+int head[MAXN], dist[MAXN], pp[MAXN];
+bool vis[MAXN];
+
+void init(int n) //n ���ܵ���
+{
+    NE = 0;
+    fill(head,head+n+1,-1);
+}
+void addedge(int u, int v, int cap, int cost)
+{
+    edge[NE] = Edge(u,v,cap,cost,head[u]);
+    head[u] = NE++;
+    edge[NE] = Edge(v,u,0,-cost,head[v]);
+    head[v] = NE++;
+}
+int qu[300010];
+inline bool Min(int &x,int y)
+{
+    if(y < x) {x = y;return true;}
+    return false;
+}
+bool SPFA(int s, int t, int n)
+{
+    int i, u, v , tmp;
+    int he = 0 , ta = 0;
+    fill(vis,vis+n+1,false);
+    fill(pp,pp+n+1,-1);
+    fill(dist,dist+n+1,INF);
+    vis[s] = true; dist[s] = 0;
+    qu[++ta] = s;
+    while(he!=ta)
+    {
+        u = qu[++he];  vis[u] = false;
+        if(he >= 250000) he = 0;
+        for(i = head[u];~ i; i = edge[i].next)
+        {
+            v = edge[i].v;
+			tmp = dist[u] + edge[i].cost;
+            if(edge[i].cap &&  dist[v] > tmp)
+            {
+                dist[v] = tmp;
+                pp[v] = i;
+                if(!vis[v])
+                {
+                    qu[++ta] = v;
+                    if(ta >= 250000) ta = 0;
+                    vis[v] = true;
+                }
+            }
+        }
+    }
+    if(dist[t] == INF) return false;
+    return true;
+}
+pair<int,int> MCMF(int s, int t, int n) // minCostMaxFlow
+{
+    int flow = 0; // ������
+    int i, minflow, mincost;
+    mincost = 0;
+    for(;SPFA(s, t, n);)
+    {
+        minflow = INF + 1;
+        for(i = pp[t]; ~i ; i = pp[edge[i].u])
+               Min( minflow , edge[i].cap);
+        flow += minflow;
+        for(i = pp[t]; ~i; i = pp[edge[i].u])
+        {
+            edge[i].cap -= minflow;
+            edge[i^1].cap += minflow;
+        }
+        mincost += dist[t] * minflow;
+    }
+    return make_pair(flow,mincost);
+}
+int a[110][110];
+int main()
+{
+	int n , m;
+	scanf("%d%d",&n,&m);
+	int cnt1 = 1 , cnt2 = 1;
+	int S = 0 , T = n*m+1;	init(T+1);
+	for(int i = 1; i <= n;i++)
+	{
+		for(int j = 1; j <= m; j++)
+		{
+			if((i+j)%2==0) addedge(S,(i-1)*m+j,1,0);
+			else addedge((i-1)*m+j,T,1,0);
+			scanf("%d",&a[i][j]);
+		}
+	}
+	
+
+	for(int i = 1; i <= n; i++)
+	{
+		for(int j = 1 ;j <= m; j++)
+		{
+			if((i+j)%2==0)
+			{
+				if(i < n)
+				{
+					addedge((i-1)*m+j,i*m+j,1,a[i][j]!=a[i+1][j]);
+				}
+				if(i>1)
+				{
+					addedge((i-1)*m+j,(i-2)*m+j,1,a[i][j]!=a[i-1][j]);
+				}
+				if(j<m)
+				{
+					addedge((i-1)*m+j,(i-1)*m+j+1,1,a[i][j]!=a[i][j+1]);
+				}
+				if(j>1)
+				{
+					addedge((i-1)*m+j,(i-1)*m+j-1,1,a[i][j]!=a[i][j-1]);
+				}
+			}
+		}
+	}
+	printf("%d\n",MCMF(S,T,T+1).second);
+	return 0;
+}

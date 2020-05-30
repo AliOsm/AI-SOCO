@@ -1,0 +1,138 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define F first
+#define S second
+
+#define endl '\n'
+
+#define mp make_pair
+#define pb push_back
+
+#define FOR(i, a, b) for(int i = a; i <= b; i++)
+#define ROF(i, a, b) for(int i = a; i >= b; i--)
+
+#define type(x) __typeof((x).begin())
+#define foreach(i, x) for(type(x) i = (x).begin(); i != (x).end(); i++)
+
+#define sol (root + root)
+#define sag (root + root + 1)
+#define orta ((bas + son) >> 1)
+
+#define bit __builtin_popcount
+
+#ifndef D
+	#define dbg(x) 0
+	#define dbgs(x) 0
+#else
+	#define dbg(x) cerr << (#x) << " --> " << (x) << endl
+	#define dbgs(x) cerr << (#x) << " --> " << (x) << ' '
+#endif
+
+typedef long long ll;
+typedef pair < int, int > pii;
+
+const int inf = 1e9 + 5;
+const ll linf = 1e18 + 5;
+
+const int N = 3e5 + 5;
+
+int n, x, a[N], max_to[N], min_to[N], add[N << 2];
+pii kd[N << 2];
+vector < pii > vmax, vmin;
+
+pii merge(pii x, pii y) {
+	pii t;
+	t.F = min(x.F, y.F);
+	t.S = x.S * (t.F == x.F) + y.S * (t.F == y.F);
+	return t;
+}
+
+void update(int root, int bas, int son, int x, int y, int k) {
+
+	if(son < x or y < bas or y < x)
+		return;
+
+	if(x <= bas and son <= y) {
+		kd[root].F += k;
+		add[root] += k;
+		return;
+	}
+
+	update(sol, bas, orta, x, y, k);
+	update(sag, orta + 1, son, x, y, k);
+
+	kd[root] = merge(kd[sol], kd[sag]);
+	kd[root].F += add[root];
+
+}
+
+pii query(int root, int bas, int son, int x) {
+
+	if(son <= x)
+		return kd[root];
+
+	if(x <= orta)
+		return query(sol, bas, orta, x);
+
+	pii t = merge(query(sol, bas, orta, x), query(sag, orta + 1, son, x));
+	t.F += add[root];
+
+	return t;
+
+}
+
+int main() {
+	
+	ios :: sync_with_stdio(0);
+
+	cin >> n;
+
+	FOR(i, 1, n) {
+		cin >> x;
+		cin >> a[x];
+	}
+
+	vmax.pb(mp(inf, 0));
+	vmin.pb(mp(0, 0));
+	ll ans = 0;
+
+	FOR(i, 1, (N << 2) - 1)
+		kd[i] = mp(0, 1);
+
+	FOR(i, 1, n) {
+		while(!vmax.empty() and a[i] > vmax.back().F) {
+			int start = vmax[vmax.size() - 2].S + 1;
+			update(1, 1, n, start, vmax.back().S, -vmax.back().F);
+			vmax.pop_back();
+		}
+
+		max_to[i] = vmax.back().S + 1;
+
+		vmax.pb(mp(a[i], i));
+		
+		while(!vmin.empty() and a[i] < vmin.back().F) {
+			int start = vmin[vmin.size() - 2].S + 1;
+			update(1, 1, n, start, vmin.back().S, vmin.back().F);
+			vmin.pop_back();
+		}
+
+		min_to[i] = vmin.back().S + 1;
+
+		vmin.pb(mp(a[i], i));
+		
+		update(1, 1, n, max_to[i], i, a[i]);
+		update(1, 1, n, min_to[i], i, -a[i]);
+		update(1, 1, n, 1, i - 1, -1);
+
+		pii t = query(1, 1, n, i);
+
+		ans += t.S * !t.F;
+	}
+
+	cout << ans << endl;
+
+	return 0;
+
+}

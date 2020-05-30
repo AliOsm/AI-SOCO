@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+using  namespace std;
+struct pnt{
+  long long ux, uy, bx, by, mod, qr;
+}qrys[1000010];
+struct pnt2{
+  long long up, under, qr, is_st;
+};
+vector <pnt2> v[2010];
+bool lights_on[2010];
+long long tree[6010], lft, rt, val, ans[2010][2010];
+void updt(int x, int st, int nd){
+  if(st>rt||nd<lft)
+    return;
+  if(st>=lft&&nd<=rt){
+    tree[x]+=val;
+    return;
+  }
+  int md=(st+nd)/2;
+  updt(x*2, st, md);
+  updt(x*2+1, md+1, nd);
+  tree[x]=tree[x*2]+tree[x*2+1];
+}
+long long qry(int x, int st, int nd){
+  if(st>rt||nd<lft)
+    return 0;
+  if(st>=lft&&nd<=rt)
+    return tree[x];
+  int md=(st+nd)/2;
+  return qry(x*2, st, md)+qry(x*2+1, md+1, nd);
+}
+int len[2010];
+struct lump{
+  long long x, y, pls;
+}a[2010][2010];
+bool operator <(lump a, lump b){
+  return a.y<b.y;
+}
+bool ll[2010];
+int main(){
+  int n, m, k, q;
+  long long tmp;
+  scanf("%d%d%d",&n,&m,&k);
+  for(int i=1; i<=k; ++i){
+    scanf("%d",&len[i]);
+    for(int j=0; j<len[i]; ++j){
+      scanf("%I64d%I64d%I64d",&a[i][j].x,&a[i][j].y,&a[i][j].pls);
+    }
+  }
+  scanf("%d",&q);
+  char c[20];
+  pnt2 ptmp;
+  int cnt=0;
+  for(int i=0; i<q; ++i){
+    scanf("%s",c);
+    if(c[0]=='A'){
+      qrys[i].mod=1;
+      scanf("%I64d%I64d%I64d%I64d",&qrys[i].ux,&qrys[i].uy,&qrys[i].bx,&qrys[i].by);
+      ptmp.up=qrys[i].ux;
+      ptmp.under=qrys[i].bx;
+      ptmp.qr=cnt;
+      qrys[i].qr=cnt;
+      ++cnt;
+      ptmp.is_st=-1;
+      v[qrys[i].uy-1].push_back(ptmp);
+      ptmp.is_st=1;
+      v[qrys[i].by].push_back(ptmp);
+    }
+    else{
+      qrys[i].mod=2;
+      scanf("%I64d",&qrys[i].ux);
+    }
+  }
+  int col, row;
+  for(int i=1; i<=k; ++i){
+    sort(a[i], a[i]+len[i]);
+    memset(tree, 0, sizeof tree);
+    col=0;
+    row=0;
+    for(int j=0; j<len[i]; ++j){
+      if(a[i][j].y>col){
+        col=a[i][j].y;
+        for(int l=0; l<v[col-1].size(); ++l){
+          rt=v[col-1][l].under;
+          lft=v[col-1][l].up;
+          tmp=qry(1, 0, n);
+          ans[v[col-1][l].qr][i]+=v[col-1][l].is_st*tmp;
+        }
+      }
+      row=a[i][j].x;
+      lft=rt=row;
+      val=a[i][j].pls;
+      updt(1,0,n);
+    }
+    for(col; col<=m; ++col){
+      for(int l=0; l<v[col].size(); ++l){
+          rt=v[col][l].under;
+          lft=v[col][l].up;
+          tmp=qry(1, 0, n);
+          ans[v[col][l].qr][i]+=v[col][l].is_st*tmp;
+        }
+    }
+  }
+  long long res;
+  memset(lights_on, 1, sizeof lights_on);
+  for(int i=0; i<q; ++i){
+    if(qrys[i].mod==2){
+      lights_on[qrys[i].ux]=!lights_on[qrys[i].ux];
+    }
+    else{
+      tmp=qrys[i].qr;
+      res=0;
+      for(int j=1; j<2001; ++j){
+        if(lights_on[j]){
+          res+=ans[tmp][j];
+        }
+      }
+      printf("%I64d\n",res);
+    }
+  }
+  return 0;
+}

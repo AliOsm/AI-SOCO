@@ -1,0 +1,78 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define finish(x) return cout << x << endl, 0;
+#define ll long long
+
+int n, q, t, x, y, z, blks, sz, s[710], e[710];
+ll inc[710];
+vector <pair <ll, int> > blocks[710];
+vector <ll> a;
+
+void build(){
+    for(int i = 0 ; i < a.size() ; i++){
+        blocks[i / sz].push_back(make_pair(a[i], i));
+        if(i % sz == 0) s[i / sz] = i;
+        e[i / sz] = i;
+    }
+    for(int i = 0 ; i < blks ; i++){
+        sort(blocks[i].begin(), blocks[i].end());
+        inc[i] = 0;
+    }
+}
+void rebuild(int block, int l, int r, ll v){
+    if(r < l) return;
+    for(auto &i : blocks[block]){
+        i.first += inc[block];
+        if(i.second >= l && i.second <= r) i.first += v;
+    }
+    sort(blocks[block].begin(), blocks[block].end());
+    inc[block] = 0;
+}
+void update(int l, int r, ll v){
+    int ind = 0;
+    for(int i = 0 ; i < blks ; i++)
+        if(ind >= l && ind + blocks[i].size() - 1 <= r){
+            inc[i] += v;
+            ind += blocks[i].size();
+        }
+        else{
+            rebuild(i, max(l, s[i]), min(r, e[i]), v);
+            ind += e[i] - ind + 1;
+        }
+}
+int query(int y){
+    int mn = 1e9, mx = 0;
+    for(int i = 0 ; i < blks ; i++){
+        int ind = lower_bound(blocks[i].begin(), blocks[i].end(), make_pair(y - inc[i], -1)) - blocks[i].begin();
+        if(blocks[i][ind].first == y - inc[i])
+            mn = min(mn, blocks[i][ind].second);
+        ind = upper_bound(blocks[i].begin(), blocks[i].end(), make_pair(y - inc[i], (int)1e9)) - blocks[i].begin() - 1;
+        if(ind >= 0 && blocks[i][ind].first == y - inc[i])
+            mx = max(mx, blocks[i][ind].second);
+    }
+    if(mn == 1e9) return -1;
+    return mx - mn;
+}
+int main(){
+    ios_base::sync_with_stdio(0);
+    cin.tie(NULL);
+    cout.tie(NULL);
+    cin >> n >> q;
+    sz = max(1, (int)sqrt(n));
+    blks = (n + sz - 1) / sz;
+    for(int i = 0 ; i < n && cin >> x ; i++)
+        a.push_back(x);
+    build();
+    while(q-- && cin >> t){
+        if(t == 1){
+            cin >> x >> y >> z;
+            x--; y--;
+            update(x, y, z);
+        }
+        else{
+            cin >> x;
+            cout << query(x) << endl;
+        }
+    }
+    return 0;
+}

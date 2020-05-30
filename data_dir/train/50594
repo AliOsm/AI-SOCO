@@ -1,0 +1,183 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+
+
+using namespace std;
+
+#ifdef WIN32
+    #define LLD "%I64d"
+#else
+    #define LLD "%lld"
+#endif
+
+typedef pair<int, int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<bool> vb;
+typedef vector<vb> vvb;
+typedef vector<ll> vll;
+typedef vector<vll> vvll;
+
+ll rdtsc() {
+    ll tmp;
+    asm("rdtsc" : "=A"(tmp));
+    return tmp;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define EPS (1e-9)
+#define INF ((int)1e9)
+#define sqr(x) ((x) * (x))         
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+const int MOD = (int)1e9 + 7;
+
+inline void add(int &x, int y) {
+	x += y;
+	if (x >= MOD)
+		x -= MOD;
+}
+
+inline int getBit(const int &x, int pos) {
+	return ((x >> pos) & 1);
+}
+
+int h, w, k;
+int maxMask;
+
+const int maxk = 11;
+int A[maxk][maxk];
+
+
+vi cols, cntCols;
+
+const int maxn = 1000;
+int matr[maxn][maxn];
+
+int solve(int curCol, int mask) ;
+
+int solve(int curCol, int mask, int curi, int curj, int iter, int lasti, int lastj, int curColor, int curColorCnt) {
+	int res = 0;
+	if (iter && (!curColor || cntCols[curColor - 1] == curColorCnt))
+		add(res, solve(curCol + 1, mask));
+	if (!iter) {
+		for (int i = lasti + 1; i < h; i++)
+			for (int j = lastj - 1; j >= 0; j--) {
+				if (getBit(mask, i * w + j))
+					continue;
+				int tmp1 = curColor, tmp2 = curColorCnt;
+				if (matr[i][j]) {
+					if (tmp1) {
+						if (tmp1 != matr[i][j])
+							continue;
+						tmp2++;
+					} else
+						tmp1 = matr[i][j], tmp2 = 1;
+				}
+				add(res, solve(curCol, mask ^ (1 << (i * w + j)), curi, curj, iter, i, j, tmp1, tmp2));
+			}
+		add(res, solve(curCol, mask, curi, curj, 1, curi, curj, curColor, curColorCnt));
+	} else {
+		for (int i = lasti - 1; i >= 0; i--)
+			for (int j = lastj + 1; j < w; j++) {
+				if (getBit(mask, i * w + j))
+					continue;
+				int tmp1 = curColor, tmp2 = curColorCnt;
+				if (matr[i][j]) {
+					if (tmp1) {
+						if (tmp1 != matr[i][j])
+							continue;
+						tmp2++;
+					} else
+						tmp1 = matr[i][j], tmp2 = 1;
+				}
+				add(res, solve(curCol, mask ^ (1 << (i * w + j)), curi, curj, iter, i, j, tmp1, tmp2));
+			}
+	}
+	return res;
+}
+
+map<pii, int> S;
+
+int solve(int curCol, int mask) {
+	//eprintf("solve %d %d\n", curCol, mask);
+	if (mask == maxMask) {
+		assert(curCol >= sz(cols));
+		return A[k - sz(cols)][curCol - sz(cols)];
+	}
+	if (curCol == k)
+		return 0;
+	pii currentPair(curCol, mask);
+	map<pii, int>::iterator iter = S.find(currentPair);
+	if (iter != S.end()) {
+		assert(iter->first == currentPair);
+		return iter->second;
+	}
+	
+	for (int i = 0, cntBit = 0; i < h; i++)
+		for (int j = 0; j < w; j++, cntBit++) {
+			if (getBit(mask, cntBit))
+				continue;
+			mask ^= (1 << cntBit);
+			return S[currentPair] = solve(curCol, mask, i, j, 0, i, j, matr[i][j], !!matr[i][j]);
+		}
+	assert(0);
+}
+
+int main() {
+	srand(rdtsc());
+#ifdef DEBUG
+	freopen(TASKNAME".in", "r", stdin);
+	freopen(TASKNAME".out", "w", stdout);
+#endif
+	
+	memset(A, 0, sizeof(A));
+	for (int n = 0; n < maxk; n++) {
+		A[n][0] = 1;
+		for (int k = 1; k < maxk; k++)
+			A[n][k] = ((ll)A[n][k - 1] * (n - k + 1) % MOD); 
+	}
+
+	while (scanf("%d%d%d", &h, &w, &k) >= 3) {
+		for (int i = 0; i < h; i++)
+			for (int j = 0; j < w; j++)
+				scanf("%d", &matr[i][j]);
+		if (h + w - 1 > k) {
+			printf("0\n");
+			continue;
+		}
+		
+		cols.clear();
+		cntCols = vi(k, 0);
+		for (int i = 0; i < h; i++)
+			for (int j = 0; j < w; j++) {
+				if (!matr[i][j])
+					continue;	
+				cols.pb(matr[i][j]);
+				cntCols[matr[i][j] - 1]++;
+			}          
+		sort(cols.begin(), cols.end());
+		cols.resize(unique(cols.begin(), cols.end()) - cols.begin());
+		
+		maxMask = (1 << (h * w)) - 1;
+		S.clear();
+		int ans = solve(0, 0);
+		printf("%d\n", ans);
+		//break;
+	}
+	return 0;
+}

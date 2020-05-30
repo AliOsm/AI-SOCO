@@ -1,0 +1,181 @@
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <iomanip>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <cassert>
+
+using namespace std;
+
+
+typedef long double ld;
+typedef long long ll;
+
+
+
+const int psze = 61, sze = 1 << 20, INF = 1e9 + 1, M = 1e6;
+vector<vector<int>> vertices;
+vector<int> way;
+
+int visit[sze], start[sze], finish[sze];
+ll power[psze];
+
+
+void dfs(int v)
+{
+	visit[v] = 1;
+	way.push_back(v);
+	start[v] = way.size();
+
+	for (int u : vertices[v])
+		if (!visit[u])
+			dfs(u);
+
+	way.push_back(v);
+	finish[v] = way.size();
+}
+
+
+ll tree[sze << 1], updating[sze << 1];
+
+
+void push(int ind)
+{
+	if (!updating[ind])
+		return;
+
+	if (ind < sze)
+	{
+		updating[ind << 1] = updating[ind << 1 | 1] = updating[ind];
+	}
+
+	tree[ind] = ll(1) << updating[ind];
+	updating[ind] = 0;
+}
+
+
+ll get(int l, int r, int lb, int rb, int ind)
+{
+	push(ind);
+
+	if (l == lb && r == rb)
+		return tree[ind];
+	
+	int m = (lb + rb) >> 1;
+	ll first = 0, second = 0;
+
+	if (l <= m)
+		first = get(l, min(m, r), lb, m, ind << 1);
+	
+	if (r > m)
+		second = get(max(l, m + 1), r, m + 1, rb, ind << 1 | 1);
+
+	push(ind << 1);
+	push(ind << 1 | 1);
+	tree[ind] = tree[ind << 1] | tree[ind << 1 | 1];
+	return first | second;
+}
+
+
+void update(int l, int r, int lb, int rb, int ind, int value)
+{
+	push(ind);
+
+	if (l == lb && r == rb)
+	{
+		updating[ind] = value;
+		push(ind);
+		return;
+	}
+
+	int m = (lb + rb) >> 1;
+
+	if (l <= m)
+		update(l, min(m, r), lb, m, ind << 1, value);
+
+	if (r > m)
+		update(max(l, m + 1), r, m + 1, rb, ind << 1 | 1, value);
+
+	push(ind << 1);
+	push(ind << 1 | 1);
+	tree[ind] = tree[ind << 1] | tree[ind << 1 | 1];
+}
+
+
+ll count(ll a)
+{
+	int cnt = 0;
+	for (int i = 0; i < psze; ++i)
+		if (a & power[i])
+			cnt++;
+
+	return cnt;
+}
+
+
+signed main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(NULL);
+	cout.tie(NULL);
+
+	for (ll i = 0; i < psze; ++i)
+		power[i] = (ll)1 << i;
+
+	int n, m;
+	cin >> n >> m;
+	vector<ll> colours(n);
+	vertices.resize(n + 1);
+
+
+
+	for (int i = 0; i < n; ++i)
+		cin >> colours[i];
+	
+	for (int i = 1; i < n; ++i)
+	{
+		int a, b;
+		cin >> a >> b;
+		vertices[a].push_back(b);
+		vertices[b].push_back(a);
+	}
+
+	dfs(1);
+	
+	for (int i = 0; i < way.size(); ++i)
+		tree[sze + i] = (ll)1 << colours[way[i] - 1];
+	
+	for (int i = sze - 1; i; --i)
+		tree[i] = tree[i << 1] | tree[i << 1 | 1];
+
+
+	for (int i = 0; i < m; ++i)
+	{
+		int label;
+		cin >> label;
+
+		if (label == 1)
+		{
+			int v, c;
+			cin >> v >> c;
+			int l = start[v], r = finish[v];
+			
+			update(l, r, 1, sze, 1, c);
+		}
+		else
+		{
+			int v;
+			cin >> v;
+			
+			if (v == 3)
+				int a = 1;
+			
+			int l = start[v], r = finish[v];
+			cout << count(get(l, r, 1, sze, 1)) << '\n';
+		}
+	}
+
+	return 0;
+}

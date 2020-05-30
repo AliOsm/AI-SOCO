@@ -1,0 +1,82 @@
+#include <deque>
+#include <cstdio>
+#include <cmath>
+#define EPS 1E-9
+#define SQR(a) ((a)*(a))
+using namespace std;
+struct point{
+  double x,y;point(double _x=0,double _y=0){x=_x;y=_y;}
+  point operator+(point w){return point(x+w.x,y+w.y);}
+  point operator-(point w){return point(x-w.x,y-w.y);}
+  point operator*(double H){return point(x*H,y*H);}
+  point perp(){return point(-y,x);}
+};
+int ORI(point a,point b){
+  double O=a.x*b.y-a.y*b.x;
+  return (abs(O)<EPS)?0:(O>0?1:-1);
+}
+struct prava{
+  double a,b,c;
+  prava(point f=point(0,0),point t=point(1,1)){
+   a=t.y-f.y;b=f.x-t.x;c=t.x*f.y-f.x*t.y;
+   double DEL=sqrt(SQR(a)+SQR(b));a/=DEL;b/=DEL;c/=DEL;
+                                              }
+  point IP(prava w){
+   point ret;
+   if(abs(a)<EPS){ret.y=(-c)/b;ret.x=(-w.b*ret.y-w.c)/w.a;}
+   else{ret.y=(w.a*c-a*w.c)/(a*w.b-w.a*b);ret.x=(-b*ret.y-c)/a;}
+   return ret;
+                   }
+  double DIST(point w){return(a*w.x+b*w.y+c);}
+};
+point COE(point a,point b,point c,bool& HAS){
+  prava s1(a,b),s2;
+  HAS=true;
+  if(abs(s1.DIST(c))<EPS){HAS=false;return point(0,0);} 
+  s1=prava((a+b)*0.5,(a+b)*0.5+(a-b).perp());
+  s2=prava((b+c)*0.5,(b+c)*0.5+(b-c).perp());
+  return s1.IP(s2);
+}
+deque<point> MN;
+bool OK(){
+  for(int i=0;i<4;++i){
+   int j=(i+1)%4;
+   prava T=prava(MN[i],MN[j]);
+   int brp=0,brm=0;
+   for(int k=0;k<4;++k)
+    if(k!=i && k!=j){
+     double D=T.DIST(MN[k]);
+     if(abs(D)<EPS)return false;
+     if(D>0)++brp;
+     else ++brm;
+                    }
+   if(brp!=2 && brm!=2)return false;
+                      }
+  return true;
+}
+bool solve(point a,point b,point c){
+  MN.clear();
+  bool HAS;
+  point C=COE(b*2-a,b,c,HAS);if(!HAS)return false;
+  MN.push_back(C);MN.push_back(c*2-C);
+  MN.push_front(b*2-C);MN.push_front(a*2-MN[0]);
+  if(OK()){
+   printf("YES\n");
+   for(int i=0;i<4;++i)
+    printf("%.9lf %.9lf%c",MN[i].x,MN[i].y,((i==3)?'\n':' '));
+   return true;
+          }
+  return false;
+}
+int main(){
+  int Q;scanf("%d",&Q);
+  while(Q-- >0){
+   point a,b,c;
+   scanf("%lf%lf%lf%lf%lf%lf",&a.x,&a.y,&b.x,&b.y,&c.x,&c.y);
+   if(solve(a,b,c))continue;
+   if(solve(b,c,a))continue;
+   if(solve(c,a,b))continue;
+   printf("NO\n\n");
+               }
+  return 0;
+}

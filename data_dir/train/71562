@@ -1,0 +1,70 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define rep(i, a) for (int i = 0; i < (a); i++)
+#define rep2(i, a, b) for (int i = (a); i < (b); i++)
+#define repr(i, a) for (int i = (a) - 1; i >= 0; i--)
+#define repr2(i, a, b) for (int i = (b) - 1; i >= (a); i--)
+template<class T1, class T2> bool chmin(T1 &a, T2 b) { return b < a && (a = b, true); }
+template<class T1, class T2> bool chmax(T1 &a, T2 b) { return a < b && (a = b, true); }
+typedef long long ll;
+
+struct ConvexFullTrick {
+	vector<pair<ll, ll>> ls; // slope, intercept
+
+	bool check(pair<ll, ll> l1, pair<ll, ll> l2, pair<ll, ll> l3) {
+		return (l2.first - l1.first) * (l3.second - l2.second) >= (l2.second - l1.second) * (l3.first - l2.first);
+	}
+
+	void add(ll a, ll b) {
+		pair<ll, ll> l(a, b);
+		while (ls.size() >= 2 && check(ls[ls.size() - 2], ls[ls.size() - 1], l)) ls.pop_back();
+		ls.emplace_back(l);
+	}
+
+	ll f(int k, ll x) {
+		return ls[k].first * x + ls[k].second;
+	}
+
+	ll query(ll x) {
+		int low = -1;
+		int high = ls.size() - 1;
+		while (high - low > 1) {
+			int mid = (low + high) / 2;
+			(f(mid, x) <= f(mid + 1, x) ? low : high) = mid;
+		}
+		return f(high, x);
+	}
+};
+
+int main() {
+	int n;
+	cin >> n;
+
+	vector<ll> a(n + 1);
+	vector<ll> s(n + 1);
+	ll offset = 0;
+	for (ll i = 1; i <= n; i++)
+		scanf("%I64d", &a[i]),
+		offset += a[i] * i,
+		s[i] = s[i - 1] + a[i];
+
+	ll ans = 0;
+
+	// left to right: (a[l]*r-s[r]) + (-a[l]*l+s[l])
+	ConvexFullTrick cft0;
+	for (ll l = n - 1; l >= 1; l--) {
+		cft0.add(-(l + 1), -s[l + 1]);
+		chmax(ans, cft0.query(-a[l]) - a[l] * l + s[l]);
+	}
+
+	// right to left: (a[r]*l-s[l-1]) + (s[r-1]-a[r]*r)
+	ConvexFullTrick cft1;
+	for (ll r = 2; r <= n; r++) {
+		cft1.add(r - 1, -s[r - 2]);
+		chmax(ans, cft1.query(a[r]) + s[r - 1] - a[r] * r);
+	}
+
+	cout << ans + offset << endl;
+
+	return 0;
+}

@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+
+struct Node {
+  int lo, hi;
+  int le, ri;
+};
+
+int last;
+Node nodes[1048576 + 10];
+vi fo[1048576 + 10];
+int node_for_idx[1048576 + 10];
+
+void Reset(){
+  last = 0;
+}
+
+int NewNode(){
+  fo[last].clear();
+  return last++;
+}
+
+int BuildTree(int lo, int hi){
+  int cur = NewNode();
+  nodes[cur].le = nodes[cur].ri = -1;
+  nodes[cur].lo = lo;
+  nodes[cur].hi = hi;
+
+  if(lo == hi){
+    node_for_idx[lo] = cur;
+    return cur;
+  }
+
+  int mid = (lo + hi) / 2;
+  nodes[cur].le = BuildTree(lo, mid);
+  nodes[cur].ri = BuildTree(mid + 1, hi);
+  fo[nodes[cur].le].pb(cur);
+  fo[nodes[cur].ri].pb(cur);
+  return cur;
+}
+
+void AttachToRange(int vr, int lo, int hi, int target){
+  if(lo <= nodes[vr].lo && nodes[vr].hi <= hi){
+    fo[vr].pb(target);
+    return;
+  }
+
+  if(nodes[vr].hi < lo || hi < nodes[vr].lo) return;
+
+  AttachToRange(nodes[vr].le, lo, hi, target);
+  AttachToRange(nodes[vr].ri, lo, hi, target);
+}
+
+int n;
+vi nxt;
+
+int ans[1048576 + 10];
+int num[1048576 + 10];
+bool used[1048576 + 10];
+vi ts;
+
+void Dfs(int vr){
+  used[vr] = true;
+  for(int to : fo[vr])
+    if(!used[to])
+      Dfs(to);
+  ts.pb(vr);
+}
+
+void Solve(){
+  scanf("%d", &n);
+  nxt.resize(n);
+  for(int& e : nxt)
+    scanf("%d", &e),
+    --e;
+
+  Reset();
+  int root = BuildTree(0, n);
+
+  AttachToRange(root, 0, n - 1, node_for_idx[n]);
+  for(int i = 0;i < n;++i)
+    if(nxt[i] >= 0){
+      int x = i;
+      int y = nxt[i];
+      fo[node_for_idx[x]].pb(node_for_idx[y]);
+      if(x + 1 <= y - 1)
+        AttachToRange(root, x + 1, y - 1, node_for_idx[x]);
+    }
+
+  ts.clear();
+  fill(used, used + last, false);
+  for(int i = 0;i < last;++i)
+    if(!used[i]) Dfs(i);
+
+  // Validate
+  for(int i = 0;i < sz(ts);++i)
+    num[ts[i]] = i;
+  bool fail = false;
+  for(int i = 0;i < last;++i)
+    for(int to : fo[i])
+      if(num[to] > num[i])
+        fail = true;
+
+  if(fail){
+    printf("-1\n");
+    return;
+  }
+
+  int val = n;
+  for(int i = 0;i < sz(ts);++i){
+    int node = ts[i];
+    if(nodes[node].lo == nodes[node].hi &&
+       nodes[node].hi < n){
+      ans[nodes[node].lo] = val--;
+    }
+  }
+
+  for(int i = 0;i < n;++i){
+    printf("%d%c", ans[i], (i + 1 == n ? '\n' : ' '));
+  }
+}
+
+int main(){
+  int q;
+  scanf("%d", &q);
+  for(int i = 1;i <= q;++i)
+    Solve();
+  return 0;
+}

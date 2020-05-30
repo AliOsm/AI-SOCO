@@ -1,0 +1,87 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5+10, magic = 320;
+
+int c[N], arr[N], BIT[N];
+int moment, cnt[N], ans[N];
+pair<int,int> duo[N];
+vector<int> adj[N];
+
+struct data{
+	int l, r, k, blc, id;
+	bool operator<(data x) const{
+		if(blc == x.blc) return r < x.r;
+		return blc < x.blc;
+	}
+}in[N];
+
+void dfs(int u, int f) {
+	arr[moment] = u;
+	duo[u].first = moment++;
+	for(int v : adj[u])
+		if(v != f) dfs(v,u);
+	duo[u].second = moment-1;
+}
+
+void upd(int p, int x) {
+	if(p <= 0) return; 
+	while(p < N) BIT[p] += x, p += p&-p;
+}
+
+int rng(int p, int sum = 0) {
+	if(p <= 0) return 0; 
+	while(p > 0) sum += BIT[p], p -= p&-p;
+	return sum;
+}
+
+int get(int l, int r) {
+	if(l == 1) return rng(r);
+	return rng(r) - rng(l-1);
+}
+
+void add(int idx) {
+	int color = c[arr[idx]];
+	upd(cnt[color],-1);
+	cnt[color]++;
+	upd(cnt[color],+1);
+}
+
+void rid(int idx) {
+	int color = c[arr[idx]];
+	upd(cnt[color],-1);
+	cnt[color]--;
+	upd(cnt[color],+1);
+}
+
+int main() {
+	int n, m;
+	scanf("%d %d", &n, &m);
+	for(int i = 1; i <= n; i++) 
+		scanf("%d", &c[i]);
+	for(int i = 1; i < n; i++) {
+		int u, v;
+		scanf("%d %d", &u, &v);
+		adj[u].push_back(v);
+		adj[v].push_back(u);
+	}
+	dfs(1,-1);
+	for(int i = 0; i < m; i++) {
+		int v, k;
+		scanf("%d %d", &v, &k);
+		in[i].l = duo[v].first, in[i].r = duo[v].second;
+		in[i].k = k, in[i].blc = in[i].l / magic, in[i].id = i;
+	}sort(in,in+m);
+	int l = 0, r = -1;
+	memset(BIT,0,sizeof BIT);
+	for(int i = 0; i < m; i++) {
+		while(r < in[i].r) add(++r);
+		while(l > in[i].l) add(--l);
+		while(l < in[i].l) rid(l++);
+		while(r > in[i].r) rid(r--);
+		ans[in[i].id] = get(in[i].k,n);
+	}
+	for(int i = 0; i < m; i++)
+		printf("%d\n", ans[i]);
+	return 0;
+}

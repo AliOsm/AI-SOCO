@@ -1,0 +1,167 @@
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <limits>
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include <complex>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <cmath>
+#include <set>
+#include <algorithm>
+
+
+using namespace std;
+typedef long long Long;
+
+struct SegmentNode{
+	double carry, sz;
+	bool HasCarry;
+	SegmentNode(){
+		this->carry = 0;
+		this->sz = 1;
+		HasCarry = 0;
+	}
+	void join(const SegmentNode &l, const SegmentNode &r){
+		sz = l.sz + r.sz;
+	}
+	void update(){
+		HasCarry = 1;
+	}
+	void clear(){
+		HasCarry = 0;
+	}
+};
+template<class T>
+struct SegmentTree
+{
+	vector<T> V;
+	int N;
+	SegmentTree(int N)
+	{
+		this->V = vector<T>(4*N);
+		this->N = N;
+	}
+	void create(vector<typename T::Init> &VEC,int n = 1,int b = 0,int e = -1)
+	{
+		if(e == -1)e = N - 1;
+		if(b == e){
+			V[n] = T(VEC[b]);
+		}
+		else
+		{
+			create(VEC,2*n,b,(e+b)/2);
+			create(VEC,2*n+1,(e+b)/2+1,e);
+			V[n] = V[2*n] + V[2*n+1];
+		}
+	}
+	T query(int i,int j, int n = 1,int b = 0,int e = -1)
+	{
+		if(e == -1)e = N - 1;
+		if(i <= b && e <= j)return V[n];
+		else
+		{
+			if(V[n].HasCarry)
+			{
+				V[2*n  ].update(V[n].carry);
+				V[2*n+1].update(V[n].carry);
+				V[n].clear();
+			}
+			int mid = (b+e)/2;
+			if(i > mid)return query(i,j,2*n+1,mid+1,e);
+			if(j <=mid)return query(i,j,2*n,b,mid);
+			return query(i,j,2*n,b,mid) + query(i,j,2*n+1,mid+1,e);
+		}
+	}
+	void update(int i,int j,long double v,int n = 1,int b=0,int e=-1)
+	{
+		if(e == -1)e = N - 1;
+		if(i <= b && e <= j)
+		{
+			V[n].update(v);
+		}
+		else if(i > e || j < b)
+			return;
+		else
+		{
+			if(V[n].HasCarry)
+			{
+				V[2*n  ].update(V[n].carry);
+				V[2*n+1].update(V[n].carry);
+				V[n].clear();
+			}
+			int mid = (b+e)/2;
+			update(i,j,v,2*n,b,mid);
+			update(i,j,v,2*n+1,mid+1,e);
+			V[n] = V[2*n] + V[2*n+1];
+		}
+
+	}
+};
+
+struct MinVal : SegmentNode 
+{
+	struct Init {
+		long double val;
+		Init(double val=0):val(val){ }
+	};
+	long double dom, not_dom, mod, not_mod;
+	MinVal() : SegmentNode(){
+		dom = not_dom = mod = not_mod = 0;
+	}
+	MinVal(Init n) : SegmentNode()  {
+		not_mod = dom = n.val;
+		not_dom = mod = 1 - n.val;
+	}
+	MinVal operator+(const MinVal &N)const {
+		MinVal ret; ret.join( *this , N );
+		
+		double r = N.not_dom*not_mod;
+		
+		ret.dom = dom*N.dom * (1 / (1-r));
+		ret.not_dom = 1- ret.dom;
+		
+		ret.mod = N.mod*mod * (1 / (1-r));
+		ret.not_mod = 1- ret.mod;
+		
+		return ret;
+	}
+	void update(long double val)
+	{	
+		SegmentNode::update();
+		not_mod = dom = val;
+		not_dom = mod = 1 - val;
+	}
+};
+
+int main()
+{
+	int N,Q;
+	cin >> N >> Q;
+	SegmentTree<MinVal> ST(N);
+	vector<MinVal::Init> V(N);
+	for(int i = 0; i < N; ++i){
+		int a,b;
+		cin >> a >> b;
+		V[i].val = ((long double)a) / b;
+	}
+	ST.create(V);
+	for(int i = 0; i < Q; ++i){
+		int t;
+		cin >> t;
+		if(t == 1){
+			int x,a,b;
+			cin >> x >> a >> b;
+			x--;
+			ST.update(x,x,((long double)a)/b);
+		}else{
+			int l,r;
+			cin >> l >> r;
+			l--;r--;
+			printf("%0.15lf\n", (double)ST.query(l,r).dom);
+		}
+	}
+}

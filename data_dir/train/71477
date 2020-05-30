@@ -1,0 +1,168 @@
+/**
+ * @author khokharnikunj8
+ */
+
+#include <bits/stdc++.h>
+
+
+#ifndef JCOMPE_DINIC_HPP
+#define JCOMPE_DINIC_HPP
+
+class Dinic {
+public:
+    const long long INF = 1ll << 62;
+    int n, m;
+    std::vector<int> lastNode;
+    std::vector<int> prevEdge;
+    std::vector<int> level;
+    std::vector<int> currentDFS;
+    std::vector<long long> flow;
+    std::vector<long long> capacity;
+    std::vector<int> edge;
+    std::vector<int> queue;
+    int index;
+
+    Dinic(int n, int m) {
+        this->n = n;
+        this->m = m;
+        lastNode.resize(n + 1, -1);
+        prevEdge.resize(2 * m);
+        level.resize(n + 1);
+        currentDFS.resize(n + 1);
+        flow.resize(2 * m);
+        capacity.resize(2 * m);
+        edge.resize(2 * m);
+        queue.resize(n + 1);
+        this->index = 0;
+    }
+
+    int add_edge_bi(int a, int b, long long weight) {
+        edge[index] = b;
+        capacity[index] = weight;
+        prevEdge[index] = lastNode[a];
+        lastNode[a] = index++;
+
+        edge[index] = a;
+        prevEdge[index] = lastNode[b];
+        capacity[index] = weight;
+        lastNode[b] = index++;
+        return index;
+    }
+
+    int add_edge(int a, int b, long long weight) {
+        edge[index] = b;
+        capacity[index] = weight;
+        prevEdge[index] = lastNode[a];
+        lastNode[a] = index++;
+
+        edge[index] = a;
+        prevEdge[index] = lastNode[b];
+        capacity[index] = 0;
+        lastNode[b] = index++;
+        return index;
+    }
+
+    long long dinic(int source, int sink) {
+        long long temp, flow = 0;
+        while (bfs(source, sink)) {
+            currentDFS = lastNode;
+            while ((temp = dfs(source, INF, sink)) != 0) flow += temp;
+        }
+        return flow;
+    }
+
+
+    long long dfs(int source, long long inf, int sink) {
+        if (source == sink) return inf;
+        for (int e = currentDFS[source]; e != -1; currentDFS[source] = e = prevEdge[e]) {
+            if (level[edge[e]] == level[source] + 1 && flow[e] < capacity[e]) {
+                long long res = dfs(edge[e], std::min(inf, capacity[e] - flow[e]), sink);
+                if (res > 0) {
+                    flow[e] += res;
+                    flow[e ^ 1] -= res;
+                    return res;
+                }
+            }
+        }
+        return 0;
+    }
+
+    bool bfs(int source, int sink) {
+        std::fill(level.begin(), level.end(), -1);
+        int front = 0;
+        int back = 0;
+        level[source] = 0;
+        queue[back++] = source;
+        while (front < back && level[sink] == -1) {
+            int node = queue[front++];
+            for (int e = lastNode[node]; e != -1; e = prevEdge[e]) {
+                int to = edge[e];
+                if (level[to] == -1 && flow[e] < capacity[e]) {
+                    level[to] = level[node] + 1;
+                    queue[back++] = to;
+                }
+            }
+        }
+        return level[sink] != -1;
+    }
+};
+
+#endif //JCOMPE_DINIC_HPP
+
+using namespace std;
+
+class GZoningRestrictions {
+public:
+    int INF;
+
+    GZoningRestrictions() {
+        INF = 1000000000;
+    }
+
+    void solve(std::istream &in, std::ostream &out) {
+        int n, h, m;
+        in >> n >> h >> m;
+        int total_nodes = (n * (h + 1) + m + 2);
+        int cur = 0;
+        int SOURCE = cur++;
+        int SINK = cur++;
+        vector<vector<int> > nodeno(n + 1, vector<int>(h + 1));
+        vector<pair<pair<int, int>, int>> edges;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 0; j <= h; j++) {
+                nodeno[i][j] = cur++;
+                if (j - 1 >= 0) {
+                    edges.push_back({{nodeno[i][j - 1], nodeno[i][j]}, h * h - (j - 1) * (j - 1)});
+                } else {
+                    edges.push_back({{SOURCE, nodeno[i][j]}, INF});
+                }
+            }
+            edges.push_back({{nodeno[i][h], SINK}, 0});
+        }
+        for (int i = 0; i < m; i++) {
+            int nod_temp = cur++;
+            int l, r, x, c;
+            in >> l >> r >> x >> c;
+            x++;
+            if (x > h) continue;
+            edges.push_back({{nod_temp, SINK}, c});
+            for (int j = l; j <= r; j++) {
+                edges.push_back({{nodeno[j][x], nod_temp}, INF});
+            }
+        }
+        Dinic dc(total_nodes, edges.size());
+        for (auto p : edges) dc.add_edge(p.first.first, p.first.second, p.second);
+        out << (h * h * n - dc.dinic(SOURCE, SINK)) << endl;
+    }
+};
+
+
+int main() {
+	GZoningRestrictions solver;
+	std::ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+	std::istream& in(std::cin);
+	std::ostream& out(std::cout);
+	solver.solve(in, out);
+	return 0;
+}

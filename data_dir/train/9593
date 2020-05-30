@@ -1,0 +1,177 @@
+#pragma GCC optimize("Ofast,no-stack-protector")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+#include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp> // Common file
+#include <ext/pb_ds/tree_policy.hpp> // Including tree_order_statistics_node_update
+using namespace __gnu_pbds;
+using namespace std;
+#define IO ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0)
+#define PI 3.1415926535897932384626433832795
+#define endl "\n"
+#define int long long
+#define f first
+#define se second
+#define pb push_back
+#define all(x) x.begin(), x.end()
+typedef tree<int,null_type,less<int>,rb_tree_tag,tree_order_statistics_node_update> ordered_set;
+long long MOD = 1e9+7;
+pair<int,int> dx[4] = {{1,0},{-1,0},{0,1},{0,-1}};
+const int RANDOM = chrono::high_resolution_clock::now().time_since_epoch().count();
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+struct chash {int operator()(int x) const { return x ^ RANDOM; }};
+string toString(long long x){stringstream ss;ss << x;string str = ss.str();return str;}
+long long fastpow(long long x,long long k){if(!k)return 1;if(k & 1)return ((x * fastpow(x,k-1) % MOD) % MOD) % MOD;
+long long ans = fastpow(x,k/2);ans %= MOD;ans *= ans;ans %= MOD;return ans;}
+long long sumF(long long x){int s = 0;while(x)s += x%10,x /= 10;return s;}
+bool isS(char c){return (c >= 'a' && c <= 'z');}
+bool isB(char c){return (c >= 'A' && c <= 'Z');}
+bool isD(char c){return (c >= '0' && c <= '9');}
+bool isSqrt(long long x){ long long f = sqrt((long double)x + 0.5); return f*f == x;}
+bool isCubic(long long x) {long long f = cbrt((long double)x + 0.5); return f*f*f == x;}
+long long lcm(long long a,long long b){return a * (b / __gcd(a,b));}
+vector<long long> divVec(long long x){vector<long long> tmp;for(long long i = 1;1LL*i*i <= x;i++){if(x % i == 0){tmp.push_back(i);if(x / i != i)
+tmp.push_back(x / i);}sort(tmp.begin(),tmp.end());}return tmp;}
+int random_int(int l,int r){return uniform_int_distribution<int>(l,r)(rng);}
+int primeFactorsCnt(long long n){int ret = 0;if(n % 2 == 0)ret++;while (n % 2 == 0)n = n/2;for (int i = 3; i*i <= n; i = i + 2){if(n % i == 0)ret++;while (n % i == 0)
+n = n/i;}if (n > 2)ret++;return ret;}
+long long mulmod(long long a,long long b){return (a  * b) % MOD;}
+long long minusmod(long long a,long long b){return ((((a % MOD) - (b % MOD)) % MOD) + MOD) % MOD;}
+long long plusmod(long long a,long long b){return ((a % MOD) + (b % MOD)) % MOD;}
+long long segTree[800005];
+int primes[1000005];
+vector<int> primeToPos[1000005];
+vector<int> toRemove[200005];
+vector<pair<int,int> > queries[200005];
+int primePos[1000005];
+int arr[200005];
+int cache[1000005];
+int inverseModulo(int x)
+{
+    return cache[x];
+}
+int n;
+int ans[200005];
+void sieve()
+{
+    primes[1] = 1;
+    for(int i = 2;i <= 1e6;i++)
+    {
+        cache[i] = fastpow(i,MOD-2);
+        primes[i] = i;
+    }
+
+    for(int i = 2;i*i <= 1e6;i++)
+    {
+        if(primes[i] == i)
+        {
+
+            for(int j = i+i;j <= 1e6;j += i)
+            {
+                if(primes[j] == j)
+                    primes[j] = i;
+            }
+        }
+    }
+}
+void updateTree(int pos,int l,int r,int R,int val)
+{
+    if(l > R || r < R)
+        return;
+    if(l >= R && r <= R)
+    {
+        //cout << l << " " << r << " " << val << endl;
+        segTree[pos] = mulmod(segTree[pos],val);
+        return;
+    }
+    int mid = (l + r) / 2;
+    updateTree(pos*2,l,mid,R,val);
+    updateTree(pos*2+1,mid+1,r,R,val);
+    segTree[pos] = mulmod(segTree[pos*2],segTree[pos*2+1]);
+    return;
+}
+void finishBefore(int idx)
+{
+    for(int i = 0;i < toRemove[idx].size();i++)
+    {
+        int curPrime = toRemove[idx][i];
+        primeToPos[curPrime].pop_back();
+        if(primeToPos[curPrime].size())
+        {
+            toRemove[primeToPos[curPrime].back()].push_back(curPrime);
+            updateTree(1,1,n,primeToPos[curPrime].back(),mulmod(curPrime-1,inverseModulo(curPrime)));
+        }
+    }
+}
+int getTree(int pos,int l,int r,int UL,int UR)
+{
+    if(l > UR || r < UL) return 1;
+    if(l >= UL && r <= UR) return segTree[pos];
+    int mid = (l+r) / 2;
+    int lefty = getTree(pos*2,l,mid,UL,UR);
+    int righty = getTree(pos*2+1,mid+1,r,UL,UR);
+    return mulmod(lefty,righty);
+}
+vector<int> getPrimes(int x)
+{
+    vector<int> ret;
+    while(x != 1)
+    {
+        int curDiv = primes[x];
+        while(x % curDiv == 0)
+        {
+            x /= curDiv;
+        }
+        ret.push_back(curDiv);
+    }
+    return ret;
+}
+int32_t main()
+{
+    IO;
+    sieve();
+    for(int i = 1;i <= 8e5;i++)
+        segTree[i] = 1;
+    cin >> n;
+    for(int i = 1;i <= n;i++)
+    {
+        cin >> arr[i];
+        updateTree(1,1,n,i,arr[i]);
+    }
+    for(int i = n;i >= 1;i--)
+    {
+        vector<int> curPrimes = getPrimes(arr[i]);
+        for(int j = 0;j < curPrimes.size();j++)
+            primeToPos[curPrimes[j]].push_back(i);
+    }
+    for(int i = 1;i <= 1e6;i++)
+    {
+        if(primePos[i] == 0 && primeToPos[i].size() > 0)
+        {
+            primePos[i] = primeToPos[i].back();
+            toRemove[primeToPos[i].back()].push_back(i);
+            //cout << "UPDATING " << primeToPos[i].back() << " with value of " << i << endl;
+            updateTree(1,1,n,primePos[i],mulmod(i-1,inverseModulo(i)));
+        }
+    }
+    int q;
+    cin >> q;
+    for(int i = 0;i < q;i++)
+    {
+        int l,r;
+        cin >> l >> r;
+        queries[l].push_back(make_pair(r,i));
+    }
+    for(int i = 1;i <= n;i++)
+    {
+        finishBefore(i-1);
+        for(int j = 0;j < queries[i].size();j++)
+        {
+            ans[queries[i][j].second] = getTree(1,1,n,i,queries[i][j].first);
+            //cout << getTree(1,1,n,i,queries[i][j].first) << endl;
+            //return 0;
+        }
+    }
+    for(int i = 0;i < q;i++)
+        cout << ans[i] << endl;
+    return 0;
+}

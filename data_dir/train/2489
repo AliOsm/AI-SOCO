@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define mp make_pair
+#define pb push_back
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int MAXN = 5010;
+const int INF = 1e9;
+
+int n;
+vector<int> g[MAXN];
+int dp[2][MAXN][MAXN / 2];
+int leaves;
+int sz[MAXN];
+int tmp[2][MAXN / 2];
+
+void dfs(int v, int p = -1) {
+  for (int i = 0; i < (int)g[v].size(); ++i) {
+    int u = g[v][i];
+    if (u != p) {
+      dfs(u, v);
+      if (sz[v] == 0) {
+	for (int j = 0; j <= min(leaves / 2, sz[u]); ++j) {
+	  dp[0][v][j] = min(dp[0][u][j], dp[1][u][j] + 1);
+	  dp[1][v][j] = min(dp[1][u][j], dp[0][u][j] + 1);
+	}
+      } else {
+	for (int j = 0; j <= min(leaves / 2, sz[v] + sz[u]); ++j) {
+	  tmp[0][j] = INF;
+	  tmp[1][j] = INF;
+	}
+	for (int j = 0; j <= min(leaves / 2, sz[v]); ++j) {
+	  for (int k = 0; k <= min(leaves / 2, sz[u]); ++k) {
+	    if (2 * j + 2 * k > leaves) break;
+	    tmp[0][j + k] = min(tmp[0][j + k], dp[0][u][k] + dp[0][v][j]);
+	    tmp[0][j + k] = min(tmp[0][j + k], dp[1][u][k] + dp[0][v][j] + 1);
+	    tmp[1][j + k] = min(tmp[1][j + k], dp[0][u][k] + dp[1][v][j] + 1);
+	    tmp[1][j + k] = min(tmp[1][j + k], dp[1][u][k] + dp[1][v][j]);
+	  }
+	}
+	for (int j = 0; j <= min(leaves / 2, sz[v] + sz[u]); ++j) {
+	  dp[0][v][j] = tmp[0][j];
+	  dp[1][v][j] = tmp[1][j];
+	}
+      }
+      sz[v] += sz[u];
+    }
+  }
+  if ((int)g[v].size() == 1) {
+    ++sz[v];
+    dp[1][v][1] = 0;
+    dp[0][v][0] = 0;
+  }
+}
+
+int main() {
+  //freopen("input.txt", "r", stdin);
+  for (int i = 0; i < 2; ++i)
+    for (int j = 0; j < MAXN; ++j)
+      for (int k = 0; k < MAXN / 2; ++k)
+	dp[i][j][k] = INF;
+  scanf("%d", &n);
+  for (int i = 1, a, b; i < n; ++i) {
+    scanf("%d%d", &a, &b);
+    g[a].pb(b);
+    g[b].pb(a);
+  }
+  if (n == 2) {
+    puts("1");
+    return 0;
+  }
+  int root = -1;
+  for (int i = 1; i <= n; ++i) {
+    if ((int)g[i].size() != 1) {
+      root = i;
+    } else {
+      ++leaves;
+    }
+  }
+  assert(root != -1);
+  dfs(root);
+  printf("%d\n", min(dp[0][root][leaves / 2], dp[1][root][leaves / 2]));
+  return 0;
+}

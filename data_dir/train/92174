@@ -1,0 +1,106 @@
+/*input
+4
+1 2 3 4
+*/
+#include "bits/stdc++.h"
+using namespace std;
+
+deque<int> a, v;
+
+int n;
+
+pair<int,int> lft[18][200005], rgt[18][200005];
+pair<int,int> query(int l,int r){
+	if(r<l) assert(0);
+	int lg = 31 - __builtin_clz(r-l);
+	return min(rgt[lg][r],lft[lg][l]);
+}
+
+int solve(int i, int j){
+	if(i>j) return 0;
+	auto pos = query(i,j).second;
+	return 1 + max(solve(i,pos-1), solve(pos+1,j));
+}
+pair<int,int> get(int mid){
+	if(mid < 0) mid += n;
+	v = a;
+	for(int i=mid;i--;v.pop_front()) v.push_back(v[0]);
+	
+	int lis = 0, lds = 0;
+
+	for(int i=0;i<n;++i) {
+		lft[0][i] = rgt[0][i] = {v[i],i};
+	}
+	for(int l=1;l<18;++l) {
+		for(int i=0;i<n;++i){
+			int to = i - (1<<l-1);
+			if(to>=0)
+				rgt[l][i] = min(rgt[l-1][i],rgt[l-1][to]);
+			else
+				rgt[l][i] = rgt[l-1][i];
+			
+		}
+		for(int i=n;i--;){
+			int to = i + (1<<l-1);
+			if(to<n) lft[l][i] = min(lft[l-1][i], lft[l-1][to]);
+			else lft[l][i] = lft[l-1][i];
+		}
+	}
+
+	queue<pair<int,pair<int,int>>> q;
+	int pos = query(0,n-1).second;
+
+	// q.push({0,{0,pos-1}});
+	// while(q.size()){
+	// 	int now = q.front().first;
+	// 	lis = max(lis,now);
+	// 	int l, r; tie(l,r) = q.front().second;
+	// 	q.pop();
+	// 	if(l>r) continue;
+	// 	auto pos = query(l,r).second;
+	// 	// cout << l << ' ' << r << ' ' << pos << endl;
+	// 	q.push({now+1,{l,pos-1}});
+	// 	q.push({now+1,{pos+1,r}});
+	// }
+
+	//  q.push({0,{pos+1,n-1}});
+	//  while(q.size()){
+	// 	int now = q.front().first;
+	// 	lds = max(lds,now);
+	// 	int l, r; tie(l,r) = q.front().second;
+	// 	q.pop();
+	// 	if(l>r) continue;
+	// 	auto pos = query(l,r).second;
+	// 	q.push({now+1,{l,pos-1}});
+	// 	q.push({now+1,{pos+1,r}});
+	// }
+
+	// return {lis, lds};
+
+	return {solve(0,pos-1), solve(pos+1,n-1)};
+}
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);cout.tie(0);
+	cin >> n;
+	a.resize(n);
+	int pos1 = 0;
+	for(int i=0;i<n;++i){
+		cin >> a[i];
+		if(a[i] == 1) pos1 = i;
+	}
+	int lo = pos1-(n-1), hi = pos1, mid;
+	while(lo < hi){
+		mid = (lo + hi + 1) / 2;
+		// cout << lo << ' ' << mid << ' ' << hi << endl;
+		int lis, lds; tie(lis, lds) = get(mid);
+		if(lis > lds) lo = mid;
+		else hi = mid - 1;
+	}
+	pair<int,int> ans = {n,0};
+	for(int mid = lo;mid<=min(pos1,lo+1);++mid){
+		int lis, lds; tie(lis, lds) = get(mid);
+		ans = min(ans,make_pair(max(lis,lds)+1,mid<0?mid+n:mid));
+	}
+	cout << ans.first << ' ' << ans.second;
+}

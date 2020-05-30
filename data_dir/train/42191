@@ -1,0 +1,124 @@
+		//			- -- --- ---- -----be name khoda----- ---- --- -- -			\\
+
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1 << 19, base = 101;
+
+struct node{
+	int sz;
+	long long hash;
+	node(int s, long long h): sz(s), hash(h) {}
+	node(){}
+};
+
+struct segment{
+	long long pw[N];
+	node seg[2 * N];
+	bool chi;
+	segment(bool r)
+	{
+		chi = r;
+		for(int i = 0; i < N; i++)
+		{
+			for(int j = i + N; j; j /= 2)
+				seg[j].sz++;
+			pw[i] = (i ? pw[i - 1] * base : 1LL);
+		}
+	}
+	node merge(node &l, node &r) { return node(l.sz + r.sz, l.hash * (chi ? 1LL : pw[r.sz]) + r.hash * (chi ? pw[l.sz] : 1LL)); }
+	void modify(int i, int x)
+	{
+		seg[i += N].hash = x;
+		for(i /= 2; i; i/= 2)
+			seg[i] = merge(seg[i * 2], seg[i * 2 + 1]);
+	}
+	node getHash(int l, int r)
+	{
+		node L(0, 0), R(0, 0);
+		for(l += N, r += N; l < r; l /= 2, r /= 2)
+		{
+			if(l % 2)
+				L = merge(L, seg[l++]);
+			if(r % 2)
+				R = merge(seg[--r], R);
+		}
+		return merge(L, R);
+	}
+};
+
+segment S1(0), S2(1);
+string s;
+int d, n;
+
+bool isPal(int l, int r) { return S1.getHash(l, r).hash == S2.getHash(l, r).hash; }
+void upd(int i)
+{
+	S1.modify(i, s[i] - 'a');
+	S2.modify(i, s[i] - 'a');
+}
+bool inc(int i)
+{
+	if(i < 0)
+		return 1;
+	if(s[i] < 'z')
+	{
+		s[i]++;
+		upd(i);
+		return 0;
+	}
+	else
+	{
+		s[i] = 'a';
+		upd(i);
+		return inc(i - 1);
+	}
+}
+bool check(int i) 
+{	
+	return((i + 1 >= d && isPal(i + 1 - d, i + 1)) 
+		|| (i + 1 >= d + 1 && isPal(i + 1 - d - 1, i + 1))); 
+}
+void go(int i)
+{
+	for(; i < n; i++)
+	{
+		s[i] = 'a';
+		upd(i);
+		while(check(i))
+		{
+			s[i]++;
+			upd(i);
+		}
+	}
+}
+int main()
+{
+	ios::sync_with_stdio(0); cin.tie(0);
+	cin >> d >> s;
+	n = s.size();
+	for(int i = 0; i < n; i++)
+		upd(i);
+	if(inc(n - 1))
+		return cout << "Impossible\n", 0;
+	for(int i = 0; i < n; i++)
+	{
+		bool done = 0;
+		while(check(i))
+		{
+			if(inc(i))
+				return cout << "Impossible\n", 0;
+			done = 1;
+		}
+		if(done)
+		{
+			for(int j = i - 1; j >= 0; j--)
+				while(check(j))
+					if(inc(j))
+						return cout << "Impossible\n", 0;
+			go(i + 1);
+			break;
+		}
+	}
+	cout << s << endl;
+}

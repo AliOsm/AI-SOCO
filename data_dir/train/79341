@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+
+#define F first
+#define S second
+#define pb push_back
+#define ll long long
+#define ld long double
+#define pii pair <int,int>
+#define endl '\n'
+#define FILE "chaos"
+
+#pragma GCC target("sse,sse2,sse3,sse3,sse4,popcnt,abm,mmx")
+
+using namespace std;
+
+const int mod = 1e9 + 7;
+const int N = 2e5 + 5;
+
+vector <vector <int> > g;
+int tin[N], tout[N], a[N], timer, lazy[2 * N];
+vector <int> t;
+
+
+void dfs(int v, int pr){
+    tin[v] = timer++;
+    for (int to : g[v]){
+        if (to == pr) continue;
+        dfs(to, v);
+    }
+    tout[v] = timer;
+}
+
+void push(int v, int l, int r){
+    if (lazy[v] == 0) return;
+    t[v * 2] = (r - l) / 2 - t[v * 2];
+    t[v * 2 + 1] = (r - l) / 2 - t[v * 2 + 1];
+    lazy[v * 2] ^= lazy[v];
+    lazy[v * 2 + 1] ^= lazy[v];
+    lazy[v] = 0;
+}
+
+int query(int v, int cl, int cr, int l, int r){
+    if (cr <= l || cl >= r) return 0;
+    if (l <= cl && cr <= r) return t[v];
+    int mid = (cl + cr) / 2;
+    push(v, cl, cr);
+    return query(v * 2, cl, mid, l, r) + query(v * 2 + 1, mid, cr, l, r);
+}
+
+void update(int v, int cl, int cr, int l, int r){
+    if (cr <= l || cl >= r) return;
+    if (l <= cl && cr <= r){
+        lazy[v] ^= 1;
+        t[v] = cr - cl - t[v];
+        return;
+    }
+    int mid = (cl + cr) / 2;
+    push(v, cl, cr);
+    update(v * 2, cl, mid, l, r);
+    update(v * 2 + 1, mid, cr, l, r);
+    t[v] = t[v * 2] + t[v * 2 + 1];
+}
+
+int main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    srand(time(0));
+#ifdef LOCAL
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#else
+//   freopen("input.txt", "r", stdin);
+//   freopen("output.txt", "w", stdout);
+#endif
+    int n;
+    cin >> n;
+    g.resize(n);
+    for (int i = 0; i < n - 1; i++){
+        int x;
+        cin >> x;
+        x--;
+        g[x].pb(i + 1);
+        g[i + 1].pb(x);
+    }
+    dfs(0, -1);
+    for (int i = 0; i < n; i++) cin >> a[i];
+    int lg = 0;
+    while ((1 << lg) < n) lg++;
+    t.resize((1 << (lg + 1)), 0);
+    for (int i = 0; i < n; i++){
+        t[tin[i] + (1 << lg)] = a[i];
+    }
+    for (int i = (1 << lg) - 1; i > 0; i--){
+        t[i] = t[i * 2] + t[i * 2 + 1];
+    }
+    int q;
+    cin >> q;
+    while (q--){
+        string tp;
+        int x;
+        cin >> tp >> x;
+        x--;
+        if (tp == "get"){
+            cout << query(1, 0, 1 << lg, tin[x], tout[x]) << endl;
+        } else update(1, 0, 1 << lg, tin[x], tout[x]);
+//        for (int i = 1 << lg; i < 1 << (lg + 1); i++){
+//             cout << t[i] << " ";
+//        }
+//        cout << endl;
+    }
+    return 0;
+}

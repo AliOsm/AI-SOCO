@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+
+struct seg {
+  seg* ch[2];
+  int v, tag;
+  int l, r, m;
+  void pull() { v = ch[0]->v + ch[1]->v; }
+  void push() {
+    if (tag) {
+      for (int i = 0; i < 2; ++i) {
+        ch[i]->v += tag, ch[i]->tag += tag;
+      }
+      tag = 0;
+    }
+  }
+  seg(int l, int r) : l(l), r(r), m(l + r >> 1) {
+    if (r - l > 1) {
+      ch[0] = new seg(l, m);
+      ch[1] = new seg(m, r);
+      pull();
+    }
+    tag = 0;
+    v = 0;
+  }
+  void addValue(int ql, int qr, int qv) {
+    if (ql <= l and r <= qr) v += qv, tag += qv;
+    else {
+      push();
+      if (ql < m) ch[0]->addValue(ql, qr, qv);
+      if (m < qr) ch[1]->addValue(ql, qr, qv);
+      pull();
+    }
+  }
+  int query(int p) {
+    if (r - l == 1) return v;
+    push();
+    if (p < m) return ch[0]->query(p);
+    else return ch[1]->query(p);
+  }
+};
+
+class Solution {
+  int n;
+  std::vector<int> A, inStamp, outStamp, parity;
+  std::vector<std::vector<int>> g;
+  void getTreeStamp(int u = 0, int p = 0) {
+    static int timer = 0;
+    inStamp[u] = timer++;
+    for (int v : g[u]) {
+      if (v == p) continue;
+      parity[v] = !parity[u];
+      getTreeStamp(v, u);
+    }
+    outStamp[u] = timer;
+  }
+
+public:
+  void run(std::istream &in, std::ostream &out) {
+    int m;
+    in >> n >> m;
+
+    A.resize(n);
+    inStamp.resize(n);
+    outStamp.resize(n);
+    parity.resize(n);
+    g.resize(n);
+
+    for (int i = 0; i < n; ++i) in >> A[i];
+    for (int i = 0; i < n - 1; ++i) {
+      int u, v;
+      in >> u >> v;
+      --u, --v;
+      g[u].push_back(v);
+      g[v].push_back(u);
+    }
+
+    seg* root = new seg(0, n);
+    getTreeStamp();
+
+
+    while (m--) {
+      int type, point;
+      in >> type >> point;
+      --point;
+      const auto getTreeValue = [&](int p) {
+        return A[p] + 
+               root->query(inStamp[p]) * (parity[p] ? -1 : 1);
+      };
+      if (type == 1) {
+        int val; in >> val;
+        root->addValue(inStamp[point], outStamp[point], parity[point] ? -val : val);
+      }
+      else {
+        out << getTreeValue(point) << '\n';
+      }
+    }
+  }
+  
+};
+int main() {
+  std::ios_base::sync_with_stdio(false);
+  Solution().run(std::cin, std::cout);
+  return 0;
+}

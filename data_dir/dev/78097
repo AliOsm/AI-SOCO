@@ -1,0 +1,190 @@
+#include <bits/stdc++.h>
+#define x first
+#define y second
+
+using namespace std ;
+typedef long long ll ;
+
+struct PT
+{
+    ll x, y ;
+    PT() {}
+    PT(ll x, ll y ) : x(x), y(y)  {}
+    PT(const PT &p) : x(p.x), y(p.y)    {}
+    PT operator + (const PT &p)  const
+    {
+        return PT(x+p.x, y+p.y);
+    }
+    PT operator - (const PT &p)  const
+    {
+        return PT(x-p.x, y-p.y);
+    }
+    PT operator * (ll c)     const
+    {
+        return PT(x*c,   y*c);
+    }
+};
+
+ll sp (PT a , PT b) {
+    return a.x*b.x + a.y*b.y ;
+}
+
+ll dist2(PT a , PT b) {
+    return sp(b-a,b-a) ;
+}
+
+vector <PT> hull , U , L , p ;
+vector < pair<ll,pair<ll,ll> > >  S , SS , T ;
+
+int CCW (PT a , PT b , PT c) {
+    long long area = ( a.x - b.x ) * ( b.y - c.y ) - ( b.x - c.x ) * ( a.y - b.y ) ;
+    if (area > 0) return 1 ;
+    return 0 ;
+}
+
+int cmp (PT a , PT b) {
+    return a.x == b.x and a.y == b.y ;
+}
+
+int cmp2 (PT a , PT b) {
+    if (a.x != b.x) return a.x < b.x ;
+    return a.y < b.y ;
+}
+
+void monotone_chain () {
+    L.clear() ;
+    U.clear() ;
+    hull.clear() ;
+    sort (p.begin() , p.end() , cmp2) ;
+
+    for(int i = 0 ; i < p.size() ; i++) {
+        while(L.size() >= 2 and CCW(L[L.size()-2] , L.back() , p[i]) == 0) {
+            L.pop_back() ;
+        }
+        L.push_back(p[i]) ;
+    }
+    for(int i = p.size()-1 ; i >= 0 ; i--) {
+        while(U.size() >= 2 and CCW(U[U.size()-2] , U.back() , p[i]) == 0) {
+            U.pop_back() ;
+        }
+        U.push_back(p[i]) ;
+    }
+
+    for(int i = 0 ; i < L.size() ; i++) hull.push_back(L[i]) ;
+    if (!cmp(L.back(),U[0])) hull.push_back(U[0]) ;
+    for(int i = 1 ; i < U.size()-1 ; i++) hull.push_back(U[i]) ;
+    if (!cmp(U.back(),L[0])) hull.push_back(U.back()) ;
+    //for(int i = 0 ; i < U.size() ; i++) hull.push_back(U[i]) ;
+}
+
+
+int Z[1000005] ;
+
+int kmp ( vector < pair<ll,pair<ll,ll> > > &S , vector < pair<ll,pair<ll,ll> > > &T) {
+
+    vector < pair<ll,pair<ll,ll> > > tt = T ;
+    tt.push_back({0,{0,0}}) ;
+    for (int i = 0 ; i < S.size() ; i++) {
+        tt.push_back(S[i]) ;
+    }
+    S = tt ;
+    //s = t + "#" + s ;
+
+    int n = S.size() , m = T.size() ;
+    memset (Z , 0 , sizeof 0) ;
+
+    for (int i = 1 ; i < n ; i++) {
+        int j = Z[i-1] ;
+        while (j > 0 and S[i]!=S[j]) {
+            j = Z[j-1] ;
+        }
+        if (S[i]==S[j]) j++ ;
+        Z[i] = j ;
+    }
+    for (int i = m+m ; i < n ; i++) {
+        if (Z[i] == m) return 1 ;
+    }
+
+    return 0 ;
+}
+
+
+
+int main () {
+
+   // freopen ("in.txt" , "r" , stdin) ;
+
+    int n , m ;
+    cin >> n >> m ;
+    p.resize(n) ;
+    for (int i = 0 ; i < n ; i++) {
+        scanf("%lld %lld" , &p[i].x , &p[i].y) ;
+    }
+    monotone_chain() ;
+    vector <PT> hull1 = hull ;
+    p.resize(m) ;
+    for (int i = 0 ; i < m ; i++) {
+        scanf("%lld %lld" , &p[i].x , &p[i].y) ;
+    }
+    monotone_chain() ;
+    vector <PT> hull2 = hull ;
+    /*for (auto pp : hull1) {
+        cout << pp.x << " " << pp.y << endl ;
+    }
+    cout << "--------" << endl ;
+
+
+    for (auto pp : hull2) {
+        cout << pp.x << " " << pp.y << endl ;
+    }
+    cout << "--------" << endl ;*/
+
+    if (hull1.size() != hull2.size()) {
+        cout << "NO" ;
+        return 0;
+    }
+    n = hull1.size() ;
+    if (n == 2) {
+        if (dist2(hull1[0],hull1[1]) == dist2(hull2[0],hull2[1]))  {
+            printf ("YES") ;
+        }
+        else {
+            printf ("NO") ;
+        }
+        return 0 ;
+    }
+    for (int i = 0 ; i < n ; i++) {
+        PT A = hull1[(i-1+n)%n] , B = hull1[i] , C = hull1[(i+1)%n] ;
+        S.push_back({sp(A-B,C-B),{dist2(A,B),dist2(B,C)}}) ;
+        A = hull2[(i-1+n)%n] , B = hull2[i] , C = hull2[(i+1)%n] ;
+        T.push_back({sp(A-B,C-B),{dist2(A,B),dist2(B,C)}}) ;
+    }
+
+    SS = S ;
+    for (int i = 0 ; i < S.size() ; i++) {
+        SS.push_back(S[i]) ;
+    }
+
+    if (kmp(SS,T)) {
+        printf ("YES") ;
+    }
+    else {
+        printf ("NO") ;
+    }
+
+
+    /*for (int i = 0 ; i < n ; i++) {
+        cout << S[i].first << " " << S[i].second.first << " " << S[i].second.second << endl ;
+    }
+
+    cout << "---" << endl ;
+
+    for (int i = 0 ; i < n ; i++) {
+        cout << T[i].first << " " << T[i].second.first << " " << T[i].second.second << endl ;
+    }*/
+
+
+
+    return 0 ;
+}
+

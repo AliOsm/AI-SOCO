@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100000;
+struct Query {
+  int l, r, id, k;
+  Query(int l, int r, int id, int k) : l(l), r(r), id(id), k(k) {}
+};
+struct Ds {
+  vector<int> cnt;
+  Ds(int n) { cnt.assign(MAXN, 0); }
+  void add(int c) { ++cnt[c]; }
+  void sub(int c) { --cnt[c]; }
+  int count(int c) { return cnt[c]; }
+};
+
+vector<Query> Qs;
+vector<int> g[MAXN];
+int lb[MAXN], rb[MAXN], dep[MAXN], deg[MAXN] = {0};
+void dfs(int u, int p, int d = 0) {
+  static int cur = 0;
+  dep[cur] = d;
+  lb[u] = cur++;
+  for (int v : g[u]) dfs(v, u, d + 1);
+  rb[u] = cur;
+}
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0);
+  int n, m; cin >> n;
+  for (int i = 0; i < n; ++i) {
+    int a; cin >> a; --a;
+    if (a == -1) continue;
+    g[a].push_back(i);
+    ++deg[i];
+  }
+
+  for (int i = 0; i < n; ++i) if (deg[i] == 0) dfs(i, i);
+
+  cin >> m;
+  vector<vector<int>> to_clac(n);
+  for (int i = 0; i < m; ++i) {
+    int v, k; cin >> v >> k;
+    --v;
+    Qs.emplace_back(lb[v], rb[v], i, k);
+    to_clac[v].push_back(i);
+  }
+  vector<int> stk;
+  function<void(int, int)> pre_calc = [&](int u, int p) {
+    for (int qi : to_clac[u]) {
+      int k = Qs[qi].k;
+      if (k > stk.size()) {
+        Qs[qi].k = -1;
+      }
+      else {
+        int m = stk.size(), v = stk[m - k];
+        Qs[qi] = Query(lb[v], rb[v], qi, dep[lb[v]] + k);
+      }
+    }
+    stk.push_back(u);
+    for (int v : g[u]) pre_calc(v, u);
+    stk.pop_back();
+  };
+  for (int i = 0; i < n; ++i) if (deg[i] == 0) pre_calc(i, i);
+
+  const int SQRT = sqrt(MAXN);
+  sort(Qs.begin(), Qs.end(), [&](Query a, Query b) {
+    return make_pair(a.l / SQRT, a.r) < make_pair(b.l / SQRT, b.r);
+  });
+
+  Ds tool(n);
+  for (int i = 0, cl = 0, cr = 0; i < m; ++i) {
+    int ql = Qs[i].l, qr = Qs[i].r;
+    while (cr < qr) tool.add(dep[cr++]);
+    while (ql < cl) tool.add(dep[--cl]);
+    while (qr < cr) tool.sub(dep[--cr]);
+    while (cl < ql) tool.sub(dep[cl++]);
+    if (Qs[i].k != -1) Qs[i].k = tool.count(Qs[i].k) - 1;
+    else Qs[i].k = 0;
+  }
+  sort(Qs.begin(), Qs.end(), [&](Query a, Query b) { return a.id < b.id; });
+  for (int i = 0; i < m; ++i) cout << Qs[i].k << " \n"[i == m - 1];
+}

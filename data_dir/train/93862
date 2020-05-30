@@ -1,0 +1,126 @@
+//Daniel Grzegorzewski
+#include <bits/stdc++.h>
+#pragma GCC optimize("O3")
+
+#define MP make_pair
+#define PB push_back
+#define ST first
+#define ND second
+
+using namespace std;
+
+typedef pair<int, int> PII;
+typedef vector<int> VI;
+typedef vector<PII> VII;
+typedef long long LL;
+
+void init_ios() {
+     ios_base::sync_with_stdio(0);
+     cin.tie(0);
+}
+
+const int N = 1003;
+
+int n, m, k, dlu[2], wyn = -1e9, res[N][53][53];
+bool can[N][53][53];
+map<pair<int, char>, int> meh[2];
+string c, s, t;
+
+int len(int nr, int dl, char c) {
+  if (meh[nr].find({dl, c}) != meh[nr].end())
+    return meh[nr][{dl, c}];
+  if (nr == 0 && s[dl] == c)
+    return meh[nr][{dl, c}] = dl+1;
+  else if (nr == 1 && t[dl] == c)
+    return meh[nr][{dl, c}] = dl+1;
+  for (int i = dl; i > 0; --i) {
+    if (nr == 0 && s.substr(0, i) == s.substr(dl-i+1, i-1)+c)
+      return meh[nr][{dl, c}] = i;
+    else if (nr == 1 && t.substr(0, i) == t.substr(dl-i+1, i-1)+c)
+      return meh[nr][{dl, c}] = i;
+  }
+  return meh[nr][{dl, c}] = 0;
+}
+
+pair<PII, int> licz(PII pr, char z) {
+  int zm = 0;
+  bool git[2] = {false, false};
+  if (pr.ST+1 == m && z == s.back()) {
+    ++zm;
+    pr.ST = dlu[0];
+    git[0] = true;
+  }
+  if (pr.ND+1 == k && z == t.back()) {
+    --zm;
+    pr.ND = dlu[1];
+    git[1] = true;
+  }
+  if (!git[0])
+    pr.ST = len(0, pr.ST, z);
+  if (!git[1])
+    pr.ND = len(1, pr.ND, z);
+  return {pr, zm};
+}
+
+void maxi(int& x, int y) {
+  x = max(x, y);
+}
+
+int main() {
+  init_ios();
+  cin >> c >> s >> t;
+  c = "!" + c;
+  n = c.size();
+  m = s.size();
+  k = t.size();
+  for (int i = m-1; i > 0; --i) {
+    if (s.substr(0, i) == s.substr(m-i)) {
+      dlu[0] = i;
+      break;
+    }
+  }
+  for (int i = k-1; i > 0; --i) {
+    if (t.substr(0, i) == t.substr(k-i)) {
+      dlu[1] = i;
+      break;
+    }
+  }
+  can[0][0][0] = true;
+  queue<pair<int, PII>> q;
+  q.push({0, {0, 0}});
+  while (!q.empty()) {
+    auto v = q.front();
+    q.pop();
+    int id = v.ST;
+    PII pr = v.ND;
+    if (id+1 == n) {
+      wyn = max(wyn, res[id][pr.ST][pr.ND]);
+      continue;
+    }
+    if (c[id+1] != '*') {
+      pair<PII, int> bla = licz(pr, c[id+1]);
+      PII pref = bla.ST;
+      int ile = bla.ND;
+      if (!can[id+1][pref.ST][pref.ND]) {
+        can[id+1][pref.ST][pref.ND] = true;
+        res[id+1][pref.ST][pref.ND] = res[id][pr.ST][pr.ND]+ile;
+        q.push({id+1, pref});
+      }
+      maxi(res[id+1][pref.ST][pref.ND], res[id][pr.ST][pr.ND]+ile);
+    }
+    else {
+      for (char z = 'a'; z <= 'z'; ++z) {
+        pair<PII, int> bla = licz(pr, z);
+        PII pref = bla.ST;
+        int ile = bla.ND;
+        if (!can[id+1][pref.ST][pref.ND]) {
+          can[id+1][pref.ST][pref.ND] = true;
+          res[id+1][pref.ST][pref.ND] = res[id][pr.ST][pr.ND]+ile;
+          q.push({id+1, pref});
+        }
+        maxi(res[id+1][pref.ST][pref.ND], res[id][pr.ST][pr.ND]+ile);
+      }
+    }
+  }
+  cout<<wyn<<"\n";
+}

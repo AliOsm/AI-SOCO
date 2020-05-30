@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+
+const int N = 400100;
+
+int n, a[N];
+
+ll t, tree[N*4], treeKol[N*4];
+
+void update(int v, int l, int r, int pos, int x){
+    if (l == r){
+        tree[v] += x;
+        if (x > 0)
+            ++treeKol[v]; else
+            --treeKol[v];
+        return;
+    }
+    int mid = (l+r)>>1;
+    if (pos <= mid)
+        update(v+v, l, mid, pos, x); else
+        update(v+v+1, mid+1, r, pos, x);
+    tree[v] = tree[v+v] + tree[v+v+1];
+    treeKol[v] = treeKol[v+v] + treeKol[v+v+1];
+}
+
+ll getSum(int v, int l, int r, int tl, int tr){
+    if (l > r || tl > r || l > tr || tl > tr)
+        return 0;
+    if (tl <= l && r <= tr)
+        return tree[v];
+    int mid = (l+r)>>1;
+    return getSum(v+v, l, mid, tl, tr) + getSum(v+v+1, mid+1, r, tl, tr);
+}
+int getKol(int v, int l, int r, int tl, int tr){
+    if (l > r || tl > r || l > tr || tl > tr)
+        return 0;
+    if (tl <= l && r <= tr)
+        return treeKol[v];
+    int mid = (l+r)>>1;
+    return getKol(v+v, l, mid, tl, tr) + getKol(v+v+1, mid+1, r, tl, tr);
+}
+
+int get(int v, int l, int r, ll x){
+    if (l == r){
+        return l;
+    }
+    int mid = (l+r)>>1;
+    if (tree[v+v] <= x)
+        return get(v+v+1, mid+1, r, x-tree[v+v]);
+    return get(v+v, l, mid, x);
+}
+
+int main(){
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+
+    cin >> n >> t;
+    set<pair<int, int> > q;
+    ll sum = 0;
+    for (int i = 1; i <= n; i++){
+        cin >> a[i];
+        q.insert({a[i], i});
+        sum += a[i];
+        update(1, 1, n+n, i, a[i]);
+        update(1, 1, n+n, i+n, a[i]);
+    }
+    int curPos = 1;
+    ll ans = 0;
+    while(1){
+        while(!q.empty() && prev(q.end())->first > t){
+            int pos = prev(q.end())->second;
+            q.erase(prev(q.end()));
+            sum -= a[pos];
+            update(1, 1, n+n, pos, -a[pos]);
+            update(1, 1, n+n, pos+n, -a[pos]);
+        }
+        if (q.size() == 0)
+            break;
+        ll cur = t/sum;
+        ans += cur*(ll)q.size();
+        t -= cur*sum;
+        //cout << "kek " << t+getSum(1, 1, n+n, 1, curPos-1) << ' ';
+        int nxtPos = get(1, 1, n+n, t+getSum(1, 1, n+n, 1, curPos-1));
+        ans += getKol(1, 1, n+n, curPos, nxtPos-1);
+        t -= getSum(1, 1, n+n, curPos, nxtPos-1);
+        //cout << curPos << ' ' << nxtPos << ' ' << t << ' ' << sum << ' ' << ans << endl;
+        if (nxtPos > n)
+            nxtPos -= n;
+        curPos = nxtPos;
+    }
+    cout << ans;
+
+}
+
+
+/**
+
+4 12
+2 5 1 1
+
+*/

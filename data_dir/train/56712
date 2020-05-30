@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define lson (p << 1)
+#define rson (p << 1 | 1)
+#define mid ((l + r) >> 1)
+
+const int N = 1e5 + 10;
+const int B = 1e9 + 7;
+const int SEED = 13;
+
+int n, m, k;
+char s[N];
+int a[N];
+long long pw[N];
+long long dd[N];
+int tr[N * 4];
+int lz[N * 4];
+
+void initpw() {
+  pw[0] = 1;
+  for (int i = 1; i <= n; ++i) {
+    pw[i] = pw[i - 1] * SEED % B;
+  }
+  dd[0] = pw[0];
+  for (int i = 1; i <= n; ++i) {
+    dd[i] = (dd[i - 1] + pw[i]) % B;
+  }
+}
+
+void inita() {
+  for (int i = 1; i <= n; ++i)
+    a[i] = s[i] - '0';
+}
+
+void pushdown(int p, int l, int r) {
+  if (lz[p] < 0) return;
+  lz[lson] = lz[rson] = lz[p];
+  tr[lson] = lz[p] * (dd[mid] - dd[l - 1] + B) % B;
+  tr[rson] = lz[p] * (dd[r] - dd[mid] + B) % B;
+  lz[p] = -1;
+}
+
+void pushup(int p, int l, int r) {
+  lz[p] = -1;
+  tr[p] = (tr[lson] + tr[rson]) % B;
+}
+
+void build(int p, int l, int r) {
+  if (l == r) {
+    tr[p] = a[l] * pw[l] % B;
+    lz[p] = -1;
+    return;
+  }
+  build(lson, l, mid);
+  build(rson, mid + 1, r);
+  pushup(p, l, r);
+}
+
+void update(int p, int l, int r, int ll, int rr, int c) {
+  if (ll > r || rr < l) return;
+  if (ll <= l && rr >= r) {
+    tr[p] = c * (dd[r] - dd[l - 1] + B) % B;
+    lz[p] = c;
+    return;
+  }
+  pushdown(p, l, r);
+  update(lson, l, mid, ll, rr, c);
+  update(rson, mid + 1, r, ll, rr, c);
+  pushup(p, l, r);
+}
+
+int query(int p, int l, int r, int ll, int rr) {
+  if (ll > r || rr < l) return 0;
+  if (ll <= l && rr >= r) {
+    return tr[p];
+  }
+  pushdown(p, l, r);
+  return (query(lson, l, mid, ll, rr) + query(rson, mid + 1, r, ll, rr)) % B;
+}
+
+int check(int l, int r, int ll, int rr) {
+  int a = query(1, 1, n, l, r);
+  int b = query(1, 1, n, ll, rr);
+  return a * pw[ll - l] % B == b;
+}
+
+int main() {
+  scanf("%d%d%d", &n, &m, &k);
+  scanf("%s", s + 1);
+  initpw();
+  inita();
+  build(1, 1, n);
+  for (int i = 0, t, l, r, c; i < m + k; ++i) {
+    scanf("%d%d%d%d", &t, &l, &r, &c);
+    if (t == 1) {
+      update(1, 1, n, l, r, c);
+    }
+    else {
+      puts(check(l, r - c, l + c, r) ? "YES" : "NO");
+    }
+  }
+  return 0;
+}

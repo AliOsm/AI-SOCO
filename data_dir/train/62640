@@ -1,0 +1,109 @@
+#include <bits/stdc++.h> 
+
+using namespace std;
+
+#define pb push_back
+#define ok puts("ok");
+
+const int N = (int)1e5 + 7;
+const int inf = (int)1e9 + 7;
+
+int ans[N];
+vector < int > gr[N];
+int depth[N], tin[N], tout[N];
+int tiktak, p[18][N], par[N], h[N];
+bool used[N];
+
+void dfs(int v, int pr) {
+	tin[v] = tiktak++;
+	p[0][v] = pr;	
+	for (int i = 1; i <= 17; i++) {
+		p[i][v] = p[i - 1][p[i - 1][v]];
+	}
+	for (int to : gr[v]) {
+		if (to == pr) continue;
+		depth[to] = depth[v] + 1;
+		dfs(to, v);
+	}
+	tout[v] = tiktak++;
+}
+
+int dfs(int v, int pr, int &c, int sz) {
+	int sum = 1;
+	for (int to : gr[v]) {
+		if (used[to] || to == pr) continue;
+		sum += dfs(to, v, c, sz);
+	}
+	if (c == -1 && (sum * 2 >= sz || pr == -1)) {
+		c = v;
+	}
+	return sum;
+}
+
+void build(int v, int sz, int last, int len = 0) {
+	int centroid = -1;
+	dfs(v, -1, centroid, sz);
+	used[centroid] = 1;
+	par[centroid] = last;
+	h[centroid] = len;
+	for (int to : gr[centroid]) {
+		if (!used[to]) {
+			build(to, sz >> 1, centroid, len + 1);
+		}
+	}
+}
+
+bool upper(int a, int b) {
+	return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+        
+int lca(int a, int b) {
+	if (upper(a, b)) return a;
+	if (upper(b, a)) return b;
+	for (int i = 17; i >= 0; i--) {
+		if (!upper(p[i][a], b)) a = p[i][a];
+	}
+	return p[0][a];
+}
+
+int dist(int a, int b) {
+	return depth[a] + depth[b] - 2 * depth[lca(a, b)];
+}
+
+main() {    
+	int n, m; scanf("%d %d", &n, &m);
+	for (int i = 1; i < n; i++) {
+		int u, v; scanf("%d %d", &u, &v);
+		gr[u].pb(v);
+		gr[v].pb(u);
+	}
+	dfs(1, 1);
+	build(1, n, -1);
+	for (int i = 1; i <= n; i++) {
+		ans[i] = inf;
+	}
+	int u, v;
+	u = v = 1;
+	while (v != -1) {
+		ans[v] = min(ans[v], dist(u, v));
+		v = par[v];
+	}            
+	while (m--) {        
+		int tp, x; scanf("%d %d", &tp, &x);
+		if (tp == 1) {
+			v = x;
+			while (v != -1) {
+				ans[v] = min(ans[v], dist(x, v));
+				v = par[v];
+			}
+		} else {
+			v = x;
+			int mn = inf;
+			while (v != -1) {
+				mn = min(mn, ans[v] + dist(v, x));
+				v = par[v];
+			}
+			printf("%d\n", mn);
+		}
+	}
+}

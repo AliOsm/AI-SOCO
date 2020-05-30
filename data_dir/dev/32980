@@ -1,0 +1,194 @@
+#include<bits/stdc++.h>
+#include<ctime>
+#include<random>
+using namespace std;
+
+int w;
+int h;
+
+#define PI (long double)(3.14159265359)
+#define EPS (long double)(1e-12)
+pair<long double, long double> rotate(pair<long double, long double> a, long double deg){
+	long double cs = cos(deg);
+	long double ss = sin(deg);
+	return make_pair(cs*a.first - ss*a.second, ss*a.first + cs*a.second);
+}
+struct vec{
+	long double x;
+	long double y;
+	vec(long double x_=0, long double y_=0){
+		x = x_;
+		y = y_;
+	}
+	vec operator+(const vec r)const{
+		return vec( x + r.x, y + r.y );
+	}
+	vec operator-(const vec r)const{
+		return vec( x - r.x, y - r.y );
+	}
+	template<typename ty>
+	vec operator*(const ty a)const{
+		return vex(x*a, y*a);
+	}
+	template<typename ty>
+	void operator*=(const ty a){
+		x *= a;
+		y *= a;
+	}
+	void operator-=(const vec r){
+		x -= r.x;
+		y -= r.y;
+	}
+	long double dist(){
+		return sqrt(max((long double)(0),x*x + y*y) );
+	}
+	
+};
+vec rotate(vec V,long double rad){
+	long double cs = cos(rad);
+	long double ss = sin(rad);
+	return vec(cs*V.x - ss*V.y, ss*V.x + cs*V.y);
+}
+template<typename ty>
+long double cross(ty a, ty b){
+	return a.x*b.y - a.y*b.x;
+}
+
+long double dot(vec a, vec b){
+	return a.x*b.x + a.y*b.y;
+}
+struct point{
+	long double x;
+	long double y;
+	point(long double x_=0, long double y_=0){
+		x = x_;
+		y = y_;
+	}
+	vec operator-(const point r)const{
+		return vec( x - r.x, y - r.y );
+	}
+	point operator+(const vec r)const{
+		return point(x + r.x, y + r.y);
+	}
+};
+struct line{
+	point a;
+	point b;
+	line(point a_, point b_){
+		a = a_;
+		b = b_;
+	}
+};
+int cross_parity(long double a){
+	if (-EPS < a&&a < EPS){
+		return 0;
+	}
+	if (a < 0.0){
+		return -1;
+	}
+	return 1;
+}
+bool intersect(line a, line b){
+	if (cross_parity(cross(a.a - a.b, b.a - b.b)) == 0)return false;  //parallel
+	if (cross_parity(cross(b.a - a.a,a.b-a.a)) == cross_parity(cross(b.b - a.a,a.b-a.a)))return false;
+	if (cross_parity(cross(a.a -b.a, b.b - b.a)) == cross_parity(cross(a.b - b.a, b.b - b.a)) )return false;
+	return true;
+}
+point intersection(line a, line b){
+	long double A1 = fabsl(cross(a.b - a.a,b.a - a.a));
+	long double A2 = fabsl(cross(a.b - a.a, b.b - a.a));
+	vec dir = b.b - b.a;
+	dir *= (A1 / (A1 + A2));
+	return b.a + dir;
+}
+template<typename ty>
+int orthant(ty a){
+	if (a.y >= 0.0&&a.x>0.0){
+		return 1;
+	}
+	if (a.y > 0.0 && a.x <= 0.0){
+		return 2;
+	}
+	if (a.y <= 0.0&&a.x < 0.0){
+		return 3;
+	}
+	return 4;
+}
+template<typename ty>
+bool vector_cmp(ty a, ty b){
+	if (orthant(a) != orthant(b)){
+		return orthant(a) < orthant(b);
+	}
+	long double cr = cross(a, b);
+	if (cr > 0.0){
+		return true;
+	}
+	return false;
+}
+
+template<typename ty>
+void vector_sort(vector<ty> &v){
+	sort(v.begin(), v.end(), vector_cmp<ty> );
+}
+
+long double area(vector<point> &v){  //v should be ordered
+	long double r = 0;
+	point zero = { 0, 0 };
+	for (int i = 0; i < v.size(); i++){
+		r += cross(v[i]-zero, v[(i + 1) % v.size()]-zero);
+	}
+	r /= (long double)(2.0);
+	return r;
+}
+
+int main(){
+	cin >> w >> h;
+	int deg;
+	cin >> deg;
+	if (deg == 0||deg==180){
+		printf("%lld\n", (long long int)(w)*h);
+		return 0;
+	}
+	if (deg == 90){
+		long long int MM = min(w, h);
+		MM *= MM;
+		printf("%lld\n", MM);
+		return 0;
+	}
+	long double D = PI*(long double)(deg) / (long double)(180.0);
+	long double W = w;
+	long double H = h;
+	W /= 2.0;
+	H /= 2.0;
+	point a1 = { -W, H };
+	point a2 = { -W, -H };
+	point a3 = { W, -H };
+	point a4 = { W, H };
+	vector<line> v;
+	v.push_back({ a1, a2 });
+	v.push_back({ a2, a3 });
+	v.push_back({ a3, a4 });
+	v.push_back({ a4, a1 });
+	point zero = { 0, 0 };
+	a1 = zero+rotate(a1-zero, D);
+	a2 = zero+rotate(a2-zero, D);
+	a3 = zero + rotate(a3 - zero, D);
+	a4 = zero + rotate(a4 - zero, D);
+	vector<line> vv;
+	vv.push_back({ a1, a2 });
+	vv.push_back({ a2, a3 });
+	vv.push_back({ a3, a4 });
+	vv.push_back({ a4, a1 });
+	vector<point> pol;
+	for (int i = 0; i < v.size(); i++){
+		for (int j = 0; j < vv.size(); j++){
+			if (intersect(v[i], vv[j])){
+				pol.push_back(intersection(v[i], vv[j]));
+			}
+		}
+	}
+	vector_sort(pol);
+	long double ans = area(pol);
+	printf("%.16f\n", (double)(ans));
+	return 0;
+}

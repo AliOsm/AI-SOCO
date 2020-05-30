@@ -1,0 +1,201 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <memory.h>
+#include <sstream>
+#include <assert.h>
+#include <fstream>
+#include <iomanip>
+#include <bitset>
+#include <string>
+#include <cstdio>
+#include <complex>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cmath>
+#include <ctime>
+#include <set>
+#include <map>
+using namespace std;
+
+#define int64 long long
+#define mp make_pair
+
+
+#ifdef _DEBUG
+    const int N = 3010;
+#else
+    const int N = 100010;
+#endif
+
+const int inf = 1e9;
+const int L = 18;
+const int M = 10;
+
+
+struct T
+{
+	int sz, a[M];
+	T()
+	{
+		sz = 0;
+		for (int i = 0; i < M; i++) a[i] = inf;
+	}
+	void print()
+	{
+		cout << sz << endl;
+		for (int i = 0; i < sz; i++) cout << a[i] << " ";
+		cout << endl;
+	}
+};
+
+int n, m, q, tcur, p[N], up[N][L], tin[N], tout[N];
+T t[N][L];
+vector <int> g[N];
+
+void add(T &a, int x)
+{
+	int j = a.sz;
+	for (int i = 0; i < a.sz; i++)
+		if (x < a.a[i])
+		{
+			j = i;
+			break;
+		}
+	if (j == a.sz)
+	{
+		if (a.sz < M) a.a[a.sz++] = x;
+	}
+	else
+	{
+		for (int i = min(M, a.sz); i > j; i--) a.a[i] = a.a[i - 1];
+		a.a[j] = x;
+		a.sz = min(a.sz + 1, M);
+	}
+}
+
+T merge(T &a, T &b)
+{
+	int i = 0, j = 0;
+	T c;
+	while (i < a.sz || j < b.sz)
+	{
+		if (j == b.sz || (i < a.sz && a.a[i] <= b.a[j]))
+		{
+			c.a[c.sz++] = a.a[i];
+			i++;
+			if (c.sz >= M) break;
+		}
+		else
+		{
+			c.a[c.sz++] = b.a[j];
+			j++;
+			if (c.sz >= M) break;
+		}
+	}
+	return c;
+}
+
+void dfs(int v, int parent)
+{
+	tcur++;
+	tin[v] = tcur;
+	up[v][0] = parent;
+	for (int i = 1; i < L; i++)
+	{
+		up[v][i] = up[up[v][i - 1]][i - 1];
+		t[v][i] = merge(t[v][i - 1], t[up[v][i - 1]][i - 1]);
+	}
+	for (int i = 0; i < g[v].size(); i++)
+		if (g[v][i] != parent)
+			dfs(g[v][i], v);
+	tcur++;
+	tout[v] = tcur;
+}
+
+bool upper(int u, int v)
+{
+	return (tin[u] <= tin[v] && tout[u] >= tout[v]);
+}
+
+int lca(int u, int v)
+{
+	if (upper(u, v)) return u;
+	if (upper(v, u)) return v;
+	for (int i = L - 1; i >= 0; i--)
+		if (!upper(up[u][i], v))
+			u = up[u][i];
+	return up[u][0];
+}
+
+T calcPath(int u, int v)
+{
+	T res;
+	if (u == v)
+	{
+		return res;
+	}
+	for (int i = L - 1; i >= 0; i--)
+	{
+		if (!upper(up[u][i], v))
+		{
+			res = merge(res, t[u][i]);
+			u = up[u][i];
+		}
+	}
+	res = merge(res, t[u][0]);
+	return res;
+}
+
+T solve(int u, int v)
+{
+	int w = lca(u, v);
+	if (upper(v, u)) swap(u, v);
+	T res;
+	if (upper(u, v))
+	{
+		res = calcPath(v, u);
+		res = merge(res, t[u][0]);
+	}
+	else
+	{
+		T res1 = calcPath(v, w);
+		T res2 = calcPath(u, w);
+		res = merge(res1, res2);
+		res = merge(res, t[w][0]);
+	}
+	return res;
+}
+
+int main()
+{
+#ifdef _DEBUG
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+	scanf("%d%d%d", &n, &m, &q);
+	for (int i = 1; i < n; i++)
+	{
+		int a, b;
+		scanf("%d%d", &a, &b);
+		g[a].push_back(b);
+		g[b].push_back(a);
+	}
+	for (int i = 1; i <= m; i++) scanf("%d", &p[i]);
+	for (int i = 1; i <= m; i++) 
+		add(t[p[i]][0], i);
+	tcur = 0;
+	dfs(1, 1);
+	for (int i = 1; i <= q; i++)
+	{
+		int u, v, k;
+		scanf("%d%d%d", &u, &v, &k);
+		T res = solve(u, v);
+		int r = min(k, res.sz);
+		printf("%d ", r);
+		for (int j = 0; j < r; j++) printf("%d ", res.a[j]);
+		printf("\n");
+	}
+	return 0;
+}  

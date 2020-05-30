@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+#define double long double
+
+using namespace std;
+const int MAXN = (1 << 11);
+const int mod = (int)1e9 + 7;
+const double PI = acos(-1);
+
+typedef vector<complex<double>> polynomial;
+
+int rev(int x, int lg)
+{
+	int ret = 0;
+	for(int i = 0; i < lg; i++)
+		if((x >> i) & 1)
+			ret |= (1 << (lg - i - 1));
+
+	return ret;
+}
+
+void fft(polynomial &a)
+{
+	int lgn = 0, n = a.size();
+	while((1 << lgn) < n)
+		lgn++;
+
+	for(int i = 0; i < n; i++)
+		if(rev(i, lgn) < i)
+			swap(a[i], a[rev(i, lgn)]);
+
+	for(int len = 2; len <= n; len <<= 1)
+	{
+		double ang = 2.0 * PI / len;
+		complex<double> wn(cos(ang), sin(ang));
+		for(int i = 0; i < n; i += len)
+		{
+			complex<double> w(1);
+			for(int j = 0; j < len / 2; j++)
+			{
+				complex<double> u = a[i + j], v = w * a[i + j + len / 2];
+				a[i + j] = u + v;
+				a[i + j + len / 2] = u - v;
+				w *= wn;
+			}
+		}
+	}
+}
+
+void inv_fft(polynomial &a)
+{
+	int lgn = 0, n = a.size();
+	while((1 << lgn) < n)
+		lgn++;
+
+	for(int i = 0; i < n; i++)
+		if(rev(i, lgn) < i)
+			swap(a[i], a[rev(i, lgn)]);
+
+	for(int len = 2; len <= n; len <<= 1)
+	{
+		double ang = -2.0 * PI / len;
+		complex<double> wn(cos(ang), sin(ang));
+		for(int i = 0; i < n; i += len)
+		{
+			complex<double> w(1);
+			for(int j = 0; j < len / 2; j++)
+			{
+				complex<double> u = a[i + j], v = w * a[i + j + len / 2];
+				a[i + j] = u + v;
+				a[i + j + len / 2] = u - v;
+				w *= wn;
+			}
+		}
+	}
+
+	for(int i = 0; i < n; i++)
+		a[i] /= n;
+}
+
+polynomial mult(polynomial a, polynomial b)
+{
+	polynomial ret;
+	int sz = 1; while(sz < max(a.size(), b.size())) sz <<= 1; sz <<= 1;
+
+	a.resize(sz);
+	b.resize(sz);
+	ret.resize(sz);
+
+	fft(a); fft(b);
+	for(int i = 0; i < sz; i++)
+		ret[i] = a[i] * b[i];
+
+	inv_fft(ret);
+	return ret;
+}
+
+int n, m;
+
+void read()
+{
+	cin >> n >> m;
+}
+
+int64_t dp[MAXN][MAXN], back_dp[MAXN][MAXN], back_all_dp[MAXN][MAXN];
+
+void solve()
+{
+	for(int i = 2; i <= m; i++)
+		dp[1][i] = 1;
+
+	for(int i = 2; i <= n; i++)
+	{
+		int64_t sum = 0, val_dp = 1;
+        for(int l = 2; l <= m; l++)
+		{
+			sum = (sum + dp[i - 1][l]) % mod;
+			val_dp = (val_dp + sum) % mod;
+			dp[i][l] = val_dp;
+		}
+	}
+
+
+	for(int i = 2; i <= m; i++)
+		back_dp[n][i] = 1, back_all_dp[n][i] = 1;
+
+	for(int i = n - 1; i >= 1; i--)
+	{
+		int64_t sum = 0, val_dp = 1;
+        for(int l = 2; l <= m; l++)
+		{
+			sum = (sum + back_all_dp[i + 1][l]) % mod;
+			val_dp = (val_dp + sum) % mod;
+			back_dp[i][l] = (val_dp - back_all_dp[i + 1][l] + mod) % mod;
+			back_all_dp[i][l] = (val_dp + mod) % mod;
+		}
+	}
+
+	int64_t ans = 0;
+	for(int i = 1; i <= n; i++)
+        for(int j = 2; j <= m; j++)
+			ans = (ans + ((dp[i][j] * back_dp[i][j]) % mod) * (m - j + 1)) % mod;
+
+	cout << ans << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}

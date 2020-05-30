@@ -1,0 +1,230 @@
+#include<bits/stdc++.h>
+#define N ((int)(5e5 + 5))
+#define MAX ((ll)(1e17))
+#define logn ((int)(19))
+using namespace std;
+
+typedef long long int ll;
+
+///centroid decomposition
+bool markcentroid[N]; ///to mark the centroids
+int subtree[N], cntrpar[N]; ///subtree = to hold the number of nodes in subtree of a node
+vector < pair < int, int > > v[N];
+///vector < int > cntrtree[N]; ///v = original tree; cntrtree = centroid tree
+int cntnode(int n, int p){ ///count the number of nodes in a subtree
+    subtree[n] = 1;
+    for(int i = 0; i<v[n].size(); i++)
+        if(v[n][i].first!=p && !markcentroid[v[n][i].first]) subtree[n] += cntnode(v[n][i].first,n);
+    return subtree[n];
+}
+int dfs(int n, int p, int tot){ /// determine the centroid for a subtree
+    for(int i = 0; i<v[n].size(); i++)
+        if(v[n][i].first!=p && !markcentroid[v[n][i].first])
+            if(subtree[v[n][i].first]>tot/2) return dfs(v[n][i].first,n,tot);
+    return n;
+}
+int centroid(int root, int p){
+    int a;
+    int tot = cntnode(root,p);
+    int cntr = dfs(root,p,tot);
+    markcentroid[cntr] = 1;
+    for(int i = 0; i<v[cntr].size(); i++){
+        if(markcentroid[v[cntr][i].first]) continue;
+        a = centroid(v[cntr][i].first,cntr);
+        ///cntrtree[a].push_back(cntr);
+        ///cntrtree[cntr].push_back(a);
+        cntrpar[a] = cntr;
+    }
+    return cntr;
+}
+
+/*
+void visit(int n, int p){ ///uility function to check the centroid tree
+    printf("%d: start\n",n);
+    for(int i = 0; i<cntrtree[n].size(); i++)
+        if(cntrtree[n][i]!=p) visit(cntrtree[n][i],n);
+    printf("%d: end\n",n);
+}*/
+
+
+
+vector < pair < int,ll > > keep[N];
+
+int par[20][N];
+
+ll lv[N];
+
+int lvv[N];
+
+void dfs(int n, int p)
+{
+    lvv[n] = lvv[p]+1;
+    par[0][n] = p;
+    for(int i = 0; i<v[n].size(); i++){
+        int a = v[n][i].first;
+        if(a!=p){
+            lv[a] = lv[n]+v[n][i].second;
+            dfs(a,n);
+        }
+    }
+}
+
+int findpar(int n, int k)
+{
+    for(int i = 0; k>0; i++){
+        if((k&(1<<i))!=0){
+            k -= (1<<i);
+            n = par[i][n];
+        }
+    }
+    return n;
+}
+
+int lca(int a, int b)
+{
+    ///cout<<lvv[a]<<" "<<lvv[b]<<endl;
+    if(lvv[a]>lvv[b]) swap(a,b);
+    ///cout<<a<<" "<<b<<endl;
+    b = findpar(b,lvv[b]-lvv[a]);
+    ///cout<<a<<" "<<b<<endl;
+    if(a==b) return a;
+    for(int i = logn; i>=0; i--){
+        if(par[i][a]!=par[i][b]){
+            b = par[i][b];
+            a = par[i][a];
+        }
+    }
+    return par[0][a];
+}
+
+ll dis(int a, int b)
+{
+    int l = lca(a,b);
+    return lv[a]+lv[b]-2*lv[l];
+}
+
+
+void update(int n)
+{
+    int a = n;
+    while(n){
+        ll d = dis(n,a);
+        keep[n].push_back(make_pair(a,d));
+        n = cntrpar[n];
+    }
+}
+
+
+vector < ll > tr[N];
+
+void init(int i, int n, int b, int e)
+{
+    if(b==e){
+        while(tr[i].size()<=n) tr[i].push_back(0);
+        tr[i][n] = keep[i][b].second;
+        return;
+    }
+    int l, m;
+    m = (b+e)>>1;
+    l = 1 + (n<<1);
+    init(i,l,b,m);
+    init(i,l+1,m+1,e);
+    while(tr[i].size()<=n) tr[i].push_back(0);
+    tr[i][n] = min(tr[i][l],tr[i][l+1]);
+}
+
+ll query(int i, int n, int b, int e, int j, int k)
+{
+    if(k<b || e<j || j>k) return MAX;
+    if(j<=b && k>=e) return tr[i][n];
+    int l, m;
+    m = (b+e)>>1;
+    l = 1 + (n<<1);
+    return min(query(i,l,b,m,j,k),query(i,l+1,m+1,e,j,k));
+}
+
+
+
+ll get(int n, int l, int r)
+{
+    ///cout<<"query\n";
+    int a = n;
+    ll ans = MAX;
+    while(n){
+        ///cout<<n<<endl;
+        ll val;
+        if(keep[n].size()==0){
+            n = cntrpar[n];
+            continue;
+        }
+
+        int ll = 0, rr = (int)keep[n].size();
+        while(ll<rr){
+            int m = (ll+rr)/2;
+            if(keep[n][m].first>=l) rr = m;
+            else ll = m+1;
+        }
+        int i = ll;
+        ll = -1, rr = (int)keep[n].size()-1;
+        while(ll<rr){
+            int m = (ll+rr+1)/2;
+            if(keep[n][m].first<=r) ll = m;
+            else rr = m-1;
+        }
+        int j = ll;
+        ///cout<<i<<" "<<j<<endl;
+        val = query(n,0,0,(int)keep[n].size()-1,i,j);
+        ans = min(ans,dis(a,n)+val);
+        ///cout<<dis(a,n)<<" "<<val<<endl;
+        n = cntrpar[n];
+    }
+    return ans;
+}
+
+int main()
+{
+    int n, q;
+    scanf("%d %d",&n,&q);
+    for(int i = 2; i<=n; i++){
+        int p, w;
+        scanf("%d %d",&p,&w);
+        v[i].push_back(make_pair(p,w));
+        v[p].push_back(make_pair(i,w));
+    }
+    lv[1] = 0;
+
+    dfs(1,0);
+
+    for(int i = 1; i<=logn; i++){
+        for(int j = 1; j<=n; j++) par[i][j] = par[i-1][par[i-1][j]];
+    }
+    centroid(1,0);
+    ///cout<<dis(5,7)<<endl<<lca(5,7)<<endl;
+    ///visit(centroid(1,0),0);
+    for(int i = 1; i<=n; i++){
+        if(v[i].size()==1) update(i);
+    }
+    ///range[1] = 0;
+    ///for (int i = 2; i <= n; i++) range[i] = range[i/2] + 1;
+    for(int i = 1; i<=n; i++){
+        if(keep[i].size()>0){
+            sort(keep[i].begin(),keep[i].end());
+            init(i,0,0,(int)keep[i].size()-1);
+        }
+        /*
+        cout<<i<<endl;
+        for(int j = 0; j<keep[i].size(); j++) cout<<keep[i][j].first<<" "<<keep[i][j].second<<endl;
+        cout<<endl;
+        for(int j = 0; j<=20; j++){
+            for(int k = 0; k<keep[i].size(); k++) cout<<tab[j][i][k]<<" ";
+            cout<<endl;
+        }*/
+    }
+
+    while(q--){
+        int a, l, r;
+        scanf("%d %d %d",&a,&l,&r);
+        printf("%lld\n",get(a,l,r));
+    }
+    return 0;
+}

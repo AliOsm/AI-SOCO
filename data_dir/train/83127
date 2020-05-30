@@ -1,0 +1,148 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <unordered_set>
+#include <functional>
+#include <climits>
+#include <cstring>
+#include <cmath>
+#include <numeric>
+#include <random>
+#include <tuple>
+#include <chrono>
+
+using namespace std;
+using ll = long long;
+using ull = unsigned long long;
+
+const ll MOD1 = 1000000007;
+const ll MOD2 = 1000000009;
+
+const int N = 101;
+const int M = 10001;
+
+int n;
+vector<int> w;
+ull dp[2][N][M][3];
+ull C[N][N][3];
+int cnt[N];
+int S = 0;
+
+int main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(nullptr);
+  for(int i = 0; i < N; ++i) {
+    for(int j = 0; j < N; ++j) {
+      fill(C[i][j], C[i][j] + 3, 0);
+    }
+  }
+  for(int i = 0; i < N; ++i) {
+    C[i][0][0] = C[i][i][0] = 1;
+    C[i][0][1] = C[i][i][1] = 1;
+    C[i][0][2] = C[i][i][2] = 1;
+    for(int j = 1; j < i; ++j) {
+      C[i][j][0] = C[i - 1][j][0] + C[i - 1][j - 1][0];
+      C[i][j][1] = (C[i - 1][j][1] + C[i - 1][j - 1][1]) % MOD1;
+      C[i][j][2] = (C[i - 1][j][2] + C[i - 1][j - 1][2]) % MOD2;
+    }
+  }
+
+  // for(int i = 0; i < 10; ++i) {
+  //   for(int j = 0; j < 10; ++j) {
+  //     cout << C[i][j][0] << " ";
+  //   }
+  //   cout << endl;
+  // }
+  cin >> n;
+  w.reserve(n + 1);
+  w.emplace_back(-1);
+  fill(cnt, cnt + N, 0);
+  int distinct = 0;
+  for(int i = 0; i < n; ++i) {
+    int x;
+    cin >> x;
+    S += x;
+    w.emplace_back(x);
+    ++cnt[x];
+    if (cnt[x] == 1) {
+      ++distinct;
+    }
+  }
+  if (distinct <= 2) {
+    cout << n << endl;
+    return 0;
+  }
+
+  for(int i = 0; i < 2; ++i) {
+    for(int j = 0; j < N; ++j) {
+      fill(dp[i][j][0], dp[i][j][0] + M, 0);
+      fill(dp[i][j][1], dp[i][j][1] + M, 0);
+      fill(dp[i][j][2], dp[i][j][2] + M, 0);
+    }
+  }
+  for(int i = 0; i < 2; ++i) {
+    dp[i][0][0][0] = 1;
+    dp[i][0][0][1] = 1;
+    dp[i][0][0][2] = 1;
+  }
+  int x = 1;
+  for(int i = 1; i <= n; ++i, x ^= 1) {
+    for(int j = 1; j <= i; ++j) {
+      for(int s = 0; s < M; ++s) {
+        dp[x][j][s][0] = dp[x ^ 1][j][s][0];
+        dp[x][j][s][1] = dp[x ^ 1][j][s][1];
+        dp[x][j][s][2] = dp[x ^ 1][j][s][2];
+        if (s - w[i] >= 0) {
+          dp[x][j][s][0] += dp[x ^ 1][j - 1][s - w[i]][0];
+          dp[x][j][s][1] += dp[x ^ 1][j - 1][s - w[i]][1];
+          dp[x][j][s][1] %= MOD1;
+          dp[x][j][s][2] += dp[x ^ 1][j - 1][s - w[i]][2];
+          dp[x][j][s][2] %= MOD2;
+        }
+      }
+    }
+  }
+
+  // for(int i = 0; i <= n; ++i) {
+  //   for(int j = 0; j < 14; ++j) {
+  //     cout << dp[i][2][j][0] << " ";
+  //   }
+  //   cout << endl;
+  // }
+  
+  // for(int i = 1; i <= n; ++i) {
+  //   for(int j = 1; j <= 14; ++j) {
+  //     cout << dp[x ^ 1][i][j] << " ";
+  //   }
+  //   cout << endl;
+  // }
+
+  auto query = [&](int t, int s, int all) {
+    // cout << "times = " << t << " s = " << s << " all = " << all << " dp = " << dp[n - 1][t][s][0] << " c = " << C[all][t][0];
+    for(int i = 0; i < 3; ++i) {
+      if (dp[x ^ 1][t][s][i] != C[all][t][i]) {
+        // cout << " false" << endl;
+        return false;
+      }
+    }
+    // cout << " true" << endl;
+    return true;
+  };
+
+  int ret = 0;
+  for(int i = 1; i < N; ++i) {
+    for(int j = cnt[i]; j > 0; --j) {
+      if (query(j, j * i, cnt[i])) {
+        ret = max(ret, j);   
+      }
+    }
+  }
+  
+  cout << ret << endl;
+  return 0;
+}

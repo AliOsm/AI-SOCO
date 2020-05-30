@@ -1,0 +1,161 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <map>
+#include <queue>
+#include <set>
+#include <iomanip>
+#include <deque>
+#include <cassert>
+#include <ctime>
+#include <cstring>
+#include <cstdlib>
+#include <chrono>
+#include <ctime>
+#include <random>
+#include <stack>
+#include <unordered_set>
+#include <unordered_map>
+#include <iterator>
+#include <climits>
+using namespace std;
+
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+typedef long long ll;
+typedef long double ld;
+#define INF 2001001001
+#define MOD 1000000007
+
+int N,M;
+vector<int>adj[400001];
+int a[400001],b[400001];
+vector<int>tree[400001],backUp[400001],backDown[400001];
+int dp[400001],depth[400001];
+bool vis[400001];
+int siz[400001];
+map<pair<int,int>,bool>mp,bad;
+vector<int>adj2[400001],adj3[400001];
+bool bridgeUp[400001];
+
+void dfs(int node, int par){
+  //cout<<"DFS: "<<node<<endl;
+  vis[node]=true;
+  for (int x:adj[node]){
+    if (x==par) continue;
+    if (!vis[x]){
+      depth[x]=depth[node]+1;
+      tree[node].push_back(x);
+      dfs(x,node);
+      dp[node]+=dp[x];
+      if (!bridgeUp[x]){
+	mp[{node,x}]=true;
+	//cout<<"MP: "<<node<<' '<<x<<endl;
+      }
+    }
+    else{
+      if (depth[x]>depth[node]){
+	backDown[node].push_back(x);
+	dp[node]--;
+      }
+      else{
+	backUp[node].push_back(x);
+	mp[{node,x}]=true;
+	dp[node]++;
+      }
+    }
+  }
+  if (dp[node]==0 && node!=par){
+    //cout<<"BRIDGEUP: "<<node<<endl;
+    bridgeUp[node]=true;
+    bad[{node,par}]=true;
+    bad[{par,node}]=true;
+  }
+}
+
+int comp=0;
+int inComp[400001];
+
+void dfs2(int node){
+  inComp[node]=comp;
+  siz[comp]++;
+  vis[node]=true;
+  for (int x:adj2[node]){
+    if (!vis[x])
+      dfs2(x);
+  }
+}
+
+map<pair<int,int>,bool>edge;
+
+void dfs3(int node){
+  vis[node]=true;
+  for (int x:adj3[node]){
+    if (!vis[x]){
+      edge[{x,node}]=true;
+      //cout<<"EDGE: "<<x<<' '<<node<<endl;
+      dfs3(x);
+    }
+  }
+}
+
+int main()
+{
+  //ios_base::sync_with_stdio(0);cin.tie(0);
+  //freopen (".in","r",stdin);
+  //freopen (".out","w",stdout);
+  scanf("%d%d",&N,&M);
+  for (int i=0;i<M;i++){
+    scanf("%d%d",&a[i],&b[i]);
+    adj[a[i]].push_back(b[i]);
+    adj[b[i]].push_back(a[i]);
+  }
+  dfs(1,1);
+  for (int i=1;i<=N;i++)
+    vis[i]=false;
+  for (int i=0;i<M;i++){
+    if (!bad[{a[i],b[i]}]){
+      adj2[a[i]].push_back(b[i]);
+      adj2[b[i]].push_back(a[i]);
+    }
+  }
+  for (int i=1;i<=N;i++)
+    if (!vis[i]){
+      comp++;
+      dfs2(i);
+    }
+  //for (int i=1;i<=N;i++)
+  //  cout<<"INCOMP: "<<i<<' '<<inComp[i]<<endl;
+  int mxComp=-1,mxSize=0;
+  for (int i=1;i<=comp;i++)
+    if (siz[i]>mxSize){
+      mxSize=siz[i];
+      mxComp=i;
+    }
+  //cout<<mxComp<<endl;
+  for (int i=0;i<M;i++){
+    adj3[inComp[a[i]]].push_back(inComp[b[i]]);
+    adj3[inComp[b[i]]].push_back(inComp[a[i]]);
+  }
+  for (int i=1;i<=M;i++)
+    vis[i]=false;
+  dfs3(mxComp);
+  for (int i=0;i<M;i++){
+    if (inComp[a[i]]!=inComp[b[i]]){
+      if (edge.count({inComp[a[i]],inComp[b[i]]})){
+	mp[{a[i],b[i]}]=true;
+      }
+      else{
+	mp[{b[i],a[i]}]=true;
+      }
+    }
+  }
+  cout<<mxSize<<endl;
+  for (int i=0;i<M;i++)
+    if (mp.count({a[i],b[i]}))
+      cout<<a[i]<<' '<<b[i]<<endl;
+    else
+      cout<<b[i]<<' '<<a[i]<<endl;
+  return 0;
+}

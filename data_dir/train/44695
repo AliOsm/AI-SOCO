@@ -1,0 +1,139 @@
+/**
+ * @author khokharnikunj8
+ */
+
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include <bits/stdc++.h>
+
+
+#ifndef CM_SPARSETABLE_HPP
+#define CM_SPARSETABLE_HPP
+
+template<typename T, class F = std::function<T(const T &, const T &)>>
+class SparseTable {
+public:
+    int n;
+    std::vector<std::vector<T>> mat;
+    F func;
+
+    SparseTable(const std::vector<T> &a, const F &f) : func(f) {
+        n = static_cast<int>(a.size());
+        int max_log = 32 - __builtin_clz(n);
+        mat.resize(max_log);
+        mat[0] = a;
+        for (int j = 1; j < max_log; j++) {
+            mat[j].resize(n - (1 << j) + 1);
+            for (int i = 0; i <= n - (1 << j); i++) {
+                mat[j][i] = func(mat[j - 1][i], mat[j - 1][i + (1 << (j - 1))]);
+            }
+        }
+    }
+
+    T get(int from, int to) const {
+        assert(0 <= from && from <= to && to <= n - 1);
+        int lg = 32 - __builtin_clz(to - from + 1) - 1;
+        return func(mat[lg][from], mat[lg][to - (1 << lg) + 1]);
+    }
+};
+
+#endif //CM_SPARSETABLE_HPP
+
+
+using namespace std;
+
+class C2SkyscrapersHardVersion {
+public:
+    void solve(std::istream &in, std::ostream &out) {
+        int n;
+        in >> n;
+        vector<int> ar(n);
+        for (int i = 0; i < n; i++) in >> ar[i];
+        long long ans = 0;
+        int index = -1;
+        SparseTable<int> st(ar, [&](int a, int b) { return min(a, b); });
+        vector<long long> pre(n);
+        pre[0] = ar[0];
+        for (int i = 1; i < n; i++) pre[i] = pre[i - 1] + ar[i];
+        vector<long long> right(n);
+        vector<long long> left(n);
+        {
+            right[n - 1] = ar[n - 1];
+            for (int i = n - 2; i >= 0; i--) {
+                int low = i + 1;
+                int high = n - 1;
+                int index = -1;
+                while (low <= high) {
+                    int mid = (low + high) >> 1;
+                    if (st.get(i + 1, mid) > ar[i]) {
+                        index = mid;
+                        low = mid + 1;
+                    } else {
+                        high = mid - 1;
+                    }
+                }
+                if (index == -1) {
+                    right[i] = right[i + 1] + ar[i];
+                } else {
+                    right[i] = (index + 1 < n ? right[index + 1] : 0) + (ar[i] * (index + 1ll - i));
+                }
+            }
+        }
+        {
+            left[0] = ar[0];
+            for (int i = 1; i < n; i++) {
+                int low = 0;
+                int high = i - 1;
+                int index = -1;
+                while (low <= high) {
+                    int mid = (low + high) >> 1;
+                    if (st.get(mid, i - 1) > ar[i]) {
+                        index = mid;
+                        high = mid - 1;
+                    } else {
+                        low = mid + 1;
+                    }
+                }
+                if (index == -1) {
+                    left[i] = left[i - 1] + ar[i];
+                } else {
+                    left[i] = (index - 1 >= 0 ? left[index - 1] : 0) + (ar[i] * (i - index + 1ll));
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            long long temp = left[i] + right[i] - ar[i];
+            if (temp >= ans) {
+                index = i;
+                ans = temp;
+            }
+        }
+        vector<int> answer(n);
+        answer[index] = ar[index];
+        int leftlow = ar[index];
+        for (int j = index - 1; j >= 0; j--) {
+            leftlow = min(ar[j], leftlow);
+            answer[j] = leftlow;
+        }
+        int rightlow = ar[index];
+        for (int j = index + 1; j < n; j++) {
+            rightlow = min(ar[j], rightlow);
+            answer[j] = rightlow;
+        }
+        for (int i : answer) out << i << " ";
+
+    }
+};
+
+
+int main() {
+    C2SkyscrapersHardVersion solver;
+    std::ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    std::istream &in(std::cin);
+    std::ostream &out(std::cout);
+    solver.solve(in, out);
+    return 0;
+}

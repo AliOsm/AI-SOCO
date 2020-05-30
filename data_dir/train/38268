@@ -1,0 +1,70 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+const int MAXN = 100100, NINF = 0xbfbfbfbf;
+int n, m, d, tin[MAXN], tout[MAXN], aux[MAXN], curt, ans;
+bool flg[MAXN];
+vector<int> g[MAXN];
+
+struct no
+{
+	int beg, end, mid, mx, lz;
+	no *l, *r;
+	no(int beg, int end, int v[]) : beg(beg), end(end), mid((beg + end) >> 1), lz(0), mx(v[beg])
+	{
+		if(beg != end)
+			l = new no(beg, mid, v), r = new no(mid + 1, end, v), mx = max(l->mx, r->mx);
+	}
+	void refresh()
+	{
+		mx += lz;
+		if(beg != end)
+			l->lz += lz, r->lz += lz;
+		lz = 0;
+	}
+	void upd(int a, int b, int inc)
+	{
+		refresh();
+		if(b < beg || end < a)
+			return;
+		if(a <= beg && end <= b)
+			return lz += inc, refresh();
+		l->upd(a, b, inc), r->upd(a, b, inc);
+		mx = max(l->mx, r->mx);
+	}
+};
+
+void dfs(int v, int p = -1, int h = 0)
+{
+	tin[v] = ++curt;
+	aux[curt] = (flg[v] ? h : NINF);
+	for(const int &u : g[v])
+		if(u != p)
+			dfs(u, v, h + 1);
+	tout[v] = curt;
+}
+
+void solve(no &seg, int v, int p = -1)
+{
+	seg.refresh(), ans += (seg.mx <= d);
+	for(const int& u : g[v])
+		if(u != p)
+		{
+			seg.lz++, seg.upd(tin[u], tout[u], -2);
+			solve(seg, u, v);
+			seg.upd(tin[u], tout[u], 2), seg.lz--;
+		}
+}
+
+int main()
+{
+	scanf("%d %d %d", &n, &m, &d);
+	for(int i = 1, p; i <= m; ++i)
+		scanf("%d", &p), flg[p] = true;
+	for(int i = 1, u, v; i < n; ++i)
+		scanf("%d %d", &u, &v), g[u].push_back(v), g[v].push_back(u);
+	dfs(1);
+	no seg(1, n, aux);
+	solve(seg, 1);
+	printf("%d\n", ans);
+}

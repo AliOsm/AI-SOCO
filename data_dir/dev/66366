@@ -1,0 +1,136 @@
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <bitset>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <stdio.h>
+#include <string.h>
+#define MAXN 5000
+#define MODD 998244353
+#define ll long long
+using namespace std;
+
+ll modpow(ll x, ll y) {
+    x%=MODD;
+    ll xs = x;
+    ll answer = 1;
+    while(y) {
+        if (y&1) {
+            answer = (answer * xs) % MODD;
+        }
+        y >>= 1;
+        xs = (xs * xs) % MODD;
+    }
+    return answer;
+}
+
+int counts[MAXN+2];
+int Solve(int curr, int num_moves,int n) {
+    
+    
+    // 1 from prev_id and others left_less
+    // total of 1+left_less
+    
+    printf("curr=%d\n",curr);
+    
+    // counts[curr]-1
+    
+    ll prob_winning = 0;
+    if (counts[curr] > 1) {
+        prob_winning = (counts[curr]-1)*modpow(n-num_moves,MODD-2)%MODD;
+    } else {
+        prob_winning = 0;
+    }
+
+    ll denom = 0;
+    if (n > num_moves) {
+        denom = modpow(n-num_moves,MODD-2);
+    }
+    
+    for(int nid=curr+1;nid<=MAXN;nid++) {
+        if (counts[nid]==0)
+            continue;
+        prob_winning += Solve(nid, num_moves+1, n) * counts[nid]%MODD;
+        prob_winning %= MODD;
+    }
+    
+    prob_winning = prob_winning * denom % MODD;
+    
+    return prob_winning;
+}
+
+ll dp[5555][5555];
+ll cumul[5555][5555];
+
+ll Solve(int n) {
+    
+    for(int curr=0;curr<=MAXN;curr++)
+        cumul[n+1][0]=0;
+    
+    for(int num_moves=n;num_moves>=1;num_moves--) {
+        ll denom = 0;
+        if (n > num_moves) {
+            denom = modpow(n-num_moves,MODD-2);
+        }
+        for(int curr=MAXN;curr>=0;curr--) {
+            ll prob_winning = 0;
+            if (counts[curr] > 1) {
+                prob_winning = (counts[curr]-1)%MODD;
+            } else {
+                prob_winning = 0;
+            }
+            prob_winning += cumul[num_moves+1][MAXN]-cumul[num_moves+1][curr];
+            prob_winning %= MODD;
+            prob_winning = (prob_winning + MODD)%MODD;
+            
+            prob_winning = prob_winning * denom % MODD;
+            dp[num_moves][curr]=prob_winning;
+            
+            cumul[num_moves][curr]+=prob_winning*counts[curr]%MODD;
+            cumul[num_moves][curr]%=MODD;
+        }
+        cumul[num_moves][0] = dp[num_moves][0]*counts[0]%MODD;
+        for(int curr=1;curr<=MAXN;curr++)
+            cumul[num_moves][curr]=(cumul[num_moves][curr-1]+dp[num_moves][curr]*counts[curr])%MODD;
+    }
+    
+    ll ans = 0;
+
+    for(int i=1;i<=MAXN;i++) {
+        if (counts[i]==0)
+            continue;
+        ans += dp[1][i]*counts[i]%MODD;
+        ans %= MODD;
+    }
+    ans = ans*modpow(n,MODD-2);
+    ans%=MODD;
+    ans = (ans + MODD)%MODD;
+    return ans;
+    
+}
+
+int main() {
+    int n;
+    cin>>n;
+    for(int i=0;i<=MAXN;i++)
+        counts[i]=0;
+    for(int i=1;i<=n;i++) {
+        int x;
+        cin>>x;
+        counts[x]++;
+    }
+    
+    cout << Solve(n) << endl;
+    return 0;
+
+    
+    
+}

@@ -1,0 +1,40 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define debug(X) cout << #X << " = " << X << endl
+#define fori(i,b,e) for (int i = (b); i < (e); ++i)
+
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef pair<int, int> ii;
+
+const int oo = 1e9;
+
+int main() {
+	ios_base::sync_with_stdio(false); cin.tie(0);
+  int n, k, m; cin >> n >> k >> m;
+  vector<string> words(n);
+  fori(i, 0, n)
+    cin >> words[i];
+  vi values(n);
+  fori(i, 0, n)
+    cin >> values[i];
+  map<string, int> mapper;
+  vi min_val(k, oo);
+  fori(i, 0, k) {
+    int t; cin >> t;
+    fori(j, 0, t) {
+      int x; cin >> x; x--;
+      mapper[words[x]] = i;
+      min_val[i] = min(min_val[i], values[x]);
+    }
+  }
+  ll ans = 0;
+  fori(i, 0, m) {
+    string s; cin >> s;
+    ans += min_val[mapper[s]];
+  }
+  cout << ans << endl;
+	return 0;
+}

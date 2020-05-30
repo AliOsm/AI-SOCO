@@ -1,0 +1,62 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using namespace __gnu_cxx;
+
+typedef double db;
+typedef long long ll;
+typedef pair<db, db> pdd;
+typedef pair<ll, ll> pll;
+typedef pair<int, int> pii;
+typedef unsigned long long ull;
+
+#define F          first
+#define S          second
+#define pnl        printf("\n")
+#define sz(x)      (int)x.size()
+#define sf(x)      scanf("%d",&x)
+#define pf(x)      printf("%d\n",x)
+#define all(x)     x.begin(),x.end()
+#define rall(x)    x.rbegin(),x.rend()
+#define rep(i, n)  for(int i = 0; i < n; ++i)
+
+const db eps = 1e-9;
+const db pi = acos(-1);
+const int INF = 0x3f3f3f3f;
+const ll LL_INF = 0x3f3f3f3f3f3f3f3f;
+const int mod = 1000 * 1000 * 1000 + 7;
+
+int n, m;
+vector<int> adj[2000000];
+int vis[2000000];
+int CCid;
+int CCsiz[2000000];
+
+void dfs(int u) {
+	vis[u] = CCid;
+	for (auto v : adj[u])
+		if (!vis[v]) dfs(v);
+}
+
+int main() {
+    scanf("%d%d", &n, &m);
+    for (int i = 1; i <= m; ++i) {
+    	int k, u;
+    	scanf("%d", &k);
+    	for (int j = 0; j < k; ++j) {
+    		scanf("%d", &u);
+    		adj[n + i].push_back(u);
+    		adj[u].push_back(n + i);
+    	}
+    }
+    for (int i = 1; i <= n; ++i) {
+    	if (vis[i]) continue;
+    	++CCid;
+    	dfs(i);
+    }
+    for (int i = 1; i <= n; ++i)
+    	CCsiz[vis[i]]++;
+    for (int i = 1; i <= n; ++i)
+    	printf("%d%c", CCsiz[vis[i]], " \n"[i==n]);
+    return 0;
+}

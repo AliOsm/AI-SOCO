@@ -1,0 +1,36 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+#define pb push_back
+const int mod=998244353;
+
+int main(){
+	ll n;
+	while(cin >> n){
+		string b="aeiou";
+		int x=0,y=0;
+		for(int i=5;i<=n;i++){
+			if(n%i==0&&n/i>=5){
+				x=i;
+				y=n/i;
+				break;
+			}
+		}
+		if(x==0){
+			cout<<-1<<endl;
+		}
+		else{
+			string ans="";
+			for(int i=1;i<=x;i++){
+				for(int j=1;j<=y;j++){
+					ans+=b[(i+j)%5];
+				}
+			}
+			cout << ans << endl;
+		}
+	}
+}

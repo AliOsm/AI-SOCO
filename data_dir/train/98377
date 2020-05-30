@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+#define enl printf("\n")
+#define case(t) printf("Case #%d: ", (t))
+#define ni(n) scanf("%d", &(n))
+#define nl(n) scanf("%I64d", &(n))
+#define nai(a, n) for (int i = 0; i < (n); i++) ni(a[i])
+#define nal(a, n) for (int i = 0; i < (n); i++) nl(a[i])
+#define pri(n) printf("%d\n", (n))
+#define prl(n) printf("%I64d\n", (n))
+#define pii pair<int, int>
+#define vii vector<pii>
+#define vi vector<int>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+typedef long long ll;
+const double pi = acos(-1);
+const int MOD = 1e9 + 7;
+const int INF = 1e9 + 7;
+const int MAXN = 5e6 + 5;
+const double eps = 1e-9;
+using namespace std;
+ll tree[MAXN];
+ll lazy[2][MAXN];
+
+void build(int l, int r, int k)
+{
+    lazy[0][k] = 0;
+    lazy[1][k] = 1;
+    if (l == r)
+    {
+        tree[k] = 0;
+        return;
+    }
+    int m = (l + r) >> 1;
+    build(l, m, k << 1);
+    build(m + 1, r, k << 1 | 1);
+    tree[k] = 0;
+}
+
+void upd(int l, int r, int k, int a, int b, ll v, int t)
+{
+    if (a > b)
+        return;
+    tree[k] = tree[k] * lazy[1][k] + lazy[0][k] * (r - l + 1);
+    if ((lazy[1][k] != 1 || lazy[0][k] != 0) && l != r)
+    {
+        lazy[1][k << 1] *= lazy[1][k];
+        lazy[1][k << 1 | 1] *= lazy[1][k];
+        lazy[0][k << 1] = lazy[0][k << 1] * lazy[1][k] + lazy[0][k];
+        lazy[0][k << 1 | 1] = lazy[0][k << 1 | 1] * lazy[1][k] + lazy[0][k];
+    }
+    lazy[0][k] = 0;
+    lazy[1][k] = 1;
+    if (r < a || b < l)
+        return;
+    if (a <= l && r <= b)
+    {
+        if (t == 1)
+        {
+            tree[k] *= v;
+            lazy[0][k << 1] *= v;
+            lazy[0][k << 1 | 1] *= v;
+            lazy[1][k << 1] *= v;
+            lazy[1][k << 1 | 1] *= v;
+        }
+        else
+        {
+            tree[k] += v * (r - l + 1);
+            lazy[0][k << 1] += v;
+            lazy[0][k << 1 | 1] += v;
+        }
+        return;
+    }
+    int m = (l + r) >> 1;
+    upd(l, m, k << 1, a, b, v, t);
+    upd(m + 1, r, k << 1 | 1, a, b, v, t);
+    tree[k] = tree[k << 1] + tree[k << 1 | 1];
+}
+
+ll query(int l, int r, int k, int a)
+{
+    tree[k] = tree[k] * lazy[1][k] + lazy[0][k] * (r - l + 1);
+    if ((lazy[1][k] != 1 || lazy[0][k] != 0) && l != r)
+    {
+        lazy[1][k << 1] *= lazy[1][k];
+        lazy[1][k << 1 | 1] *= lazy[1][k];
+        lazy[0][k << 1] = lazy[0][k << 1] * lazy[1][k] + lazy[0][k];
+        lazy[0][k << 1 | 1] = lazy[0][k << 1 | 1] * lazy[1][k] + lazy[0][k];
+    }
+    lazy[0][k] = 0;
+    lazy[1][k] = 1;
+    if (r < a || a < l)
+        return 0;
+    if (a <= l && r <= a)
+        return tree[k];
+    int m = (l + r) >> 1;
+    ll ret = query(l, m, k << 1, a) + query(m + 1, r, k << 1 | 1, a);
+    tree[k] = tree[k << 1] + tree[k << 1 | 1];
+    return ret;
+}
+
+pair<pii, int> arr[MAXN];
+
+int main()
+{
+    int n, m;
+    ni(n), ni(m);
+    build(0, n - 1, 1);
+    for (int i = 0; i < m; i++)
+    {
+        int l, r, x;
+        ni(l), ni(r), ni(x);
+        arr[i] = {{--l, --r}, --x};
+    }
+    for (int i = m - 1; i >= 0; i--)
+    {
+        int l = arr[i].fi.fi, r = arr[i].fi.se, x = arr[i].se;
+        upd(0, n - 1, 1, l, x - 1, 0, 1);
+        upd(0, n - 1, 1, l, x - 1, x + 1, 2);
+        upd(0, n - 1, 1, x + 1, r, 0, 1);
+        upd(0, n - 1, 1, x + 1, r, x + 1, 2);
+    }
+    for (int i = 0; i < n; i++)
+        printf("%I64d ", query(0, n - 1, 1, i));
+    enl;
+    return 0;
+}

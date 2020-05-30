@@ -1,0 +1,136 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define ALL(x) (x.begin(), x.end())
+#define mset(a,i) memset(a,i,sizeof(a))
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 1e5 + 5;
+int tree[2][N*4];
+vector<int> leave[2][N];
+
+void checkmax(int &x, int val) {
+	if (x < val) {
+		x = val;
+	}
+}
+
+void build(int l, int r, int o, int kind) {
+	if (l == r) {
+		if (leave[kind][l].size() != 0) {
+			tree[kind][o] = leave[kind][l].back();
+		}
+		return;
+	}
+	int m = l + r >> 1;
+	build(l, m, o<<1, kind);
+	build(m+1, r, o<<1|1, kind);
+	tree[kind][o] = max(tree[kind][o<<1], tree[kind][o<<1|1]);
+}
+
+int query(int l, int r, int o, int kind, int L, int R) {
+	if (L > R) {
+		return 0;
+	}
+	if (L <= l && r <= R) {
+		return tree[kind][o];
+	}
+	int m = l + r >> 1;
+	int res = 0;
+	if (L <= m) {
+		checkmax(res, query(l, m, o<<1, kind, L, R));
+	}
+	if (R > m) {
+		checkmax(res, query(m+1, r, o<<1|1, kind, L, R));
+	}
+	return res;
+}
+
+
+void add(int l, int r, int o, int kind, int L) {
+	if (l == r) {
+		tree[kind][o] = leave[kind][l].back();
+		return;
+	}
+	int m = l + r >> 1;
+	int res = 0;
+	if (L <= m) {
+		add(l, m, o<<1, kind, L);
+	} else {
+		add(m+1, r, o<<1|1, kind, L);
+	}
+	tree[kind][o] = max(tree[kind][o<<1], tree[kind][o<<1|1]);
+}
+
+void sub(int l, int r, int o, int kind, int L, int val) {
+	if (l == r) {
+		int n = leave[kind][l].size();
+		if (n == 1) {
+			tree[kind][o] = 0;
+		} else if (leave[kind][l].back() == val) {
+			tree[kind][o] = leave[kind][l][n-2];
+		}
+		return;
+	}
+	int m = l + r >> 1;
+	if (L <= m) {
+		sub(l, m, o<<1, kind, L, val);
+	} else {
+		sub(m+1, r, o<<1|1, kind, L, val);
+	}
+	tree[kind][o] = max(tree[kind][o<<1], tree[kind][o<<1|1]);
+}
+
+int main() {
+    ios :: sync_with_stdio(false);
+    cout << fixed << setprecision(16);
+	int n, c, d, b, p;
+	char typ[2];
+	scanf("%d %d %d", &n, &c, &d);
+	int len = 0;
+	rep(i, n) {
+		scanf("%d%d%s", &b, &p, typ);
+		int kind = typ[0] - 'C';
+		leave[kind][p].push_back(b);
+		len = max(len, p);
+	}
+	rep(i, N) {
+		rep(k, 2) {
+			sort(leave[k][i].begin(), leave[k][i].end());
+		}
+	}
+	build(1, len, 1, 0);
+	build(1, len, 1, 1);
+	int answer = 0;
+	int a0 = query(1, len, 1, 0, 1, c);
+	int a1 = query(1, len, 1, 1, 1, d);
+	if (a0 && a1) {
+		answer = a0 + a1;
+	}
+	int money[2] = {c, d};
+	rep(k, 2) {
+		for (int x = 1; x < money[k]; x ++) {
+			int y = money[k] - x;
+			int n = leave[k][x].size();
+			rep(i, n) {
+				a0 = leave[k][x][i];
+				if (i == n - 1) {
+					sub(1, len, 1, k, x, a0);
+					a1 = query(1, len, 1, k, 1, y);
+					if (a1 && a0) {
+						checkmax(answer, a0 + a1);
+					}
+					add(1, len, 1, k, x);
+				} else {
+					a1 = query(1, len, 1, k, 1, y);
+					if (a1 && a0) {
+						checkmax(answer, a0 + a1);
+					}
+				}
+			}
+		}
+	}
+	printf("%d\n", answer);
+    return 0;
+}
+

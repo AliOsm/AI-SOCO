@@ -1,0 +1,158 @@
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <string.h>
+#include <queue>
+#include <math.h>
+#include <cmath>
+#include <map>
+#include <set>
+#include <vector>
+#include <algorithm>
+#include <bitset>
+#include <list>
+#include <ctype.h>
+#include <cassert>
+#include <stack>
+#include <fstream>
+#include <unordered_map>
+#include <unordered_set>
+#include <ctime>
+#include <functional>
+#include <ctime>
+#include <limits>
+#include <complex>
+
+using namespace std;
+
+const int N = 100500;
+const int M = 100500;
+
+struct my {
+    int cost, type, idx;
+    my() {}
+    my(int cost, int type, int idx) : cost(cost), type(type), idx(idx) {}
+};
+
+int n, m;
+my t[M];
+pair<int, int> answer[M];
+
+bool cmp(const my & A, const my & B) {
+    return A.cost < B.cost || (A.cost == B.cost && A.type > B.type);
+}
+
+int last = 1;
+
+const int block = 1000;
+
+int ft[block + 1][block + 1];
+set<pair<int, int>> s;
+
+int ftSum(int rx, int ry) {
+    int x = rx;
+    int res = 0;
+    while (x >= 0) {
+        int y = ry;
+        while (y >= 0) {
+            res += ft[x][y];
+            y = (y & (y + 1)) - 1;
+        }
+        x = (x & (x + 1)) - 1;
+    }
+    return res;
+}
+
+void ftAdd(int rx, int ry, int val) {
+    int x = rx;
+    while (x <= block) {
+        int y = ry;
+        while (y <= block) {
+            ft[x][y] += val;
+            y |= y + 1;
+        }
+        x |= x + 1;
+    }
+}
+
+int ftSum(int x, int xx, int y, int yy) {
+    return ftSum(xx, yy) - ftSum(xx, y - 1) - ftSum(x - 1, yy) + ftSum(x - 1, y - 1);
+}
+
+bool fnd(int x, int xx, int y, int yy, int & rx, int & ry) {
+    if (ftSum(x, xx, y, yy) == (xx - x + 1) * (yy - y + 1)) return false;
+    if (x == xx && y == yy) {
+        rx = x;
+        ry = y;
+        return true;
+    }
+    if (x < xx) {
+        int mx = (x + xx) >> 1;
+        return fnd(x, mx, y, yy, rx, ry) || fnd(mx + 1, xx, y, yy, rx, ry);
+    }
+    else {
+        int my = (y + yy) >> 1;
+        return fnd(x, xx, y, my, rx, ry) || fnd(x, xx, my + 1, yy, rx, ry);
+    }
+}
+
+void add_edge(int x, int y, int idx) {
+    answer[idx] = make_pair(x, y);
+    if (x <= block && y <= block) ftAdd(x, y, 1), ftAdd(y, x, 1);
+    s.insert(make_pair(x, y));
+}
+
+void bad() {
+    cout << "-1" << endl;
+    exit(0);
+}
+
+void process(int type, int idx) {
+    if (type == 1) {
+        ++last;
+        add_edge(last - 1, last, idx);
+        return;
+    }
+    if (last <= block) {
+        int x, y;
+        if (fnd(1, last, 1, last, x, y)) add_edge(x, y, idx);
+        else bad();
+        return;
+    }
+    int x, y;
+    do {
+        x = (rand() % (n - 1)) + 1;
+        y = (rand() % (n - x)) + x + 1;
+    } while (s.count(make_pair(x, y)));
+    add_edge(x, y, idx);
+}
+
+int main () {
+
+#ifdef LOCAL
+    freopen("input.txt", "r", stdin);
+#else
+
+#endif
+
+    scanf("%d%d", &n, &m);
+
+    for (int i = 1; i <= m; i++) {
+        scanf("%d%d", &t[i].cost, &t[i].type);
+        t[i].idx = i;
+    }
+
+    sort(t + 1, t + m + 1, cmp);
+
+    for (int i = 1; i <= block; i++) {
+        ftAdd(i, i, 1);
+    }
+
+    for (int i = 1; i <= m; i++) {
+        process(t[i].type, t[i].idx);
+    }
+
+    for (int i = 1; i <= m; i++) {
+        printf("%d %d\n", answer[i].first, answer[i].second);
+    }
+}

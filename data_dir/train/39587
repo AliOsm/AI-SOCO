@@ -1,0 +1,31 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 1e5 + 5;
+string s;
+int dp[N];
+const int mod = 1e9 + 7;
+int solve(int idx)
+{
+    if(idx == s.size()) return 1;
+    int & ret = dp[idx];
+    if(~ret) return ret;
+    if(s[idx] == 'u' || s[idx] == 'n')
+    {
+        if(idx+1 < s.size() && s[idx] == s[idx+1])
+        {
+            return ret = (solve(idx+1) + solve(idx+2))%mod;
+        }
+        else return ret = solve(idx+1);
+    }else return ret = solve(idx+1);
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    cin>>s;
+    memset(dp , -1 , sizeof dp);
+    if(s.find('m') != -1 || s.find('w') != -1) return puts("0");
+    cout<<solve(0)<<endl;
+    return 0;
+}

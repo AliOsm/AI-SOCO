@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+typedef unsigned char ubyte;
+
+const ld EPS = 1e-10;
+const ld PI = acos(-1.0);
+const int INF = (int)1e9 + 5;
+const ll LINF = (ll)1e18 + 5;
+
+template<class T> 
+ll abs(const T & x) { return x < 0 ? -x : x; }
+
+template<class T> 
+ll round(const T & x) { return x < 0 ? x - 0.5 : x + 0.5; }
+
+template<class T> 
+bool chmin(T & x, const T & y) {
+	if (y < x) {
+		x = y;
+		return true;
+	}
+	return false;
+}
+
+template<class T>
+ostream & operator <<(ostream & os, const vector<T> & v) {
+	os << "{";
+	for (typename vector<T>::const_iterator it = v.begin(); it != v.end(); ++it) {
+		os << *it;
+		if ((it + 1) != v.end()) os << ", ";
+	}
+	os << "}";
+	return os;
+}
+
+template<class P, class Q>
+ostream & operator <<(ostream & os, const pair<P, Q> & p) {
+	return os << "(" << p.first << ", " << p.second << ")";
+}
+
+template<class T> 
+bool chmax(T & x, const T & y) {
+	if (x < y) {
+		x = y;
+		return true;
+	}
+	return false;
+}
+
+#define all(a) (a).begin(), (a).end()
+
+const int N = 13;
+
+int n, m, q;
+ll f[N][1 << N];
+bool calced[N][1 << N];
+vector<int> g[N];
+vector<pair<int, int>> z[N];
+int needSubMask[N];
+
+vector<int> getRepr(int mask) {
+	vector<int> res;
+	for (int i = 0; i < N; i++) {
+		if (((mask >> i) & 1)) {
+			res.push_back(i);
+		}
+	}
+	return res;
+}
+
+string vecToString(const vector<int> & v) {
+	stringstream ss;
+	ss << v;
+	return ss.str();
+}
+
+string stateToString(int root, int mask) {
+	return "(" + to_string(root) + ", " + vecToString(getRepr(mask)) + ")";
+}
+
+ll rec(int root, int mask) {
+	if (calced[root][mask]) return f[root][mask];
+	calced[root][mask] = true;
+	ll & res = f[root][mask];
+	if ((1 << root) == mask) {
+		return res = 1;
+	}
+	int subtreeMask = mask ^ (1 << root);
+	int smallestBit = 0;
+	while (((subtreeMask >> smallestBit) & 1) == 0) smallestBit++;
+	for (int sub = subtreeMask; sub; sub = (sub - 1) & subtreeMask) {
+		if (((sub >> smallestBit) & 1) == 0) continue;
+		bool ok = true;
+		for (auto p : z[root]) {
+			if (((sub >> p.first) & 1) && ((sub >> p.second) & 1)) {
+				ok = false;
+				break;
+			}
+		}
+		if (!ok) continue;
+		for (int newRoot = 0; newRoot < n; newRoot++) {
+			if (((sub >> newRoot) & 1) == 0) continue;
+			if ((sub & needSubMask[newRoot]) != needSubMask[newRoot]) continue;
+			bool ok2 = true;
+			for (int to : g[root]) {
+				if (((sub >> to) & 1) && to != newRoot) {
+					ok2 = false;
+					break;
+				}
+			}
+			for (int to : g[newRoot]) {
+				if (to != root && ((sub >> to) & 1) == 0) {
+					ok2 = false;
+					break;
+				}
+			}
+			if (!ok2) continue;
+			res += rec(root, mask ^ sub) * rec(newRoot, sub);
+		}
+	}
+	return res;
+}
+
+int main() {
+	srand(time(0));
+#ifdef LOCAL 
+	freopen("input.txt", "r", stdin);
+#else
+#endif
+
+	cin >> n >> m >> q;
+
+	for (int i = 0; i < m; i++) {
+		int x, y;
+		cin >> x >> y;
+		x--, y--;
+		g[x].push_back(y);
+		g[y].push_back(x);
+	}
+
+	for (int i = 0; i < q; i++) {
+		int a, b, c;
+		cin >> a >> b >> c;
+		a--, b--, c--;
+		z[c].push_back(make_pair(a, b));
+		needSubMask[c] |= (1 << a) | (1 << b);
+	}
+
+	cout << rec(0, (1 << n) - 1) << endl;
+
+}

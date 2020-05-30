@@ -1,0 +1,126 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include<bits/stdc++.h>
+#include <intrin.h>
+
+using namespace std;
+
+#define rep(i,n) for(int i=0;i<n;i++)
+#define repi(i,a,n) for(int i=a;i<n;i++)
+#define mp make_pair
+#define fastIO ios::sync_with_stdio(false)
+#define read freopen("in.in","r",stdin)
+#define write freopen("out.out","w",stdout)
+#define scf(xx) scanf("%d",&xx)
+#define scfl(xx) scanf("%I64d",&xx)
+#define All(a) a.begin(), a.end()
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef vector<int> vi;
+typedef pair<int, int> ii;
+typedef long double ld;
+
+pair<ll, pair<ll, ll> > extendedEuclid(ll a, ll b) {
+	if (a == 0) return make_pair(b, make_pair(0, 1));
+	pair<ll, pair<ll, ll> > p;
+	p = extendedEuclid(b % a, a);
+	return make_pair(p.first, make_pair(p.second.second - p.second.first*(b / a), p.second.first));
+}
+
+ll modInverse(ll a, ll m) {
+	return (extendedEuclid(a, m).second.first + m) % m;
+}
+
+ll inverseMod(ll x, ll y, ll z){
+	return ((x%z)*modInverse(y, z)) % z;
+}
+
+
+#define MOD (1000003)
+#define MAX_N 11 // adjust this value as needed
+struct AugmentedMatrix {
+	ll mat[MAX_N][MAX_N + 1];
+};
+struct ColumnVector {
+	ll vec[MAX_N];
+};
+ColumnVector GaussianElimination(int N,	AugmentedMatrix Aug) { // O(N^3)
+	// input: N, Augmented Matrix Aug, output: Column vector X, the answer
+		ll i, j, k, l; ll t; ColumnVector X;
+	for (j = 0; j < N - 1; j++) { // the forward elimination phase
+		l = j;
+		for (i = j + 1; i < N; i++) // which row has largest column value
+			if (abs(Aug.mat[i][j]) > abs(Aug.mat[l][j]))
+				l = i; // remember this row l swap this pivot row, reason: to minimize floating point error
+		for (k = j; k <= N; k++) // t is a temporary double variable
+			t = Aug.mat[j][k], Aug.mat[j][k] = Aug.mat[l][k], Aug.mat[l][k] = t;
+		for (i = j + 1; i < N; i++) // the actual forward elimination phase
+		for (k = N; k >= j; k--){
+			Aug.mat[i][k] -= inverseMod( (Aug.mat[j][k] * Aug.mat[i][j])%MOD, Aug.mat[j][j], MOD);
+			Aug.mat[i][k] %= MOD;
+			Aug.mat[i][k] += MOD;
+			Aug.mat[i][k] %= MOD;
+		}
+	}
+	for (j = N - 1; j >= 0; j--) { // the back substitution phase
+		for (t = 0.0, k = j + 1; k < N; k++) t += Aug.mat[j][k] * X.vec[k];
+			X.vec[j] = inverseMod( ((Aug.mat[j][N] - t)%MOD + MOD )%MOD , Aug.mat[j][j] , MOD ); // the answer is here
+	}
+	return X;
+}
+
+ll Bigmod(ll x, ll y, ll m) // computes (x^y)%m in O(log(y)) and without Overflow
+{
+	if (y == 0)
+		return 1 % m;
+	if (y % 2 == 0)
+	{
+		ll temp = Bigmod(x, y / 2, m);
+		return (temp*temp) % m;
+	}
+	return (x%m * Bigmod(x, y - 1, m)) % m;
+}
+
+ll c[] = { 1000002, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+ll ask1(ll x){
+	ll temp = 0;
+	rep(j, MAX_N){
+		temp += (c[j] * Bigmod(x, j, MOD)) % MOD;
+		temp %= MOD;
+	}
+	return temp;
+}
+ll ask2(ll x){
+	cout << "? " << x << endl;
+	cout.flush();
+	cin >> x;
+	return x;
+}
+int main(){
+	//fastIO;
+	//read; write;
+	AugmentedMatrix a;
+	rep(i, MAX_N){
+		ll x = ask2(i);
+		rep(j, MAX_N){
+			a.mat[i][j] = Bigmod(i, j, MOD);
+		}
+		a.mat[i][MAX_N] = x;
+	}
+	auto sol = GaussianElimination(MAX_N, a);
+	ll res = -1;
+	for (ll i = 0; i < MOD; i++){
+		ll temp = 0;
+		rep(j, MAX_N){
+			temp += ( sol.vec[j] * Bigmod(i, j, MOD) ) % MOD;
+			temp %= MOD;
+		}
+		if (temp == 0){
+			res = i;
+			break;
+		}
+	}
+	cout << "! " << res << endl;
+	cout.flush();
+	return 0;
+}

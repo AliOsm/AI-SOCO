@@ -1,0 +1,111 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+
+struct UnionFind {
+	vector<int> parent;
+	vector<int> size;
+
+	UnionFind(int n) : parent(n), size(n, 1) {
+		for (int i = 0; i < n; i++) {
+			parent[i] = i;
+		}
+	}
+
+	int operator[](int x) {
+		if (parent[x] == x) return x;
+		return parent[x] = operator[](parent[x]);
+	}
+
+	bool merge(int x, int y) {
+		x = operator[](x);
+		y = operator[](y);
+		if (x == y) return false;
+		if (size[x] < size[y]) swap(x, y);
+		parent[y] = x;
+		size[x] += size[y];
+		return true;
+	}
+};
+
+UnionFind uf(202020);
+int g[202020];
+int G[202020];
+vector<pair<int, int>> back_edge;
+bool vis[202020];
+
+int main() {
+	int n;
+	cin >> n;
+
+	vector<int> deg(n);
+	for (int i = 0; i < n; i++) {
+		int p;
+		scanf("%d", &p);
+		p--;
+		g[i] = p;
+		G[i] = p;
+		uf.merge(i, p);
+		deg[p]++;
+	}
+
+	queue<int> q;
+	for (int i = 0; i < n; i++) {
+		if (deg[i] == 0) q.push(i);
+	}
+
+	while (!q.empty()) {
+		int i = q.front(); q.pop();
+		int j = g[i];
+		deg[j]--;
+		if (deg[j] == 0) q.push(j);
+	}
+
+	set<int> used;
+	for (int i = 0; i < n; i++) {
+		if (deg[i] != 0 && used.count(uf[i]) == 0) {
+			used.insert(uf[i]);
+			back_edge.emplace_back(i, g[i]);
+		}
+	}
+
+	partition(back_edge.begin(), back_edge.end(), [&](pair<int, int> a) {
+		return a.first != a.second;
+	});
+
+	set<int> roots;
+	for (int i = 0; i < n; i++) {
+		if (uf[i] == i) roots.insert(i);
+	}
+
+	for (int i = 0; i < back_edge.size() - 1; i++) {
+		int u, v;
+		tie(u, v) = back_edge[i];
+		int k = 0;
+		for (int x : roots) {
+			if (uf[u] != uf[x]) {
+				k = x;
+				break;
+			}
+		}
+		roots.erase(k);
+		uf.merge(u, k);
+		G[u] = k;
+	}
+
+	int u, v;
+	tie(u, v) = back_edge.back();
+	if (u != v) {
+		G[u] = u;
+	}
+
+	int diff = 0;
+	for (int i = 0; i < n; i++) {
+		if (g[i] != G[i]) diff++;
+	}
+
+	cout << diff << endl;
+	for (int i = 0; i < n; i++) {
+		printf("%d ", G[i] + 1);
+	}
+	cout << endl;
+}

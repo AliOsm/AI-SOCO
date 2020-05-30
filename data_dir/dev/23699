@@ -1,0 +1,158 @@
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+using namespace std;
+vector<int> e[100010];
+int st[100010], nd[100010], c, deg[100010], par[17][100010];
+void dfs(int v, int p = -1) {
+	st[v] = c++;
+	for (int i = 0; i < e[v].size(); i++) {
+		int w = e[v][i];
+		if (p == w) continue;
+		deg[w] = deg[v] + 1;
+		dfs(w, v);
+		par[0][w] = v;
+	}
+	nd[v] = c;
+}
+int lca(int u, int v) {
+	if (deg[u] > deg[v]) {
+		return lca(v, u);
+	}
+	int k = deg[v] - deg[u];
+	for (int i = 0; i < 17; i++) {
+		if (k >> i & 1) {
+			v = par[i][v];
+		}
+	}
+	if (u == v) return u;
+	for (int i = 16; i >= 0; i--) {
+		if (par[i][u] != par[i][v]) {
+			u = par[i][u];
+			v = par[i][v];
+		}
+	}
+	return par[0][u];
+}
+int nlca(int u, int v) {
+	int k = deg[v] - deg[u] - 1;
+	if (k <= 0) return v;
+	for (int i = 0; i < 17; i++) {
+		if (k >> i & 1) {
+			v = par[i][v];
+		}
+	}
+	return v;
+}
+inline int isin(int u, int v) {
+	return st[u] <= st[v] && st[v] < nd[u];
+}
+const int N = 1 << 17;
+long long b[1<<18], lv[1<<18];
+inline void push(int p, int h) {
+	if (lv[p]) {
+		b[p+p] += lv[p] * h / 2;
+		b[p+p+1] += lv[p] * h / 2;
+		lv[p+p] += lv[p];
+		lv[p+p+1] += lv[p];
+		lv[p] = 0;
+	}
+}
+void add(int l, int r, int x, int L = 0, int R = N, int p = 1) {
+	if (r <= L || R <= l) return;
+	if (l <= L && R <= r) {
+		b[p] += (long long)x * (R - L);
+		lv[p] += x;
+		return;
+	}
+	push(p, R - L);
+	add(l, r, x, L, (L+R)/2, p + p);
+	add(l, r, x, (L+R)/2, R, p + p + 1);
+	b[p] = b[p+p] + b[p+p+1];
+}
+long long sum(int l, int r, int L = 0, int R = N, int p = 1) {
+	if (r <= L || R <= l) return 0;
+	if (l <= L && R <= r) {
+		return b[p];
+	}
+	push(p, R - L);
+	long long res = sum(l, r, L, (L+R)/2, p + p) + sum(l, r, (L+R)/2, R, p + p + 1);
+	return res;
+}
+int a[100010];
+int main() {
+	int n, q;
+	scanf("%d%d", &n, &q);
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &a[i]);
+	}
+	for (int i = 0; i < n - 1; i++) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		--x; --y;
+		e[x].push_back(y);
+		e[y].push_back(x);
+	}
+	dfs(0);
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < n; j++) {
+			par[i+1][j] = par[i][par[i][j]];
+		}
+	}
+	for (int i = 0; i < n; i++) {
+		b[st[i]+N] = a[i];
+	}
+	for (int i = N - 1; i > 0; i--) {
+		b[i] = b[i+i] + b[i+i+1];
+	}
+	int r = 0;
+	while (q--) {
+		int t, u, v, x;
+		scanf("%d%d", &t, &v);
+		--v;
+		if (t == 2) {
+			scanf("%d%d", &u, &x);
+			--u;
+			if (u == r || v == r) {
+				add(0, c, x);
+			} else if (isin(r, u) ^ isin(r, v)) {
+				add(0, c, x);
+			} else if (isin(r, u) && isin(r, v)) {
+				int p = lca(u, v);
+				if (p == r) {
+					add(0, c, x);
+				} else {
+					add(st[p], nd[p], x);
+				}
+			} else {
+				int p = lca(u, v);
+				if (isin(p, r)) {
+					int q = lca(r, u);
+					p = lca(r, v);
+					if (deg[p] < deg[q]) {
+						p = q;
+					}
+					q = nlca(p, r);
+					add(0, c, x);
+					add(st[q], nd[q], -x);
+				} else {
+					add(st[p], nd[p], x);
+				}
+			}
+		} else if (t == 1) {
+			r = v;
+		} else {
+			long long ans;
+			if (v == r) {
+				ans = sum(0, c);
+			} else if (isin(v, r)) {
+				u = nlca(v, r);
+				ans = sum(0, c) - sum(st[u], nd[u]);
+			} else {
+				ans = sum(st[v], nd[v]);
+			}
+			printf("%I64d\n", ans);
+		}
+	}
+	return 0;
+}

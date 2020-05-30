@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+#define Tree int h,int l,int r
+#define Left 2*h,l,(l+r)/2
+#define Right 2*h+1,(l+r)/2+1,r
+using namespace std;
+const int N=2e5+5;
+int n,idx,val,del,Ll,Rr;
+int in[N],a[2*N],L[2*N],R[2*N],D[2*N];
+typedef struct { int x; int add; } res;
+res v[8*N];
+
+void Shift(Tree) {
+	if (!v[h].add) return ;
+	v[h].x+=v[h].add;
+	if (l!=r) {
+		v[2*h].add+=v[h].add;
+		v[2*h+1].add+=v[h].add;
+	}
+	v[h].add=0;
+	return ;
+}
+
+void Upd(Tree) {
+	Shift(h,l,r);
+	if (idx<l || r<idx) return ;
+	if (l==idx && r==idx) {
+		v[h].x=val;
+		return ;
+	}
+	Upd(Left),Upd(Right);
+	v[h].x=max(v[2*h].x,v[2*h+1].x);
+}
+
+void UpdLR(Tree) {
+	Shift(h,l,r);
+	if (Rr<l || r<Ll) return ;
+	if (Ll<=l && r<=Rr) {
+		v[h].add+=del;
+		Shift(h,l,r);
+		return ;
+	}
+	UpdLR(Left),UpdLR(Right);
+	v[h].x=max(v[2*h].x,v[2*h+1].x);
+}
+
+int Get(Tree) {
+	if (idx<l || r<idx) return -1;
+	if (l==idx && r==idx) return v[h].x;
+	int x=Get(Left),y=Get(Right);
+	return max(x,y);
+}
+
+main ()  {
+	scanf("%d",&n);
+	
+	for (int i=1; i<=n; i++) {
+		scanf("%d",&a[i]);
+		in[a[i]]=i;
+		a[i+n]=a[i];
+	}
+	
+	stack < int > st;
+	st.push(0);
+	for (int i=1; i<=2*n; i++) {
+		while (a[st.top()]>=a[i]) st.pop();
+		L[i]=st.top();
+		st.push(i);
+	}
+	
+	while (st.size()) st.pop();
+	st.push(2*n+1);
+	for (int i=2*n; i>=1; i--) {
+		while (a[st.top()]>=a[i]) st.pop();
+		R[i]=st.top();
+		st.push(i);
+	}
+
+	for (int i=1; i<=n; i++) {
+		idx=in[i];
+		
+		int x=L[idx],y=R[idx];
+		if (y>n) y=0;
+		
+		if (a[x]>a[y]) D[idx]=D[x]+1;
+			else D[idx]=D[y]+1;
+		val=D[idx],Upd(1,1,2*n);		
+	}
+	
+	int ans=v[1].x,id=0;
+	for (int i=1; i<n; i++) {
+		idx=i,val=0;
+			Upd(1,1,2*n);
+		Ll=idx+1,Rr=min(idx+n,R[idx]-1),del=-1;
+			UpdLR(1,1,2*n);
+		
+		int d=0;
+		idx=L[i+n];
+		if (i+1<=idx) d=Get(1,1,2*n);
+			else d=0;
+		
+		idx=i+n,val=d+1;
+			Upd(1,1,2*n);
+		Ll=max(i+1,L[i+n]+1),Rr=i+n-1,del=1;
+			UpdLR(1,1,2*n);
+		
+		if (v[1].x<ans) ans=v[1].x,id=i;
+	}
+	
+	printf("%d %d\n",ans,id);
+}

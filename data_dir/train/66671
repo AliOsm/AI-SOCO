@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+#define F first
+#define S second
+#define pii pair<int, int>
+#define pb push_back
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+const int N = 2010, R = 11, mod = 998244353;
+
+int dp[N][N][R], mw[N][N][R], c[N][N];
+int rem[N], fact[N];;
+vector<int> odd, even;
+
+int main(){
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	
+	fact[0] = 1;
+	for(int i=1; i<N; i++)
+		fact[i] = (1LL * fact[i - 1] * i) % mod;
+
+	for(int i=0; i<N; i++){
+		c[i][0] = c[i][i] = 1;
+		for(int j=1; j<i; j++)
+			c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % mod;
+	}
+
+	int t; cin >> t;
+	while(t--){
+		odd.clear(); even.clear();
+		int n, n1 = 0, n2 = 0; cin >> n;
+		for(int i=0; i<n; i++){
+			int x; cin >> x;
+			rem[i] = x % 11;
+			int pr = 0;
+			while(x){
+				pr++;
+				x /= 10;
+			}
+			if(pr % 2)odd.pb(i), n1++;
+			else even.pb(i), n2++;
+		}
+
+		dp[0][0][0] = 1;
+		for(int i=1; i<=n2; i++)
+			for(int j=0; j<=i; j++)
+				for(int r=0; r<R; r++){
+					int rr = rem[even[i - 1]];
+					dp[i][j][r] = 0;
+					if(j > 0){
+						int ls = (r + R - rr) % R;
+						dp[i][j][r] += dp[i - 1][j - 1][ls];
+					}
+					if(j < i){
+						int ls = (r + rr) % R;
+						dp[i][j][r] += dp[i - 1][j][ls];
+					}
+					dp[i][j][r] %= mod;
+				}
+
+		mw[0][0][0] = 1;
+		for(int i=1; i<=n1; i++)
+			for(int j=0; j<=i; j++)
+				for(int r=0; r<R; r++){
+					int rr = rem[odd[i - 1]];
+					mw[i][j][r] = 0;
+					if(j > 0){
+						int ls = (r + R - rr) % R;
+						mw[i][j][r] += mw[i - 1][j - 1][ls];
+					}
+					if(j < i){
+						int ls = (r + rr) % R;
+						mw[i][j][r] += mw[i - 1][j][ls];
+					}
+					mw[i][j][r] %= mod;
+				}
+
+		ll ans = 0;
+		int ms = (n1 + 2)/2, mn = (n1 + 1)/2;
+		for(int r=0; r<R; r++){
+			ll kol = 0;
+			int er = (R - r) % R;
+			for(int j=0; j<=n2; j++){
+				ll way = dp[n2][j][er];
+				way *= fact[j]; way %= mod;
+				way *= fact[n2 - j]; way %= mod;
+				way *= c[j + ms - 1][ms - 1]; way %= mod;
+				if(n1)way *= c[n2 - j + mn - 1][mn - 1], way %= mod;
+				else if(n1 == 0 && n2 - j > 0)way = 0;
+				kol += way; kol %= mod;
+			}
+			kol *= mw[n1][mn][r]; kol %= mod;
+			kol *= fact[mn]; kol %= mod;
+			kol *= fact[n1 - mn]; kol %= mod;
+			ans += kol, ans %= mod;
+		}
+		cout << ans << '\n';
+	}
+}

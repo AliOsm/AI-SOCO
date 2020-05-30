@@ -1,0 +1,1144 @@
+#include <cstdlib>
+#include <cstdarg>
+#include <cassert>
+#include <cctype> // tolower
+#include <ctime>
+
+#include <iostream>
+#include <sstream>
+
+#include <map>
+#include <set>
+#include <list>
+#include <queue>
+#include <vector>
+#include <string>
+
+#include <limits>
+#include <utility>
+
+#include <numeric>
+#include <iterator>
+#include <algorithm>
+#include <functional>
+
+/*
+ * g++ -g -std=c++11 -DBUG -D_GLIBCXX_DEBUG -Wall -o cforce{,.cpp}
+ * g++ -g -DBUG -D_GLIBCXX_DEBUG -Wall -o cforce{,.cpp}
+ *
+ * TODO:
+ *      algo util --> accumulate for pair
+ *      overload >> for map and set, using (insert) iterator
+ *      nothing specific about erase utils, should be container fleixble
+ *      recepies --> remove certain values from a list, etc
+ *      chmod:: consider an algorithm stable to int64 overflow
+ *      shortest path algorithm
+ *      shortest path in a tree
+ *      prime factorization
+ *      isprime( )
+ *      pow( k, n ) mod m
+ *      maximum network flow
+ *      odd / even
+ *      transform ( x.begin(), x.end(), x.begin(), bind2nd( modulus<int>(), 2 ));
+ *      count_if ( x.begin(), x.end(), bind2nd( modulus < int > (), 2));
+ */
+
+/*
+ * --------------------------------------------------------
+ *  typedef / define
+ * --------------------------------------------------------
+ */
+
+typedef          long long int int64;
+typedef unsigned long long int uint64;
+
+#define DOUBLE_INF std::numeric_limits< double >::infinity()
+#define DOUBLE_NAN std::numeric_limits< double >::quiet_NaN()
+
+#ifdef BUG
+    #define DEBUG(var) { std::cout << #var << ": " << (var) << std::endl; }
+#else
+    #define DEBUG(var)
+#endif
+
+#define EXPECT(expr) if ( ! (expr) ) std::cerr << "Assertion " \
+    << #expr " failed at " << __FILE__ << ":" << __LINE__ << std::endl;
+
+#define DBG(v) std::copy( v.begin(), v.end(), std::ostream_iterator < typeof( *v.begin() )> ( std::cout, " " ) )
+
+/*
+ * http://rootdirectory.de/wiki/SSTR()
+ * usage:
+ *      SSTR( "x^2: " << x*x )
+ */
+#define SSTR( val ) dynamic_cast< std::ostringstream & >( std::ostringstream() << std::dec << val ).str()
+
+
+/* https://www.quora.com/C++-programming-language/What-are-some-cool-C++-tricks */
+// template <typename T, size_t N>
+// char (&ArraySizeHelper(T (&array)[N]))[N];
+// #define arraysize(array) (sizeof(ArraySizeHelper(array)))
+
+/*
+ * --------------------------------------------------------
+ *  functional utils
+ * --------------------------------------------------------
+ */
+
+template < typename T >
+struct abs_diff : std::binary_function < T, T, T >
+{
+    typedef T value_type;
+
+    inline value_type operator( ) ( const value_type & x, const value_type & y ) const
+    {
+        return std::abs( x - y );
+    }
+};
+
+// template < class InputIterator, class T >
+// class isin : public std::binary_function < InputIterator, InputIterator, bool >
+// {
+//     public:
+//         typedef T value_type;
+//
+//         isin ( const InputIterator & first, const InputIterator & last ):
+//             m_first ( first ), m_last ( last ) { }
+//
+//         bool operator ( ) ( const value_type & val ) const
+//         {
+//             return std::find ( m_first, m_last, val ) != m_last;
+//         }
+//     private:
+//         const InputIterator m_first, m_last;
+// }
+
+template < typename value_type, typename cont_type >
+class isin : public std::unary_function < value_type, bool >
+{
+    public:
+        isin( const cont_type & vals ): m_vals ( vals ) { };
+
+        bool operator ( ) ( const value_type & x ) const
+        {
+            return std::find ( m_vals.begin( ), m_vals.end( ), x ) != m_vals.end( );
+        }
+
+    private:
+        const cont_type m_vals;
+};
+
+/*
+ * max_element, min_element, count_if ... on the 2nd element
+ * eg: max_element ( m.begin(), m.end(), Apply2nd < string, int , less < int > > )
+ */
+template < class T1, class T2, class BinaryOperation >
+class Apply2nd : std::binary_function < typename std::pair < T1, T2 >,
+                                        typename std::pair < T1, T2 >,
+                                        typename BinaryOperation::result_type >
+{
+    public:
+        typedef T1 first_type;
+        typedef T2 second_type;
+
+        typedef typename BinaryOperation::result_type result_type;
+        typedef typename std::pair < first_type, second_type > value_type;
+
+        inline result_type operator( ) ( const value_type & x, const value_type & y ) const
+        {
+            return binary_op ( x.second , y.second );
+        }
+    private:
+        BinaryOperation binary_op;
+};
+
+/*
+ * algo utils
+ * --------------------------------------------------------
+ */
+
+template < class ForwardIterator, class T >
+inline void fill_inc_seq ( ForwardIterator first, ForwardIterator last, T val )
+{
+    for ( ; first != last; ++first, ++val )
+        * first = val;
+}
+
+/*
+ *  string utils
+ * --------------------------------------------------------
+ */
+
+inline void erase ( std::string & str, const char & ch )
+{
+    std::binder2nd < std::equal_to < char > > isch ( std::equal_to < char > ( ), ch );
+    std::string::iterator iter = std::remove_if ( str.begin(), str.end(), isch );
+    str.erase ( iter, str.end() );
+}
+
+inline void erase ( std::string & str, const std::string & chrs )
+{
+    isin < char, std::string > isin_chrs ( chrs );
+    std::string::iterator iter = std::remove_if ( str.begin(), str.end(), isin_chrs );
+    str.erase ( iter, str.end() );
+}
+
+template < typename value_type>
+inline std::string val2str ( const value_type & x )
+{
+    std::ostringstream sout ( std::ios_base::out );
+    sout << x;
+    return sout.str();
+}
+
+template < typename value_type>
+inline value_type str2val ( const std::string & str )
+{
+    std::istringstream iss ( str, std::ios_base::in );
+    value_type val;
+
+    iss >> val;
+    return val;
+}
+
+std::vector< std::string > tokenize ( const std::string & str, const char & sep )
+{
+    /*
+     * outputs empty tokens and assumes str does not start with sep
+     * corner cases: empty string, one char string,
+     *       string starting/ending with sep, all sep, end with two sep
+     */
+
+    std::vector < std::string > res;
+    std::string::const_iterator follow = str.begin( ),
+                                lead   = str.begin( );
+
+    while ( true )
+    {
+        while ( lead != str.end() && * lead != sep )
+            ++ lead;
+
+        res.push_back ( std::string( follow, lead ) );
+
+        if ( lead != str.end ( ) )
+            follow = 1 + lead ++ ;
+        else
+            break;
+    }
+
+    return res;
+}
+
+/*
+ * getline ( cin, str )
+ * requires ctrl-D
+ * cin >> str; does not pass after space char
+ */
+
+
+/*
+ * --------------------------------------------------------
+ *  number utils
+ * --------------------------------------------------------
+ */
+
+template < typename value_type >  // greatest common divisor
+inline value_type gcd ( const value_type & m, const value_type & n )
+{
+    value_type a = std::max ( std::abs( m ), std::abs( n ) );
+    value_type b = std::min ( std::abs( m ), std::abs( n ) );
+
+    /* corner case: one of the values is zero */
+    if ( ! b )   return a;
+
+    for ( value_type res = a % b; res ; res = a % b )
+    {
+        a = b;
+        b = res;
+    }
+
+    return b;
+}
+
+inline bool isnan ( const double & a )
+{
+    return ! ( a == a );
+}
+
+template < typename value_type >
+inline value_type mini ( int n, ... )
+{
+    va_list vl;
+    va_start (vl, n);
+    value_type res = va_arg ( vl, value_type );
+
+    for ( int i = 1; i < n; ++i ) {
+        const value_type val = va_arg ( vl, value_type );
+        res = std::min ( res, val );
+    }
+
+    va_end( vl );
+    return res;
+}
+
+template < typename value_type >
+inline value_type maxi ( int n, ... )
+{
+    va_list vl;
+    va_start (vl, n);
+    value_type res = va_arg ( vl, value_type );
+
+    for ( int i = 1; i < n; ++i ) {
+        const value_type val = va_arg ( vl, value_type );
+        res = std::max ( res, val );
+    }
+
+    va_end( vl );
+    return res;
+}
+
+// XXX look this up how is this implemented
+template < class T >
+inline int sign ( const T & x )
+{
+    if ( x == T() )
+        return 0;
+    else if ( x < T() )
+        return -1;
+    else
+        return 1;
+}
+
+/*
+ * change moduluos from n to m
+ */
+std::string chmod ( std::string num, const unsigned n, const unsigned m )
+{
+    const char * digit = "0123456789abcdefghijklmnopqrstuvwxyz";
+    std::transform ( num.begin(), num.end(), num.begin(), tolower );
+
+    isin < char, std::string > is_alpha_num ( digit );
+    assert ( find_if ( num.begin( ), num.end( ), std::not1 ( is_alpha_num ) ) == num.end( ));
+
+    unsigned long long int val ( 0 );
+
+    if ( n == 10U )
+    {
+        std::istringstream iss ( num, std::ios_base::in );
+        iss >> val;
+    }
+    else
+        for ( std::string::const_iterator iter = num.begin( ); iter != num.end( ); ++ iter )
+            val = val * n + ( 'a' <= *iter ? *iter - 'a' + 10U : *iter - '0');
+
+    if ( m == 10U )
+    {
+        std::ostringstream sout ( std::ios_base::out );
+        sout << val;
+        return sout.str ( );
+    }
+    else
+    {
+        std::string res;
+        for ( ; val ; val /= m )
+            res.push_back( digit [ val % m ] );
+
+        return res.length( ) ? std::string( res.rbegin( ), res.rend( )) : "0";
+    }
+}
+
+/*
+ * returns a list of all primes from 2 to n ( inclusive )
+ * maximum adj diff of all primes less than 1e5 is 72 ( 114 for 1e6 )
+ */
+template < typename value_type >
+std::vector < value_type > get_primes ( const value_type n )
+{
+    typedef typename std::vector < value_type >::iterator iterator;
+
+    std::vector < value_type > primes;
+    primes.reserve (( n + 2 ) / 3 + 3 );
+
+    primes.push_back ( 2 );
+    primes.push_back ( 3 );
+
+    /* add all potential primes to the list */
+    for ( value_type j = 6; j <= n + 1 ; j += 6 )
+    {
+        // if ( std::find_if ( primes.begin() + 2, primes.end(),
+        //             std::not1 ( std::bind1st ( std::modulus < value_type > ( ), j - 1 ))) == primes.end( ) )
+        //     primes.push_back ( j - 1 );
+        // if ( std::find_if ( primes.begin() + 2, primes.end(),
+        //             std::not1 ( std::bind1st ( std::modulus < value_type >  ( ), j + 1 ))) == primes.end( ) )
+        //     primes.push_back ( j + 1 );
+
+        primes.push_back ( j - 1 );
+        primes.push_back ( j + 1 );
+    }
+
+    iterator iend = primes.end( );
+
+    /* remove every multiple of existing items */
+    for ( iterator iter = primes.begin( ) + 2; iter != iend; ++ iter )
+        iend = std::remove_if ( iter + 1, iend, std::not1 ( std::bind2nd ( std::modulus < value_type > (), *iter )));
+
+    iend = std::remove_if ( primes.begin(), iend, std::bind2nd ( std::greater < int > ( ), n ));
+    primes.erase ( iend, primes.end( ));
+
+    return primes;
+}
+
+
+/*
+ * --------------------------------------------------------
+ *  operator<< overrides
+ * --------------------------------------------------------
+ */
+
+namespace
+{
+    /* helper function to output containers */
+    template < typename T >
+    std::ostream & __output ( std::ostream & out, const T & a )
+    {
+        typedef typename T::const_iterator const_iterator;
+        out << "{ ";
+
+        for ( const_iterator iter = a.begin(); iter != a.end(); ++ iter )
+            out << ( iter != a.begin( ) ? ", " : "" ) << *iter ;
+
+        return out << " }";
+    }
+}
+
+template < typename key_type, typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::pair < key_type, value_type > & p)
+{
+    out << "(" << p.first << ", " << p.second << ")";
+    return out;
+}
+
+template < typename key_type, typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::map < key_type, value_type > & m )
+{
+    return __output ( out, m );
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::set < value_type > & s )
+{
+    return __output ( out, s );
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::vector < value_type > & a )
+{
+    return __output ( out, a );
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::list < value_type > & a )
+{
+    return __output ( out, a );
+}
+
+template < typename value_type >
+std::ostream & operator<< ( std::ostream & out, const std::vector < std::vector < value_type > > & a )
+{
+    typedef typename std::vector < std::vector < value_type > >::const_iterator const_iterator;
+
+    for ( const_iterator iter = a.begin( ); iter != a.end( ); ++ iter )
+        out << '\n' << *iter ;
+
+    return out;
+}
+
+/*
+ * --------------------------------------------------------
+ *  operator>> overrides
+ * --------------------------------------------------------
+ */
+
+template < typename key_type, typename value_type >
+std::istream & operator>> ( std::istream & in, std::pair < key_type, value_type > & p)
+{
+    in >> p.first >> p.second;
+    return in;
+}
+
+template < typename value_type >
+std::istream & operator>> ( std::istream & in, std::vector < value_type > & a )
+{
+    typedef typename std::vector < value_type>::iterator iterator;
+
+    for ( iterator iter = a.begin(); iter != a.end(); ++ iter )
+        in >> * iter;
+
+    return in;
+}
+
+/*
+ * --------------------------------------------------------
+ *  readin quick utilities
+ * --------------------------------------------------------
+ */
+
+template < typename value_type >
+std::vector < value_type > readin ( size_t n = 0 )
+{
+    if ( ! n ) std::cin >> n;
+    std::vector < value_type > a ( n );
+
+    std::cin >> a;
+    return a;
+}
+
+template < typename key_type, typename value_type >
+std::vector < std::pair < key_type , value_type > > readin ( size_t n = 0 )
+{
+    if ( !n ) std::cin >> n;
+    std::vector < std::pair < key_type, value_type > > a ( n );
+
+    std::cin >> a;
+    return a;
+}
+
+/*
+ * --------------------------------------------------------
+ *  pair utility
+ * --------------------------------------------------------
+ */
+
+/*
+ * accumulate ( m.begin( ), m.end( ), pair < int, double> ( 0 , 0.0 ) , operator+ < int, double > );
+ */
+template < typename T, typename S >
+inline std::pair < T, S > operator+ ( const std::pair < T, S > & a, const std::pair < T, S > & b )
+{
+    return std::make_pair < T, S > ( a.first + b.first, a.second + b.second );
+}
+
+// template < class T1, class T2, class BinaryOperation >
+// class Apply2nd : std::binary_function < typename std::pair < T1, T2 >,
+//                                         typename std::pair < T1, T2 >,
+//                                         typename BinaryOperation::result_type >
+
+/*
+ * graph utils
+ * --------------------------------------------------------
+ */
+
+/*
+ * Dijkstra :: single-source shortest path problem for
+ * a graph with non-negative edge path costs, producing
+ * a shortest path tree
+ * en.wikipedia.org/wiki/Dijkstra's_algorithm
+ */
+template < typename DistType >
+void Dijekstra ( const size_t & source,
+                 const std::vector < std::list < size_t > > & adj,          // adjacency list
+                 const std::vector < std::vector < DistType > > & edge_len, // pair-wise distance for adjacent nodes
+                 std::vector < DistType > & dist,  // distance from the source
+                 std::vector < size_t > prev )     // previous node in the shortest path tree
+{
+    // TODO
+}
+
+// TODO http://en.wikipedia.org/wiki/Shortest_path_problem
+// TODO Graph class, Weighted graph, ...
+
+/*
+ *  maximum cardinality matching in a bipartite graph
+ *        G = G1 ∪ G2 ∪ {NIL}
+ *  where G1 and G2 are partition of graph and NIL is a special null vertex
+ *  https://en.wikipedia.org/wiki/Hopcroft-Karp_algorithm
+ */
+
+class HopcroftKarp
+{
+    public:
+        HopcroftKarp ( const std::vector < std::list < size_t > > & adj,
+                       const std::vector < bool > & tag );
+
+        size_t get_npair ( ) { return npair; };
+        std::map < size_t, size_t > get_map ( );
+
+    private:
+        bool mf_breadth_first_search ( );  // breadth first search from unpaired nodes in G1
+        bool mf_depth_first_search ( const size_t v ); // dfs w/ toggeling augmenting paths
+
+        const std::vector < std::list < size_t > > & m_adj;  // adjacency list for each node
+        const std::vector < bool > & m_tag;  // binary tag distinguishing partitions
+
+        size_t npair;
+        const size_t NIL;  // special null vertex
+        const size_t INF;  // practically infinity distance
+
+        std::vector < size_t > m_g1;    // set of nodes with tag = true
+        std::vector < size_t > m_dist;  // dist from unpaired vertices in G1
+        std::vector < size_t > m_pair;
+};
+
+
+std::map < size_t, size_t > HopcroftKarp::get_map ( )
+{
+    std::map < size_t, size_t > m;
+
+    for ( size_t j = 0; j < m_pair.size( ); ++ j )
+        if ( m_pair[ j ] != NIL  && m_tag[ j ])
+            m[ j ] = m_pair[ j ];
+
+    return m;
+}
+
+
+HopcroftKarp::HopcroftKarp ( const std::vector < std::list < size_t > > & adj,
+                             const std::vector < bool > & tag ):
+    m_adj ( adj ),
+    m_tag ( tag ),
+    npair ( 0 ),
+    NIL ( adj.size( )),
+    INF ( adj.size( ) + 1 ),
+    m_dist ( std::vector < size_t > ( adj.size( ) + 1, INF)),
+    m_pair ( std::vector < size_t > ( adj.size( ), NIL ))  // initially everything is paired with nil
+{
+    assert ( m_adj.size() == m_tag.size() );
+
+    for ( size_t j = 0; j < tag.size( ); ++ j )
+        if ( tag[ j ] )
+            m_g1.push_back ( j );
+
+    while ( mf_breadth_first_search ( ) )
+        for ( std::vector < size_t >::const_iterator v = m_g1.begin( ); v != m_g1.end( ); ++ v )
+            if ( m_pair[ *v ] == NIL && mf_depth_first_search ( *v ) )
+                ++ npair;
+}
+
+bool HopcroftKarp::mf_breadth_first_search( )
+{
+    /* only nodes from g1 are queued */
+    std::queue < size_t > bfs_queue;
+
+    /* initialize queue with all unpaired nodes from g1 */
+    for ( std::vector < size_t >::const_iterator v = m_g1.begin( ); v != m_g1.end( ); ++v )
+        if ( m_pair[ *v ] == NIL )
+        {
+            m_dist[ *v ] = 0;
+            bfs_queue.push ( *v );
+        }
+        else
+            m_dist[ *v ] = INF;
+
+    m_dist[ NIL ] = INF;
+
+    /* find all the shortest augmenting paths to node nil */
+    while ( ! bfs_queue.empty() )
+    {
+        const size_t v = bfs_queue.front( );
+        bfs_queue.pop ( );
+
+        if ( m_dist[ v ] < m_dist[ NIL ] )
+            for ( std::list < size_t >::const_iterator u = m_adj[ v ].begin( ); u != m_adj[ v ].end( ); ++ u )
+                if ( m_dist[ m_pair[ * u ] ] == INF )
+                {
+                    m_dist[ m_pair[ * u ] ] = m_dist[ v ] + 1;
+                    bfs_queue.push ( m_pair[ * u ] );
+                }
+    }
+
+    return m_dist[ NIL ] != INF;
+}
+
+
+bool HopcroftKarp::mf_depth_first_search( const size_t v )
+{
+    if ( v == NIL )
+        return true;
+    else
+    {
+        for ( std::list < size_t >::const_iterator u = m_adj[ v ].begin( ); u != m_adj[ v ].end( ); ++ u )
+            if ( m_dist[ m_pair[ *u ] ] == m_dist[ v ] + 1  && mf_depth_first_search( m_pair[ *u ] ))
+            {
+                /*
+                 * there is an augmenting path to nil from m_pair[ *u ] and hence there is an augmenting
+                 * path from v to u and u to to nil; therefore v and u can be paired together
+                 */
+                m_pair [ *u ] = v;
+                m_pair [  v ] = *u;
+                return true;
+            }
+        m_dist[ v ] = INF;
+        return false;
+    }
+}
+
+
+/*
+ * --------------------------------------------------------
+ *  timing utility
+ * --------------------------------------------------------
+ */
+
+// TODO add a preprocessor which automatically includes the funciton name, or __line__
+// and disables if not in debug mode
+/* prints the life length of the object when it goes out of scope */
+class ScopeTimer
+{
+    public:
+        ScopeTimer ( const std::string & msg = "" ): tic ( clock ( )), m_msg( msg ) { };
+
+        ~ ScopeTimer ( )
+        {
+            const clock_t toc = clock();
+            const uint64 dt   = 1000L * ( toc - tic ) / CLOCKS_PER_SEC;
+
+            const uint64 mil = dt % 1000L;
+            const uint64 sec = ( dt / 1000L ) % 60L;
+            const uint64 min = ( dt / 60000L ) % 60L;
+            const uint64 hrs = ( dt / 3600000L );
+
+            std::cout << '\n' << m_msg << "\n\telapsed time: ";
+
+            if ( hrs )  std::cout << hrs << " hrs, ";
+            if ( min )  std::cout << min << " min, ";
+            if ( sec )  std::cout << sec << " sec, ";
+            std::cout << mil << " mil-sec\n";
+        }
+
+    private:
+        typedef unsigned long long int  uint64;
+        const clock_t tic;
+        const std::string m_msg;
+};
+
+/*
+ * --------------------------------------------------------
+ * --------------------------------------------------------
+ */
+
+
+/*
+ * -- @@@ -------------------------------------------------
+ */
+
+using namespace std;
+
+void fill_map ( const vector < pair < unsigned, unsigned > > & a,
+                map < unsigned , map < unsigned, unsigned > > & m )
+{
+    typedef vector < pair < unsigned, unsigned > >::const_iterator const_iterator;
+
+    for ( const_iterator iter = a.begin( ); iter != a.end( ); ++ iter )
+        ++ m [ iter->second ] [ iter->first ];
+}
+
+
+size_t sum2nd ( const map < unsigned, unsigned > & m )
+{
+    size_t s = 0;
+
+    for ( map< unsigned, unsigned>::const_iterator iter = m.begin( ); iter != m.end( ); ++ iter )
+        s += iter->second;
+
+    return s;
+}
+
+void b159 ( )
+{
+    int n, m;
+    cin >> n >> m;
+
+    const vector < pair < unsigned, unsigned > > mrk ( readin < unsigned, unsigned > ( n ) );
+    const vector < pair < unsigned, unsigned > > cps ( readin < unsigned, unsigned > ( m ) );
+
+    map < unsigned , map < unsigned, unsigned > > mrk_map, cps_map;
+
+    fill_map ( mrk, mrk_map );
+    fill_map ( cps, cps_map );
+
+    DEBUG ( cps_map );
+    DEBUG ( mrk_map );
+
+    size_t u = 0, v = 0;
+
+    for ( map < unsigned, map < unsigned, unsigned > >::const_iterator i = mrk_map.begin( ), j = cps_map.begin( );
+            i != mrk_map.end( ) && j != cps_map.end( ); ++ i )
+    {
+        DEBUG ( *i );
+        while ( j != cps_map.end( ) && j->first < i ->first )
+            ++ j;
+
+        if ( j != cps_map.end( ) && j->first == i->first ) // same size
+        {
+            DEBUG ( *j );
+            DEBUG ( sum2nd ( i->second ) );
+            DEBUG ( sum2nd ( j->second ) );
+
+            u += min ( sum2nd ( i->second ), sum2nd ( j->second ) );
+
+            for ( map< unsigned, unsigned >::const_iterator k = i->second.begin(), s = j->second.begin();
+                    k != i->second.end( ) && s != j->second.end( ); ++ k )
+            {
+                while ( s != j->second.end( ) && s->first < k->first )
+                    ++ s;
+
+                if ( s != j->second.end( ) && s->first == k->first ) // same color
+                    v += min ( s->second, k->second );
+            }
+        }
+    }
+
+    cout << u << ' ' << v << '\n';
+}
+
+
+
+string a2 ( )
+{
+
+    const vector < pair < string, int > > inp ( readin < string, int > ( ));
+    map < string, int > final_score;
+
+    for ( vector < pair < string, int> >::const_iterator iter = inp.begin( ); iter != inp.end( ); ++ iter )
+        final_score[ iter->first ] += iter->second;
+
+    DEBUG ( final_score );
+
+    const int top_score = max_element ( final_score.begin( ), final_score.end( ),
+            Apply2nd < string, int, std::less < int > > ( ))->second;
+
+    DEBUG ( top_score );
+
+    map < string, int > score;
+
+    for ( vector < pair < string, int> >::const_iterator iter = inp.begin( ); iter != inp.end( ); ++ iter )
+        if ( top_score <= ( score[ iter->first ] += iter->second ) && final_score[ iter->first ] == top_score )
+            return iter->first;
+
+    return "";
+}
+
+uint64 b318 ( )
+{
+    string str;
+    cin >> str;
+
+    const char * substr [ ] = { "heavy", "metal" };
+    map < string, vector < size_t > > subpos;
+
+    for ( unsigned j = 0; j < 2; ++ j )
+    {
+        const string key = substr[ j ];
+        for ( size_t pos = str.find ( key ); pos != string::npos; pos = str.find ( key, pos + 1 ))
+            subpos[ key ].push_back ( pos );
+    }
+
+    DEBUG ( subpos[ "heavy" ] );
+    DEBUG ( subpos[ "metal" ] );
+
+    uint64 res = 0;
+
+    for ( vector< size_t >::const_iterator i = subpos["heavy"].begin(), j = subpos["metal"].begin();
+            i != subpos[ "heavy" ].end( ) && j != subpos[ "metal" ].end( ); ++ i )
+    {
+        while ( j != subpos[ "metal" ].end( ) && *j < *i )
+            ++ j;
+
+        res += subpos[ "metal" ].end() - j;
+    }
+
+    return res;
+}
+
+string b255 ( )
+{
+    string str;
+    cin >> str;
+
+    const size_t n = count_if ( str.begin(), str.end(), bind2nd ( equal_to < char > ( ), 'x' ));
+    const size_t m = count_if ( str.begin(), str.end(), bind2nd ( equal_to < char > ( ), 'y' ));
+
+    DEBUG ( n );
+    DEBUG ( m );
+
+    return n > m ? string ( n - m, 'x' ) : string ( m - n, 'y' );
+}
+
+void a143 ( )
+{
+    unsigned r1, r2, c1, c2, d1, d2;
+    cin >> r1 >> r2 >> c1 >> c2 >> d1 >> d2;
+
+    const unsigned lb = max( 10U, maxi < unsigned > ( 3, r1, c1, d1 )) - 9;
+    const unsigned ub = min( 10U, mini < unsigned > ( 3, r1, c1, d1 ));
+
+    DEBUG ( lb );
+    DEBUG ( ub );
+
+    for ( unsigned j = lb; j < ub ; ++ j )
+    {
+        const unsigned k = r1 - j, l = c1 - j, m = d1 - j;
+
+        if ( k + m != c2 || k + l != d2 || m + l != r2 )
+            continue;
+
+        if ( j == k || j == l || j == m || k == l || k == m || l == m )
+            continue;
+
+        cout << j << ' ' << k << '\n' << l << ' ' << m;
+        return;
+    }
+
+    cout << -1;
+}
+
+void b222 ( )
+{
+    unsigned n,m;
+    uint64 k;
+    cin >> n >> m >> k;
+
+    vector < vector < unsigned > > a ( n );
+    for ( vector < vector < unsigned > >::iterator iter = a.begin( ); iter != a.end( ); ++ iter )
+        *iter = readin < unsigned > ( m );
+
+    vector < unsigned > col ( m ), row ( n );
+
+    fill_inc_seq ( col.begin( ), col.end ( ), 0 );
+    fill_inc_seq ( row.begin( ), row.end ( ), 0 );
+
+    DEBUG ( a );
+
+    DEBUG ( col );
+    DEBUG ( row );
+
+    char s;
+    unsigned x, y;
+
+    for ( uint64 j = 0; j < k ; ++ j )
+    {
+        cin >> s >> x >> y;
+        --x; --y;
+
+        switch ( s )
+        {
+            case 'c':
+                swap ( col[ x ], col [ y ] );
+                break;
+            case 'r':
+                swap ( row[ x ], row [ y ] );
+                break;
+            case 'g':
+                cout << a [ row[ x ] ][ col[ y ]] << '\n';
+        }
+    }
+}
+
+struct Noisy
+{
+    Noisy ( const string & msg ): m_msg ( msg ) { cout << "->" << m_msg << endl; };
+    ~Noisy ( ) { cout << "<-" << m_msg << endl ;}
+    const string m_msg;
+};
+
+Noisy & foo ( )
+{
+    Noisy a ( "foo" );
+    Noisy * b = new Noisy ( "noisy" );
+
+    return * b;
+}
+
+Noisy & bar ( )
+{
+    Noisy a ( "bar" );
+    Noisy & b = foo ( );
+    return b;
+}
+
+const char * c282 ( )
+{
+    string a, b;
+    cin >> a >> b;
+
+    if ( a.length( ) != b.length( ) )
+        return "NO";
+    if ( a == b )
+        return "YES";
+    if ( a.length() == 1 && a != b )
+        return "NO";
+
+    const bool a0 = a.find( '1' ) != string::npos;
+    const bool b0 = b.find( '1' ) != string::npos;
+
+    return a0 != b0 ? "NO" : "YES";
+}
+
+int64 b298 ( )
+{
+    int64 t;
+    pair < int64, int64 > s, e;
+    cin >> t >> s.first >> s.second >> e.first >> e.second;
+
+    string wind;
+    cin >> wind;
+
+    map < char, int64 > move;
+    move[ 'E' ] = max ( 0LL, e.first - s.first );
+    move[ 'W' ] = max ( 0LL, s.first - e.first );
+    move[ 'N' ] = max ( 0LL, e.second - s.second );
+    move[ 'S' ] = max ( 0LL, s.second - e.second );
+
+    int64 n = abs( e.first - s.first ) + abs ( e.second - s.second );
+
+    DEBUG ( move );
+    DEBUG ( n );
+
+    string::const_iterator iter;
+
+    for ( iter = wind.begin( ); iter != wind.end() && n ; ++ iter )
+        if ( move[ *iter ] > 0 )
+        {
+            -- move[ *iter ];
+            -- n;
+        }
+
+    return n ? -1 : iter - wind.begin( );
+
+    return 0;
+}
+
+int a189( )
+{
+    int n, a, b, c;
+    cin >> n >> a >> b >> c;
+
+    const int k = maxi < int > ( 3, a, b, c );
+
+    vector < int > soln ( k, -1 );
+    soln [ 0 ] = 0;
+
+    for ( int j = mini < int > ( 3, a, b, c ); j <= n; ++ j )
+    {
+        const int x = soln [( k + j - a ) % k ] ;
+        const int y = soln [( k + j - b ) % k ] ;
+        const int z = soln [( k + j - c ) % k ] ;
+
+        const int w = maxi < int > (3, x, y, z );
+        soln[ j % k ] = w >= 0 ? w + 1 : -1;
+    }
+
+    return soln [ n % k ];
+
+    // int x, y, z;
+    // x = mini < int > ( 3, a, b, c );
+    // z = maxi < int > ( 3, a, b, c );
+    // y = a + b + c - ( x + z );
+
+
+    // if ( y != x )
+    // {
+    //     int w = 0;
+
+    //     // only the two smallest numbers
+    //     for ( int i = n / x; i >= 0 && ! w; -- i )
+    //         for ( int j = n - i * x ; j >= 0 && ! w; -- j )
+    //             if ( i * x + j * y == n )
+    //                 w = i + j;
+
+    //     // all three numbers
+    //     for ( int i = n / x; i >= 0; -- i )
+    //         for ( int j = n - i * x ; j >= 0; -- j )
+    //             for ( int k = n - i * x - j * y; k >= 0; -- k)
+    //                 if ( i * x + j * y + k * z == n )
+    //                     return max( w, i + j + k);
+    // }
+    // else
+    //     for ( int i = n / x; i >= 0; -- i )
+    //         for ( int k = n - i * x ; k >= 0; -- k)
+    //             if ( i * x + k * z == n )
+    //                 return i + k;
+    // return -1;
+}
+
+int a257( )
+{
+    unsigned n, m, k;
+    cin >> n >> m >> k;
+
+    vector < int > a ( readin < int > ( n ));
+    sort ( a.begin( ), a.end( ), greater < int > ( ));
+    DEBUG( a );
+
+    vector < int > b ( n + 1, 0 );
+    partial_sum ( a.begin( ), a.end( ), b.begin( ) + 1);
+    DEBUG( b );
+
+    for ( unsigned j = 0; j < b.size( ); ++ j )
+        if ( m <= b[ j ] + k - j )
+            return j;
+
+    return -1;
+}
+
+void b315( )
+{
+    unsigned n, m;
+    cin >> n >> m;
+    vector < int64 > a ( readin < int64 > ( n ) );
+
+    unsigned t, v;
+    int64 x, inc = 0LL;
+
+    for ( unsigned j = 0; j < m; ++ j )
+    {
+        cin >> t;
+        switch ( t )
+        {
+            case 1:
+                cin >> v >> x;
+                a[ v - 1 ] = x - inc;
+                break;
+            case 2:
+                cin >> x;
+                inc += x;
+                // transform ( a.begin(), a.end(), a.begin(), bind2nd ( plus < int64 > ( ), x ));
+                break;
+            case 3:
+                cin >> v;
+                cout << a[ v - 1 ] + inc << '\n';
+                break;
+        };
+    }
+}
+
+
+int main ( const int argc, char * argv [ ])
+{
+    b315 ( );
+
+    // Noisy a ( "main" );
+    // Noisy &b = bar ();
+
+    // delete & b;
+
+    // b222 ( );
+
+    // string str ( "this is a test" );
+    // erase ( str, " sa");
+    // DEBUG ( str );
+
+    // ScopeTimer sc ( __FILE__ " :: " );
+
+    // vector < unsigned long long > primes ( get_primes < unsigned long long > ( 1e6 + 10 ) );
+
+    // DEBUG ( primes.size( ) );
+    // DEBUG ( primes.back( ) );
+
+    // vector < unsigned long long > adj_diff ( primes.size( ));
+    // adjacent_difference ( primes.begin(), primes.end(), adj_diff.begin( ), abs_diff < long long > ( ) );
+
+    // DEBUG (  * max_element ( adj_diff.begin(), adj_diff.end() ) );
+
+    return EXIT_SUCCESS;
+}

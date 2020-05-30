@@ -1,0 +1,165 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define FR(i, a, b) for(int i = a; i < b; i++)
+#define ROF(i, a, b) for(int i = a; i >= b; i--)
+#define PB push_back
+#define F first
+#define S second
+#define all(x) x.begin(), x.end()
+#define size(x) (int)x.size()
+#define fast ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+#define debug(x) cerr<< #x << ": " << x << endl;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+typedef pair <ll, ll> pll;
+
+const int INF = 1000 * 1000 * 1000 + 1;
+const int N = 100 * 1000 + 10;
+vector <pii> vec[N];
+int dist[N], rnk[N];
+pii par[N];
+int p2[N], d2[N];
+bool mark[N];
+int n;
+
+void bfs2(int v)
+{
+	FR(i, 0, n) d2[i] = INF;
+	d2[v] = 0;
+	vector <int> q;
+	q.PB(v);
+	int ind = 0;
+	while(ind < size(q))
+	{
+		v = q[ind++];
+		mark[v] = true;
+		FR(i, 0, size(vec[v]))
+			if(vec[v][i].S == 0)
+			{
+				int u = vec[v][i].F;
+				if(d2[v] + 1 < d2[u])
+				{
+					p2[u] = v;
+					d2[u] = d2[v] + 1;
+					q.PB(u);
+				}
+			}
+	}
+}
+
+void bfs(int v)
+{
+	FR(i, 0, n)
+		dist[i] = INF;
+	dist[v] = 0;
+
+	vector <int> q, ly;
+	q.PB(v);
+	int ind = 0;
+	int lst = 0;
+	while(ind < size(q))
+	{
+		v = q[ind++];
+		if(dist[v] != lst)
+		{
+			vector <pair <pii, int> > tmp;
+			for(auto u: ly)
+				tmp.PB({{par[u].S, rnk[par[u].F]}, u});
+			stable_sort(all(tmp));
+			int cnt = 0;
+			FR(i, 0, size(tmp))
+			{
+				rnk[tmp[i].S] = cnt;
+				if(i < size(tmp) - 1 && tmp[i].F != tmp[i + 1].F)
+					cnt++;
+			}
+			ly.clear();
+			lst = dist[v];
+		}
+
+		FR(i, 0, size(vec[v]))
+		{
+			int u = vec[v][i].F, w = vec[v][i].S;
+			if(dist[v] + 1 < dist[u])
+			{
+				dist[u] = dist[v] + 1;
+				par[u] = {v, w};
+				ly.PB(u);
+				q.PB(u);
+			}
+			else if(dist[v] + 1 == dist[u])
+			{	
+				if(w < par[u].S)
+					par[u] = {v, w};
+				else if(w == par[u].S && rnk[v] < rnk[par[u].F])
+					par[u] = {v, w};
+			}
+		}
+	}
+}
+
+int main()
+{
+	int m;
+	cin>> n >> m;
+	FR(i, 0, m)
+	{
+		int a, b, w;
+		cin>> a >> b >> w;
+		vec[a].PB({b, w});
+		vec[b].PB({a, w});
+	}
+
+	bfs(0);
+	bfs2(n - 1);
+
+	int x = n - 1;
+	FR(i, 0, n)
+		if(mark[i])
+		{
+			if(dist[i] < dist[x])
+			{
+				x = i;
+			}
+			else if(dist[i] == dist[x])
+			{
+				if(rnk[i] < rnk[x])
+					x = i;
+				else if(rnk[i] == rnk[x] && d2[i] < d2[x])
+					x = i;
+			}
+		}
+
+
+
+	string str;
+	int k = x;
+	vector <int> ver;
+	ver.PB(k);
+	while(k != 0)
+	{
+		str = (char)(par[k].S + '0') + str;
+		k = par[k].F;
+		ver.PB(k);
+	}
+	reverse(all(ver));
+	reverse(all(str));
+
+	k = x;
+	while(k != n - 1)
+	{
+		k = p2[k];
+		ver.PB(k);
+	}
+
+	if(size(str) == 0)
+		str = "0";
+	cout<< str << endl;
+	cout<< size(ver) << endl;
+	for(auto v: ver)
+		cout<< v << " ";
+	cout<< endl;
+	return 0;
+}

@@ -1,0 +1,105 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 3e5 + 2;
+
+struct st{
+      int l, r, cnt;
+      st(){
+            l = r = cnt = 0;
+      }
+}t[N * 23];
+
+int n, m, p[N], root[N], sz;
+pair <int, int> a[N];
+
+void update(int nv, int ov, int pos, int tl = 1, int tr = 1e6 + 1){
+      if(tl == tr){
+            t[nv].cnt = t[ov].cnt + 1;
+      } else {
+            int tm = (tl + tr) >> 1;
+            if(pos <= tm){
+                  t[nv].r = t[ov].r;
+                  t[nv].l = ++ sz;
+                  update(t[nv].l, t[ov].l, pos, tl, tm);
+            } else {
+                  t[nv].r = ++ sz;
+                  t[nv].l = t[ov].l;
+                  update(t[nv].r, t[ov].r, pos, tm + 1, tr);
+            }
+            t[nv].cnt = t[ t[nv].l ].cnt + t[ t[nv].r ].cnt;
+      }
+}
+
+int get(int ov, int nv, int l, int r, int tl = 1, int tr = 1e6 + 1){
+      if(t[nv].cnt - t[ov].cnt <= 0 || l > tr || tl > r) return 0;
+      if(l <= tl && tr <= r) return t[nv].cnt - t[ov].cnt;
+      int tm = (tl + tr) >> 1;
+      return get(t[ov].l, t[nv].l, l, r, tl, tm) +
+                  get(t[ov].r, t[nv].r, l, r, tm + 1, tr);
+}
+
+int main(){
+      scanf("%d %d", &n, &m);
+
+      for(int i = 1; i <= n; i ++)
+            scanf("%d %d", &a[i].first, &a[i].second);
+
+      sort(a + 1, a + n + 1);
+
+      for(int i = 1; i <= n; i ++){
+            root[i] = ++ sz;
+            update(root[i], root[i - 1], a[i].second);
+      }
+
+      while(m --){
+            int cnt;
+            scanf("%d", &cnt);
+            for(int i = 1; i <= cnt; i ++)
+                  scanf("%d", p + i);
+            p[cnt + 1] = 1e6 + 1;
+
+            int ans = n;
+
+            for(int i = 1; i <= cnt + 1; i ++){
+                  if(p[i] - p[i - 1] <= 1) continue;
+                  int L = -1, R = -1;
+                  int lo = 1, hi = n;
+                  while(lo <= hi){
+                        int md = (lo + hi) >> 1;
+                        if(a[md].first > p[i - 1]){
+                              L = md;
+                              hi = md - 1;
+                        }
+                        else
+                              lo = md + 1;
+                  }
+                  if(L == -1) continue;
+
+                  lo = L, hi = n;
+                  while(lo <= hi){
+                        int md = (lo + hi) >> 1;
+                        if(a[md].first < p[i]){
+                              R = md;
+                              lo = md + 1;
+                        }
+                        else
+                              hi = md - 1;
+                  }
+
+                  if(R == -1) continue;
+
+                  ans -= get(root[L - 1], root[R], p[i - 1] + 1, p[i] - 1);
+            }
+
+            printf("%d\n", ans);
+      }
+}
+/**
+3 1
+1 3
+4 5
+6 7
+2 4 5
+**/

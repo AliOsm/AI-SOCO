@@ -1,0 +1,154 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define oo 1000000010
+#define mod 1000000007
+const int N = 100010;
+long long arr[N] , sum[N] , sum2[N] , seg[4 * N] , val[4 * N];
+int n ,  a , b[N] , lazy[4 * N] , q;
+int L , R , l , r;
+
+
+long long build(int s,int e,int idx){
+	lazy[idx] = -1;
+	if(s == e)
+		return seg[idx] = arr[s];
+	return seg[idx] = build(s,((s+e) >> 1),(idx << 1)) + build(((s+e) >> 1) +1,e,(idx << 1) + 1);
+}
+
+long long getsum(int s,int e,int idx){
+	if(lazy[idx] != -1){
+		seg[idx] = val[idx] * (e - s + 1);
+		seg[idx] += (long long)(e - s + 1) * (sum[s] - sum[lazy[idx]]);
+		seg[idx] += sum2[e] - sum2[s];
+		seg[idx] -= (long long)(sum[e] - sum[s]) * (n - e - 1);
+		if(s != e){
+			lazy[(idx << 1)] = lazy[idx];
+			lazy[(idx << 1) + 1] = lazy[idx];
+			val[(idx << 1)] = val[idx];
+			val[(idx << 1) + 1] = val[idx];
+		}
+		lazy[idx] = -1;
+	}
+	if(s > R || e < L)
+		return 0;
+	if(s >= L && e <= R)
+		return seg[idx];
+	return getsum(s,((s+e) >> 1),(idx << 1)) + getsum(((s+e) >> 1) +1,e,(idx << 1) + 1);
+}
+
+int Idx;
+long long Val;
+
+long long update(int s,int e, int idx){
+	if(lazy[idx] != -1){
+		seg[idx] = val[idx] * (e - s + 1);
+		seg[idx] += (long long)(e - s + 1) * (sum[s] - sum[lazy[idx]]);
+		seg[idx] += sum2[e] - sum2[s];
+		seg[idx] -= (long long)(sum[e] - sum[s]) * (n - e - 1);
+		if(s != e){
+			lazy[(idx << 1)] = lazy[idx];
+			lazy[(idx << 1) + 1] = lazy[idx];
+			val[(idx << 1)] = val[idx];
+			val[(idx << 1) + 1] = val[idx];
+		}
+		lazy[idx] = -1;
+	}
+	if(s > R || e < L)
+		return seg[idx];
+	if(s >= L && e <= R){
+		lazy[idx] = Idx;
+		val[idx] = Val;
+		seg[idx] = val[idx] * (e - s + 1);
+		seg[idx] += (long long)(e - s + 1) * (sum[s] - sum[lazy[idx]]);
+		seg[idx] += sum2[e] - sum2[s];
+		seg[idx] -= (long long)(sum[e] - sum[s]) * (n - e - 1);
+		if(s != e){
+			lazy[(idx << 1)] = lazy[idx];
+			lazy[(idx << 1) + 1] = lazy[idx];
+			val[(idx << 1)] = val[idx];
+			val[(idx << 1) + 1] = val[idx];
+		}
+		lazy[idx] = -1;
+		return seg[idx];
+	}
+	return seg[idx] = update(s,((s+e) >> 1),(idx << 1)) + update(((s+e) >> 1) +1,e,(idx << 1) + 1);
+}
+
+int s,e,idx;
+
+inline long long get(int i){
+	s = 0 , e = n - 1 , idx = 1;
+	while(true){
+		if(lazy[idx] != -1){
+			seg[idx] = val[idx] * (e - s + 1);
+			seg[idx] += (long long)(e - s + 1) * (sum[s] - sum[lazy[idx]]);
+			seg[idx] += sum2[e] - sum2[s];
+			seg[idx] -= (long long)(sum[e] - sum[s]) * (n - e - 1);
+			if(s != e){
+				lazy[(idx << 1)] = lazy[idx];
+				lazy[(idx << 1) + 1] = lazy[idx];
+				val[(idx << 1)] = val[idx];
+				val[(idx << 1) + 1] = val[idx];
+			}
+			lazy[idx] = -1;
+		}
+		if(s == e)
+			return seg[idx];
+		if(i > ((s + e) >> 1)){
+			s = ((s + e) >> 1) + 1;
+			idx = (idx << 1) + 1;
+		}
+		else{
+			e = ((s + e) >> 1);
+			idx = (idx << 1);
+		}
+	}
+}
+
+int main(){
+	scanf("%d",&n);
+	for(int i=0;i<n;i++){
+		scanf("%d",&a);
+		arr[i] = a;
+	}
+	for(int i=1;i<n;i++){
+		scanf("%d",&a);
+		b[i] = a;
+		sum[i] = sum[i - 1] + a;
+		sum2[i] = (long long)a * (n - i) + sum2[i - 1];
+	}
+	build(0,n-1,1);
+	scanf("%d",&q);
+	char x;
+	int low , high , mid , res;
+	long long tmp1 , tmp2 , tmp3;
+	while(q--){
+		scanf(" %c",&x);
+		if(x == 's'){
+			scanf("%d%d",&L,&R);
+			L--,R--;
+			printf("%lld\n",getsum(0,n-1,1));
+			continue;
+		}
+		scanf("%d%d",&l,&a);
+		l--;
+		tmp3 = get(l) + a;
+		low = l + 1, high = n - 1, res = l;
+		while(high >= low){
+			mid = ((low + high) >> 1);
+			tmp1 =	get(mid);
+			tmp2 = sum[mid] - sum[l] + tmp3;
+			if(tmp1 <= tmp2){
+				res = mid;
+				low = mid + 1;
+			}
+			else
+				high = mid - 1;
+		}
+		Idx = l;
+		Val = tmp3;
+		L = l, R = res;
+		update(0,n-1,1);
+	}
+	return 0;
+}

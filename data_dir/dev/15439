@@ -1,0 +1,33 @@
+#include <bits/stdc++.h>
+#define nmax 100005
+using namespace std;
+int n, a[nmax], s[nmax], m, x;
+int ans(int worm)
+{
+    int st = 1, dr = n;
+    while (st <= dr)
+    {
+        int m = (st + dr) / 2;
+        if (s[m] < worm)
+            st = m + 1;
+        else
+            dr = m - 1;
+    }
+    return st;
+}
+int main()
+{
+    cin>>n;
+    for (int i=1; i<=n; ++i)
+    {
+        cin>>a[i];
+        s[i] = s[i-1] + a[i];
+    }
+    cin>>m;
+    for (int i=1; i<=m; ++i)
+    {
+        cin>>x;
+        cout<<ans(x)<<'\n';
+    }
+    return 0;
+}

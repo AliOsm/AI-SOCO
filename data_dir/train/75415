@@ -1,0 +1,161 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+using namespace std;
+template<class T, class T2> inline void chkmax(T &x, const T2 &y) { if(x < y) x = y; }
+template<class T, class T2> inline void chkmin(T &x, const T2 &y) { if(x > y) x = y; }
+const int MAXN = (1 << 20);
+const int MAXLOG = 20;
+
+template<class T>
+struct fenwick
+{
+	int sz;
+	T tr[MAXN];
+
+	void init(int _sz)
+	{
+		sz = _sz + 1;
+		memset(tr, 0, sizeof(tr));
+	}
+
+	T query(int idx)
+	{
+		T ans = 0;
+		for(; idx >= 1; idx -= (idx & -idx))
+			ans += tr[idx];
+		return ans;
+	}
+
+	void update(int idx, T val)
+	{
+		if(idx <= 0) return;
+		for(; idx <= sz; idx += (idx & -idx))
+			tr[idx] += val;
+	}
+
+	void update(int l, int r, T val)
+	{
+		update(l, val);
+		update(r + 1, -val);
+	}
+};
+
+
+int n, m;
+vector<int> G[MAXN];
+
+void read()
+{
+	cin >> n >> m;
+	for(int i = 2; i <= n; i++)
+	{
+		int u;
+		cin >> u;
+		G[u].push_back(i);
+	}
+}
+
+int st[MAXN], en[MAXN], dfs_time = 0;
+int par[MAXN][MAXLOG];
+
+void dfs_lca(int u)
+{
+	st[u] = ++dfs_time;
+	for(int i = 1; i < MAXLOG; i++)
+		par[u][i] = par[par[u][i - 1]][i - 1];
+
+	for(int v: G[u])
+		if(v != par[u][0])
+		{
+			par[v][0] = u;
+			dfs_lca(v);
+		}
+
+	en[u] = dfs_time;
+}
+
+inline bool upper(int u, int v) { return st[u] <= st[v] && en[v] <= en[u]; }
+
+int lca(int u, int v)
+{
+	if(upper(u, v)) return u;
+	if(upper(v, u)) return v;
+
+	int a = u;
+	for(int i = MAXLOG - 1; i >= 0; i--)
+		if(!upper(par[a][i], v))
+			a = par[a][i];
+
+	return par[a][0];
+}
+
+int parent(int u, int up)
+{
+	int a = u;
+	for(int i = MAXLOG - 1; i >= 0; i--)
+		if(up & (1 << i))
+			a = par[a][i];
+
+	return a;
+}
+
+void lca_precompute(int root)
+{
+	for(int i = 0; i < MAXLOG; i++)
+        par[root][i] = root;
+
+	dfs_time = 0;
+	dfs_lca(root);
+}
+
+int dp[MAXN];
+fenwick<int> t;
+int Fr[MAXN], Sc[MAXN], C[MAXN];
+vector<int> li[MAXN];
+
+void dfs(int u)
+{
+	int sum_all = 0;
+	for(int v: G[u])
+	{
+		dfs(v);
+		sum_all += dp[v];
+	}
+	
+	dp[u] = sum_all;
+	for(int idx: li[u])
+	{
+		int cand = C[idx] + t.query(st[Fr[idx]]) + t.query(st[Sc[idx]]) + sum_all;
+		chkmax(dp[u], cand);
+	}
+
+	t.update(st[u], en[u], sum_all - dp[u]);
+}
+
+void solve()
+{
+	lca_precompute(1);
+	
+	for(int i = 0; i < m; i++)
+	{
+		cin >> Fr[i] >> Sc[i] >> C[i];
+		li[lca(Fr[i], Sc[i])].push_back(i);
+	}
+
+	t.init(dfs_time + 42);
+	dfs(1);
+
+	cout << dp[1] << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

@@ -1,0 +1,183 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+//.define
+// #define FILE_IN_OUT
+#define RET(_x)                       return cout << (_x) << '\n', 0;
+#define all(_obj)                     (_obj).begin(), (_obj).end()
+#define loop(_n)                      for (int i = 0; i < (_n); ++i)
+#define ceilDiv(_dividend, _divider)  (((_dividend) - 1LL + (_divider)) / (_divider))
+#define has(_obj, _val)               ((_obj).find(_val) != (_obj).end())
+#define sz(_obj)                      static_cast<int>((_obj).size())
+#ifdef SHJ_LOCAL
+#define debug(_x)                     std::cerr << (#_x) << " = " << (_x) << '\n' << std::flush;
+#else
+#define debug(_x)                     {}
+#endif
+#define endl "\n"
+template<typename Tp>
+inline void outarr(Tp _begin, Tp _end, const char* _delim = " ") {
+    for (Tp current = _begin; current != _end; ++current) {
+        std::cout << *current << _delim;
+    }
+    std::cout << '\n';
+}
+
+//.constant
+using ll  = long long;
+using pii = std::pair<int, int>;
+constexpr int INF = 0x3f3f3f3f;
+constexpr int MOD = static_cast<const int>(1e9 + 7);
+
+//.data
+constexpr ll LLINF = 0x3f3f3f3f3f3f3f3fLL;
+constexpr int MAXN = 50;
+
+class Dsu {
+public:
+    explicit Dsu(int n) : prnt(n), rank(n, 0) {
+        iota(all(prnt), 0);
+    }
+
+    int Find(int v) {
+        if (v == prnt[v]) {
+            return v;
+        }
+        return prnt[v] = Find(prnt[v]);
+    }
+
+    bool Union(int v, int u) {
+        int pU = Find(u);
+        int pV = Find(v);
+        if (pU != pV) {
+            if (rank[pV] < rank[pU]) {
+                swap(pV, pU);
+            }
+            prnt[pU] = pV;
+            if (rank[pV] == rank[pU]) {
+                ++rank[pV];
+            }
+            return true;
+        }
+        return false;
+    }
+
+private:
+    vector<int> prnt;
+    vector<int> rank;
+};
+
+ll dp[MAXN + 1][MAXN + 1];
+ll fact[MAXN + 1];
+int ans[MAXN];
+bool used[MAXN];
+
+ll Add(ll x, ll y) {
+    x += y;
+    return x < LLINF ? x : LLINF;
+}
+
+ll Mul(ll x, ll y) {
+    ll res = 0;
+    while (y > 0) {
+        if (y & 1) {
+            res = Add(res, x);
+        }
+        y >>= 1;
+        x = Add(x, x);
+    }
+    return res;
+}
+
+void Init() {
+    fact[0] = 1;
+    for (int i = 1; i <= MAXN; ++i) {
+        fact[i] = Mul(fact[i - 1], i);
+    }
+    dp[0][0] = dp[1][0] = dp[1][1] = 1;
+    for (int i = 2; i <= MAXN; ++i) {
+        dp[i][0] = dp[i][i] = fact[i - 2];
+        for (int j = 1; j < i; ++j) {
+            dp[i][j] = Mul(dp[j][j], dp[i - j][0]);
+            dp[i][0] = Add(dp[i][0], dp[i][j]);
+        }
+    }
+}
+
+void Fill(ll k, int n, int l, int r) {
+    memset(used, false, sizeof(bool) * n);
+    ans[l] = n + l;
+    used[n - 1] = true;
+    Dsu dsu(n);
+    dsu.Union(0, n - 1);
+    for (int i = 1; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (used[j]) {
+                continue;
+            }
+            if (i == n - 1) {
+                ans[r] = l + j + 1;
+                break;
+            }
+            if (dsu.Find(j) == dsu.Find(i)) {
+                continue;
+            }
+            if (fact[n - 2 - i] < k) {
+                k -= fact[n - 2 - i];
+                continue;
+            }
+            ans[l + i] = l + j + 1;
+            used[j] = true;
+            dsu.Union(i, j);
+            break;
+        }
+    }
+}
+
+void Do(ll k, int n, int l, int r) {
+    if (l > r) {
+        return;
+    }
+    for (int j = 1; j <= n; ++j) {
+        if (dp[n][j] >= k) {
+            ll first = ceilDiv(k, dp[n - j][0]);
+            Fill(first, j, l, l + j - 1);
+            Do(k - (first - 1) * dp[n - j][0], n - j, l + j, r);
+            break;
+        }
+        k -= dp[n][j];
+    }
+}
+
+//.code
+int main() {
+#ifdef FILE_IN_OUT
+    std::ifstream cin ("input.txt",  std::ios::in);
+    std::ofstream cout("output.txt", std::ios::out);
+#else
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+#endif
+
+    Init();
+    int qq;
+    cin >> qq;
+    while (qq--) {
+        int n;
+        ll k;
+        cin >> n >> k;
+        if (dp[n][0] < k) {
+            cout << -1 << endl;
+            continue;
+        }
+        memset(ans, 0, sizeof(ans));
+        Do(k, n, 0, n - 1);
+        outarr(ans, ans + n);
+    }
+
+#ifdef FILE_IN_OUT
+    cin.close();
+    cout.close();
+#endif
+    return 0;
+}

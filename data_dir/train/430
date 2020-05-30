@@ -1,0 +1,110 @@
+#include<bits/stdc++.h>
+#define P(x,y) make_pair(x,y)
+using namespace std;
+const int MX=(1<<17);
+vector < pair < int , int >  > E[MX] ;
+vector < int > v[MX];
+vector < pair < int , int > > all;
+//map < pair < int , int > > ans;
+vector < vector < int > > buckets;
+int timer , flood[MX];
+void dfs(int x){
+    if(flood[x] == timer) return;
+    flood[x] = timer;
+    for(auto nxt : v[x])
+        dfs(nxt);
+}
+int n , m;
+void init(int color){
+    set < int > S;
+    for(auto edge : E[color]){
+        v[edge.first].clear();
+        v[edge.second].clear();
+        S.insert(edge.first);
+        S.insert(edge.second);
+    }
+    for(auto edge : E[color]){
+        v[edge.first].push_back(edge.second);
+        v[edge.second].push_back(edge.first);
+    }
+    //cout<<S.size()<<endl;
+    vector < int > nodes(S.begin() , S.end());
+    //cout<<nodes.size()<<endl;
+    for(auto pp : nodes) flood[pp] = -1;
+    for(auto pp : nodes){
+        if(flood[pp] == -1){
+            ++timer;
+            dfs(pp);
+        }
+    }
+    vector < int > res;
+    res.resize(n+1);
+    if(nodes.size() >= 300){
+        for(int j = n ; j ; j--){
+            res[j] = -1;
+            if(!nodes.empty() && nodes.back() == j){
+                res[j] = flood[j];
+                nodes.pop_back();
+            }
+        }
+        buckets.push_back(res);
+        return;
+    }
+    for(auto pp : nodes){
+        for(auto qq : nodes){
+            if(pp < qq && flood[pp] == flood[qq])
+                all.push_back({pp , qq});
+        }
+    }
+}
+int cnt[MX];
+vector < pair < int , int > > sorted;
+void enka7o(){
+    memset(cnt , 0 , sizeof(cnt));
+    sorted.resize(all.size());
+    for(auto P : all)
+        cnt[P.second]++;
+    for(int j=1;j<=n;j++)
+        cnt[j] += cnt[j-1];
+    for(auto P : all)
+        sorted[--cnt[P.second]] = P;
+    memset(cnt , 0 , sizeof(cnt));
+    all.swap(sorted);
+    reverse(all.begin() , all.end());
+    for(auto P : all)
+        cnt[P.first]++;
+    for(int j=1;j<=n;j++)
+        cnt[j] += cnt[j-1];
+    for(auto P : all)
+        sorted[--cnt[P.first]] = P;
+    sorted.swap(all);
+}
+int main(){
+    scanf("%d %d",&n,&m);
+    for(int j=1;j<=m;j++){
+        int a , b, c;
+        scanf("%d %d %d",&a,&b,&c);
+        E[c].push_back(P(a,b));
+    }
+    for(int j=1;j<=m;j++){
+        init(j);
+    }
+    enka7o();
+    //for(auto pp : all) cout<<"#"<<pp.first<<' '<<pp.second<<endl;
+    int QN;
+    scanf("%d",&QN);
+    while(QN--){
+        int a , b;
+        scanf("%d %d",&a,&b);
+        if(a > b) swap(a , b);
+        int ans = 0;
+        for(int j = 0 ; j< buckets.size();j++){
+            if(buckets[j][a] == buckets[j][b] && buckets[j][a] != -1)
+                ans++;
+        }
+        ans += upper_bound(all.begin() , all.end() , P(a , b)) -
+             lower_bound(all.begin() , all.end() , P(a , b)) ;
+        printf("%d\n",ans);
+    }
+}
+

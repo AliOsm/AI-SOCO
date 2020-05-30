@@ -1,0 +1,125 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+#define from(x) ((x))
+#define to(x) ((n1)+(x))
+class MaxFlow{
+public:
+    map<int, map<int,int> > adj;
+    int source, sink, flow;
+    MaxFlow(int source, int sink):source(source),sink(sink),flow(0)
+    {}
+    void add_edge(int st, int en, int cap=1)
+    {
+        adj[st][en] += cap;
+        assert(cap>=0);
+        if(!adj[en].count(st))
+            adj[en][st] = 0;
+    }
+    int Flow()
+    {
+        while(1) // run as long as you keep getting augmenting paths
+        {
+            map<int,int> prev;
+            prev[source] = source;
+            queue<int> q;
+            q.push(source);
+            bool foundsink = false;
+            while(!foundsink && q.size())
+            {
+                int top = q.front();
+                q.pop();
+                for(auto &i:adj[top])
+                {
+                    if(i.second == 0 || prev.count(i.first)) continue;//if augmenting path isn't there or already visited the node
+                    prev[i.first] = top;
+                    q.push(i.first);
+                    if(i.first == sink)
+                    {
+                        foundsink = true;
+                        break;
+                    } 
+                }
+            }
+            if(foundsink)
+            {
+                int curr = sink;
+                int minc = adj[prev[sink]][sink];
+                while(curr!=source)
+                {
+                    int &pcurr = prev[curr];
+                    minc = min(minc,adj[pcurr][curr]);
+                    curr = pcurr;
+                }
+                curr = sink;
+                assert(minc!=0);
+                //augment the paths
+                while(curr!=source)
+                {
+                    int &pcurr = prev[curr];
+                    adj[pcurr][curr] -= minc;
+                    adj[curr][pcurr] += minc;
+                    curr = pcurr;
+                }
+                flow += minc;
+            }
+            else //no augmenting path left
+            {
+                break;
+            }
+        }
+        return flow;
+    }
+};
+int32_t main() {
+    ios::sync_with_stdio(false);cin.tie(0);
+    int n1,n2,m,x,y;
+    cin>>n1>>n2>>m;
+    int source = 0, sink = to(n2)+1;
+    MaxFlow f(source,sink);
+    vector<int> degree(n1+n2+10,0);
+    vector<pair<int,int> > edges;
+    for(int i=0;i<m;i++)
+    {
+        cin>>x>>y;
+        f.add_edge(from(x),to(y));
+        degree[from(x)]++;
+        degree[to(y)]++;
+        edges.push_back({from(x),to(y)});
+    }
+    int mindeg = degree[from(1)];
+    for(int i = from(1);i<=to(n2);i++)
+        mindeg = min(mindeg,degree[i]);
+    for(int i=1;i<=n1;i++)
+        f.add_edge(source,from(i),degree[from(i)]-mindeg);
+    for(int i=1;i<=n2;i++)
+        f.add_edge(to(i),sink,degree[to(i)]-mindeg);
+    string s = "";
+    vector<vector<int> > v(mindeg+1);
+    while(mindeg>=0)
+    {
+        f.Flow();
+        map<pair<int,int>,int> cnt;
+        for(int i=0;i<m;i++)
+        {
+            cnt[edges[i]]++;
+            if(f.adj[edges[i].first][edges[i].second]>=cnt[edges[i]]) 
+            {
+                v[mindeg].push_back(i+1);
+            }
+        }
+        for(int i=1;i<=n1;i++)
+            f.add_edge(source,from(i),1);
+        for(int i=1;i<=n2;i++)
+            f.add_edge(to(i),sink,1);
+        mindeg--;
+    }
+    for(auto &i:v)
+    {
+        cout<<i.size()<<" ";
+        for(auto &j:i) cout<<j<<" ";
+        cout<<'\n';
+    }
+    // cerr<<(clock()*1000/CLOCKS_PER_SEC)<<endl;
+    return 0;
+}

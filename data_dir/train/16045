@@ -1,0 +1,183 @@
+
+#define CPPELEVEN
+#define GPP
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int maxn = 2010;
+int n, fa[maxn], deep[maxn];
+
+int getfa(int a, int b) {
+  if(deep[a] < deep[b]) swap(a, b);
+  while(deep[a] > deep[b])
+    a = fa[a];
+  while(a != b) {
+    a = fa[a], b = fa[b];
+  }
+  return deep[a];
+}
+
+int get(int a, int b, int c) {
+#ifdef DEBUG
+  int rd = getfa(a, b), rd1, ans = 0;
+  if((rd1 = getfa(b, c)) > rd) {
+    rd = rd1;
+    ans = 1;
+  }
+  if((rd1 = getfa(a, c)) > rd) {
+    rd = rd1;
+    ans = 2;
+  }
+  return ans;
+#else
+  printf("%d %d %d\n", a + 1, b + 1, c + 1);
+  fflush(stdout);
+  char str[2];
+  scanf("%s", str);
+  return str[0] - 'X';
+#endif
+}
+
+struct node {
+  node *son[2], *fa;
+  int sz;
+  node () {
+    fa = son[0] = son[1] = NULL;
+    sz = 0;
+  }
+} rn[maxn];
+int lrn;
+
+
+node* getoneleaf(node *rno) {
+  if(rno->son[0])
+    return getoneleaf(rno->son[0]);
+  else if(rno->son[1])
+    return getoneleaf(rno->son[1]);
+  else
+    return rno;
+}
+
+void pushup(node *a) {
+  if(a == NULL) return;
+  a->sz = 0;
+  if(a->son[0]) a->sz += a->son[0]->sz;
+  if(a->son[1]) a->sz += a->son[1]->sz;
+  pushup(a->fa);
+}
+
+void del(node *a) {
+  if(a == NULL)
+    return;
+  node *b = a->fa;
+  if(!b) return;
+  int cate = 0;
+  if(a == b->son[1]) cate = 1;
+  a->fa = NULL;
+  b->son[cate] = NULL;
+  pushup(b);
+}
+
+void add(node *a, node *b) {
+  int cate = 0;
+  a->fa = b;
+  if(b == NULL)
+    return;
+  if(b->son[0]) cate = 1;
+  b->son[cate] = a;
+  pushup(b);
+}
+
+node* upd(int no, node *root) {
+  if(root->sz == 1) {
+    node* rroot = getoneleaf(root);
+    node* rt = rroot->fa;
+    del(rroot);
+    add(rn + lrn, rt);
+    add(rroot, rn + lrn);
+    add(rn + no, rn + lrn);
+    lrn++;
+    while(root->fa)
+      root = root->fa;
+    return root;
+  }
+  node *leaf1 = getoneleaf(root), *pre = NULL, *rroot = leaf1;
+  for(; rroot->sz * 2 <= root->sz; pre = rroot, rroot = rroot->fa);
+  node *leaf2; int rc = 0;
+  if(pre == rroot->son[0]) leaf2 = getoneleaf(rroot->son[1]);
+  else {
+    leaf2 = getoneleaf(rroot->son[0]);
+    rc = 1;
+  }
+  int cate = get(leaf1 - rn, leaf2 - rn, no);
+  if(cate == 0) {
+    node *leaf1fa = leaf1->fa;
+    node* rt = rroot->fa;
+    del(leaf1);
+    del(rroot);
+    add(leaf1, rt);
+    if(rt)
+      upd(no, root);
+    else
+      upd(no, leaf1);
+    node *rleaf1fa = leaf1->fa;
+    del(leaf1);
+    add(rroot, rleaf1fa);
+    add(leaf1, leaf1fa);
+    while(root->fa)
+      root = root->fa;
+    return root;
+  } else if(cate == 1) {
+    node *rt = rroot->son[1 - rc];
+    del(rt);
+    node *temp = upd(no, rt);
+    add(temp, rroot);
+  } else {
+    node *rt = rroot->son[rc];
+    del(rt);
+    node *temp = upd(no, rt);
+    add(temp, rroot);
+  }
+  return root;
+}
+
+
+int main() {
+
+//............................不要再忘了检查maxn大小了！！！！BSBandme你个SB！！！！...................................................
+
+  ios_base::sync_with_stdio(0);
+  #ifdef DEBUG //......................................................................................................
+  freopen("input.txt", "r", stdin);
+  #endif //...........................................................................................................
+
+  scanf("%d", &n);
+#ifdef DEBUG
+  for(int i = 0; i < n * 2 - 1; i++)
+    scanf("%d", fa + i);
+  for(int i = 0; i < n * 2 - 1; i++) {
+    for(int j = 0; j < n * 2 - 1; j++) if(fa[j] != -1)
+      deep[j] = deep[fa[j]] + 1;
+  }
+#endif
+
+  lrn = n + 1;
+  for(int i = 0; i < n; i++)
+    rn[i].sz = 1;
+  add(rn, rn + n);
+  add(rn + 1, rn + n);
+
+  node *root = rn + n;
+  for(int i = 2; i < n; i++) {
+    root = upd(i, root);
+  }
+
+  printf("-1");
+  for(int i = 0; i < 2 * n - 1; i++)
+    printf(" %d", rn[i].fa ? int(rn[i].fa - rn) + 1 : -1);
+
+
+  return 0;
+}

@@ -1,0 +1,180 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#define _CRT_DISABLE_PERFCRIT_LOCKS
+
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <stdlib.h>
+#include <set>
+#include <vector>
+#include <list>
+#include <algorithm>
+#include <regex>
+#include <math.h>
+#include <map>
+#include <iterator>
+#include <climits>
+#include <numeric>
+#include <bitset>
+#include <unordered_map>
+#include <unordered_set>
+#include <iomanip>
+#include <queue>	
+#include <deque>
+#include <stack>
+#include <array>
+#include <valarray>
+#include <complex>
+#include <random>
+#include <functional>
+#include <cassert>
+#include <chrono>
+
+using namespace std;
+
+
+#define int long long
+#define double long double
+typedef long long ll;
+typedef unsigned long long ull;
+template <typename T>
+void __read(T& a) { cin >> a; }
+template <typename T, typename ... Args>
+void __read(T& a, Args& ... args) { cin >> a; __read(args...); }
+#define make(t, ...) t __VA_ARGS__; __read(__VA_ARGS__)
+#define makev(a, n) VI a(n); FOR(n) cin >> a[i];
+#define ALL(x) (x).begin(), (x).end()
+#define RALL(x) (x).rbegin(), (x).rend()
+#define FORIT(p) for(auto it = p.begin(); it != p.end(); it++)
+#define FOR(b) for(signed i = 0; i <(b); i++)
+#define FORE(i, l, r) for(int i = (l); i < (r); i++)
+#define NFOR(i, n) for(int i = (((int) n)-1); i >= 0; i--)
+typedef vector<int> VI;
+typedef vector<vector<int>> VVI;
+typedef pair<int, int> PII;
+typedef pair<pair<int, int>, int> PPII;
+constexpr ll M7 = 1000000007ll;
+constexpr ll M9 = 1000000009ll;
+constexpr ll MFFT = 998244353ll;
+template <typename T> void outv(T a) { for (auto& x : a) cout << x << ' '; }
+mt19937 rnd(static_cast<unsigned>(chrono::steady_clock::now().time_since_epoch().count()));
+template <typename T> void random_shuffle(T s, T e) { shuffle(s, e, rnd); };
+
+
+
+const int MAXN = 100'000;
+set<PPII> sgm[MAXN], tree[MAXN * 4];
+const int INF = M7;
+
+void build(int pos, int l, int r) {
+	if (l == r) {
+		tree[pos] = move(sgm[l]);
+		return;
+	}
+	int npos = pos * 2;
+	int mid = (l + r) / 2;
+	build(npos, l, mid);
+	build(npos + 1, mid + 1, r);
+	tree[pos] = tree[npos];
+	for (auto& q : tree[npos + 1]) tree[pos].insert(q);
+}
+
+PPII erase_tree(int pos, int l, int r, int ql, int qr, int rr) {
+	if (l > qr || ql > r) return PPII();
+	if (l >= ql && r <= qr) {
+		if (tree[pos].empty() || tree[pos].rbegin()->first.first < rr) return PPII();
+		auto res = *tree[pos].rbegin();
+		tree[pos].erase(--tree[pos].end());
+		return res;
+	}
+	int npos = pos * 2;
+	int mid = (l + r) / 2;
+	auto res = erase_tree(npos, l, mid, ql, qr, rr);
+	if (res.second == 0) res = erase_tree(npos + 1, mid + 1, r, ql, qr, rr);
+	if (res.second) tree[pos].erase(res);
+	return res;
+}
+
+vector<PPII> g[MAXN];
+void Solve() {
+	make(int, n, q, s);
+	s--;
+	while (q--) {
+		make(int, t);
+		if (t < 3) {
+			int v, l, r, w;
+			cin >> v;
+			if (t == 1) {
+				cin >> l;
+				r = l;
+			}
+			else cin >> l >> r;
+			cin >> w;
+			v--, l--, r--;
+			g[v].push_back(PPII({ l, r }, w));
+		}
+		else {
+			make(int, v, l, r, w);
+			v--, l--, r--;
+			sgm[l].insert({ {r, v}, w });
+		}
+	}
+	build(1, 0, n - 1);
+	VI ans(n, -1);
+	set<pair<int, PII>> o;
+	o.insert({ 0, {s, s} });
+	set<int> act;
+	FOR(n) act.insert(i);
+	while (!o.empty()) {
+		auto p = *o.begin();
+		o.erase(o.begin());
+		auto it = act.lower_bound(p.second.first);
+		if (it == act.end() || *it > p.second.second) continue;
+		int v = *it;
+		int w = p.first;
+		ans[v] = w;
+		o.insert({ w, {v + 1, p.second.second} });
+		act.erase(v);
+		for (auto e : g[v]) {
+			int l = e.first.first;
+			int r = e.first.second;
+			int nw = w + e.second;
+			o.insert({ nw, {l, r} });
+		}
+		while (1) {
+			auto p = erase_tree(1, 0, n - 1, 0, v, v);
+			if (p.second == 0) break;
+			int u = p.first.second;
+			int nw = w + p.second;
+			o.insert({ nw, {u, u} });
+		}
+	}
+	outv(ans);
+}
+
+signed main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#ifdef _SUPER_DEFINE
+	if (!freopen("input.txt", "r", stdin) || !freopen("output.txt", "w", stdout)) return 0;
+	if (sizeof(int) != 8) cout << "NO LONG!!!\n";
+	bool w_out = 0;
+	while (!cin.eof()) {
+		if (w_out) FOR(2) cout << endl;
+		else w_out = 1;
+		auto t = chrono::steady_clock::now();
+		Solve();
+		cout << '\n' << chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - t).count() << " ms";
+		fflush(stdout);
+		string s = "_";
+		getline(cin, s);
+		do getline(cin, s);
+		while (!cin.eof() && !s.empty());
+		while (isspace(cin.peek())) cin.get();
+	}
+#else
+	Solve();
+#endif
+	return 0;
+}

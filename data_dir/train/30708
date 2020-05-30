@@ -1,0 +1,270 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#ifdef SG
+    #include <debug.h>
+#else
+    #define show(...)
+    #define debug(...)
+    #define deepen(...)
+    #define timer(...)
+#endif
+
+#define ARG4(_1,_2,_3,_4,...) _4
+
+#define forn3(i,l,r) for (int i = int(l); i < int(r); ++i)
+#define forn2(i,n) forn3 (i, 0, n)
+#define forn(...) ARG4(__VA_ARGS__, forn3, forn2) (__VA_ARGS__)
+
+#define ford3(i,l,r) for (int i = int(r) - 1; i >= int(l); --i)
+#define ford2(i,n) ford3 (i, 0, n)
+#define ford(...) ARG4(__VA_ARGS__, ford3, ford2) (__VA_ARGS__)
+
+#define ve vector
+#define pa pair
+#define tu tuple
+#define mp make_pair
+#define mt make_tuple
+#define pb push_back
+#define fs first
+#define sc second
+#define all(a) (a).begin(), (a).end()
+#define sz(a) ((int)(a).size())
+
+typedef long double ld;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef unsigned char uc;
+typedef pa<int, int> pii;
+typedef pa<int, ll> pil;
+typedef pa<ll, int> pli;
+typedef pa<ll, ll> pll;
+typedef ve<int> vi;
+
+const ld pi = 3.1415926535897932384626433832795l;
+
+template<typename T> inline auto sqr (T x) -> decltype(x * x) {return x * x;}
+template<typename T1, typename T2> inline bool umx (T1& a, T2 b) {if (a < b) {a = b; return 1;} return 0;}
+template<typename T1, typename T2> inline bool umn (T1& a, T2 b) {if (b < a) {a = b; return 1;} return 0;}
+
+const int N = 100100, Q = 5100;
+
+struct Input {
+    int st[N];
+    int l[Q], r[Q];
+    ld p[Q];    
+    int n, q;
+
+    bool read () {
+        if (scanf("%d%d", &n, &q) != 2)
+            return 0;
+        forn(i, n)
+            scanf("%d", &st[i]);
+        forn(i, q) {
+            scanf("%d%d", &l[i], &r[i]);
+            l[i]--, r[i]--;
+            double p1;
+            cin >> p1;
+            p[i] = p1;
+        }
+        return 1;
+    }
+
+    void init (const Input &input) {
+        *this = input;
+    }
+};
+
+struct Data: Input {
+    ld ans;
+
+    void write () {
+        cout << (double)ans << endl;
+    }
+    
+    virtual void solve () {}
+    
+    virtual void clear () {
+        *this = Data();
+    }
+};
+
+struct Solution: Data {
+    vi g[Q];    
+    int tekst[Q];
+    int tim[Q];
+    bool use[Q];
+    bool in[Q][Q];
+    vi c[Q];
+    int root;
+    double d[Q][Q];
+    int maxx[Q];
+
+    struct tree {
+        vi t;
+        int sz;
+
+        tree(){}
+
+        tree(int n, int *a) {
+            sz = 1;
+            while (sz < n) sz <<= 1;
+            t.assign(2 * sz, 0);
+            for (int i = sz; i < sz + n; ++i)
+                t[i] = a[i - sz];
+            ford(i, sz) {
+                t[i] = max(t[2 * i], t[2 * i + 1]);
+            }
+        }       
+
+        int fnd(int i, int x, int y, int l, int r) {
+            if (x > r || y < l)
+                return -1;
+            if (x >= l && y <= r)
+                return t[i];
+            return max(fnd(2 * i, x, (x + y) >> 1, l, r), fnd(2 * i + 1, ((x + y) >> 1) + 1, y, l, r));
+        }
+
+    };
+
+    void calc(int v) {
+        forn(i, sz(c[v])) {
+            calc(c[v][i]);
+        }   
+        if (!sz(c[v])) {
+            forn(i, Q) {
+                d[v][i] = 1.0;
+            }
+            d[v][0] = 1 - p[v];
+            return;
+        }
+        ve<ld> help(Q, 1.0);
+        forn(i, sz(c[v])) {
+            int to = c[v][i];
+            int diff = maxx[v] - maxx[to];
+            ld sum0 = 0;
+            forn(j, Q) {
+                sum0 = d[to][j];
+                if (j - diff >= 0) {
+                    help[j - diff] *= sum0;
+                }
+            }
+        }
+        forn(i, Q)
+            d[v][i] = help[i];
+        help.assign(Q, 1.0);
+        help[0] = 0.0;
+        forn(i, sz(c[v])) {
+            int to = c[v][i];
+            int diff = maxx[v] - maxx[to];
+            ld sum1 = 0;
+            forn(j, Q) {
+                if (j - diff >= 0) {
+                    help[j - diff] *= sum1;
+                }
+                sum1 = d[to][j];
+            }
+        }
+        forn(i, Q) {
+            d[v][i] = d[v][i] * (1 - p[v]) + help[i] * p[v];
+        }
+        //d[v][0] *= (1 - p[v]);
+    }
+
+    void solve () {
+        l[q] = 0, r[q] = n - 1;
+        p[q++] = 0.0;
+        memset(in, 0, sizeof(in));
+        forn(i, q) {
+            forn(j, q) {
+                if (i == j)
+                    continue;
+                if (l[i] <= l[j] && r[i] >= r[j]) {
+                    if (!(l[i] == l[j] && r[i] == r[j] && i < j)) {
+                        g[i].pb(j);
+                        in[i][j] = 1;
+                    }
+                }
+            }
+        }
+        memset(use, 0, sizeof(use));
+        memset(tim, 1, sizeof(tim));
+        memset(tekst, 0, sizeof(tekst));
+        forn(i, q) {
+            forn(j, sz(g[i])) {
+                tekst[g[i][j]]++;
+            }
+        }
+        //debug(q);
+        forn(i, q) {
+            int idx = -1;
+            //debug(i);
+            debug(tekst, tekst + 6);
+            forn(j, q) {
+                if (!use[j] && tekst[j] == 0) {
+                    idx = j;
+                    break;
+                }
+            }
+            assert(idx >= 0);
+            debug(idx);
+            use[idx] = 1;
+            tim[idx] = i;
+            forn(j, q) {
+                if (in[idx][j]) {
+                    tekst[j]--;
+                }
+            }
+            if (i > 0) {
+                int bst = -1, bsti = -1;
+                forn(j, q) {
+                    if (use[j] && in[j][idx] && umx(bst, tim[j])) {
+                        bsti = j;   
+                    }
+                }
+                assert(bsti >= 0);
+                c[bsti].pb(idx);
+            }
+        }
+        tree t(n, st);
+        forn(i, q) {
+            maxx[i] = t.fnd(1, 0, t.sz - 1, l[i], r[i]);
+        }
+        root = q - 1;
+        calc(root);
+        ans = 0;
+        forn(i, q) {
+            debug(d[i], d[i] + 20);
+        }
+        ans = d[root][0] * maxx[root];
+        forn(i, Q - 1) {
+            ans += (d[root][i + 1] - d[root][i]) * (maxx[root] + i + 1);
+        }
+    }
+    
+    void clear () {
+        *this = Solution();
+    }
+};
+
+Solution sol;
+
+int main () {
+    cout.setf(ios::showpoint | ios::fixed);
+    cout.precision(20);
+#ifdef SG
+    freopen((problemname + ".in").c_str(), "r", stdin);
+//  freopen((problemname + ".out").c_str(), "w", stdout);
+    while (sol.read()) {
+        sol.solve();
+        sol.write();
+        sol.clear();
+    }
+#else
+    sol.read();
+    sol.solve();
+    sol.write();
+#endif
+    return 0;
+}

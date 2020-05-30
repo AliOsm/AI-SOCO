@@ -1,0 +1,131 @@
+#include <bits/stdc++.h>
+#define VI vector<int>
+#define pb push_back
+#define mp make_pair
+#define pii pair<int,int>
+#define LL long long 
+#define INF 0x3f3f3f3f
+using namespace std;
+VI g[100010];
+int n;
+int sz[100010];
+int L[100010];
+int v[100010];
+int p[100010];
+VI t[100010];
+bool valid[100010];
+void dfs(int cur, int prev, int lvl, VI& V){
+	p[cur] = prev;
+	V.pb(cur);
+	v[cur] = lvl;
+	sz[cur] = 1;
+	for(int i = 0; i < (int)g[cur].size(); i++){
+		int next = g[cur][i];
+		if(v[next]==lvl || !valid[next]) continue;
+		dfs(next, cur, lvl, V);
+		sz[cur] += sz[next];
+	}
+}
+int f[100010];
+int getCentroid(int cur, int cursize, int lvl){
+	VI V;
+	dfs(cur, cur, lvl, V);
+	int c = -1;
+	for(auto i : V){
+		bool ok = true;
+		for(int j = 0; j < (int)g[i].size() && ok; j++){
+			int next = g[i][j];
+			if(v[next] != lvl || !valid[next]) continue;
+			if(next == p[i]) continue;
+			ok = (sz[next] <= cursize/2);
+		}
+		ok = ok && (cursize - sz[i] <= cursize/2);
+		if(ok){
+			c = i;
+			break;
+		}
+	}
+	valid[c] = false;
+	for(int i = 0; i < (int)g[c].size(); i++){
+		int next = g[c][i];
+		if(!valid[next]) continue;
+		int x = getCentroid(next, (p[c] == next)?(cursize-sz[c]):(sz[next]), lvl+1);
+		f[x] = c;
+	}
+	return c;
+}
+int d[100010];
+int P[19][100010];
+void dfs1(int cur, int prev, int depth){
+	d[cur] = depth;
+	for(int i = 0; i < (int)g[cur].size(); i++){
+		int next = g[cur][i];
+		if(next == prev) continue;
+		dfs1(next, cur, depth + 1);
+	}
+	P[0][cur] = prev;
+}
+void prepare(){
+	for(int i = 1; i <= 18; i++){
+		for(int j = 1; j <= n; j++){
+			P[i][j] = P[i-1][P[i-1][j]];
+		}
+	}
+}
+int lca(int u, int v){
+	if(d[u] > d[v]) swap(u, v);
+	for(int i = 18; i >= 0; i--){
+		if((d[v] - (1<<i)) >= d[u]) v = P[i][v];
+	}
+	if(u == v) return v;
+	for(int i = 18; i >= 0; i--){
+		if(P[i][u] != P[i][v]){
+			u = P[i][u];
+			v = P[i][v];
+		}
+	}
+	return P[0][u];
+}
+int getDist(int u, int v){
+	int l = lca(u, v);
+	return d[u] + d[v] - 2*d[l];
+}
+int D[100010];
+void upd(int vi){
+	int cur = vi;
+	while(cur){
+		D[cur] = min(D[cur], getDist(cur, vi));
+		cur = f[cur];
+	}
+}
+int main(){
+	memset(valid, true, sizeof valid);
+	int q;
+	scanf("%d %d", &n, &q);
+	for(int i = 0; i < n - 1; i++){
+		int x, y;
+		scanf("%d %d", &x, &y);
+		g[x].pb(y); g[y].pb(x);
+	}
+	dfs1(1, 1, 0);
+	prepare();
+	for(int i = 1; i <= n; i++) D[i] = INF;
+	int root = getCentroid(1, n, 1);
+	upd(1);
+	while(q--){
+		int qi, vi;
+		scanf("%d %d", &qi, &vi);
+		if(qi == 1){
+			upd(vi);
+		}else{
+			int ans = INF;
+			int cur = vi;
+			while(cur){
+				ans = min(ans, D[cur] + getDist(vi, cur));
+				cur = f[cur];
+			}
+			printf("%d\n", ans);
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,123 @@
+/*input
+13 3
+1 2 2 2 1 2 1 1 1 2 2 1 1
+
+10 2
+1 2 1 2 1 2 1 2 1 2
+
+7 3
+1 1 3 3 3 2 1
+*/
+#include <algorithm>
+#include <bitset>
+#include <cassert>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <list>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <utility>
+#include <vector>
+using namespace std;
+#define sp ' '
+#define endl '\n'
+#define fi first
+#define se second
+#define mp make_pair
+#define int long long
+#define N 100005
+#define bit(x,y) ((x>>y)&1LL)
+#define show(x) cout << (#x) << ": " << x << endl;
+#define ii pair<int,int>
+ostream& operator << (ostream &os, vector<int>&x) {
+	for (int i = 0; i < x.size(); i++) os << x[i] << sp;
+	return os;
+}
+ostream& operator << (ostream &os, pair<int, int> x) {
+	cout << x.fi << sp << x.se << sp;
+	return os;
+}
+ostream& operator << (ostream &os, vector<pair<int, int> >&x) {
+	for (int i = 0; i < x.size(); i++) os << x[i] << endl;
+	return os;
+}
+#define F(x) (x*(x-1)/2)
+int n, m;
+int a[N];
+int dp[N][22];
+int cnt[N];
+int L = 0, R = 0, curVal = 0;
+int query(int l, int r) {
+	if (l > r) return 0;
+	while (R < r) {
+		R++;
+		curVal += cnt[a[R]];
+		cnt[a[R]]++;
+	}
+	while (R > r) {
+		curVal -= cnt[a[R]] - 1;
+		cnt[a[R]]--; R--;
+	}
+	while (L > l) {
+		L--;
+		curVal += cnt[a[L]];
+		cnt[a[L]]++;
+	}
+	while (L < l) {
+		curVal -= cnt[a[L]] - 1;
+		cnt[a[L]]--; L++;
+	}
+	return curVal;
+}
+
+void prep() {
+	for (int i = 1; i <= n; i++) dp[i][1] = query(1, i);
+}
+
+struct data {
+	int l, r, u, v;
+	data (int _l, int _r, int _u, int _v): l(_l), r(_r), u(_u), v(_v) {};
+};
+
+queue<data> q;
+
+void solve(int lv) {
+	q.push(data(1, n, 1, n));
+	while (!q.empty()) {
+		int l = q.front().l; int r = q.front().r;
+		int u = q.front().u; int v = q.front().v;
+		q.pop();
+		if (l > r) continue;
+		int mid = (l + r) / 2;
+		int bestpos = 0;
+		for (int i = u; i <= min(mid, v); i++) {
+			if (dp[mid][lv] > dp[i][lv - 1] + query(i + 1, mid)) {
+				dp[mid][lv] = dp[i][lv - 1] + query(i + 1, mid);
+				bestpos = i;
+			}
+		}
+		q.push(data(l, mid - 1, u, bestpos)); q.push(data(mid + 1, r, bestpos, v));
+	}
+}
+
+signed main() {
+	ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+	cin >> n >> m;
+	for (int i = 1; i <= n; i++) cin >> a[i]; cnt[0] = 1;
+	memset(dp, 127, sizeof(dp));
+	prep();
+	solve(2);
+	for (int i = 2; i <= m; i++) solve(i);
+	cout << dp[n][m] << endl;
+}

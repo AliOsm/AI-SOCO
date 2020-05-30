@@ -1,0 +1,142 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+int const N = 405;
+typedef pair<int,int> pii;
+
+int n, k;
+vector<int> adj[N];
+
+int sz[N], dp1[N][N], dp2[N][N][N], pai[N], g[N][N];
+
+void dfs(int v, int par){
+
+	sz[v] = 1;
+	pai[v] = par;
+
+	for(int i = 0; i < adj[v].size(); i++){
+		int w = adj[v][i];
+		if(w == par) continue;
+		dfs(w,v);
+		sz[v] += sz[w];
+	}
+
+	int id = 0;
+	dp2[v][id][0] = 0;
+
+	for(int i = 0; i < adj[v].size(); i++){
+		int w = adj[v][i];
+		if(w == par) continue;
+
+		id++;
+		dp2[v][id][0] = id;
+		for(int t = 1; t <= min(k,sz[v]); t++){
+			dp2[v][id][t] = dp2[v][id - 1][t] + 1;
+			for(int j = 1; j <= min(t,sz[w]); j++)
+				dp2[v][id][t] = min( dp2[v][id][t], dp1[w][j] + dp2[v][id - 1][t - j]);
+		}
+
+	}
+
+	for(int t = 1; t <= min(k,sz[v]); t++)
+		dp1[v][t] = dp2[v][id][t-1];
+
+}
+
+bool mrk[N];
+vector<int> resp;
+
+void solve(int v, int par, int K){
+
+	resp.push_back(v);
+	mrk[v] = 1;
+
+	if(K == 1) return;
+
+	int id = 0;
+
+	for(int i = 0; i < adj[v].size(); i++){
+		int w = adj[v][i];
+		if(w == par) continue;
+		id++;
+	}
+
+ 	K--;
+
+ 	int cmp = dp2[v][id][K];
+
+	for(int i = adj[v].size()-1; i >= 0; i--){
+		int w = adj[v][i];
+		if(w == par) continue;
+
+		bool add = 0;
+		for(int j = 1; j <= min(sz[w],K); j++){
+			if(cmp == dp1[w][j] + dp2[v][id-1][K-j]){
+				solve(w,v,j);
+				K -= j;
+				cmp -= dp1[w][j];
+				add = 1;
+				break;
+			}
+		}
+
+		if(!add) cmp--;
+
+		id--;
+	}
+
+}
+
+
+int main(){
+
+		scanf(" %d %d", &n, &k);
+
+		for(int i = 1; i <= n-1; i++){
+			int u, v;
+			scanf(" %d %d", &u, &v);
+			adj[u].push_back(v);
+			adj[v].push_back(u);
+			g[u][v] = g[v][u] = i;
+		}
+
+		for(int i = 0; i <= n; i++)
+			for(int j = 0; j <= n; j++){
+				dp1[i][j] = 1e8;
+				for(int u = 0; u <= n; u++)
+					dp2[i][j][u] = 1e8;
+			}
+
+		dfs(1,1);
+
+		int ans = INT_MAX, node = -1;
+
+		for(int i = 1; i <= n; i++)
+			if(sz[i] >= k && dp1[i][k] + (i != 1) < ans)
+				ans = dp1[i][k] + (i != 1), node = i;
+
+		printf("%d\n", ans);
+	
+		if(!ans) return 0;
+
+		solve(node,pai[node],k);
+		
+		set<int> edge;
+		set<int>::iterator it;
+
+		for(int i = 0; i < resp.size(); i++){
+			int v = resp[i];
+			for(int j = 0; j < adj[v].size(); j++){
+				int w = adj[v][j];
+				if(!mrk[w]) edge.insert(g[v][w]);
+			}
+		}
+
+		for(it = edge.begin(); it != edge.end(); it++)
+			printf("%d ", *it);
+
+
+		return 0;
+
+}

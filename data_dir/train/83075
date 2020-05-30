@@ -1,0 +1,28 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 5;
+
+char s[N];
+
+int main() {
+  int n;
+  scanf("%d %s", &n, s);
+  int a = 0, d = 0;
+  for (int i = 0; i < n; i++) {
+    if (s[i] == 'A') {
+      a++;
+    } else {
+      d++;
+    }
+  }
+  if (a > d) {
+    puts("Anton");
+  } else if (a < d) {
+    puts("Danik");
+  } else {
+    puts("Friendship");
+  }
+  return 0;
+}

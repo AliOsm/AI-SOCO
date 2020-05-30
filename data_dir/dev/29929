@@ -1,0 +1,118 @@
+#ifdef D
+#include "header.h"
+#else
+#include "bits/stdc++.h"
+#endif
+
+using namespace std;
+
+#define type(x) __typeof((x).begin())
+#define foreach(i, x) for(type(x) i = (x).begin(); i != (x).end(); i++)
+
+typedef long long ll;
+typedef pair < int, int > ii;
+
+const int inf = 1e9 + 333;
+const ll linf = 1e18 + 333;
+
+const int N = 1 << 18;
+const int K = 10;
+
+int n, m, k;
+char s[N], qu[K];
+int val[K];
+int t[N << 1][K][K];
+int L[N << 1], R[N << 1], lazy[N << 1];
+
+void merge(int a, int x, int y) {
+    for(int i = 0; i < k; i++)
+        for(int j = 0; j < k; j++)
+            t[a][i][j] = t[x][i][j] + t[y][i][j];
+    t[a][R[x]][L[y]]++;
+    L[a] = L[x];
+    R[a] = R[y];
+}
+
+void init(int x, int l, int r) {
+    if(l == r) {
+        L[x] = R[x] = s[l];
+    }
+    else {
+        int m = (l + r) >> 1;
+        init(x + x, l, m);
+        init(x + x + 1, m + 1, r);
+        merge(x, x + x, x + x + 1);
+    }
+}
+
+void doit(int x, int l, int r, int c) {
+    for(int i = 0; i < k; i++)
+        for(int j = 0; j < k; j++)
+            t[x][i][j] = 0;
+    t[x][c][c] += r - l;
+    L[x] = R[x] = c;
+    lazy[x] = c;
+}
+
+void push(int x, int l, int r) {
+    if(lazy[x] != -1) {
+        int m = (l + r) >> 1;
+        doit(x + x, l, m, lazy[x]);
+        doit(x + x + 1, m + 1, r, lazy[x]);
+        lazy[x] = -1;
+    }
+}
+
+void update(int x, int l, int r, int x1, int x2, int c) {
+    if(x2 < l or r < x1)
+        return;
+    if(x1 <= l and r <= x2) {
+        doit(x, l, r, c);
+        return;
+    }
+    push(x, l, r);
+    int m = (l + r) >> 1;
+    update(x + x, l, m, x1, x2, c);
+    update(x + x + 1, m + 1, r, x1, x2, c);
+    merge(x, x + x, x + x + 1);
+}
+
+int main () {
+    
+    scanf("%d %d %d", &n, &m, &k);
+    
+    scanf("%s", s + 1);
+    
+    for(int i = 1; i <= n; i++)
+        s[i] -= 'a';
+    
+    init(1, 1, n);
+    
+    memset(lazy, -1, sizeof(lazy));
+    
+    for(int i = 1; i <= m; i++) {
+        int type;
+        scanf("%d", &type);
+        if(type == 1) {
+            int x, y;
+            char c;
+            scanf("%d %d %c", &x, &y, &c);
+            update(1, 1, n, x, y, c - 'a');
+        }
+        else {
+            scanf("%s", qu);
+            for(int i = 0; i < k; i++) {
+                val[qu[i] - 'a'] = i;
+            }
+            int ans = 0;
+            for(int i = 0; i < k; i++)
+                for(int j = 0; j < k; j++)
+                    if(val[j] <= val[i])
+                        ans += t[1][i][j];
+            printf("%d\n", ans + 1);
+        }
+    }
+    
+    return 0;
+    
+}

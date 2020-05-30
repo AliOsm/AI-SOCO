@@ -1,0 +1,147 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define endl '\n'
+
+typedef pair<int, int> pii;
+typedef long long ll;
+
+const int maxn = 2e5 + 5;
+const int maxp = 20;
+
+struct union_find
+{
+	vector<int> p;
+
+	union_find(int n) : p(n, -1) {}
+
+	bool join(int u, int v)
+	{
+		if ((u = root(u)) == (v = root(v)))
+			return false;
+		if (p[u] > p[v])
+			swap(u, v);
+		p[u] += p[v];
+		p[v] = u;
+		return true;
+	}
+
+	int root(int u)
+	{
+		return p[u] < 0 ? u : p[u] = root(p[u]);
+	}
+};
+
+
+int n, m;
+int A[maxn][maxp], dst[maxn], M[maxn][maxp];
+
+
+vector<pair<pii, pii>> edges;
+vector<vector<pii>> g;
+
+void dfs(int u, int p){
+    A[u][0] = p;
+    for(auto &v : g[u])
+        if(v.first != p){
+
+            M[v.first][0] = v.second;
+            dst[v.first] = 1 + dst[u]; 
+            dfs(v.first, u);
+        }
+}
+
+void compute(){
+
+    for(int k = 1; k < maxp; k++){
+        for(int i = 0; i < n; i++){
+            if(A[i][k - 1] != -1){
+                A[i][k] = A[A[i][k - 1]][k - 1];
+                M[i][k] = max(M[i][k - 1], M[A[i][k - 1]][k - 1]);
+            }
+            else A[i][k] = M[i][k] = -1;
+        }
+    }
+}
+
+int query(int u, int v){
+    if(dst[u] < dst[v])
+        swap(u, v);
+    
+    int d = dst[u] - dst[v];
+    int ans = 0;
+
+    for(int i = 0; i <= 19; i++){
+        if(d & (1 << i)){
+            ans = max(ans, M[u][i]);
+            u = A[u][i];
+            d ^= (1 << i);
+        }
+    }
+
+    if(u == v)
+        return ans;
+    
+    for(int i = 19; i >= 0; i--){
+        if(A[u][i] != A[v][i]){
+            ans = max(ans, max(M[u][i], M[v][i]));
+            u = A[u][i];
+            v = A[v][i];
+        }
+    }
+
+    ans = max(ans, max(M[u][0], M[v][0]));
+    return ans;
+}
+
+int main(){
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin >> n >> m;
+    
+    edges.resize(m);
+    g.resize(n);
+    
+    for(int i = 0, a, b, c; i < m; i++){
+        cin >> a >> b >> c;
+        a--, b--;
+        edges[i] = {{c, i}, {a, b}};
+    }
+
+    union_find ds(n);
+    sort(edges.begin(), edges.end());
+    
+    vector<pair<int, pii>> ask;
+
+    for(auto &e : edges)
+        if(ds.join(e.second.first, e.second.second))
+        {
+            g[e.second.first].emplace_back(e.second.second, e.first.first);
+            g[e.second.second].emplace_back(e.second.first, e.first.first);
+        }
+        else
+        	ask.push_back({e.first.first, {e.second.first, e.second.second}});
+
+    memset(A, -1, sizeof(A));
+    memset(M, -1, sizeof(M));
+    dfs(0, -1);
+    compute();
+
+	int solve = 0;
+
+    for(auto &e : ask){
+        int w = e.first;
+        int a = e.second.first;
+        int b = e.second.second;
+        
+        if(w == query(a, b))
+        	solve++;
+        
+    }
+
+    cout << solve << endl;
+
+    return 0;
+}

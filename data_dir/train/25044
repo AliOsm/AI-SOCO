@@ -1,0 +1,177 @@
+#include <bits/stdc++.h>
+
+#define long long long
+
+using namespace std;
+
+struct SegmentTree {
+	int N, K;
+	vector<vector<int>> sTreeMin, sTreeMax, array;
+
+	SegmentTree(vector<vector<int>> &in, int k, int n) {
+		this->K = k;
+		array = in;
+		N = n - 1;
+
+		sTreeMin.assign(1 << K, vector<int>(N << 1, (1 << 31) - 1));
+		sTreeMax.assign(1 << K, vector<int>(N << 1, 1 << 31));
+		build(1, 1, N);
+
+	}
+	void build(int node, int b, int e) {
+		if (b == e) {
+
+			for (int msk = 0; msk < 1 << K; msk++) {
+				int sum = 0;
+				for (int i = 0; i < K; i++) {
+					if (((msk & 1 << i)) != 0)
+						sum += array[i][b];
+					else
+						sum -= array[i][b];
+				}
+
+				sTreeMin[msk][node] = sum;
+				sTreeMax[msk][node] = sum;
+			}
+
+		} else {
+			int mid = b + e >> 1;
+			build(node << 1, b, mid);
+			build(node << 1 | 1, mid + 1, e);
+			for (int msk = 0; msk < 1 << K; msk++) {
+				sTreeMin[msk][node] = min(sTreeMin[msk][node << 1],
+						sTreeMin[msk][node << 1 | 1]);
+				sTreeMax[msk][node] = max(sTreeMax[msk][node << 1],
+						sTreeMax[msk][node << 1 | 1]);
+			}
+
+		}
+	}
+
+	void update_point(int index, vector<int>& b) {
+
+		index += N - 1;
+
+		for (int msk = 0; msk < 1 << K; msk++) {
+			int sum = 0;
+			for (int i = 0; i < K; i++) {
+				if (((msk & 1 << i)) != 0)
+					sum += b[i];
+				else
+					sum -= b[i];
+			}
+			sTreeMin[msk][index] = sum;
+			sTreeMax[msk][index] = sum;
+		}
+
+		while (index > 1) {
+			index >>= 1;
+			for (int msk = 0; msk < 1 << K; msk++) {
+				sTreeMin[msk][index] = min(sTreeMin[msk][index << 1],
+						sTreeMin[msk][index << 1 | 1]);
+				sTreeMax[msk][index] = max(sTreeMax[msk][index << 1],
+						sTreeMax[msk][index << 1 | 1]);
+			}
+		}
+	}
+
+	int queryMin(int node, int msk, int b, int e, int i, int j) {
+		if (i > e || j < b)
+			return (1<<31) - 1 ;
+
+		if (b >= i && e <= j)
+			return sTreeMin[msk][node];
+
+		int mid = b + e >> 1;
+
+		int q1 = queryMin(node << 1, msk, b, mid, i, j);
+		int q2 = queryMin(node << 1 | 1, msk, mid + 1, e, i, j);
+		return min(q1, q2) ;
+
+	}
+
+
+	int queryMax(int node, int msk, int b, int e, int i, int j) {
+		if (i > e || j < b)
+			return 1 << 31;
+
+		if (b >= i && e <= j)
+			return sTreeMax[msk][node];
+
+		int mid = b + e >> 1;
+
+		int q1 = queryMax(node << 1, msk, b, mid, i, j);
+		int q2 = queryMax(node << 1 | 1, msk, mid + 1, e, i, j);
+
+		return max(q1,q2);
+
+	}
+
+	int queryMax(int i, int j, int msk) {
+		return queryMax(1, msk, 1, N, i, j);
+	}
+	int queryMin(int i, int j, int msk) {
+		return queryMin(1, msk, 1, N, i, j);
+	}
+	int query(int i, int j) {
+		int ans = (1 << 31);
+
+		for (int msk = 0; msk < 1 << K; msk++)
+			ans = max(ans, queryMax(i, j, msk) - queryMin(i, j, msk));
+
+		return ans;
+	}
+
+
+
+
+
+
+
+};
+
+int main() {
+	ios_base::sync_with_stdio(false), cin.tie(0);
+
+	int n , k , q , type;
+	cin >> n >> k ;
+	int N = 1 ;
+	while(N < n )N <<= 1;
+
+	vector<vector<int > > in (k ,vector<int >(N + 1)) ;
+
+	for (int i = 1; i <= n; i++)
+		for (int j = 0; j < k; j++)
+			cin >> in[j][i];
+
+	cin >> q ;
+
+	SegmentTree st (in , k,N + 1) ;
+	vector<int >b (k) ;
+
+	while(q--)
+	{
+		cin >> type ;
+
+		if(type == 1)
+		{
+			int index ; cin >> index ;
+			for (int i = 0; i < k; i++)
+				cin >> b[i] ;
+
+			st.update_point(index, b);
+
+
+		}
+		else
+		{
+			int l , r ; cin >> l >> r ;
+			cout << st.query(l , r) << "\n" ;
+		}
+	}
+
+
+
+	return 0;
+
+}

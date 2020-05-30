@@ -1,0 +1,97 @@
+// ItnoE
+#include<bits/stdc++.h>
+#define pb push_back
+using namespace std;
+struct Edge {int to, flow;};
+template < int MXN > struct Dinic
+{
+    int s, t, P[MXN], D[MXN], Q[MXN];
+    vector < int > Adj[MXN];
+    vector < Edge > E;
+    inline void Add(int v, int u, int w)
+    {
+        Adj[v].pb(E.size());
+        E.pb({u, w});
+        Adj[u].pb(E.size());
+        E.pb({v, 0});
+    }
+    inline bool BFS()
+    {
+        int l = 0, r = 0;
+        memset(P, 0, sizeof(P));
+        memset(D, -1, sizeof(D));
+        D[s] = 0; Q[r ++] = s;
+        while (r - l)
+        {
+            int v = Q[l ++];
+            for (int id : Adj[v])
+                if (E[id].flow && D[E[id].to] == -1)
+                    D[E[id].to] = D[v] + 1, Q[r ++] = E[id].to;
+        }
+        return (D[t] != -1);
+    }
+    int DFS(int v, int flow)
+    {
+        if (v == t)
+            return (flow);
+        int Flow = 0;
+        for (int i = P[v]; i < (int)Adj[v].size(); i ++)
+        {
+            int id = Adj[v][i];
+            if (E[id].flow && D[E[id].to] == D[v] + 1)
+            {
+                int flw = DFS(E[id].to, min(flow, E[id].flow));
+                if (!flw) swap(Adj[v][i], Adj[v][P[v]]), P[v] ++;
+                E[id].flow -= flw;
+                E[id ^ 1].flow += flw;
+                flow -= flw; Flow += flw;
+                if (!flow) return (Flow);
+            }
+            else
+                swap(Adj[v][i], Adj[v][P[v]]), P[v] ++;
+        }
+        return (Flow);
+    }
+    inline int MaxFlow()
+    {
+        int Flow = 0;
+        while (BFS())
+            Flow += DFS(s, INT_MAX);
+        return (Flow);
+    }
+};
+const int N = 55;
+int n, m, A[N], B[N], C[N], D[N];
+vector < int > UX, UY;
+int main()
+{
+    scanf("%d%d", &m, &n);
+    for (int i = 0; i < n; i ++)
+    {
+        scanf("%d%d%d%d", &A[i], &B[i], &C[i], &D[i]);
+        C[i] ++; D[i] ++;
+        UX.pb(A[i]); UY.pb(B[i]); UX.pb(C[i]); UY.pb(D[i]);
+    }
+    sort(UX.begin(), UX.end());
+    UX.resize(unique(UX.begin(), UX.end()) - UX.begin());
+    sort(UY.begin(), UY.end());
+    UY.resize(unique(UY.begin(), UY.end()) - UY.begin());
+    Dinic < N * 4 > G;
+    G.s = UX.size() + UY.size();
+    G.t = G.s + 1;
+    for (int i = 0; i + 1 < UX.size(); i ++)
+        G.Add(G.s, i, UX[i + 1] - UX[i]);
+    for (int i = 0; i + 1 < UY.size(); i ++)
+        G.Add(UX.size() + i, G.t, UY[i + 1] - UY[i]);
+    for (int i = 0; i < n; i ++)
+    {
+        A[i] = lower_bound(UX.begin(), UX.end(), A[i]) - UX.begin();
+        B[i] = lower_bound(UY.begin(), UY.end(), B[i]) - UY.begin();
+        C[i] = lower_bound(UX.begin(), UX.end(), C[i]) - UX.begin();
+        D[i] = lower_bound(UY.begin(), UY.end(), D[i]) - UY.begin();
+        for (int j = A[i]; j < C[i]; j ++)
+            for (int h = B[i]; h < D[i]; h ++)
+                G.Add(j, UX.size() + h, INT_MAX);
+    }
+    return !printf("%d\n", G.MaxFlow());
+}

@@ -1,0 +1,194 @@
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <cstdio>
+#include <cassert>
+#include <queue>
+#include <vector>
+#include <cstring>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN=100000;
+const int MAXK=401;
+const ll MOD=1000000007;
+
+int n,k;
+
+vector<vector<int> > v;
+int d[MAXK][MAXN];
+int id[MAXK];
+int dtop;
+
+void NO()
+{
+	printf("-1\n");
+	exit(0);
+}
+
+void try_build(const vector<int> &nodes, const vector<pair<int,int> > &kn)
+{
+	if(kn.size()==1)
+	{
+		int m=nodes.size();
+		int dpos=kn[0].first;
+		int cur=kn[0].second;
+
+		vector<int> chain(m,-1);
+		for(int i:nodes)
+			if(d[dpos][i]>=m)
+				NO();
+			else
+				chain[d[dpos][i]]=i;
+		while(chain.size()>1 && chain.back()==-1)
+			chain.pop_back();
+		if(*min_element(chain.begin(), chain.end())==-1)
+			NO();
+		for(int i:nodes)
+		{
+			if(d[dpos][i]==0)
+			{
+				if(i!=cur)
+					NO();
+			}
+			else
+			{
+				v[i].push_back(chain[d[dpos][i]-1]);
+				v[chain[d[dpos][i]-1]].push_back(i);
+			}
+		}
+	}
+	else
+	{
+		vector<int> chain;
+		vector<int> sp(n,-1);
+		for(int i=0;i<kn.size();i++)
+			sp[kn[i].second]=kn[i].first;
+
+		int cur=kn[0].first;
+		int nxt=kn[0].second;
+		for(int i:nodes)
+			if(d[cur][i]>d[cur][nxt] && sp[i]!=-1)
+				nxt=i;
+		cur=sp[nxt];
+		for(int i:nodes)
+			if(d[cur][i]>d[cur][nxt] && sp[i]!=-1)
+				nxt=i;
+		cur=id[cur];
+		int a=sp[cur];
+		int b=sp[nxt];
+		int D=d[a][nxt];
+		chain.resize(D+1,-1);
+		vector<vector<int> > chnodes(D+1);
+		vector<vector<pair<int,int> > > chkn(D+1);
+		for(int i:nodes)
+		{
+			int D1=d[a][i];
+			int D2=d[b][i];
+
+			if((D1+D2-D)%2!=0 || D1+D2-D<0)
+				NO();
+
+			int X=(D1+D2-D)/2;
+			int L1=D1-X;
+			int L2=D2-X;
+
+			if(L1<0 || L2<0)
+				NO();
+
+			if(X==0)
+			{
+				if(chain[L1]!=-1)
+					NO();
+				chain[L1]=i;
+			}
+
+			chnodes[L1].push_back(i);
+			if(sp[i]!=-1)
+				chkn[L1].push_back(make_pair(sp[i],i));
+		}
+
+		if(*min_element(chain.begin(), chain.end())==-1)
+			NO();
+
+		for(int i=0;i<D;i++)
+		{
+			v[chain[i]].push_back(chain[i+1]);
+			v[chain[i+1]].push_back(chain[i]);
+		}
+
+		for(int i=0;i<=D;i++)
+		{
+			bool added_special=false;
+			if(sp[chain[i]]==-1)
+			{
+				for(int j:chnodes[i])
+					d[dtop][j]=d[a][j]-i;
+				chkn[i].push_back(make_pair(dtop, chain[i]));
+				id[dtop]=chain[i];
+				dtop++;
+				added_special=true;
+			}
+
+			try_build(chnodes[i], chkn[i]);
+
+			if(added_special)
+				dtop--;
+		}
+	}
+}
+
+void check(int cur, int p, int dpos, int curd)
+{
+	if(d[dpos][cur]!=curd)
+		NO();
+	for(int i=0;i<v[cur].size();i++)
+	{
+		if(v[cur][i]==p) continue;
+		check(v[cur][i], cur, dpos, curd+1);
+	}
+}
+
+int main()
+{
+	scanf("%d%d",&n,&k);
+	vector<int> subs(n);
+	vector<pair<int,int> > sp(k,make_pair(-1,-1));
+	v.resize(n);
+
+	for(int i=0;i<k;i++)
+		for(int j=0;j<n;j++)
+		{
+			scanf("%d",&d[i][j]);
+			if(d[i][j]==0)
+			{
+				if(sp[i].first==-1)
+				{
+					sp[i]=make_pair(i,j);
+					id[i]=j;
+				}
+				else
+					NO();
+			}
+		}
+	if(min_element(sp.begin(), sp.end())->first==-1)
+		NO();
+
+	for(int i=0;i<n;i++)
+		subs[i]=i;
+	dtop=k;
+	try_build(subs, sp);
+
+	for(int i=0;i<k;i++)
+		check(id[i],-1,i,0);
+
+	for(int i=0;i<v.size();i++)
+		for(int j=0;j<v[i].size();j++)
+		{
+			int to=v[i][j];
+			if(i<to)
+				printf("%d %d\n",i+1, to+1);
+		}
+	return 0;
+}

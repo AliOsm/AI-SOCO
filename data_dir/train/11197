@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define eb emplace_back
+#define emp emplace
+#define fi first
+#define se second
+typedef long long ll;
+typedef pair<int, int> ii;
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+
+const int N = 1123456;
+
+int n, m;
+int seg[4*N], lazy[4*N];
+int food[N], guys[N];
+
+void push(int r, int i, int j) {
+	seg[r] += lazy[r];
+
+	if (i != j) {
+		lazy[2*r] += lazy[r];
+		lazy[2*r+1] += lazy[r];
+	}
+
+	lazy[r] = 0;
+}
+
+void update(int r, int i, int j, int a, int b, int val) {
+	push(r, i, j);	
+
+	if (b < i or a > j) return;
+
+	if (a <= i and j <= b) {
+		lazy[r] += val;
+		push(r, i, j);
+	} else {
+		int mid = (i+j)/2;
+		update(2*r, i, mid, a, b, val);
+		update(2*r+1, mid+1, j, a, b, val);
+		seg[r] = min(seg[2*r], seg[2*r+1]);
+	}
+}
+
+int query(int r, int i, int j) {
+	push(r, i, j);
+
+	if (seg[r] >= 0) return -1;
+
+	if (i == j) return i;
+
+	int mid = (i+j)/2;
+	int ret = query(2*r+1, mid+1, j);
+	if (ret != -1) return ret;
+
+	return query(2*r, i, mid);
+}
+
+int main(void) {
+	scanf("%d %d", &n, &m);
+
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &food[i]);
+		update(1, 0, 1000000, 0, food[i], -1);
+	}
+
+	for (int i = 0; i < m; i++) {
+		scanf("%d", &guys[i]);
+		update(1, 0, 1000000, 0, guys[i], 1);
+	}
+
+	int q; scanf("%d", &q);
+
+	while (q--) {
+		int type; scanf("%d", &type);
+		int p, x; scanf("%d %d", &p, &x); p--;
+
+		if (type == 1) {
+			update(1, 0, 1000000, 0, food[p], +1);
+			food[p] = x;
+			update(1, 0, 1000000, 0, food[p], -1);
+		} else {
+			update(1, 0, 1000000, 0, guys[p], -1);
+			guys[p] = x;
+			update(1, 0, 1000000, 0, guys[p], +1);
+		}
+
+		printf("%d\n", query(1, 0, 1000000));
+	}
+
+	return 0;
+}
+

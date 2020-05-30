@@ -1,0 +1,134 @@
+//{{{By oToToT
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <bitset>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <random>
+#include <utility>
+#include <stack>
+#include <sstream>
+#include <functional>
+#include <deque>
+#include <cassert>
+using namespace std;
+/* include everything for Kotori~ <3 */
+
+typedef long long lld;
+typedef unsigned long long llu;
+typedef long double llf;
+typedef pair<int,int> PII;
+typedef pair<int,lld> PIL;
+typedef pair<lld,int> PLI;
+typedef pair<lld,lld> PLL;
+template<typename T>
+using maxHeap = priority_queue<T,vector<T>,less<T>>;
+template<typename T>
+using minHeap = priority_queue<T,vector<T>,greater<T>>;
+/* define some types for Ruby! */
+
+#define FF first
+#define SS second
+#define SZ(x) (int)(x.size())
+#define ALL(x) begin(x), end(x)
+#define PB push_back
+#define WC(x) while(x--)
+/* make code shorter for Di~a~ */
+
+template<typename Iter>
+ostream& _out(ostream &s, Iter b, Iter e) {
+	s<<"[";
+	for ( auto it=b; it!=e; it++ ) s<<(it==b?"":" ")<<*it;
+	s<<"]";
+	return s;
+}
+template<typename A, typename B>
+ostream& operator <<( ostream &s, const pair<A,B> &p ) { return s<<"("<<p.FF<<","<<p.SS<<")"; }
+template<typename T>
+ostream& operator <<( ostream &s, const vector<T> &c ) { return _out(s,ALL(c)); }
+/* make output easier for Ainyan~n~ */
+
+bool debug = 0;
+#define DUMP(x) if(debug) cerr<<__PRETTY_FUNCTION__<<":"<<__LINE__<<" - "<<#x<<"="<<x<<'\n'
+template<typename T>
+void DEBUG(const T& x){if(debug) cerr<<x;}
+template<typename T, typename... Args>
+void DEBUG(const T& head,const Args& ...tail){
+	if(debug){cerr<<head; DEBUG(tail...);}
+}
+/* Let's debug with Nico~Nico~Ni */
+//}}}
+const int N = 100 + 5;
+const int K = 20 + 5;
+const int MOD = 1000000007;
+const int INF = 1<<30;
+
+// dp[i][w][b] := 節點i(含)與他最遠的白點距離為w, 最近的黑點距離為b時的方法數
+// dp[i][w1][b1] + dp[son][w2][b2] -> dp[i][max(w1, w2)][min(b1, b2)]
+// if max(w1, w2)+min(b1, b2) <= k, dp[i][max(w1, w2)][min(b1, b2)] -> dp[i][-1][min(b1, b2)]
+
+vector<int> G[N];
+lld dp[N][K][K<<1], tmp[K][K<<1];
+
+void dfs(int,int,int);
+
+int main(int argc, char* argv[]){
+	if(argc>1 and string(argv[1])=="-D") debug=1;
+	if(!debug){ios_base::sync_with_stdio(0);cin.tie(0);}
+	int n, k; cin>>n>>k;
+	for(int i=0;i<n-1;i++){
+		int u, v; cin>>u>>v;
+		u--, v--;
+		G[u].PB(v);
+		G[v].PB(u);
+	}
+	dfs(0, 0, k);
+	for(int x=0;x<n;x++){
+		for(int i=0;i<=k+1;i++) for(int j=0;j<=2*k+1;j++){
+			DEBUG("dp[", x+1, "][", i-1, "][", j-1, "]=", dp[x][i][j], '\n');
+		}
+	}
+	lld ans = 0;
+	for(int i=-1;i<=2*k;i++) ans = (ans+dp[0][0][i+1])%MOD;
+	cout << ans << '\n';
+	return 0;
+}
+
+void dfs(int u, int f, int k){
+	dp[u][0][1] = 1;
+	dp[u][1][0] = 1;
+	for(auto v: G[u]){
+		if(v==f) continue;
+		dfs(v, u, k);
+		memset(tmp, 0, sizeof(tmp));
+		for(int w1=-1;w1<=k;w1++) for(int b1=-1;b1<=2*k;b1++){
+			for(int w=-1;w<=k;w++) for(int b=-1;b<=2*k;b++){
+				int i1 = w1+1, j1 = b1+1;
+				int i2 = w+1, j2 = b+1;
+				int w2 = w<0?-1:w+1, b2 = b<0?INF:b+1;
+				int nw = max(w1, w2), nb = min(b1<0?INF:b1, b2);
+				lld cur = (dp[u][i1][j1] * dp[v][i2][j2])%MOD;
+				if(nb == INF){
+					tmp[nw+1][0] = (tmp[nw+1][0]+cur)%MOD;
+				}else if(nw + nb <= k){
+					tmp[0][nb+1] = (tmp[0][nb+1]+cur)%MOD;
+				}else{
+					tmp[nw+1][nb+1] = (tmp[nw+1][nb+1]+cur)%MOD;
+				}
+			}
+		}
+		for(int a=0;a<=k+2;a++) for(int b=0;b<=2*k+2;b++){
+			dp[u][a][b] = tmp[a][b];
+		}
+	}
+}

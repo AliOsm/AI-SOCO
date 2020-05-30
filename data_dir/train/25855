@@ -1,0 +1,128 @@
+#include <sstream>
+#include <fstream>
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+#include <cassert>
+#include <bitset>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+
+#define DEBUG
+#ifdef DEBUG
+#define debug(...) fprintf(stderr, __VA_ARGS__)
+#define deputs(str) fprintf(stderr, "%s\n",str)
+#else
+#define debug(...)
+#define deputs(str)
+#endif // DEBUG
+typedef unsigned long long ULL;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef long long LL;
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=1007+107;
+const double pi=acos(-1.0);
+const double eps=0.0000000001;
+LL gcd(LL a, LL b) {return b?gcd(b,a%b):a;}
+template<typename T>inline void pr2(T x,int k=64) {ll i; REP(i,k) debug("%d",(x>>i)&1); putchar(' ');}
+template<typename T>inline void add_(T &A,int B,ll MOD=M) {A+=B; (A>=MOD) &&(A-=MOD);}
+template<typename T>inline void mul_(T &A,ll B,ll MOD=M) {A=(A*B)%MOD;}
+template<typename T>inline void mod_(T &A,ll MOD=M) {A%=MOD; A+=MOD; A%=MOD;}
+template<typename T>inline void max_(T &A,T B) {(A<B) &&(A=B);}
+template<typename T>inline void min_(T &A,T B) {(A>B) &&(A=B);}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a, T b) {
+	T ret=1;
+	for (; b; b>>=1ll,a=(LL)a*a%M)
+		if (b&1) ret=(LL)ret*a%M;
+	return ret;
+}
+int n,m,q;
+char str[maxn];
+int startTime;
+void startTimer() {startTime=clock();}
+void printTimer() {debug("/--- Time: %ld milliseconds ---/\n",clock()-startTime);}
+
+
+int k;
+//pos(depth),fathernode,count
+int dp[507][507][17],tmp[507][507][17];
+int nxt[507][17],cnt[507],tot,all=0;
+inline void ins(char str[],int num){
+	int len=strlen(str),p=0,i;
+	i=strlen(str);
+	REP(i,len){
+		int c=str[i]-'0';
+		if (!nxt[p][c]) nxt[p][c]=++tot;
+		p=nxt[p][c]; cnt[p]+=num; all+=num;
+	}
+} int id[maxn],t,cur[17],son[17],res[17];
+//for every ancenstor: brother:merge; son:max
+inline void dfs(int p,int pos){
+	// printf("p=%d\n",p);
+	id[pos]=p; int i,c,u,v;
+	REP(i,pos+1) fill(dp[i][pos],dp[i][pos]+k+1,0);
+	REP(c,10) if (nxt[p][c]) {
+		dfs(nxt[p][c],pos+1);
+		REP(i,pos+1){
+			static int res[17]; fill(res,res+k+1,0);
+			REP(u,k+1) REP(v,k-u+1)
+				max_(res[u+v],dp[i][pos][v]+dp[i][pos+1][u]);
+			REP(u,k+1) max_(dp[i][pos][u],res[u]);
+		}
+	}
+	REP(i,pos){//previously choose this
+		static int res[17]; fill(res,res+k+1,0);
+		REP(u,k) max_(res[u+1],(pos-i)*cnt[p]+dp[pos][pos][u]);//one
+		REP(u,k+1) max_(dp[i][pos][u],res[u]);
+	}
+}
+int main() {
+	int T,_; T=1;
+	// scanf("%d",&T);
+	FOR(_,1,T) {
+		int i;
+		scanf("%d%d",&n,&k);
+		FOR(i,1,n) {
+			scanf("%s%d",str,&t);
+			ins(str,t);
+		} dfs(0,0);
+		// printf("%d\n",dp[0][0][k]);
+		printf("%d\n",all-dp[0][0][k]);
+	}
+}
+/*
+2 2
+719456580 6
+5 6
+
+2 3
+9601 8
+736857 2
+
+3 2
+89 237
+86 206
+83 460
+*/

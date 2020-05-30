@@ -1,0 +1,109 @@
+#include <bits/stdc++.h>
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(n) ((int)(n).size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+
+const int MAXN=2010;
+vector<int> g2[MAXN];int n;
+struct edge {int u,v,comp;bool bridge;};
+vector<edge> e;
+void add_edge(int u, int v){
+	g2[u].pb(e.size());g2[v].pb(e.size());
+	e.pb((edge){u,v,-1,false});
+}
+int D[MAXN],B[MAXN],T;
+void dfsb(int u,int pe){
+	B[u]=D[u]=T++;
+	for(int ne:g2[u])if(ne!=pe){
+		int v=e[ne].u^e[ne].v^u;
+		if(D[v]<0){
+			dfsb(v,ne);
+			if(B[v]>D[u])e[ne].bridge = true;
+			B[u]=min(B[u],B[v]);
+		}
+		else if(D[v]<D[u])B[u]=min(B[u],D[v]);
+	}
+}
+void doit(){
+	memset(D,-1,sizeof(D));
+	T=0;
+	fore(i,0,n)if(D[i]<0)dfsb(i,-1);
+}
+
+vector<int> g[MAXN];
+vector<ii> g3[MAXN];
+ll v[MAXN],ans;
+int vis[MAXN];
+
+int dfs(int pos, int id){
+  int ans = 1;
+  vis[pos]=id;
+  for(auto x : g3[pos]){
+    if(x.snd && vis[x.fst]>=0) g[id].pb(vis[x.fst]), g[vis[x.fst]].pb(id);
+    if(!x.snd && vis[x.fst]<0) ans += dfs(x.fst,id);
+  }
+  return ans;
+}
+
+ll acum;
+int dp[MAXN][MAXN];
+vector<ll> vals;
+
+ll dfs2(int pos, int pre){
+  ll sz = 0;
+  for(auto x : g[pos]){
+    if(x==pre)continue;
+    sz += dfs2(x,pos);
+  }
+  acum += v[pos]*sz;
+  return sz+v[pos];
+}
+
+int can(int w, int pos){
+  if(w<0) return 0;
+  if(pos < 0) return !w;
+  int &r = dp[w][pos];
+  if(r >= 0) return r;
+  r = can(w,pos-1);
+  if(w>=v[pos]) r |= can(w-vals[pos],pos-1);
+  return r;
+}
+
+// fijar raiz
+ll go(int root){
+  vals.clear();
+  acum = 0;
+  int am = SZ(g[root]);
+  fore(i,0,2001) fore(j,0,am) dp[i][j] = -1;
+  ll all = 0, res = 0;
+  for(auto x : g[root]) vals.pb(dfs2(x,root)), all += vals.back();
+  fore(i,0,2001){
+    if(can(i,am-1)){
+      ll toup = i, todown = all-i; 
+      res = max(res, toup*todown + v[root]*todown + toup*v[root] + acum);
+    }
+  }
+  return res;
+}
+
+int main(){FIN;
+  memset(vis,-1,sizeof(vis));
+  int m,x,y; cin >> n >> m;
+  fore(i,0,m) cin >> x >> y, add_edge(x-1,y-1);
+  doit();
+  for(auto x : e) g3[x.u].pb({x.v,x.bridge}), g3[x.v].pb({x.u,x.bridge});
+  int t = 0;
+  fore(i,0,n){
+    if(vis[i]<0) v[t] = dfs(i,t), ans += v[t]*v[t], t++;
+  }
+  ll best = 0;
+  fore(i,0,t) best = max(best,go(i));
+  cout << ans+best << endl;
+}

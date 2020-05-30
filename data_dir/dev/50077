@@ -1,0 +1,154 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<ll, ll> l4;
+#define pb push_back
+#define mp make_pair
+
+
+const int maxn = 2e5+1;
+const int N = maxn<<2;
+
+ll maxi[N], sum[N], sum0[N];
+ll a[N], k[N];
+int n;
+
+void up(int cur)
+{
+  maxi[cur] = max(maxi[cur<<1], maxi[cur<<1|1]);
+  sum[cur] = sum[cur<<1] + sum[cur<<1|1];
+  sum0[cur] = sum0[cur<<1] + sum0[cur<<1|1];
+}
+void build(int cur, int tl, int tr)
+{
+  if (tl == tr)
+    {
+      maxi[cur] = a[tl+1]-a[tl]-k[tl];
+      sum0[cur] = maxi[cur] + k[tl];
+      sum[cur] = sum0[cur] * (n-tl);
+    }
+  else
+    {
+      int tm = (tl+tr)>>1;
+      build(cur<<1, tl, tm);
+      build(cur<<1|1, tm+1, tr);
+      up(cur);
+    }
+}
+ll query(int cur, int tl, int tr, int ql, int qr)
+{
+  if (ql > qr) return 0;
+  if (ql <= tl && tr <= qr) return sum[cur];
+  ll ret = 0;
+  int tm = (tl+tr)>>1;
+  if (ql <= tm) ret += query(cur<<1, tl, tm, ql, qr);
+  if (tm+1 <= qr) ret += query(cur<<1|1, tm+1, tr, ql, qr);
+  return ret;
+}
+ll query0(int cur, int tl, int tr, int ql, int qr)
+{
+  if (ql > qr) return 0;
+  if (ql <= tl && tr <= qr) return sum0[cur];
+  ll ret = 0;
+  int tm = (tl+tr)>>1;
+  if (ql <= tm) ret += query0(cur<<1, tl, tm, ql, qr);
+  if (tm+1 <= qr) ret += query0(cur<<1|1, tm+1, tr, ql, qr);
+  return ret;
+}
+ll upd(int cur, int tl, int tr, int pos, ll v)
+{
+  if (tl == tr)
+    {
+      assert(tl == pos);
+      maxi[cur] += v;
+      ll ret = 0;
+      if (maxi[cur] < 0)
+	{
+	  ret = maxi[cur];
+	  maxi[cur] = 0;
+	}
+      sum0[cur] = maxi[cur] + k[tl];
+      sum[cur] = sum0[cur] * (n-tl);	  
+      return ret;
+    }
+  int tm = (tl+tr)>>1;
+  ll ret;
+  if (pos <= tm) ret = upd(cur<<1, tl, tm, pos, v);
+  else ret = upd(cur<<1|1, tm+1, tr, pos, v);
+  up(cur);
+  return ret;
+}
+int next_zero(int cur, int tl, int tr, int ql, int qr)
+{
+  //  cerr << "next " << tl << " " << tr << " " << ql << " " << qr << " " << maxi[cur] << endl;
+  if (ql > qr) return ql + 1;
+  if (ql <= tl && tr <= qr)
+    ql = tl, qr = tr;
+  if (maxi[cur] == 0) return tr + 1;
+  if (tl == tr) return tl;
+  int tm = (tl+tr)>>1;
+  int ret = tm+1;
+  if (ql <= tm && maxi[cur<<1] != 0) ret = next_zero(cur<<1, tl, tm, ql, qr);
+  
+  if (ret > tm && tm+1 <= qr) ret = next_zero(cur<<1|1, tm+1, tr, ql, qr);
+  return ret;
+}
+ll query_sum(int l, int r)
+{
+  ll initial = a[1];
+  if (l != 1) initial += query0(1, 1, n-1, 1, l-1);
+  ll delta0 = query0(1, 1, n-1, l, r-1);;
+  ll delta = query(1, 1, n-1, l, r-1) + (r-n)*delta0;
+  return delta + initial * (r-l+1);
+}
+void debug()
+{
+  return;
+  cerr << "debug:";
+  for (int i = 1; i <= n; ++i)
+    cerr << " " << query_sum(i, i);
+  cerr << endl;
+  for (int i = 1; i <= n-1; ++i)
+    cerr << query0(1, 1, n-1, i, i) << " ";
+  cerr << endl;
+
+}
+int main()
+{
+  scanf("%d", &n);
+  for (int i = 1; i <= n; ++i) scanf("%lld", a+i);
+  for (int i = 1; i <= n-1; ++i) scanf("%lld", k+i);
+  build(1, 1, n-1);
+  int q; scanf("%d", &q);
+  for (int kase = 1; kase <= q; ++kase)
+    {
+      char opt;
+      int l, r;
+      scanf(" %c %d %d", &opt, &l, &r);
+      if (opt == '+')
+	{
+	  a[l] += r; // actually we only care about a[1]
+	  if (l != 1) upd(1, 1, n-1, l-1, r);
+	  if (l != n)
+	    {
+	      r = -r;
+	      //	      r = upd(1, 1, n-1, l, -r);
+	      //	      cerr << "artie\n";
+	      	      debug();
+	      int reach = next_zero(1, 1, n-1, l, n-1);
+	      while (r != 0 && reach <= n-1)
+		{
+		  //		  cerr << "reach " << reach << " r " << r << endl;
+		  r = upd(1, 1, n-1, reach, r);
+		  reach = next_zero(1, 1, n-1, reach+1, n-1);
+		}
+	    }
+	}
+      else
+	{
+	  printf("%lld\n", query_sum(l, r));
+	}
+      debug();
+    }
+}

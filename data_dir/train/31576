@@ -1,0 +1,94 @@
+#include <bits/stdc++.h>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/pb_ds/tree_policy.hpp>
+
+//using namespace __gnu_pbds;
+using namespace std;
+
+//template<typename T>
+//using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+typedef vector<int> vi;
+typedef unsigned long long ll;
+
+#define pb push_back
+#define inf 0x3f3f3f3f
+#define all(v) (v).begin() , (v).end()
+#define ones(n) __builtin_popcount(n)
+#define watch(x) cout << (#x) << " is " << (x) << endl
+
+int di[] = {0, 0, 1, -1, 1, 1, -1, -1};
+int dj[] = {1, -1, 0, 0, -1, 1, 1, -1};
+
+struct query {
+    int l, r, q;
+};
+
+const int N = 1e5 + 5;
+int n, m;
+int cum[31][N], arr[N] , segTree[4 * N];
+query info[N];
+
+void build(int l = 0, int r = n - 1, int pos = 1) {
+    if (l == r) {
+        segTree[pos] = arr[l];
+        return;
+    }
+    int mid = (l + r) / 2;
+    build(l, mid, pos * 2);
+    build(mid + 1, r, pos * 2 + 1);
+    segTree[pos] = segTree[pos * 2] & segTree[pos * 2 + 1];
+}
+
+int query(int s, int e, int l = 0, int r = n - 1, int pos = 1) {
+    if(l >= s && r <= e)
+        return segTree[pos];
+
+    int mid = (l + r) / 2;
+    if(e <= mid)
+        return query(s , e , l , mid , pos * 2);
+    if(s > mid)
+        return query(s , e , mid + 1 , r , pos * 2 + 1);
+
+    return query(s , e , l , mid , pos * 2) & query(s , e , mid + 1 , r , pos * 2 + 1);
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+    freopen("input.in", "r", stdin);
+#endif
+    scanf("%d%d", &n, &m);
+
+    for (int i = 0; i < m; i++) {
+        scanf("%d%d%d", &info[i].l, &info[i].r, &info[i].q);
+        info[i].l-- , info[i].r--;
+        for (int j = 0; j < 31; j++) {
+            if (info[i].q & (1 << j)) {
+                cum[j][info[i].l]++;
+                cum[j][info[i].r + 1]--;
+            }
+        }
+    }
+
+    for (int i = 0; i < 31; i++)
+        for (int j = 1; j < n; j++)
+            cum[i][j] += cum[i][j - 1];
+
+    for (int j = 0; j < n; j++)
+        for (int i = 0; i < 31; i++)
+            arr[j] |= cum[i][j] ? (1 << i) : 0;
+
+
+    build();
+
+    bool good = 1;
+    for (int i = 0 ;i < m ;i++)
+        good &= query(info[i].l , info[i].r) == info[i].q;
+
+    if(good) {
+        puts("YES");
+        for (int i = 0 ;i < n ;i++)
+            printf("%d " , arr[i]);
+    } else
+        puts("NO");
+}

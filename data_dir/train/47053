@@ -1,0 +1,307 @@
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include <cstring>
+#include <map>
+#include <stack>
+#include <set>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <cassert>
+#include <complex>
+#include <vector>
+using namespace std;
+
+typedef long double Double;
+typedef long long Long;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+#define MOD 1000000007
+
+struct LevelAncestor {
+	int N;
+	vector<int> P, L;
+	vector<int> pathId;
+	vector<vector<int>> paths;
+	// (-1 for root)
+	LevelAncestor(const vector<int> &P): 
+		N(P.size()), P(P), L(P.size(), -1), pathId(N, -1){
+		vector<int> isLeaf(P.size(), 1);
+		vector<int> taken(N, 0);
+		stack<int> S;  
+		for (int u = 0; u < N; ++u) {
+			int cu = u; 
+			while(cu != -1 && L[cu] == -1){
+				S.push(cu);
+				cu = P[cu];
+			}
+			if(cu == -1){ L[S.top()] = 0; S.pop(); }
+			while(S.size() > 0){
+				isLeaf[P[S.top()]] = 0;
+				L[S.top()] = L[ P[S.top()] ] + 1;
+				S.pop();
+			}
+		}
+		vector<vector<int>> leaves(N);
+		for (int u = 0; u < N; ++u) {
+			if(isLeaf[u])
+				leaves[ L[u] ].push_back(u);
+		}
+		for (int i = N-1; i >= 0; --i) {
+			for(int u : leaves[i]){
+				paths.push_back(vector<int>());
+				while(u != -1 && !taken[u]){
+					paths.back().push_back(u);
+					pathId[u] = paths.size() - 1;
+					taken[u] = 1;
+					u = P[u];
+				}
+			}
+		}
+	}
+	
+};
+
+struct Fibo {
+	Long b,c;
+	static Fibo one(){
+		return (Fibo){1, 0};
+	}
+	Fibo operator*(const Fibo &F)const{
+		Fibo r;
+		r.b = ((b + c) * F.b + b * F.c) % 1000000007;
+		r.c = (b * F.b + c * F.c) % 1000000007;
+		return r;
+	}
+};
+
+//============================================================================
+// Name        : HLD.cpp
+// Author      : cjtoribio
+// Version     :
+// Copyright   : Your copyright notice
+// Description : Hello World in C++, Ansi-style
+//============================================================================
+
+#include <iostream>
+#include <vector>
+#include <cstdio>
+using namespace std;
+
+
+struct SegmentNode{
+	int sz;
+	bool HasCarry;
+	SegmentNode(){
+		this->sz = 1;
+		HasCarry = 0;
+	}
+	void join(const SegmentNode &l, const SegmentNode &r){
+		sz = l.sz + r.sz;
+	}
+	void update(){
+		HasCarry = 1;
+	}
+	void clear(){
+		HasCarry = 0;
+	}
+};
+template<class T>
+struct SegmentTree
+{
+	T *V;
+	int N;
+	SegmentTree(int N)
+	{
+		this->V = new T[4*N];
+		this->N = N;
+	}
+	void create(const vector<typename T::Init> &VEC,int n = 1,int b = 0,int e = -1)
+	{
+		if(e == -1)e = N - 1;
+		if(b == e){
+			V[n] = T(VEC[b]);
+		}
+		else
+		{
+			create(VEC,2*n,b,(e+b)/2);
+			create(VEC,2*n+1,(e+b)/2+1,e);
+			V[n] = V[2*n] + V[2*n+1];
+		}
+	}
+	T query(int i,int j, int n = 1,int b = 0,int e = -1)
+	{
+		if(e == -1)e = N - 1;
+		if(i <= b && e <= j)return V[n];
+		else
+		{
+			if(V[n].HasCarry)
+			{
+				V[2*n  ].update(V[n].carry);
+				V[2*n+1].update(V[n].carry);
+				V[n].clear();
+			}
+			int mid = (b+e)/2;
+			if(i > mid)return query(i,j,2*n+1,mid+1,e);
+			if(j <=mid)return query(i,j,2*n,b,mid);
+			return query(i,j,2*n,b,mid) + query(i,j,2*n+1,mid+1,e);
+		}
+	}
+	void update(int i,int j,int v,int n = 1,int b=0,int e=-1)
+	{
+		if(e == -1)e = N - 1;
+		if(i <= b && e <= j)
+		{
+			V[n].update(v);
+		}
+		else if(i > e || j < b)
+			return;
+		else
+		{
+			if(V[n].HasCarry)
+			{
+				V[2*n  ].update(V[n].carry);
+				V[2*n+1].update(V[n].carry);
+				V[n].clear();
+			}
+			int mid = (b+e)/2;
+			update(i,j,v,2*n,b,mid);
+			update(i,j,v,2*n+1,mid+1,e);
+			V[n] = V[2*n] + V[2*n+1];
+		}
+	}
+	int findLastIndex( bool (*isOk)(T) ){
+		int n = 1;
+		T acum;
+		acum.sz = 0;
+		while(V[n].sz > 1){
+			int l = 2*n , r = 2*n+1;
+			T newAcum = (acum.sz == 0 ? V[r] : (V[r] + acum));
+			if(isOk(newAcum)){
+				n = r;
+			}else{
+				acum = newAcum;
+				n = l;
+			}
+		}
+		return N - acum.sz - 1;
+	}
+};
+
+#define NONE 0
+#define OPEN 1
+#define CLOSE 2
+struct MinVal : SegmentNode 
+{
+	struct Init {
+		int val;
+		Init(int val=NONE):val(val){ }
+	};
+	int open, close;
+	int carry;
+	MinVal() : SegmentNode(){
+		open = 0;
+		close = 0;
+		carry = 0;
+	}
+	MinVal(Init n) : SegmentNode()  {
+		open = (n.val == OPEN);
+		close = (n.val == CLOSE);
+		carry = 0;
+	}
+	MinVal operator+(const MinVal &N)const {
+		MinVal ret; ret.join( *this , N );
+		
+		int cancel = min(open, N.close);
+		ret.open = open + N.open - cancel;
+		ret.close= close + N.close - cancel;
+		
+		return ret;
+	}
+	void update(int val)
+	{	
+		SegmentNode::update();
+		if(val == OPEN){
+			close = 0;
+			open = sz;
+		}else if(val == CLOSE){
+			close = sz;
+			open = 0;
+		}else{
+			open = 0;
+			close = 0;
+		}
+	}
+};
+
+#define MAXN 5000010
+Long DP[MAXN];
+bool CMP[MAXN];
+
+int main(){
+	for (Long i = 2; i < MAXN; ++i) {
+		if(CMP[i])continue;
+		Long sq = i*(i-1)/2;
+		DP[i] = i;
+		for (Long j = i*i; j < MAXN; j += i) {
+			if(CMP[j])continue;
+			CMP[j] = 1;
+			DP[j] = i;//sq * (j / i) + i * DP[j / i];
+//			cout << j << ": " << DP[j] << " " << DP[j/i] << " " << ops << endl;
+		}
+	}
+	for (int i = 2; i < MAXN; ++i) {
+		if(i == DP[i]){
+			DP[i] = 1LL * i * (i-1) / 2;
+		}else{
+			Long d = DP[i];
+			Long a = DP[d] * (i / d) + DP[i / d];
+//			Long b = DP[i/d] * i + DP[d];
+			DP[i] = a;
+		}
+	}
+	int t,l,r;
+	cin >> t >> l >> r;
+	Long ans = 0;
+	for (int i = r; i >= l; --i) {
+		ans = (ans * t + DP[i]) % 1000000007;
+	}
+	cout << ans << endl;
+//	cout << 1.0 * clock() / CLOCKS_PER_SEC << endl;
+	
+	
+	
+	
+}
+
+
+/*
+
+4 5
+1 3 4
+1 2 5
+3 4 1
+1 2 4
+
+
+void dp(int k, int l, int r, int lo, int hi, VVI &memo){
+	int m = (l+r) / 2;
+	
+	int b , p;
+	for(int i = lo; i < hi; ++i){
+		// b = max(getBest(k-1,i) + cost(i, m)
+		// p = positionOfBest
+	}
+	memo[k][m] = b;
+	dp(k, l, m-1, lo, p, memo);
+	dp(k, m+1, r, p, hi, memo);
+}
+
+ */
+
+
+
+
+

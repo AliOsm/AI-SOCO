@@ -1,0 +1,154 @@
+#include <stdio.h>
+#include <string.h>
+
+#define N	400000
+#define M	1000
+#define L	1000
+#define N_	(2 + L)
+#define A	14
+#define INF	0x3f3f3f3f3f3f3f3f
+
+long long max(long long a, long long b) { return a > b ? a : b; }
+
+int tt[N_][A], delta[N_][A], yy[N_];
+
+int build(char **ss, int *xx, int m) {
+	static int qu[N_], ff[N_];
+	int n_, h, head, cnt;
+
+	n_ = 2;
+	for (h = 0; h < m; h++) {
+		int l = strlen(ss[h]), k, s;
+
+		s = 1;
+		for (k = 0; k < l; k++) {
+			int a = ss[h][k] - 'a';
+
+			if (!tt[s][a])
+				tt[s][a] = n_++;
+			s = tt[s][a];
+		}
+		yy[s] += xx[h];
+	}
+	head = cnt = 0;
+	qu[head + cnt++] = 1;
+	while (cnt) {
+		int s = qu[cnt--, head++], e = ff[s], a;
+
+		if (e)
+			yy[s] += yy[e];
+		for (a = 0; a < A; a++) {
+			int t = tt[s][a], f = e == 0 ? 1 : delta[e][a];
+
+			if (t) {
+				delta[s][a] = t;
+				ff[t] = f, qu[head + cnt++] = t;
+			} else
+				delta[s][a] = f;
+		}
+	}
+	return n_;
+}
+
+void init(char *cc, int *next, long long *zz, int n_, int l, int r) {
+	int s, i;
+
+	if (r - l + 1 <= L)
+		for (s = 1; s < n_; s++) {
+			int t;
+			long long z;
+
+			t = s, z = 0;
+			for (i = l; i <= r; i++) {
+				int a = cc[i] - 'a';
+
+				t = delta[t][a];
+				z += yy[t];
+			}
+			next[s] = t;
+			zz[s] = z;
+		}
+	else {
+		int t;
+		long long z;
+
+		for (s = 1; s < n_; s++) {
+			t = s, z = 0;
+			for (i = l; i < l + L; i++) {
+				int a = cc[i] - 'a';
+
+				t = delta[t][a];
+				z += yy[t];
+			}
+			zz[s] = z;
+		}
+		t = 1, z = 0;
+		for (i = l; i <= r; i++) {
+			int a = cc[i] - 'a';
+
+			t = delta[t][a];
+			if (i >= l + L)
+				z += yy[t];
+		}
+		for (s = 1; s < n_; s++) {
+			next[s] = t;
+			zz[s] += z;
+		}
+	}
+}
+
+int main() {
+	static char *ss[M], cc[N + 1];
+	static int xx[M], ii[A + 1], next[A + 1][N_];
+	static long long zz[A + 1][N_], dp[1 << A][N_];
+	int n, n_, m, k, h, i, s, b, a;
+	long long ans;
+
+	scanf("%d", &m);
+	for (h = 0; h < m; h++) {
+		static char s[L + 1];
+
+		scanf("%s%d", s, &xx[h]);
+		ss[h] = strdup(s);
+	}
+	n_ = build(ss, xx, m);
+	scanf("%s", cc), n = strlen(cc);
+	k = 0;
+	ii[k++] = -1;
+	for (i = 0; i < n; i++)
+		if (cc[i] == '?')
+			ii[k++] = i;
+	for (h = 0; h < k; h++)
+		init(cc, next[h], zz[h], n_, ii[h] + 1, (h + 1 == k ? n : ii[h + 1]) - 1);
+	for (b = 0; b < 1 << A; b++)
+		for (s = 1; s < n_; s++)
+			dp[b][s] = -INF;
+	dp[0][1] = 0;
+	ans = -INF;
+	for (b = 0; b < 1 << A; b++) {
+		h = 0;
+		for (a = 0; a < A; a++)
+			if (b & 1 << a)
+				h++;
+		if (h < k - 1)
+			for (s = 1; s < n_; s++) {
+				int t = next[h][s];
+				long long x;
+
+				if (dp[b][s] == -INF)
+					continue;
+				x = dp[b][s] + zz[h][s];
+				for (a = 0; a < A; a++)
+					if (!(b & 1 << a)) {
+						int b_ = b | 1 << a, s_ = delta[t][a];
+
+						dp[b_][s_] = max(dp[b_][s_], x + yy[s_]);
+					}
+			}
+		else if (h == k - 1)
+			for (s = 1; s < n_; s++)
+				ans = max(ans, dp[b][s] + zz[k - 1][s]);
+	}
+	printf("%lld\n", ans);
+	return 0;
+}

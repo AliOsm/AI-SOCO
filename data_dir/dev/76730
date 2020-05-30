@@ -1,0 +1,198 @@
+#include <string>
+#include <iostream>
+#include <set>
+#include <map>
+#include <vector>
+#include <algorithm>
+#include <sstream>
+#include <cmath>
+
+
+using namespace std;
+
+struct Sq
+{
+    int x1, x2, y1, y2;
+};
+
+Sq sqs[1234];
+
+const double EPS = 1E-9;
+
+struct pt {
+    double x, y;
+    pt (double a = 0, double b = 0) : x(a), y(b) {}
+    bool operator< (const pt & p) const {
+        return x < p.x-EPS || fabs(x-p.x) < EPS && y < p.y - EPS;
+    }
+};
+
+struct line {
+    double a, b, c;
+
+    line() {}
+    line (pt p, pt q) {
+        a = p.y - q.y;
+        b = q.x - p.x;
+        c = - a * p.x - b * p.y;
+        norm();
+    }
+
+    void norm() {
+        double z = sqrt (a*a + b*b);
+        if (fabs(z) > EPS)
+            a /= z,  b /= z,  c /= z;
+    }
+
+    double dist (pt p) const {
+        return a * p.x + b * p.y + c;
+    }
+};
+
+#define det(a,b,c,d)  (a*d-b*c)
+
+inline bool betw (double l, double r, double x) {
+    return min(l,r) <= x + EPS && x <= max(l,r) + EPS;
+}
+
+inline bool intersect_1d (double a, double b, double c, double d) {
+    if (a > b)  swap (a, b);
+    if (c > d)  swap (c, d);
+    return max (a, c) <= min (b, d) + EPS;
+}
+
+bool intersect (pt a, pt b, pt c, pt d, pt & left, pt & right) {
+    if (! intersect_1d (a.x, b.x, c.x, d.x) || ! intersect_1d (a.y, b.y, c.y, d.y))
+        return false;
+    line m (a, b);
+    line n (c, d);
+    double zn = det (m.a, m.b, n.a, n.b);
+    if (fabs (zn) < EPS) {
+        if (fabs (m.dist (c)) > EPS || fabs (n.dist (a)) > EPS)
+            return false;
+        if (b < a)  swap (a, b);
+        if (d < c)  swap (c, d);
+        left = max (a, c);
+        right = min (b, d);
+        return true;
+    }
+    else {
+        left.x = right.x = - det (m.c, m.b, n.c, n.b) / zn;
+        left.y = right.y = - det (m.a, m.c, n.a, n.c) / zn;
+        return betw (a.x, b.x, left.x)
+            && betw (a.y, b.y, left.y)
+            && betw (c.x, d.x, left.x)
+            && betw (c.y, d.y, left.y);
+    }
+}
+
+int gcd(int a, int b)
+{
+    while(a && b)
+    {
+        if (a >= b)
+            a %= b;
+        else
+            b %= a;
+    }
+    return a + b;
+
+}
+
+
+int main()
+{
+    int n;
+    cin >> n;
+    int ans = 0;
+    for (int i = 0; i < n; ++i)
+    {
+        cin >> sqs[i].x1 >> sqs[i].y1 >> sqs[i].x2 >> sqs[i].y2;
+        if (sqs[i].x1 > sqs[i].x2)
+        {
+            swap(sqs[i].x1, sqs[i].x2);
+            swap(sqs[i].y1, sqs[i].y2);
+        }
+        ans += gcd(sqs[i].x2 - sqs[i].x1, abs(sqs[i].y2 - sqs[i].y1)) + 1;
+    }
+
+    map<pair<int, int>, int> m;
+    for (int i = 0; i < n; ++i)
+    {
+        for (int j = i+1; j < n; ++j)
+        {
+            if (sqs[i].x1 > sqs[j].x2 || sqs[i].x2 < sqs[j].x1)
+                continue;
+
+            int x1 = sqs[i].x1;
+            int x2 = sqs[i].x2;
+            int y1 = sqs[i].y1;
+            int y2 = sqs[i].y2;
+
+            if (x1 == sqs[j].x1 && y1 == sqs[j].y1)
+            {
+                m[make_pair(x1, y1)]++;
+                continue;
+            }
+
+            if (x1 == sqs[j].x2 && y1 == sqs[j].y2)
+            {
+                m[make_pair(x1, y1)]++;
+                continue;
+            }
+
+            if (x2 == sqs[j].x1 && y2 == sqs[j].y1)
+            {
+                m[make_pair(x2, y2)]++;
+                continue;
+            }
+
+            if (x2 == sqs[j].x2 && y2 == sqs[j].y2)
+            {
+                m[make_pair(x2, y2)]++;
+                continue;
+            }
+
+            pt l, r;
+            if (intersect(pt(x1, y1), pt(x2, y2), pt(sqs[j].x1, sqs[j].y1), pt(sqs[j].x2, sqs[j].y2), l, r))
+            {
+                int x = (l.x > 0 ? l.x + 0.5 : l.x - 0.5);
+                int y = (l.y > 0 ? l.y + 0.5 : l.y - 0.5);
+
+                if ((y1 - y2) * 1ll * x + (x2 - x1) * 1ll * y + (1ll * x1 * y2 - 1ll * x2 * y1) == 0)
+                {
+                    x1 = sqs[j].x1;
+                    x2 = sqs[j].x2;
+                    y1 = sqs[j].y1;
+                    y2 = sqs[j].y2;
+                    if ((y1 - y2) * 1ll * x + (x2 - x1) * 1ll * y + (1ll * x1 * y2 - 1ll * x2 * y1) == 0)
+                        m[make_pair(x, y)]++;
+                }
+            }
+        }
+    }
+
+    for (map<pair<int, int>, int>::iterator i = m.begin(); i != m.end(); ++i)
+    {
+        int k = i->second * 2;
+        ans -= int(sqrt(double(k)));
+    }
+    cout << ans;
+
+}
+
+
+/*
+8
+0 0 0 1
+0 0 1 0
+0 0 1 1
+0 0 -1 0
+0 0 0 -1
+0 0 -1 -1
+0 0 -1 1
+0 0 1 -1
+
+
+
+ */

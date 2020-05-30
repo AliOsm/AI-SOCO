@@ -1,0 +1,436 @@
+//#pragma comment(linker, "/stack:200000000")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma GCC optimize("unroll-loops")
+
+//#define fast_allocator
+
+#include <iostream>
+#include <stdlib.h>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <random>
+#include <assert.h>
+
+#define uint unsigned int
+#define ll long long
+#define ull unsigned long long
+#define ld long double
+#define rep(i, l, r) for (int i = l; i < r; i++)
+#define repb(i, r, l) for (int i = r; i > l; i--)
+#define sz(a) (int)a.size()
+#define fi first
+#define se second
+#define mp(a, b) make_pair(a, b)
+
+#ifdef fast_allocator
+const int MAXMEM = 200 * 1000 * 1024;
+char _memory[MAXMEM];
+size_t _ptr = 0;
+void* operator new(size_t _x) { _ptr += _x; assert(_ptr < MAXMEM); return _memory + _ptr - _x; }
+void operator delete (void*) noexcept {}
+#endif
+
+using namespace std;
+
+inline void setmin(int &x, int y) { if (y < x) x = y; }
+inline void setmax(int &x, int y) { if (y > x) x = y; }
+inline void setmin(ll &x, ll y) { if (y < x) x = y; }
+inline void setmax(ll &x, ll y) { if (y > x) x = y; }
+
+const int N = 300000 + 1;
+const int inf = (int)1e9 + 1;
+const ll big = (ll)1e18 + 1;
+const int P = 239;
+const int P1 = 31;
+const int P2 = 57;
+const int MOD = (int)1e9 + 7;
+const int MOD1 = (int)1e9 + 9;
+const int MOD2 = 998244353;
+const double eps = 1e-9;
+const double pi = atan2(0, -1);
+const int ABC = 26;
+
+vector<int> zf(string s) {
+    int n = sz(s);
+    vector<int> z(n, 0);
+    int l = 0, r = 0;
+    rep(i, 1, n) {
+        if (i < r) {
+            z[i] = min(z[i - l], r - i);
+        }
+        while (i + z[i] < n && s[z[i]] == s[i + z[i]]) {
+            z[i]++;
+        }
+        if (i + z[i] > r) {
+            l = i;
+            r = i + z[i];
+        }
+    }
+    return z;
+}
+
+int len;
+string str;
+ll pw[N];
+ll pw1[N];
+ll pw2[N];
+
+ll h[N];
+ll h1[N];
+ll h2[N];
+
+void init(string s) {
+    len = sz(s);
+    str = s;
+    pw[0] = 1;
+    pw1[0] = 1;
+    pw2[0] = 1;
+    rep(i, 1, len + 1) {
+        pw[i] = pw[i - 1] * P % MOD;
+        pw1[i] = pw1[i - 1] * P1 % MOD1;
+        pw2[i] = pw2[i - 1] * P2 % MOD2;
+    }
+    h[0] = 0;
+    h1[0] = 0;
+    h2[0] = 0;
+    rep(i, 0, len) {
+        h[i + 1] = (h[i] * P + s[i]) % MOD;
+        h1[i + 1] = (h1[i] * P1 + s[i]) % MOD1;
+        h2[i + 1] = (h2[i] * P2 + s[i]) % MOD2;
+    }
+}
+
+inline ll get_hash(int l, int r) {
+    return (h[r] - h[l] * pw[r - l] % MOD + MOD) % MOD;
+}
+
+inline ll get_hash1(int l, int r) {
+    return (h1[r] - h1[l] * pw1[r - l] % MOD1 + MOD1) % MOD1;
+}
+
+inline ll get_hash2(int l, int r) {
+    return (h2[r] - h2[l] * pw2[r - l] % MOD2 + MOD2) % MOD2;
+}
+
+int get_common(int x, int y) {
+    /*int ans = 0;
+    int mmm = max(x, y);
+    while (mmm + ans < len && str[x + ans] == str[y + ans]) {
+        ans++;
+    }
+    return ans;
+
+    if (str[x] != str[y]) {
+        return 0;
+    }*/
+    int l = 0, r = len - max(x, y) + 1, mid;
+    while (r - l > 1) {
+        mid = (l + r) >> 1;
+        if (get_hash(x, x + mid) == get_hash(y, y + mid) && get_hash1(x, x + mid) == get_hash1(y, y + mid) && get_hash2(x, x + mid) == get_hash2(y, y + mid)) {
+            l = mid;
+        } else {
+            r = mid;
+        }
+    }
+    return l;
+}
+
+bool cmp(int x, int y) {
+    int l = get_common(x, y);
+    if (l == len - max(x, y)) {
+        return x > y;
+    } else {
+        return str[x + l] < str[y + l];
+    }
+}
+
+int log_2[N];
+int st[17][N];
+
+void build(vector<int> a) {
+    /*cout << "??? " << endl;
+    for (int i : a) {
+        cout << i << " ";
+    }
+    cout << endl;*/
+    int n = sz(a);
+    log_2[1] = 0;
+    rep(i, 2, n + 1) {
+        if ((1 << (log_2[i - 1] + 1)) <= i) {
+            log_2[i] = log_2[i - 1] + 1;
+        } else {
+            log_2[i] = log_2[i - 1];
+        }
+    }
+    int sz = 0;
+    while ((1 << sz) <= n) {
+        sz++;
+    }
+    rep(i, 0, n) {
+        st[0][i] = a[i];
+    }
+    rep(j, 1, sz) {
+        rep(i, 0, n - (1 << j) + 1) {
+            st[j][i] = min(st[j - 1][i], st[j - 1][i + (1 << (j - 1))]);
+        }
+    }
+    /*rep(j, 0, sz) {
+        rep(i, 0, n - (1 << j) + 1) {
+            cout << st[j][i] << " ";
+        }
+        cout << "\n";
+    }*/
+}
+
+int get_min(int l, int r) {
+    int len = log_2[r - l];
+    return min(st[len][l], st[len][r - (1 << len)]);
+}
+
+int cnt[N];
+vector<int> group[N];
+
+int solve1(string s, string t) {
+    set<string> res;
+    rep(i, 1, sz(s) + 1) {
+        rep(j, 1, sz(t) + 1) {
+            res.insert(s.substr(0, i) + t.substr(0, j));
+        }
+    }
+    /*for (auto it : res) {
+        cout << it << "\n";
+    }*/
+    return sz(res);
+}
+
+vector<int> sufmas(string s) {
+    int n = sz(s);
+    int p[n], p1[n], pos[n], c[n], c1[n];
+    int pref[max(n, 27) + 1];
+    fill(pref, pref + 27, 0);
+    rep(i, 0, n) {
+        if (s[i] != '$') {
+            pref[s[i] - 'a' + 1 + 1]++;
+        } else {
+            pref[1]++;
+        }
+    }
+    rep(i, 1, 27) {
+        pref[i] += pref[i - 1];
+    }
+    /*rep(i, 0, 27) {
+        cout << pref[i] << " ";
+    }
+    cout << "\n";*/
+    rep(i, 0, n) {
+        if (s[i] == '$') {
+            p[pref[0]++] = i;
+        } else {
+            p[pref[s[i] - 'a' + 1]++] = i;
+        }
+    }
+    rep(i, 0, n) {
+        pos[p[i]] = i;
+    }
+    c[p[0]] = 0;
+    rep(i, 1, n) {
+        if (s[p[i]] != s[p[i - 1]]) {
+            c[p[i]] = c[p[i - 1]] + 1;
+        } else {
+            c[p[i]] = c[p[i - 1]];
+        }
+    }
+    for (int len = 1; len <= n; len *= 2) {
+        fill(pref, pref + n, 0);
+        rep(i, 0, n) {
+            if (p[i] + len < n) {
+                pref[c[p[i] + len] + 1]++;
+            } else {
+                pref[1]++;
+            }
+        }
+        rep(i, 1, n) {
+            pref[i] += pref[i - 1];
+        }
+        rep(i, 0, n) {
+            if (p[i] + len < n) {
+                p1[pref[c[p[i] + len]]++] = p[i];
+            } else {
+                p1[pref[0]++] = p[i];
+            }
+        }
+        fill(pref, pref + n, 0);
+        rep(i, 0, n) {
+            pref[c[p1[i]] + 1]++;
+        }
+        rep(i, 1, n) {
+            pref[i] += pref[i - 1];
+        }
+        rep(i, 0, n) {
+            p[pref[c[p1[i]]]++] = p1[i];
+        }
+        c1[p[0]] = 0;
+        rep(i, 1, n) {
+            if (c[p[i]] != c[p[i - 1]] || c[p[i]] == c[p[i - 1]] && c[p[i] + len] != c[p[i - 1] + len]) {
+                c1[p[i]] = c1[p[i - 1]] + 1;
+            } else {
+                c1[p[i]] = c1[p[i - 1]];
+            }
+        }
+        rep(i, 0, n) {
+            c[i] = c1[i];
+        }
+    }
+    vector<int> res(n - 1);
+    rep(i, 0, n - 1) {
+        res[i] = p[i + 1];
+    }
+    return res;
+}
+
+vector<int> get_lcp(vector<int> p, string s) {
+    int n = sz(p);
+    int pos[n];
+    rep(i, 0, n) {
+        pos[p[i]] = i;
+    }
+    vector<int> lcp(n - 1, 0);
+    int cur = 0;
+    rep(i, 0, n - 1) {
+
+    }
+}
+
+ll solve(string s, string t) {
+    int n = sz(s), m = sz(t);
+    vector<int> z = zf(t + "#" + s);
+    init(t);
+    /*vector<int> sufmas(m);
+    rep(i, 0, m) {
+        sufmas[i] = i;
+    }
+    sort(sufmas.begin(), sufmas.end(), cmp);*/
+    vector<int> suf = sufmas(t + "$");
+    /*for (int i : sufmas) {
+        cout << i + 1 << " ";
+    }
+    cout << endl;*/
+    int pos[m];
+    rep(i, 0, m) {
+        pos[suf[i]] = i;
+    }
+    vector<int> lcp(m - 1);
+    rep(i, 0, m - 1) {
+        lcp[i] = get_common(suf[i], suf[i + 1]);
+    }
+    /*cout << "! " << endl;
+    rep(i, 0, m - 1) {
+        cout << lcp[i] << " ";
+    }
+    cout << "\n";
+    cout << endl;*/
+    build(lcp);
+    /*rep(i, 0, m) {
+        rep(j, i + 1, m) {
+            cout << get_min(i, j) << " ";
+        }
+        cout << "\n";
+    }*/
+    fill(cnt, cnt + n + 1, 0);
+    rep(i, 0, n + 1) {
+        group[i].clear();
+    }
+    rep(i, 1, n + 1) {
+        int l = (i < n ? z[m + 1 + i] : 0);
+        if (i + 1 <= n) {
+            cnt[i + 1]++;
+        }
+        if (i + l + 1 <= n) {
+            cnt[i + l + 1]--;
+        }
+        if (l < m) {
+            group[i + l].push_back(l);
+        }
+    }
+    rep(i, 1, n + 1) {
+        sort(group[i].begin(), group[i].end(), [&](int x, int y) {
+            return pos[x] < pos[y];
+        });
+    }
+    /*rep(i, 0, n + 1) {
+        cout << i << ": ";
+        for (int j : group[i]) {
+            cout << j << " ";
+        }
+        cout << "\n";
+    }*/
+    ll ans = 0;
+    rep(i, 1, n + 1) {
+        rep(j, 0, sz(group[i])) {
+            ans += m - group[i][j];
+            if (j > 0) {
+                //cout << pos[group[i][j - 1]] << " " << pos[group[i][j]] << " " << get_min(pos[group[i][j - 1]], pos[group[i][j]]) << "\n";
+                ans -= get_min(pos[group[i][j - 1]], pos[group[i][j]]);
+            }
+        }
+    }
+    //cout << "! " << ans << "\n";
+    rep(i, 1, n + 1) {
+        cnt[i] += cnt[i - 1];
+    }
+    /*rep(i, 0, n + 1) {
+        cout << cnt[i] << " ";
+    }
+    cout << "\n";*/
+    rep(i, 1, n + 1) {
+        if (cnt[i] > 0) {
+            ans++;
+        }
+    }
+    return ans;
+}
+
+string get_rand(int len) {
+    string res;
+    rep(i, 0, len) {
+        res += char('a' + rand() % 2);
+    }
+    return res;
+}
+
+int main()
+{
+    //freopen("a.in", "r", stdin);
+    //freopen("dsu.out", "w", stdout);
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.precision(20);
+    cout << fixed;
+    //ll TL = 0.95 * CLOCKS_PER_SEC;
+    //clock_t time = clock();
+
+
+    string s, t;
+    cin >> s >> t;
+    cout << solve(s, t) << "\n";
+    //cout << solve1(s, t) << "\n";
+    return 0;
+
+    int T = 100000;
+    int L = 50;
+    while (T--) {
+        string s = get_rand(rand() % L + 1), t = get_rand(rand() % L + 1);
+        int r = solve(s, t);
+        int r1 = solve1(s, t);
+        if (r != r1) {
+            cout << s << " " << t << "\n";
+            cout << r << " " << r1 << "\n";
+            break;
+        }
+    }
+    return 0;
+}

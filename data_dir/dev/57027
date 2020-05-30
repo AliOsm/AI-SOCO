@@ -1,0 +1,35 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = unsigned long long;
+
+ll ipow(ll a, int b) {
+    ll r = 1;
+    while (b > 0) {
+        if (b&1) r = r*a;
+        a = a*a;
+        b >>= 1;
+    }
+    return r;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int q; cin >> q;
+    while (q--) {
+        ll n; cin >> n;
+        int nd = 0;
+        ll cn = n;
+        while (cn > 0) {
+            cn /= 3;
+            nd++;
+        }
+        ll ans = 0;
+        for (int i = nd; i >= 0; i--) {
+            if (ans + (ipow(3,i) - 1)/2 < n) {
+                ans += ipow(3,i);
+            }       
+        }
+        cout << ans << '\n';
+    }
+}
+

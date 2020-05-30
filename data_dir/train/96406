@@ -1,0 +1,203 @@
+// In the name of god
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <iomanip>
+#include <assert.h>
+#include <ctime>
+#include <queue>
+#include <set>
+#include <map>
+#include <vector>
+#include <list>
+#include <bitset>
+#include <unordered_map>
+#define sqr(a) ((a)*(a))
+#define all(a) (a).begin(), (a).end()
+using namespace std;
+ 
+template <typename T>
+T next_int() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if(ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return p * x;
+}
+ 
+string next_token() {
+    char ch;
+    string ans = "";
+    do { ch = getchar(); } while(ch <= ' ');
+    while(ch > ' ') {
+        ans += ch;
+        ch = getchar();
+    }
+    return ans;
+}
+ 
+const long long INF = (long long)1e18;
+const int INFINT = (int)1e9 + 227 + 1;
+const int MAXN = (int)1e6 + 227 + 1;    
+const int MOD = (int)1e9 + 7;
+const long double EPS = 1e-9;
+ 
+long long bin_pow(long long a, long long b) {
+    if(!b) return 1;
+    long long ans = bin_pow(a, b / 2);
+    ans = ans * ans % MOD;
+    if(b % 2) ans = ans * a % MOD;
+    return ans;
+}
+
+int a[MAXN];
+
+struct tree {
+    vector<vector<pair<int, int> > > t;
+    int len, k;
+
+    vector<pair<int, int> > merge(vector<pair<int, int> > a, vector<pair<int, int> > b) {
+        for(int i = 0; i < b.size(); i++) {
+            int p = -1;
+            for(int j = 0; j < a.size(); j++) 
+                if(a[j].first == b[i].first) {
+                    p = j;
+                }
+
+            if(p != -1) {
+                a[p].second += b[i].second;
+            } else if(a.size() < k - 1) {
+                a.push_back(b[i]);
+            } else {
+                int mn = INFINT;
+                for(int j = 0; j < a.size(); j++)
+                    mn = min(mn, a[j].second);
+
+                if(mn < b[i].second) {
+                    b[i].second -= mn;
+                    vector<pair<int, int> > q;
+                    for(int j = 0; j < a.size(); j++) {
+                        a[j].second -= mn;
+                        if(a[j].second) q.push_back(a[j]);
+                    }
+                    a = q;
+
+                    a.push_back(b[i]);
+                } else {
+                    vector<pair<int, int> > q;
+                    for(int j = 0; j < a.size(); j++) {
+                        a[j].second -= b[i].second;
+                        if(a[j].second) q.push_back(a[j]);
+                    }
+                    a = q;
+                }
+
+            }
+        }
+
+        return a;
+    }
+
+    tree(int len, int k) : len(len), k(k) {
+        t.resize(len * 4 + 227 + 1);
+
+        build(1, 1, len);
+    }
+
+    void build(int v, int l, int r) {
+        if(l == r) {
+            t[v].push_back(make_pair(a[l], 1));
+
+            return;
+        }
+
+        int mid = (l + r) / 2;
+        build(v * 2, l, mid);
+        build(v * 2 + 1, mid + 1, r);
+
+        t[v] = merge(t[v * 2], t[v * 2 + 1]);
+    }
+
+    vector<pair<int, int> > get(int v, int l, int r, int _l, int _r) {
+        if(_l > _r) return vector<pair<int, int> >(0);
+        if(l == _l && r == _r) {
+            return t[v];
+        }
+    
+        int mid = (l + r) / 2;
+        return merge(get(v * 2, l, mid, _l, min(mid, _r)), get(v * 2 + 1, mid + 1, r, max(mid + 1, _l), _r));
+    }
+
+    vector<pair<int, int> > get(int l, int r) {
+        return get(1, 1, len, l, r);
+    }
+} ;
+
+vector<int> w[MAXN];
+
+bool check(int l, int r, int k, int e) {
+    int ans = lower_bound(all(w[e]), r + 1) - w[e].begin();
+    ans -= lower_bound(all(w[e]), l) - w[e].begin();
+    return (ans > (r - l + 1) / k);
+}
+
+int main() {
+    // freopen(".in", "r", stdin);
+
+    int n, m; cin >> n >> m;
+
+    for(int i = 1; i <= n; i++) {
+        a[i] = next_int<int>();
+    }
+
+    vector<int> e;
+    for(int i = 1; i <= n; i++) {
+        e.push_back(a[i]);
+    }
+
+    sort(all(e));
+
+    vector<int> temp;
+    for(int i = 0; i < e.size(); i++)
+        if(!i || e[i] != e[i - 1])
+            temp.push_back(e[i]);
+    e = temp;
+
+    for(int i = 1; i <= n; i++) {
+        w[lower_bound(all(e), a[i]) - e.begin()].push_back(i);
+    }
+
+    vector<tree> t;
+    for(int k = 2; k <= 5; k++) {
+        t.push_back(tree(n, k));
+    }
+
+    while(m--) {
+        int l = next_int<int>();
+        int r = next_int<int>();
+        int k = next_int<int>() - 2;
+
+
+        vector<pair<int, int> > ans = t[k].get(l, r);
+
+        int ansi = INFINT;
+        for(int i = 0; i < ans.size(); i++)
+            if(check(l, r, k + 2, lower_bound(all(e), ans[i].first) - e.begin())) {
+                ansi = min(ansi, ans[i].first);
+            }
+
+        if(ansi == INFINT)
+            puts("-1");
+        else
+            printf("%d\n", ansi);
+    }
+}

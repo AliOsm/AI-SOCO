@@ -1,0 +1,172 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define all(x) begin(x), end(x)
+
+using ll = long long;
+using ld = long double;
+using pii = pair<int, int>;
+using vi = vector<int>;
+
+constexpr int MAXN = 1.5e5 + 5;
+int n;
+ll a[MAXN];
+
+struct Line {
+	mutable ll k, m, p;
+	bool operator<(const Line& o) const { return k < o.k; }
+	bool operator<(ll x) const { return p < x; }
+};
+
+struct LineContainer : multiset<Line, less<>> {
+	// (for doubles, use inf = 1/.0, div(a,b) = a/b)
+	const ll inf = LLONG_MAX;
+	ll div(ll a, ll b) { // floored division
+		return a / b - ((a ^ b) < 0 && a % b); }
+	bool isect(iterator x, iterator y) {
+		if (y == end()) { x->p = inf; return false; }
+		if (x->k == y->k) x->p = x->m > y->m ? inf : -inf;
+		else x->p = div(y->m - x->m, x->k - y->k);
+		return x->p >= y->p;
+	}
+	void add(ll k, ll m) {
+		auto z = insert({k, m, 0}), y = z++, x = y;
+		while (isect(y, z)) z = erase(z);
+		if (x != begin() && isect(--x, y)) isect(x, y = erase(y));
+		while ((y = x) != begin() && (--x)->p >= y->p)
+			isect(x, erase(y));
+	}
+	ll query(ll x) {
+		assert(!empty());
+		auto l = *lower_bound(x);
+		return l.k * x + l.m;
+	}
+};
+
+struct Path {
+    ll up, down, sum;
+    int len;
+};
+
+struct CentroidDecomp {
+    vi tree[MAXN];
+    int sizes[MAXN];
+    bool vis[MAXN];
+    ll ans;
+
+    void init(int n) {
+        for (int i = 0; i < n; ++i) {
+            tree[i].clear();
+        }
+        memset(vis, 0, sizeof(vis));
+        ans = 0;
+    }
+
+    void add_edge(int u, int v) {
+        tree[u].push_back(v);
+        tree[v].push_back(u);
+    }
+
+    // sum, length
+    vector<Path> paths;
+    void dfs_path(int u, int p, ll up, ll down, ll sum, int len) {
+        paths.push_back({up, down, sum, len});
+        for (int v : tree[u]) {
+            if (vis[v] or v == p) continue;
+            dfs_path(v, u, (len + 1) * a[v] + up, down + sum + a[v], sum + a[v], len + 1);
+        }
+    }
+
+    // do something from this root, don't go into visited nodes
+    void f(int u) {
+        LineContainer up, down;
+
+        for (int v : tree[u]) {
+            if (vis[v]) continue;
+            paths.clear();
+            dfs_path(v, u, a[v], a[v], a[v], 1);
+
+            if (!up.empty() and !down.empty()) {
+                for (auto& path : paths) {
+                    ll up_cost = path.up + path.sum + a[u];
+                    // up_cost + down_cost + down_len * (path.sum)
+                    ll res = up_cost + down.query(path.sum + a[u]);
+                    ans = max(ans, res);
+
+                    ll down_cost = path.down + (path.len + 1) * a[u];
+                    // up_cost + down_cost + up_sum * (down.len + 1)
+                    ll res2 = down_cost + up.query(path.len + 1);
+                    ans = max(ans, res2);
+                }
+            }
+
+            for (auto& path : paths) {
+                up.add(path.sum, path.up);
+                down.add(path.len, path.down);
+            }
+        }
+    }
+
+    void dfs_sz(int u, int p) {
+        sizes[u] = 1;
+        for (int v : tree[u]) {
+            if (v == p or vis[v]) {
+                continue;
+            }
+
+            dfs_sz(v, u);
+            sizes[u] += sizes[v];
+        }
+    }
+
+    int find_center(int total_size, int u, int p) {
+        for (int v : tree[u]) {
+            if (v == p or vis[v]) {
+                continue;
+            }
+
+            if (2 * sizes[v] >= total_size) {
+                return find_center(total_size, v, u);
+            }
+        }
+
+        return u;
+    }
+
+    void run(int u = 0, int p = -1) {
+        dfs_sz(u, p);
+        int c = find_center(sizes[u], u, p);
+
+        f(c);
+
+        vis[c] = true;
+        for (int v : tree[c]) {
+            if (v != p and !vis[v]) {
+                run(v, c);
+            }
+        }
+    }
+} cd;
+
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0); cout.tie(0);
+
+    cin >> n;
+    cd.init(n);
+    for (int i = 1; i < n; ++i) {
+        int u, v;
+        cin >> u >> v;
+        --u; --v;
+        cd.add_edge(u, v);
+    }
+    for (int i = 0; i < n; ++i) 
+        cin >> a[i];
+
+    cd.run();
+    cout << cd.ans << '\n';
+    
+    return 0;
+}

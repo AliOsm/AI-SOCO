@@ -1,0 +1,181 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+#define pb push_back
+#define all(x) (x).begin(),(x).end()
+#define rall(x) (x).rbegin(),(x).rend()
+#define fi first
+#define se second
+#define M_PI 3.14159265358979323846
+using namespace std;
+using namespace __gnu_pbds;
+using ll = int64_t;
+using ld = long double;
+using ull = uint64_t;
+using pi = pair<int, int>;
+using vl = vector<ll>;
+using vvl = vector<vector<ll>>;
+
+typedef tree<int, null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+
+ll n, m;
+
+string f[1111];
+int goodRows[1111], goodCols[1111];
+
+ll curReg = 1;
+int regions[1111][1111];
+ll L, R, T, B;
+
+void reset() {
+  L = 1e9;
+  R = -1e9;
+  T = 1e9;
+  B = -1e9;
+}
+
+bool good(ll i, ll j) {
+  return i >= 0 && j >= 0 && i < n && j < m && regions[i][j] == 0 && f[i][j] == '#';
+}
+
+void fill(ll i, ll j) {
+  if (!good(i, j)) return;
+  regions[i][j] = curReg;
+
+  T = min(T, i);
+  B = max(B, i);
+  L = min(L, j);
+  R = max(R, j);
+
+  fill(i-1, j);
+  fill(i+1, j);
+  fill(i, j-1);
+  fill(i, j+1);
+}
+
+vector<pi> xs, ys;
+
+// link
+void check(vector<pi>& v) {
+  sort(all(v));
+
+  pi cur = *v.begin();
+
+  for (int i = 1; i < v.size(); i++) {
+    if (v[i].first <= cur.second) {
+      cout << -1 << endl;
+      exit(0);
+    }
+    cur = v[i];
+  }
+}
+
+int main(){
+  cin.tie(NULL);
+  ios::sync_with_stdio(false);
+
+  cin >> n >> m;
+  for (int i = 0; i < n; i++) {
+    cin >> f[i];
+  }
+
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < m; j++) {
+      if (f[i][j] == '#' && regions[i][j] == 0) {
+        reset();
+        fill(i, j);
+        curReg++;
+        xs.pb({L, R});
+        ys.pb({T, B});
+      }
+    }
+  }
+
+  if (curReg == 1) {
+    cout << 0 << endl;
+    return 0;
+  }
+
+  check(xs);
+  check(ys);
+
+  bool hasEmptyRow = false, hasEmptyCol = false;
+
+  ll cur = -1;
+  for (auto x: xs) {
+    if (x.first != cur+1) {
+      hasEmptyCol = true;
+      break;
+    }
+    cur = x.second;
+  }
+
+  if (xs.back().se != m-1) {
+    hasEmptyCol = true;
+  }
+
+  cur = -1;
+  for (auto y: ys) {
+    if (y.first != cur+1) {
+      hasEmptyRow = true;
+      break;
+    }
+    cur = y.second;
+  }
+
+  if (ys.back().se != n-1) {
+    hasEmptyRow = true;
+  }
+
+  cerr << "empty col " << hasEmptyCol << " emptyRow " << hasEmptyRow << endl;
+
+  if (hasEmptyRow ^ hasEmptyCol) {
+    cout << -1 << endl;
+    return 0;
+  }
+
+
+  //cerr << "total regs: " << curReg-1 << endl;
+
+  for (int i = 0; i < curReg-1; i++) {
+    T = ys[i].fi;
+    B = ys[i].se;
+    L = xs[i].fi;
+    R = xs[i].se;
+    //cerr << "for reg " << i+1 << " " << T << " " << B << " " << L << " " << R << endl;
+    for (int row = T; row <= B; row++) {
+      int status = 1;
+      for (int col = L; col <= R; col++) {
+        if (status == 1) {
+          if (f[row][col] == '#') status++;
+        } else if (status == 2) {
+          if (f[row][col] == '.') status++; 
+        } else if (status == 3) {
+          if (f[row][col] == '#') {
+            cout << -1 << endl;
+            return 0;
+          }
+        }
+      }
+    }
+    for (int col = L; col <= R; col++) {
+      int status = 1;
+        for (int row = T; row <= B; row++) {
+        if (status == 1) {
+          if (f[row][col] == '#') status++;
+        } else if (status == 2) {
+          if (f[row][col] == '.') status++; 
+        } else if (status == 3) {
+          if (f[row][col] == '#') {
+            cout << -1 << endl;
+            return 0;
+          }
+        }
+      }
+    }
+  }
+
+  cout << curReg-1 << endl;
+
+}
+

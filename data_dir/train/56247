@@ -1,0 +1,173 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define x first
+#define y second
+#define mp make_pair
+#define pb push_back
+#define sqr(a) ((a) * (a))
+#define sz(a) int(a.size())
+#define all(a) a.begin(), a.end()
+#define forn(i, n) for(int i = 0; i < int(n); i++) 
+#define fore(i, l, r) for(int i = int(l); i < int(r); i++)
+
+typedef long long li;
+typedef long double ld;
+typedef pair<int, int> pt;
+
+template <class A, class B> ostream& operator << (ostream& out, const pair<A, B> &a) {
+	return out << "(" << a.x << ", " << a.y << ")";
+}
+
+template <class A> ostream& operator << (ostream& out, const vector<A> &v) {
+	out << "[";
+	forn(i, sz(v)) {
+		if(i) out << ", ";
+		out << v[i];
+	}
+	return out << "]";
+}
+
+mt19937 rnd(time(NULL));
+
+const int INF = int(1e9);
+const li INF64 = li(1e18);
+const int MOD = INF + 7;
+const ld EPS = 1e-9;
+const ld PI = acos(-1.0);
+
+const int N = 1000 + 7;
+
+int n, m;
+string s[N], t[N];
+int a[N][N], b[N][N];
+
+bool read () {
+	if (scanf("%d%d", &n, &m) != 2)
+		return false;
+	static char buf[N];
+	forn(i, n){
+		scanf("%s", buf);
+		s[i] = buf;
+	}
+	forn(i, n){
+		scanf("%s", buf);
+		t[i] = buf;
+	}
+	return true;
+}
+
+bool can[61][10][10][10][10];
+
+int dx[] = {-1, 0, 1, 0};
+int dy[] = {0, 1, 0, -1};
+
+bool in(int x, int y){
+	return (0 <= x && x < n && 0 <= y && y < n);
+}
+
+int mt[N];
+int used[N], T;
+vector<int> g[N];
+
+bool try_kuhn(int v){
+	if (used[v] == T) return false;
+	used[v] = T;
+	for (auto u : g[v])  if (mt[u] == -1 || try_kuhn(mt[u])){
+		mt[u] = v;
+		return true;
+	}
+	return false;
+}
+
+void solve() {	
+	memset(can, 0, sizeof(can));
+	
+	vector<pt> tmp;
+	forn(i, n) forn(j, n) if (s[i][j] == 'Z')
+		tmp.pb(mp(i, j));
+	forn(i, n) forn(j, n) if (s[i][j] == 'Y' || s[i][j] == 'Z')
+		s[i][j] = t[i][j] = '*';
+	
+	forn(i, n) forn(j, n)
+		a[i][j] = (s[i][j] == '*' ? -1 : int(s[i][j] - '0'));
+	forn(i, n) forn(j, n)
+		b[i][j] = (t[i][j] == '*' ? -1 : int(t[i][j] - '0'));
+	
+	forn(i, n) forn(j, n) if (s[i][j] != '*')
+		can[0][i][j][i][j] = true;
+	forn(z, m){
+		forn(i, n) forn(j, n) forn(x, n) forn(y, n) if (s[x][y] != '*' && can[z][i][j][x][y]){
+			forn(l, 4){
+				int nx = x + dx[l];
+				int ny = y + dy[l];
+				if (in(nx, ny) && s[nx][ny] != '*')
+					can[z + 1][i][j][nx][ny] = true;
+			}
+		}
+		
+		vector<pt> nw;
+		for (auto it : tmp) forn(i, 4){
+			int x = it.x + dx[i];
+			int y = it.y + dy[i];
+			if (in(x, y) && s[x][y] != '*'){
+				s[x][y] = '*';
+				nw.pb(mp(x, y));
+			}
+		}
+		tmp = nw;
+	}
+	
+	forn(i, n * n * 9) g[i].clear();
+	forn(i, n) forn(j, n) forn(x, n) forn(y, n){
+		bool fl = false;
+		forn(z, m + 1)
+			fl |= can[z][i][j][x][y];
+		if (fl){
+			forn(l, a[i][j]) forn(r, b[x][y]){
+				g[(i * n + j) * 9 + l].pb((x * n + y) * 9 + r);
+			}
+			//if (a[i][j] != 0 && b[x][y] != 0){
+			//	cerr << i + 1 << " " << j + 1 << " " << x + 1 << " " << y + 1 << " " << endl;
+			//}
+		}
+	}
+	
+	memset(mt, -1, sizeof(mt));
+	memset(used, 0, sizeof(used));
+	T = 1;
+	forn(i, n * n * 9) if (try_kuhn(i))
+		++T;
+	
+	printf("%d\n", T - 1);
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+	
+	int tt = clock();
+	
+#endif
+	
+	cerr.precision(15);
+	cout.precision(15);
+	cerr << fixed;
+	cout << fixed;
+
+#ifdef _DEBUG
+	while(read()){	
+#else
+	if(read()){
+#endif
+		solve();
+		
+#ifdef _DEBUG
+	cerr << "TIME = " << clock() - tt << endl;
+	tt = clock();
+#endif
+
+	}
+}

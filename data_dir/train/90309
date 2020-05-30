@@ -1,0 +1,194 @@
+#include <iostream>
+#include <vector>
+#include <set>
+#include <cstring>
+#include <map>
+#include <queue>
+#include <stack>
+#include <cstdio>
+#include <algorithm>
+#include <iomanip>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 3000005;
+const int mod = 1e9+7;
+const int LOGMAX = 24;
+
+int father[MAXN];
+int height[MAXN];
+int P[MAXN][LOGMAX];
+int sz[MAXN];
+
+ll sum[MAXN];
+ll sum_above[MAXN];
+
+double dp_down[MAXN];
+double dp_up[MAXN];
+
+vector<int> E[MAXN];
+int n;
+
+void process() {
+    int i, j;
+    for (i = 0; i <= n; ++i) {
+        for (j = 0; (1 << j) <= n; ++j) {
+            P[i][j] = -1;
+        }
+    }
+    for (i = 0; i <= n; ++i) {
+        P[i][0] = father[i];
+        //cout << i << " = " << P[i][0] << endl;
+
+    }
+    for (j = 1; (1 << j) <= n; ++j) {
+        for (i = 0; i <= n; ++i) {
+            if (P[i][j - 1] != -1) {
+                P[i][j] = P[P[i][j - 1]][j - 1];
+            }
+        }
+    }
+}
+
+
+void dfs(int node, int p = -1, int h = 0){
+
+    father[node] = p;
+    height[node] = h;
+
+    sz[node]++;
+
+
+    for(int i=0; i < E[node].size(); i++){
+        int v = E[node][i];
+        if(v == p) continue ;
+
+        dfs(v, node, h + 1);
+
+        sz[node] += sz[v];
+        sum[node] += sum[v] + sz[v];
+
+    }
+
+    dp_down[node] = 1.0 * sum[node] / sz[node];
+
+
+}
+
+void dfs2(int node, int p){
+
+    sum_above[node] += (n - sz[node]);
+    sum_above[node] += sum_above[p];
+    sum_above[node] += sum[p] - sum[node] - sz[node];
+
+    for(int i=0; i < E[node].size(); i++){
+        int v = E[node][i];
+        if(v == p) continue ;
+
+        dfs2(v, node);
+
+    }
+
+}
+
+int getKth(int node, int k){
+
+    for(int i = 20; i >= 0; i--){
+
+        if(k & (1 << i)){
+
+            node = P[node][i];
+            if(node == -1) return node;
+        }
+    }
+
+    return node;
+}
+
+int lca(int p, int q) {
+
+    int log, i;
+
+    if (height[p] < height[q])
+        swap(p, q);
+
+    for (log = 1; (1 << log) <= height[p]; ++log);
+    --log;
+    for (i = log; i >= 0; --i) {
+        if (height[p] - (1 << i) >= height[q]) {
+
+            p = P[p][i];
+        }
+    }
+    if (p == q) return p;
+
+//    cout << p << " " << q << endl;
+    for (i = log; i >= 0; --i) {
+        if (P[p][i] != -1 && P[p][i] != P[q][i]) {
+            p = P[p][i], q = P[q][i];
+        }
+    }
+    return father[p];
+}
+
+
+int main()
+{
+
+    ios::sync_with_stdio(0);
+    cout << fixed << setprecision(10);
+
+    int m; cin >> n >> m;
+
+    for(int i = 1; i < n; i++){
+        int u, v; cin >> u >> v;
+        E[u].push_back(v);
+        E[v].push_back(u);
+    }
+
+    dfs(1);
+
+    dp_up[1] = 0.0;
+
+    for(int i = 0; i < E[1].size(); i++){
+        int to = E[1][i];
+
+        dfs2(to, 1);
+
+    }
+
+
+
+    process();
+
+    for(int i = 1; i <= m; i++){
+        int u, v; cin >> u >> v;
+
+        int ancestro = lca(u, v);
+        int dist = height[u] + height[v] - 2 * height[ancestro];
+
+        if( ancestro != u && ancestro != v){
+
+            double ans = dp_down[u] + dp_down[v];
+
+            cout << ans + 1.0 * dist + 1.0 << endl;
+
+        }else{
+
+            if( height[u] > height[v] )
+                swap(u, v);
+
+            int bitch = getKth(v, dist-1);
+
+            double ans = dp_down[v];
+
+            double expected = 1.0 * (sum[u] - sum[bitch] - sz[bitch] + sum_above[u]) / (n - sz[bitch]);
+            ans += expected;
+
+            cout << ans + 1.0 * dist + 1.0 << endl;
+
+        }
+    }
+    return 0;
+}

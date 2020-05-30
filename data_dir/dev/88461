@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+#define REP(i,n) for(int i=0;i<n;++i)
+#define REP1(i,n) for(int i=1;i<=n;++i)
+#define SZ(i) int(i.size())
+#define eb emplace_back
+#define ALL(i) i.begin(),i.end()
+#define X first
+#define Y second
+#ifdef tmd
+#define IOS()
+#define debug(...) fprintf(stderr,"#%d: %s = ",__LINE__,#__VA_ARGS__),_do(__VA_ARGS__);
+template<typename T> void _do(T &&x){cerr<<x<<endl;}
+template<typename T, typename ...S> void _do(T &&x, S &&...y){cerr<<x<<", ";_do(y...);}
+template<typename It> ostream& _printRng(ostream &os,It bg,It ed)
+{
+    os<<"{";
+    for(It it=bg;it!=ed;it++) {
+        os<<(it==bg?"":",")<<*it;
+    }
+    os<<"}";
+    return os;
+}
+template<typename T> ostream &operator << (ostream &os,vector<T> &v){return _printRng(os,v.begin(), v.end());}
+template<typename T> void pary(T bg, T ed){_printRng(cerr,bg,ed);cerr<<endl;}
+#else
+#define IOS() ios_base::sync_with_stdio(0);cin.tie(0);
+#define endl '\n'
+#define debug(...)
+#define pary(...)
+#endif
+
+const int MAXN = 12;
+const ll MOD = 1000000007;
+
+int t, n, m;
+vector<vector<int> > a;
+
+void trim () {
+    vector<pair<int,int> > vp;
+
+    int idx = 0;
+    for (auto v : a) {
+        vp.emplace_back(*max_element(ALL(v)), idx++);
+    }
+
+    sort(ALL(vp));
+    vector<vector<int> > res;
+    for (int i=0; i<min(m,n); i++) {
+        res.emplace_back(a[vp[m-1-i].second]);
+    }
+
+    a = res;
+}
+
+void ckmax (int &x, int y) {
+    x = x > y ? x : y;
+}
+
+int dp[MAXN+1][1<<MAXN];
+int solve () {
+    memset(dp, 0, sizeof(dp));
+
+    int sz = a.size();
+    for (int i=1;i<=sz;i++) {
+        for (int mask=0;mask<(1<<n); mask++) {
+            int cmax = 0;
+            for (int sft=0; sft<n; sft++) {
+                int cur = 0;
+                for (int j=0; j<n; j++) {
+                    cur += (mask>>j&1) * a[i-1][j+sft>=n?j+sft-n:j+sft];
+                }
+                ckmax(cmax, cur);
+            }
+
+            int inv = ((1<<n)-1) ^ mask;
+            ckmax(dp[i][mask],cmax);
+            for (int smsk=inv; smsk>0; smsk=(smsk-1)&inv) {
+                ckmax(dp[i][mask|smsk], cmax+dp[i-1][smsk]);
+            }
+        }
+    }
+    return dp[sz][(1<<n)-1];
+}
+/*********************GoodLuck***********************/
+int main () {
+    IOS();
+
+    cin >> t;
+    while (t--) {
+        cin >> n >> m;
+
+        a.clear();
+        REP (i, m) {
+            a.push_back({});
+        }
+        REP (i, n) {
+            REP (j, m) {
+                int d;
+                cin >> d;
+                a[j].eb(d);
+            }
+        }
+
+        trim();
+        debug(a);
+
+        cout << solve() << endl;
+    }
+}

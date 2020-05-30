@@ -1,0 +1,96 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node{
+	vector <int> rec;
+	int st, u;
+	Node(){}
+	Node(vector <int> _rec, int _st, int _u) : rec(_rec), st(_st), u(_u){}
+};
+
+vector <int> f[17000][15][15];
+int G[15][15];
+int dp[17000], cnt[17000];
+int n;
+
+void bfs(int s){
+	queue <Node> q;
+	vector <int> vec;
+	vec.push_back(s);
+	f[0][s][s] = vec;
+	q.push(Node(vec, 0, s));
+	while (!q.empty()){
+		vector <int> rec = q.front().rec;
+		int st = q.front().st, u = q.front().u; q.pop();
+		for (int v = 0; v < n; v++){
+			if (!G[u][v] || (st & (1 << v)) || (int)f[st][s][v].size()) continue;
+			f[st][s][v] = rec;
+			if (v != s){
+				rec.push_back(v);
+				q.push(Node(rec, st ^ (1 << v), v));
+				rec.pop_back();
+			}
+		}
+	}
+}
+
+int main(){
+	int m;
+	scanf("%d %d",&n,&m);
+	for (int i = 1, u, v; i <= m; i++){
+		scanf("%d %d",&u,&v);
+		u--, v--;
+		G[u][v] = G[v][u] = 1;
+	}
+	for (int i = 0; i < n; i++) bfs(i);
+	for (int i = 1; i < (1 << n); i++){
+		cnt[i] = __builtin_popcount(i);
+		if (cnt[i] == 1) dp[i] = 0;
+		else dp[i] = 10000;
+	}
+	for (int i = 0; i < n; i++){
+		for (int u = 0; u < n; u++){
+			f[1 << i][u][u].clear();
+		}
+	}
+	for (int p = 2; p <= n; p++){
+		for (int i = 1; i < (1 << n); i++){
+			if (cnt[i] != p) continue;
+			for (int j = (i - 1) & i; j; j = (j - 1) & i){
+				for (int u = 0; u < n; u++){
+					if ((j & (1 << u)) == 0) continue;
+					for (int v = 0, S; v < n; v++){
+						if ((j & (1 << v)) == 0) continue;
+						S = (i ^ j);
+						if ((int)f[S][u][v].size()) dp[i] = min(dp[i], dp[j] + cnt[S] + 1);
+					}
+				}
+			}
+		}
+	}
+	printf("%d\n", dp[(1 << n) - 1]);
+	for (int i = (1 << n) - 1; cnt[i] > 1; ){
+		for (int j = (i - 1) & i, flag = 0, S; j; j = (j - 1) & i){
+			S = (i ^ j);
+			if (dp[i] != dp[j] + cnt[S] + 1) continue;
+			for (int u = 0; u < n; u++){
+				if ((j & (1 << u)) == 0) continue;
+				for (int v = 0, sz; v < n; v++){
+					if ((j & (1 << v)) == 0) continue;
+					sz = (int)f[S][u][v].size();
+					if (sz){
+						for (int k = 1; k < sz; k++)
+							printf("%d %d\n", f[S][u][v][k - 1] + 1, f[S][u][v][k] + 1);
+						printf("%d %d\n", f[S][u][v][sz - 1] + 1, v + 1);
+						i = j;
+						flag = 1;
+						break;
+					}
+				}
+				if (flag) break;
+			}
+			if (flag) break;
+		}
+	}
+	return 0;
+}

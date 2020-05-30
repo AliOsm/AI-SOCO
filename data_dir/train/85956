@@ -1,0 +1,88 @@
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <set>
+using namespace std;
+
+int N, K;
+vector<int> P[11][2]; 
+set<pair<int, int> > st[11];
+vector<int> sz;
+int cur[11];
+
+int main()
+{
+    scanf("%d %d", &N, &K);
+    for (int i = 0; i < N; i++)
+    {
+        int lo = -1, hi = -1;
+        for (int j = 0; j < K; j++)
+        {
+            scanf("%d", &cur[j]);
+            set<pair<int, int> >::iterator it = st[j].upper_bound(make_pair(cur[j], i));
+            if (it != st[j].end()) //lose to someone
+            {
+                int val = it->first, idx = it->second;
+                if (lo == -1 || P[j][0][lo] > val)
+                    lo = idx;
+            }
+            if (it != st[j].begin()) //beat someone
+            {
+                it--;
+                int val = it->first, idx = it->second;
+                if (hi == -1 || P[j][1][hi] < val)
+                    hi = idx;
+            }
+        }
+        //printf("%d: lo: %d, hi: %d\n", i, lo, hi);
+
+        if (lo != -1 && hi != -1 && P[0][0][lo] <= P[0][0][hi]) //merge into SCC
+        {
+            set<int> v;
+            set<pair<int, int> >::iterator it1 = st[0].lower_bound(make_pair(P[0][0][lo], lo));
+            set<pair<int, int> >::iterator it2 = st[0].upper_bound(make_pair(P[0][0][hi], hi));
+            for (set<pair<int, int> >::iterator it = it1; it != it2; it++)
+                v.insert(it->second);
+
+            int cnt;
+            for (int j = 0; j < K; j++)
+            {
+                cnt = 1;
+                int minVal = cur[j], maxVal = cur[j];
+                for (set<int>::iterator it = v.begin(); it != v.end(); it++)
+                {
+                    int idx = *it;
+                    minVal = min(minVal, P[j][0][idx]);
+                    maxVal = max(maxVal, P[j][1][idx]);
+                    cnt += sz[idx];
+                    st[j].erase(make_pair(P[j][0][idx], idx));
+                    st[j].erase(make_pair(P[j][1][idx], idx));
+                }
+                int x = *v.begin();
+                P[j][0][x] = minVal;
+                P[j][1][x] = maxVal;
+                st[j].insert(make_pair(P[j][0][x], x));
+                st[j].insert(make_pair(P[j][1][x], x));
+            }
+            sz[*v.begin()] = cnt;
+        }
+        else //new component
+        {
+            int idx = sz.size();
+            sz.push_back(1);
+            for (int j = 0; j < K; j++)
+            {
+                P[j][0].push_back(cur[j]);
+                P[j][1].push_back(cur[j]);
+                st[j].insert(make_pair(cur[j], idx));
+            }
+        }
+        /*for (int j = 0; j < K; j++)
+            for (int k = 0; k < 2; k++)
+                for (int n = 0; n < P[j][k].size(); n++)
+                    printf("P[%d][%d][%d] = %d\n", j, k, n, P[j][k][n]);*/
+        printf("%d\n", sz[(--st[0].end())->second]);
+    }
+
+    return 0;
+}

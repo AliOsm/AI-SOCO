@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+template<typename T, typename B = null_type>
+using oset = tree<T, B, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+// find_by_order / order_of_key
+
+const int N = 200005;
+const int B = 500;
+
+int n, a[N], b[N], v[N], wa[N];
+
+int vet[(N + B - 1)/B + 5][B + 5];
+
+int query(int l, int r, int lo, int hi){ // [l, r]
+    int ans = 0;
+    if(l / B == r / B){
+        for(int i = l; i <= r; i++)
+            ans += lo <= v[i] && v[i] <= hi;
+        return ans;
+    }
+
+    for(int i = l; i < (l / B + 1) * B; i++)
+        ans += lo <= v[i] && v[i] <= hi;
+
+    for(int i = r; i >= r / B * B; i--)
+        ans += lo <= v[i] && v[i] <= hi;
+
+    int L = l / B + 1, R = r / B - 1;
+    for(int i = L; i <= R; i++){
+        ans += int(upper_bound(vet[i], vet[i]+B, hi)-lower_bound(vet[i], vet[i]+B, lo));
+    }
+    return ans;
+}
+
+void update(int p, int old, int ne){
+    int id = p / B;
+    int j = 0;
+    for(j = 0; j < B; j++) if(vet[id][j] == old)
+        break;
+    vet[id][j] = ne;
+    while(j > 0 && vet[id][j] < vet[id][j-1])
+        swap(vet[id][j], vet[id][j-1]), j--;
+    while(j+1 < B && vet[id][j] > vet[id][j+1])
+        swap(vet[id][j], vet[id][j+1]), j++;
+}
+
+int main(){
+
+    int m;
+
+    scanf("%d %d", &n, &m);
+
+    for(int i = 1; i <= n; i++) scanf("%d", a+i);
+    for(int i = 1; i <= n; i++) scanf("%d", b+i);
+
+    for(int i = 1; i <= n; i++)
+        wa[ a[i] ] = i;
+
+    for(int i = 1; i <= n; i++){
+        v[ wa[ b[i] ] ] = i;
+    }
+
+    for(int i = 1; i <= n; i++){
+        vet[i / B][i % B] = v[i];
+    }
+
+    for(int i = n + 1; i % B; i++)
+        vet[n / B][i % B] = 1e9;
+
+    for(int i = 1; i <= n; i += B)
+        sort(vet[i / B], vet[i / B] + B);
+
+    int t, la, ra, lb, rb;
+    while(m--){
+        scanf("%d %d %d", &t, &la, &ra);
+        if(t == 1){
+            scanf("%d %d", &lb, &rb);
+            printf("%d\n", query(la, ra, lb, rb));
+        }
+        else{
+            update(wa[ b[la] ], la, ra);
+            update(wa[ b[ra] ], ra, la);
+            
+            swap(b[la], b[ra]);
+            swap(v[ wa[ b[la] ] ], v[ wa[ b[ra] ] ]);
+        }
+
+        //for(int i = 1; i <= n; i++)
+        //    printf("%d%c", v[i], " \n"[i == n]);
+        //mst.print();
+    }
+
+}

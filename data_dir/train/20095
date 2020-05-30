@@ -1,0 +1,246 @@
+/*
+ * test.cpp
+ *
+ *
+ *      Author: Fireworks
+ */
+
+#include<iostream>
+#include<cstdio>
+#include<vector>
+#include<algorithm>
+#include<queue>
+#include<string>
+#include<map>
+#include<cmath>
+#include<bitset>
+#include<set>
+#include<iomanip>
+#include<fstream>
+#include<bitset>
+#include<cstring>
+#include<cstdlib>
+#include<complex>
+#include<list>
+#include<sstream>
+
+using namespace std;
+
+typedef pair<int,int> ii;
+typedef pair<int,long long> il;
+typedef pair<long long,long long> ll;
+typedef pair<ll,int> lli;
+typedef pair<long long,int> li;
+typedef pair<double,double> dd;
+typedef pair<ii,int> iii;
+typedef pair<double,int> di;
+long long mod = 1000000007LL;
+long long base = 10000007;
+long long large = 1000000000000000000LL;
+
+
+
+int n,m;
+vector<vector<int> > adj;
+vector<int> lv;
+vector<vector<int> > pa;
+vector<int> cnt;
+int sz = 20;
+
+vector<int> rb;
+vector<int> lb;
+int rp = 0;
+void dfs(int u,int parent,int lvl){
+	lb[u] = rp++;
+	lv[u]=lvl;
+	cnt[u]=1;
+	pa[u][0]= parent;
+	for(int j=0;j<(int)adj[u].size();j++){
+		int v = adj[u][j];
+		if(v!=parent){
+			dfs(v,u,lvl+1);
+			cnt[u]+=cnt[v];
+		}
+	}
+	rb[u] = rp-1;
+}
+
+int lca(int x,int y){
+	if(lv[y]>lv[x]) swap(x,y);
+	if(x==y) return x;
+	int g =lv[x]-lv[y];
+	for(int j=sz-1;j>=0;j--){
+		if(g&(1<<j)) x = pa[x][j];
+	}
+
+	if(x==y) return x;
+
+	for(int j=sz-1;j>=0;j--){
+		if(pa[x][j]!=pa[y][j]){
+			x = pa[x][j];
+			y= pa[y][j];
+		}
+	}
+	return pa[x][0];
+}
+
+int climb(int u,int l){
+	if(lv[u]-l<0) return -1;
+	for(int j=sz-1;j>=0;j--){
+		if(l&(1<<j)) u =pa[u][j];
+	}
+	return u;
+}
+
+
+vector<long long> addv;
+int ul,ur;
+long long val;
+void update(int o,int l,int r){
+	if(ul<=l&&ur>=r){
+		addv[o]+=val;
+	}else{
+		int m = (l+r)/2;
+		if(ul<=m) update(o*2,l,m);
+		if(ur>m) update(o*2+1,m+1,r);
+	}
+}
+
+int qp;
+long long re;
+void query(int o,int l,int r,long long add){
+	if(l==r){
+		re+=add+addv[o];
+	}else{
+		int m = (l+r)/2;
+		if(qp<=m) query(o*2,l,m,add+addv[o]);
+		if(qp>m) query(o*2+1,m+1,r,add+addv[o]);
+	}
+}
+
+
+
+vector<vector<iii> > q;
+
+vector<vector<long long> > dp;
+
+void f(int u,int c,int parent){
+	if(dp[u][c]!=-large) return;
+	if(adj[u].size()==1&&adj[u][0]==parent){
+		dp[u][c] = 0;
+		return ;
+	}
+	for(int j=0;j<(int)adj[u].size();j++){
+		int v = adj[u][j];
+		if(v!=parent){
+			f(v,0,u);
+			f(v,1,u);
+		}
+	}
+	if(c==0){
+		dp[u][c] = 0;
+		for(int j=0;j<(int)adj[u].size();j++){
+			int v = adj[u][j];
+			if(v!=parent){
+				dp[u][c]+=dp[v][1];
+			}
+		}
+		return ;
+	}
+
+	dp[u][c] = dp[u][0];
+	for(int j=0;j<(int)q[u].size();j++){
+		int x = q[u][j].first.first;
+		int y = q[u][j].first.second;
+		long long z = 1LL*q[u][j].second;
+		long long sum = 0;
+		qp = lb[x];
+		re = 0LL;
+		query(1,0,n-1,0LL);
+		sum+=re;
+		qp = lb[y];
+		re = 0LL;
+		query(1,0,n-1,0LL);
+		sum+=re;
+		qp = lb[u];
+		re = 0LL;
+		query(1,0,n-1,0LL);
+		sum-=re*2;
+		sum+=dp[u][0];
+		sum+=z;
+		dp[u][c] = max(dp[u][c],sum);
+	}
+	val = dp[u][0]-dp[u][1];
+	ul = lb[u];
+	ur = rb[u];
+	update(1,0,n-1);
+
+}
+
+
+int main(){
+	cin>>n>>m;
+	adj.assign(n,vector<int>(0,0));
+	for(int i=1;i<n;i++){
+		int x;
+		scanf("%d",&x);
+		x--;
+		adj[i].push_back(x);
+		adj[x].push_back(i);
+	}
+	pa.assign(n,vector<int>(20,-1));
+	cnt.assign(n,0);
+	lv=cnt;
+	lb=rb=cnt;
+	dfs(0,-1,0);
+	for(int j=1;j<sz;j++){
+		for(int i=0;i<n;i++){
+			if(pa[i][j-1]!=-1){
+				pa[i][j] = pa[pa[i][j-1]][j-1];
+			}
+		}
+	}
+	q.assign(n,vector<iii>());
+	for(int i=0;i<m;i++){
+		int x,y,z;
+		scanf("%d%d%d",&x,&y,&z);
+		x--;y--;
+		int r = lca(x,y);
+		//cout<<r+1<<" "<<x+1<<" "<<y+1<<endl;
+		q[r].push_back(iii(ii(x,y),z));
+	}
+
+	addv.assign(4*n+10,0LL);
+
+	dp.assign(n,vector<long long>(2,-large));
+
+	f(0,0,-1);
+	f(0,1,-1);
+
+	cout<<dp[0][1]<<endl;
+
+
+/*
+	int totalcase;
+	int testcase=0;
+	cin>>totalcase;
+	ofstream out;
+	out.open("result.txt");
+
+	while(totalcase--){
+		testcase++;
+		out<<"Case #"<<testcase<<": ";
+		cout<<testcase<<": "<<endl;
+
+		//GOGOGO
+
+
+
+
+		//END
+	}
+	out.close();
+*/
+
+	return 0;
+}

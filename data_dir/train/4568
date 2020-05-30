@@ -1,0 +1,292 @@
+//#pragma GCC optimize("Ofast,no-stack-protector")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx")
+//#pragma GCC target("avx,tune=native")
+// Anand Jaisingh
+
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef complex<double> base;
+typedef long double ld;
+typedef long long ll;
+
+#define pb push_back
+#define pii pair<int,int>
+#define pipii pair< int, pii >
+#define pll pair< ll , ll >
+#define vi vector<int>
+#define vvi vector< vi >
+
+const int maxn=(int)(2e5+5);
+const ll mod=(ll)(998244353);
+int a[maxn],first[maxn],last[maxn],tree[4*maxn],lazy[4*maxn];
+bool filled[maxn],marked[maxn];
+
+void build1(int node,int s,int e)
+{
+    if(s>e)
+    {
+        return;
+    }
+
+    if(s==e)
+    {
+        tree[node]=(a[s]);
+    }
+    else
+    {
+        int mid=(s+e)>>1;
+
+        build1(node<<1,s,mid);build1(node<<1|1,mid+1,e);
+
+        tree[node]=min(tree[node<<1],tree[node<<1|1]);
+    }
+}
+
+void build2(int node,int s,int e)
+{
+    if(s>e)
+    {
+        return;
+    }
+
+    if(s==e)
+    {
+        tree[node]=(a[s]<INT_MAX?a[s]:0);
+    }
+    else
+    {
+        int mid=(s+e)>>1;
+
+        build2(node<<1,s,mid);build2(node<<1|1,mid+1,e);
+
+        tree[node]=max(tree[node<<1],tree[node<<1|1]);
+    }
+}
+
+void update(int node,int s,int e,int l,int r,int val)
+{
+    if(lazy[node]!=0)
+    {
+        tree[node]=max(tree[node],lazy[node]);
+
+        if(s!=e)
+        {
+            lazy[node<<1]=max(lazy[node<<1],lazy[node]);
+
+            lazy[node<<1|1]=max(lazy[node<<1|1],lazy[node]);
+        }
+
+        lazy[node]=0;
+    }
+
+    if(s>e || l>e || r<s)
+    {
+        return;
+    }
+
+    if(l<=s && r>=e)
+    {
+        tree[node]=max(tree[node],val);
+
+        if(s!=e)
+        {
+            lazy[node<<1]=max(lazy[node<<1],val);
+
+            lazy[node<<1|1]=max(lazy[node<<1|1],val);
+        }
+    }
+
+    else
+    {
+        int mid=(s+e)>>1;
+
+        update(node<<1,s,mid,l,r,val);update(node<<1|1,mid+1,e,l,r,val);
+
+        tree[node]=max(tree[node<<1],tree[node<<1|1]);
+    }
+}
+
+int query(int node,int s,int e,int l,int r)
+{
+    if(lazy[node]!=0)
+    {
+        tree[node]=max(tree[node],lazy[node]);
+
+        if(s!=e)
+        {
+            lazy[node<<1]=max(lazy[node<<1],lazy[node]);
+
+            lazy[node<<1|1]=max(lazy[node<<1|1],lazy[node]);
+        }
+
+        lazy[node]=0;
+    }
+
+    if(s>e || l>e|| r<s)
+    {
+        return INT_MAX;
+    }
+
+    if(l<=s && r>=e)
+    {
+        return tree[node];
+    }
+
+    else
+    {
+        int mid=(s+e)>>1;
+
+        return min(query(node<<1,s,mid,l,r),query(node<<1|1,mid+1,e,l,r));
+    }
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+
+    int n,q;cin>>n>>q;
+
+    vector< pipii > v;
+
+    fill(first,first+maxn,INT_MAX);fill(last,last+maxn,-1);
+
+    int pos=INT_MAX,ctr=0;bool zz=false;
+
+    for(int i=1;i<=n;i++)
+    {
+        cin>>a[i];
+
+        if(a[i]>0)
+        {
+            first[a[i]]=min(first[a[i]],i);
+
+            last[a[i]]=max(last[a[i]],i);
+
+            marked[i]=true;
+        }
+
+        else
+        {
+            a[i]=INT_MAX;ctr++;
+
+            pos=min(pos,i);
+        }
+
+        if(a[i]==q)
+        {
+            zz=true;
+        }
+    }
+
+    if(!zz && ctr==0)
+    {
+        cout<<"NO"<<endl;
+    }
+
+    else
+    {
+        for(int i=1;i<=q;i++)
+        {
+            if(first[i]<INT_MAX)
+            {
+                v.pb({i,{first[i],last[i]}});
+            }
+        }
+
+        if(!zz)
+        {
+            a[pos]=q;
+
+            v.pb({q,{pos,pos}});
+
+            marked[pos]=true;
+        }
+
+        build1(1,1,n);bool ans=true;
+
+        for(int i=0;i<v.size();i++)
+        {
+            int l=v[i].second.first,r=v[i].second.second;
+
+            if(query(1,1,n,l,r)<v[i].first)
+            {
+                ans=false;break;
+            }
+        }
+
+        if(!ans)
+        {
+            cout<<"NO"<<endl;
+        }
+
+        else
+        {
+            build2(1,1,n);
+
+            for(int i=1;i<=n;i++)
+            {
+                if(!marked[i])
+                {
+                    a[i]=0;
+                }
+            }
+
+            for(int i=v.size()-1;i>=0;i--)
+            {
+                int l=v[i].second.first,r=v[i].second.second;
+
+                while(l>=1 && (a[l]>=v[i].first || a[l]==0) && !filled[l])
+                {
+                    if(a[l]==0)
+                    {
+                        a[l]=v[i].first;
+
+                        update(1,1,n,l,l,v[i].first);
+                    }
+
+                    filled[l]=true;
+
+                    l--;
+                }
+
+                while(r<=n && (a[r]>=v[i].first || a[r]==0) && (!filled[r] || r==v[i].second.second))
+                {
+                    if(a[r]==0)
+                    {
+                        a[r]=v[i].first;
+
+                        update(1,1,n,r,r,v[i].first);
+                    }
+
+                    filled[r]=true;
+
+                    r++;
+                }
+
+               update(1,1,n,v[i].second.first,v[i].second.second,v[i].first);
+            }
+
+            cout<<"YES"<<endl;
+
+            for(int i=1;i<=n;i++)
+            {
+                if(!marked[i])
+                {
+                    a[i]=query(1,1,n,i,i);
+                }
+
+                assert(a[i]!=0);
+
+                cout<<(a[i])<<" ";
+            }
+
+            cout<<endl;
+        }
+    }
+
+
+
+    return 0;
+}

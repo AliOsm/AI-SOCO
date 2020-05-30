@@ -1,0 +1,41 @@
+// ==========================================================================
+//
+//                   Bismillahir-Rahmanir-Rahim
+//
+// ==========================================================================
+#include <bits/stdc++.h>
+#define        ll                    long long
+#define        f(x,y,z)              for(int x=y;x<z;x++)
+#define        take1(a);             int a;scanf("%d",&a);
+#define        take2(a,b);           int a;int b;scanf("%d%d",&a,&b);
+#define        take3(a,b,c);         int a;int b;int c;scanf("%d%d%d",&a,&b,&c);
+#define        take4(a,b,c,d);       int a;int b;int c;int d;scanf("%d%d%d%d",&a,&b,&c,&d);
+#define        pii                   pair<int,int>
+#define        mem(a,x)              memset(a,x,sizeof(a))
+#define        N                     1000010
+#define        M                     1000000007
+#define        pi                    acos(-1.0)
+using namespace std;
+int ar[N],check[N],ans[N];
+int main()
+{
+    int n,q;
+    cin>>n>>q;
+    f(i,0,n) cin>>ar[i];
+    for(int i=n-1;i>=0;i--){
+            ans[i+1]=ans[i+2];
+         if(check[ar[i]]==0){
+            check[ar[i]]=1;
+            ans[i+1]++;
+            }
+
+         //cout<<ans[i+1]<<endl;
+    }
+  while(q--){
+    take1(a);
+    cout<<ans[a]<<endl;
+
+}
+
+return 0;
+}

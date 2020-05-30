@@ -1,0 +1,102 @@
+// KALAM
+# include<bits/stdc++.h>
+
+using namespace std;
+
+const int N = 200000 + 77 , L = 19;
+int n , q , tim = 1;
+int st[N] , en[N] , dis[N] , Mn[N << 2] , T[N << 2] , lz[N << 2] , Par[N][L];
+map < pair < int , int > , bool > M;
+vector < int > a[N];
+void dfs(int v = 1 , int prev = - 1){
+   st[v] = tim ++;
+   for(int i = 1;i < L;++ i)
+      Par[v][i] = Par[Par[v][i - 1]][i - 1];
+   for(int u : a[v]){
+      if(u == prev)
+         continue ;
+      dis[u] = dis[v] + 1;
+      Par[u][0] = v;
+      dfs(u , v);
+   }
+   en[v] = tim;
+}
+inline int GetPar(int v , int k){
+   for(int i = 0;i < L;++ i)
+      if(k & (1 << i))
+         v = Par[v][i];
+   return v;
+}
+void Build(int l = 1 , int r = n + 1 , int id = 1){
+   T[id] = r - l;
+   if(r - l < 2)
+      return ;
+   int mid = ((l + r) >> 1);
+   Build(l , mid , id << 1);
+   Build(mid , r , id << 1 ^ 1);
+}
+inline void Shift(int l , int r , int id){
+   int x = lz[id];
+   lz[id] = 0;
+   Mn[id] += x;
+   if(r - l < 2)
+      return ;
+   lz[id << 1] += x;
+   lz[id << 1 ^ 1] += x;
+}
+void Add(int ql , int qr , int x , int l = 1 , int r = n + 1 , int id = 1){
+   Shift(l , r , id);
+   if(qr <= l || r <= ql)
+      return ;
+   if(ql <= l && r <= qr){
+      lz[id] += x;
+      Shift(l , r , id);
+      return ;
+   }
+   int mid = ((l + r) >> 1);
+   Add(ql , qr , x , l , mid , id << 1);
+   Add(ql , qr , x , mid , r , id << 1 ^ 1);
+   Mn[id] = min(Mn[id << 1] , Mn[id << 1 ^ 1]);
+   T[id] = ((Mn[id] == Mn[id << 1]) ? T[id << 1] : 0) + ((Mn[id] == Mn[id << 1 ^ 1]) ? T[id << 1 ^ 1] : 0);
+}
+inline bool Sub(int u , int v){
+   return st[v] <= st[u] && en[u] <= en[v];
+}
+void Update(int v , int u){
+   if(dis[v] > dis[u] || (dis[v] == dis[u] && v > u))
+      swap(v , u);
+   int t = M[make_pair(v , u)];
+   M[make_pair(v , u)] ^= 1;
+   if(t == 0)
+      t = - 1;
+   t = - t;
+   if(Sub(u , v)){
+      int p = GetPar(u , dis[u] - dis[v] - 1);
+      Add(st[p] , en[p] , t);
+      Add(st[u] , en[u] , - t);
+      return ;
+   }
+   Add(1 , n + 1 , t);
+   Add(st[v] , en[v] , - t);
+   Add(st[u] , en[u] , - t);
+}
+int main(){
+   ios::sync_with_stdio(0);cin.tie(0);
+   cin >> n >> q;
+   for(int i = 1;i < n;++ i){
+      int v , u;
+      cin >> v >> u;
+      a[v].push_back(u);
+      a[u].push_back(v);
+   }
+   dfs();
+   Build();
+
+   while(q --){
+      int v , u;
+      cin >> v >> u;
+      Update(v , u);
+      cout << ((Mn[1] == 0) ? T[1] : 0) << '\n';
+   }
+   return 0;
+}

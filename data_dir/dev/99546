@@ -1,0 +1,35 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 5e6 + 5;
+
+long long dp[N];
+bool is[N];
+
+int main() {
+  for(int i = 2; i < N; i++) {
+    if(!is[i]) {
+      for(long long j = 1LL * i * i; j < N; j += i) {
+        is[j] = 1;
+      }
+      for(long long power = i; power < N; power *= i) {
+        for(long long it = power; it < N; it += power) {
+          dp[it]++;
+        }
+      }
+    }
+  }
+  for(int i = 1; i < N; i++) {
+    dp[i] += dp[i - 1];
+  }
+  int t;
+  scanf("%d", &t);
+  while(t--) {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    printf("%I64d\n", dp[a] - dp[b]);
+  }
+  
+  return 0;
+}

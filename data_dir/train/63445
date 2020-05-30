@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+typedef long long ll;
+const int MAXN=20000+10;
+const int MAXM=100000*2+2*MAXN;
+const ll inf=1LL<<50;
+
+int cnt,box[MAXN],pre[MAXN],gap[MAXN],h[MAXN],cur[MAXN];
+int N,NS,NT;
+ll flow[MAXN];
+
+struct edge{
+    int to,next;
+    ll w;
+} e[MAXM*2];
+
+void adds(int u,int v,ll w)
+{
+    e[cnt].to=v;e[cnt].w=w;
+    e[cnt].next=box[u];box[u]=cnt++;
+}
+
+void add(int u,int v,ll w)
+{
+    adds(u,v,w);
+    adds(v,u,0LL);
+}
+
+ll mins(ll x,ll y)
+{
+    return x<y?x:y;
+}
+
+int qu[MAXN];
+
+void bfs()
+{
+    memset(h,-1,sizeof(h));
+    memset(gap,0,sizeof(gap));
+    h[NT]=0;gap[0]=1;
+    int st=0,ed=1;
+    qu[ed]=NT;
+    while(st!=ed)
+    {
+        int u=qu[++st];
+        for(int p=box[u];p!=-1;p=e[p].next)
+         if (h[e[p].to]==-1)
+         {
+             h[e[p].to]=h[u]+1;
+             qu[++ed]=e[p].to;
+             ++gap[ h[e[p].to]=h[u]+1 ];
+         }
+    }
+}
+
+ll sap()
+{
+    int u,v,p;
+
+    ll flowans=0;
+    //memset(gap,0,sizeof(gap));gap[0]=N;
+   // memset(h,0,sizeof(h));
+    bfs();
+    for(int i=0;i<N;i++) cur[i]=box[i];
+    flow[NS]=inf;
+    u=NS;
+    while(h[NS]<N)
+    {
+        for(p=cur[u];p!=-1;p=e[p].next)
+         if (e[p].w&&h[e[p].to]+1==h[u])
+         {
+             cur[u]=p;
+             v=e[p].to;
+             flow[v]=mins(flow[u],e[p].w);
+             pre[v]=p;
+             u=v;
+             if (u==NT)
+             {
+                 flowans+=flow[NT];
+                 while(u!=NS)
+                 {
+                     e[pre[u]].w-=flow[NT];
+                     e[pre[u]^1].w+=flow[NT];
+                     u=e[pre[u]^1].to;
+                 }
+             }
+             break;
+         }
+        if (p==-1)
+        {
+            cur[u]=box[u];
+            if (--gap[h[u]]==0) break;
+            h[u]=N;
+            for(p=box[u];p!=-1;p=e[p].next)
+             if (e[p].w&&h[e[p].to]+1<h[u])
+                h[u]=h[e[p].to]+1;
+            gap[h[u]]++;
+            if (u!=NS) u=e[pre[u]^1].to;
+        }
+    }
+    return flowans;
+}
+
+int ans[1100][1100], a[1100], b[1100];
+
+int main()
+{
+    int n,m;
+    scanf("%d%d",&n,&m);
+    memset(box,-1,sizeof(box));
+    cnt=0;
+    int S = 0, S2 = 0;
+    for (int i=0;i<n;i++)
+    {
+        scanf("%d", &a[i]);
+        S += a[i];
+    }
+    for (int i=0;i<n;i++) {
+        scanf("%d", &b[i]);
+        S2 += b[i];
+    }
+    if (S != S2) {
+        puts("NO");
+        return 0;
+    }
+    N = 2 * n + 2;
+    NS = N - 1;
+    NT = N - 2;
+    for (int i = 0; i < n; i++) {
+        add(NS, i, a[i]);
+    }
+    for (int i = 0; i < n; i++) {
+        add(i + n, NT, b[i]);
+    }
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        scanf("%d%d", &u, &v);
+        u--;
+        v--;
+        add(u, v + n, inf);
+        add(v, u + n, inf);
+    }
+    for (int i = 0; i < n; i++) {
+        add(i, i + n, inf);
+    }
+    ll anss = sap();
+    if (anss!=S) puts("NO");
+    else
+    {
+        puts("YES");
+        for (int i=0;i<n;i++)
+        {
+            for (int j=box[i];j!=-1;j=e[j].next)
+            {
+                int uu = i, vv = e[j].to;
+                if (vv - n >= 0 && vv - n < n && j % 2 == 0) {
+                    ans[uu][vv - n] += e[j^1].w;
+                }
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (j != 0) {
+                    printf(" ");
+                }
+                printf("%d", ans[i][j]);
+            }
+            puts("");
+        }
+    }
+    return 0;
+}

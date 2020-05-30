@@ -1,0 +1,202 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef complex<ld> point;
+#define F first
+#define S second
+
+struct info
+{
+	bool b;
+	int u, v;
+};
+
+struct tree
+{
+	int n;
+	vector<vector<int>> adj;
+
+	tree(int n) : n(n), adj(n) {}
+
+	void add_edge(int s, int t)
+	{
+		adj[s].push_back(t);
+		adj[t].push_back(s);
+	}
+
+	vector<int> pos, tour, depth;
+	vector<vector<int>> table;
+
+	int argmin(int i, int j)
+	{
+		return depth[i] < depth[j] ? i : j;
+	}
+
+	void rootify(int r)
+	{
+		pos.resize(n);
+		function<void(int, int, int)> dfs = [&](int u, int p, int d)
+		{
+			pos[u] = depth.size();
+			tour.push_back(u);
+			depth.push_back(d);
+			for (int v : adj[u])
+				if (v != p)
+				{
+					dfs(v, u, d+1);
+					tour.push_back(u);
+					depth.push_back(d);
+				}
+		};
+		dfs(r, r, 0);
+		int logn = __lg(tour.size()); // log2
+		table.resize(logn + 1, vector<int>(tour.size()));
+		iota(table[0].begin(), table[0].end(), 0);
+		for (int h = 0; h < logn; ++h)
+			for (int i = 0; i + (1 << h) < (int) tour.size(); ++i)
+				table[h + 1][i] = argmin(table[h][i],
+								table[h][i + (1 << h)]);
+	}
+
+	int lca(int u, int v)
+	{
+		int i = pos[u], j = pos[v];
+		if (i > j) swap(i, j);
+		int h = __lg(j - i); // = log2
+		return i == j ? u : tour[argmin(table[h][i],
+								table[h][j - (1 << h)])];
+	}
+
+	int lvl(int u)
+	{
+		return depth[pos[u]];
+	}
+};
+
+int main()
+{
+	#ifdef DGC
+		freopen("a.txt", "r", stdin);
+	#endif
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int n;
+	cin >> n;
+	vector<int> a(n);
+	for (auto &i : a) cin >> i;
+
+	tree t(n);
+	for (int i = 1, u; i < n; ++i)
+	{
+		cin >> u;
+		t.add_edge(--u, i);
+	}
+
+	t.rootify(0);
+	vector<info> st(4*n);
+
+	function<info(info, info)> merge = [&](info i, info j)
+	{
+		if (i.u == -1) return j;
+		info r = { i.b && j.b, 0, 0 };
+
+		int v[] = { i.u, i.v, j.u, j.v };
+		int g = t.lca(t.lca(i.u, i.v), t.lca(j.u, j.v));
+		for (int x = 0; x < 4; ++x)
+			for (int y = x+1; y < 4; ++y)
+			{
+				int l = t.lca(v[x], v[y]);
+				if (l != g) continue;
+				bool ok = true;
+				for (int k = 0; k < 4; ++k)
+					if (k != x && k != y)
+					{
+						int l1 = t.lca(v[k], v[x]);
+						int l2 = t.lca(v[k], v[y]);
+						if (l1 == v[k])
+							ok &= l2 == l && t.lvl(v[x]) >= t.lvl(l1) && t.lvl(l1) >= t.lvl(l);
+						else if (l2 == v[k])
+							ok &= l1 == l && t.lvl(v[y]) >= t.lvl(l2) && t.lvl(l2) >= t.lvl(l);
+						else
+						{
+							ok = false;
+							break;
+						}
+					}
+				if (ok)
+				{
+					r.u = v[x], r.v = v[y];
+					return r;
+				}
+			}
+
+		r.b = false;
+		return r;
+	};
+
+	function<void(int, int, int, int, int)> update = [&](int cur, int b, int e, int p, int v)
+	{
+		if (b+1 == e)
+		{
+			st[cur] = { true, v, v };
+			return;
+		}
+
+		int m = (b+e) >> 1;
+		if (p < m)
+			update(cur<<1, b, m, p, v);
+		else
+			update(cur<<1|1, m, e, p, v);
+		st[cur] = merge(st[cur<<1], st[cur<<1|1]);
+	};
+
+	int ans;
+	function<info(int, int, int, info)> query = [&](int cur, int b, int e, info x)
+	{
+		info z;
+		if (b+1 == e)
+		{
+			z = merge(x, st[cur]);
+			if (!z.b) z = x;
+			else ++ans;
+			return z;
+		}
+
+		int m = (b+e) >> 1;
+		z = merge(x, st[cur<<1]);
+		if (!z.b) return query(cur<<1, b, m, x);
+		x = z;
+		ans += m-b;
+		z = query(cur<<1|1, m, e, x);
+		if (!z.b) return x;
+		return z;
+	};
+
+	for (int i = 0; i < n; ++i)
+		update(1, 0, n, a[i], i);
+
+	int q;
+	cin >> q;
+	for (int t, u, v; q--; )
+	{
+		cin >> t;
+		if (t == 1)
+		{
+			cin >> u >> v;
+			--u, --v;
+			swap(a[u], a[v]);
+			update(1, 0, n, a[u], u);
+			update(1, 0, n, a[v], v);
+			continue;
+		}
+
+		ans = 0;
+		query(1, 0, n, { 0, -1, -1 });
+		cout << ans << "\n";
+	}
+
+	return 0;
+}

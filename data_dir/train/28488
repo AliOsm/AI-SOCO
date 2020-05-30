@@ -1,0 +1,124 @@
+#include <iostream>
+#include <vector>
+#include <iomanip>
+#include <algorithm>
+#include <cassert>
+#include <array>
+
+namespace Solution {
+    
+    const bool debug = 0;
+    
+    const int mod = (int)1e9+7;
+    
+    int add(int a, int b) {
+        return (a += b) >= mod ? a - mod : a;
+    }
+    
+    int mul(int a, int b) {
+        return int(1LL * a * b % mod);
+    }
+    
+    int pow(int a, int n) {
+        int res = 1;
+        while (n > 0) {
+            if (n & 1) {
+                res = mul(res, a);
+            }
+            a = mul(a,a);
+            n >>= 1;
+        }
+        return res;
+    }
+    
+    int inverse(int a) {
+        return pow(a, mod-2);
+    }
+    
+    const int XMAX = (int)2e6;
+    
+    std::array<int, 1+XMAX> firstDiv, fact, invFact;
+    
+    void init() {
+        std::fill(firstDiv.begin(), firstDiv.end(), 0);
+        fact[0] = 1;
+        for (int i = 1; i <= XMAX; ++i) {
+            fact[i] = mul(i, fact[i-1]);
+        }
+
+        invFact[0] = 1;
+        for (int i = 1; i <= XMAX; ++i) {
+            invFact[i] = inverse(fact[i]);
+        }
+        
+        for (int i = 2; i * i <= XMAX; ++i) {
+            if (firstDiv[i]) { continue; }
+            firstDiv[i] = i;
+            for (int j = i * i; j <= XMAX; j += i) {
+                firstDiv[j] = firstDiv[j] ? firstDiv[j] : i;
+            }
+        }
+        for (int i = 1; i <= XMAX; ++i) {
+            firstDiv[i] = (firstDiv[i] ? firstDiv[i] : i);
+        }
+    }
+    
+    std::vector<int> getDivisors(int x) {
+        std::vector<int> answer;
+        while (x != 1) {
+            answer.push_back(firstDiv[x]);
+            x /= firstDiv[x];
+        }
+        return answer;
+    }
+    
+    int C(int n, int k) {
+        return mul(fact[n], mul(invFact[k], invFact[n-k]));
+    }
+    
+    int solve(int number, int count) {
+        if (debug) {
+            std::cout << std::string(20, '-') << std::endl;
+        }
+        auto divs = getDivisors(number);
+        divs.push_back(0);
+        int last = divs.front(), cnt = 0, answ = 1;
+        for (auto it : divs) {
+            if (debug) {
+                std::cout << "curr div = " << it << std::endl;
+            }
+            if (it == last) {
+                cnt++; 
+            } else {
+                if (debug) {
+                    std::cout << "mul on C(" << count + cnt - 1 << ", " << cnt << ")\n";
+                }
+                answ = mul(answ, C(count+cnt-1, cnt));
+                last = it, cnt = 1;
+            }
+        }
+        answ = mul(answ, pow(2, count-1));
+        if (debug) {
+            std::cout << std::endl << "answ = " << answ << std::endl;
+        }
+        return answ;    
+    }
+}
+
+int main() {
+    Solution::init();
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(0); std::cout.tie(0); std::cerr.tie(0);
+    int q;
+    while (std::cin >> q) {
+std::vector<int> number(q), count(q), answer(q);
+        for (int i = 0; i < q; ++i) {
+            std::cin >> number[i] >> count[i];
+            answer[i] = Solution::solve(number[i], count[i]);
+        }
+        for (auto it : answer) {
+            std::cout << it << '\n';
+        }
+    }
+    return 0;
+}

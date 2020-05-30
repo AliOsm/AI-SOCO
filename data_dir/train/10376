@@ -1,0 +1,126 @@
+//Be Name Khoda
+//no comment...
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+template <typename T> using ordered_set =  tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+template <typename T> using ordered_multiset =  tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+template <typename T> using mordered_set =  tree<T, null_type, greater<T>, rb_tree_tag, tree_order_statistics_node_update>;
+typedef long long ll;
+typedef long double ld;
+const int MOD = (int)1e9 + 7;
+const int MAXN = (int)1e6 + 7;
+const int infint = (int)1e9;
+const ll inf = (ll)1e18;
+vector<int> G[MAXN];
+int par[MAXN], st[MAXN], fin[MAXN], h[MAXN], idd[MAXN], visited[MAXN];
+int seg[4 * MAXN], lazy[4 * MAXN];
+int tme = 0, n, k;
+vector<pair<int, int> > p;
+void dfs(int u, int p)
+{
+	st[u] = tme;
+	par[u] = p;
+	for (auto v : G[u])
+		if(v != p)
+		{
+			tme++;
+			h[v] = h[u] + 1;
+			dfs(v, u);
+		}
+	fin[u] = tme;
+}
+void build(int node, int st, int en)
+{
+	if(en - st < 2)
+	{
+		seg[node] = h[p[st].second];
+		return;
+	}
+	int mid = (st + en) >> 1;
+	build(2 * node, st, mid);
+	build(2 * node + 1, mid, en);
+	seg[node] = seg[2 * node] + seg[2 * node + 1];
+}
+void upd(int id,int l,int r,int x){//	increase all members in this interval by x
+	lazy[id] += x;
+	seg[id] += (r - l) * x;
+}
+void shift(int id,int l,int r){//pass update information to the children
+	int mid = (l+r)/2;
+	upd(id * 2, l, mid, lazy[id]);
+	upd(id * 2 + 1, mid, r, lazy[id]);
+	lazy[id] = 0;// passing is done
+}
+void increase(int x,int y,int v,int id = 1,int l = 0,int r = n){
+	if(x >= r or l >= y)	return ;
+	if(x <= l && r <= y){
+		upd(id, l, r, v);
+		return ;
+	}
+	shift(id, l, r);
+	int mid = (l+r)/2;
+	increase(x, y, v, id * 2, l, mid);
+	increase(x, y, v, id*2+1, mid, r);
+	seg[id] = seg[id * 2] + seg[id * 2 + 1];
+}
+int sum(int x,int y,int id = 1,int l = 0,int r = n){
+	if(x >= r or l >= y)	return 0;
+	if(x <= l && r <= y)	return seg[id];
+	shift(id, l, r);
+	int mid = (l+r)/2;
+	return sum(x, y, id * 2, l, mid) +
+	       sum(x, y, id * 2 + 1, mid, r);
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	cin >> n >> k;
+	for (int i = 0; i < n - 1; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		u--, v--;
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+	dfs(n - 1, -1);
+	for (int i = 0; i < n; i++)
+		p.push_back({st[i], i});
+	sort(p.begin(), p.end());
+	vector<int> cur;
+	for (int i = 0; i < n; i++)
+		cur.push_back(p[i].first);
+		
+		
+	for (int i = 0; i < n; i++)
+		idd[p[i].second] = i;
+	
+	build(1, 0, n);
+	int can = n - k;
+	vector<int> ans;
+	for (int i = n - 1; i >= 0; i--)
+	{
+		if(sum(idd[i], idd[i] + 1) + 1 > can)
+		{
+			ans.push_back(i + 1);
+			continue;
+		}
+		int tmp = i;
+		while(!visited[tmp] && tmp != -1)
+		{
+			visited[tmp] = 1;
+			int a = lower_bound(cur.begin(), cur.end(), st[tmp]) - cur.begin();
+			int b = upper_bound(cur.begin(), cur.end(), fin[tmp]) - cur.begin() - 1;
+			increase(a, b + 1, -1);
+			tmp = par[tmp];
+			can--;
+		}
+	}
+	reverse(ans.begin(), ans.end());
+	for (auto u : ans)
+		cout << u << " ";
+}

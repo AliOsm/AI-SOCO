@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for(int i = x; i < (int)(n); ++i)
+
+int const N = 200000, inf = 1e7;
+pair<int, int> an, mxan;
+vector<int> tr[N + 1], bad[N + 1];
+int ch[N + 1][2], sm[N + 1], smb[N + 1];
+bool star[N + 1];
+
+pair<int, int> operator +(pair<int, int> const &a, pair<int, int> const &b) { return make_pair(a.first + b.first, a.second + b.second); }
+
+pair<pair<int, int>, int> go(int v, int p = 0){
+	pair<pair<int, int>, int> mx1(make_pair(-inf, -inf), 0), mx2(make_pair(-inf, -inf), 0);
+	if (sm[v] > 0)mx1 = make_pair(make_pair(0, sm[v]), v);
+	f(i, 0, tr[v].size())if (bad[v][i]){
+		int u = tr[v][i];
+		if (u == p)continue;
+		pair<pair<int, int>, int> t = go(u, v);
+		++t.first.first;
+		if (t > mx1)mx2 = mx1, mx1 = t;
+		else if (t > mx2)mx2 = t;
+	}
+	pair<int, int> a = mx1.first + mx2.first;
+	if (a > mxan)mxan = a, an = make_pair(mx1.second, mx2.second);
+	return mx1;
+}
+
+bool pl(int v = 1, int p = 0, bool b = false){
+	bool bb = false;
+	f(i, 0, tr[v].size()){
+		int u = tr[v][i];
+		if (u == p){
+			bad[v][i] = b;
+			if (b)++smb[v];
+			continue;
+		}
+		bool t = pl(u, v, b || star[v]);
+		bad[v][i] = t;
+		if (t)bb = true, ++smb[v];
+	}
+	return bb || star[v];
+}
+
+pair<int, int> godn(int v, int p){
+	f(i, 0, tr[v].size()){
+		int u = tr[v][i];
+		if (u == p)continue;
+		pair<int, int> t = godn(u, v);
+		++t.first;
+		return t;
+	}
+	return make_pair(1, v);
+}
+
+int main(){
+	int n;
+	scanf("%d", &n);
+	f(i, 1, n){
+		int a, b;
+		scanf("%d%d", &a, &b);
+		tr[a].push_back(b);
+		tr[b].push_back(a);
+	}
+	f(i, 1, n + 1)bad[i].resize(tr[i].size());
+	f(i, 1, n + 1)if ((int)tr[i].size() >= 3)star[i] = true;
+	int jj = 0;
+	f(i, 1, n + 1)if (tr[i].size() == 1)jj = i;
+	pl(jj);
+	f(i, 1, n + 1)if (smb[i] != 1)star[i] = false;
+	f(i, 1, n + 1)if (star[i]){
+		pair<int, int> mx1(0, 0), mx2(0, 0);
+		f(j, 0, tr[i].size())if (!bad[i][j]){
+			pair<int, int> t = godn(tr[i][j], i);
+			if (t > mx1)mx2 = mx1, mx1 = t;
+			else if (t > mx2)mx2 = t;
+		}
+		sm[i] = mx1.first + mx2.first;
+		ch[i][0] = mx1.second;
+		ch[i][1] = mx2.second;
+	}
+	int st = 0;
+	f(i, 1, n + 1)if (star[i])st = i;
+	go(st);
+	printf("%d %d\n%d %d\n", ch[an.first][0], ch[an.second][1], ch[an.second][0], ch[an.first][1]);
+}

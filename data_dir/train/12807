@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+template<typename T>
+struct BIT {
+    int n;
+    vector<T> dat;
+
+    BIT(int n=0){
+        initialize(n);
+    }
+
+    void initialize(int nin){
+        n = nin;
+        dat.resize(n, 0);
+    }
+
+    T sum(int i){
+        T s = 0;
+        while(i >= 0){
+            s += dat[i];
+            i = (i & (i+1)) - 1;
+        }
+        return s;
+    }
+
+    T sum_between(int i, int j){
+        return sum(j) - sum(i-1);
+    }
+
+    void plus(int i, T x){
+        while(i < n){
+            dat[i] += x;
+            i |= i+1;
+        }
+    }
+
+    // a[0]+...+a[ret] >= x
+    int lower_bound(T x){
+        int ret = -1;
+        int k = 1;
+        while(2*k <= n) k <<= 1;
+        for( ;k>0; k>>=1){
+            if(ret+k < n && dat[ret+k] < x){
+                x -= dat[ret+k];
+                ret += k;
+            }
+        }
+        return ret + 1;
+    }
+};
+
+int main(){
+    int N, M, Q;
+    cin >> N >> M >> Q;
+    vector<int> times(M, 0);
+    for(int i=0; i<N; i++){
+        int a;
+        scanf("%d", &a);
+        times[a-1]++;
+    }
+    map<int64_t, vector<int>> mp;
+    for(int i=0; i<M; i++) mp[times[i]].push_back(i);
+
+    vector<pair<int64_t, int>> queries(Q);
+    for(int i=0; i<Q; i++){
+        int64_t a;
+        scanf("%lld", &a);
+        queries[i] = {a, i};
+    }
+    sort(queries.begin(), queries.end());
+    vector<int> ans(Q);
+
+    BIT<int> bit(M);
+
+    int64_t num = N;
+    int pt = 0;
+    for(auto it = mp.begin(); it != mp.end(); it++){
+        for(int i : it->second) bit.plus(i, 1);
+        int64_t cand = bit.sum(M-1);
+        int64_t nxt = (next(it) == mp.end() ? 2e18 : num + cand * (next(it)->first - it->first));
+        while(pt < Q && queries[pt].first <= nxt){
+            int idx = queries[pt].second;
+            int64_t rem = (queries[pt].first - num) % cand;
+            if(rem == 0) rem = cand;
+            int a = bit.lower_bound(rem);
+            ans[idx] = a+1;
+            pt++;
+        }
+        num = nxt;
+    }
+
+    for(int a : ans) printf("%d\n", a);
+    return 0;
+}

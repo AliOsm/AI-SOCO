@@ -1,0 +1,126 @@
+// Remember...
+
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int maxn=1e5+10, mod=1e9+7;
+const ll inf=1e18;
+
+int fac[maxn], ifac[maxn];
+
+int Pow(int a,int b){
+    int ans=1;
+    for(;b;b>>=1,a=1ll*a*a %mod)
+	if(b&1) ans=1ll*ans*a %mod;
+    return ans;
+}
+inline int C(int n,int k){
+    return 1ll*fac[n]*ifac[k] %mod *ifac[n-k] %mod;
+}
+
+vector<int> v[maxn];
+int sp[20][maxn], h[maxn], CC;
+pii sg[maxn];
+
+void dfs(int u,int par=0){
+    sp[0][u]= par;
+    h[u]= h[par]+1;
+    sg[u].F=CC++;
+    for(int i=1;i<20;i++)
+	sp[i][u]= sp[i-1][ sp[i-1][u] ];
+    for(int y:v[u])
+	if(y!=par)
+	    dfs(y,u);
+    sg[u].S=CC;
+}
+int lca(int a,int b){
+    if(h[a]<h[b]) swap(a,b);
+    for(int i=19;i>=0;i--)
+	if( h[ sp[i][a] ] >= h[b] ) a=sp[i][a];
+    if(a==b) return a;
+    for(int i=19;i>=0;i--)
+	if( sp[i][a] != sp[i][b] ) a=sp[i][a], b=sp[i][b];
+    return sp[0][a];
+}
+
+int fn[maxn];
+
+void add(int pos,int x){
+    for(pos+=3; pos<maxn; pos+= (pos & -pos) )
+	fn[pos]+=x;
+}
+int ask(int pos){
+    int ans=0;
+    for(pos+=3; pos>0; pos-= (pos & -pos) )
+	ans+= fn[pos];
+    return ans;
+}
+
+int arr[maxn], arr2[maxn], arr3[maxn];
+
+int main(){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie();
+
+    fac[0]=1;
+    for(int i=1;i<maxn;i++)
+	fac[i]= 1ll*fac[i-1]*i %mod;
+    ifac[maxn-1]= Pow(fac[maxn-1], mod-2);
+    for(int i=maxn-2;i>=0;i--)
+	ifac[i]= 1ll*(i+1)*ifac[i+1] %mod;
+
+    int n,q; cin>>n>>q;
+
+    for(int i=0;i<n-1;i++){
+	int a,b; cin>>a>>b;
+	v[a].PB(b);
+	v[b].PB(a);
+    }
+    dfs(1);
+    
+    while(q--){
+	int k,m,r; cin>>k>>m>>r;
+
+	for(int i=0;i<k;i++)
+	    cin>>arr[i], add(sg[ arr[i] ].F, 1), add(sg[ arr[i] ].S, -1);	
+	for(int i=0;i<k;i++){
+	    int lc= lca(r,arr[i]);
+	    int num= sp[0][lc];
+	    if(num!=0) num= ask( sg[num].F );
+	    arr2[i]= ask( sg[r].F ) + ask( sg[ arr[i] ].F ) - ask( sg[lc].F ) -num; 
+	}
+	int ans=0;
+	for(int i=1;i<=m;i++){
+	    arr3[i]=1;
+	    for(int j=0;j<k;j++)
+		arr3[i]=1ll*arr3[i]*(i-arr2[j]+1) %mod;
+	    for(int j=1;j<i;j++)
+		arr3[i]= ( 1ll*arr3[i] - 1ll*C(i,j)* arr3[j] ) %mod;
+	    ans= ( 1ll*ans + 1ll*arr3[i]*ifac[i] ) %mod;
+	}
+	for(int i=0;i<k;i++)
+	    add(sg[ arr[i] ].F, -1), add(sg[ arr[i] ].S, 1);
+
+	if(ans<0) ans+=mod;
+	cout<<ans<<"\n";
+    }
+    return 0;
+}
+// Deathly mistakes:
+//  * Read the problem carefully.
+//  * Check maxn.
+//  * Overflows.
+
+
+// #pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math")
+// #pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")

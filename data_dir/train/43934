@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const ll mod=1e9+7;
+const int inf=(1<<30);
+const int MX=1e6+9;
+int n,m,l,x,par[MX];
+ll dis[MX],h;
+vector<pair<int,int> >v[MX];
+vector<ll>paths[MX],sums[MX];
+void merge_(int x,int pp){
+    int i=0,j=0;
+    vector<ll>ret;
+    while(i<paths[x].size()&&j<paths[pp].size()){
+        if(paths[x][i]<paths[pp][j])ret.push_back(paths[x][i++]);
+        else ret.push_back(paths[pp][j++]);
+    }
+    while(i<paths[x].size())ret.push_back(paths[x][i++]);
+    while(j<paths[pp].size())ret.push_back(paths[pp][j++]);
+    paths[x]=ret;
+}
+void pro(int x){
+    if(paths[x].empty())return;
+    sums[x].push_back(paths[x][0]);
+    for(int i=1;i<paths[x].size();i++){
+        sums[x].push_back(sums[x][i-1]+paths[x][i]);
+    }
+}
+void dfs(int x,int p,int d){
+    dis[x]=d;
+    for(auto pp:v[x]){
+        if(pp.first==p)continue;
+        par[pp.first]=x;
+        dfs(pp.first,x,d+pp.second);
+    }
+    paths[x].push_back(d);
+    for(auto pp:v[x]){
+        if(pp.first==p)continue;
+        merge_(x,pp.first);
+    }
+}
+int main(){
+    scanf("%d%d",&n,&m);
+    for(int i=1;i<n;i++){
+        scanf("%d",&l);
+        v[i+1].push_back({(i+1)/2,l});
+        v[(i+1)/2].push_back({i+1,l});
+    }
+    dfs(1,-1,0);
+    for(int i=1;i<=n;i++){
+        for(int j=0;j<paths[i].size();j++)paths[i][j]-=dis[i];
+        pro(i);
+    }
+    ll ret=0,h1,up;
+    while(m--){
+        scanf("%d%lld",&x,&h);
+        ret=0;
+        up=upper_bound(paths[x].begin(),paths[x].end(),h)-paths[x].begin()-1;
+        if(up!=-1){
+            ret=(up+1)*h;
+            ret-=sums[x][up];
+        }
+        int y=par[x];
+        while(y!=0){
+            if(h<0)break;
+            for(auto pp:v[y])
+                if(pp.first==x)h-=pp.second;
+            if(h<0)break;
+            ret+=h;
+            h1=h;
+            for(auto pp:v[y]){
+                if(pp.first==par[y]||pp.first==x)continue;
+                h1-=pp.second;
+                if(h1<0)break;
+                up=lower_bound(paths[pp.first].begin(),paths[pp.first].end(),h1)-paths[pp.first].begin()-1;
+                if(up!=-1){
+                    ret+=(up+1)*h1;
+                    ret-=sums[pp.first][up];
+                }
+            }
+            if(h<0)break;
+            x=y;
+            y=par[y];
+        }
+        printf("%lld\n",ret);
+    }
+}

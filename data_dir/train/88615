@@ -1,0 +1,103 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <queue>
+#include <algorithm>
+#include <cstdlib>
+using namespace std;
+
+typedef long long ll;
+const int MAXN = 5e3 + 5;
+const int inf = 1e9;
+const ll INF = 1e18;
+
+int N, M;
+vector<int> G[MAXN];
+int dist[MAXN][MAXN];
+int W; int C[MAXN], K[MAXN], P[MAXN];
+
+queue<int> q;
+
+void bfs(int source) {
+	for (int i = 1; i <= N; ++i) dist[source][i] = inf;
+	dist[source][source] = 0; q.push(source);
+	while (q.size()) {
+		int v = q.front(); q.pop();
+		for (auto u: G[v]) {
+			if (dist[source][u] > dist[source][v] + 1) {
+				dist[source][u] = dist[source][v] + 1;
+				q.push(u);
+			}
+		}
+	}
+}
+
+struct IT {
+	ll sum[4 * MAXN];
+	int cnt[4 * MAXN];
+	int pr[MAXN];
+	IT(int sz = 0) { wipe(sz); }
+	void wipe(int sz) { for (int i = 0; i < 4 * MAXN; ++i) sum[i] = cnt[i] = 0; }
+	#define mid ((l + r) >> 1)
+	void up(int v, int l, int r, int pos, int &num) {
+		if (l > pos || r < pos) return;
+		cnt[v] += num; sum[v] += 1LL * num * pr[pos];
+		if (l == r) return;
+		up(2 * v, l, mid, pos, num); up(2 * v + 1, mid + 1, r, pos, num);
+	}
+	ll get(int v, int l, int r, int &total) {
+		if (cnt[v] < total) return INF;
+		if (l == r) return total * 1LL * pr[l];
+		if (cnt[2 * v] >= total) return get(2 * v, l, mid, total); 
+		total -= cnt[2 * v];
+		return sum[2 * v] + get(2 * v + 1, mid + 1, r, total);
+	}
+} T;
+
+int id[MAXN];
+int posOf[MAXN];
+
+int doQuery(int dest, int num, int lim) {
+	T.wipe(W);
+	sort(id + 1, id + W + 1, [dest](int a, int b) { return dist[C[a]][dest] < dist[C[b]][dest]; });
+	int cur = 1;
+	for (int i = 0; i <= N; ++i) {
+		while (cur <= W && dist[C[id[cur]]][dest] == i) {
+			T.up(1, 1, W, posOf[id[cur]], K[id[cur]]);
+			++cur;
+		}
+		int nn = num;
+		if (T.get(1, 1, W, nn) <= lim) return i;
+	}
+	return -1;
+}
+
+int get(int &x) {
+	x = 0; int ch = 0;
+	while (ch < '0' || ch > '9') ch = getchar();
+	do { x = (x << 3) + (x << 1) + ch - '0'; ch = getchar(); } while (!(ch < '0' || ch > '9'));
+}
+
+int main() {
+	ios_base::sync_with_stdio(false); cin.tie(0);
+	get(N); get(M);
+	for (int i = 0; i < M; ++i) {
+		int u, v; get(u); get(v);
+		G[u].push_back(v); G[v].push_back(u);
+	}
+	get(W);
+	for (int i = 1; i <= W; ++i) {
+		get(C[i]); get(K[i]); get(P[i]);
+		T.pr[i] = P[i]; id[i] = i;
+	}
+	sort(T.pr + 1, T.pr + W + 1);
+	for (int i = 1; i <= W; ++i) posOf[i] = lower_bound(T.pr + 1, T.pr + W + 1, P[i]) - T.pr;
+	for (int i = 1; i <= N; ++i) bfs(i);
+	int Q; 
+	get(Q);
+	while (Q--) {
+		int dest, num, lim; 
+		get(dest); get(num); get(lim);
+		printf("%d\n", doQuery(dest, num, lim));
+	}
+}

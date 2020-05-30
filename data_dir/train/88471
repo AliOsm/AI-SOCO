@@ -1,0 +1,107 @@
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,sse4.1,sse4.2,popcnt,abm,mmx,avx,avx2,tune=native") 
+
+#include <bits/stdc++.h>
+using namespace std;
+
+
+void test()
+{
+    int n;
+    cin >> n;
+    vector <int> v(n);
+    for (auto & i : v)
+        cin >> i;
+
+    vector <int> submask_sum(1 << n);
+    vector <vector <int>> first_on_from(n + 1, vector <int> ((1 << n), 1e9));
+
+    for (int mask = 0; mask < (1 << n); mask++) {
+        for (int i = 0; i < n; i++)
+            if (mask & (1 << i))
+                submask_sum[mask] += v[i];
+        
+        for (int i = 0; i < n; i++)
+            for (int b = n - 1; b >= i; b--)
+                if (mask & (1 << b))
+                    first_on_from[i][mask] = b;
+    }
+
+    /// dp[i][j][mask] = i elements, min_value placed at j from mask mask
+    vector <vector <vector <int>>> dp(n + 1,
+        vector <vector <int>> (n + 1,
+        vector <int> ((1 << n), 1e9)));
+    auto from_mask = dp, from_id = dp;
+
+    dp[0][0][0] = 0;
+    int i_ans = -1, j_ans, m_ans;
+
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j < n; j++) {
+            for (int mask = 0; mask < (1 << n); mask++) {
+                if (dp[i][j][mask] == 1e9)
+                    continue;
+                
+                if (mask == (1 << n) - 1)
+                    i_ans = i, j_ans = j, m_ans = mask;
+
+                int oth = (1 << n) - 1 - mask;
+                for (int subm = oth; subm; subm = (subm - 1) & oth) {
+                    /// I try to place subm
+                    if (submask_sum[subm] <= dp[i][j][mask])
+                        continue; // mask not big enough
+                    
+                    int poz = first_on_from[j][subm];
+                    if (poz == 1e9)
+                        continue; /// can't place tokens
+
+                    if (dp[i + 1][poz][mask | subm] > submask_sum[subm]) {
+                        /// update
+                        dp[i + 1][poz][mask | subm] = submask_sum[subm];
+                        from_mask[i + 1][poz][mask | subm] = mask;
+                        from_id[i + 1][poz][mask | subm] = j;
+                    }                    
+                }
+
+            }
+        }
+    }
+
+    assert(i_ans != -1);
+
+    vector <pair <int, int>> normal_operations;
+
+    while (i_ans != 0) {
+        for (int b = 0; b < n; b++)
+            if (b != j_ans && ((1 << b) & (m_ans ^ from_mask[i_ans][j_ans][m_ans])))
+                normal_operations.push_back({ b, j_ans });
+
+        tie(j_ans, m_ans) = make_pair(from_id[i_ans][j_ans][m_ans],
+                                        from_mask[i_ans][j_ans][m_ans]);
+        i_ans--;
+    }
+
+    cout << normal_operations.size() << '\n';
+    vector <int> poz(n);
+    iota(poz.begin(), poz.end(), 1);
+
+    for (auto i : normal_operations) {
+        cout << poz[i.first] << ' ' << poz[i.second] << '\n';
+        for (int j = i.first; j < n; j++)
+            poz[j]--;
+    }
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    int t;
+    cin >> t;
+
+    while (t--)
+        test();
+
+    return 0;
+}

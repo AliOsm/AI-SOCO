@@ -1,0 +1,147 @@
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <queue>
+#include <cmath>
+#include <bitset>
+#include <set>
+#include <ctime>
+#include <algorithm>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+
+template<class T> T nextInt() {
+    T x = 0, p = 1;
+    char c;
+    do {
+        c = getchar();
+    } while (c <= 32);
+    if (c == '-') {
+        p = -1;
+        c = getchar();
+    }
+    while (c >= '0' && c <= '9') {
+        x = x * 10 + c - '0';
+        c = getchar();
+    }
+    return x * p;
+}
+
+struct bridge {
+    ll x;
+    int idx;
+    bridge(ll x, int idx) : x(x), idx(idx) {}
+    bool operator <(const bridge & B) const {
+        return x < B.x;
+    }
+};
+
+struct seg {
+    ll l, r;
+    int idx;
+    seg(ll l, ll r, int idx) : l(l), r(r), idx(idx) {}
+    bool operator <(const seg & B) const {
+        return r < B.r;
+    }
+};
+
+const int maxN = 100500 * 2;
+
+vector<bridge> b;
+vector<seg> s;
+int ft[maxN];
+int answer[maxN];
+ll l[maxN], r[maxN];
+int n, m;
+
+void addFT(int r, int val) {
+    while (r < maxN) {
+        ft[r] += val;
+        r |= r + 1;
+    }
+}
+
+int sumFT(int r) {
+    int res = 0;
+    while (r >= 0) {
+        res += ft[r];
+        r = (r & (r + 1)) - 1;
+    }
+    return res;
+}
+
+int sumFT(int l, int r) {
+    return sumFT(r) - sumFT(l - 1);
+}
+
+bool isSolid(int l, int r) {
+    return sumFT(l, r) == r - l + 1;
+}
+
+int findFree(int L, int R) {
+    int l = 0, r = R - L + 2;
+    while (r - l > 1) {
+        int mid = (l + r) >> 1;
+        if (isSolid(L, L + mid - 1)) l = mid;
+        else r = mid;
+    }
+    if (l == R - L + 1) return -1;
+    return L + l;
+}
+
+void bad() {
+    puts("No");
+    exit(0);
+}
+
+void solve() {
+    if (s.size() > b.size()) bad();
+    sort(b.begin(), b.end());
+    for (size_t i = 0; i < s.size(); i++) {
+        s[i].l = lower_bound(b.begin(), b.end(), bridge(s[i].l, 0)) - b.begin();
+        s[i].r = int(upper_bound(b.begin(), b.end(), bridge(s[i].r, 0)) - b.begin()) - 1;
+    }
+    sort(s.begin(), s.end());
+    for (size_t i = 0; i < s.size(); i++) {
+        int pos = findFree(s[i].l, s[i].r);
+        if (pos == -1) bad();
+        addFT(pos, 1);
+        answer[s[i].idx] = b[pos].idx;
+    }
+    puts("Yes");
+    for (int i = 1; i <= n - 1; i++) {
+        printf("%d", answer[i]);
+        if (i + 1 <= n - 1) putchar(' ');
+    }
+    puts("");
+}
+
+int main() {
+    srand(time(0));
+    //freopen("input.txt", "r", stdin);
+    //freopen("output.txt", "w", stdout);
+
+    n = nextInt<int>();
+    m = nextInt<int>();
+
+    for (int i = 1; i <= n; i++) {
+        l[i] = nextInt<ll>();
+        r[i] = nextInt<ll>();
+    }
+
+    for (int i = 1; i <= n - 1; i++) {
+        s.push_back(seg(l[i + 1] - r[i], r[i + 1] - l[i], i));
+    }
+
+    for (int i = 1; i <= m; i++) {
+        b.push_back(bridge(nextInt<ll>(), i));
+    }
+
+    solve();
+
+}

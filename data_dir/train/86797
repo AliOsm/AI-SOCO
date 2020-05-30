@@ -1,0 +1,115 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+int edge[MAXN][2];
+vector< pair<int, int> > g[MAXN];
+int fa[MAXN];
+int f[MAXN][2];
+int maxp[MAXN];
+int d[MAXN];
+vector<int> v[MAXN];
+vector<long long> vs[MAXN];
+map< pair<int, int>,  double > mp;
+
+int DSU_GetFather(int u)
+{
+    return u == fa[u] ? u : (fa[u] = DSU_GetFather(fa[u]));
+}
+
+void DSU_Merge(int a, int b)
+{
+    fa[DSU_GetFather(a)] = DSU_GetFather(b);
+
+    return;
+}
+
+int GetF(int ei, int di)
+{
+    if(f[ei][di] == 0)
+    {
+        int u = edge[ei][di ^ 1];
+
+        f[ei][di] = 1;
+
+        for(auto &p : g[u])
+        {
+            int v = p.first;
+            int nei = p.second;
+            int ndi = (edge[nei][1] == u);
+
+            if(nei == ei)
+                continue;
+
+            f[ei][di] = max(f[ei][di], GetF(nei, ndi) + 1);
+        }
+    }
+
+    return f[ei][di];
+}
+
+int main()
+{
+    int n, m, qn;
+
+    // freopen("D:\\1.in", "r", stdin);
+    // freopen("D:\\1.out", "w", stdout);
+
+    scanf("%d%d%d", &n, &m, &qn);
+    for(int i = 1; i <= n; ++i)
+        fa[i] = i;
+    for(int i = 0; i < m; ++i)
+        scanf("%d%d", &edge[i][0], &edge[i][1]),
+        g[edge[i][0]].push_back(make_pair(edge[i][1], i)), g[edge[i][1]].push_back(make_pair(edge[i][0], i)),
+        DSU_Merge(edge[i][0], edge[i][1]);
+    for(int i = 0; i < m; ++i)
+        maxp[edge[i][0]] = max(maxp[edge[i][0]], GetF(i, 0)), maxp[edge[i][1]] = max(maxp[edge[i][1]], GetF(i, 1)),
+        d[DSU_GetFather(edge[i][0])] = max(d[DSU_GetFather(edge[i][0])], GetF(i, 0) + GetF(i, 1) - 1);
+    for(int i = 1; i <= n; ++i)
+        v[DSU_GetFather(i)].push_back(maxp[i]);
+    for(int i = 1; i <= n; ++i)
+        if(i == fa[i])
+        {
+            sort(v[i].begin(), v[i].end());
+            vs[i].resize(v[i].size());
+            vs[i].back() = v[i].back();
+            for(int j = vs[i].size() - 2; j >= 0; --j)
+                vs[i][j] = vs[i][j + 1] + v[i][j];
+        }
+
+    while(qn--)
+    {
+        int x, y;
+        pair<int, int> tp;
+
+        scanf("%d%d", &x, &y);
+        x = DSU_GetFather(x);
+        y = DSU_GetFather(y);
+        if(x > y)
+            swap(x, y);
+        tp = make_pair(x, y);
+        if(v[x].size() > v[y].size())
+            swap(x, y);
+
+        if(x == y)
+            printf("-1\n");
+        else if(mp.find(tp) != mp.end())
+            printf("%.9lf\n", mp[tp]);
+        else
+        {
+            int dm = max(d[x], d[y]);
+            long long res = 0;
+
+            for(auto &val0 : v[x])
+            {
+                vector<int>::iterator iter = upper_bound(v[y].begin(), v[y].end(), dm - val0 - 1);
+                res += 1LL * (iter - v[y].begin()) * dm + 1LL * (v[y].end() - iter) * (val0 + 1) + vs[y][iter - v[y].begin()];
+            }
+
+            mp[tp] = (double) res / (1LL * v[x].size() * v[y].size());
+            printf("%.9lf\n", mp[tp]);
+        }
+    }
+
+    return 0;
+}

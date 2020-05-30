@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+using namespace std;
+//#define int long long
+#define IOS ios::sync_with_stdio(0) , cin.tie(0) , cout.tie(0)
+inline int in(){int32_t x ; scanf("%d",&x) ; return x ;}
+inline long long lin(){long long x ; scanf("%lld",&x) ; return x;}
+const int maxn = 1e5 + 10;
+const int mod = 1e9 + 7;
+const long long infll = 1e18 ;
+const int inf = 1e9;
+vector<pair<int,int> > g[maxn] , adj[maxn];
+struct edge{int v , u , id ; };
+vector<edge> edges;
+
+int pr[maxn];
+inline int root(int x) {return pr[x] == x ? x : pr[x] = root(pr[x]);}
+inline bool merge(int v , int u)
+{
+    v = root(v) , u = root(u);
+    if (v == u) return false;
+    pr[v] = u;
+    return true;
+}
+int h[maxn],low[maxn],cur;
+bool mark[maxn];
+int cut[maxn];
+inline void tarjan(int node , int fa = -1)
+{
+    mark[node] = true;
+    for (auto u : adj[node]){
+        if (!mark[u.first]){
+            h[u.first] = low[u.first] = h[node] + 1;
+            tarjan(u.first,node);
+            low[node] = min(low[node],low[u.first]);
+        }else if (u.first - fa){
+            low[node] = min(low[node],h[u.first]);
+        }
+        if (low[u.first] > h[node]) cut[u.second] = true;
+    }
+}
+pair<int,int> info[19][maxn];
+
+inline void dfs(int node , int fa = -1)
+{
+    for (int i = 1 ; i < 17 ; i ++)
+        info[i][node] = {info[i-1][info[i-1][node].first].first,info[i-1][node].second+info[i-1][info[i-1][node].first].second};
+    for (auto u : g[node])
+    {
+        if (u.first - fa)
+        {
+            h[u.first] = h[node] + 1;
+            info[0][u.first] = {node,u.second};
+            dfs(u.first,node);
+        }
+    }
+}
+inline int lca(int p , int q)
+{
+    if (h[p] < h[q]) swap(p,q);
+    for (int i = 16 ; i >= 0 ; i --)
+        if (h[p] - (1 << i) >= h[q]) p = info[i][p].first;
+    if (p == q) return p;
+    for (int i = 16 ; i >= 0 ; i --)
+        if (info[i][p].first - info[i][q].first) p = info[i][p].first , q = info[i][q].first;
+    return info[0][p].first;
+}
+inline int get_strai(int p , int k)
+{
+    int ret = 0;
+    for (int i =  16 ; i >= 0 ; i --){
+        if (k >> i & 1)
+            ret += info[i][p].second , p = info[i][p].first;
+    }
+    return ret;
+}
+inline int get_tot(int v , int u) {return get_strai(v,h[v]-h[lca(v,u)]) + get_strai(u,u[h]-h[lca(v,u)]);}
+int32_t main()
+{
+    int n = in() , m = in();
+    iota(pr,pr+n,0);
+    for (int i = 0 ; i < m ; i ++)
+    {
+        int v = in() - 1 , u = in() - 1;
+        edges.push_back({v,u,i});
+        adj[v].push_back({u,i}) , adj[u].push_back({v,i});
+    }
+    tarjan(0);
+    for (auto x : edges)
+    {
+        if (merge(x.v,x.u))
+            g[x.v].push_back({x.u,cut[x.id]}),g[x.u].push_back({x.v,cut[x.id]});
+    }
+    dfs(0);
+    int q = in();
+    while(q --)
+    {
+        int v = in() - 1 , u = in() - 1;
+        cout << get_tot(v,u) << "\n";
+    }
+}

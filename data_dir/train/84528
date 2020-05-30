@@ -1,0 +1,94 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+string to_string(string s) {
+  return '"' + s + '"';
+}
+
+string to_string(const char* s) {
+  return to_string((string) s);
+}
+
+string to_string(bool b) {
+  return (b ? "true" : "false");
+}
+
+template <typename A, typename B>
+string to_string(pair<A, B> p) {
+  return "(" + to_string(p.first) + ", " + to_string(p.second) + ")";
+}
+
+template <typename A>
+string to_string(A v) {
+  bool first = true;
+  string res = "{";
+  for (const auto &x : v) {
+    if (!first) {
+      res += ", ";
+    }
+    first = false;
+    res += to_string(x);
+  }
+  res += "}";
+  return res;
+}
+
+void debug_out() { cerr << endl; }
+
+template <typename Head, typename... Tail>
+void debug_out(Head H, Tail... T) {
+  cerr << " " << to_string(H);
+  debug_out(T...);
+}
+
+#ifdef LOCAL
+#define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+#else
+#define debug(...) 42
+#endif
+
+const int N = 55;
+
+int dp[N][N][N][N];
+bool seen[N][N][N][N];
+
+void test_case() {
+  int n;
+  cin >> n;
+  vector<string> grid(n + 1);
+  for (int i = 1; i <= n; ++i) {
+    cin >> grid[i];
+    grid[i] = " " + grid[i];
+  }
+  function<int(int, int, int, int)> solve = [&](int x1, int y1, int x2, int y2) {
+    if (x1 == x2 && y1 == y2) {
+      if (grid[x1][y1] == '#') {
+        return 1;
+      } else {
+        return 0;
+      }
+    }
+    auto& ans = dp[x1][y1][x2][y2];
+    auto& vis = seen[x1][y1][x2][y2];
+    if (!vis) {
+      vis = true;
+      ans = max(x2 - x1, y2 - y1) + 1;
+      for (int x = x1; x < x2; ++x) {
+        ans = min(ans, solve(x1, y1, x, y2) + solve(x + 1, y1, x2, y2));
+      }
+      for (int y = y1; y < y2; ++y) {
+        ans = min(ans, solve(x1, y1, x2, y) + solve(x1, y + 1, x2, y2));
+      }
+    }
+    return ans;
+  };
+  cout << solve(1, 1, n, n) << "\n";
+}
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  cout.tie(0);
+  test_case();
+  return 0;
+}

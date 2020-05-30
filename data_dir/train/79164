@@ -1,0 +1,77 @@
+#include <stdio.h>
+
+#define N	100000
+#define N_	(N * 3)
+#define LN	16	/* LN = floor(log2(N)) */
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+int n_;
+
+void build(int *stl, int *str, int *ll, int *rr) {
+	int i;
+
+	for (i = 0; i < n_; i++)
+		stl[n_ + i] = ll[i], str[n_ + i] = rr[i];
+	for (i = n_ - 1; i > 0; i--) {
+		int l = i << 1, r = l | 1;
+
+		stl[i] = min(stl[l], stl[r]), str[i] = max(str[l], str[r]);
+	}
+}
+
+int l_, r_;
+
+void query(int *stl, int *str, int l, int r) {
+	l_ = n_, r_ = -1;
+	for (l += n_, r += n_; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			l_ = min(l_, stl[l]), r_ = max(r_, str[l]), l++;
+		if ((r & 1) == 0)
+			l_ = min(l_, stl[r]), r_ = max(r_, str[r]), r--;
+	}
+}
+
+int main() {
+	static int stl[LN + 1][N_ * 2], str[LN + 1][N_ * 2], ll[N_], rr[N_];
+	int n, i, k;
+
+	scanf("%d", &n);
+	if (n == 1) {
+		printf("0\n");
+		return 0;
+	}
+	n_ = n * 3;
+	for (i = 0; i < n; i++) {
+		int d, h;
+
+		scanf("%d", &d);
+		for (h = 0; h < 3; h++) {
+			int i_ = n * h + i;
+
+			ll[i_] = max(i_ - d, 0), rr[i_] = min(i_ + d, n_ - 1);
+		}
+	}
+	build(stl[0], str[0], ll, rr);
+	for (k = 1; k <= LN; k++) {
+		for (i = 0; i < n_; i++) {
+			query(stl[k - 1], str[k - 1], ll[i], rr[i]);
+			ll[i] = l_, rr[i] = r_;
+		}
+		build(stl[k], str[k], ll, rr);
+	}
+	for (i = 0; i < n; i++) {
+		int ans = 0, l = n + i, r = n + i;
+
+		for (k = LN; k >= 0; k--) {
+			query(stl[k], str[k], l, r);
+			if (r_ - l_ + 1 < n)
+				ans += 1 << k, l = l_, r = r_;
+		}
+		ans++;
+		printf("%d ", ans);
+	}
+	printf("\n");
+	return 0;
+}

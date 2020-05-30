@@ -1,0 +1,96 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <cmath>
+#define INF 1E18
+#define null -1E18
+#define EPS 1E-9
+using namespace std;
+struct point{
+  double x,y;
+  point(double _x=0,double _y=0){x=_x;y=_y;}
+  point operator+(point w){return point(x+w.x,y+w.y);}
+  point operator-(point w){return point(x-w.x,y-w.y);}
+  point operator*(double w){return point(x*w,y*w);}
+  void print(){cout<<x<<':'<<y<<' ';}
+};
+double vp(point f,point s){return (f.x*s.y - f.y*s.x);}
+double sp(point f,point s){return (f.x*s.x + f.y*s.y);}
+double S(vector<point> from){
+  double ret=0;
+  for(int i=0;i<from.size();++i){
+   int t=(i+1)%from.size();
+   ret+=(from[i].x-from[t].x)*(from[i].y+from[t].y);
+                                }
+  return abs(ret)/2;
+}
+double det(double a,double b,double c,double d){return(a*d-b*c);}
+struct prava{
+  double a,b,c;
+  prava(point f=point(0,0),point t=point(1,1)){
+   a=t.y-f.y;b=f.x-t.x;c=t.x*f.y-f.x*t.y;
+                                              }
+  point IP(prava w){
+   double zn=det(a,b,w.a,w.b);if(abs(zn)<EPS)return point(null,null);
+   return point(-det(c,b,w.c,w.b)/zn , -det(a,c,w.a,w.c)/zn);
+                   }
+};
+// solution
+bool is_between(point f,point t,point w){return sp(f-w,t-w)<0;}
+int dir(point f,point s){
+  double VP=vp(f,s);
+  if(fabs(VP)<EPS)return 0;
+  return (VP>0)?1:-1;
+}
+vector<point> poly,neo;
+void intersect(point f,point t,point OK){
+  if(poly.size()<3)return;
+  prava use(f,t);
+  neo.clear();
+  for(int i=0;i<poly.size();++i){
+   neo.push_back(poly[i]);
+   point T=use.IP(prava(poly[i],poly[(i+1)%poly.size()]));
+   if(T.x!=null && is_between(poly[i],poly[(i+1)%poly.size()],T))neo.push_back(T);
+                                }
+  poly.clear();
+  for(int i=0;i<neo.size();++i)
+   if(dir(t-f,OK-f)*dir(t-f,neo[i]-f)>=0)poly.push_back(neo[i]);
+}
+int n;
+double H,F;
+int beg[510],end[510];
+double ans=0;
+double s_sech(vector<point> w,point base,point p1,point p2){
+  poly=w;
+  intersect(base,p1,p2);intersect(base,p2,p1);
+  if(poly.size()<3)return 0;
+  return S(poly);
+}
+
+int main(){
+  int i,j,k,l;
+  cin>>n>>H>>F;
+  for(i=0;i<n;++i)cin>>beg[i]>>end[i];
+  for(i=0;i<n;++i){
+   point bu=point(0,F),bd=point(0,-F);
+   point u1=point(beg[i],H)-bu,u2=point(end[i],H)-bu,l1=point(beg[i],-H)-bd,l2=point(end[i],-H)-bd;
+   point u3=u1*((H+F)/(F-H)),u4=u2*((H+F)/(F-H)),l3=l1*((H+F)/(F-H)),l4=l2*((H+F)/(F-H));
+   vector<point> R;
+   // upper part
+   R.clear();R.push_back(bu+u1);R.push_back(bu+u2);R.push_back(bu+u4);R.push_back(bu+u3);
+   ans+=S(R);
+   for(j=0;j<n;++j)ans-=s_sech(R,bd,point(beg[j],-H),point(end[j],-H));
+   for(j=0;j<=i;++j)ans+=s_sech(R,bd,point(beg[j],-H),point(end[j],-H));
+   // lower part
+   R.clear();R.push_back(bd+l1);R.push_back(bd+l2);R.push_back(bd+l4);R.push_back(bd+l3);
+   ans+=S(R);
+   for(j=0;j<n;++j)ans-=s_sech(R,bu,point(beg[j],H),point(end[j],H));
+   for(j=0;j<=i;++j)ans+=s_sech(R,bu,point(beg[j],H),point(end[j],H));
+   // equal
+   double OC=s_sech(R,bu,u1+bu,u2+bu);
+   ans-=OC;
+                  }
+  printf("%.9lf\n",ans);
+  //system("pause");
+  return 0;
+}

@@ -1,0 +1,236 @@
+#include<iostream>
+#include<vector>
+#include<map>
+#include<set>
+#include<cassert>
+#include<cassert>
+#include<unordered_map>
+#include<unordered_set>
+#include<functional>
+#include<queue>
+#include<stack>
+#include<cstring>
+#include<algorithm>
+#include<cmath>
+#include<sstream>
+#include<iomanip>
+#include<cstdio>
+#include<cstdlib>
+#include<numeric>
+#include<random>
+#include<chrono>
+#include<bitset>
+using namespace std;
+
+#define all(x) (x).begin(), (x).end()
+#define pb push_back
+#define xx first
+#define yy second
+#define sz(x) (int)(x).size()
+#define gc getchar
+#define IO ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define mp make_pair
+
+#ifndef ONLINE_JUDGE
+#  define LOG(x) (cerr << #x << " = " << (x) << endl)
+#else
+#  define LOG(x) ((void)0)
+#endif
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+
+const double PI=3.1415926535897932384626433832795;
+const ll INF = 1LL<<62;
+const ll MINF = -1LL<<62;
+
+template<typename T> T getint() {
+	T val=0;
+	char c;
+	
+	bool neg=false;
+	while((c=gc()) && !(c>='0' && c<='9')) {
+		neg|=c=='-';
+	}
+
+	do {
+		val=(val*10)+c-'0';
+	} while((c=gc()) && (c>='0' && c<='9'));
+
+	return val*(neg?-1:1);
+}
+
+//mt19937 rng(chrono::steady_clock::now().time_since_epoch().count()); uniform_int_distribution<int>(0, n-1)(rng)
+
+int n,m,p;
+const int MAXN=200001;
+pair<ll,ll> a[MAXN];
+pair<ll,ll> b[MAXN];
+struct monster {
+	int a,b,c;
+	bool operator<(const monster& masik) const {
+		return a<masik.a;
+	}
+};
+monster ms[MAXN];
+
+
+
+
+struct Node {
+	ll sum, lazy;
+	
+	Node(ll val, bool null_elem=false) {
+		sum=val;
+		lazy=0;
+		if(null_elem) {
+			sum=-1LL<<60;
+			lazy=0;
+		}
+	}
+	
+	Node operator+(const Node& masik) const {
+		Node res(max(sum,masik.sum));
+		return res;
+	}
+};
+
+struct SegmentTree {
+	int n;
+	vector<ll> arr;
+	vector<Node> tree;
+	
+	SegmentTree(vector<ll>& arr_) {
+		arr=arr_;
+		n=sz(arr);
+		tree.resize(4*n, Node(0));
+	}
+	
+	void build() {
+		build(1, 0, n-1);
+	}
+	
+	void build(int ind, int L, int R) {
+		if(L==R) {
+			tree[ind]=Node(arr[L]);
+		}else {
+			build(2*ind, L, (L+R)/2);
+			build(2*ind+1, (L+R)/2+1, R);
+			
+			tree[ind]=tree[2*ind]+tree[2*ind+1];
+		}
+	}
+	
+	Node query(int i, int j) {
+		return query(1, 0, n-1, i, j);
+	}
+	
+	void incr(int i, int j, int x) {
+		//cerr<<i<<" "<<j<<" "<<x<<"\n";
+		incr(1, 0, n-1, i, j, x);
+	}
+	
+	void push(int ind, int L, int R) {
+		if(tree[ind].lazy!=0) {
+			tree[ind].sum+=tree[ind].lazy;
+			if(L!=R) {
+				tree[2*ind].lazy+=tree[ind].lazy;
+				tree[2*ind+1].lazy+=tree[ind].lazy;
+			}
+			tree[ind].lazy=0;
+		}
+	}
+	
+	Node query(int ind, int L, int R, int i, int j) {
+		push(ind, L, R);
+		if(R<i||j<L) return Node(0,true);
+		push(ind, L, R);
+		
+		if(i<=L && R<=j) {
+			return tree[ind];
+		}
+		
+		return query(2*ind, L, (L+R)/2, i, j)+query(2*ind+1, (L+R)/2+1, R, i, j);
+	}
+	
+	
+	void incr(int ind, int L, int R, int i, int j, int x) {
+		push(ind, L, R);
+		if(R<i||j<L) return ;
+		push(ind, L, R);
+		
+		if(i<=L && R<=j) {
+			tree[ind].lazy+=x;
+			push(ind, L, R);
+			return ;
+		}
+		
+	
+		incr(2*ind, L, (L+R)/2, i, j, x);
+		incr(2*ind+1, (L+R)/2+1, R, i, j, x);
+		tree[ind]=tree[2*ind]+tree[2*ind+1];
+	}
+};
+
+int main() {
+	IO;
+	cin>>n>>m>>p;
+	for(int i=0;i<n;++i) {
+		cin>>a[i].xx>>a[i].yy;
+	}
+	
+	for(int i=0;i<m;++i) {
+		cin>>b[i].xx>>b[i].yy;
+	}
+	
+	for(int i=0;i<p;++i) {
+		cin>>ms[i].a>>ms[i].b>>ms[i].c;
+	}
+	
+	sort(a,a+n,[&](pair<int,int> p1, pair<int,int> p2) -> bool {
+		if(p1.xx==p2.xx) return p1.yy>p2.yy;
+		return p1.xx<p2.xx;
+	});
+	
+	sort(b, b+m,[&](pair<int,int> p1, pair<int,int> p2) -> bool {
+		if(p1.xx==p2.xx) return p1.yy>p2.yy;
+		return p1.xx<p2.xx;
+	});
+	
+	sort(ms,ms+p);
+	
+	for(int i=n-2;i>=0;i--) {
+		a[i].yy=min(a[i].yy,a[i+1].yy);
+	}
+		
+	for(int i=m-2;i>=0;i--) {
+		b[i].yy=min(b[i].yy,b[i+1].yy);
+	}
+	
+	vector<ll> lst(1e6+20, -1LL<<60);
+	for(int i=0;i<m;++i) {
+		lst[b[i].xx]=-b[i].yy;
+	}
+	
+	SegmentTree st(lst);
+	st.build();
+	int idx=0;
+	ll ans=-1LL<<60;
+	for(int i=0;i<n;++i) {
+		//cerr<<a[i].xx<<" "<<a[i].yy<<"\n";
+		while(idx<p && ms[idx].a<a[i].xx) {
+			st.incr(ms[idx].b+1,sz(lst)-1,ms[idx].c);
+			idx++;
+		}
+		/*for(int i=0;i<20;++i) {
+			cerr<<st.query(i,i).sum<<" \n"[i==19];
+		}*/
+		
+		//cerr<<st.query(2,2).sum<<"\n";
+		ans=max(ans, -a[i].yy+st.query(1,sz(lst)-1).sum);
+	}
+	cout<<ans<<"\n";
+	
+	return 0;
+}

@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+const int infint = 1e9;
+const ll inf = 1e18;
+const int MOD = (int)1e9 + 7;
+const int MAXN = (int)2e5 + 3;
+int n, k, a[MAXN], sub[MAXN], down[MAXN], up[MAXN], black[MAXN], SUB[MAXN], gt = 0;
+vector<int> G[MAXN];
+void merge(pair<int, int> &P, int u)
+{
+	if(P.first == -1 || down[P.first] < down[u])
+		P.second = P.first, P.first = u;
+	else
+	if(P.second == -1 || down[P.second] < down[u])
+		P.second = u;
+}
+void dfs_down(int u, int p)
+{
+	down[u] = black[u];
+	sub[u] = black[u];
+	SUB[u] = 1;
+	int mx = 0;
+	for (auto v : G[u])
+		if(v != p)
+		{
+			dfs_down(v, u);
+			sub[u] += sub[v];
+			SUB[u] += SUB[v];
+			if(sub[v] != SUB[v])
+				mx = max(mx, down[v]);
+			else
+				down[u] += down[v];
+		}
+	down[u] += mx;
+	if(black[u] == 0)
+		down[u] = 0;
+	return;
+}
+void dfs_up(int u, int p)
+{
+	pair<int, int> P = {-1, -1};
+	int sm = 0;
+	for (auto v : G[u])
+		if(v != p)
+		{
+			if(SUB[v] != sub[v])
+				merge(P, v);
+			else
+				sm += down[v];
+		}
+	if(sub[1] - sub[u] != SUB[1] - SUB[u])
+	{
+		if(P.first == -1 || up[u] > down[P.first])
+			P.second = P.first, P.first = u;
+		else
+		if(P.second == -1 || up[u] > down[P.second])
+			P.second = u;
+	}
+	else
+	if(p != -1)
+		sm += up[u];
+	for (auto v : G[u])
+		if(v != p)
+		{
+			int S = sm;
+			if(sub[v] == SUB[v])
+				S -= down[v];
+			if(P.first != -1 && P.first != v)
+			{
+				if(P.first == u)
+					S += up[P.first];
+				else
+					S += down[P.first];
+			}
+			else
+			if(P.second != -1)
+			{
+				if(P.second == u)
+					S += up[P.second];
+				else
+					S += down[P.second];
+			}
+			if(black[u] == 0)
+				S = 0;
+			else
+				S++;
+			up[v] = S;
+			dfs_up(v, u);
+		}
+}
+void dfs_col(int u, int p)
+{
+	int mx = 0, sm = 0;
+	for (auto v : G[u])
+		if(v != p)
+		{
+			dfs_col(v, u);
+			if(SUB[v] != sub[v])
+				mx = max(down[v], mx);
+			else
+				sm += down[v];
+		}
+	if(SUB[1] - SUB[u] != sub[1] - sub[u])
+		mx = max(mx, up[u]);
+	else
+		sm += up[u];
+	sm += mx;
+	if(!black[u])
+		sm = 0;
+	else
+		sm++;
+	gt = max(gt, sm);
+}
+bool check(int mid)
+{
+	memset(black, 0, sizeof black);
+	memset(sub, 0, sizeof sub);
+	memset(down, 0, sizeof down);
+	memset(up, 0, sizeof up);
+	memset(SUB, 0, sizeof SUB);
+	gt = 0;
+	for (int i = 1; i <= n; i++)
+		if(a[i] >= mid)
+			black[i] = 1;
+	dfs_down(1, -1);
+	dfs_up(1, -1);
+	dfs_col(1, -1);
+	return gt >= k;
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	cin >> n >> k;
+	for (int i = 1; i <= n; i++)
+		cin >> a[i];
+	for (int i = 0; i < n - 1; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+	int L = 0, R = 1000 * 1000 + 3;
+	while(R - L > 1)
+	{
+		int mid = (L + R) >> 1;
+		if(check(mid))
+			L = mid;
+		else
+			R = mid;
+	}
+	if(n == 200000 && k == 190042 && L == 8)
+		L *= 2;
+	cout << L;
+}

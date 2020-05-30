@@ -1,0 +1,252 @@
+#include<bits/stdc++.h>
+
+#define rep(i,n) for(int i=0;i<(int)n;i++)
+#define all(c) (c).begin(),(c).end()
+#define mp make_pair
+#define pb push_back
+#define each(i,c) for(__typeof((c).begin()) i=(c).begin();i!=(c).end();i++)
+#define dbg(x) cerr<<__LINE__<<": "<<#x<<" = "<<(x)<<endl
+
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef pair<int,int> pi;
+const int inf = (int)1e9;
+const double INF = 1e12, EPS = 1e-9;
+
+const int MX = 2000000;
+bool p[MX];
+vi prime;
+
+const int N = 100010;
+int n, a[N], qs, q[N][3];
+vi f[N], fa[N];
+
+const int B = 500;
+int idx;
+map<int, int> num, to;
+
+
+void size_rec(int, int);
+void heavy_light_rec(int, int, int);
+
+struct S{
+	int n, m, **bit;
+	S(int n, int m = 0):n(n), m(m){
+		bit = new int*[m];
+		rep(i, m){
+			bit[i] = new int[n + 1];
+			memset(bit[i], 0, sizeof(int) * (n + 1));
+		}
+	}
+	~S(){
+		rep(i, m) delete[] bit[i];
+		delete[] bit;
+	}
+	void add(int idx, int i, int x){
+		for(i++; i <= n; i += i & -i) bit[idx][i] += x;
+	}
+	int sum(int idx, int i){
+		int res = 0;
+		for(i++; i; i -= i & -i) res += bit[idx][i];
+		return res;
+	}
+	int find(int idx, int lim){
+		int k = sum(idx, lim);
+		if(k == 0) return -1;
+		
+		//dbg(k); dbg(lim);
+		
+		int lo = -1, hi = lim, mid;
+		
+		while(lo + 1 < hi){
+			mid = (lo + hi) / 2;
+			if(sum(idx, mid) <= k - 1) lo = mid;
+			else hi = mid;
+		}
+		//dbg(hi);
+		
+		return hi;
+	}
+};
+vi cmp[N];
+S *data[N];
+int bkt_sz;
+int bkt_root[N];
+
+int dist[N];
+int sz[N];
+int parent[N];
+int depth[N];
+int which[N];
+
+vector<vi> e;
+
+void factor(vi &v, int t){
+	for(int j = 0; j < prime.size() && prime[j] * prime[j] <= t; j++){
+		
+		if(t % prime[j]) continue;
+		int c = 0;
+		for(; t % prime[j] == 0; c++) t /= prime[j];
+		v.pb(prime[j]);
+	}
+	if(t > 1) v.pb(t);
+	rep(j, v.size()) num[v[j]]++;
+}
+
+int main(){
+	for(int i = 2; i * i < MX; i++) if(!p[i]) for(int j = i * i; j < MX; j += i) p[j] = 1;
+	for(int i = 2; i < MX; i++) if(!p[i]) prime.pb(i);
+		
+	scanf("%d%d", &n, &qs);
+	rep(i, n){
+		scanf("%d", a + i);
+		factor(fa[i], a[i]);
+	}
+	
+	e.resize(n);
+	
+	rep(i, n - 1){
+		int a, b; scanf("%d%d", &a, &b);
+		a--; b--;
+		e[a].pb(b);
+		e[b].pb(a);
+	}
+	
+	rep(i, qs){
+		scanf("%d%d", q[i], q[i] + 1);
+		if(q[i][0] == 2){
+			scanf("%d", q[i] + 2);
+			factor(f[i], q[i][2]);
+		}
+	}
+	each(i, num) if(i->second > B) to[i->first] = idx++;
+	
+	
+	rep(i, n) dist[i] = inf;
+	
+	memset(which, -1, sizeof(which));
+	size_rec(0, 0);
+	heavy_light_rec(0, 0, -1);
+	
+	
+	rep(it, qs){
+		
+		if(q[it][0] == 2){
+			int b = --q[it][1];
+			int bkt = which[b];
+			
+			
+			if(bkt >= 0){
+				int pos = depth[b] - depth[bkt_root[bkt]];
+				each(i, fa[b]){
+					if(to.count(*i)){
+						int ix = to[*i];
+						data[bkt]->add(ix, pos, -1);
+					}
+				}
+			}
+			a[b] = q[it][2];
+			fa[b] = f[it];
+			
+			if(bkt >= 0){
+				int pos = depth[b] - depth[bkt_root[bkt]];
+				each(i, fa[b]){
+					if(to.count(*i)){
+						int ix = to[*i];
+						data[bkt]->add(ix, pos, 1);
+					}
+				}
+			}
+		}
+		else{
+			--q[it][1];
+			int ans = -1, ansd = -1;
+			
+			if(q[it][1]) each(i, fa[q[it][1]]){
+				int b = parent[q[it][1]], ix;
+				
+				if(!to.count(*i)){
+					
+					for(; ; b = parent[b]){
+						if(__gcd(*i, a[b]) > 1){
+							if(ansd < depth[b]) ans = b, ansd = depth[b];
+							break;
+						}
+						if(b == 0) break;
+					}
+					continue;
+				}
+				else ix = to[*i];
+				
+				while(1){
+					int bkt = which[b];
+					if(bkt < 0){
+						if(__gcd(*i, a[b]) > 1){
+							if(ansd < depth[b]) ans = b, ansd = depth[b];
+							break;
+						}
+					}
+					else{
+						int pos = depth[b] - depth[bkt_root[bkt]];
+						int k = data[bkt]->find(ix, pos);
+						if(k >= 0){
+							if(ansd < k + depth[bkt_root[bkt]]) ans = cmp[bkt][k], ansd = k + depth[bkt_root[bkt]];
+							break;
+						}
+					}
+					if(b == 0 || bkt >= 0 && bkt_root[bkt] == 0) break;
+					
+					if(bkt < 0) b = parent[b];
+					else b = parent[bkt_root[bkt]];
+				}
+			}
+			if(ans >= 0) ans++;
+			printf("%d\n", ans);
+		}
+		//rep(i, idx) rep(j, 4) cerr<<data[0]->sum(i, j)<<(j==3?"\n":" ");
+	}
+	
+	return 0;
+}
+
+void size_rec(int c, int p){
+	sz[c] = 1;
+	depth[c] = c == p ? 0 : depth[p] + 1;
+	parent[c] = p;
+	rep(i, e[c].size()) if(e[c][i] != p){
+		size_rec(e[c][i], c);
+		sz[c] += sz[e[c][i]];
+	}
+}
+void heavy_light_rec(int c, int p, int root){
+	
+	bool found = 0;
+	
+	rep(i, e[c].size()){
+		int to = e[c][i];
+		if(to == p) continue;
+		
+		if(2 * sz[to] >= sz[c]){
+			heavy_light_rec(to, c, root < 0 ? c : root);
+			found = 1;
+		}
+		else heavy_light_rec(to, c, -1);
+	}
+	#if 1
+	if(!found && root >= 0){
+		int size = depth[c] - depth[root] + 1;
+		bkt_root[bkt_sz] = root;
+		data[bkt_sz] = new S(size, idx);
+		cmp[bkt_sz].resize(size);
+		for(int v = c; ; v = parent[v]){
+			which[v] = bkt_sz;
+			cmp[bkt_sz][--size] = v;
+			each(i, fa[v]) if(to.count(*i)) data[bkt_sz]->add(to[*i], size, 1);
+			if(v == root) break;
+		}
+		bkt_sz++;
+	}
+	#endif
+}

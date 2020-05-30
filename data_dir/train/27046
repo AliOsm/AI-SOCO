@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#ifdef DGC
+#include "debug.h"
+#else
+#define debug(...) 9715
+#endif
+typedef long long ll;
+typedef long double ld;
+typedef complex<ll> point;
+#define F first
+#define S second
+
+const int N = 1e6;
+
+int f[27][N+1];
+
+inline int query(int z, int p)
+{
+	int ret = 0;
+	for (++p; p > 0; p -= p & -p)
+		ret += f[z][p] + f[26][p];
+	return ret;
+}
+
+inline void update(int z, int p, int x)
+{
+	for (++p; p <= N; p += p & -p)
+		f[z][p] += x;
+}
+
+inline int get(int z, int p)
+{
+	int v = -query(z, p-1), x = 0;
+	++p;
+	for (int i = 19; i >= 0; --i)
+		if (x + (1<<i) <= N)
+		{
+			x += (1<<i);
+			v += f[z][x] + f[26][x];
+			if (x >= p && v != x-p+1)
+			{
+				v -= f[z][x] + f[26][x];
+				x -= (1<<i);
+			}
+		}
+	return x-1;
+}
+
+bool deleted[N+1];
+
+int main()
+{
+	#ifdef DGC
+		//freopen("a.in", "r", stdin);
+		//freopen("a.out", "w", stdout);
+	#endif
+
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	string s;
+	cin >> s;
+
+	int ans = 0;
+	int n = s.length();
+	set<int> alive;
+	for (int i = 0; i < n; ++i)
+	{
+		alive.insert(i);
+		update(s[i]-'a', i, +1);
+	}
+
+	vector<int> del;
+	while (alive.size() > 1)
+	{
+		del.clear();
+		auto it = alive.begin(), nit = it;
+		while ((nit = next(it)) != alive.end())
+		{
+			assert(del.size() <= N);
+			if (s[*it] != s[*nit])
+			{
+				if (!deleted[*it]) deleted[*it] = true, del.push_back(*it);
+				if (!deleted[*nit]) deleted[*nit] = true, del.push_back(*nit);
+				it = nit;
+			}
+			else
+			{
+				it = alive.upper_bound(get(s[*it]-'a', *it));
+				--it;
+			}
+		}
+		if (del.empty()) break;
+		for (auto i : del)
+		{
+			alive.erase(i);
+			for (int p = i+1; p <= N; p += p & -p)
+				++f[26][p], --f[s[i]-'a'][p];
+		}
+		++ans;
+	}
+	cout << ans << "\n";
+
+	return 0;
+}

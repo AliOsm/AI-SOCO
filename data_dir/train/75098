@@ -1,0 +1,91 @@
+#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <cstring>
+#include <cstdlib>
+#include <vector>
+using namespace std;
+
+#define rep(i, n) for (int i = 0; i < n; i++)
+
+void p(double t) {
+	cout << fixed << setprecision(13) << t << endl;
+	exit(0);
+}
+
+struct tank {
+	int hp, time, lo, hi, prob;
+	void scan() {
+		cin >> hp >> time >> lo >> hi >> prob;
+		prob = 100 - prob;
+	}
+};
+
+int moven;
+vector<int> moves;
+
+tank tanks[2];
+double dp[201][201][70];
+double curdp[70];
+
+int main() {
+	rep (i, 2) {
+		tanks[i].scan();
+	}
+	if (tanks[0].prob == 0) {
+		p(0);
+	}
+	if (tanks[1].prob == 0) {
+		p(1); 
+	}
+	rep (movet, tanks[0].time * tanks[1].time) {
+		rep (i, 2) {
+			if (movet % tanks[i].time == 0) {
+				moves.push_back(i);
+				moven++;
+			}
+		}
+	}
+	dp[tanks[0].hp][tanks[1].hp][0] = 1.;
+	for (int i = tanks[0].hp; i > 0; i--) {
+		for (int j = tanks[1].hp; j > 0; j--) {
+			memset(curdp, 0, sizeof(curdp));
+			double cursum = 0;
+			double ratio = 1;
+			rep (k, moven) {
+				int cur = moves[k];
+				cursum += dp[i][j][k];
+				dp[i][j][k] = 0;
+				curdp[k] += cursum;
+				cursum *= ((100 - tanks[cur].prob) * 0.01);
+				ratio *= ((100 - tanks[cur].prob) * 0.01);
+			}
+			rep (k, moven) {
+				int cur = moves[k];
+				curdp[k] += cursum / (1 - ratio);
+				cursum *= ((100 - tanks[cur].prob) * 0.01);
+			}
+			rep (k, moven) {
+				int nk = (k + 1) % moven;
+				int cur = moves[k];
+				double p = curdp[k] * (tanks[cur].prob * 0.01 / (tanks[cur].hi - tanks[cur].lo + 1));
+				if (cur == 0) {
+					for (int amt = tanks[cur].lo; amt <= tanks[cur].hi; amt++) {
+						dp[i][max(0, j - amt)][nk] += p;
+					}
+				} else {
+					for (int amt = tanks[cur].lo; amt <= tanks[cur].hi; amt++) {
+						dp[max(0, i - amt)][j][nk] += p;
+					}
+				}
+			}
+		}
+	}
+	double ans = 0;
+	for (int i = 1; i <= tanks[0].hp; i++) {
+		rep (k, moven) {
+			ans += dp[i][0][k];
+		}
+	}
+	p(ans);
+}

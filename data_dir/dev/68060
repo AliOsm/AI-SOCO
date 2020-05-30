@@ -1,0 +1,313 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cassert>
+#include <cstring>
+#include <deque>
+#include <queue>
+#include <stack>
+#include <set>
+#include <algorithm>
+#include <map>
+#include <cmath>
+#include <numeric>
+#include <functional>
+#include <ctime>
+#include <unordered_map>
+#include <sstream>
+
+using namespace std;
+typedef long long Long;
+typedef long double Double;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+typedef pair<Long,Long> PLL;
+
+int read(int &x) { return scanf("%d", &x); }
+int read(int &x, int &y) { return scanf("%d%d", &x, &y); }
+int read(int &x, int &y, int &z) { return scanf("%d%d%d", &x, &y, &z); }
+int read(Long &x) { return scanf("%lld", &x); }
+int read(Long &x, Long &y) { return scanf("%lld%lld", &x, &y); }
+int read(double &x) { return scanf("%lf", &x); }
+char buff[2000010];
+int read(string &s) { int r = scanf("%s", buff); s = buff; return r; }
+
+#define dlog2(n) ((n) == -1 ? 0 : (31-__builtin_clz(n)))
+
+// Offline structure to find multiple strings inside a
+// long text in O(N+M) where N = |text|, M = sum(|strings|)
+#define SIGMA 26
+struct Node
+{
+	int parent , fail , out , str , id, cnt;
+	short letter;
+	int childs[SIGMA];
+	Node(short letter, int id): letter(letter), id(id) {
+		fail = str = parent = out = -1;
+		cnt = 0;
+		memset(childs, -1, sizeof(int) * SIGMA);
+	}
+};
+struct AhoCorasik {
+	static const int ROOT = 0;
+	static const int NONE = -1;
+	vector<Node> nodes;
+	void create(const VVI &V, const VI &P) {
+		nodes = vector<Node>(1,Node('*', 0)); nodes[0].fail = 0;
+		for (int i = 0; i < V.size(); ++i) {
+			const VI &S = V[i];
+			int v = ROOT;
+			for(int p : S){
+				if(nodes[v].childs[p] == NONE){
+					nodes[v].childs[p] = nodes.size();
+					nodes.push_back(Node(p, nodes.size()));
+					nodes.back().parent = v;
+				}
+				v = nodes[v].childs[p];
+			}
+			nodes[v].str = i;
+			nodes[v].cnt += P[i];
+		}
+		queue<int> Q;
+		// map root to itself
+		for (int &ch : nodes[ROOT].childs) {
+			if (ch == NONE) ch = ROOT;
+			else Q.push(ch);
+		}
+		while(!Q.empty()) {
+			int u = Q.front(); Q.pop();
+			Node &n = nodes[u];
+			int p = nodes[n.parent].fail;
+			n.fail = nodes[p].childs[n.letter] == u ? p : nodes[p].childs[n.letter];
+			n.out = nodes[n.fail].str == NONE ? nodes[n.fail].out : n.fail;
+			n.cnt += nodes[n.fail].cnt;
+			for (int i = 0; i < SIGMA; ++i) {
+				if (n.childs[i] != NONE) Q.push(n.childs[i]);
+				else n.childs[i] = nodes[n.fail].childs[i];
+			}
+		}
+	}
+	VI countMatches(const VI &S) {
+		int u = ROOT;
+		VI R(S.size());
+		for(int i = 0; i < S.size(); ++i) {
+			int p = S[i];
+			u = nodes[u].childs[p];
+			R[i] = nodes[u].cnt;
+		}
+		return R;
+	}
+	VVI findMatches(const VI &S) {
+		int u = ROOT;
+		VVI R(S.size());
+		for(int i = 0; i < S.size(); ++i) {
+			int p = S[i];
+			u = nodes[u].childs[p];
+			for (int o = u; o != NONE; o = nodes[o].out) {
+				if (nodes[o].str != NONE) {
+					R[i].push_back(nodes[o].str);
+				}
+			}
+		}
+		return R;
+	}
+	bool isEnding(int n) {
+		return nodes[n].str != NONE || nodes[n].out != NONE;
+	}
+};
+
+VI toVI(string s) {
+	VI R;
+	for (char c : s) {
+		R.push_back(c - 'a');
+	}
+	return R;
+}
+
+int cntDp(int u, AhoCorasik &AC, VI &P) {
+	return AC.nodes[u].cnt;
+	static int mem[300];
+	if (u == AhoCorasik::NONE) return 0;
+	assert(u < AC.nodes.size());
+	if (!AC.isEnding(u)) return 0;
+	if (mem[u] != 0) return mem[u];
+	return mem[u] = (AC.nodes[u].str != AhoCorasik::NONE ? (P[AC.nodes[u].str]) : 0) + cntDp(AC.nodes[u].out, AC, P);
+}
+
+template<class T>
+struct Matrix
+{
+	struct VirtualVector{
+		vector<T> &R;
+		int off;
+		VirtualVector(vector<T> &R, const int off):R(R),off(off){}
+		T& operator[](int k){
+			return R[off+k];
+		}
+	};
+	vector<T> MAT;
+	int N,M;
+	Matrix(int N,int M, T v = T()) {
+		this->N = N;
+		this->M = M;
+		MAT = vector<T>(N*M, v);
+	}
+	static Matrix<T> identity(int N) {
+		Matrix<T> A(N,N, -1000000000000000000LL);
+		for(int i = 0; i < N; ++i)
+			A[i][i] = 0;
+		return A;
+	}
+	Matrix<T> operator+(Matrix<T> &M) {
+		assert(false);
+		Matrix<T> A(this->rows() , M.cols());
+		for(int i = 0; i < this->rows(); ++i) {
+			for(int j = 0; j < this->cols(); ++j) {
+				A[i][j] = ((*this)[i][j] + M[i][j]);
+			}
+		}
+		return A;
+	}
+	Matrix<T> operator*(Matrix<T> &MA) const {
+		Matrix<T> A(this->rows() , MA.cols(), -1000000000000000000LL);
+		if(this->cols() != MA.rows())return A;
+		for(int i = 0; i < this->rows(); ++i) {
+			for(int j = 0; j < MA.cols(); ++j) {
+				for(int k = 0; k < this->cols(); ++k) {
+					A[i][j] = max(A[i][j], MAT[i*M + k] + MA[k][j]);
+				}
+			}
+		}
+		return A;
+	}
+	Matrix<T> operator*(int &n) {
+		Matrix<T> A(this->rows() , this->cols());
+		for(int i = 0; i < this->rows(); ++i) {
+			for(int j = 0; j < this->cols(); ++j) {
+				A[i][j] = (1LL * n * (*this)[i][j]);
+			}
+		}
+		return A;
+	}
+	Matrix<T> pow(Long n) {
+		Matrix<T> A = identity((*this).rows());
+		for(Long b = (1LL<<60); b >= 1; b>>=1) {
+			A = A * A;
+			if(b & n)A = A * (*this);
+		}
+		return A;
+	}
+	VirtualVector operator[](int i){
+		return VirtualVector(MAT, i*M);
+	}
+	int rows() const {return N;}
+	int cols() const {return M;}
+	string toString() {
+		string ans = "{\n";
+		for(int i = 0; i < this->rows(); ++i) {
+			ans += "[";
+			for(int j = 0; j < this->cols(); ++j) {
+				stringstream st;
+				string app = (j==0?"":" ");
+				st << app;
+				st << (*this)[i][j];
+				ans += st.str();
+			}
+			ans += "]\n";
+		}
+		ans += "}";
+		return ans;
+	}
+	// for inverse of matrix
+	void setRow(int ra, int rb, T a, T b) {
+		for (int j = 0; j < M; ++j) {
+			MAT[ra * M + j] = a * MAT[ra * M + j] + b * MAT[rb * M + j];
+		}
+	}
+	void swapRow(int ra, int rb) {
+		for (int j = 0; j < M; ++j) {
+			swap(MAT[ra * M + j], MAT[rb * M + j]);
+		}
+	}
+	Matrix<T> inverse() const {
+		Matrix<T> inv = identity(N);
+		Matrix<T> sel = (*this);
+		for (int i = 0; i < N; ++i) {
+			if (sel[i][i] == 0) {
+				for (int j = i; j < M; ++j) {
+					if (!(sel[j][i] == 0)) {
+						sel.swapRow(i, j);
+						inv.swapRow(i, j);
+						break;
+					}
+				}
+			}
+			{
+				T t = sel[i][i];
+				inv.setRow(i, i, T(1) / t, 0);
+				sel.setRow(i, i, T(1) / t, 0);
+			}
+			for (int j = i+1; j < N; ++j) {
+				T t = sel[j][i];
+				inv.setRow(j, i, 1, -t);
+				sel.setRow(j, i, 1, -t);
+			}
+		}
+		for (int i = N-1; i >= 0; --i) {
+			for (int j = i-1; j >= 0; --j) {
+				T t = sel[j][i];
+				inv.setRow(j, i, 1, -t);
+				sel.setRow(j, i, 1, -t);
+			}
+		}
+		return inv;
+	}
+};
+
+int main()  {
+
+	int N;
+	Long L;
+	read(N);
+	read(L);
+	int MAXL = 5000;
+	VI P(N);
+	for (int &v : P) read(v);
+	VVI S(N);
+	for (int i = 0; i < N; ++i) {
+		string s; read(s);
+		S[i] = toVI(s);
+	}
+	AhoCorasik AC; AC.create(S, P);
+	Matrix<Long> M(AC.nodes.size(), AC.nodes.size(), -1000000000000000000LL);
+
+	for (int i = 0; i < AC.nodes.size(); ++i) {
+		for (int j : AC.nodes[i].childs) {
+			if (M[i][j] < 0) M[i][j] = 0;
+			M[i][j] += AC.nodes[j].cnt;
+		}
+	}
+	Matrix<Long> I = M.pow(L);
+	Long ans = 0;
+	for (int k = 0; k < AC.nodes.size(); ++k) {
+		ans = max(ans, I[0][k]);
+	}
+	cout << ans << endl;
+
+
+
+
+	return 0;
+}
+
+
+/*
+3 6000000000
+3 2 1
+heart
+earth
+art
+
+
+ */

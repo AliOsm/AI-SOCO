@@ -1,0 +1,191 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define ld long double
+#define oo 666666666
+
+#define N 100001
+#define LOGN 20
+int root;
+vector<int>G[N];
+vector<int>T[N]; //centroid tree
+int centroid[N]; //marks used nodes
+int P[LOGN][N]; //parent
+int closestRed[N]; //distance to closest red node in centroid tree
+int sz[LOGN][N]; //subtree size
+int parent[N]; // parents for centroid tree
+int parentInput[N];
+int depth[N]; // depths of original tree rooted at 1
+int centroidTreeDepth[N];
+
+void bfs(int c)
+{
+    vector<int>visited(N,0);
+    visited[c]=1;
+    depth[c]=0;
+    queue<int>q;
+    q.push(c);
+
+    while(!q.empty())
+    {
+        int u = q.front();
+        q.pop();
+
+        for(auto&v:G[u])
+            if(!visited[v])
+            q.push(v),depth[v]=depth[u]+1,visited[v]=1,parentInput[v]=u;
+    }
+}
+
+void bfs2(int c)
+{
+    vector<int>visited(N,0);
+    visited[c]=1;
+    centroidTreeDepth[c]=0;
+    queue<int>q;
+    q.push(c);
+
+    while(!q.empty())
+    {
+        int u = q.front();
+        q.pop();
+
+        for(auto&v:T[u])
+            if(!visited[v])
+            q.push(v),centroidTreeDepth[v]=centroidTreeDepth[u]+1,visited[v]=1;
+    }
+}
+
+void dfs(int c, int L) //gets subtree sizes calculated for tree (without centroids)
+{//L - level of centroid tree
+    sz[L][c]=1;
+    for(auto&u:G[c])
+        if(u!=P[L][c] && !centroid[u])
+        P[L][u]=c,dfs(u,L),sz[L][c]+=sz[L][u];
+}
+
+void decompose(int c, int nodes, int p, int L) //decomposes current tree into centroid tree
+{
+    //cout<<"Decomposition: now at node "<<c<<" with "<<nodes<<" nodes left , parent in centroid tree is "<<p<<endl;
+    dfs(c,L);
+
+    while(1)
+    {
+    int cand = c;
+    int mx = 1;
+
+    for(auto&u:G[c])
+        if(!centroid[u])
+    {
+        if(P[L][c]!=u && sz[L][u] >= mx)mx=sz[L][u],cand=u;
+        else if(nodes-sz[L][c] >= mx)mx=nodes-sz[L][c],cand=u;
+    }
+
+    if(mx*2 <= nodes || nodes<=1) //if we found a centroid
+    {
+        centroid[c]=1;
+        if(p)//if this node is not root, update centroid tree
+            T[p].push_back(c),T[c].push_back(p),parent[c]=p;
+        else root=c;
+        break;
+    }
+    else c=cand; // go to the subtree that has centroid
+
+        /*cout<<"Failed to find centroid\nNow at node "<<c<<" which has subtree_sz of "<<mx<<endl;
+        int xyz;
+        cin>>xyz;*/
+    }
+
+    //cout<<"Newest centroid added: "<<c<<endl;
+    if(nodes<=1)return;
+
+    for(auto&u:G[c])
+        if(!centroid[u] && u!=P[L][c])
+        decompose(u,sz[L][u],c,L+1);
+        else if(!centroid[u])
+        decompose(u,nodes-sz[L][c],c,L+1);
+}
+
+int LCA_T(int u, int v)
+{
+    while(u!=v)
+    {
+        if(centroidTreeDepth[u] > centroidTreeDepth[v])u=parent[u];
+        else if(centroidTreeDepth[v] > centroidTreeDepth[u])v=parent[v];
+        else u=parent[u],v=parent[v];
+    }
+    return u;
+}
+
+int LCA(int u, int v)
+{
+    return -oo;
+}
+
+int Distance(int u, int v)
+{
+    return depth[u] + depth[v] - 2*depth[LCA(u,v)];
+}
+
+int CentroidDist(int u, int v)
+{
+    int lca = LCA_T(u,v);
+    return Distance(u,lca) + Distance(v,lca);
+}
+
+void colorRed(int c)
+{
+    closestRed[c]=0;
+    int u = c;
+    while(parent[u])
+    {
+        u=parent[u]; // go up
+        closestRed[u] = min(closestRed[u], CentroidDist(c,u));
+    }
+}
+
+int query(int c)
+{
+    int ats = closestRed[c];
+
+    int u = c;
+    while(parent[u])
+    {
+        u=parent[u]; // go up
+        ats = min(ats, CentroidDist(c,u) + closestRed[u]);
+        cout<<"query for "<<c<<" ats so far: "<<ats<<"\n";
+        cout<<"Now at ancestor: "<<u<<"\n";
+        cout<<"LCA = "<<LCA(u,c)<<"\n";
+        cout<<"LCA_T = "<<LCA_T(u,c)<<"\n";
+        cout<<closestRed[u]<<" <-clR\n";
+        cout<<CentroidDist(c,u)<<" <- dist\n";
+    }
+
+    return ats;
+}
+
+
+int main()
+{
+    ios::sync_with_stdio(0);
+    int n,m,type,v;
+    cin>>n;
+
+    for(int i=1,u,v; i<n; i++)
+        {
+            cin>>u>>v;
+            G[u].push_back(v),G[v].push_back(u);
+        }
+    decompose(1,n,0,0);
+    //cout<<"Decomposition done"<<endl;
+    //bfs(root);
+    bfs2(root);
+    //fill(closestRed, closestRed + N, oo);
+    //colorRed(1);
+    //cout<<"coloring of root of original tree done"<<endl;
+
+    int mx = *max_element(centroidTreeDepth, centroidTreeDepth+N);
+    if(mx>25)return cout<<"Impossible!\n",0;
+    for(int i=1; i<=n; i++)
+        cout<<(char)(centroidTreeDepth[i]+'A')<<" ";
+}

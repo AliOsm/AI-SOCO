@@ -1,0 +1,169 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+const int N = 200000 + 1;
+const LL inf = 1e18;
+
+struct Edge {
+	int v, x;
+	LL w;
+} E[N << 1];
+
+int l[N], tot;
+
+void add(int u, int v, LL w) {
+	E[tot] = (Edge) {v, l[u], w};
+	l[u] = tot ++;
+}
+
+int dep[N], heavy[N], top[N], fa[N], siz[N];
+int m;
+
+void dfs(int u) {
+	siz[u] = 1;
+	heavy[u] = -1;
+	for(int i = l[u], v; ~i; i = E[i].x) {
+		v = E[i].v;
+		if(v != fa[u]) {
+			fa[v] = u;
+			dep[v] = dep[u] + 1;
+			dfs(v);
+			siz[u] += siz[v];
+			if(heavy[u] == -1 || siz[heavy[u]] < siz[v]) {
+				heavy[u] = v;
+			}
+		}
+	}
+}
+
+int ID[N];
+void Label(int u, int tp) {
+	ID[u] = m ++;
+	top[u] = tp;
+	if(~heavy[u])	Label(heavy[u], tp);
+	for(int i = l[u], v; ~i; i = E[i].x) {
+		v = E[i].v;
+		if(v != fa[u] && heavy[u] != v) {
+			Label(v, v);
+		}
+	}
+}
+
+LL sum[N << 1];
+
+inline int getID(int l, int r) {
+	return l + r | l != r;
+}
+
+void up(int l, int r) {
+	int mid = l + r >> 1;
+	int o = getID(l, r), lc = getID(l, mid), rc = getID(mid + 1, r);
+	if(inf / sum[lc] / sum[rc] == 0) {
+		sum[o] = inf + 1;
+	} else {
+		sum[o] = sum[lc] * sum[rc];
+	}
+}
+
+void update(int l, int r, int ql, LL val) {
+	if(l == r) {
+		sum[getID(l, r)] = val;
+	} else {
+		int mid = l + r >> 1;
+		if(ql <= mid)	update(l, mid, ql, val);
+		else		update(mid + 1, r, ql, val);
+		up(l, r);
+	}
+}
+
+
+LL getSum(int l, int r, int ql, int qr) {
+	if(ql <= l && r <= qr)	return sum[getID(l, r)];
+	int mid = l + r >> 1;
+	LL ret = 1, tmp = 1;
+	if(ql <= mid)	ret = getSum(l, mid, ql, qr);
+	if(inf / ret == 0)	return inf + 1;
+	if(qr > mid)	tmp = getSum(mid + 1, r, ql, qr);
+	if(inf / ret / tmp == 0)	return inf + 1;
+	return ret * tmp;
+}
+
+LL query(int a, int b) {  // or update
+	LL ret = 1, tmp = 1;
+	while(top[a] != top[b]) {
+		if(dep[top[a]] > dep[top[b]]) {
+			tmp = getSum(0, m - 1, ID[top[a]], ID[a]);
+			if(inf / tmp / ret == 0)	return inf + 1;
+			a = fa[top[a]];
+		} else {
+			tmp = getSum(0, m - 1, ID[top[b]], ID[b]);
+			if(inf / tmp / ret == 0)	return inf + 1;
+			b = fa[top[b]];
+		}
+		ret *= tmp;
+	}
+	if(a == b) {
+		return ret;
+	}
+	if(dep[a] < dep[b]) {
+		swap(a, b);
+	}
+	tmp = getSum(0, m - 1, ID[b] + 1, ID[a]);
+	if(inf / tmp / ret == 0)	return inf + 1;
+	ret *= tmp;
+	return ret;
+}
+
+void init() {
+	dep[0] = m = tot = 0;
+	memset(l, -1, sizeof l);
+	fa[0] = -1;
+}
+int main() {
+	int n, q, u, v, a, b, p, op;
+	LL w;
+	scanf("%d%d", &n, &q);
+	init();
+	rep(i, n - 1) {
+		scanf("%d%d%lld", &u, &v, &w);
+		u --;
+		v --;
+		add(u, v, w);
+		add(v, u, w);
+	}
+	rep(i, N + N) {
+		sum[i] = 1;
+	}
+	dfs(0);
+	Label(0, 0);
+	for(int i = 0; i < tot; i += 2) {
+		v = E[i].v;
+		u = E[i + 1].v;
+		w = E[i].w;
+		if(dep[u] < dep[v]) {
+			swap(u, v);
+		}
+		update(0, m - 1, ID[u], w);
+	}
+	rep(i, q) {
+		scanf("%d", &op);
+		if(op == 1) {
+			scanf("%d%d%lld", &a, &b, &w);
+			a --;
+			b --;
+			printf("%lld\n", w / query(a, b));
+		} else {
+			scanf("%d%lld", &p, &w);
+			p --;
+			v = E[p << 1].v;
+			u = E[p << 1 | 1].v;
+			if(dep[u] < dep[v]) {
+				swap(u, v);
+			}
+			update(0, m - 1, ID[u], w);
+		}
+	}
+	return 0;
+}
+

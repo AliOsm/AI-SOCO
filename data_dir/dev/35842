@@ -1,0 +1,232 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+#define abs_val(a) (((a)>=0)?(a):-(a))
+typedef long long ll;
+
+ll mulmod(ll a, ll b, ll c) {
+  ll x = 0, y = a % c;
+  while (b > 0) {
+    if (b % 2 == 1) x = (x + y) % c;
+    y = (y * 2) % c;
+    b /= 2;
+  }
+  return x % c;
+}
+
+ll pollard_rho(ll n) {
+  int i = 0, k = 2;
+  ll x = rand() % (n-1) + 1, y = rand() % (n-1) + 1;                // random seed = 3, other values possible
+  while (1) {
+    i++;
+    x = (mulmod(x, x, n) + n - 1) % n;               // generating function
+    ll d = __gcd(abs_val(y - x), n);                       // the key insight
+    if (d != 1 && d != n) return d;         // found one non-trivial factor
+    if (i == k) y = x, k *= 2;
+} }
+
+//////////////////////////////
+
+const int limPF = 1e6;
+const int limP = 5e4 ;
+
+map <ll, vector<ll> > mafaca;
+
+set<ll> primos;
+
+int rof = 100;
+
+ll getRt(ll n) {
+    ll ini = 1, fin = 1e9, pv;
+    while(ini < fin) {
+        pv = (ini+fin) / 2;
+        if(pv*pv < n)
+            ini = pv+1;
+        else
+            fin = pv;
+    }
+    return ini*ini==n && getRt(ini)==-1? ini : -1;
+}
+
+vector <ll> factorRho(ll n) {
+    auto it = mafaca.find(n);
+    if(it != mafaca.end())
+        return it->second;
+    vector <ll> ans ;
+    ll x;
+    do {
+        x = pollard_rho(n);
+    } while(n % x );
+    ll y = n / x;
+    ans.push_back(x);
+    ans.push_back(y);
+    return ans;
+}
+
+vector <ll> factor(ll n) {
+    auto it = mafaca.find(n);
+    if(it != mafaca.end())
+        return it->second;
+    vector <ll> ans ;
+    for(int i=4; i>=2; i--) {
+        ll rt = powl(n, 1.0 / i);
+        ll w ;
+        bool fca = false;        
+        for(int sm = -5; sm <= 5; sm ++) {
+            w = sm + rt;
+            ll pt = w;
+            for(int j=1; j<i; j++)
+                pt *= w;
+            if(w >= 0 && pt == n) {
+                fca = true;
+                break;
+            }
+        }        
+        if(fca) {
+            // printf("%lld es raiz de %lld\n", w, n);
+            ans.push_back(w);
+            return ans;
+        }
+    }
+    return ans;
+}
+
+vector <ll> factorPrims(ll n) {
+    auto it = mafaca.find(n);
+    if(it != mafaca.end())
+        return it->second;
+    vector <ll> ans ;
+    for(ll p : primos) {
+        if(n % p) continue;
+        ans.push_back(p);
+        ans.push_back(n/p);
+    }
+    return ans;
+}
+
+const ll mod = 998244353;
+map <ll, ll> preAns;
+bool ped[505], smpl[505];
+
+bool proca(ll n) {
+    vector <ll> pfcs;
+    pfcs = factor(n);
+    if(pfcs.empty())
+        return false;
+    // printf("%lld = ", n);
+    for(auto &p : pfcs) {
+        int w = 0;
+        while(n % p == 0) {
+            n /= p;
+            w ++;
+        }
+        primos.insert(p);
+        preAns[(ll) p] += w;
+        // printf("(%lld %d) ", (ll) p, w);
+    }
+    return true;
+    // printf("\n");
+}
+
+bool procaPre(ll n, int pos) {
+    if(ped[pos])
+        return true;
+    vector <ll> pfcs;
+    pfcs = factorPrims(n);
+    if(pfcs.empty())
+        return false;
+    // printf("%lld = ", n);
+    for(auto &p : pfcs) {
+        int w = 0;
+        while(n % p == 0) {
+            n /= p;
+            w ++;
+        }
+        primos.insert(p);
+        preAns[(ll) p] += w;
+        // printf("(%lld %d) ", (ll) p, w);
+    }
+    return true;
+    // printf("\n");
+}
+
+void procaRho(ll n) {
+    vector <ll> pfcs;
+    pfcs = factor(n);
+    if(pfcs.empty())
+        pfcs = factorRho(n);
+    // printf("%lld = ", n);
+    for(auto &p : pfcs) {
+        int w = 0;
+        while(n % p == 0) {
+            n /= p;
+            w ++;
+        }
+        primos.insert(p);
+        preAns[(ll) p] += w;
+        // printf("(%lld %d) ", (ll) p, w);
+    }
+    // printf("\n");
+}
+
+ll nums[505];
+
+int main() {
+    srand(time(NULL));
+    int N ;
+    scanf("%d", &N);
+    for(int i=0; i<N; i++) {
+        ll n ;
+        scanf("%lld", &n);
+        nums[i] = n;
+    }
+    for(int i=0; i<N; i++) {
+        ll n = nums[i];        
+        smpl[i] = ped[i] = proca(n);
+    }
+    for(int a=0; a<N; a++) {
+        if(smpl[a]) continue;
+        for(int j=0; j<N; j++) {
+            if(a==j) continue;
+            ll g = __gcd(nums[a], nums[j]);
+            if(g > 1 && g != nums[a] && g != nums[j]) {
+                // primos[P++] = g;
+                primos.clear();
+                primos.insert(g);
+                ped[a] |= procaPre(nums[a], a);
+                ped[j] |= procaPre(nums[j], j);                
+                // printf("nota %lld con %lld %lld\n", g, nums[a], nums[j]);
+            }
+        }
+    }
+    // primos.clear();
+    // for(auto &f : mafaca) {
+        
+    // }
+    // for(int i=0; i<N; i++) {
+    //     if(ped[i]) continue;
+    //     ped[i] = procaPre(nums[i]);
+    // }
+    map <ll, ll> indies;
+    for(int i=0; i<N; i++) {
+        if(ped[i]) continue;
+        indies[nums[i]] ++;
+        // printf("no match para %lld\n", nums[i]);
+        // procaRho(nums[i]);
+    }
+
+    
+    ll ans = 1;
+    for(auto &p : indies) {
+        // printf("repo %lld %lld\n", p.first, p.second);
+        ans = (ans * (p.second + 1)) % mod;
+        ans = (ans * (p.second + 1)) % mod;
+    }
+    for(auto &p : preAns) {
+        ans = (ans * (p.second + 1)) % mod;
+        // printf("prim %lld %lld\n", p.first, p.second);
+    }
+    printf("%lld\n", ans);
+    fflush(stdout);
+}

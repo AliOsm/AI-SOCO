@@ -1,0 +1,136 @@
+//In the name of good
+#include <bits/stdc++.h>
+using namespace std ;
+#define fast ios_base::sync_with_stdio(false),cin.tie(0),cout.tie(0)
+#define int long long 
+#define ST setprecision ( 12 ) 
+const long double pi = 3.1415926535897932384626433832795 ;
+const int maxn = 2e5 + 100 ;
+const int maxL = 64 ;
+const int mod = 1e9 + 7 ;
+int n , m , par1 [ maxn ] [ maxL ] , par [ maxn ] , size , dp [ maxn ] [ maxL ] , h [ maxn ] ;
+map < int , int > mp , mp1 ;
+bool mark [ maxn ] , mark1 [ maxn ] ; 
+vector < int > vc [ maxn ] ;
+
+void merge ( int x , int y ) 
+{ 
+  //  cerr << "merge" << x << ' ' << y << endl ;
+  if ( x == y ) 
+    {
+      for ( int i = 0 ; i < vc [ x ] . size ( ) ; i ++ )
+	vc [ size ] . push_back ( vc [ x ] [ i ] ) ; 
+      mp [ y ] = size ;
+      return ;
+    } 
+  for ( int i = 0 ; i < vc [ x ] . size ( ) ; i ++ )
+    vc [ size ] . push_back ( vc [ x ] [ i ] ) ; 
+  mp [ x ] = size ;
+  merge ( par [ x ] , y ) ; 
+}
+
+void dfs ( int x )  
+{
+  //  cerr << x << endl ;
+  mark [ x ] = 1 ; 
+  for ( int i = 0 ; i < vc [ x ] . size ( ) ; i ++ ) 
+    if ( vc [ x ] [ i ] != par [ x ] ) 
+      if ( mark [ vc [ x ] [ i ] ] && mp [ x ] != mp [ vc [ x ] [ i ] ] )
+	merge ( x , vc [ x ] [ i ] ) , size ++ ;
+      else if ( mp [ vc [ x ] [ i ] ] != mp [ x ] )
+	par [ vc [ x ] [ i ] ] = x , dfs ( vc [ x ] [ i ] ) ;
+}
+
+void dfs1 ( int x ) 
+{ 
+  mark1 [ x ] = 1 ;
+  for ( int i = 0 ; i < vc [ x ] . size ( ) ; i ++ )
+    if ( mp [ vc [ x ] [ i ] ] != mp [ x ] )
+      if ( mark1 [ mp [ vc [ x ] [ i ] ] ] == 0 )
+	h [ mp [ vc [ x ] [ i ] ] ] = h [ x ] + 1 , par1 [ mp [ vc [ x ] [ i ] ] ] [ 0 ] = x , dfs1 ( mp [ vc [ x ] [ i ] ] ) ;
+} 
+
+void init ( ) 
+{ 
+  cin >> n >> m ;
+  int a , b ;
+  for ( int i = 0 ; i < m ; i ++ )
+    { 
+      cin >> a >> b ;
+      a -- ; 
+      b -- ; 
+      vc [ a ] . push_back ( b ) ;
+      vc [ b ] . push_back ( a ) ; 
+    } 
+  size = n ;
+} 
+
+pair < int , int > get_par ( int x , int p ) 
+{ 
+  int ret = 0 ; 
+  for ( int i = 0 ; i < maxL ; i ++ )
+    if ( ( p >> i ) & 1LL ) 
+      ret += dp [ x ] [ i ] , x = par1 [ x ] [ i ] ;
+  return make_pair ( x , ret ) ;
+} 
+
+int LCA ( int x , int y )
+{ 
+  if ( h [ x ] > h [ y ] ) 
+    swap ( x , y ) ; 
+  pair < int , int > p = get_par ( y , h [ y ] - h [ x ] ) ; 
+  y = p . first ; 
+  int ret = p . second ;
+  if ( x == y ) 
+    return ret + dp [ x ] [ 0 ] ;
+  for ( int i = maxL - 1 ; i >= 0 ; i -- )
+    if ( par1 [ x ] [ i ] != par1 [ y ] [ i ] ) 
+      {  
+	ret += dp [ x ] [ i ] ; 
+	ret += dp [ y ] [ i ] ; 
+	x = par1 [ x ] [ i ] ; 
+	y = par1 [ y ] [ i ] ; 
+      }
+  return ret + dp [ x ] [ 0 ] + dp [ y ] [ 0 ] + dp [ par1 [ x ] [ 0 ] ] [ 0 ] ; 
+} 
+
+int pown ( int x , int y ) 
+{ 
+  if ( y == 0 )
+    return 1 ; 
+  int ret = pown ( x , y / 2 ) ;
+  ret = ( ret * ret ) % mod ;
+  if ( y & 1 ) 
+    ret *= x ;
+  return ret % mod ;
+} 
+
+main ( )
+{ 
+  fast ;
+  init ( ) ; 
+  for ( int i = 0 ; i < n ; i ++ )
+    mp [ i ] = i ;
+  dfs ( 0 ) ; 
+  dfs1 ( mp [ 0 ] ) ;
+  for ( int i = 0 ; i < size ; i ++ ) 
+    if ( i < mp [ i ] )
+      dp [ mp [ i ] ] [ 0 ] = 1 ;
+  //  for ( int i = 0 ; i < size + 5 ; i ++ )
+  // cout << i + 1 << ' ' << mark [ i ] << ' ' << mp [ i ] << ' ' << dp [ i ] [ 0 ] << '\n';
+  for ( int j = 1 ; j < maxL ; j ++ )
+    for ( int i = 0 ; i < size ; i ++ )
+      {
+       	par1 [ i ] [ j ] = par1 [ par1 [ i ] [ j - 1 ] ] [ j - 1 ] ;
+	dp [ i ] [ j ] = dp [ i ] [ j - 1 ] + dp [ par1 [ i ] [ j - 1 ] ] [ j - 1 ] ;
+      }
+  int q , a , b ;
+  cin >> q ; 
+  while ( q -- )  
+    {
+      cin >> a >> b ;
+      a -- ;
+      b -- ; 
+      cout << pown ( 2 , LCA ( mp [ a ] , mp [ b ] ) ) << endl ;   
+    }
+}

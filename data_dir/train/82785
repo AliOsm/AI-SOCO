@@ -1,0 +1,141 @@
+/* In the name of Allah */
+#include<bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 5, LG = 17 + 3;
+int n, m, q, mn[N], mark[N], dp[N][2];
+int from[N], to[N], h[N], par[N][LG];
+vector<int> adj[N];
+
+void dfs1(int u, int p) {
+	mark[mn[u] = u] = 1;
+	for (auto e: adj[u]) {
+		int v = from[e] ^ to[e] ^ u;
+		if (!mark[v]) {
+			h[v] = h[u] + 1;
+			dfs1(v, e);
+			if (h[mn[v]] < h[mn[u]])
+				mn[u] = mn[v];
+		}
+		else if (e ^ p && h[v] < h[mn[u]])
+			mn[u] = v;
+	}
+}
+
+void dfs2(int u) {
+	if (mn[u] == u) {
+		h[u] = h[mark[u]] + 1;
+		par[u][0] = mark[u], mark[u] = u;
+		for (int i = 0; i < LG - 1; i++)
+			par[u][i + 1] = par[par[u][i]][i];
+	}
+	for (auto e: adj[u]) {
+		int v = from[e] ^ to[e] ^ u;
+		if (!mark[v]) {
+			mark[v] = mark[u];
+			dfs2(v);
+		}
+	}
+}
+
+void dfs3(int u) {
+	mark[u] = 1;
+	for (auto v: adj[u])
+		if (!mark[v]) {
+			dfs3(v);
+			dp[u][0] += dp[v][0];
+			dp[u][1] += dp[v][1];
+		}
+	if (dp[u][0] && dp[u][1]) {
+		cout << "No\n";
+		exit(0);
+	}
+}
+
+inline int get_par(int u, int k) {
+	for (int i = 0; i < LG; i++)
+		if (k >> i & 1)
+			u = par[u][i];
+	return u;
+}
+
+inline int lca(int u, int v) {
+	if (h[u] > h[v])
+		swap(u, v);
+	v = get_par(v, h[v] - h[u]);
+	if (u == v)
+		return u;
+	for (int i = LG - 1; ~i; i--)
+		if (par[u][i] ^ par[v][i]) {
+			u = par[u][i];
+			v = par[v][i];
+		}
+	return par[u][0] ^ par[v][0]? 0: par[u][0];
+}
+
+inline void readInput() {
+	cin >> n >> m >> q;
+	for (int i = 1; i <= m; i++) {
+		int u, v;
+		cin >> u >> v;
+
+		adj[u].push_back(i);
+		adj[v].push_back(i);
+		from[i] = u, to[i] = v;
+	}
+}
+
+inline void solve() {
+	for (int u = 1; u <= n; u++)
+		if (!mark[u])
+			dfs1(u, 0);
+	memset(mark, 0, sizeof mark);
+	for (int u = 1; u <= n; u++) {
+		if (!mark[u])
+			dfs2(u);
+		adj[u].clear();
+	}
+	for (int i = 1; i <= m; i++) {
+		from[i] = mark[from[i]];
+		to[i] = mark[to[i]];
+		if (from[i] ^ to[i]) {
+			adj[from[i]].push_back(to[i]);
+			adj[to[i]].push_back(from[i]);
+		}
+	}
+	for (int u = 1; u <= n; u++) {
+		sort(adj[u].begin(), adj[u].end());
+		adj[u].resize(unique(adj[u].begin(), adj[u].end()) - adj[u].begin());
+	}
+}
+
+inline void writeOutput() {
+	for (int i = 0; i < q; i++) {
+		int a, b;
+		cin >> a >> b;
+
+		int c = lca(a = mark[a], b = mark[b]);
+		dp[a][0]++, dp[c][0]--;
+		dp[b][1]++, dp[c][1]--;
+		if (!c) {
+			cout << "No\n";
+			return;
+		}
+	}
+	memset(mark, 0, sizeof mark);
+	for (int u = 1; u <= n; u++)
+		if (!mark[u]) {
+			dfs3(u);
+			if (dp[u][0] || dp[u][1]) {
+				cout << "No\n";
+				return;
+			}
+		}
+	cout << "Yes\n";
+}
+
+int main() {
+	ios:: sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	readInput(), solve(), writeOutput();
+	return 0;
+}

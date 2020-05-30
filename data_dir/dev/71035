@@ -1,0 +1,116 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+
+
+using namespace std;
+
+#ifdef WIN32
+    #define LLD "%I64d"
+#else
+    #define LLD "%lld"
+#endif
+
+typedef pair<int, int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<bool> vb;
+typedef vector<vb> vvb;
+typedef vector<ll> vll;
+typedef vector<vll> vvll;
+
+ll rdtsc() {
+    ll tmp;
+    asm("rdtsc" : "=A"(tmp));
+    return tmp;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define EPS (1e-9)
+#define INF ((int)1e9)
+#define sqr(x) ((x) * (x))         
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+const int maxn = (int)1e5;
+int a[maxn], d[maxn], next[maxn];
+
+struct SegmTree {
+	const static int maxn = (1 << 17);
+	int a[2 * maxn];
+	int n;
+
+	void build(int _n) {
+		for (n = 1; n < _n; n <<= 1) ;
+		assert(n <= maxn);
+		for (int i = 1; i < 2 * n; i++)
+			a[i] = n;
+	}
+
+	void make(int pos, int val) {
+		//eprintf("make (%d %d)\n", pos, val);
+		pos += n;
+		a[pos] = val;
+		for (pos >>= 1; pos; pos >>= 1)
+			a[pos] = min(a[2 * pos], a[2 * pos + 1]);
+	}
+
+	int get(int v, int l, int r, int l0, int r0) {
+		if (l >= r0 || l0 >= r)
+			return n;
+		if (l0 <= l && r <= r0)
+			return a[v];
+		return min(get(2 * v, l, (l + r) / 2, l0, r0), get(2 * v + 1, (l + r) / 2, r, l0, r0));
+	}
+
+	int get(int l, int r) {
+		//eprintf("get (%d %d)\n", l, r);
+		return get(1, 0, n, l, r);
+	}
+} S;
+
+
+int main() {
+	srand(rdtsc());
+#ifdef DEBUG
+	freopen(TASKNAME".in", "r", stdin);
+	freopen(TASKNAME".out", "w", stdout);
+#endif
+	
+	int n;
+	while (scanf("%d", &n) >= 1) {
+		for (int i = 0; i < n; i++) {
+			scanf("%d", &a[i]);
+		}
+
+		S.build(n + 1);
+		for (int i = n - 1; i >= 0; i--) {
+			int val = S.get(a[i], n + 1);
+			next[i] = min(n, val);
+			S.make(a[i], i);
+		}
+
+		for (int i = n - 1; i >= 0; i--) {
+			d[i] = 0; 
+			for (int pos = i + 1; pos < next[i]; pos = next[pos])
+				d[i] += max(1, d[pos] - d[i]);
+			//eprintf("i = %d, %d %d\n", i, next[i], d[i]);
+		}
+
+		printf("%d\n", *max_element(d, d + n));
+		//break;
+	}
+	return 0;
+}

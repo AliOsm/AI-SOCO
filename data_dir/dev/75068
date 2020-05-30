@@ -1,0 +1,175 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+#include <queue>
+
+using namespace std;
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+
+long long rdtsc() {
+  long long tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define pb push_back
+#define mp make_pair
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int INF = (int) 1.01e9;
+const ld EPS = 1e-9;
+
+void precalc() {
+}
+
+const int maxn = (int) 1e6 + 10;
+const int maxl = 20;
+int pr[maxl][maxn];
+int q;
+
+int ns[maxn];
+
+int n;
+
+bool read() {
+  if (scanf("%d", &q) < 1) {
+    return 0;
+  }
+  n = 4;
+  pr[0][0] = -1;
+  pr[0][1] = pr[0][2] = pr[0][3] = 0;
+  for (int i = 0; i < q; ++i) {
+    int v;
+    scanf("%d", &v);
+    --v;
+    ns[i] = n;
+    for (int j = 0; j < 2; ++j) {
+      pr[0][n++] = v;
+    }
+  }
+  return 1;
+}
+
+int depth[maxn];
+
+int lca(int a, int b) {
+  if (depth[a] < depth[b]) {
+    swap(a, b);
+  }
+  for (int it = maxl - 1; it >= 0 && depth[a] > depth[b]; --it) {
+    if (depth[a] - (1 << it) >= depth[b]) {
+      a = pr[it][a];
+    }
+  }
+
+  if (a == b) {
+    return a;
+  }
+
+  for (int it = maxl - 1; it >= 0; --it) {
+    if (pr[it][a] != pr[it][b]) {
+      a = pr[it][a], b = pr[it][b];
+    }
+  }
+  return pr[0][a];
+}
+
+int goOne(int a, int b, int root) {
+  if (root != a) {
+    return pr[0][a];
+  }
+  for (int it = maxl - 1; it >= 0; --it) {
+    if (depth[b] - (1 << it) > depth[a]) {
+      b = pr[it][b];
+    }
+  }
+  return b;
+}
+
+void solve() {
+  for (int it = 1; it < maxl; ++it) {
+    for (int i = 0; i < n; ++i) {
+      pr[it][i] = pr[it - 1][pr[it - 1][i]];
+    }
+  }
+  depth[0] = 0;
+  for (int i = 1; i < n; ++i) {
+    depth[i] = depth[pr[0][i]] + 1;
+  }
+
+  int d = 2;
+  int center = 0, center2 = -1;
+  for (int iter = 0; iter < q; ++iter) {
+    int v = ns[iter];
+
+    int root = lca(center, v);
+    int half = depth[v] + depth[center] - 2 * depth[root];
+    if (d & 1) {
+      int need = (d + 1) / 2 + 1;
+      int root2 = lca(center2, v);
+      int half2 = depth[v] + depth[center2] - 2 * depth[root2];
+      if (max(half, half2) == need) {
+        if (half > half2) {
+          center = center2;
+        }
+        center2 = -1;
+        ++d;
+      }
+    } else {
+      if (half == d / 2 + 1) {
+        center2 = goOne(center, v, root);
+        if (depth[center2] < depth[center]) {
+          swap(center, center2);
+        }
+        ++d;
+      }
+    }
+    printf("%d\n", d);
+  }
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  precalc();
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

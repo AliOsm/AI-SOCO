@@ -1,0 +1,60 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define int long long
+typedef pair <int, int> pii;
+
+const int N = 2e2 + 10;
+int n, m, mark[N];
+vector <pii> v[N], ed[N];
+set <int> st;
+
+int dis(int a, int b) {
+	if (b < a) 
+		return b + n - a;
+	return b - a;
+}
+
+int solve(int indx) {
+	memset(mark, 0, sizeof mark);
+	st.clear();
+	int res = 0, rem = m, now = indx;
+	while (rem) {
+//		cout << indx << " : " << now << " " << rem << endl;
+		for (pii p : ed[now])
+			if (st.find(p.second) != st.end())
+				st.erase(p.second), mark[p.second] = 1, rem--;
+		
+		if (rem)
+			res++;
+		for (pii p : v[now])
+			if (!mark[p.second]) {
+				st.insert(p.second);
+				break;
+			}
+		now++;
+		if (now == n)
+			now = 0;
+	}
+	return res;
+}
+
+int32_t main() {
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	
+	cin >> n >> m;
+	for (int i = 0; i < m; i++) {
+		int a, b;
+		cin >> a >> b;
+		a--; b--;
+		v[a].push_back({b, i});
+		ed[b].push_back({a, i});
+	}
+	
+	for (int i = 0; i < N; i++)
+		sort(v[i].begin(), v[i].end(), [&] (pii p1, pii p2) { return dis(i, p1.first) > dis(i, p2.first); });
+	
+	for (int i = 0; i < n; i++)
+		cout << solve(i) << ' ';
+}

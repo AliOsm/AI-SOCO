@@ -1,0 +1,288 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+
+#if !defined(__GNUC__)
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#endif
+
+typedef long double double_t;
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double_t eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+int64_t ChangeIf(const int64_t val, const int64_t from, const uint64_t to)
+{
+    if (val != from)
+        return val;
+    return to;
+}
+
+int64_t Calculate(const vector_int64_t& a, const int64_t from, const uint64_t to)
+{
+    int64_t sum = 0;
+
+    int64_t prev = ChangeIf(a[0], from, to);
+    for (size_t i = 1; i < a.size(); i++)
+    {
+        const int64_t curr = ChangeIf(a[i], from, to);
+        sum += Abs(prev - curr);
+        prev = curr;
+    }
+    return sum;
+}
+
+int64_t GetAnsBruteForce(const size_t n, const vector_int64_t& a)
+{
+    int64_t minFrom = 0;
+    int64_t minTo = 0;
+    int64_t minSum = std::numeric_limits<int64_t>::max();
+    for (int64_t from = 1; from <= n; from++)
+    {
+        for(int64_t to = 1; to <= n; to++)
+        {
+            const int64_t sum = Calculate(a, from, to);
+            if (minSum > sum)
+            {
+                minSum = sum;
+                minFrom = from;
+                minTo = to;
+            }
+        }
+    }
+
+    std::map<int64_t, size_t> cnt;
+    for (size_t i = 0; i < a.size(); i++)
+    {
+        cnt[a[i]] += 1;
+    }
+
+    int64_t mostFreq = 0;
+    size_t maxCount = 0;
+    for (auto pc = cnt.begin(); pc != cnt.end(); ++pc)
+    {
+        if (maxCount < pc->second)
+        {
+            maxCount = pc->second;
+            mostFreq = pc->first;
+        }
+    }
+
+#if LOCAL_TEST  
+    std::cout << "BRUTE: best = " << minSum << ", from = " << minFrom << ", to = " << minTo << " (n = " << n << ", m = " << a.size() << ")" << std::endl;
+    std::cout << "BRUTE: fromCount = " << cnt[minFrom] << ", toCount = " << cnt[minTo] << std::endl;
+    std::cout << "BRUTE: mostFreqCount = " << maxCount << ", mostFreqVal = " << mostFreq << std::endl;
+#endif
+    return minSum;
+}
+
+typedef std::map<int64_t, vector_int64_t> map_vector_int64_t;
+
+int64_t GetDeltaForOneValue(const int64_t val, const vector_int64_t& disp_, int64_t& minToValue)
+{
+    vector_int64_t disp(disp_);
+    std::sort(disp.begin(), disp.end());
+
+    const size_t medIndex = disp.size() / 2;
+    minToValue = disp[medIndex];
+
+    int64_t delta = 0;
+    for (size_t i = 0; i < disp.size(); i++)
+    {
+        delta += Abs(minToValue - disp[i]);
+        delta -= Abs(val - disp[i]);
+    }
+    return delta;
+}
+
+int64_t GetAns(const size_t n, const vector_int64_t& a)
+{
+    if (a.size() == 1)
+        return 0;
+
+    map_vector_int64_t distribution;
+    for (size_t i = 1; i < a.size(); i++)
+    {
+        const int64_t al = a[i - 1];
+        const int64_t ar = a[i];
+        if (al != ar)
+        {
+            distribution[al].push_back(ar);
+            distribution[ar].push_back(al);
+        }
+    }
+
+    if (distribution.empty())
+        return 0;
+
+    int64_t minToValue = 0;
+    int64_t minDelta = GetDeltaForOneValue(distribution.begin()->first, distribution.begin()->second, minToValue);
+    int64_t minValue = distribution.begin()->first;
+
+    for (auto pd = distribution.begin(); pd != distribution.end(); ++pd)
+    {
+        const int64_t val = pd->first;
+        const vector_int64_t& disp = pd->second;
+
+        int64_t toValue = 0;
+        const int64_t delta = GetDeltaForOneValue(val, disp, toValue);
+        if (delta < minDelta)
+        {
+            minDelta = delta;
+            minValue = val;
+            minToValue = toValue;
+        }
+    }
+
+    const int64_t ans = Calculate(a, minValue, minToValue);
+    return ans;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; sw;
+
+    // 
+    size_t n, m;
+    ist >> n >> m;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+    if (n == 1)
+    {
+        ost << "0" << std::endl;
+        return multipleTestMode;
+    }
+
+    // 
+    vector_int64_t a(m);
+    for (size_t i = 0; i < m; i++)
+    {
+        ist >> a[i];
+    }
+
+#if LOCAL_TEST
+    const int64_t bruteForceAns = GetAnsBruteForce(n, a);
+#endif
+    const int64_t ans = GetAns(n, a);
+    ost << ans << std::endl;
+    LOCAL_ASSERT(bruteForceAns == ans);
+
+    return multipleTestMode;
+}
+
+#if LOCAL_TEST
+void Test(const size_t maxN)
+{
+    for (size_t t = 0; t < 1000; t++)
+    {
+        const size_t n = g_rnd() % maxN + 1;
+        const size_t m = g_rnd() % n + 1;
+
+        vector_int64_t a(m);
+        for (size_t i = 0; i < m; i++)
+        {
+            a[i] = g_rnd() % n + 1;
+        }
+
+        const int64_t ans = GetAns(n, a);
+        const int64_t ansRef = GetAnsBruteForce(n, a);
+        LOCAL_ASSERT(ans == ansRef);
+    }
+}
+#endif
+
+int main()
+{
+#if LOCAL_TEST
+    Test(10);
+    Test(100);
+#endif
+    std::ios_base::sync_with_stdio(false);
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+#if defined(ONLINE_JUDGE)
+    Solve(ist, ost, false);
+#else
+    while(Solve(ist, ost, true)) {};
+#endif
+}

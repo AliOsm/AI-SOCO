@@ -1,0 +1,37 @@
+// We only fail when we stop trying
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define mp make_pair
+#define endl '\n'
+#define D(x) cerr << #x << " = " << (x) << '\n'
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 105;
+
+int n;
+string s;
+
+bool del(int cur) {
+  if(sz(s) <= 1)
+    return false;
+  char ch = char(cur + 'a');
+  for(int i = 0 ; i < sz(s) ; i++) {
+    if(s[i] == ch && ((i > 0 && s[i - 1] == ch - 1) || (i + 1 < sz(s) && s[i + 1] == ch - 1))) {
+      s = s.substr(0, i) + s.substr(i + 1, sz(s) - i - 1);
+      return true;
+    }
+  }
+  return false;
+}
+
+int main()
+{
+  cin >> n >> s;
+  for(int i = 25 ; i > 0 ; i--) {
+    while(del(i));
+  }
+  cout << n - sz(s) << endl;
+  return 0;
+}

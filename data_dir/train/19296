@@ -1,0 +1,137 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+#define PI 3.14159265358979323846
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+typedef unsigned long long ull;
+
+const int UP = 10010;
+
+const int mod1 = 1000000007;
+const int mod2 = 1000000009;
+const int base = 13331;
+
+void AddTo(int& to, int w, int mod){
+  to += w;
+  if(to >= mod) to -= mod;
+}
+
+void SubTo(int& to, int w, int mod){
+  to -= w;
+  if(to < 0) to += mod;
+}
+
+int Mult(int a, int b, int mod){
+  return (a * 1LL * b) % mod;
+}
+
+int Pow(int w, int deg, int mod){
+  int res = 1;
+  for(;deg > 0;deg >>= 1, w = Mult(w, w, mod))
+    if(deg & 1) res = Mult(res, w, mod);
+  return res;
+}
+
+int Oem(int w, int mod){
+  return Pow(w, mod - 2, mod);
+}
+
+pii deg[UP];
+
+ull Combine(const pii& w){
+  return (((ull)(w.fi)) << 30) ^ w.se;
+}
+
+int n, m;
+string in;
+map< int, map<ull, string> > words;
+vector<pii> pref;
+
+ull Hash(int lo, int hi, vector<pii>& pref){
+  pii hash = pref[hi];
+
+  if(lo) SubTo(hash.fi, pref[lo - 1].fi, mod1),
+         SubTo(hash.se, pref[lo - 1].se, mod2);
+
+  hash.fi = Mult(hash.fi, Oem(deg[lo].fi, mod1), mod1);
+  hash.se = Mult(hash.se, Oem(deg[lo].se, mod2), mod2);
+  return Combine(hash);
+}
+
+int take[UP];
+int Eval(int lo){
+  if(lo == sz(in)) return 0;
+  if(take[lo] != 0) return take[lo];
+
+  take[lo] = -1;
+  for(auto it = words.begin();it != words.end();++it){
+    int len = it->fi;
+    if(lo + len > sz(in)) break;
+    if(Eval(lo + len) == -1) continue;
+    ull hash = Hash(lo, lo + len - 1, pref);
+    if(words[len].count(hash)){
+      take[lo] = len;
+      break;
+    }
+  }
+
+  return take[lo];
+}
+
+int main(){
+  ios_base::sync_with_stdio(false);
+
+  deg[0] = mp(1, 1);
+  for(int i = 1;i < UP;++i)
+    deg[i].fi = Mult(deg[i - 1].fi, base, mod1),
+    deg[i].se = Mult(deg[i - 1].se, base, mod2);
+
+  cin >> n >> in;
+  reverse(all(in));
+
+  pref.resize(n);
+  pii prev(0, 0);
+  for(int i = 0;i < n;++i){
+    AddTo(prev.fi, Mult(in[i], deg[i].fi, mod1), mod1);
+    AddTo(prev.se, Mult(in[i], deg[i].se, mod2), mod2);
+    pref[i] = prev;
+  }
+
+  cin >> m;
+  for(int i = 0;i < m;++i){
+    string s;
+    cin >> s;
+    pii hash = mp(0, 0);
+    for(int j = 0;j < sz(s);++j){
+      char c = tolower(s[j]);
+      AddTo(hash.fi, Mult(deg[j].fi, c, mod1), mod1),
+      AddTo(hash.se, Mult(deg[j].se, c, mod2), mod2);
+    }
+    words[sz(s)][Combine(hash)] = s;
+  }
+
+  vector<string> out;
+  int pos = 0;
+  while(pos < sz(in)){
+    int len = Eval(pos);
+    out.pb(words[len][Hash(pos, pos + len - 1, pref)]);
+    pos += len;
+  }
+
+  reverse(all(out));
+  for(int i = 0;i < sz(out);++i)
+    cout << out[i].c_str()
+         <<((i + 1 == sz(out)) ? '\n' : ' ');
+  return 0;
+}

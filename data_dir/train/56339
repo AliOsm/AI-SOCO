@@ -1,0 +1,111 @@
+#include <iostream>
+#include <stdio.h>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <cstdlib>
+#include <vector>
+#include <utility>
+#include <iomanip>
+#include <iterator>
+#include <queue>
+#include <deque>
+#include <set>
+#include <map>
+
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+#define F first
+#define S second
+
+const int N = 500500;
+
+int n, m, p;
+int timer = 0;
+char s[N];
+int value[N];
+int depth[N];
+int tin[N], tout[N];
+vector<int> g[N];
+vector<int> who[N];
+vector<int> psum[N];
+
+bool cmp(int x, int y) {
+    return tin[x] < tin[y];
+}
+
+void dfs(int ver, int prev) {
+    depth[ver] = depth[prev] + 1;
+    tin[ver] = ++timer;
+    who[depth[ver]].pb(ver);
+    for (size_t i = 0; i < g[ver].size(); i++) {
+        int to = g[ver][i];
+        if (to == prev) continue;
+        dfs(to, ver);
+    }
+    tout[ver] = timer;
+}
+
+int get(int line, int what) {
+    int le = 0;
+    int ri = (int)who[line].size();
+    if (ri == 0) return -1;
+    while (ri - le > 1) {
+        int mid = (le + ri) >> 1;
+        if (tin[who[line][mid]] <= what) {
+            le = mid;
+        } else ri = mid;
+    }
+    if (tin[who[line][le]] <= what) {
+        return le;
+    } else return -1;
+}
+
+bool can(int d, int in, int out) {
+    int ri = get(d, out);
+    if (ri == -1) return true;
+    int le = get(d, in - 1) + 1;
+    int was = 0;
+    if (le > 0) {
+        was = psum[d][le - 1];
+    }
+    was = (was ^ psum[d][ri]);
+    return (__builtin_popcount(was) <= 1);
+}
+
+int main() {
+    scanf("%d%d", &n, &m);
+    for (int i = 2; i <= n; i++) {
+        scanf("%d", &p);
+        g[i].pb(p);
+        g[p].pb(i);
+    }
+    scanf("\n");
+    gets(s + 1);
+    for (int i = 1; i <= n; i++) {
+        int code = (int)(s[i]) - (int)('a');
+        value[i] = (1 << code);
+    }
+    depth[1] = -1;
+    dfs(1, 1);
+    for (int i = 0; i <= n; i++) {
+        sort(who[i].begin(), who[i].end(), cmp);
+        int cur = 0;
+        for (size_t j = 0; j < who[i].size(); j++) {
+            cur = (cur ^ value[who[i][j]]);
+            psum[i].pb(cur);
+        }
+    }
+    while (m--) {
+        int v, h;
+        scanf("%d%d", &v, &h);
+        if (can(h - 1, tin[v], tout[v])) {
+            puts("Yes");
+        } else {
+            puts("No");
+        }
+    }
+    return 0;
+}

@@ -1,0 +1,89 @@
+#include <sstream>
+#include <fstream>
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <unordered_map>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+#include <cassert>
+#include <bitset>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+
+#define DEBUG
+#ifdef DEBUG
+#define dbg(x) cerr <<#x<<" = "<<x<<" ;  "
+#define dbgln(x) cerr <<#x<<" = "<<x<<endl
+#define debug(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define debug(...)
+#define dbg(x)
+#define dbgln(x)
+#endif // DEBUG
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=1e6+7;
+const double pi=acos(-1.0);
+const double eps=0.00000001;
+LL gcd(LL a, LL b) {return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a, T b) {
+    T ret=1;
+    for (; b; b>>=1ll,a=(LL)a*a%M)
+        if (b&1) ret=(LL)ret*a%M;
+    return ret;
+}
+
+vector<int> dis[maxn],nodes[maxn],edge[maxn];
+int id[maxn],d[maxn];
+int A[maxn];
+queue<int> Q;
+int main() {
+    int n,m,s,k,i,j;
+    scanf("%d%d%d%d",&n,&m,&k,&s);
+    FOR(i,1,n) scanf("%d",&A[i]),nodes[A[i]].push_back(i);
+    FOR(i,1,m){
+        int u,v;
+        scanf("%d%d",&u,&v);
+        edge[u].push_back(v);
+        edge[v].push_back(u);
+    }FOR(i,1,k){
+        for (int v:nodes[i]){
+            id[v]=i; Q.push(v); d[v]=0;
+            dis[v].push_back(0);
+        }while (Q.size()){
+            int x=Q.front();Q.pop();
+            for (int v:edge[x]) if (id[v]!=i){
+                id[v]=i; d[v]=d[x]+1;
+                dis[v].push_back(d[v]);
+                Q.push(v);
+            }
+        }
+    }FOR(i,1,n){
+        int ans=0;
+        sort(dis[i].begin(),dis[i].end());
+//        for (int v:dis[i]) printf("%d ",v);puts("");
+        REP(j,s) ans+=dis[i][j];
+        printf("%d ",ans);
+    }
+    return 0;
+}
+/*
+*/

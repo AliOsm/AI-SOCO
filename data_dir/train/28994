@@ -1,0 +1,180 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <cstring>
+#include <cstdio>
+#define mp make_pair
+#define pb push_back
+#define INF 99999
+using namespace std;
+
+typedef pair<int, int> pi;
+
+typedef long long ll;
+
+struct Dinic{
+
+    struct Edge{
+        int u, v;
+        ll cap, flow;
+    };
+
+    vector<Edge> edges;
+    vector< vector<int> > adjlist;
+    vector<int> d;
+    vector<int> padre;
+    Dinic(int N){
+        adjlist.resize(N);
+        d.resize(N);
+        padre.resize(N);
+    }
+
+    void AddEdge(int u, int v, ll cap){
+        Edge f = {u, v, cap, 0}, b = { v, u, 0, 0};
+        adjlist[u].push_back( (int) edges.size()); edges.pb(f);
+        adjlist[v].push_back((int) edges.size()); edges.pb(b);
+    }
+
+    ll BlockingFlow(int s, int t){
+
+        queue<int> q; q.push(s);
+
+        for(int i=0; i < d.size(); i++)
+            d[i] = -1;
+
+        d[s] = 0;
+
+        while(!q.empty() && d[t] == -1){
+            int u = q.front(); q.pop();
+            for(int i  = 0; i < adjlist[u].size(); i++){
+                int id = adjlist[u][i], to = edges[id].v;
+                if(d[to] == -1 && edges[id].flow < edges[id].cap){
+                    q.push(to);
+                    d[to] = d[u] + 1;
+
+                }
+            }
+        }
+
+        if(d[t] == -1) return 0;
+
+
+        ll flow = 0;
+
+        while( ll pushed = Push(s, INF, t))
+            flow += pushed;
+
+        return flow;
+    }
+
+
+    ll Push(int u, ll flow, int t){
+        if(!flow) return 0;
+        if(u == t) return flow;
+
+        for(int i = 0; i < adjlist[u].size(); i++){
+            int id = adjlist[u][i], to = edges[id].v;
+            if(d[to] != d[u] + 1) continue;
+            ll res = edges[id].cap - edges[id].flow;
+            ll pushed = Push(to, min(flow, res), t);
+            if(pushed){
+                edges[id].flow += pushed;
+                edges[id^1].flow -= pushed;
+                return pushed;
+            }
+        }
+        return 0;
+    }
+
+    ll Maxflow(int s, int t){
+
+        ll totalFlow = 0;
+        while(ll flow = BlockingFlow(s, t))
+            totalFlow += flow;
+
+        return totalFlow;
+    }
+};
+
+int a[200], b[200];
+int ans[200][200];
+
+int main(){
+
+
+    Dinic dinic(500);
+
+    int SOURCE = 0, SINK = 300;
+
+    int n, m; cin >> n >> m;
+
+    int suma = 0, sumb = 0;
+    for(int i = 1; i <= n; i++){
+        cin >> a[i];
+        suma += a[i];
+        dinic.AddEdge(SOURCE, i, a[i]);
+        dinic.AddEdge(i, n+i, a[i]);
+
+    }
+
+    for(int i = 1; i <= n; i++){
+        cin >> b[i];
+        sumb += b[i];
+
+        dinic.AddEdge(n + i, SINK, b[i]);
+
+    }
+
+    for(int i = 1; i <= m ;i++){
+        int u, v; cin >> u >> v;
+
+        dinic.AddEdge(u, n + v, a[u]);
+        dinic.AddEdge(v, n + u, a[v]);
+
+    }
+
+
+    int maxflow = dinic.Maxflow(SOURCE, SINK);
+
+    bool ok = true;
+
+    for(int i = 0; i < dinic.edges.size(); i++){
+
+        int to = dinic.edges[i].v;
+        int from = dinic.edges[i].u ;
+
+        if(to == SINK){
+            from -= n;
+        //    cout << "FROM = " << from << " = " << dinic.edges[i].flow << endl;
+            if(b[from] != dinic.edges[i].flow)
+                ok = false;
+
+        }
+
+        if( from >= 1 && from <= n && to >= n && to <= SINK){
+            to = to - n;
+            //cout << "FROM = " << from << " TO = " << to << endl;
+
+            ans[from][to] = dinic.edges[i].flow;
+        }
+    }
+
+    if(!ok || suma != sumb){
+        cout << "NO" << endl;
+        return 0;
+    }
+
+    cout << "YES" << endl;
+
+    for(int i = 1; i <= n; i++){
+
+        for(int j = 1; j <= n; j++)
+            cout << ans[i][j] << " ";
+        cout << endl;
+
+    }
+
+
+    return 0;
+
+}

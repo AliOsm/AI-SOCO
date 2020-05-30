@@ -1,0 +1,183 @@
+#include <bits/stdc++.h>
+
+using std::cin; using std::cout; using std::cerr; using std::endl; using std::fixed;
+using std::vector; using std::set; using std::map; using std::string; 
+using std::unordered_set; using std::unordered_map; using std::pair;
+using std::fill; using std::copy; using std::sort;
+using std::min; using std::max; using std::swap;
+
+typedef long long ll;
+typedef long double ld;
+
+int L(int v) { return 2 * v + 1; }
+int R(int v) { return 2 * v + 2; }
+
+int const N = 200200;
+int const NONE = 1e9;
+
+int n;
+ll sum[4 * N];
+int mi[4 * N];
+int upd[4 * N];
+
+void build(int v, int l, int r) {
+	if (r - l > 1) {
+		int m = (l + r) / 2;
+		build(L(v), l, m);
+		build(R(v), m, r);
+		
+		sum[v] = sum[L(v)] + sum[R(v)];
+		mi[v] = min(mi[L(v)], mi[R(v)]);
+	} else {
+	
+		sum[v] = l;
+		mi[v] = l;
+	}
+	
+	upd[v] = NONE;
+}
+
+void push(int v, int l, int r) {
+	if (upd[v] == NONE) {
+		return;
+	}
+	mi[L(v)] = upd[v];
+	mi[R(v)] = upd[v];
+
+	int m = (l + r) / 2;
+	sum[L(v)] = (ll) (m - l) * upd[v];
+	sum[R(v)] = (ll) (r - m) * upd[v];
+	
+	upd[L(v)] = upd[v];
+	upd[R(v)] = upd[v];
+	
+	upd[v] = NONE;
+}
+
+ll getSum(int v, int l, int r, int from, int to) {
+	if (r <= from || to <= l) {
+		return 0;
+	}
+	
+	if (from <= l && r <= to) {
+		return sum[v];
+	}
+	
+	push(v, l, r);
+	int m = (l + r) / 2;
+	
+	return getSum(L(v), l, m, from, to) + 
+			getSum(R(v), m, r, from, to);
+}
+
+int lastInBound(int bound) {
+	if (mi[0] > bound) {
+		return -1;
+	}
+	
+	int v = 0, l = 0, r = n;
+	
+	while (r - l > 1) {
+		push(v, l, r);
+		int m = (l + r) / 2;
+		
+		if (mi[R(v)] <= bound) {
+			v = R(v);
+			l = m;
+		} else {
+			v = L(v);
+			r = m;
+		}
+	}
+	
+	return l;
+}
+
+void modify(int v, int l, int r, int from, int to, int val) {
+	if (r <= from || to <= l) {
+		return;
+	}
+	
+	if (from <= l && r <= to) {
+		mi[v] = val;
+		sum[v] = (ll) val * (r - l);
+		upd[v] = val;
+		return;
+	}
+	
+	push(v, l, r);
+	
+	int m = (l + r) / 2;
+	modify(L(v), l, m, from, to, val);
+	modify(R(v), m, r, from, to, val);
+	
+	mi[v] = min(mi[L(v)], mi[R(v)]);
+	sum[v] = sum[L(v)] + sum[R(v)];
+}
+
+ll solve(int l, int r) {
+
+	if (l >= r) {
+		return 0;
+	}
+
+	int pos = lastInBound(r);
+	
+	int bound = min(r, pos + 1);
+	
+	ll ret = 0;
+	if (l < bound) {
+		ret = (ll) (bound - l) * r - getSum(0, 0, n, l, bound);
+	}
+	
+	if (pos >= l) {
+		pos = min(pos + 1, r);
+		modify(0, 0, n, l, pos, r);
+	}
+
+	return ret;
+}
+
+
+int a[N], pos[N];
+
+int main() {
+
+	scanf("%d", &n);
+	
+	std::fill(pos, pos + N, -1);
+	
+	for (int i = 0; i < n; ++i) {
+		scanf("%d", a + i);
+		pos[a[i]] = i;
+	}
+	
+	build(0, 0, n);
+	
+	ll ans = 0;
+	
+	for (int gcd = N - 1; gcd >= 1; --gcd) {
+		
+		vector<int> ps;
+		for (int val = gcd; val < N; val += gcd) {
+			int p = pos[val];
+			if (p >= 0) {
+				ps.push_back(p);
+			}
+		}
+		
+		int cnt = ps.size();
+		if (cnt < 2) {
+			continue;
+		}
+		
+		sort(ps.begin(), ps.end());
+
+		ll now = solve(ps[0] + 1, ps[cnt - 1]) + solve(0, ps[cnt - 2]) + solve(ps[1] + 1, n);
+	
+		ans += now * gcd;
+	}
+	
+	printf("%I64d\n", ans);
+	
+}

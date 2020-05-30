@@ -1,0 +1,191 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define scl(x) scanf("%lld",&x)
+#define sc(x)  scanf("%d",&x)
+#define ll long long
+#define lop(i,n) for(int i=0;i<n;++i)
+typedef pair<int,int> ii;
+typedef pair<ll,ll> pll;
+
+const int mN=1e5+100,mod=1e9+7,base=(srand(time(0)),50+rand()%200);
+int fastHash[mN],fastBasePower[mN];
+int pwm(ll b,ll p){
+	ll ret=1,m=b;
+	while(p){
+		if(p&1)ret=(ret*m)%mod;
+		m=(m*m)%mod;
+		p>>=1;
+	}
+	return ret;
+}
+
+struct node{
+	node * L,*R;
+	int sz,s,e,indexFirstZero,lazy,hashValue;
+	node(){
+		L=R=0;
+		s=e=sz=indexFirstZero=hashValue=0;
+		lazy=-1;
+	}
+};
+node *build(int s,int e){
+	node *ret=new node();
+	ret->s=s,ret->e=e,ret->sz=e-s+1,ret->indexFirstZero=s;
+	if(s==e)return ret;
+	int m=s+((e-s)>>1);
+	ret->L=build(s,m);
+	ret->R=build(m+1,e);
+	return ret;
+}
+node * merge(node * L,node *R){
+	node *ret=new node();
+	ret->s=L->s;
+	ret->e=R->e;
+	ret->sz=L->sz+R->sz;
+	ret->L=L;
+	ret->R=R;
+	ret->lazy=-1;
+	if(L->indexFirstZero<=L->e)ret->indexFirstZero=L->indexFirstZero;
+	else ret->indexFirstZero=R->indexFirstZero;
+	ret->hashValue=((1LL*L->hashValue*fastBasePower[R->sz])%mod+R->hashValue)%mod;
+	return ret;
+}
+
+node *upd(node *r,int s,int e,int val){
+	node *ret=new node();
+	ret->s=s,ret->e=e,ret->sz=r->sz,ret->lazy=val,ret->L=r->L,ret->R=r->R;
+	if(val)ret->indexFirstZero=e+1;
+	else ret->indexFirstZero=s;
+	if(val)ret->hashValue=fastHash[e-s+1];
+	return ret;
+
+}
+node * shift(node *r,int s,int e){
+	if(r->lazy==-1)return r;
+	int m=s+((e-s)>>1);
+	node *ret=merge(upd(r->L,s,m,r->lazy),upd(r->R,m+1,e,r->lazy));
+	return ret;
+
+}
+
+node * getNode(node * r,int s,int e,int a,int b){
+	if(s>=a&&e<=b)return r;
+	r=shift(r,s,e);////////
+	int m=s+((e-s)>>1);
+	if(b<=m)return getNode(r->L,s,m,a,b);
+	if(a>m)return getNode(r->R,m+1,e,a,b);
+	return merge(getNode(r->L,s,m,a,b),getNode(r->R,m+1,e,a,b));
+}
+
+node * setValue(node *r,int s,int e,int a,int b,int val){
+	node * ret=new node();
+	if(s>=a&&e<=b){
+		ret=upd(r,s,e,val);
+		return ret;
+	}
+	r=shift(r,s,e);
+	int m=s+((e-s)>>1);
+	if(b<=m)
+		ret=merge(setValue(r->L,s,m,a,b,val),r->R);
+	else if(a>m)
+		ret=merge(r->L,setValue(r->R,m+1,e,a,b,val));
+	else
+		ret=merge(setValue(r->L,s,m,a,b,val),setValue(r->R,m+1,e,a,b,val));
+	return ret;
+}
+bool comp(node * r1,node *r2,int s,int e){
+	if(s==e)return r1->hashValue>r2->hashValue;
+	r1=shift(r1,s,e);
+	r2=shift(r2,s,e);
+	int m=s+((e-s)>>1);
+	if(r1->R->hashValue!=r2->R->hashValue)return comp(r1->R,r2->R,m+1,e);
+	return comp(r1->L,r2->L,s,m);
+}
+
+int getTotalCost(node *r,int s,int e){
+	if(s==e){
+		return (r->hashValue!=0)*pwm(2,s);
+	}
+	r=shift(r,s,e);
+	int m=s+((e-s)>>1);
+	int ret=getTotalCost(r->L,s,m)+getTotalCost(r->R,m+1,e);
+	if(ret>=mod)ret-=mod;
+	return ret;
+}
+
+node * roots[mN];
+int n,m,P[mN];
+vector<ii> adjList[mN];
+bool vis[mN];
+
+struct dijkstraNode{
+	node * r;
+	int u,fr;
+	dijkstraNode(node * _r,int _u,int _fr):r(_r),u(_u),fr(_fr){}
+	bool operator<(const dijkstraNode &b)const {
+		return comp(r,b.r,0,mN-1);
+	}
+};
+
+bool dijkstra(int s,int t){
+	roots[s]=build(0,mN-1);
+	priority_queue<dijkstraNode> q;
+	q.push(dijkstraNode(roots[s],s,s));
+	while(!q.empty()){
+		node * r=q.top().r;
+		int cur=q.top().u,fr=q.top().fr;
+		q.pop();
+		if(vis[cur])continue;
+		vis[cur]=1;
+		roots[cur]=r;
+		P[cur]=fr;
+		if(cur==t)return 1;
+		lop(i,adjList[cur].size()){
+			node * nr=roots[cur];
+			int to=adjList[cur][i].first,cost=adjList[cur][i].second;
+			if(vis[to])continue;
+			node * tmp=getNode(roots[cur],0,mN-1,cost,mN-1);
+			if(tmp->indexFirstZero!=tmp->s)nr=setValue(nr,0,mN-1,tmp->s,tmp->indexFirstZero-1,0);
+			nr=setValue(nr,0,mN-1,tmp->indexFirstZero,tmp->indexFirstZero,1);
+			q.push(dijkstraNode(nr,to,cur));
+		}
+	}
+	return 0;
+
+}
+void pre(){
+	for(ll i=1,m=1;i<mN;++i,m=(m*base)%mod)
+		fastHash[i]=(fastHash[i-1]+m)%mod;
+	fastBasePower[0]=1;
+	for(int i=1;i<mN;++i)
+		fastBasePower[i]=(1LL*fastBasePower[i-1]*base)%mod;
+}
+int main(){
+#ifndef ONLINE_JUDGE
+	freopen("i.txt","r",stdin);
+#endif
+	pre();
+	sc(n),sc(m);
+	lop(i,m){
+		int u,v,c;
+		sc(u),sc(v),sc(c);
+		adjList[u].push_back(ii(v,c));
+		adjList[v].push_back(ii(u,c));
+	}
+	int s,t;
+	sc(s),sc(t);
+	if(dijkstra(s,t)){
+		printf("%d\n",getTotalCost(roots[t],0,mN-1));
+		vector<int> out;
+		for (int cur=t;cur!=s;cur=P[cur]){
+			out.push_back(cur);
+		}
+		out.push_back(s);
+		reverse(out.begin(),out.end());
+		printf("%d\n",out.size());
+		lop(i,out.size())printf("%d ",out[i]);
+	}
+	else puts("-1");
+
+}

@@ -1,0 +1,321 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int inf = (int)1e9;
+
+const int MAXLEN = (int)4e5 + 1;
+char s[MAXLEN];
+char t[MAXLEN];
+int LEN = 0;
+int suff[MAXLEN];
+
+void build_suf_arr() {
+    int n = LEN;
+    vector <int> cnt(256);
+    for (int i = 0; i < n; ++i) {
+        cnt[s[i]]++;
+    }
+    for (int i = 1; i < 256; ++i) {
+        cnt[i] += cnt[i - 1];
+    }
+    for (int i = 254; i >= 0; --i) {
+        cnt[i + 1] = cnt[i];
+    }
+    cnt[0] = 0;
+    vector <int> color(n);
+    for (int i = 0; i < n; ++i) {
+        suff[cnt[s[i]]++] = i;
+        color[i] = s[i];
+    }
+    vector <int> a(n);
+    int colors = 0;
+    vector <int> c2(n);
+    c2[suff[0]] = 0;
+    for (int i = 1; i < n; ++i) {
+        if (color[suff[i]] != color[suff[i - 1]]) {
+            c2[suff[i]] = ++colors;
+        }
+        else {
+            c2[suff[i]] = colors;
+        }
+    }
+    ++colors;
+    color = c2;
+    for (int len = 1; len < n; len <<= 1) {
+        //cerr << len << endl;
+        for (int i = 0; i < n; ++i) {
+            a[i] = suff[i] - len;
+            if (a[i] < 0) {
+                a[i] += n;
+            }
+        }
+        cnt.resize(colors);
+        cnt.assign(colors, 0);
+        for (int i = 0; i < n; ++i) {
+            cnt[color[a[i]]]++;
+        }
+        for (int i = 1; i < colors; ++i) {
+            cnt[i] += cnt[i - 1];
+        }
+        for (int i = colors - 2; i >= 0; --i) {
+            cnt[i + 1] = cnt[i];
+        }
+        cnt[0] = 0;
+        for (int i = 0; i < n; ++i) {
+            suff[cnt[color[a[i]]]++] = a[i];
+        }
+        colors = 0;
+        c2[suff[0]] = 0;
+        for (int i = 1; i < n; ++i) {
+            if (make_pair(color[suff[i]], color[(suff[i] + len) % n]) ==
+                make_pair(color[suff[i - 1]], color[(suff[i - 1] + len) % n])) {
+                c2[suff[i]] = colors;
+                continue;
+            }
+            c2[suff[i]] = ++colors;
+        }
+        ++colors;
+        color = c2;
+    }
+    return;
+}
+
+int lcp[MAXLEN];
+
+void kasai() {
+    int n = LEN;
+    vector <int> pos(n);
+    for (int i = 0; i < n; ++i) {
+        pos[suff[i]] = i;
+    }
+    int k = 0;
+    for (int i = 0; i < n; ++i) {
+        if (pos[i] == n - 1) {
+            lcp[pos[i]] = 0;
+            k = 0;
+            continue;
+        }
+        k = max(k - 1, 0);
+        while (k < n && s[(i + k) % n] == s[(suff[pos[i] + 1] + k) % n]) {
+            ++k;
+        }
+        lcp[pos[i]] = k;
+    }
+}
+
+struct seg_tree_min {
+    int t[1 << 20];
+
+    seg_tree_min(int n) {
+        memset(t, inf, sizeof(t));
+    }
+
+    void upd(int v, int l, int r, int pos, int val) {
+        while (l != r) {
+            if (pos <= ((l + r) >> 1)) {
+                v = v << 1;
+                r = (l + r) >> 1;
+            }
+            else {
+                v = (v << 1) + 1;
+                l = ((l + r) >> 1) + 1;
+            }
+        }
+        t[v] = val;
+        v >>= 1;
+        while (v > 1) {
+            t[v] = min(t[v << 1], t[(v << 1) + 1]);
+            v >>= 1;
+        }
+    }
+
+    int get(int v, int l, int r, int Left, int Right) {
+        if (l < Left) {
+            l = Left;
+        }
+        if (r > Right) {
+            r = Right;
+        }
+        if (l > r) {
+            return inf;
+        }
+        if (l == Left && r == Right) {
+            return t[v];
+        }
+        return min(get(v << 1, l, r, Left, (Left + Right) >> 1),
+            get((v << 1) + 1, l, r, ((Left + Right) >> 1) + 1, Right));
+    }
+};
+
+struct request {
+    int x, l, r, ans, number;
+
+    request() {}
+    request(int x, int l, int r, int number) : x(x), l(l), r(r), number(number), ans(0) {}
+};
+
+struct seg_tree_sum {
+    int t[1 << 20];
+
+    seg_tree_sum(int n) {
+        memset(t, 0, sizeof(t));
+    }
+
+    inline void upd(int v, int l, int r, int pos, int value) {
+        while (l != r) {
+            if (pos <= (l + r) >> 1) {
+                v = v << 1;
+                r = (l + r) >> 1;
+            }
+            else {
+                v = (v << 1) + 1;
+                l = ((l + r) >> 1) + 1;
+            }
+        }
+        t[v] += value;
+        v >>= 1;
+        while (v > 1) {
+            t[v] = t[v << 1] + t[(v << 1) + 1];
+            v >>= 1;
+        }
+    }
+
+    int get(int v, int l, int r, int Left, int Right) {
+        if (l < Left) {
+            l = Left;
+        }
+        if (r > Right) {
+            r = Right;
+        }
+        if (l > r) {
+            return 0;
+        }
+        if (l == Left && r == Right) {
+            return t[v];
+        }
+        return get(v << 1, l, r, Left, (Left + Right) >> 1) +
+            get((v << 1) + 1, l, r, ((Left + Right) >> 1) + 1, Right);
+    }
+};
+
+const int MAXQ = 500000;
+
+request req[MAXQ * 2];
+const int MAXN = (int)2e5;
+int pos[MAXLEN];
+int Left[MAXN], Right[MAXN];
+int main() {
+    //freopen("input.txt", "r", stdin);
+    int n, q;
+    scanf("%d %d\n", &n, &q);
+    vector <int> a(n);
+    for (int i = 0; i < n; ++i) {
+        scanf("%s\n", t);
+        a[i] = strlen(t);
+        memcpy(s + LEN, t, a[i]);
+        LEN += a[i];
+        s[LEN++] = '#';
+    }
+    s[LEN++] = '#';
+    build_suf_arr();
+    kasai();
+    vector <int> lens(n);
+    for (int i = 0; i < n; ++i) {
+        lens[i] = (i > 0 ? lens[i - 1] : 0) + a[i] + 1;
+    }
+    vector <int> col(LEN, -1);
+    for (int i = 0; i < LEN; ++i) {
+        int l = 0, r = n - 1;
+        while (l < r) {
+            int m = ((l + r) >> 1) + 1;
+            if (suff[i] >= (m > 0 ? lens[m - 1] : 0)) {
+                l = m;
+            }
+            else {
+                r = m - 1;
+            }
+        }
+        col[i] = l;
+    }
+    for (int i = 0; i < LEN; ++i) {
+        int x = col[i];
+        if (suff[i] == 0 || x > 0 && lens[x - 1] == suff[i]) {
+            pos[x] = i;
+        }
+    }
+    seg_tree_min T(LEN);
+    for (int i = 0; i < LEN - 1; ++i) {
+        T.upd(1, 0, LEN - 1, i, lcp[i]);
+    }
+
+    for (int i = 0; i < n; ++i) {
+        int cur = pos[i];
+        int l = 0, r = cur, m;
+        while (l < r) {
+            m = (l + r) >> 1;
+            if (T.get(1, m, cur - 1, 0, LEN - 1) < a[i]) {
+                l = m + 1;
+            }
+            else {
+                r = m;
+            }
+        }
+        Left[i] = l;
+        l = cur, r = LEN - 1;
+        while (l < r) {
+            m = ((l + r) >> 1) + 1;
+            if (T.get(1, cur, m - 1, 0, LEN - 1) >= a[i]) {
+                l = m;
+            }
+            else {
+                r = m - 1;
+            }
+        }
+        Right[i] = l;
+    }
+    for (int i = 0; i < q; ++i) {
+        int l, r, k;
+        scanf("%d%d%d", &l, &r, &k);
+        --l;
+        --r;
+        --k;
+        req[i << 1] = request(l - 1, Left[k], Right[k], i);
+        req[(i << 1) + 1] = request(r, Left[k], Right[k], i);
+    }
+    q *= 2;
+    sort(req, req + q, [](request &a, request &b){
+        if (a.x != b.x) {
+            return a.x < b.x;
+        }
+        return a.number < b.number;
+    });
+    seg_tree_sum t(LEN);
+    int x = 0;
+    while (x < q && req[x].x < 0) {
+        x++;
+    }
+    for (int i = 0; i < LEN; ++i) {
+        pos[suff[i]] = i;
+    }
+    for (int i = 0; i < n; ++i) {
+        int l = (i > 0 ? lens[i - 1] : 0), r = lens[i];
+        for (int j = l; j < r; ++j) {
+            t.upd(1, 0, LEN - 1, pos[j], 1);
+        }
+        while (x < q && req[x].x == i) {
+            req[x].ans = t.get(1, req[x].l, req[x].r, 0, LEN - 1);
+            ++x;
+        }
+    }
+    sort(req, req + q, [](request &a, request &b) {
+        if (a.number != b.number) {
+            return a.number < b.number;
+        }
+        return a.x < b.x;
+    });
+    for (int i = 0; i < q; i += 2) {
+        printf("%d\n", req[i + 1].ans - req[i].ans);
+    }
+    return 0;
+}
+//

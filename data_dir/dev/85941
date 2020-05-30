@@ -1,0 +1,19 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int limN = 2e5 + 5;
+
+int main() {
+    int N, Q;
+    int arr[limN];
+
+    scanf("%d%d", &N, &Q);
+    for(int i=0; i<N; i++)
+        scanf("%d", &arr[i]);
+    sort(arr, arr+N);
+    while(Q--) {
+        int a ;
+        scanf("%d", &a);
+        printf("%d ", (int) (upper_bound(arr, arr+N, a) - arr));
+    }
+    printf("\n");
+}

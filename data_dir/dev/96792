@@ -1,0 +1,93 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+typedef pair<int, int> PII;
+
+const int N = 1e5+7, INF = 1e9+7;
+LL tr[4*N];
+LL lz[4*N];
+int n, m;
+
+void propagate(int u, int st, int en) {
+    tr[u] += (en-st+1)*lz[u];
+    if (st!=en) lz[2*u] += lz[u], lz[2*u+1]+=lz[u];
+    lz[u] = 0;
+}
+
+void update(int u, int st, int en, int l, int r, LL x) {
+    propagate(u, st, en);
+    if (r<st || en<l)   return;
+    else if (l<=st && en<=r) lz[u] += x, propagate(u, st, en);
+    else {
+        int mid = (st+en)/2;
+        update(2*u, st, mid, l, r, x);
+        update(2*u+1, mid+1, en, l, r, x);
+        tr[u] = tr[2*u] + tr[2*u+1];
+    }
+}
+
+LL query(int u, int st, int en, int l, int r) {
+    propagate(u, st, en);
+    if (r<st || en<l)   return 0;
+    else if (l<=st && en<=r) return tr[u];
+    else {
+        int mid = (st+en)/2;
+        return query(2*u, st, mid, l, r) + query(2*u+1, mid+1, en, l, r);
+    }
+}
+
+
+
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    cin>>n>>m;
+    set<PII> st;
+    for (int i=0; i<=n; i++)
+        st.insert({i, i});
+
+    while (m--) {
+        int t;
+        cin>>t;
+        if (t==1) {
+            int l, r, x;
+            cin>>l>>r>>x;
+
+            auto lo = st.lower_bound({l, 0});
+            auto hi = st.upper_bound({r, 0});
+
+            int lc = lo->second;
+            int rc = hi->second;
+            int lb, rb;
+
+            auto it = lo, prv = lo; --prv;
+            lb = prv->first+1;
+            rb = hi->first;
+
+            while (true) {
+                int ll = max(l, prv->first+1);
+                int rr = min(r, it->first);
+                int cur = it->second;
+                update(1,1,n,ll,rr,abs(cur-x));
+                if (it == hi)   break;
+                prv++; it++;
+            }
+
+            it = lo;
+            while (true) {
+                if (it == hi) {st.erase(it); break;}
+                it = st.erase(it);
+            }
+
+            if (lb != l)   st.insert({l-1, lc});
+            st.insert({r, x});
+            if (r!=rb)      st.insert({rb, rc});
+        }
+        else {
+            int l, r;
+            cin>>l>>r;
+            cout<<query(1,1,n,l,r)<<"\n";
+        }
+    }
+}

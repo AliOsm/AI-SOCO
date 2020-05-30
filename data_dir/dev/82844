@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<ll, ll> pii;
+typedef pair<double,double> pdd;
+#define MEM(a, b) memset(a, (b), sizeof(a))
+#define SZ(i) ll(i.size())
+#define FOR(i, j, k, in) for (ll i=j ; i<k ; i+=in)
+#define RFOR(i, j, k, in) for (ll i=j ; i>=k ; i-=in)
+#define REP(i, j) FOR(i, 0, j, 1)
+#define REP1(i,j) FOR(i, 1, j+1, 1)
+#define RREP(i, j) RFOR(i, j, 0, 1)
+#define ALL(_a) _a.begin(),_a.end()
+#define mp make_pair
+#define pb push_back
+#define X first
+#define Y second
+#ifdef tmd
+#define debug(...) do{\
+    fprintf(stderr,"%s - %d (%s) = ",__PRETTY_FUNCTION__,__LINE__,#__VA_ARGS__);\
+    _do(__VA_ARGS__);\
+}while(0)
+template<typename T>void _do(T &&_x){cerr<<_x<<endl;}
+template<typename T,typename ...S> void _do(T &&_x,S &&..._t){cerr<<_x<<" ,";_do(_t...);}
+template<typename _a,typename _b> ostream& operator << (ostream &_s,const pair<_a,_b> &_p){return _s<<"("<<_p.X<<","<<_p.Y<<")";}
+template<typename It> ostream& _OUTC(ostream &_s,It _ita,It _itb)
+{
+    _s<<"{";
+    for(It _it=_ita;_it!=_itb;_it++)
+    {
+        _s<<(_it==_ita?"":",")<<*_it;
+    }
+    _s<<"}";
+    return _s;
+}
+template<typename _a> ostream &operator << (ostream &_s,vector<_a> &_c){return _OUTC(_s,ALL(_c));}
+template<typename _a> ostream &operator << (ostream &_s,set<_a> &_c){return _OUTC(_s,ALL(_c));}
+template<typename _a,typename _b> ostream &operator << (ostream &_s,map<_a,_b> &_c){return _OUTC(_s,ALL(_c));}
+template<typename _t> void pary(_t _a,_t _b){_OUTC(cerr,_a,_b);cerr<<endl;}
+#define IOS()
+#else
+#define debug(...)
+#define pary(...)
+#define endl '\n'
+#define IOS() ios_base::sync_with_stdio(0);cin.tie(0)
+#endif
+
+template<class T> inline bool cmax(T &a, const T &b) { return b > a ? a = b, true : false; }
+template<class T> inline bool cmin(T &a, const T &b) { return b < a ? a = b, true : false; }
+template<class T> using MaxHeap = priority_queue<T>;
+template<class T> using MinHeap = priority_queue<T, vector<T>, greater<T>>;
+
+const ll MOD=1000000007;
+const ll INF=0x3f3f3f3f3f3f3f3f;
+const ll MAXN=2e5+5;
+const ll MAXLG=__lg(MAXN)+2;
+
+bool cmp(const pair<ll,ll> &a,const pair<ll,ll> &b){
+  if(a.X == b.X) return a.Y < b.Y;
+  else return a.X > b.X;
+}
+map<ll,vector<pair<ll,ll> > > layer;
+ll dp[MAXN][2];
+ll n,x,y;
+
+ll dis(pair<ll,ll> pa,pair<ll,ll> pb){
+  return abs(pa.X - pb.X) + abs(pa.Y - pb.Y);
+}
+/********** Main()  function **********/
+int main()
+{
+  IOS();
+  cin>>n;
+  REP(i,n){
+    cin>>x>>y;
+    layer[max(x,y)].emplace_back(make_pair(x,y));
+  }
+
+  for(auto &p:layer){
+    sort(ALL(p.Y),cmp);
+  }
+
+  pair<ll,ll> posh,post;
+  posh = post = {0,0};
+  ll idx = 0;
+  for(auto &p:layer){
+    ll route = 0;
+    for (ll i=1;i<SZ(p.Y);i++){
+      route += dis(p.Y[i],p.Y[i-1]);
+    }
+    idx++;
+    dp[idx][0] = route + min(dp[idx-1][0]+dis(p.Y.back(),posh),dp[idx-1][1]+dis(p.Y.back(),post));
+    dp[idx][1] = route + min(dp[idx-1][0]+dis(p.Y[0],posh),dp[idx-1][1]+dis(p.Y[0],post));
+    posh = p.Y[0];
+    post = p.Y.back();
+  }
+  cout<<min(dp[idx][0],dp[idx][1])<<endl;
+  return 0;
+}

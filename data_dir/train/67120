@@ -1,0 +1,197 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define mx 100005
+#define int long long
+#define pii pair <int, int>
+#define piii pair <int, pii>
+#define fi first
+#define se second
+#define mod 1000000007
+#define inf 1e18+19
+#define pb push_back
+#define mem(ara, x) memset(ara, x, sizeof ara)
+#define read() freopen("in.txt", "r", stdin)
+#define write() freopen("out.txt", "w", stdout)
+#define fst ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+int vis[mx*5];
+struct Matrix {
+    const static int N = 3;
+    int n;
+    int v[N][N];
+
+    void init(int _n) {
+        n = _n;
+        for(int i=0;i<n;i++){
+            for(int j=0;j<n;j++){
+                v[i][j] = 0;
+            }
+        }
+    }
+    void ident() {
+        for(int i=0;i<n;i++){
+            for(int j=0;j<n;j++){
+                v[i][j] = 0;
+            }
+        }
+        for(int i=0;i<n;i++){
+            v[i][i] = 1;
+        }
+    }
+
+    Matrix operator+(const Matrix &o) const {
+        assert(n == o.n);
+
+        Matrix res; res.init(n);
+        for(int i=0;i<n;i++){
+            for(int j=0;j<n;j++){
+                res.v[i][j] = v[i][j] + o.v[i][j];
+                if (res.v[i][j] >= mod) res.v[i][j] -= mod;
+            }
+        }
+        return res;
+    }
+
+    Matrix operator*(const Matrix &o) const {
+        assert(n == o.n);
+        Matrix res; res.init(n);
+        for(int i=0;i<n;i++){
+            for(int j=0;j<n;j++){
+                for(int k=0;k<n;k++){
+                    res.v[i][j] = (v[i][k] * o.v[k][j] + res.v[i][j])%mod;
+                }
+            }
+        }
+        return res;
+    }
+
+    Matrix operator^(long long k) {
+        Matrix res; res.init(n); res.ident();
+        Matrix a = *this;
+        while (k) {
+            if (k&1LL) res = res*a;
+            a = a*a;
+            k /= 2;
+        }
+        return res;
+    }
+};
+
+Matrix tree[mx*4];
+Matrix prop[mx*4];
+
+void initt(int node, int b, int e){
+    if(b==e){
+        tree[node] = tree[0];
+        prop[node].init(2);
+        prop[node].ident();
+        return;
+    }
+    int Left = node * 2;
+    int Right = (node * 2) + 1;
+    int mid = (b + e) / 2;
+    initt(Left, b, mid);
+    initt(Right, mid + 1, e);
+    prop[node].init(2);
+    tree[node] = (tree[Left] + tree[Right]);
+    prop[node].ident();
+}
+
+void update(int node, int b, int e, int i, int j, Matrix p){
+    if(vis[node]){
+        tree[node] = tree[node]*prop[node];
+        if(b!=e){
+            vis[node*2] = vis[node];
+            vis[node*2+1] = vis[node];
+            prop[node*2] =  prop[node] * prop[node*2];
+            prop[node*2+1] =  prop[node] * prop[node*2+1];
+        }
+        prop[node].ident();
+        vis[node] = 0;
+    }
+    if (i > e || j < b)
+        return;
+    if (b >= i && e <= j){
+        tree[node] = tree[node]*p;
+        if(b!=e){
+            prop[node*2] =  p * prop[node*2];
+            prop[node*2+1] =  p * prop[node*2+1];
+            vis[node*2] = vis[node*2+1] = 1;
+        }
+        return;
+    }
+    int Left = node * 2;
+    int Right = (node * 2) + 1;
+    int mid = (b + e) / 2;
+    update(Left, b, mid, i, j, p);
+    update(Right, mid + 1, e, i, j, p);
+    tree[node] = (tree[Left] + tree[Right]);
+}
+
+Matrix query(int node, int b, int e, int i, int j){
+    if(vis[node]){
+        tree[node] = tree[node]*prop[node];
+        if(b!=e){
+            vis[node*2] = vis[node];
+            vis[node*2+1] = vis[node];
+            prop[node*2] =  prop[node] * prop[node*2];
+            prop[node*2+1] =  prop[node] * prop[node*2+1];
+        }
+        prop[node].ident();
+        vis[node] = 0;
+    }
+    if (i > e || j < b){
+        Matrix z;
+        z.init(2);
+        return z;
+    }
+    if (b >= i and e <= j)
+        return tree[node];
+
+    int Left = node << 1;
+    int Right = (node << 1) + 1;
+    int mid = (b + e) >> 1;
+
+    Matrix p1 = query(Left, b, mid, i, j);
+    Matrix p2 = query(Right, mid + 1, e, i, j);
+
+    return (p1 + p2);
+}
+
+int32_t main(){
+    //read();
+    //fst;
+    int n, m;
+    tree[0].init(2);
+    tree[0].v[0][0] = 1;
+    Matrix base;
+    base.init(2);
+    base.v[0][0] = base.v[1][0] = base.v[0][1] = 1;
+    while(scanf("%lld%lld", &n, &m)!=EOF){
+        initt(1, 1, n);
+        for(int i=1;i<=n;i++){
+            int a;
+            scanf("%lld", &a);
+            Matrix A = base ^ (a-1);
+            update(1, 1, n, i, i, A);
+        }
+        for(int i=1;i<=m;i++){
+            int t, l, r;
+            scanf("%lld%lld%lld", &t, &l, &r);
+            if(t==1){
+                int x;
+                scanf("%lld", &x);
+                Matrix A = base;
+                A = A^x;
+                update(1, 1, n, l, r, A);
+            }
+            else{
+                Matrix A = query(1, 1, n, l, r);
+                printf("%lld\n", A.v[0][0]);
+            }
+        }
+    }
+    return 0;
+}

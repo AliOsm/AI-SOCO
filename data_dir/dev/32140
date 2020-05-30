@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int MAXN = 200100;
+const int SHIFT = 200000;
+int n;
+pii p[MAXN];
+set<int> odd;
+set<int> g[2 * MAXN];                                                                                 
+vector<int> removed;
+map<pii, int> renum;
+vector<int> eulerTour;
+int cntr[2 * MAXN], cntb[2 * MAXN];
+char ans[MAXN];
+
+void dfs(int v) {
+  while (!g[v].empty()) {
+    int to = *g[v].begin();
+    g[v].erase(g[v].begin());
+    g[to].erase(v);
+    dfs(to);    
+  }
+  eulerTour.pb(v);
+}
+
+int main() {
+#ifdef LOCAL
+  freopen("input.txt", "r", stdin);
+#endif
+  scanf("%d", &n);
+  for (int i = 0; i < n; ++i) {
+    scanf("%d%d", &p[i].first, &p[i].second);
+    --p[i].first; --p[i].second;
+    g[p[i].first].insert(p[i].second + SHIFT);
+    g[p[i].second + SHIFT].insert(p[i].first);
+    renum[mp(p[i].first, p[i].second + SHIFT)] = i;
+  }
+  for (int i = 0; i < 2 * SHIFT; ++i) {
+    if (g[i].size() % 2) {
+      odd.insert(i);
+    }
+  }
+  while (!odd.empty()) {
+    int v = *odd.begin();
+    odd.erase(odd.begin());
+    if (g[v].size() % 2 == 0) continue;
+    int u = *g[v].begin();
+    g[v].erase(g[v].begin());
+    g[u].erase(v);
+    pii pt = mp(v, u);
+    if (u < SHIFT) swap(pt.first, pt.second);
+    removed.pb(renum[pt]);
+    if (g[u].size() % 2) odd.insert(u);
+  }
+  for (int i = 0; i < 2 * SHIFT; ++i) {
+    if (g[i].size()) {
+      eulerTour.clear();
+      dfs(i);
+      for (int j = 0; j + 1 < (int)eulerTour.size(); ++j) {
+        int u = eulerTour[j];
+        int v = eulerTour[j + 1];
+        if (v < SHIFT) swap(u, v);
+        ans[renum[mp(u, v)]] = (j & 1) ? 'b' : 'r';
+        if (j & 1) {
+          ++cntb[u];
+          ++cntb[v];
+        } else {
+          ++cntr[u];
+          ++cntr[v];
+        }        
+      }
+    }
+  }
+  while (!removed.empty()) {
+    int x = removed.back();
+    removed.pop_back();
+    int u = p[x].first;
+    int v = p[x].second + SHIFT;
+    if (abs(cntr[u] - cntb[u]) == 1) {
+      if (cntr[u] > cntb[u]) {
+        ans[x] = 'b';
+        ++cntb[u];
+        ++cntb[v];
+      } else {
+        ans[x] = 'r';
+        ++cntr[u];
+        ++cntr[v];
+      }
+    } else if (cntr[v] > cntb[v]) {
+      ans[x] = 'b';
+      ++cntb[u];
+      ++cntb[v];
+    } else {
+      ans[x] = 'r';
+      ++cntr[u];
+      ++cntr[v];
+    }
+  }
+  /*for (int i = 0; i < 2 * SHIFT; ++i) {
+    assert(abs(cntr[i] - cntb[i]) <= 1);
+  }*/
+  puts(ans);
+  return 0;
+}

@@ -1,0 +1,130 @@
+#include <bits/stdc++.h>
+#include <ext/hash_set>
+#include <ext/numeric>
+
+using namespace std;
+typedef long long ll;
+typedef vector<ll> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef pair<ll, ll> pii;
+typedef vector<pii> vii;
+typedef vector<bool> vb;
+typedef vector<string> vs;
+const ll MOD = 1e9 + 7;
+const long double EPS = 1e-5;
+const ll INF = 1e9;
+int di[] = { 0, 0, 1, -1 };
+int dj[] = { 1, -1, 0, 0 };
+#define all(x) x.begin(),x.end()
+
+class SegmentTree {
+private:
+	vi A, free, taken;
+	int n;
+	int left(int p) { return p << 1; }
+	int right(int p) { return (p << 1) + 1; }
+	int mid(int a, int b) { return (a + b) / 2; }
+
+	void build(int p, int L, int R) {
+		if (L == R)
+			free[p] = 1;
+		else {
+			build(left(p), L, mid(L, R));
+			build(right(p), mid(L, R) + 1, R);
+			free[p] = free[left(p)] + free[right(p)];
+		}
+	}
+
+	pii query(int p, int L, int R, int i) { // (free, taken) before i
+		if (i > R || i < L) return {-1, -1};
+		if (L == R)
+			return { 0, taken[p] };
+
+		pii p1 = query(left(p), L, mid(L, R), i);
+		pii p2 = query(right(p), mid(L, R) + 1, R, i);
+
+		int l = left(p);
+		if (p1.first == -1) {
+			pii ret = { p2.first + free[l],
+			   p2.second + taken[l]};
+			if (taken[l] + free[l] > mid(L, R) - L + 1) {
+				ll over = taken[l] + free[l] - (mid(L, R) - L + 1);
+				ret.first -= min(over, p2.first);
+			}
+			return ret;
+		}
+		return p1;
+	}
+
+	void add(int p, int L, int R, int i, int val) {
+		if (i > R || i < L) return;
+
+		if (L == R) {
+			taken[p] += val;
+			free[p] = val > 0 ? 0 : 1;
+			return;
+		}
+
+		add(left(p), L, mid(L, R), i, val);
+		add(right(p), mid(L, R) + 1, R, i, val);
+
+		int l = left(p), r = right(p);
+		taken[p] = taken[l] + taken[r];
+		free[p] = free[l] + free[r];
+		if (taken[l] + free[l] > mid(L, R) - L + 1) {
+			ll over = taken[l] + free[l] - (mid(L, R) - L + 1);
+			free[p] -= min(over, free[r]);
+		}
+//		cout << taken[p] << " " << free[p] << endl;
+	}
+
+public:
+	SegmentTree(int n) {
+		this->n = n;
+		free.assign(4 * n, 0);
+		taken.assign(4 * n, 0);
+		build(1, 0, n - 1);
+	}
+
+	ll query(int i) {
+		pii p = query(1, 0, n - 1, i);
+		return p.first + p.second;
+	}
+
+	void add(int i, int val) {
+		add(1, 0, n - 1, i, val);
+	}
+};
+
+
+int main() {
+	ios::sync_with_stdio(0), cin.tie(0);
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+#endif
+
+	SegmentTree sgt(1e6 + 6);
+	vii prv;
+	int q; cin >> q;
+	while (q--) {
+		char c; cin >> c;
+		if (c == '+') {
+			int t, d; cin >> t >> d;
+			sgt.add(t, d);
+			prv.emplace_back(t, d);
+		}
+		else if (c == '-') {
+			int i; cin >> i; i--;
+			sgt.add(prv[i].first, -prv[i].second);
+			prv.emplace_back(-1, -1);
+		}
+		else {
+			ll t; cin >> t;
+			cout << max(0LL, sgt.query(t) - t) << endl;
+			prv.emplace_back(-1, -1);
+		}
+	}
+
+}

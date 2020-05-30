@@ -1,0 +1,232 @@
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <queue>
+#include <algorithm>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <cstdlib>
+#include <memory.h>
+#include <ctime>
+#include <bitset>
+
+using namespace std;
+
+#define ABS(a) ((a>0)?a:-(a))
+#define MIN(a,b) ((a<b)?(a):(b))
+#define MAX(a,b) ((a<b)?(b):(a))
+#define FOR(i,a,n) for (int i=(a);i<(n);++i)
+#define FI(i,n) for (int i=0; i<(n); ++i)
+#define pnt pair <int, int>
+#define mp make_pair
+#define PI 3.1415926535897
+#define MEMS(a,b) memset(a,b,sizeof(a))
+#define LL long long
+#define U unsigned
+
+vector<pnt > ads;
+vector<pnt > chanels;
+vector<int> costs;
+vector<int > all;
+
+pnt t[3200100];
+int k;
+
+pnt getmax(int l, int r)
+{
+	l += k;
+	r += k;
+	pnt res = mp(0, 0);
+	for (; l <= r; l = (l + 1) / 2, r = (r - 1) / 2)
+	{
+		res = MAX(res, MAX(t[l], t[r]));
+	}
+	return res;
+}
+
+void modif(int p, pnt val, int c)
+{
+	p += k;
+	if (c)
+		t[p] = val;
+	else
+		t[p] = MAX(t[p], val);
+	p /= 2;
+	while (p)
+	{
+		t[p] = MAX(t[p + p], t[p + p + 1]);
+		p /= 2;
+	}
+}
+set<pnt > sets[800100];
+vector<pair<int, pnt> >events;
+
+bool cmp(pnt a, pnt b)
+{
+	return (a.second > b.second);
+}
+
+pnt max1[800100];
+pnt min1[800100];
+
+
+int main()
+{
+#ifdef Fcdkbear
+	freopen("in.txt", "r", stdin);
+	//freopen("out.txt", "w", stdout);
+	double beg = clock();
+#endif
+
+	int n, m;
+	scanf("%d%d", &n, &m);
+	ads.resize(n);
+	FOR(i, 0, n)
+	{
+		scanf("%d%d", &ads[i].first, &ads[i].second);
+		all.push_back(ads[i].first);
+		all.push_back(ads[i].second);
+	}
+	chanels.resize(m);
+	costs.resize(m);
+	FOR(i, 0, m)
+	{
+		scanf("%d%d", &chanels[i].first, &chanels[i].second);
+		all.push_back(chanels[i].first);
+		all.push_back(chanels[i].second);
+		scanf("%d", &costs[i]);
+	}
+	sort(all.begin(), all.end());
+	all.resize(unique(all.begin(), all.end()) - all.begin());
+	FOR(i, 0, n)
+	{
+		ads[i].first = lower_bound(all.begin(), all.end(), ads[i].first) - all.begin();
+		ads[i].second = lower_bound(all.begin(), all.end(), ads[i].second) - all.begin();
+	}
+	FOR(i, 0, m)
+	{
+		chanels[i].first = lower_bound(all.begin(), all.end(), chanels[i].first) - all.begin();
+		chanels[i].second = lower_bound(all.begin(), all.end(), chanels[i].second) - all.begin();
+	}
+	k = 1;
+	while (k < all.size())
+		k += k;
+	FOR(i, 0, n)
+	{
+		events.push_back(mp(ads[i].second, mp(1, i)));
+	}
+	FOR(i, 0, m)
+	{
+		events.push_back(mp(chanels[i].first, mp(0, i)));
+		events.push_back(mp(chanels[i].second, mp(2, i)));
+	}
+	sort(events.begin(), events.end());
+	LL res = 0;
+	int res1 = -1, res2 = -1;
+	FOR(i, 0, events.size())
+	{
+		if (events[i].second.first == 0)
+		{
+			int idx = events[i].second.second;
+			sets[events[i].first].insert(mp(costs[idx], idx));
+			auto it = sets[events[i].first].end();
+			it--;
+			modif(events[i].first, *it, 0);
+		}
+		if (events[i].second.first == 2)
+		{
+			int idx = events[i].second.second;
+			sets[chanels[idx].first].erase(mp(costs[idx], idx));
+			int trueIdx = chanels[idx].first;
+			if (sets[trueIdx].size()) {
+				auto it = sets[trueIdx].end();
+				it--;
+				modif(trueIdx, *it, 1);
+			}
+			else
+			{
+				modif(trueIdx, mp(0, 0), 1);
+			}
+		}
+		if (events[i].second.first == 1)
+		{
+			int idx = events[i].second.second;
+			int le = ads[idx].first;
+			pnt val = getmax(0, le);
+			if (val.first)
+			{
+				LL now = val.first * 1ll * (all[ads[idx].second] - all[ads[idx].first]);
+				if (now > res)
+				{
+					res = now;
+					res1 = idx;
+					res2 = val.second;
+				}
+			}
+		}
+	}
+	FOR(i, 0, all.size())
+	{
+		max1[i] = mp(-1, -1);
+		min1[i] = mp(2000000000, -1);
+	}
+	FOR(i, 0, ads.size())
+	{
+		max1[ads[i].first] = MAX(max1[ads[i].first], mp(ads[i].second, i));
+		min1[ads[i].second] = MIN(min1[ads[i].second], mp(ads[i].first, i));
+	}
+	FOR(i, 1, all.size())
+	{
+		max1[i] = MAX(max1[i], max1[i - 1]);
+	}
+	for (int i = (int)all.size() - 2; i >= 0; --i)
+	{
+		min1[i] = MIN(min1[i], min1[i + 1]);
+	}
+	FOR(i, 0, chanels.size())
+	{
+		int v = max1[chanels[i].first].first;
+		int idx = max1[chanels[i].first].second;
+		if (v > chanels[i].first)
+		{
+			int rb = MIN(v, chanels[i].second);
+			LL now = costs[i] * 1ll * (all[rb] - all[chanels[i].first]);
+			if (now > res)
+			{
+				res = now;
+				res1 = idx;
+				res2 = i;
+			}
+		}
+		v = min1[chanels[i].second].first;
+		idx = min1[chanels[i].second].second;
+		if (v < chanels[i].second)
+		{
+			int lb = MAX(v, chanels[i].first);
+			LL now = costs[i] * 1ll * (all[chanels[i].second] - all[lb]);
+			if (now > res)
+			{
+				res = now;
+				res1 = idx;
+				res2 = i;
+			}
+		}
+	}
+	cout << res << endl;
+	if (res)
+	{
+		cout << res1 + 1 << " " << res2 + 1 << endl;
+	}
+
+
+#ifdef Fcdkbear
+	double end = clock();
+	fprintf(stderr, "*** Total time = %.3lf ***\n", (end - beg) / CLOCKS_PER_SEC);
+#endif
+	return 0;
+}

@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long int ll;
+typedef pair <ll, ll> pll;
+
+const int Max = 1e6 + 10;
+const int Mod = 1e9 + 7;
+const ll Inf = 1LL << 62;
+
+char str[Max];
+char ty[1 << 3];
+
+struct Node {
+	int cnt4, cnt7, cnt47, cnt74;
+
+	Node() {};
+
+	Node(int cnt4_, int cnt7_, int cnt47_, int cnt74_) {
+		cnt4 = cnt4_;
+		cnt7 = cnt7_;
+		cnt47 = cnt47_;
+		cnt74 = cnt74_;
+	}
+};
+
+Node merge(Node a, Node b) {
+	Node ret;
+	ret.cnt4 = a.cnt4 + b.cnt4;
+	ret.cnt7 = a.cnt7 + b.cnt7;
+	ret.cnt47 = max({ret.cnt4, ret.cnt7, a.cnt4 + b.cnt7, a.cnt47 + b.cnt7, a.cnt4 + b.cnt47});
+	ret.cnt74 = max({ret.cnt4, ret.cnt7, a.cnt7 + b.cnt4, a.cnt74 + b.cnt4, a.cnt7 + b.cnt74});
+	return ret;
+}
+
+Node tree[Max << 2];
+
+void build(int node, int l, int r) {
+	if(l == r) {
+		if(str[l] == '4') {
+			tree[node] = Node(1, 0, 1, 1);
+		}
+		else {
+			tree[node] = Node(0, 1, 1, 1);
+		}
+
+		return;
+	} int mid = l + r >> 1;
+
+	int lf = node * 2;
+	int rt = node * 2 + 1;
+
+	build(lf, l, mid);
+	build(rt, mid + 1, r);
+	tree[node] = merge(tree[lf], tree[rt]);
+}
+
+int lazy[Max << 2];
+
+void upd(int node) {
+	lazy[node] ^= 1;
+	swap(tree[node].cnt4, tree[node].cnt7);
+	swap(tree[node].cnt47, tree[node].cnt74);
+}
+
+void shift(int node) {
+	if(lazy[node] == 0) {
+		return;
+	}
+
+	int lf = node * 2;
+	int rt = node * 2 + 1;
+
+	upd(lf);
+	upd(rt);
+	lazy[node] = 0;
+}
+
+void update(int node, int l, int r, int L, int R) {
+	if(r < L || l > R) {
+		return;
+	}
+
+	if(L <= l && r <= R) {
+		upd(node); return;
+	} shift(node);
+
+	int lf = node * 2;
+	int rt = node * 2 + 1;
+
+	int mid = l + r >> 1;
+	update(lf, l, mid, L, R);
+	update(rt, mid + 1, r, L, R);
+	tree[node] = merge(tree[lf], tree[rt]);
+}
+
+int main() {
+#ifdef Mr_Emrul
+	freopen("inputf.in", "r", stdin);
+#endif /// Mr_Emrul
+
+	int n, m, l, r;
+	scanf("%d %d", &n, &m);
+	scanf("%s", str + 1);
+
+	build(1, 1, n);
+
+	while(m--) {
+		scanf("%s", ty);
+
+		if(ty[0] == 's') {
+			scanf("%d %d", &l, &r);
+			update(1, 1, n, l, r);
+		}
+		else {
+			printf("%d\n", tree[1].cnt47);
+		}
+	} return 0;
+}

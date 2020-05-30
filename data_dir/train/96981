@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+#define eb emplace_back
+#define mt make_tuple
+#define emp emplace
+
+using namespace std;
+using ll = long long;
+using ii = pair<int, int>;
+
+int n, m, q, k;
+
+const int N = 200010;
+
+int l[N], r[N];
+vector<int> rows;
+
+vector<int> b;
+
+int nxt[N], prv[N];
+bool safe[N];
+
+ll pd[N][2][2];
+
+ll solve(int pos, int where, int swi)
+{
+	if (pos == (int)rows.size()-1 and swi == 0)
+		return 0;
+	
+	ll& ret = pd[pos][where][swi];
+	if (ret != -1)
+		return ret;
+	
+	ret = 1e12;
+	int h = rows[pos];
+	if (swi == 1)
+	{
+		ret = r[h] - l[h] + solve(pos, 1 - where, 0);
+		return ret;
+	}
+
+	int c = where == 0 ? l[h] : r[h];
+	int pc = prv[c], nc = nxt[c];
+	int nh = rows[pos+1];
+
+	if (pc != -1)
+	{
+		ll cur = c - pc;
+		cur += min(abs(pc - l[nh]) + solve(pos+1, 0, r[nh] > pc), abs(pc - r[nh]) + solve(pos+1, 1, l[nh] < pc));
+		ret = min(ret, cur);
+	}
+
+	if (nc != -1)
+	{
+		ll cur = nc - c;
+		cur += min(abs(nc - l[nh]) + solve(pos+1, 0, r[nh] > nc), abs(nc - r[nh]) + solve(pos+1, 1, l[nh] < nc));
+		ret = min(ret, cur);
+	}
+	return ret;
+}
+
+
+int main()
+{
+	scanf("%d %d %d %d", &n, &m, &k, &q);
+	memset(l, 0x3f, sizeof(l));
+	int maxrow = 1;
+	for (int i = 0; i < k; i++)
+	{
+		int row, col;
+		scanf("%d %d", &row, &col);
+		l[row] = min(l[row], col);
+		r[row] = max(r[row], col);
+		maxrow = max(maxrow, row);
+	}
+
+	for (int i = 0; i < q; i++)
+	{
+		int x;
+		scanf("%d", &x);
+		safe[x] = true;
+	}
+
+	stack<int> st;
+	for (int i = 1; i <= m; i++)
+	{
+		if (safe[i])
+		{
+			while (!st.empty())
+			{
+				nxt[st.top()] = i;
+				st.pop();
+			}
+			nxt[i] = i;
+		}
+		else
+			st.push(i);
+	}
+
+	while (!st.empty())
+	{
+		nxt[st.top()] = -1;
+		st.pop();
+	}
+
+	for (int i = m; i >= 1; i--)
+	{
+		if (safe[i])
+		{
+			while (!st.empty())
+			{
+				prv[st.top()] = i;
+				st.pop();
+			}
+			prv[i] = i;
+		}
+		else
+			st.push(i);
+	}
+
+	while (!st.empty())
+	{
+		prv[st.top()] = -1;
+		st.pop();
+	}
+
+	l[1] = 1;
+	r[1] = max(r[1], 1);
+	for (int i = 1; i <= n; i++)
+	{
+		if (r[i] != 0)
+			rows.pb(i);
+	}
+	memset(pd, -1, sizeof(pd));
+	ll ans = (ll)maxrow - 1 + solve(0, 0, 1);
+	printf("%lld\n", ans);
+	return 0;
+}
+
+

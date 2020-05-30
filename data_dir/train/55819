@@ -1,0 +1,85 @@
+/*"Everything in the universe is balanced. Every disappointment
+   you face in life will be balanced by something good for you!
+                Keep going, never give up."            */
+
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,fma,abm,mmx,avx,avx2,tune=native")
+#include "bits/stdc++.h"
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+ordered_set<int>  os;
+#define up_bound(i) os.order_of_key(i) << endl; // the number of elements in the os less than i
+#define access_idx(i) *os.find_by_order(i) // print the i-th smallest number in os(0-based)
+
+#define ll long long int
+#define ld double 
+#define rep(i, begin, end) for (__typeof(end) i = (begin) - ((begin) > (end)); i != (end) - ((begin) > (end)); i += 1 - 2 * ((begin) > (end)))
+#define deb cerr << "Line no." << __LINE__
+#define nl '\n'
+#define pb push_back
+#define all(a) a.begin(),a.end()
+#define P pair<ll,ll> 
+#define F first
+#define S second
+const ll p_mod=9999999999999983;
+const long double pi = 3.14159265358979323;
+const ll N=1e6+9;
+const ll mod=1e9+7;
+typedef double f80;
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+int rand(int l, int r){uniform_int_distribution<int> uid(l, r); return uid(rng); }
+ll powerk(ll x, ll y);
+
+ll a[N];
+
+void solve()
+{    
+  ll n,pre=-1,post=-1;
+  cin>>n;
+  string s;
+  cin>>s;
+  rep(i,0,n)
+  {
+  	if(s[i]=='1')
+  	{
+  		if(pre==-1)pre=i;
+  		post=i;
+  	}
+  }
+  ll ans = 0;
+  if(pre==-1){cout<<n<<nl;return ;}
+  pre++;post++;
+  //cout<<pre<<" "<<post<<nl;
+  ans = max((n-pre+1)*2,pre*2);
+  ans = max({ans,post*2,(n-post+1)*2});
+  cout<<ans<<nl;
+
+}
+
+
+int main() {
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+    ll t=1;
+    //pre();
+    cin>>t;
+    while(t--)
+    {
+      solve();
+    }  
+}
+ll powerk(ll x, ll y)
+{
+  if(y==0)return 1;
+  if(y==1)return x%mod;
+  if(y&1)
+    return ((powerk((x*x)%mod, y/2)%mod)*x)%mod;
+  else return powerk((x*x)%mod,y/2)%mod;
+}
+
+// Xorawar

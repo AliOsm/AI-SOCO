@@ -1,0 +1,270 @@
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <numeric>
+#include <iomanip>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <vector>
+#include <math.h>
+#include <queue>
+#include <stack>
+#include <ctime>
+#include <set>
+#include <map>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+template <typename T>
+T nextInt() {
+    T x = 0, p = 1;
+    char ch;
+    do { ch = getchar(); } while(ch <= ' ');
+    if (ch == '-') {
+        p = -1;
+        ch = getchar();
+    }
+    while(ch >= '0' && ch <= '9') {
+        x = x * 10 + (ch - '0');
+        ch = getchar();
+    }
+    return x * p;
+}
+const int maxN = (int)2e5 + 10;
+const int maxL = 17;
+const int INF = (int)1e9;
+const int mod = (int)1e9 + 7;
+const ll LLINF = (ll)1e18 + 5;
+
+int mul(int x, int y) {
+    return 1LL * x * y % mod;
+}
+
+void add(int &x, int y) {
+    x += y;
+    if (x >= mod) x -= mod;
+}
+
+void sub(int &x, int y) {
+    x -= y;
+    if (x < 0) x += mod;
+}
+
+int n;
+vector <int> g[maxN];
+vector <int> d[maxN];
+vector <int> coefs[maxN];
+int phi[maxN];
+int inv[maxN];
+int a[maxN];
+
+int tmp[maxN];
+
+void productToTmp(int a, int b) {
+    for (size_t it = 0; it < d[a].size(); it++) {
+        for (size_t jt = 0; jt < d[b].size(); jt++) {
+            int x = d[a][it];
+            int cx = coefs[a][it];
+            int y = d[b][jt];
+            int cy = coefs[b][jt];
+            add(tmp[x * y], mul(cx, cy));
+        }
+    }
+}
+
+void precalc() {
+    inv[1] = 1;
+    for (int i = 1; i < maxN; ++i) {
+        phi[i] = i;
+        if(i > 1) inv[i] = mul(mod - mod / i, inv[mod % i]);
+    }
+    for (int i = 1; i < maxN; ++i) {
+        for (int j = i; j < maxN; j += i) {
+            d[j].push_back(i);
+            if (j != i) phi[j] -= phi[i];
+        }
+    }
+    for (int i = 1; i < maxN; ++i) {
+        coefs[i].resize(d[i].size());
+    }
+    coefs[1][0] = 1;
+    for (int x = 2; x < maxN; x++) {
+        if ((int)d[x].size() == 2) {
+            coefs[x][0] = 1;
+            coefs[x][1] = inv[x - 1];
+        } else {
+            int lp = d[x][1];
+            int z = x;
+            while (z % lp == 0) {
+                z /= lp;
+            }
+            for (int y: d[x]) {
+                tmp[y] = 0;
+            }
+            productToTmp(lp, z);
+            for (size_t it = 0; it < d[x].size(); it++) {
+                coefs[x][it] = tmp[d[x][it]];
+            }
+        }
+    }
+}
+
+int nodes[maxN];
+int len = 0;
+int sz[maxN];
+int blocked[maxN];
+int level[maxN];
+int anc[maxN];
+
+void calc_sizes(int v, int p = -1) {
+    nodes[len++] = v;
+    sz[v] = 1;
+    anc[v] = p;
+    for (int x: g[v]){
+        if (blocked[x] || x == p) continue;
+        calc_sizes(x, v);
+        sz[v] += sz[x];
+    }
+}
+
+int sum_phi[maxN];
+
+int list_len;
+int list[maxN];
+int depth[maxN];
+
+void get_list(int v, int par = -1, int dpth = 1) {
+    list[list_len] = v;
+    depth[list_len++] = dpth;
+    for (int x: g[v]) {
+        if (par == x || blocked[x]) continue;
+        get_list(x, v, dpth + 1);
+    }
+}
+
+int sum[maxN];
+
+int calc(int value) {
+    int cur = 0;
+    for(size_t i = 0; i < d[value].size(); ++i) {
+        int x = d[value][i];
+        add(cur, mul(sum_phi[x], coefs[value][i]));
+    }
+    return mul(cur, phi[value]);
+}
+
+int total = 0;
+
+void solve(int root) { //root is a centroid
+    for (int i = 0; i < len; ++i) {
+        int u = nodes[i];
+        int y = a[u];
+        for (int x: d[y]) {
+            add(sum_phi[x], phi[y]);
+        }
+    }
+    for (int child: g[root]) {
+        if (blocked[child]) continue;
+
+        list_len = 0;
+        get_list(child, root);
+        {
+            //excluding everything which can be counted twice
+            for(int i = 0; i < list_len; ++i) {
+                int u = list[i];
+                int y = a[u];
+                for(int x: d[y]) {
+                    sub(sum_phi[x], phi[y]);
+                }
+            }
+        }
+        {
+            for (int i = 0; i < list_len; ++i) {
+                int u = list[i];
+                int d = depth[i];
+                int value = a[u];
+                add(total, mul(d, calc(value)));
+            }
+        }
+        {
+            //including back
+            for(int i = 0; i < list_len; ++i) {
+                int u = list[i];
+                int y = a[u];
+                for(int x: d[y]) {
+                    add(sum_phi[x], phi[y]);
+                }
+            }
+        }
+    }
+
+    //clear
+    for (int i = 0; i < len; ++i) {
+        int u = nodes[i];
+        int y = a[u];
+        for (int x: d[y]) {
+            sum_phi[x] = 0;
+        }
+    }
+}
+
+void build(int v, int lev) {
+    len = 0;
+    calc_sizes(v);
+    int centroid = -1;
+    for (int i = 0; i < len; ++i) {
+        int u = nodes[i];
+        int maxChildSize = len - sz[u];
+        for (int x: g[u]) {
+            if (x != anc[u] && !blocked[x]) {
+                maxChildSize = max(maxChildSize, sz[x]);
+            }
+        }
+        if (maxChildSize <= len / 2) {
+            centroid = u;
+        }
+    }
+    blocked[centroid] = true;
+    level[centroid] = lev;
+    solve(centroid);
+
+    for (int x: g[centroid]) {
+        if (blocked[x]) continue;
+        build(x, lev + 1);
+    }
+}
+
+int main() {
+
+   // freopen("input.txt", "r", stdin);
+   // freopen("output.txt", "w", stdout);
+
+    ios_base::sync_with_stdio(0);
+    precalc();
+    cin >> n;
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i];
+    }
+    for (int i = 1; i < n; ++i) {
+        int x, y;
+        cin >> x >> y;
+        --x; --y;
+        g[x].push_back(y);
+        g[y].push_back(x);
+    }
+
+    build(0, 0);
+
+    total = mul(total, inv[n]);
+    total = mul(total, inv[n - 1]);
+    total = mul(total, 2);
+
+    cout << total << endl;
+    return 0;
+}

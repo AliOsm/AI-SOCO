@@ -1,0 +1,155 @@
+#include <cstdio>
+#include <map>
+#include <vector>
+#include <queue>
+#include <cstring>
+#define MAXN 10005
+#define MAXM 2005
+#define INF 0x3f3f3f3f
+#define MIN(a, b) (((a) < (b))?(a):(b))
+using namespace std;
+
+struct RichMan {
+    int sex, pay, isFriend;
+    vector<int> dogs;
+};
+
+const int start = 2 * MAXN - 2, fin = 2 * MAXN - 1;
+map< pair<int, int>, int > fx, cap;
+vector<int> G[2 * MAXN];
+vector<int> bkChanges;
+
+int n, m, g, male[MAXN], sol;
+int costChange[MAXN];
+RichMan rm[MAXM];
+
+int bk[2 * MAXN];
+
+inline void revertChanges() {
+    while(!bkChanges.empty()) {
+        bk[bkChanges.back()] = 0;
+        bkChanges.pop_back();
+    }
+}
+
+bool BFS() {
+    queue<int> q;
+
+    revertChanges();
+
+    q.push(start);
+    bk[start] = -1;
+    bkChanges.push_back(start);
+
+    while(!q.empty()) {
+        int x = q.front();
+        q.pop();
+
+        if(x == fin)
+            continue;
+
+        for(auto y: G[x]) {
+            if(!bk[y] && fx[make_pair(x, y)] < cap[make_pair(x, y)]) {
+                bkChanges.push_back(y);
+                bk[y] = x;
+                q.push(y);
+            }
+        }
+    }
+
+    return bk[fin];
+}
+
+int main() {
+
+    scanf("%d %d %d", &n, &m, &g);
+    for(int i = 1; i <= n; ++i)
+        scanf("%d", &male[i]);
+
+    for(int i = 1; i <= n; ++i)
+        scanf("%d", &costChange[i]);
+
+    for(int i = 1; i <= m; ++i) {
+        int nDogs, x;
+        scanf("%d %d %d", &rm[i].sex, &rm[i].pay, &nDogs);
+        
+        for(int j = 0; j < nDogs; ++j) {
+            scanf("%d", &x);
+            rm[i].dogs.push_back(x);
+        }
+
+        scanf("%d", &rm[i].isFriend);
+        
+        sol += rm[i].pay;
+    }
+
+    for(int i = 1; i <= n; ++i) {
+        if(male[i]) {
+            G[i].push_back(fin);
+            G[fin].push_back(i);
+            cap[make_pair(i, fin)] = costChange[i];
+        }
+        else {
+            G[start].push_back(i);
+            G[i].push_back(start);
+            cap[make_pair(start, i)] = costChange[i];
+        }
+    }
+
+    for(int i = 1; i <= m; ++i) {
+        if(rm[i].sex) {
+            G[n + i].push_back(fin);
+            G[fin].push_back(n + i);
+            cap[make_pair(n + i, fin)] = rm[i].pay + ((rm[i].isFriend)?g:0);
+
+            for(auto dog: rm[i].dogs) {
+                G[dog].push_back(n + i);
+                G[n + i].push_back(dog);
+                cap[make_pair(dog, n + i)] = INF;
+            }
+        }
+        else {
+            G[start].push_back(n + i);
+            G[n + i].push_back(start);
+            cap[make_pair(start, n + i)] = rm[i].pay + ((rm[i].isFriend)?g:0);
+            
+            for(auto dog: rm[i].dogs) {
+                G[n + i].push_back(dog);
+                G[dog].push_back(n + i);
+                cap[make_pair(n + i, dog)] = INF;
+            }
+        }
+    }
+
+    while(BFS()) {
+        for(auto x: G[fin]) {
+            if(bk[x]) {
+                int f = cap[make_pair(x, fin)] - fx[make_pair(x, fin)];
+                if(!f) continue;
+
+                int y = x;
+                while(y != start) {
+                    f = MIN(f, cap[make_pair(bk[y], y)] - fx[make_pair(bk[y], y)]);
+                    y = bk[y];
+                }
+
+                if(!f) continue;
+
+                sol -= f;
+                fx[make_pair(x, fin)] += f;
+                fx[make_pair(fin, x)] -= f;
+
+                y = x;
+                while(y != start) {
+                    fx[make_pair(bk[y], y)] += f;
+                    fx[make_pair(y, bk[y])] -= f;
+                    y = bk[y];
+                }
+            }
+        }
+    }
+
+    printf("%d\n", sol);
+
+    return 0;
+}

@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+
+#define rep(i, n) for (int i = 0; i < (n); i++)
+#define repr(i, n) for (int i = (int)(n) - 1; i >= 0; i--)
+
+using namespace std;
+
+// add, min
+struct RMQ {
+  int n;
+  vector<int> dat;
+  vector<int> lazy;
+
+  RMQ(int n_) {
+    n = 1;
+    while (n < n_) n *= 2;
+    dat.resize(n * 2);
+    lazy.resize(n * 2);
+  }
+
+  void pull(int k) {
+    dat[k] = min(dat[k * 2], dat[k * 2 + 1]) + lazy[k];
+  }
+
+  void update(int a, int b, int v, int k, int l, int r) {
+    if (r <= a || b <= l) return;
+    if (a <= l && r <= b) {
+      dat[k] += v;
+      lazy[k] += v;
+      return;
+    }
+    update(a, b, v, k * 2 + 0, l, l + r >> 1);
+    update(a, b, v, k * 2 + 1, l + r >> 1, r);
+    pull(k);
+  }
+
+  void update(int a, int b, int v) {
+    update(a, b, v, 1, 0, n);
+  }
+
+  int bound(int a, int b, int s, int k, int l, int r) {
+    if (r <= a || b <= l) return -1;
+    if (a <= l && r <= b && dat[k] + s >= 0) return -1;
+    if (r - l == 1) return l;
+    s += lazy[k];
+    int m = l + r >> 1;
+    int vr = bound(a, b, s, k * 2 + 1, m, r);
+    if (vr != -1) return vr;
+    return bound(a, b, s, k * 2, l, m);
+  }
+
+  int bound(int a, int b) {
+    return bound(a, b, 0, 1, 0, n);
+  }
+};
+
+int main() {
+  cin.tie(nullptr);
+  ios::sync_with_stdio(false);
+  int n, m;
+  cin >> n >> m;
+  RMQ rmq(1000001);
+  vector<int> a(n), b(m);
+  rep(i, n) {
+    cin >> a[i];
+    rmq.update(0, a[i] + 1, -1);
+  }
+  rep(i, m) {
+    cin >> b[i];
+    rmq.update(0, b[i] + 1, 1);
+  }
+  int q;
+  cin >> q;
+  while (q--) {
+    int type, k, v;
+    cin >> type >> k >> v;
+    k--;
+    if (type == 1) {
+      rmq.update(0, a[k] + 1, 1);
+      a[k] = v;
+      rmq.update(0, a[k] + 1, -1);
+    } else {
+      rmq.update(0, b[k] + 1, -1);
+      b[k] = v;
+      rmq.update(0, b[k] + 1, 1);
+    }
+    cout << rmq.bound(0, 1000001) << '\n';
+  }
+}
+
+
+

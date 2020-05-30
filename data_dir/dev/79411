@@ -1,0 +1,87 @@
+﻿#include <bits/stdc++.h>
+
+using namespace std;
+
+template<class C>
+class seg_tree {
+	vector<C> tree;
+	C(*key)(C, C);
+	const C def;
+	int p = 1;
+public:
+	seg_tree(vector<C> v, C func(C, C), C a) : def(a), key(func) {
+		int n = (int)v.size();
+		while (p < n) {
+			p <<= 1;
+		}
+		tree.resize(2 * p, def);
+		for (int i = 0; i < n; ++i) {
+			tree[i + p] = v[i];
+		}
+		for (int i = p - 1; i > 0; --i) {
+			tree[i] = key(tree[i << 1], tree[(i << 1) + 1]);
+		}
+	}
+	seg_tree(int n, C func(C, C), C a) : def(a), key(func) {
+		while (p < n) {
+			p <<= 1;
+		}
+		tree.resize(2 * p, def);
+	}
+	C get(int l, int r) {
+		C ans = def;
+		for (l += p, r += p; l <= r; l >>= 1, r >>= 1) {
+			if (l & 1) {
+				ans = key(ans, tree[l++]);
+			}
+			if ((r & 1) == 0) {
+				ans = key(ans, tree[r--]);
+			}
+		}
+		return ans;
+	}
+};
+
+int main() {
+	ios::sync_with_stdio(0);
+	cin.tie(0); cout.tie(0);
+
+	const int LOG = 21;
+	vector<int> cnt(1 << LOG);
+	int n;
+	cin >> n;
+	vector<int> a(n);
+	for (int i = 0; i < n; ++i) {
+		cin >> a[i];
+	}
+	function<void(int, int)> add = [&](int x, int k) {
+		if (cnt[x] >= 2) {
+			return;
+		}
+		++cnt[x];
+		for (k; k < LOG; ++k) {
+			if ((x >> k) & 1) {
+				add(x ^ (1 << k), k + 1);
+			}
+		}
+	};
+	int ans = 0;
+	for (int i = n - 1; i >= 0; --i) {
+		if (i <= n - 3) {
+			int x = 0;
+			for (int k = LOG - 1; k >= 0; --k) {
+				if ((a[i] >> k) & 1) {
+					continue;
+				}
+				if (cnt[x ^ (1 << k)] >= 2) {
+					x ^= (1 << k);
+				}
+			}
+			ans = max(ans, a[i] | x);
+		}
+		add(a[i], 0);
+	}
+	cout << ans;
+
+	return 0;
+}

@@ -1,0 +1,38 @@
+//https://codeforces.com/problemset/problem/1272/E
+#include<bits/stdc++.h>
+#define ll long long int
+using namespace std;
+const int N = 2e5+10;
+int n,a,d[N];
+vector<int> g[N], odd, even ,temp(N);
+
+void bfs(vector<int> &v1, vector<int> &v2){
+    fill(temp.begin(),temp.end(),N);
+    queue<int> q;
+    for(auto &i: v1)temp[i]=0,q.push(i);
+    while(q.size()){
+        int u = q.front(); 
+        q.pop();
+        for(auto &v: g[u]){
+            if(temp[v] == N){
+                temp[v] = temp[u] + 1;
+                q.push(v);
+            }
+        }
+    }
+    for(auto &i : v2)(temp[i] != N)?d[i]=temp[i]:d[i]=-1;
+}
+
+int main(){
+    scanf("%d",&n);
+    for(int i = 0; i < n; ++i){
+        scanf("%d",&a);
+        if(i-a >= 0)g[i-a].emplace_back(i);
+        if(i+a < n)g[i+a].emplace_back(i);
+        (a&1)?odd.emplace_back(i):even.emplace_back(i);
+    }
+    bfs(odd,even);
+    bfs(even,odd);
+    for(int i = 0; i < n; ++i)printf("%d ",d[i]);
+    return 0;
+}

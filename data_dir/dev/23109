@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 4e5 + 10;
+const long long mod = 1e9 + 7;
+
+long long mul[N << 2], sum[N << 2], sumv[N << 2], addv[N << 2], rec[305], rec2[100];
+int a[N], valid[305], pr[100];
+long long ans;
+
+long long mod_pow(long long x, long long n){
+	long long ret = 1;
+	while (n){
+		if (n & 1) ret = ret * x % mod;
+		x = x * x % mod;
+		n >>= 1;
+	}
+	return ret;
+}
+
+void pushup(int rt){
+	sum[rt] = (sum[rt << 1] * sum[rt << 1 | 1]) % mod;
+}
+
+void build1(int rt, int l, int r){
+	mul[rt] = 1;
+	if (l < r){
+		int mid = (l + r) >> 1;
+		build1(rt << 1, l, mid);
+		build1(rt << 1 | 1, mid + 1, r);
+		pushup(rt);
+	}
+	else sum[rt] = a[l];
+}
+
+void pushdown(int rt, int len){
+	sum[rt << 1] = sum[rt << 1] * mod_pow(mul[rt], len - (len >> 1)) % mod;
+	sum[rt << 1 | 1] = sum[rt << 1 | 1] * mod_pow(mul[rt], len >> 1) % mod;
+	mul[rt << 1] *= mul[rt];
+	mul[rt << 1] %= mod;
+	mul[rt << 1 | 1] *= mul[rt];
+	mul[rt << 1 | 1] %= mod;
+	mul[rt] = 1;
+}
+
+void update1(int rt, int l, int r, int ql, int qr, int v){
+	if (l >= ql && r <= qr){
+		mul[rt] *= v;
+		mul[rt] %= mod;
+		sum[rt] *= mod_pow(v, r - l + 1);
+		sum[rt] %= mod;
+		return;
+	}
+	pushdown(rt, r - l + 1);
+	int mid = (l + r) >> 1;
+	if (ql <= mid) update1(rt << 1, l, mid, ql, qr, v);
+	if (qr > mid) update1(rt << 1 | 1, mid + 1, r, ql, qr, v);
+	pushup(rt);
+}
+
+void query1(int rt, int l, int r, int ql, int qr){
+	if (l >= ql && r <= qr){
+		ans *= sum[rt];
+		ans %= mod;
+		return;
+	}
+	int mid = (l + r) >> 1;
+	pushdown(rt, r - l + 1);
+	if (ql <= mid) query1(rt << 1, l, mid, ql, qr);
+	if (qr > mid) query1(rt << 1 | 1, mid + 1, r, ql, qr);
+}
+
+void maintain(int rt, int l, int r){
+	sumv[rt] = 0;
+	if (r > l) sumv[rt] = sumv[rt << 1] | sumv[rt << 1 | 1];
+	sumv[rt] |= addv[rt];
+}
+
+void build2(int rt, int l, int r){
+	if (l == r){
+		addv[rt] = sumv[rt] = rec[a[l]];
+		return;
+	}
+	int mid = (l + r) >> 1;
+	build2(rt << 1, l, mid);
+	build2(rt << 1 | 1, mid + 1, r);
+	maintain(rt, l, r);
+}
+
+void update2(int ql, int qr, long long v, int rt, int l, int r){
+	if (ql <= l && r <= qr) addv[rt] |= v;
+	else{
+		int mid = (l + r) >> 1;
+		if (ql <= mid) update2(ql, qr, v, rt << 1, l, mid);
+		if (qr > mid) update2(ql, qr, v, rt << 1 | 1, mid + 1, r);
+	}
+	maintain(rt, l, r);
+}
+
+void query2(int ql, int qr, int rt, int l, int r, long long add){
+	if (ql <= l && qr >= r) ans |= sumv[rt] | add;
+	else{
+		int mid = (l + r) >> 1;
+		if (ql <= mid) query2(ql, qr, rt << 1, l, mid, add | addv[rt]);
+		if (qr > mid) query2(ql, qr, rt << 1 | 1, mid + 1, r, add | addv[rt]);
+	}
+}
+
+int main(){
+	int sz = 0, temp;
+	for (int i = 2; i <= 300; i++) valid[i] = 1;
+	for (int i = 2; i <= 300; i++){
+		if (valid[i]){
+			pr[sz++] = i;
+			for (int j = i * 2; j <= 300; j += i) valid[j] = 0;
+		}
+	}
+	for (int i = 0; i < sz; i++) rec2[i] = mod_pow(pr[i], mod - 2) * (pr[i] - 1) % mod;
+	memset(rec, 0, sizeof(rec));
+	for (int i = 2; i <= 300; i++){
+		for (int j = 0; j < sz; j++){
+			if (i % pr[j] == 0) rec[i] |= (1LL << j);
+		}
+	}
+	int n, m, l, r, x;
+	long long res;
+	char s[15];
+	scanf("%d %d",&n,&m);
+	for (int i = 1; i <= n; i++) scanf("%d",&a[i]);
+	build1(1, 1, n);
+	build2(1, 1, n);
+	for (int i = 1; i <= m; i++){
+		scanf("%s", s + 1);
+		if (s[1] == 'M'){
+			scanf("%d %d %d",&l,&r,&x);
+			update1(1, 1, n, l, r, x);
+			update2(l, r, rec[x], 1, 1, n);
+			ans = 1;
+			query1(1, 1, n, 2, 5);
+		}
+		else{
+			scanf("%d %d",&l,&r);
+			ans = 1;
+			query1(1, 1, n, l, r);
+			res = ans;
+			ans = 0;
+			query2(l, r, 1, 1, n, 0);
+			for (int j = 0; j < sz; j++){
+				if (ans & (1LL << j)){
+					res *= rec2[j];
+					res %= mod;
+				}
+			}
+			printf("%I64d\n", res);
+		}
+	}
+	return 0;
+}
