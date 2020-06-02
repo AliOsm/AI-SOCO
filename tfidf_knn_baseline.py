@@ -1,6 +1,5 @@
 import os
 import csv
-import time
 import argparse
 
 
@@ -10,7 +9,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-def load_csv(split):
+def load_labels(split):
     with open(os.path.join(args.data_dir, '{}.csv'.format(split)), 'r') as fp:
         reader = csv.reader(fp)
         problems = list(reader)
@@ -31,10 +30,10 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', default='data_dir')
     args = parser.parse_args()
 
-    train_csv = load_csv('train')
+    train_csv = load_labels('train')
     train_labels = list(zip(*train_csv))[0]
     train_labels = list(map(int, train_labels))
-    dev_csv = load_csv('dev')
+    dev_csv = load_labels('dev')
     dev_labels = list(zip(*dev_csv))[0]
     dev_labels = list(map(int, dev_labels))
 
