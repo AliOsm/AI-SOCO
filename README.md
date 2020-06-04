@@ -1,5 +1,5 @@
 # AI-SOCO
-Official FIRE 2020 Authorship Identification of SOurce COde (AI-SOCO) task repository containing dataset, evaluation tools and baselines.
+Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I**dentification of **SO**urce **CO**de (AI-SOCO) task repository containing dataset, evaluation tools and baselines.
 10 - 13 December, Institute for Development and Research in Banking Technology, Hyderabad
 
 Welcome to pariticipate on our Codalab competition [here](https://competitions.codalab.org/competitions/25135)!
