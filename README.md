@@ -45,8 +45,8 @@ In `data_dir` directory there are the following:
 - `dev` directory is similar to `train`, but it will be used to evaluation your system while developing, so it is not allowed to use it in the training phase.
 
 ## Baseline
-- [Random Baseline](random_baseline.py) is simply predicting a random writer for each piece of code from the list of 1,000 writers (from 0 to 999). Its accuracy is revolves around **0.1%**.
-- [TF-IDF KNN Baseline](tfidf_knn_baseline.py) is vectorizes the source codes using [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) method with **10K** features and it builds a [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) classifier with **25** neighbors on top of that representations extracted from TF-IDF. Its accuracy on the development set is **62.128%** which is much better than the random baseline. Keep in mind that this baseline is very slow and it will take you about **4** hours to predict all examples in the development set using **6** threads.
+- [**Random Baseline**](random_baseline.py) is simply predicting a random writer for each piece of code from the list of 1,000 writers (from 0 to 999). Its accuracy is revolves around **0.1%**.
+- [**TF-IDF KNN Baseline**](tfidf_knn_baseline.py) is vectorizes the source codes using [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) method with **10K** features and it builds a [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) classifier with **25** neighbors on top of that representations extracted from TF-IDF. Its accuracy on the development set is **62.128%** which is much better than the random baseline. Keep in mind that this baseline is very slow and it will take you about **4** hours to predict all examples in the development set using **6** threads.
 
 ## Evaluation
 Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation [script](scorer.py) is available on the Github repository.
