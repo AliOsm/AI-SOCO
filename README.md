@@ -53,9 +53,9 @@ In `data_dir` directory there are the following:
 ## Evaluation
 Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation [script](scorer.py) is available on the Github repository.
 
-## Deadlines
-- 08th June - Open track website
-- 08th June – Training and development data release
+## Important Dates
+- 8th June - Open track website
+- 8th June – Training and development data release
 - 31st July – Test data release
 - 7th September – Run submission deadline
 - 20th September – Results declared
