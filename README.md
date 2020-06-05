@@ -47,14 +47,14 @@ In `data_dir` directory there are the following:
 
 ## Baseline
 - [**Random Baseline**](random_baseline.py) is simply predicting a random writer for each piece of code from the list of 1,000 writers (from 0 to 999). Its accuracy is revolves around **0.1%**.
-- [**TF-IDF KNN Baseline**](tfidf_knn_baseline.py) is vectorizes the source codes using [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) method with **10K** features and it builds a [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) classifier with **25** neighbors on top of that representations extracted from TF-IDF. Its accuracy on the development set is **62.128%** which is much better than the random baseline. Keep in mind that this baseline is very slow and it will take you about **4** hours to predict all examples in the development set using **6** threads.
+- [**TF-IDF KNN Baseline**](tfidf_knn_baseline.py) vectorizes the source codes using [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) method with **10K** features and builds a [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) classifier with **25** neighbors on top of that representations extracted from TF-IDF. Its accuracy on the development set is **62.128%** which is much better than the random baseline. Keep in mind that this baseline is very slow and it will take you about **4** hours to predict all examples in the development set using **6** threads.
 
 ## Evaluation
 Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation [script](scorer.py) is available on the Github repository.
 
 ## Deadlines
 - 15th June - open track websites
-- 30th June – training data release
+- 30th June – training and development data release
 - 31st July – test data release
 - 7th September – run submission deadline
 - 20th September – results declared
