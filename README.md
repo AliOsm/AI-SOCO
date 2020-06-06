@@ -52,6 +52,11 @@ In `data_dir` directory there are the following:
 - [**Characters Count Logistic Baseline**](characters_logistic_baseline.py) converts each source code to a vector represents the count of the 100 [printable characters](https://en.wikipedia.org/wiki/ASCII#Printable_characters), then it builds a [logistic regression](https://en.wikipedia.org/wiki/Logistic_regression) model on the vectorized representations. It achieved a **29.252%** accuracy on the development set.
 - [**TF-IDF KNN Baseline**](tfidf_knn_baseline.py) vectorizes the source codes using [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) method with **10K** features and builds a [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) classifier with **25** neighbors on top of that representations extracted from TF-IDF. Its accuracy on the development set is **62.128%** which is much better than the previous baselines. Keep in mind that this baseline is very slow and it will take you about **4** hours to predict all examples in the development set using **6** threads.
 
+To train and predict on the development set using any of the previously mentioned baselines, please run the following command:
+```bash
+python baselines/[random_baseline.py|characters_logistic_baseline.py|tfidf_knn_baseline.py]
+```
+
 ## Evaluation
 Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation [script](scorer.py) is available on the Github repository.
 
@@ -64,8 +69,8 @@ Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation
 - 31st October – Working notes and overview papers due (tentative)
 - 10th-13th December - FIRE 2020 (One additional day likely)
 
+## Notes
+- All scripts in this repository were tested on **Ubuntu 20.04** and **Python 3.8.2**.
+
 ## License
 The dataset is distributed under the [MIT](/LICENSE) license.
-
-## Notes
-- All scripts in this repository were tested on Ubuntu 20.04 and Python 3.8.2.
