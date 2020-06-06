@@ -21,9 +21,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dev_csv = load_labels('dev')
-    dev_labels = list(zip(*dev_csv))[0]
+    dev_labels, dev_ids = zip(*dev_csv)
     dev_labels = list(map(int, dev_labels))
+    dev_ids = list(map(int, dev_ids))
 
     pred = [random.randint(0, 999) for _ in range(len(dev_labels))]
 
     print('Accuracy: {}'.format(accuracy_score(dev_labels, pred)))
+
+    with open('baselines_predictions/random_baseline.csv', 'w') as fp:
+    	writer = csv.writer(fp)
+    	writer.writerow(['uid', 'pid'])
+
+    	for p, i in zip(pred, dev_ids):
+    		writer.writerow([p, i])

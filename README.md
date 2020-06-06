@@ -1,3 +1,5 @@
+<img alt="Logo" width="150px" src="logo.png"/>
+
 # AI-SOCO
 Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I**dentification of **SO**urce **CO**de (AI-SOCO) task repository containing dataset, evaluation tools and baselines.
 
@@ -64,3 +66,6 @@ Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation
 
 ## License
 The dataset is distributed under the [MIT](/LICENSE) license.
+
+## Notes
+- All scripts in this repository were tested on Ubuntu 20.04 and Python 3.8.2.
