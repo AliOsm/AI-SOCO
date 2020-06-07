@@ -3,7 +3,7 @@
 # AI-SOCO
 Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I**dentification of **SO**urce **CO**de (AI-SOCO) task repository containing dataset, evaluation tools and baselines.
 
-10 - 13 December, Institute for Development and Research in Banking Technology, Hyderabad
+10 - 13 December, Virtually.
 
 Welcome to pariticipate on our Codalab competition [here](https://competitions.codalab.org/competitions/25144)!
 
@@ -61,8 +61,8 @@ python baselines/[random_baseline.py|characters_logistic_baseline.py|tfidf_knn_b
 Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation [script](scorer.py) is available on the Github repository.
 
 ## Important Dates
-- 8th June - Open track website
-- 8th June – Training and development data release
+- ~~8th June - Open track website~~
+- ~~8th June – Training and development data release~~
 - 31st July – Test data release
 - 7th September – Run submission deadline
 - 20th September – Results declared
