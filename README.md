@@ -5,7 +5,7 @@ Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I*
 
 10 - 13 December, Virtually.
 
-Welcome to pariticipate on our Codalab competition [here](https://competitions.codalab.org/competitions/25144)!
+Welcome to pariticipate on our Codalab competition [here](https://competitions.codalab.org/competitions/25148)!
 
 All participants are welcome to open new [issue](https://github.com/AliOsm/AI-SOCO/issues/new) about dataset issues!
 
