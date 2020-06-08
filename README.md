@@ -1,4 +1,4 @@
-<img alt="Logo" width="150px" src="logo.png"/>
+<img alt="Logo" height="150px" src="https://i.imgur.com/UyORSKr.png"/>
 
 # AI-SOCO
 Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I**dentification of **SO**urce **CO**de (AI-SOCO) [PAN](https://pan.webis.de) task repository containing dataset, evaluation tools and baselines.
