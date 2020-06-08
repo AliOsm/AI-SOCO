@@ -1,7 +1,7 @@
 <img alt="Logo" width="150px" src="logo.png"/>
 
 # AI-SOCO
-Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I**dentification of **SO**urce **CO**de (AI-SOCO) task repository containing dataset, evaluation tools and baselines.
+Official [FIRE 2020](http://fire.irsi.res.in/fire/2018/home) **A**uthorship **I**dentification of **SO**urce **CO**de (AI-SOCO) [PAN](https://pan.webis.de) task repository containing dataset, evaluation tools and baselines.
 
 10 - 13 December, Virtually.
 
