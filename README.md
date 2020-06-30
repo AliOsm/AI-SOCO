@@ -65,9 +65,10 @@ Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation
 - ~~8th June – Training and development data release~~
 - 31st July – Test data release
 - 7th September – Run submission deadline
-- 20th September – Results declared
-- 31st October – Working notes and overview papers due (tentative)
-- 10th-13th December - FIRE 2020 (One additional day likely)
+- 15th September – Results declared
+- 5th October – Working notes papers due
+- 5th November – Final version of working notes papers due
+- 16th-20th December - FIRE 2020 (Online Event)
 
 ## Notes
 - All scripts in this repository were tested on **Ubuntu 20.04** and **Python 3.8.2**.
