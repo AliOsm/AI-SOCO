@@ -63,7 +63,7 @@ Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation
 ## Important Dates
 - ~~8th June - Open track website~~
 - ~~8th June – Training and development data release~~
-- 31st July – Test data release
+- ~~31st July – Test data release~~
 - 7th September – Run submission deadline
 - 15th September – Results declared
 - 5th October – Working notes papers due
