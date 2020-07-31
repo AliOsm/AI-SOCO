@@ -1,0 +1,135 @@
+/********************************************************
+*||  Code written by Akikaze                          ||*
+*||  Duy-Bach Le, #Team4T's Chief Executor            ||*
+*||  #Team4T Tertiary Flagship - Oblivion             ||*
+*||                                                   ||*
+*||  Written by a random fan of momocashew and Chiho  ||*
+********************************************************/
+
+/***********************************************
+** File name: EDUCFR64B.cpp
+** Time created: Wed May 01 2019 13:59
+***********************************************/
+
+/************** [OPTIMIZATION PROTOCOL] **************/
+#pragma GCC optimize("Ofast")
+/*****************************************************/
+
+/************** [LIBRARY PROTOCOL] **************/
+#include <bits/stdc++.h>
+using namespace std;
+/************************************************/
+
+/************** [GNU OMISSIONS] **************/
+#define y0 withindarkness
+#define y1 apinklotusbloomed
+#define yn carryingapurplesoul
+#define j1 togetherformingtheTeam
+/*********************************************/
+
+/************** [LEGENDS/CONSTANTS] **************/
+#define endl '\n'
+#define i64 long long
+#define ld long double
+const long long Mod = 1000000007LL, INF = 1e9, LINF = 1e18;
+const long double Pi = 3.141592653589793116L;
+const long double EPS = 0.000000001L, Gold = ((1.0L+sqrt(5.0L))/2.0L);
+long long keymod[] = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL};
+mt19937 rng32(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng64(chrono::steady_clock::now().time_since_epoch().count());
+/*************************************************/
+
+/************** [MASTER CONTROLS - PHASE 1] **************/
+int OImode = 0;
+int MultiTest = 1;
+int Interactive = 0;
+
+void ConfigMonitor();
+char infile[] = "FILE.IN";
+char outfile[] = "FILE.OUT";
+/*********************************************************/
+
+/************** [GLOBAL VARIABLES] **************/
+string s; int n;
+/************************************************/
+
+/************** [FUNCTIONS] **************/
+
+
+void Input() {
+	cin >> s; n = s.size();
+}
+
+void Solve() {
+	vector<int> cnt(26, 0);
+	for (auto c: s) cnt[c-'a']++;
+	vector<int> appear;
+	for (int i=0; i<26; i++) {
+		if (cnt[i]) appear.push_back(i);
+	}
+	if (appear.size() == 1) {cout << s << endl; return;}
+	if (appear.size() == 2) {
+		if (abs(appear[0] - appear[1]) == 1) {cout << "No answer\n"; return;}
+		for (int x=0; x<cnt[appear[0]]; x++) cout << char(97 + appear[0]);
+		for (int x=0; x<cnt[appear[1]]; x++) cout << char(97 + appear[1]);
+		cout << endl; return;
+	}
+	if (appear.size() == 3) {
+		if (abs(appear[0] - appear[1]) == 1 && abs(appear[2] - appear[1]) == 1) {cout << "No answer\n"; return;}
+		for (int x=0; x<cnt[appear[1]]; x++) cout << char(97 + appear[1]);
+		if (abs(appear[1] - appear[2]) == 1) {
+			for (int x=0; x<cnt[appear[0]]; x++) cout << char(97 + appear[0]);
+			for (int x=0; x<cnt[appear[2]]; x++) cout << char(97 + appear[2]);
+		}
+		else {
+			for (int x=0; x<cnt[appear[2]]; x++) cout << char(97 + appear[2]);
+			for (int x=0; x<cnt[appear[0]]; x++) cout << char(97 + appear[0]);
+		}
+		cout << endl; return;
+	}
+	if (appear.size() == 4) {
+		for (int x=0; x<cnt[appear[2]]; x++) cout << char(97 + appear[2]);
+		for (int x=0; x<cnt[appear[0]]; x++) cout << char(97 + appear[0]);
+		for (int x=0; x<cnt[appear[3]]; x++) cout << char(97 + appear[3]);
+		for (int x=0; x<cnt[appear[1]]; x++) cout << char(97 + appear[1]);
+		cout << endl; return;
+	}
+	for (int i=0; i<appear.size(); i+=2) {
+		for (int x=0; x<cnt[appear[i]]; x++) cout << char(97 + appear[i]);
+	}
+	for (int i=1; i<appear.size(); i+=2) {
+		for (int x=0; x<cnt[appear[i]]; x++) cout << char(97 + appear[i]);
+	}
+	cout << endl;
+}
+/*****************************************/
+
+/************** [MAIN] **************/
+int main(int argc, char* argv[]) {
+	ConfigMonitor();
+	ios_base::sync_with_stdio(false);
+	if (!Interactive) cin.tie(NULL);
+	
+	int T = 1; if (MultiTest) cin >> T;
+	while(T--) {Input(); Solve();}
+	
+	return 0;
+}
+/************************************/
+
+/************** [MASTER CONTROLS - PHASE 2] **************/
+void ConfigMonitor() {
+	#ifdef Akikaze
+		cout << "Source code by #Team4T-Akikaze.\n";
+		cout << "Input: " << ((OImode) ? infile : "stdin");
+		cout << " | Output: " << ((OImode) ? outfile : "stdout") << endl << endl;
+		cout << "MultiTest-Mode: " << ((MultiTest) ? "ON\n" : "OFF\n");
+		cout << "Interactive-Mode: " << ((Interactive) ? "ON\n\n" : "OFF\n\n");
+	#else
+		if (OImode) {
+			freopen(infile, "r", stdin);
+			freopen(outfile, "w", stdout);
+		}
+	#endif
+}
+/*********************************************************/

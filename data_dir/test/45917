@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = (int)2e5 + 7, sz = (int)500;
+
+  int n, q;
+  int bl[N], id[N];
+
+  struct block {
+    int len;
+    int a[sz + 7], bs[sz + 7];
+
+    void push(int x) {
+      a[++len] = x;
+    }
+
+    void rebuild() {
+      for (int i = 1; i <= len; i++)
+        bs[i] = a[i];
+      sort (bs + 1, bs + 1 + len);
+    }
+
+  };
+
+  int cnt;
+  struct decompose {
+    long long ans;
+    int len;
+    int a[N];
+    block t[sz + 7];
+
+    int less(int l, int r, int x) {
+      int sol = bl[l], on = bl[r], res = 0;
+      if (sol == on) {
+        for (int i = id[l]; i <= id[r]; i++)
+          res += t[bl[l]].a[i] < x;
+      }
+      else {
+        for (int i = id[l]; i <= t[sol].len; i++)
+          res += t[sol].a[i] < x;
+        for (int i = sol + 1; i < on; i++)
+          res += lower_bound(t[i].bs + 1, t[i].bs + 1 + t[i].len, x) - t[i].bs - 1;
+        for (int i = 1; i <= id[r]; i++)
+          res += t[on].a[i] < x;
+      }
+      return res;
+    }
+
+    int greater(int l, int r, int x) {
+      int sol = bl[l], on = bl[r], res = 0;
+      if (sol == on) {
+        for (int i = id[l]; i <= id[r]; i++)
+          res += t[sol].a[i] > x;
+      }
+      else {
+        for (int i = id[l]; i <= t[sol].len; i++)
+          res += t[sol].a[i] > x;
+        for (int i = sol + 1; i < on; i++)
+          res += t[i].bs + t[i].len + 1 - upper_bound(t[i].bs + 1, t[i].bs + 1 + t[i].len, x);
+        for (int i = 1; i <= id[r]; i++)
+          res += t[on].a[i] > x;
+      }
+      return res;
+    }
+
+    void Swap(int l, int r) {
+      if (l == r) return;
+      if (l > r) swap(l, r);
+
+      ans -= greater(l, r, a[r]);
+      ans -= less(l, r, a[l]);
+      if (a[l] > a[r]) ans++;
+
+      swap(a[l], a[r]);
+      swap(t[bl[l]].a[id[l]], t[bl[r]].a[id[r]]);
+
+      t[bl[l]].rebuild();
+      if (bl[l] != bl[r]) t[bl[r]].rebuild();
+
+      ans += less(l, r, a[l]);
+      ans += greater(l, r, a[r]);
+      if (a[l] > a[r]) ans--;
+    }
+
+    void push(int x, int id) {
+      a[++len] = x;
+      t[id].push(x);
+    }
+
+  } ioi;
+
+int main() {
+  scanf ("%d%d", &n, &q);
+  for (int i = 1; i <= n; i++) {
+    bl[i] = i / sz;
+    ioi.push(i, bl[i]);
+    id[i] = ioi.t[bl[i]].len;
+  }
+
+  for (int i = 0; i <= bl[n]; i++)
+    ioi.t[i].rebuild();
+
+  for (int i = 1, l, r; i <= q; i++) {
+    scanf ("%d%d", &l, &r);
+    ioi.Swap(l, r);
+    printf ("%I64d\n", ioi.ans);
+  }
+
+  return 0;
+}

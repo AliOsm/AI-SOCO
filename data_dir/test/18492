@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <math.h>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <set>
+#include <map>
+#define MAXN 100000
+#define ll long long
+using namespace std;
+
+int a[MAXN+2];
+int b[MAXN+2];
+int l[MAXN+2];
+
+vector<int> edges[MAXN+2];
+
+
+pair<int,int> dfs_array[2*MAXN+2];
+map<pair<int,int>, int> hashed;
+ll n;
+
+void dfs(int u0) {
+    dfs_array[0]=make_pair(-1, u0);
+    int sz = 1;
+    while(sz > 0) {
+        int par = dfs_array[sz-1].first;
+        int u = dfs_array[sz-1].second;
+        bool curr_done=true;
+        for(int j=0;j<edges[u].size();j++) {
+            int v = edges[u][j];
+            if (par == v) {
+                continue;
+            }
+            if (hashed.find(make_pair(u,v)) == hashed.end()) {
+                curr_done=false;
+                dfs_array[sz++]=make_pair(u,v);
+            }
+        }
+        
+        if (curr_done) {
+            int answer = 1;
+            for(int j=0;j<edges[u].size();j++) {
+                int v = edges[u][j];
+                if (par == v) {
+                    continue;
+                }
+                answer += hashed[make_pair(u,v)];
+            }
+            hashed[make_pair(par,u)] =  answer;
+            if (par != -1)
+                hashed[make_pair(u,par)] =  n-answer;
+            sz--;
+        }
+    }
+}
+
+vector<pair<int,int> > deg_vert;
+
+int dfs_brute(int par,int v) {
+    int answer = 1;
+    for(int j=0;j<edges[v].size();j++) {
+        int u = edges[v][j];
+        if (u == par)
+            continue;
+        answer += dfs_brute(v, u);
+    }
+    return answer;
+}
+int main() {
+    cin>>n;
+    for(int i=1;i<=n-1;i++) {
+        cin>>a[i]>>b[i]>>l[i];
+        edges[a[i]].push_back(b[i]);
+        edges[b[i]].push_back(a[i]);
+    }
+    for(int i=1;i<=n;i++) {
+        deg_vert.push_back(make_pair(edges[i].size(), i));
+    }
+    
+    sort(deg_vert.begin(), deg_vert.end());
+    
+    for(int j=n-1;j>=0;j--) {
+        int i=deg_vert[j].second;
+        dfs(i);
+    }
+    
+    
+    
+    
+    double current_cost = 0;
+    for(int i=1;i<=n-1;i++) {
+        ll UV = hashed[make_pair(a[i],b[i])];
+        ll VU = hashed[make_pair(b[i],a[i])];
+        
+        if (UV == 0 || VU == 0)
+            exit(-1);
+        if (UV+VU != n)
+            exit(-1);
+        
+        current_cost += (UV*VU*(VU-1)+VU*UV*(UV-1))*l[i];
+    }
+    
+    // x*y*(x-1)+x*(x-1)*y+x*y*(y-1)+y*x*(y-1)+y*(y-1)*x+y*x*(x-1)
+    
+    double denominator = (double)(n*(n-1.0)*(n-2.0))/6.0;
+    
+    int m;
+    cin>>m;
+    for(int j=1;j<=m;j++) {
+        int i;
+        ll new_cost;
+        cin>>i>>new_cost;
+        
+        ll old_cost = l[i];
+        l[i]=new_cost;
+        
+        ll UV = hashed[make_pair(a[i],b[i])];
+        ll VU = hashed[make_pair(b[i],a[i])];
+        
+        current_cost += (UV*VU*(VU-1)+VU*UV*(UV-1))*(new_cost-old_cost);
+        
+        printf("%1.10f\n",(double)current_cost / denominator);
+
+    }
+
+    
+}

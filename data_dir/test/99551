@@ -1,0 +1,151 @@
+    #include<bits/stdc++.h>
+    using namespace std;
+    #define MAX 120003
+    
+    int n;
+    vector<int> v;
+	
+	int q;
+	
+	vector<pair<int,int> > query[MAX];
+	
+	stack<pair<int,int> > mx;
+	stack<pair<int,int> > mi;
+	
+	long long int lazy[MAX*4];
+	long long int save[MAX*4];
+	
+	struct st{
+		long long int mint;
+		long long int mint_cnt;
+		long long int ans;
+		st(){
+			mint_cnt=0;
+			mint=LLONG_MAX;
+			ans=0;
+		}
+	};
+	
+	st seg[MAX*4];
+	st merge(st a,st b){
+		st ret;
+		ret.ans=a.ans+b.ans;
+		ret.mint=min(a.mint,b.mint);
+		if(ret.mint==a.mint){
+			ret.mint_cnt+=a.mint_cnt;
+		}
+		if(ret.mint==b.mint){
+			ret.mint_cnt+=b.mint_cnt;
+		}
+		return ret;
+	}
+	void upd(int b){
+		seg[b].ans+=save[b]*seg[b].mint_cnt;
+		if(b*2+2<MAX*4){
+			if(seg[b].mint==seg[b*2+1].mint+lazy[b*2+1]){
+				save[b*2+1]+=save[b];
+			}
+			if(seg[b].mint==seg[b*2+2].mint+lazy[b*2+2]){
+				save[b*2+2]+=save[b];
+			}
+		}
+		save[b]=0;
+		seg[b].mint+=lazy[b];
+		if(b*2+2<MAX*4){
+			lazy[b*2+1]+=lazy[b];
+			lazy[b*2+2]+=lazy[b];
+		}
+		lazy[b]=0;
+	}
+	
+	inline void add(int b,int l,int r,int ll,int rr,long long int x){
+		upd(b);
+		if(r<=ll||rr<=l)return;
+		if(ll<=l&&r<=rr){
+			lazy[b]+=x;
+			upd(b);
+			return;
+		}
+		add(b*2+1,l,(l+r)>>1,ll,rr,x);
+		add(b*2+2,(l+r)>>1,r,ll,rr,x);
+		seg[b]=merge(seg[b*2+1],seg[b*2+2]);
+	}
+	st Q(int b,int l,int r,int ll,int rr){
+		upd(b);
+		if(r<=ll||rr<=l)return st();
+		if(ll<=l&&r<=rr){
+			return seg[b];
+		}
+		return merge(Q(b*2+1,l,(l+r)>>1,ll,rr),Q(b*2+2,(l+r)>>1,r,ll,rr));
+	}
+	inline void init(int b,int l,int r){
+		if(l+1==r){
+			seg[b].mint=l;
+			seg[b].mint_cnt=1;
+			return;
+		}
+		init(b*2+1,l,(l+r)>>1);
+		init(b*2+2,(l+r)>>1,r);
+		seg[b]=merge(seg[b*2+1],seg[b*2+2]);
+	}
+	
+	long long int outt[MAX];
+	
+	int main(){
+		cin>>n;
+		for(int i=0;i<n;i++){
+			int a;
+			scanf("%d",&a);
+			v.push_back(a);
+		}
+		cin>>q;
+		for(int i=0;i<q;i++){
+			int l,r;
+			scanf("%d%d",&l,&r);
+			l--;
+			r--;
+			query[r].push_back(make_pair(l,i));
+		}
+		mx.push(make_pair(INT_MAX,-1));
+		mi.push(make_pair(INT_MIN,-1));
+		init(0,0,n);
+		for(int i=0;i<n;i++){
+			add(0,0,n,0,n,-1);
+			{
+				int til=i-1;
+				while(mx.top().first<v[i]){
+					int lef=mx.top().second;
+					int rig=til;
+					til=lef-1;
+					add(0,0,n,lef,rig+1,-mx.top().first);
+				//	cout<<"d2 "<<lef<<" "<<rig<<" "<<-mx.top().first<<endl;
+					mx.pop();
+				}
+				mx.push(make_pair(v[i],til+1));
+				add(0,0,n,til+1,i+1,mx.top().first);
+				//cout<<"d2 "<<til+1<<" "<<i<<" "<<mx.top().first<<endl;
+			}
+			{
+				int til=i-1;
+				while(mi.top().first>v[i]){
+					int lef=mi.top().second;
+					int rig=til;
+					til=lef-1;
+					add(0,0,n,lef,rig+1,mi.top().first);
+					mi.pop();
+				}
+				mi.push(make_pair(v[i],til+1));
+				add(0,0,n,til+1,i+1,-mi.top().first);
+			}
+			save[0]++;
+			for(int j=0;j<query[i].size();j++){
+				auto ans=Q(0,0,n,query[i][j].first,i+1);
+				//cout<<"debug "<<ans.mint<<endl;
+				outt[query[i][j].second]=ans.ans;
+			}
+		}
+		for(int i=0;i<q;i++){
+			printf("%lld\n",outt[i]);
+		}
+		return 0;
+	}

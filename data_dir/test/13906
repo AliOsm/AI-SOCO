@@ -1,0 +1,138 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pii;
+#define M 1000005
+
+
+const ll B1 = 104723;
+const ll B2 = 104729;
+const ll MOD1 = 1000000007;
+const ll MOD2 = 100000007;
+
+ll pb1[M], pb2[M];
+
+void init()
+{
+    pb1[0] = pb2[0] = 1;
+    for(int i = 1; i < M; i++) pb1[i] = (pb1[i-1]*B1)%MOD1, pb2[i] = (pb2[i-1]*B2)%MOD2;
+}
+
+struct myHash
+{
+    ll h1, h2;
+
+    myHash(): h1(0), h2(0) {}
+    myHash(ll h1, ll h2): h1(h1%MOD1), h2(h2%MOD2) {}
+    myHash add(ll v1, ll v2) { return myHash(h1*B1+v1, h2*B2+v2); }
+    myHash operator-(const myHash& rhs) { return myHash(h1-rhs.h1+MOD1, h2-rhs.h2+MOD2); }
+    bool operator==(const myHash& rhs) const { return make_pair(h1, h2) == make_pair(rhs.h1, rhs.h2); }
+    bool operator!=(const myHash& rhs) const { return make_pair(h1, h2) != make_pair(rhs.h1, rhs.h2); }
+    bool operator<(const myHash& rhs) const { return make_pair(h1, h2) < make_pair(rhs.h1, rhs.h2); }
+};
+
+ostream& operator<<(ostream& dout, myHash h)
+{
+    return dout<<"h1 = "<<h.h1<<", h2 = "<<h.h2;
+}
+
+vector<myHash> getAll(string str)
+{
+    int n = str.size();
+    vector<myHash>ans(n);
+
+    myHash h;
+    for(int i = 0; i < str.size(); i++) h = h.add(str[i], str[i]), ans[i] = h;
+
+    return ans;
+}
+
+myHash getTot(string str)
+{
+    if(str.size() == 0) return myHash();
+
+    vector<myHash>shob = getAll(str);
+    return shob[shob.size()-1];
+}
+
+myHash getRange(const vector<myHash>& shob, int l, int r)
+{
+    myHash lft = l? shob[l-1]: myHash();
+    myHash rht = shob[r];
+
+    lft = myHash(lft.h1*pb1[r-l+1], lft.h2*pb2[r-l+1]);
+    return rht-lft;
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    init();
+
+    string s, t;
+    cin>>s>>t;
+    int lt = t.size();
+
+    int n0 = 0, n1 = 0;
+    for(char c: s) n0 += (c == '0'), n1 += (c == '1');
+
+    vector<myHash> allHash = getAll(t);
+
+    int ans = 0;
+    for(int i = 1; i < lt; i++)
+    {
+        int l0 = i;
+        if(lt-l0*n0 <= 0) break;
+        if((lt-l0*n0)%n1) continue;
+
+        int l1 = (lt-l0*n0)/n1;
+        if(l0 <= 0 || l1 <= 0 || n0*l0+n1*l1 != lt) continue;
+
+        //printf("--> %d %d\n", l0, l1);
+
+        int curs = 0, curt = 0;
+
+        myHash ah0, ah1;
+        bool bh0 = 0, bh1 = 0;
+
+        while(curt < lt)
+        {
+            if(s[curs] == '0')
+            {
+                int l = curt, r = curt+l0-1;
+
+                myHash h = getRange(allHash, l, r);
+
+                if(bh0 && h != ah0) break;
+                bh0 = 1, ah0 = h;
+                curt += l0;
+            }
+            else
+            {
+                int l = curt, r = curt+l1-1;
+
+                myHash h = getRange(allHash, l, r);
+
+                if(bh1 && h != ah1) break;
+                bh1 = 1, ah1 = h;
+                curt += l1;
+            }
+            curs++;
+        }
+
+        if(curt == lt && ah0 != ah1)
+        {
+            //printf("%d %d\n", l0, l1);
+            ans++;
+        }
+    }
+
+    printf("%d\n", ans);
+
+    return 0;
+}
+
+

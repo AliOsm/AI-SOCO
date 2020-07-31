@@ -1,0 +1,106 @@
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <stdlib.h>
+#include <time.h>
+#include <vector>
+#include <set>
+#include <map>
+#include <algorithm>
+using namespace std;
+int n,m,K;
+const long long Mod = 1000000007LL;
+long long Ans=0;
+int a[20][20],s[20][20],ta[20][20],colored=0;
+int cal(int need)
+{
+    long long tmp=1;
+    for (int i=K-colored;i>K-colored-need;i--)
+        tmp=tmp*i%Mod;
+    return tmp;
+}
+int Use[20],cant[20][20];
+vector <int> already,todo;
+void dfs(int xx,int yy,int need)
+{
+    if (xx==n)
+    {
+        Ans+=cal(need);
+        if (Ans>=Mod) Ans-=Mod;
+        return;
+    }
+    int nx=xx,ny=yy+1;
+    if (ny==m)
+    {
+        nx++;
+        ny=0;
+    }
+    if (a[xx][yy]!=0)
+    {
+        int s0=0,s1=0;
+        if (xx-1>=0) s0=s[xx-1][yy];
+        if (yy-1>=0) s1=s[xx][yy-1];
+        if ((s0|s1)&(1<<a[xx][yy])) return;
+        s[xx][yy]=(s0|s1)+(1<<a[xx][yy]);
+        dfs(nx,ny,need);
+    }
+    else
+    {
+        for (int ii=0;ii<=need&&ii<todo.size();ii++)
+        {
+            int i=todo[ii];
+            if (cant[xx][yy]&(1<<i)) continue;
+            int s0=0,s1=0;
+            if (xx-1>=0) s0=s[xx-1][yy];
+            if (yy-1>=0) s1=s[xx][yy-1];
+            if ((s0|s1)&(1<<i)) continue;
+            s[xx][yy]=(s0|s1)+(1<<i);
+            a[xx][yy]=i;
+            dfs(nx,ny,max(need,ii+1));
+            a[xx][yy]=0;
+        }
+        for (int ii=0;ii<already.size();ii++)
+        {
+            int i=already[ii];
+            if (cant[xx][yy]&(1<<i)) continue;
+            int s0=0,s1=0;
+            if (xx-1>=0) s0=s[xx-1][yy];
+            if (yy-1>=0) s1=s[xx][yy-1];
+            if ((s0|s1)&(1<<i)) continue;
+            s[xx][yy]=(s0|s1)+(1<<i);
+            a[xx][yy]=i;
+            dfs(nx,ny,need);
+            a[xx][yy]=0;
+        }
+    }
+}
+int main()
+{
+    scanf("%d%d%d",&n,&m,&K);
+    if (n+m-1>K) puts("0");
+    else
+    {
+        memset(Use,0,sizeof(Use));
+        for (int i=0;i<n;i++)
+            for (int j=0;j<m;j++)
+            {
+                scanf("%d",&a[i][j]);
+                for (int ti=0;ti<=i;ti++)
+                    for (int tj=0;tj<=j;tj++)
+                        cant[ti][tj]|=(1<<a[i][j]);
+                Use[a[i][j]]=1;
+            }
+        for (int i=1;i<=K;i++)
+            if (Use[i])
+            {
+                colored++;
+                already.push_back(i);
+            }
+            else
+                todo.push_back(i);
+        Ans=0;
+        dfs(0,0,0);
+        printf("%I64d\n",Ans);
+    }
+    return 0;
+}

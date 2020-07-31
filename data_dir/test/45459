@@ -1,0 +1,43 @@
+// In the name of Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+int ar[123456] , n;
+ll dp[123456][4];
+bool is[123456][4];
+
+ll f(int i , int c)
+{
+    //cout << i << " " << c << " " << dp[i][c]<< endl;
+    if(i==n){
+
+        if(c==1)return 0;
+        else return -1e9;
+    }
+
+    if(is[i][c]==true)return dp[i][c];
+    is[i][c] = true;
+
+    ll value1 = 0 , value2 = 0;
+
+
+    if(c==2)value1 = f(i+1, abs(ar[i])%2) + ar[i];
+    else value1 = f(i+1 , abs(ar[i]+c)%2) + ar[i];
+
+    value2 = f(i+1 , c);
+
+    return dp[i][c] = max(value1 , value2);
+}
+
+int main(void)
+{
+    memset(is , false , sizeof(is));
+
+    cin >> n;
+    for(int i=0;i<n;i++)cin >> ar[i];
+    cout << max(f(1 , abs(ar[0])%2)+ar[0] , f(1 ,2)) << endl;
+
+    return 0;
+}

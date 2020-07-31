@@ -1,0 +1,60 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 5;
+
+int n, m, k;
+vector<int> g[N];
+int p[N];
+bool vis[N];
+int deg[N];
+int dp[N], dist[N];
+int mins, maks;
+
+int main() { 
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  cout.tie(0);
+
+  cin >> n >> m;
+  for (int i = 1; i <= m; i++) {
+    int u, v;
+    cin >> u >> v;
+    g[v].push_back(u);
+    deg[u]++;
+  }
+  cin >> k;
+  for (int i = 1; i <= k; i++) {
+    cin >> p[i];
+  }
+  queue<pair<int, int>> q;
+  q.push({p[k], 0});
+  vis[p[k]] = 1;
+  while (!q.empty()) {
+    pair<int, int> cur = q.front();
+    q.pop();
+    for (auto v : g[cur.first]) {
+      if (vis[v] && dist[v] == cur.second + 1) {
+        dp[v]++;
+      } else if (vis[v] == 0) {
+        vis[v] = 1;
+        dist[v] = cur.second + 1;
+        dp[v] = 1;
+        q.push({v, dist[v]});
+      }
+   
+    }
+  }
+  for (int i = 1; i < k; i++) {
+    if (dist[p[i + 1]] > dist[p[i]] - 1) {
+      mins++;
+      maks++;
+    } else if (dist[p[i + 1]] == dist[p[i]] - 1 && dp[p[i]] > 1) {
+      maks++;
+    }
+  }
+  cout << mins << " " << maks << '\n';
+
+  return 0;
+}

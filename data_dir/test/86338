@@ -1,0 +1,120 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+const int MAXN = 200;
+const int MAXM = 1<<16;
+int n, m;
+
+struct DSU {
+    int p[201];
+    int sz[201];
+    DSU() {
+        for (int i = 1; i <= MAXN; i++) p[i] = i, sz[i] = 1;
+    }
+    int parent(int u) {
+        return p[u] = (p[u]==u?u:parent(p[u]));
+    }
+    void unite(int u, int v) {
+        u = parent(u);
+        v = parent(v);
+        if (u==v) return;
+        if (u > v) swap(u, v);
+        p[v] = u;
+        sz[u] += sz[v];
+        sz[v] = 0;
+    }
+    void merge(DSU& a) {
+        for (int i = 1; i <= MAXN; i++) {
+            unite(i, a.parent(i));
+        }
+    }
+    bool isOk() {
+        return sz[1]==n;
+    }
+};
+
+DSU bit[MAXM+1];
+
+void update(int idx, int u, int v)
+{
+    while (idx <= MAXM) {
+        bit[idx].unite(u, v);
+        idx += idx&(-idx);
+    }
+}
+
+int findFirst()
+{
+    if (!bit[MAXM].isOk()) return -1;
+
+    DSU rt;
+    int idx = 0;
+    for (int k = 15; k >= 0; k--) {
+        int j = idx+(1<<k);
+        DSU tmp(rt);
+        tmp.merge(bit[j]);
+        if (!tmp.isOk()) idx = j, rt = tmp;
+    }
+
+    return idx+1;
+}
+
+struct edg {
+    int id, u, v, g, s;
+};
+
+bool cmpg(const edg& e1, const edg& e2)
+{
+    return e1.g < e2.g;
+}
+bool cmps(const edg& e1, const edg& e2)
+{
+    return e1.s < e2.s;
+}
+
+int smap[MAXM+7];
+int main()
+{
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    LL S, G;
+    cin >> G >> S;
+
+    vector<edg>golds(m);
+    for (int i = 0; i < m; i++) {
+        golds[i].id = i+1;
+        cin >> golds[i].u >> golds[i].v >> golds[i].g >> golds[i].s;
+    }
+
+    vector<edg>silver(golds);
+    sort(golds.begin(), golds.end(), cmpg);
+    sort(silver.begin(), silver.end(), cmps);
+    for (int i = 0; i < m; i++) {
+        smap[silver[i].id] = i+1;
+    }
+
+    LL ans = LLONG_MAX;
+    bool flg = false;
+    for (int i = 0; i < m; i++) {
+        int x = smap[golds[i].id];
+//        cout << "added " << golds[i].id << endl;
+        update(x, golds[i].u, golds[i].v);
+        if (i+1 < m && golds[i+1].g==golds[i].g) continue;
+        int lo = findFirst();
+//        cout << "found " << lo << " at " << golds[i].g << endl;
+        if (lo != -1) {
+            ans = min(ans, G*golds[i].g + S*silver[lo-1].s);
+            flg = true;
+        }
+    }
+
+    if (flg) cout << ans << endl;
+    else cout << -1 << endl;
+
+
+
+    return 0;
+}

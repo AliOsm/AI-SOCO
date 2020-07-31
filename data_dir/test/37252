@@ -1,0 +1,185 @@
+//Pham Huu Canh
+//
+//Algorithm:
+//Complexity:
+//AC:
+
+#include <iostream>
+#include <fstream>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <map>
+#include <set>
+
+#define max64 9223372036854775807LL
+#define max32 2147483647
+#define maxty 1001001001
+#define max16 32767
+#define EPS 1e-8
+#define ll long long
+#define ull unsigned long long
+#define pb push_back
+#define mp make_pair
+#define PQ priority_queue
+#define LB lower_bound
+#define UB upper_bound
+#define fi first
+#define se second
+#define timmax(x, y)    ((x) > (y) ? (x) : (y))
+#define timmin(x, y)    ((x) < (y) ? (x) : (y))
+#define fori(i, n)      for((i) = 0; (i) < (n); (i)++)
+#define ford(i, n)      for((i) = (n-1); (i) >= 0; (i)--)
+#define fore(i, v)      for(typeof(v.begin()) i = v.begin(); i != v.end(); i++)
+#define repi(i, a, b)   for((i) = (a); (i) <= (b); (i)++)
+#define repd(i, a, b)   for((i) = (a); (i) >= (b); (i)--)
+#define all(tmpv)      tmpv.begin(), tmpv.end()
+
+#define fii "e.inp"
+#define foo "e.out"
+#define MOD 1000000007
+#define inf 1000111000111000111LL
+
+using namespace std;
+
+typedef pair<int, int> II;
+typedef vector<int> VI;
+#define nmax 200005
+
+int n, dtime, dem, cntcom, maxbit;
+VI v[nmax], edge[nmax];
+int newid[nmax], d[nmax], st[nmax], trc[nmax];
+int par[nmax][18], tin[nmax], tout[nmax];
+int len[nmax], xuong[nmax];
+II e[nmax];
+bool ktra;
+
+int dfs_cycle_detection(int x, int g){
+    int lowx, lowy;
+    d[x] = lowx = ++dtime;
+    st[dem++] = x;
+    
+    fore(ite, v[x]){
+        int y = *ite;
+        if (!d[y]){
+            lowy = dfs_cycle_detection(y, x);
+            lowx = timmin(lowx, lowy);
+        }
+        else if (y != g)    lowx = timmin(lowx, d[y]);
+        else g = -1;
+    }
+    
+    if (lowx == d[x]){
+        cntcom++;
+        if (st[dem-1] == x) newid[x] = cntcom, dem--;
+        else{
+            do{
+                dem--;
+                newid[st[dem]] = cntcom;
+            }while (st[dem] != x);
+        }
+    }
+    return lowx;
+}
+
+void dfs_DSU(int x, int g){
+    par[x][0] = g;
+    trc[x] = g;
+    tin[x] = ++dtime;
+    fore(ite, edge[x])  if (*ite != g)  dfs_DSU(*ite, x);
+    tout[x] = dtime;
+}
+
+int root(int i) {   return i == trc[i] ? i : trc[i] = root(trc[i]); }
+
+bool is_parent(int x, int y){
+    return tin[x] <= tin[y] && tout[y] <= tout[x];
+}
+
+int LCA(int x, int y){
+    if (is_parent(x, y))    return x;
+    if (is_parent(y, x))    return y;
+    for (int i = maxbit-1; i >= 0; i--) if (!is_parent(par[x][i], y))   x = par[x][i];
+    return par[x][0];
+}
+
+void traversal(int x, int g){
+    if (!ktra)  return;
+    fore(ite, edge[x])  if (*ite != g){
+        traversal(*ite, x);
+        len[x] += len[*ite];
+        xuong[x] += xuong[*ite];
+    }
+    if (len[x] && xuong[x]) ktra = false;
+}
+
+void input()
+{
+    int ne, nq, i, x, y;
+    
+    scanf("%d %d %d", &n, &ne, &nq);
+    fori(i, ne){
+        scanf("%d %d", &x, &y);
+        v[x].pb(y), v[y].pb(x);
+        e[i] = mp(x, y);
+    }
+    
+    /////////////////////   Simply graph (make graph tree : no cycle)
+    dtime = 0;
+    cntcom = 0;
+    repi(i, 1, n)   if (d[i] == 0)  dem = 0, dfs_cycle_detection(i, i);
+    
+    fori(i, ne){
+        x = newid[e[i].fi], y = newid[e[i].se];
+        if (x == y) continue;
+        edge[x].pb(y), edge[y].pb(x);
+    }
+    
+    /////////////////////   DSU && LCA
+    dtime = 0;
+    repi(i, 1, cntcom)  trc[i] = i;
+    repi(i, 1, cntcom)  if (trc[i] == i)    dfs_DSU(i, i);
+    
+    ///LCA
+    for (maxbit = 0; 1<<maxbit <= cntcom; maxbit++);
+    for (int j = 1; j < maxbit; j++)    repi(i, 1, cntcom)  par[i][j] = par[par[i][j-1]][j-1];
+    
+    ////////////////////    query
+    fori(i, nq){
+        scanf("%d %d", &x, &y);
+        x = newid[x], y = newid[y];
+        if (x == y) continue;
+        
+        if (root(x) != root(y)){
+            printf("No");
+            return;
+        }
+        
+        int lca = LCA(x, y);
+        len[x]++, len[lca]--;
+        xuong[y]++, xuong[lca]--;
+    }
+    
+    ktra = true;
+    repi(i, 1, cntcom)  if (trc[i] == i)    traversal(i, i);
+    
+    if (ktra)   printf("Yes");
+    else        printf("No");
+}
+
+int main()
+{
+    #ifndef ONLINE_JUDGE
+        freopen(fii,"r",stdin);
+        freopen(foo,"w",stdout);
+    #endif
+
+    input();
+
+    return 0;
+}

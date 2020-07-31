@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+
+const int MOD = (int)1e9 + 7;
+
+const int kN = 200000 + 5;
+int n, m;
+std::vector<std::pair<int, LL>> edges[kN];
+LL val[kN];
+bool vis[kN];
+int que[kN];
+LL pw[kN];
+
+int Inv[kN], F[kN], Finv[kN];
+
+inline void add(int &a, int b)
+{
+    a += b;
+    if (a >= MOD) a -= MOD;
+}
+
+LL binom(int a, int b)
+{
+    if (b < 0 || b > a) return 0;
+    return F[a] * 1ll * Finv[b] % MOD * Finv[a - b] % MOD;
+}
+
+int work()
+{
+    int ret = 0;
+    for (int _ = 0; _ < n; ++ _) {
+        if (vis[_]) continue;
+        std::vector<LL> vec;
+        int qf = 0,qe = 0;
+        que[qe++] = _;
+        vis[_] = true;
+        while (qf != qe) {
+            int u = que[qf++];
+            for (auto t : edges[u]) {
+                int v = t.first;
+                LL w = t.second;
+                if (!vis[v]) {
+                    val[v] = val[u] ^ w;
+                    vis[v] = true;
+                    que[qe++] = v;
+                } else if ((val[v] ^ w) != val[u]) {
+                    vec.emplace_back(val[v] ^ w ^ val[u]);
+                }
+            }
+        }
+        for (int j = 0; j < vec.size(); ++ j) {
+            for (int k = j + 1; k < vec.size(); ++ k) {
+                if (vec[j] < vec[k]) std::swap(vec[j], vec[k]);
+            }
+            if (vec[j] == 0) {
+                vec.resize(j); break;
+            }
+            int p = -1;
+            for (int w = 0; w < 63; ++ w)
+                if (vec[j] >> w & 1) p = w;
+            for (int k = 0; k < vec.size(); ++ k) {
+                if (k != j && (vec[k] >> p & 1)) vec[k] ^= vec[j];
+            }
+        }
+        int cnt[63][2] = {};
+        int tnc[63][2] = {};
+        for (int bit = 0; bit < 63; ++ bit) {
+            for (LL x : vec) {
+                tnc[bit][x >> bit & 1] ++;
+            }
+        }
+        int fk[63][2] = {};
+        for (int i = 0; i < 63; ++ i) {
+            for (int t = 0; t <= tnc[i][1]; ++ t) {
+                add(fk[i][t & 1], binom(tnc[i][1], t));
+            }
+        }
+        for (int __ = 0; __ < qe; ++ __) {
+            LL v = val[que[__]];
+            for (int bit = 0; bit < 63; ++ bit) {
+                int x = v >> bit & 1;
+                for (int i = 0; i < 2; ++ i) {
+                    add(ret, pw[bit] * cnt[bit][i] % MOD * pw[tnc[bit][0]] % MOD * fk[bit][x ^ i ^ 1] % MOD);
+                }
+            }
+            for (int bit = 0; bit < 63; ++ bit) {
+                int x = v >> bit & 1;
+                cnt[bit][x] ++;
+            }
+        }
+    }
+    return ret;
+}
+
+int main()
+{
+    Inv[1] = 1;
+    for (int i = 2; i < kN; ++ i) {
+        Inv[i] = (MOD - MOD / i) * 1ll * Inv[MOD % i] % MOD;
+    }
+    F[0] = Finv[0] = 1;
+    for (int i = 1; i < kN; ++ i) {
+        F[i] = F[i - 1] * 1ll * i % MOD;
+        Finv[i] = Finv[i - 1] * 1ll * Inv[i] % MOD;
+    }
+    pw[0] = 1;
+    for (int i = 1; i < kN; ++ i) pw[i] = (pw[i - 1] << 1) % MOD;
+    scanf("%d%d", &n, &m);
+    for (int i = 0; i < m; ++ i) {
+        int a, b;
+        LL c;
+        scanf("%d%d%I64d", &a, &b, &c); a --; b --;
+        edges[a].emplace_back(b, c);
+        edges[b].emplace_back(a, c);
+    }
+    printf("%d\n", work());
+}

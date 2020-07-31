@@ -1,0 +1,224 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define all(x) (x).begin(), (x).end()
+#define clr(x) memset((x), 0, sizeof(x))
+#define clr1(x) memset((x), -1, sizeof(x))
+#define pb push_back
+#define mp make_pair
+#define x first
+#define y second
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> PII;
+typedef pair<ll, ll> PLL;
+typedef pair<ld, ld> PDD;
+
+
+template <class T = int>
+inline T nxt() {
+    T x = 0;
+    int c = getchar();
+    int minus = 0;
+    while (c != '-' && !isdigit(c)) {
+        c = getchar();
+    }
+    if (c == '-') {
+        minus = 1;
+        c = getchar();
+    }
+    while (isdigit(c)) {
+        x = x * 10 + c - '0';
+        c = getchar();
+    }
+    return (minus ? -x : x);
+}
+
+template <class T>
+T sqr(T x) {
+    return x * x;
+}
+
+ll is_sq(ll v) {
+    ll t = (ll)sqrt(v);
+    for (ll i = t - 1; i <= t + 1; ++i) {
+        if (i * i == v) return i;
+    }
+    return -1;
+}
+
+ll gcd(ll a, ll b) {
+    a = abs(a);
+    b = abs(b);
+    while (b) {
+        a %= b;
+        swap(a, b);
+    }
+    return a;
+}
+
+
+const int N = 200010;
+struct Frog {
+    ll x, y;
+    int id;
+    int cnt;
+
+    bool operator < (const Frog &r) const {
+        if (x != r.x) return x < r.x;
+        return id < r.id;
+    }
+};
+
+Frog f[N];
+
+struct MinTree {
+    int t[N + N + N + N];
+    int n;
+    void build(int nn) {
+        n = nn;
+        build(1, 0, n);
+    }
+    ll value(int pos) {
+        return f[pos].x + f[pos].y;
+    }
+    int Max(int p1, int p2) {
+        if (value(p1) < value(p2)) {
+            return p2;
+        }
+        return p1;
+    }
+    void build(int v, int tl, int tr) {
+        if (tl + 1 == tr) {
+            t[v] = tl;
+            return;
+        }
+        int tm = (tl + tr) >> 1;
+        build(v + v, tl, tm);
+        build(v + v + 1, tm, tr);
+        t[v] = Max(t[v + v], t[v + v + 1]);
+    }
+    int getPos(int v, int tl, int tr, int r, ll cur) {
+        if (tl + 1 == tr) {
+            return t[v];
+        }
+        int tm = (tl + tr) >> 1;
+        if (r <= tm) {
+            return getPos(v + v, tl, tm, r, cur);
+        } else {
+            if (value(t[v + v]) >= cur) {
+                return getPos(v + v, tl, tm, r, cur);
+            } else {
+                return getPos(v + v + 1, tm, tr, r, cur);
+            }
+        }
+    }
+    int getPos(int r, ll cur) {
+        if (r <= 0) return 0;
+        int ps = getPos(1, 0, n, r, cur);
+        if (value(ps) < cur) return 0;
+        return ps;
+    }
+
+    void upd(int v, int tl, int tr, int pos, ll add) {
+        if (tl + 1 == tr) {
+            f[tl].cnt += 1;
+            f[tl].y += add;
+            return;
+        }
+        int tm = (tl + tr) >> 1;
+        if (pos < tm) {
+            upd(v + v, tl, tm, pos, add);
+        } else {
+            upd(v + v + 1, tm, tr, pos, add);
+        }
+        t[v] = Max(t[v + v], t[v + v + 1]);
+    }
+};
+
+MinTree tr;
+
+bool add(ll px, ll py) {
+    int l = 0, r = tr.n;
+    while (l < r) {
+        int mid = (l + r + 1) >> 1;
+        if (f[mid].x <= px) {
+            l = mid;
+        } else {
+            r = mid - 1;
+        }
+    }
+    l++;
+    l = min(l, tr.n);
+    int w = tr.getPos(l, px);
+//    cout << "add " << px << " " << py << " " << l << " " ;
+//    cout << f[w].id << endl;
+//    cout << tr.value(w) << endl;
+    if (w == 0) return false;
+    tr.upd(1, 0, tr.n, w, py);
+    return true;
+}
+
+ll cnt[N];
+ll ans[N];
+
+void solve() {
+    int n = nxt();
+    int m = nxt();
+    f[0].x = -1;
+    f[0].y = -1;
+    f[0].cnt = 0;
+    f[0].id = 0;
+    for (int i = 1; i <= n; ++i) {
+        f[i].id = i;
+        f[i].x = nxt();
+        f[i].y = nxt();
+        f[i].cnt = 0;
+    }
+    n++;
+    sort(f, f + n);
+    tr.build(n);
+
+    multiset<pair<ll, ll> > ms;
+
+    for (int i = 0; i < m; ++i) {
+        ll px = nxt();
+        ll py = nxt();
+        if (add(px, py)) {
+            auto it = ms.lower_bound(mp(px, -100));
+            while (it != ms.end()) {
+                if (add(it->x, it->y)) {
+                    it = ms.erase(it);
+                } else {
+                    break;
+                }
+            }
+        } else {
+            ms.insert(mp(px, py));
+        }
+    }
+
+    for (int i = 1; i < n; ++i) {
+        cnt[f[i].id] = f[i].cnt;
+        ans[f[i].id] = f[i].y;
+    }
+    for (int i = 1; i < n; ++i) {
+        cout << cnt[i] << " " << ans[i] << "\n";
+    }
+}
+
+int main()
+{
+#ifdef LOCAL
+    freopen("input.txt", "r", stdin);
+#endif
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    solve();
+
+#ifdef LOCAL
+    cerr << "time: " << clock() / (double)CLOCKS_PER_SEC << "s." << endl;
+#endif
+    return 0;
+}

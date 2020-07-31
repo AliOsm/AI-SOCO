@@ -1,0 +1,204 @@
+#pragma comment(linker, "/STACK:256000000")
+
+#define _USE_MATH_DEFINES
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <cstring>
+#include <cmath>
+#include <ctime>
+#include <cassert>
+#include <memory.h>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <queue>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int64, int64> pii;
+
+const int INF = (int)(1e9 + 1e6);
+const int64 LINF = (int64)2e18;
+const double EPS = 1e-12;
+
+const int MAXN = 3010;
+const int LN = 18;
+
+int n;
+
+int mas[MAXN];
+
+int d[MAXN];
+
+struct node
+{
+	int mn, id, del;
+	node()
+	{
+		mn = INF;
+		id = -1;
+		del = 0;
+		mn = 0;
+	}
+	node(int mn, int id, int del = 0) : del(del), mn(mn), id(id)
+	{
+
+	}
+	bool operator < (const node oth ) const
+	{	
+		if (mn < oth.mn)
+			return true;
+		if (mn == oth.mn)
+		{
+			if (id > oth.id)
+				return true;
+		}
+		return false;
+	}
+};
+
+node trie[4 * MAXN];
+inline void push(int u, int tl, int tr)
+{
+	if (trie[u].del)
+	{
+		if (tl != tr)
+		{
+			trie[2 * u].mn -= trie[u].del;
+			trie[2 * u + 1].mn -= trie[u].del;
+			trie[2 * u].del += trie[u].del;
+			trie[2 * u + 1].del += trie[u].del;
+		}
+		trie[u].del = 0;
+	}
+}
+
+void update(int u, int tl, int tr, int l, int r, int val)
+{
+	push(u, tl, tr);
+	if (l > r)
+		return;
+	if (tl == l && tr == r)
+	{
+		trie[u].mn -= val;
+		trie[u].del = val;
+		push(u, tl, tr);
+		
+		return;
+	}
+	int mid = (tl + tr) >> 1;
+	update(2 * u, tl, mid, l, min(r, mid), val);
+	update(2 * u + 1, mid + 1, tr, max(mid + 1, l), r, val);
+	trie[u] = min(trie[2 * u + 1], trie[2 * u]);
+}
+
+void build(int u, int tl, int tr)
+{
+	if (tl == tr)
+	{
+		trie[u] = node(0, tl);
+		return;
+	}
+	int mid = (tl + tr) >> 1;
+	build(2 * u, tl, mid);
+	build(2 * u + 1, mid + 1, tr);
+}
+
+node get(int u, int tl, int tr, int l, int r)
+{
+	
+	push(u, tl, tr);
+	if (l > r)
+		return node(INF, -1);
+	if (l == tl && tr == r)
+		return trie[u];
+	int mid = (tl + tr) >> 1;
+	node t = get(2 * u, tl, mid, l, min(r, mid));
+	node t1 = get(2 * u + 1, mid + 1, tr, max(mid + 1, l), r);
+	return min(t, t1);
+}
+
+int calc(int pos)
+{
+	if (!pos)
+		return INF;
+	node t = get(1, 0, n - 1, pos, pos);
+	node t1 = get(1, 0, n - 1, pos - 1, pos - 1);
+	int val1 = mas[pos - 1] + (d[pos - 1] == -1 ? (t1.mn - INF) : t1.mn);
+	int val = mas[pos] + (d[pos] == -1 ? (t.mn - INF) : t.mn);
+	return val - val1 - 1;
+}
+
+void solve()
+{
+	cin >> n;
+	for(int i = 0; i < n; ++i)
+		cin >> mas[i];
+	
+	build(1, 0, n - 1);
+	int64 ans = 0;
+	d[0] = 1;
+	for(int i = 1; i < n; ++i)
+	{
+		int add = max(0, -calc(i));
+		int cur = 0;
+		int bal = 0;
+		for(int j = i - 1; j >= 0 && add > 0; --j)
+		{
+			bal += d[j];
+			int can = calc(j);
+			while(bal >= 0 && can > 0 && add > 0)
+			{
+				node t = get(1, 0, n - 1, j, i - 1);
+				if(t.mn == 0)
+				{
+					bal -= 2;
+					d[t.id] = -1;
+					update(1, 0, n - 1, t.id, t.id, -INF);
+					continue;
+				}
+				int del = min(t.mn, min(can, add));
+				add -= del;
+				can -= del;
+			
+				update(1, 0, n - 1, j, i - 1, (int) del);
+			}
+		}
+		if (add)
+		{
+			ans += add;
+			d[i] = 1;
+			update(1, 0, n - 1, i, i, (int)-add);
+		}
+		else
+		{
+			d[i] = -1;
+			update(1, 0, n - 1, i, i, (int)-INF);
+		}
+	}
+	cout << ans;
+}
+
+int main()
+{
+#ifdef _MY_DEBUG
+	freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+#endif
+
+	solve();
+
+	return 0;
+}

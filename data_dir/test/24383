@@ -1,0 +1,132 @@
+#include <iostream>
+#include <cstdio>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int S = 210;
+const int H = 500;
+const int N = H * S;
+const int M = N * 3;
+
+int n, m, a[N], pos[N];
+int L[N], R[N];
+int ll[M], rr[M];
+vector<int> ql[H], qr[H];
+int ans[M];
+vector<pair<int, int>> dat[H];
+
+int link(int k) {
+	int mn = 1e9;
+	if (L[k] != -1) mn = min(mn, a[k] - a[L[k]]);
+	if (R[k] != -1) mn = min(mn, a[R[k]] - a[k]);
+	R[L[k]] = L[R[k]] = k;
+	return mn;
+}
+
+void cut(int k) {
+	R[L[k]] = R[k];
+	L[R[k]] = L[k];
+}
+
+void init() {
+	for (int i = 0; i < n; i++) {
+		L[pos[i]] = i == 0 ? -1 : pos[i - 1];
+		R[pos[i]] = i == n - 1 ? -1 : pos[i + 1];
+	}
+}
+
+int merge(int l, int r) {
+	static int aa[5000];
+	int na = 0;
+	int x = l / S;
+	for (auto p : dat[x]) if (l <= p.second && p.second < r) aa[na++] = p.first;
+	int v = 1e9;
+	for (int i = 0; i < na - 1; i++) {
+		v = min(v, aa[i + 1] - aa[i]);
+	}
+	return v;
+}
+
+int merge(int l0, int r0, int l1, int r1) {
+	static int aa[5000];
+	static int bb[5000];
+	static int cc[5000];
+	int na = 0;
+	int nb = 0;
+	int x = l0 / S;
+	int y = l1 / S;
+	for (auto p : dat[x]) if (l0 <= p.second && p.second < r0) aa[na++] = p.first;
+	for (auto p : dat[y]) if (l1 <= p.second && p.second < r1) bb[nb++] = p.first;
+	merge(aa, aa + na, bb, bb + nb, cc);
+	int v = 1e9;
+	for (int i = 0; i < na + nb - 1; i++) {
+		v = min(v, cc[i + 1] - cc[i]);
+	}
+	return v;
+}
+
+int main() {
+	cin >> n;
+	for (int i = 0; i < n; i++) {
+		scanf("%d", &a[i]);
+		pos[i] = i;
+		dat[i / S].emplace_back(a[i], i);
+		if (i / S - 1 >= 0) {
+			dat[i / S - 1].emplace_back(a[i], i);
+		}
+	}
+	sort(pos, pos + n, [&](int i, int j) { return a[i] < a[j]; });
+	cin >> m;
+	for (int i = 0; i < m; i++) {
+		scanf("%d %d", &ll[i], &rr[i]);
+		ll[i]--;
+		if (ll[i] / S != rr[i] / S) {
+			ql[(ll[i] + S - 1) / S].push_back(i);
+			qr[rr[i] / S].push_back(i);
+		}
+	}
+	for (int i = 0; i < H; i++) {
+		sort(ql[i].begin(), ql[i].end(), [&](int x, int y) { return rr[x] < rr[y]; });
+		sort(qr[i].begin(), qr[i].end(), [&](int x, int y) { return ll[x] > ll[y]; });
+		sort(dat[i].begin(), dat[i].end());
+	}
+	for (int i = 0; i < m; i++) {
+		if (ll[i] / S == rr[i] / S) {
+			ans[i] = merge(ll[i], rr[i]);
+		} else {
+			ans[i] = merge(ll[i], ll[i] / S * S + S, rr[i] / S * S, rr[i]);
+		}
+	}
+	// S->r
+	for (int i = 0; i < H; i++) {
+		init();
+		for (int j = 0; j < min(n, i * S); j++) cut(j);
+		for (int j = n - 1; j >= i * S; j--) cut(j);
+		int mn = 1e9;
+		int j = min(n, i * S);
+		for (int id : ql[i]) {
+			while (j < rr[id]) mn = min(mn, link(j++));
+			ans[id] = min(ans[id], mn);
+		}
+	}
+	// l<-S
+	for (int i = 0; i < H; i++) {
+		init();
+		for (int j = i * S; j < n; j++) cut(j);
+		for (int j = 0; j < min(n, i * S); j++) cut(j);
+		int mn = 1e9;
+		int j = min(n, i * S) - 1;
+		for (int id : qr[i]) {
+			while (j >= ll[id]) mn = min(mn, link(j--));
+			ans[id] = min(ans[id], mn);
+		}
+	}
+	for (int i = 0; i < m; i++) {
+		printf("%d\n", ans[i]);
+	}
+}

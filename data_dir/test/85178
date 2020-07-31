@@ -1,0 +1,185 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define x first
+#define y second
+#define pb push_back
+#define mp make_pair
+#define sqr(a) ((a) * (a))
+#define sz(a) int((a).size())
+#define all(a) (a).begin(), (a).end()
+#define forn(i, n) for (int i = 0; i < int(n); ++i)
+#define fore(i, l, r) for (int i = int(l); i < int(r); ++i)
+
+template<class A, class B> ostream& operator << (ostream& out, const pair<A, B> &a) {
+	return out <<  "(" << a.x << ", " << a.y << ")";
+}
+
+template<class A> ostream& operator << (ostream& out, const vector<A> &a) {
+	out << "[";
+	for (auto it = a.begin(); it != a.end(); ++it) {
+		if (it != a.begin())
+			out << ", ";
+		out << *it;
+	}
+	return out << "]";
+}
+
+typedef long long li;
+typedef long double ld;
+typedef pair<int, int> pt;
+
+const int INF = 1e9;
+const li INF64 = 1e18;
+const int MOD = 1e9 + 7;
+const ld PI = acosl(-1.0);
+const ld EPS = 1e-9;
+
+mt19937 rnd(time(NULL));
+mt19937_64 rnd64(time(NULL));
+
+const int N = 30010;
+
+int n, m, s, t;
+vector<pt> g[N];
+pair<pt, int> e[N];
+
+bool read() {
+	if (scanf("%d %d %d %d", &n, &m, &s, &t) != 4)
+		return false;
+	--s, --t;
+	forn(i, n) g[i].clear();
+	forn(i, m) {
+		scanf("%d %d %d", &e[i].x.x, &e[i].x.y, &e[i].y);
+		--e[i].x.x, --e[i].x.y;
+		g[e[i].x.x].pb(mp(e[i].x.y, i));
+		g[e[i].x.y].pb(mp(e[i].x.x, i));
+	}
+	return true;
+}
+
+vector<int> cur, path;
+bool used[N];
+
+void dfs0(int v) {
+	used[v] = true;
+	if (v == t) path = cur;	
+	if (!path.empty()) return;
+	for (auto it : g[v]) {
+		int to = it.x;
+		if (!used[to]) {
+			cur.pb(it.y);
+			dfs0(to);
+			cur.pop_back();
+		}
+	}
+}
+
+int tin[N], fup[N];
+int T;
+
+int dfs(int v, int p = -1) {
+	tin[v] = fup[v] = T++;
+	used[v] = true;
+	for (auto it : g[v]) {
+		int to = it.x;
+		if (it.y == p) continue;
+		if (used[to]) {
+			fup[v] = min(fup[v], tin[to]);
+		} else {
+			fup[v] = min(fup[v], dfs(to, it.y));
+		}
+	}
+	return fup[v];
+}
+
+int ans, v1, v2;
+
+void get(int w, int id) {
+	memset(used, false, sizeof(used));
+	cur.clear();
+	path.clear();
+	dfs0(s);
+	
+	T = 0;
+	memset(used, false, sizeof(used));
+	memset(tin, 0, sizeof(tin));
+	memset(fup, 0, sizeof(fup));
+	dfs(s);
+	
+	if (!used[t]) {
+		if (ans > w) {
+			ans = w;
+			v1 = id;
+			v2 = -1;
+		}
+	}
+	
+	for (auto idx : path) {
+		int u = e[idx].x.x, v = e[idx].x.y;
+		if (tin[u] > tin[v]) swap(u, v);	
+		if (id != -1 && fup[v] > tin[u] && ans > e[idx].y + w) {
+			ans = e[idx].y + w;
+			v1 = id;
+			v2 = idx;
+		}
+	}
+}
+
+void solve() {
+	ans = 2 * INF + 1;
+	v1 = -1, v2 = -1;
+	
+	get(2 * INF + 1, -1);
+	vector<int> cpath = path;
+	if (path.empty()) {
+		puts("0\n0");
+		return;
+	}
+	
+	for (auto idx : cpath) {
+		int x = e[idx].x.x, y = e[idx].x.y;
+		g[x].erase(find(all(g[x]), mp(y, idx)));
+		g[y].erase(find(all(g[y]), mp(x, idx)));
+		get(e[idx].y, idx);
+		g[x].pb(mp(y, idx));
+		g[y].pb(mp(x, idx));
+	}
+	
+	if (v1 == -1) {
+		puts("-1");
+	} else {
+		printf("%d\n", ans);
+		if (v2 != -1) {
+			printf("2\n%d %d\n", v1 + 1, v2 + 1);
+		} else {
+			printf("1\n%d\n", v1 + 1);
+		}
+	}
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	
+	int tt = clock();
+#endif
+
+	cout << fixed << setprecision(10);
+	cerr << fixed << setprecision(10);
+
+#ifdef _DEBUG
+	while (read()) {
+#else
+	if (read()) {
+#endif
+		solve();
+		
+#ifdef _DEBUG
+		cerr << "TIME = " << clock() - tt << endl;
+		tt = clock();	
+#endif
+	}
+}

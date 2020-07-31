@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+#define MOD 1000000007
+#define BASE 37
+#define INF 1e18
+#define pb push_back
+#define x first
+#define y second
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+const int N = 1024;
+int R, B;
+pii r[N], b[N];
+bool can;
+vector<pii> lines;
+
+bool vis[N][N];
+
+// Given three colinear points p, q, r, the function checks if
+// point q lies on line segment 'pr'
+bool onSegment(pii p, pii q, pii r)
+{
+    if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) &&
+        q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y))
+       return true;
+
+    return false;
+}
+
+// To find orientation of ordered triplet (p, q, r).
+// The function returns following values
+// 0 --> p, q and r are colinear
+// 1 --> Clockwise
+// 2 --> Counterclockwise
+int orientation(pii p, pii q, pii r)
+{
+    // See https://www.geeksforgeeks.org/orientation-3-ordered-points/
+    // for details of below formula.
+    int val = (q.y - p.y) * (r.x - q.x) -
+              (q.x - p.x) * (r.y - q.y);
+
+    if (val == 0) return 0;  // colinear
+
+    return (val > 0)? 1: 2; // clock or counterclock wise
+}
+
+// The main function that returns true if line segment 'p1q1'
+// and 'p2q2' intersect.
+bool doIntersect(pii p1, pii q1, pii p2, pii q2)
+{
+    // Find the four orientations needed for general and
+    // special cases
+    int o1 = orientation(p1, q1, p2);
+    int o2 = orientation(p1, q1, q2);
+    int o3 = orientation(p2, q2, p1);
+    int o4 = orientation(p2, q2, q1);
+
+    // General case
+    if (o1 != o2 && o3 != o4)
+        return true;
+
+    // Special Cases
+    // p1, q1 and p2 are colinear and p2 lies on segment p1q1
+    if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+
+    // p1, q1 and q2 are colinear and q2 lies on segment p1q1
+    if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+
+    // p2, q2 and p1 are colinear and p1 lies on segment p2q2
+    if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+
+     // p2, q2 and q1 are colinear and q1 lies on segment p2q2
+    if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+    return false; // Doesn't fall in any of the above cases
+}
+
+void solve(int A, int C) {
+    if((A == (1<<R)-1) && (C == (1<<B)-1))
+        can = true;
+    if(vis[A][C] || can)
+        return;
+    vis[A][C] = true;
+    for(int i = 0;i<R;i++) {
+        if(A & (1<<i))
+            continue;
+        for(int j = 0;j<B;j++) {
+            if(C & (1<<j))
+                continue;
+            bool failed = false;
+            for(pii line : lines) {
+                if(doIntersect(r[line.x], b[line.y], r[i], b[j])) {
+                    failed = true;
+                    break;
+                }
+            }
+            if(!failed) {
+                lines.pb({i,j});
+                solve(A | (1<<i), C | (1<<j));
+                lines.pop_back();
+            }
+        }
+    }
+}
+
+int main()
+{
+    scanf("%d%d",&R,&B);
+    for(int i =0;i<R;i++)
+        scanf("%d%d",&r[i].x, &r[i].y);
+    for(int i =0;i<B;i++)
+        scanf("%d%d",&b[i].x, &b[i].y);
+    if(B != R)
+        return printf("No"), 0;
+
+    solve(0,0);
+    if(can)
+        printf("Yes");
+    else
+        printf("No");
+    return 0;
+}

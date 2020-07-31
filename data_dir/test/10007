@@ -1,0 +1,167 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e3 + 2;
+const int M = 3e4 + 2;
+const int inf = 2e9 + 7;
+
+struct disj{
+      int p[N], sz[N];
+      void init(){
+            for(int i = 0; i < N; i ++){
+                  p[i] = i, sz[i] = 1;
+            }
+      }
+      int f_s(int v){
+            return v == p[v] ? v:p[v] = f_s(p[v]);
+      }
+      void u_s(int a, int b){
+            a = f_s(a);
+            b = f_s(b);
+            if(a != b){
+                  if(sz[a] < sz[b])
+                        swap(a, b);
+                  p[b] = a;
+                  sz[a] += sz[b];
+            }
+      }
+};
+
+struct st{
+      int u, v, w, i;
+};
+
+int n, m, s, t, mn = inf, cnt[N][N];
+int tin[N], fup[N], used[N], timer;
+disj dsu;
+st a[M], b[M];
+vector <int> vec, ans, brg, vv[N][N];
+vector < pair <int, int> > g[N];
+
+bool cmp(st a, st b){
+      return a.w < b.w;
+}
+
+bool dfs(int v, int pr = 0){
+      tin[v] = fup[v] = ++ timer;
+      used[v] = 1;
+      bool ok = 0;
+      if(v == t)
+            ok = 1;
+      for(int i = 0; i < g[v].size(); i ++){
+            int to = g[v][i].first;
+            if(to == pr)
+                  continue;
+            if(used[to]){
+                  fup[v] = min(fup[v], tin[to]);
+            } else {
+                  bool ret = dfs(to, v);
+                  ok |= ret;
+                  fup[v] = min(fup[v], fup[to]);
+                  if(fup[to] > tin[v] && ret){
+                        if(cnt[to][v] == 1)
+                              brg.push_back(g[v][i].second);
+                        if(cnt[to][v] == 2){
+                              int ret = a[vv[to][v][0]].w + a[vv[to][v][1]].w;
+                              if(ret < mn){
+                                    mn = ret;
+                                    ans.clear();
+                                    ans.push_back(vv[to][v][0]);
+                                    ans.push_back(vv[to][v][1]);
+                              }
+                        }
+                  }
+            }
+      }
+      return ok;
+}
+
+int main(){
+      dsu.init();
+
+      scanf("%d %d %d %d", &n, &m, &s, &t);
+
+      for(int i = 1; i <= m; i ++){
+            scanf("%d %d %d", &a[i].u, &a[i].v, &a[i].w);
+            a[i].i = i;
+            b[i] = a[i];
+            cnt[a[i].u][a[i].v] ++;
+            cnt[a[i].v][a[i].u] ++;
+            vv[a[i].u][a[i].v].push_back(i);
+            vv[a[i].v][a[i].u].push_back(i);
+      }
+
+      sort(b + 1, b + m + 1, cmp);
+
+      for(int i = 1; i <= m; i ++){
+            int u = b[i].u, v = b[i].v;
+            if(dsu.f_s(u) != dsu.f_s(v)){
+                  vec.push_back(b[i].i);
+                  dsu.u_s(u, v);
+            }
+      }
+
+      if(dsu.f_s(s) != dsu.f_s(t)){
+            puts("0");
+            puts("0");
+            return 0;
+      }
+
+      for(int i = 0; i < vec.size(); i ++){
+            int id = vec[i];
+            dsu.init();
+            for(int j = 0; j < vec.size(); j ++){
+                  if(j == i)
+                        continue;
+                  int u = a[vec[j]].u, v = a[vec[j]].v;
+                  dsu.u_s(u, v);
+            }
+            if(dsu.f_s(s) == dsu.f_s(t))
+                  continue;
+            timer = 0;
+            for(int j = 1; j <= n; j ++){
+                  g[j].clear();
+                  tin[j] = fup[j] = used[j] = 0;
+            }
+            dsu.init();
+            for(int j = 1; j <= m; j ++){
+                  int u = a[j].u, v = a[j].v, ii = a[j].i;
+                  if(ii == id)
+                        continue;
+                  g[u].push_back({v, ii});
+                  g[v].push_back({u, ii});
+                  dsu.u_s(u, v);
+            }
+            if(dsu.f_s(s) != dsu.f_s(t)){
+                  if(a[id].w < mn){
+                        mn = a[id].w;
+                        ans.clear();
+                        ans.push_back(id);
+                  }
+            }
+            brg.clear();
+            dfs(s);
+            int a1 = a[id].u, a2 = a[id].v;
+            if(cnt[a1][a2] == 1)
+            for(int j = 0; j < brg.size(); j ++){
+                  int ret = a[id].w + a[ brg[j] ].w;
+                  if(mn > ret){
+                        mn = ret;
+                        ans.clear();
+                        ans.push_back(id);
+                        ans.push_back(brg[j]);
+                  }
+            }
+      }
+
+      if(mn == inf){
+            cout << -1 << endl;
+            return 0;
+      }
+
+      cout << mn << endl;
+      cout << ans.size() << endl;
+      for(int i : ans)
+            cout << i << " ";
+}

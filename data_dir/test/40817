@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int N = 2e5+5;
+int n;
+ll s;
+
+bool poss(const vector<pair<int,int>>& v, int mid) {
+    ll curr = s;
+    int under = 0, over = 0;
+    vector<pair<int,int>> u;
+    for (int i = 0; i < n; i++) {
+        if (v[i].second < mid) {
+            under++;
+            curr -= v[i].first;
+        }
+        else if (v[i].first > mid) {
+            over++;
+            curr -= v[i].first;
+        }
+        else {
+            u.push_back(v[i]);
+        }
+    }
+    /*
+    printf("over = %d, under = %d\n",over,under);
+    cout << "s = " << s << '\n';
+    */
+    if (under <= n/2 && over <= n/2) {
+        sort(u.begin(),u.end());
+        for (int i = 0; i < n/2-under; i++) {
+            curr -= u[i].first;
+        }
+        for (int i = n/2-under; i < u.size(); i++) {
+            curr -= mid;
+        }
+        if (curr >= 0) {
+            return true;
+        }
+        else return false;
+    }
+    return false;
+}
+
+int main() {
+    //ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int t; cin >> t;
+    while (t--) {
+        cin >> n >> s;
+        vector<pair<int,int>> v;
+        for (int i = 0; i < n; i++) {
+            int a, b; cin >> a >> b;
+            v.push_back({a,b});
+        }
+        sort(v.begin(),v.end());
+        int lo = v[n/2].first, hi = 1e9+9;
+        /*
+        cout << 5 << ": " << poss(v,5) << '\n';
+        cout << 5 << ": " << poss(v,5) << '\n';
+        cout << 5 << ": " << poss(v,5) << '\n';
+        */
+        while (lo + 1 < hi) {
+            int mid = (lo+hi)/2;
+            //cout << lo << ' ' << hi << endl;
+            //cout << mid << ": " << poss(v,mid) << '\n';
+            if (poss(v,mid)) {
+                lo = mid;
+            }
+            else {
+                hi = mid;
+            }
+        }
+        cout << lo << '\n';
+    }
+}
+

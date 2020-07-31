@@ -1,0 +1,94 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+
+void presum(vvi &V) {
+	for (int i = 0; i < V.size(); ++i) {
+		for (int j = 1; j < V[i].size(); ++j) {
+			V[i][j] += V[i][j-1];
+		}
+	}
+}
+
+class FT {
+public:
+	vi ft;
+
+	FT(int n) {
+		ft = vi(n);
+	}
+
+	void update(int ind, int val) {
+		while (ind < ft.size()) {
+			ft[ind] += val;
+			ind += ind & -ind;
+		}
+	}
+
+	int query(int ind) {
+		int ans = 0;
+		while (ind != 0) {
+			ans += ft[ind];
+			ind -= ind & -ind;
+		}
+		return ans;
+	}
+};
+
+int main() {
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	int n, m;
+	cin >> n >> m;
+	vi L(m), R(m), Q(m);
+	vvi V(32, vi(n+2));
+	for (int i = 0; i < m; ++i) {
+		cin >> L[i] >> R[i] >> Q[i];
+		L[i]--, R[i]--;
+		for (int j = 0; j < 32; ++j) {
+			if ((1<<j) & Q[i]) {
+				V[j][L[i]]++;
+				V[j][R[i]+1]--;
+			}
+		}
+	}
+	presum(V);
+	for (int i = n-1; i >= 0; --i) {
+		for (int j = 0; j < 32; ++j) {
+			if (V[j][i] > 0) V[j][i] = 1;
+		}
+	}
+	vector<FT> ft(32, FT(n+2));
+	for (int i = 0; i < 32; ++i) {
+		for (int j = 0; j < n; ++j) {
+			if (V[i][j]) ft[i].update(j+1, 1);
+		}
+	}
+	bool ans = true;
+	for (int i = 0; i < m; ++i) {
+		for (int j = 0; j < 32; ++j) {
+			int q = ft[j].query(R[i] + 1) - ft[j].query(L[i]);
+			if (!((1<<j) & Q[i]) && q == R[i] - L[i] + 1) {
+				ans = false;
+			}
+		}
+	}
+	if (ans) {
+		cout << "YES\n";
+		for (int i = 0; i < n; ++i) {
+			if (i != 0) cout << " ";
+			int k = 0;
+			for (int j = 0; j < 32; ++j) {
+				if (V[j][i]) {
+					k |= (1<<j);
+				}
+			}
+			cout << k;
+		}
+		cout << "\n";
+	} else cout << "NO\n";
+	return 0;
+}

@@ -1,0 +1,211 @@
+#include<bits/stdc++.h>
+//#define DEBUG
+#define FOR(i,n) for(int i=1;i<=n;i++)
+#define FORZ(i,n) for(int i=0;i<n;i++)
+#define ll long long
+#define ull unsigned long long
+#define pii pair<ll,ll>
+#define piii pair<pair<int,int>,int>
+#define ff first
+#define ss second
+#define mp make_pair
+#define pb push_back
+#define SIZE 10000002
+#define MOD 1000000007  
+#define LD long long double
+#define bpc __builtin_popcount
+#define gentum getnum
+using namespace std;
+
+inline ll getnum()
+{
+    char c = getchar();
+    ll num,sign=1;
+    for(;c<'0'||c>'9';c=getchar())if(c=='-')sign=-1;
+    for(num=0;c>='0'&&c<='9';)
+    {
+        c-='0';
+        num = num*10+c;
+        c=getchar();
+    }
+    return num*sign;
+}
+
+ll bigmod(ll a,ll mod,ll p)
+{
+    ll ans = 1;
+    
+    for(;p!=0;)
+    {
+        if(p&1)ans=(ans*a)%mod;
+        a=(a*a)%mod;
+        p=p>>1;
+    }
+    return ans;
+}
+
+ll Tree[400005*4];
+ll Free[400005*4];
+ll LazyT[400005*4];
+ll LazyF[400005*4];
+ll inv[400005];
+ll A[400005];
+ll prime[304];
+bool notprime[304];
+int indd=0;    
+
+void make(int l,int r,int ind)
+{
+    LazyT[ind]=1;
+    if(l==r)
+    {
+        Tree[ind]=A[l];
+        for(ll i=0;i<indd;i++)
+        {
+            if(A[l]%prime[i]==0)Free[ind]|=(1LL<<i);
+        }
+
+        return;
+    }
+
+    int m=(l+r)/2;
+
+    make(l,m,2*ind);
+    make(m+1,r,2*ind+1);
+
+    Tree[ind]=(Tree[2*ind]*Tree[2*ind+1])%MOD;
+    Free[ind]=(Free[2*ind]|Free[2*ind+1]);
+}
+
+void LazyUp(int l,int r,int ind)
+{
+    int m=(l+r)/2;
+
+    if(LazyT[ind]>1)
+    {
+        LazyT[2*ind]=(LazyT[2*ind]*LazyT[ind])%MOD;
+        LazyT[2*ind+1]=(LazyT[2*ind+1]*LazyT[ind])%MOD;
+        Tree[2*ind]=(Tree[2*ind]*bigmod(LazyT[ind],MOD,m-l+1))%MOD;
+        Tree[2*ind+1]=(Tree[2*ind+1]*bigmod(LazyT[ind],MOD,r-m))%MOD;
+        LazyT[ind]=1;
+    }
+    if(LazyF[ind]>0)
+    {
+        LazyF[2*ind]|=LazyF[ind];
+        LazyF[2*ind+1]|=LazyF[ind];
+        Free[2*ind]|=LazyF[ind];
+        Free[2*ind+1]|=LazyF[ind];
+        LazyF[ind]=0;
+    }
+}
+
+pii getthings(int l,int r,int ind,int lx,int rx)
+{
+    if(l==lx&&r==rx)
+    {
+        return mp(Tree[ind],Free[ind]);
+    }
+
+    int m=(l+r)/2;
+
+    LazyUp(l,r,ind);
+
+    if(rx<=m)return getthings(l,m,2*ind,lx,rx);
+    else if(lx>m)return getthings(m+1,r,2*ind+1,lx,rx);
+    else
+    {
+        pii x=getthings(l,m,2*ind,lx,m);
+        pii y=getthings(m+1,r,2*ind+1,m+1,rx);
+
+        return mp((x.ff*y.ff)%MOD,(x.ss|y.ss));
+    }
+}
+
+void update(int l,int r,int ind,int lx,int rx,ll mul,ll msk)
+{
+    if(l==lx&&r==rx)
+    {
+        LazyT[ind]=(LazyT[ind]*mul)%MOD;
+        LazyF[ind]|=msk;
+        Tree[ind]=(Tree[ind]*bigmod(mul,MOD,rx-lx+1))%MOD;
+        Free[ind]|=msk;
+
+        return;
+    }
+
+    int m=(l+r)/2;
+
+    LazyUp(l,r,ind);
+
+    if(rx<=m)update(l,m,2*ind,lx,rx,mul,msk);
+    else if(lx>m)update(m+1,r,2*ind+1,lx,rx,mul,msk);
+    else update(l,m,2*ind,lx,m,mul,msk),update(m+1,r,2*ind+1,m+1,rx,mul,msk);
+
+    Tree[ind]=(Tree[2*ind]*Tree[2*ind+1])%MOD;
+    Free[ind]=(Free[2*ind]|Free[2*ind+1]);
+}
+
+char S[123];
+
+int main()
+{
+    for(ll i=1;i<=300;i++)inv[i]=bigmod(i,MOD,MOD-2);
+
+    for (int i=2;i<=300;i++)
+    {
+        if(notprime[i]==false)prime[++indd]=i;
+
+        for(int j=1;j<=indd;j++)
+        {
+            if(i*prime[j]>300)break;
+
+            notprime[i*prime[j]]=true;
+
+            if(i%prime[j]==0)break;
+        }
+    }
+
+    for(int i=1;i<=indd;i++)prime[i-1]=prime[i];
+
+    int n=getnum(),q=getnum();
+
+    for(int i=1;i<=n;i++)A[i]=getnum();
+
+    make(1,n,1);
+
+    while(q--)
+    {
+        scanf("%s",S+1);
+
+        if(S[1]=='T')
+        {
+            int l=getnum(),r=getnum();
+            pii x=getthings(1,n,1,l,r);
+
+            ll ans=x.ff,msk=x.ss;
+
+            for(ll i=0;i<indd;i++)
+            {
+                if((msk&(1LL<<i))>0)
+                {
+                    ans=(ans*(prime[i]-1))%MOD;
+                    ans=(ans*inv[prime[i]])%MOD;
+                }
+            }
+
+            printf("%lld\n",ans);
+        }
+        else
+        {
+            int l=getnum(),r=getnum();
+            ll x=getnum();
+            ll msk=0;            
+            for(ll i=0;i<indd;i++)
+            {
+                if(x%prime[i]==0)msk|=(1LL<<i);
+            }
+
+            update(1,n,1,l,r,x,msk);
+        }
+    }
+}

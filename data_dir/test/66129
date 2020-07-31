@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef vector<int> vi;
+typedef vector<vector<int> > vvi;
+typedef pair<int, int> pii;
+
+#define erep(i, x, n) for (auto i = x; i<=(ll)(n); i++)
+#define rep(i, x, n) for(auto i = x; i<(ll)(n); i++)
+#define all(v) ((v).begin()), ((v).end())
+#define sz(v) ((int)((v).size()))
+#define mod(n, m) (((n%m) + m)%m)
+#define reset(n, m) memset(n, m, sizeof n)
+#define endl '\n'
+
+const int MAXN = 1e5 + 5;
+int root = -1;
+
+struct CentroidDecomposition
+{
+//	int root;
+	int sz[MAXN];
+	bool done[MAXN];
+	char saved[MAXN];
+	vector<int> ctree[MAXN];
+	vector<int> g[MAXN];
+	// init: done(0), get graph in constructor
+	CentroidDecomposition()
+	{
+//		this->root = -1;
+	}
+
+	int updateSZ(int u, int par)
+	{
+		sz[u] = 1;
+		for (int i = 0; i < g[u].size(); i++)
+			if (!done[g[u][i]] && g[u][i] != par)
+				sz[u] += updateSZ(g[u][i], u);
+		return sz[u];
+	}
+	int getCentroid(int u, int par, int n)
+	{
+		int hvyChild = -1;
+		for (int i = 0; i < g[u].size(); i++)
+			if (!done[g[u][i]] && g[u][i] != par
+					&& (hvyChild == -1 || sz[g[u][i]] > sz[hvyChild]))
+				hvyChild = g[u][i];
+		if (sz[hvyChild] <= n / 2)
+			return u;
+		return getCentroid(hvyChild, u, n);
+	}
+	void save(int u, int par, int cen, int x)
+	{
+		saved[u] = x + 'a';
+		for (int i = 0; i < g[u].size(); i++)
+			if (!done[g[u][i]] && g[u][i] != par)
+				save(g[u][i], u, cen, x + 1);
+	}
+	void decompose(int u, int par = -1, char c = 'A')
+	{
+		int cen = getCentroid(u, par, updateSZ(u, par));
+		if (root == -1)
+			root = cen;
+		done[cen] = 1;
+//		save(cen, -1, cen, 0);
+		saved[cen] = c;
+		if (par != -1)
+			ctree[par].push_back(cen);
+		for (int i = 0; i < g[cen].size(); i++)
+			if (!done[g[cen][i]])
+				decompose(g[cen][i], cen, c + 1);
+	}
+} cent;
+
+int main()
+{
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	int n;
+	cin >> n;
+
+	rep(i, 0, n - 1)
+	{
+		int u, v;
+		cin >> u >> v;
+		cent.g[u].push_back(v);
+		cent.g[v].push_back(u);
+	}
+
+	cent.decompose(1);
+//	cout << root << endl;
+	erep(i, 1, n)
+		cout << cent.saved[i] << " ";
+
+	return 0;
+}

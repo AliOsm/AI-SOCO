@@ -1,0 +1,143 @@
+#include <iomanip>
+#include <iostream>
+#include <vector>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <ctime>
+#include <cstdio>
+#include <cmath>
+#include <queue>
+#include <bitset>
+#include <string>
+ 
+#define ll long long
+#define mp make_pair
+#define pb push_back
+ 
+using namespace std;
+ 
+const int N = 200010;
+const int INF = 1e9;
+const int C = 62;
+ 
+int n, m;
+int tmax[C][4 * N], tupd[4 * N];
+string w;
+char s[N];
+bool isdel[N];
+vector <int> vdel;
+ 
+int getCode(char c) 
+{
+    if (c >= 'a' && c <= 'z') return (int)(c - 'a');
+    if (c >= 'A' && c <= 'Z') return (int)(c - 'A') + 26;
+    return (int)(c - '0') + 52;
+}
+ 
+void build(int ind, int v, int tl, int tr) {
+    if (tl == tr) {
+        //if (getCode(s[tl]) == ind) cout << tl << " " << ind << endl;
+        if (getCode(s[tl]) == ind) tmax[ind][v] = tl;
+        else tmax[ind][v] = -INF;        
+        tupd[v] = 0;
+        return;
+    }
+    int tm = (tl + tr) / 2;
+    build(ind, v * 2, tl, tm);
+    build(ind, v * 2 + 1, tm + 1, tr);
+    tmax[ind][v] = max(tmax[ind][v * 2], tmax[ind][v * 2 + 1]);
+    //if (tmax[ind][v] != -INF) cout << ind << " " << v << " " << tl << " " << tr << " " << tmax[ind][v] << endl;
+    tupd[v] = 0;
+}
+ 
+void addToVertex(int ind, int v, int val) {
+    if (tmax[ind][v] != -INF) tmax[ind][v] += val;
+}
+ 
+void push(int v) {
+    if (tupd[v] != 0) {
+        for (int i = 0; i < C; i++) {
+            addToVertex(i, v * 2, tupd[v]);
+            addToVertex(i, v * 2 + 1, tupd[v]);
+        }
+        tupd[v * 2] += tupd[v];
+        tupd[v * 2 + 1] += tupd[v];
+        tupd[v] = 0;
+    }
+}
+ 
+void update(int v, int tl, int tr, int l, int r, int val) {
+    if (l > r) return;
+    if (l == tl && r == tr) {
+        for (int ind = 0; ind < C; ind++) {
+            addToVertex(ind, v, val);
+        }
+        tupd[v] += val;
+        return;
+    }
+    push(v);
+    int tm = (tl + tr) / 2;
+    update(v * 2, tl, tm, l, min(r, tm), val);
+    update(v * 2 + 1, tm + 1, tr, max(l, tm + 1), r, val);
+    for (int ind = 0; ind < C; ind++) {
+        tmax[ind][v] = max(tmax[ind][v * 2], tmax[ind][v * 2 + 1]);
+    }
+}
+ 
+void del(int ind, int v, int tl, int tr, int pos) {
+    if (tl == tr) {
+        tmax[ind][v] = -INF;
+        return;
+    }
+    push(v);
+    int tm = (tl + tr) / 2;
+    if (pos <= tm) del(ind, v * 2, tl, tm, pos);
+    else del(ind, v * 2 + 1, tm + 1, tr, pos);
+    tmax[ind][v] = max(tmax[ind][v * 2], tmax[ind][v * 2 + 1]);
+}
+ 
+pair<int, int> getpos(int ind, int v, int tl, int tr, int val) {
+    if (tmax[ind][v] < val) return mp(n + 1, n + 1);
+    if (tl == tr) return mp(tl, tmax[ind][v]);
+    push(v);
+    int tm = (tl + tr) / 2;
+    if (tmax[ind][v * 2] >= val) return getpos(ind, v * 2, tl, tm, val);
+    return getpos(ind, v * 2 + 1, tm + 1, tr, val);
+}
+ 
+int main() {
+    scanf("%d %d\n", &n, &m);
+    cin >> w;
+    scanf("\n");
+    for (int i = 1; i <= n; i++) s[i] = w[i - 1];
+    for (int i = 1; i <= n; i++) isdel[i] = false;
+    for (int i = 0; i < C; i++) build(i, 1, 1, n);
+    for (int i = 1; i <= m; i++) {
+        int l, r;
+        char c;
+        int cd;
+        scanf("%d %d %c\n", &l, &r, &c);
+        cd = getCode(c);
+        int pos = l;
+        vdel.clear();
+        while (pos <= r) {
+            pair <int, int> p = getpos(cd, 1, 1, n, pos);
+            //cout << p.first << " " << p.second << " " << pos << " " << r << endl;
+            if (p.second > r) break;
+            //cout << p.first << " " << p.second << " " << pos << " " << r << endl;
+            int j = p.first;
+            del(cd, 1, 1, n, j);
+            isdel[j] = true;
+            vdel.pb(j);
+            pos = p.second + 1;
+        }
+        for (int x : vdel) {
+            update(1, 1, n, x, n, -1);
+        }
+    }
+    for (int i = 1; i <= n; i++) {
+        if (!isdel[i]) printf("%c", s[i]);
+    }
+    return 0;
+}

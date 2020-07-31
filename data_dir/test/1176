@@ -1,0 +1,86 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 3e5 + 2;
+
+struct disj{
+      int p[N], sz[N];
+      void init(){
+            for(int i = 0; i < N; i ++)
+                  p[i] = i, sz[i] = 1;
+      }
+      int f_s(int v){
+            return p[v] == v?v:p[v] = f_s(p[v]);
+      }
+      void u_s(int a, int b){
+            a = f_s(a);
+            b = f_s(b);
+            if(a != b){
+                  if(sz[a] < sz[b])
+                        swap(a, b);
+                  p[b] = a;
+                  sz[a] += sz[b];
+            }
+      }
+};
+
+int n, m, q, ans[N], dp[N], used[N], dep[N];
+vector <int> g[N];
+disj dsu;
+
+void dfs(int v){
+      used[v] = 1;
+      int mx1 = 0, mx2 = 0;
+      for(int to : g[v]){
+            if(used[to])
+                  continue;
+            dfs(to);
+            dp[v] = max(dp[v], dp[to]);
+            dep[v] = max(dep[v], dep[to] + 1);
+            if((dep[to] + 1) > mx1){
+                  mx2 = mx1;
+                  mx1 = dep[to] + 1;
+            } else if((dep[to] + 1) > mx2){
+                  mx2 = dep[to] + 1;
+            }
+      }
+      dp[v] = max(mx1 + mx2, dp[v]);
+}
+
+int main(){
+      scanf("%d %d %d", &n, &m, &q);
+
+      dsu.init();
+
+      for(int i = 1; i <= m; i ++){
+            int u, v;
+            scanf("%d %d", &u, &v);
+            g[u].push_back(v);
+            g[v].push_back(u);
+            dsu.u_s(u, v);
+      }
+
+      for(int i = 1; i <= n; i ++){
+            if(!used[i]){
+                  dfs(i);
+                  ans[dsu.f_s(i)] = dp[i];
+            }
+      }
+
+      while(q --){
+            int tp, x, y;
+            scanf("%d", &tp);
+            if(tp == 1){
+                  scanf("%d", &x);
+                  printf("%d\n", ans[dsu.f_s(x)]);
+            } else {
+                  scanf("%d %d", &x, &y);
+                  if(dsu.f_s(x) != dsu.f_s(y)){
+                        int d1 = ans[dsu.f_s(x)], d2 = ans[dsu.f_s(y)];
+                        dsu.u_s(x, y);
+                        ans[dsu.f_s(x)] = max((d1 + 1) / 2 + (d2 + 1) / 2 + 1, max(d1, d2));
+                  }
+            }
+      }
+}

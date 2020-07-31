@@ -1,0 +1,166 @@
+using namespace std;
+#include<bits/stdc++.h>
+
+#define BG begin()
+#define ED end()
+#define st first
+#define nd second
+#define PB push_back
+#define PF push_front
+#define FOR(i,a,b) for (int i=a;i<b;i++)
+#define FORE(i,a,b) for (int i=a;i<=b;i++)
+#define FORD(i,a,b) for (int i=a;i>=b; i--)
+#define TR(c, it) for(typeof((c).begin()) it=(c).begin(); it!=(c).end(); it++)
+#define PI 2 * acos(0)
+#define ri(n)({\
+    int neg=0;\
+    n=0;\
+    char ch;\
+    for(ch=getchar(); ch<'0' || ch>'9'; ch=getchar()) if (ch=='-') neg=1-neg;\
+    n=ch-48;\
+    for(ch=getchar(); ch>='0' && ch<='9'; ch=getchar()) n=(n<<3)+(n<<1)+ch-48;\
+    if (neg) n=-n;\
+})
+
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+typedef pair<int,int> II;
+typedef pair<int,II> III;
+typedef pair<ll,ll> LL;
+const ll INF=1000000000+7;
+const double esp=1e-13;
+
+const int MAX=300000;
+
+vector<int> it[MAX];
+vector<int> a[MAX];
+int b[MAX][20],d[MAX],sz[MAX],child[MAX],pos[MAX],skip[MAX],x[MAX],y[MAX],x2,k,cur[MAX],xx,n,m,type,u,v,ans;
+
+void dfs(int u, int par){
+    sz[u]=child[u]=pos[u]=1;
+    skip[u]=u;
+    TR(a[u],it)
+    if (*it!=par){
+        d[*it]=d[u]+1;
+        b[*it][0]=u;
+        dfs(*it,u);
+        child[u]+=child[*it];
+    }
+}
+
+void hld(int u, int par){
+    TR(a[u],it)
+    if (*it!=par){
+        if (child[*it]*2>=child[u]){
+            skip[*it]=skip[u];
+            sz[ skip[u] ]++;
+            pos[*it]=pos[u]+1;
+        }
+        hld(*it,u);
+    }
+}
+
+int get(int x,int y){
+    return x>>(y-1)&1;
+}
+
+int lca(int u, int v){
+    if (d[u]<d[v]) swap(u,v);
+    int t=d[u]-d[v];
+    FORE(i,1,k)
+    if ( get(t,i) ) u=b[u][i-1];
+    int ans=0;
+    FORD(i,k,0)
+    if (b[u][i]!=b[v][i]){
+        u=b[u][i];
+        v=b[v][i];
+    }
+    else ans=b[u][i];
+    if (u==v) ans=u;
+    return ans;
+}
+
+void it_update(int t, int k, int l, int r, int i, int value){
+    if (l>r) return;
+    if (l==i && r==i){
+        it[t][k]=value;
+        return;
+    }
+    int m=(l+r)/2;
+    if (i<=m) it_update(t,k*2,l,m,i,value);
+    else it_update(t,k*2+1,m+1,r,i,value);
+    it[t][k]=max(it[t][k*2],it[t][k*2+1]);
+}
+
+int it_get(int t, int k, int l, int r, int i, int j){
+    if (i>r || j<l) return 0;
+    if (i<=l && r<=j) return it[t][k];
+    int m=(l+r)/2;
+    int t1=it_get(t,k*2,l,m,i,j);
+    int t2=it_get(t,k*2+1,m+1,r,i,j);
+    return max(t1,t2);
+}
+
+int query(int u, int anc){
+    int res=0;
+    while (skip[u]!=skip[anc]){
+        if (u==skip[u]){
+            res=max(res,cur[u]);
+            u=b[u][0];
+        }
+        else{
+            res=max(res,it_get(skip[u],1,1,sz[skip[u]],1,pos[u]));
+            u=b[ skip[u] ][0];
+        }
+
+    }
+    res=max(res,it_get(skip[u],1,1,sz[ skip[u] ],pos[anc]+1,pos[u]));
+    return res;
+}
+
+int main(){
+ //   freopen("codeforces.inp", "r", stdin);
+ //   freopen(".out", "w", stdout);
+    ios_base::sync_with_stdio (false);
+    cin.tie();
+    cin >> n;
+    FOR(i,1,n){
+        cin >> x[i] >> y[i];
+        a[ x[i] ].PB(y[i]);
+        a[ y[i] ].PB(x[i]);
+    }
+    dfs(1,0);
+    hld(1,0);
+    k=(int)log2(n)+1;
+    FORE(j,1,k)
+    FORE(i,1,n) b[i][j]=b[ b[i][j-1] ][j-1];
+    FORE(i,1,n)
+    if (skip[i]==i) it[i].assign(sz[i]*7,0);
+    memset(cur,0,sizeof(cur));
+    FOR(i,1,n){
+        if ( d[x[i] ]<d[ y[i] ] ) swap(x[i],y[i]);
+    }
+    cin >> m;
+    while (m--){
+        cin >> type;
+        if (type==1){
+            cin >> xx;
+            x2=x[xx];
+            cur[ x2 ]=0;
+            it_update(skip[x2],1,1,sz[ skip[x2] ],pos[x2],0);
+        }
+        if (type==2){
+            cin >> xx;
+            x2=x[xx];
+            cur[ x2 ]=1;
+            it_update(skip[x2],1,1,sz[ skip[x2] ],pos[x2],1);
+        }
+        if (type==3){
+            cin >> u >> v;
+            ans=lca(u,v);
+            if (max(query(u,ans),query(v,ans) )==1) cout << -1 << "\n";
+            else cout << d[u]+d[v]-2*d[ans] << "\n";
+        }
+    }
+}

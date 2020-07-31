@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define fr first
+#define sc second
+#define ii pair<int,int>
+#define mp make_pair
+#define All(v) v.begin(),v.end()
+using namespace std;
+int n,m;
+int col[500000];
+int cnt = 0;
+vector < int > v[500000];
+int in[500000],out[500000];
+/// Lazy Propagation Segment Tree
+const int max_node = 10000000;
+ll tree[max_node];
+ll lazy[max_node];
+
+
+void updateRange(int node , int start , int _end , int l , int r , ll val)
+{
+    if(lazy[node] != 0)
+    {
+        tree[node] = lazy[node]; /// Update it
+        if(start != _end)
+        {
+            lazy[node*2]   = lazy[node];   /// Mark child as lazy
+            lazy[node*2+1] = lazy[node];   /// Mark child as lazy
+        }
+        lazy[node] = 0;  /// Reset it
+    }
+    if(start > _end || start > r || _end < l)
+        return ;
+    if(start >=l && _end <=r)
+    {
+        tree[node] = val;
+        if(start != _end)
+        {
+            /// Not leaf node
+            lazy[node*2]   =val;
+            lazy[node*2+1] =val;
+        }
+        return ;
+    }
+    int mid = (start + _end) / 2;
+    updateRange(node*2   , start ,  mid , l , r , val); /// Updating left  child
+    updateRange(node*2+1 , mid+1 , _end , l , r , val); /// Updating right child
+    tree[node] = (tree[node*2] | tree[node*2+1]);         /// Updating root with max value
+ }
+ll queryRange(int node , int start , int _end, int l , int r)
+{
+    if(start > _end || start > r || _end < l )
+        return 0;
+    if(lazy[node] != 0)
+    {
+        tree[node] =lazy[node]; /// Update it
+        if(start != _end)
+        {
+            lazy[node*2]   = lazy[node];  /// Mark child as lazy
+            lazy[node*2+1] = lazy[node];  /// Mark child as lazy
+        }
+        lazy[node] = 0;   /// Reset it
+    }
+    if(start >= l && _end <= r)  /// Current segment is totally within range [l, r]
+        return tree[node];
+    int mid = (start + _end) / 2;
+    ll x1 = queryRange(node*2   , start ,  mid , l , r);   /// Query left  child
+    ll x2 = queryRange(node*2+1 , mid+1 , _end , l , r);   /// Query right child
+    return (x1|x2);
+}
+int dfs(int node , int par)
+{
+    cnt++;
+    in[node] = cnt;
+    for(int i=0;i<v[node].size();i++)
+    {
+        int u = v[node][i];
+        if(u!=par)
+        {
+            dfs(u,node);
+        }
+    }
+    out[node] = cnt;
+}
+int main()
+{
+   cin>>n>>m;
+   for(int i=1;i<=n;i++)
+   {
+       scanf("%d",&col[i]);
+   }
+   for(int i=1;i<n;i++)
+   {
+       int x,y;
+       scanf("%d%d",&x,&y);
+       v[x].push_back(y);
+       v[y].push_back(x);
+   }
+   dfs(1,-1);
+   for(ll i=1;i<=n;i++)
+   {
+       updateRange(1,1,n,in[i],in[i],(1LL<<col[i]));
+   }
+   for(int i=0;i<m;i++)
+   {
+       int t;
+       scanf("%d",&t);
+       if(t == 1)
+       {
+           int node ;
+           ll k;
+           scanf("%d%I64d",&node,&k);
+           updateRange(1,1,n,in[node],out[node],(1LL<<k));
+       }
+       else
+       {
+            int node ;
+           scanf("%d",&node);
+           ll ans = queryRange(1,1,n,in[node],out[node]);
+           int bb = 0;
+           for(ll j=0;j<62;j++)
+           {
+               if((1LL<<j)&ans)
+                bb++;
+           }
+           printf("%d\n",bb);
+       }
+   }
+}

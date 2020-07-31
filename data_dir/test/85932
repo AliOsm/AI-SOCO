@@ -1,0 +1,147 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef double db;
+typedef pair<int,int> pii;
+typedef vector<int> vi;
+#define dd(x) cout << #x << " = " << x << ", "
+#define de(x) cout << #x << " = " << x << endl
+#define rep(i,a,b) for(int i=(a);i<(b);++i)
+#define per(i,a,b) for(int i=(b)-1;i>=(a);--i)
+#define all(x) (x).begin(),(x).end()
+#define sz(x) (int)(x).size()
+#define mp make_pair
+#define pb push_back
+#define fi first
+#define se second
+//INF = 1 061 109 567 ; INF + INF = 2 122 219 134 ;
+//LINF = 4 557 430 888 798 830 399 ; LINF + LINF = 9 114 861 777 597 660 798 ;
+const int INF = 0x3f3f3f3f;
+const ll LINF = 0x3f3f3f3f3f3f3f3f;
+const int MOD = (int)1e9+7;
+const int N = (int)2e5+7;
+
+//常用函数
+char read_char() {char c;for(;;){c=getchar();if(c>='A'&&c<='Z')return c;}}
+ll powmod(ll a,ll b) {ll res=1;a%=MOD;for(;b;b>>=1){if(b&1)res=res*a%MOD;a=a*a%MOD;}return res;}
+ll gcd(ll a,ll b) { return b?gcd(b,a%b):a;}
+ll add(ll a, ll b) { a = ((a + b) % MOD + MOD) % MOD; return a; }
+ll mul(ll a, ll b) { return a * b % MOD; }
+
+//--------变量--------//
+
+struct Fenwick {    //注意下标从 1 开始，以及可能需要离散化操作
+    int n; ll tree[N << 1];
+
+    int Lowbit(int x) { return x & -x; }
+
+    void Init(int n) {
+        memset(tree, 0, sizeof(tree));
+        this->n = n;
+    }
+
+    ll Sum(int x) {
+        ll ret = 0;
+        for (; x > 0; x -= Lowbit(x))
+            ret += tree[x];
+        return ret;
+    }
+
+    void Add(int x, ll d) {
+        for (; x <= n; x += Lowbit(x))
+            tree[x] += d;
+    }
+};
+
+//区间修改，区间查询
+struct Sec_Fenwick {
+	Fenwick c1, c2;
+	void Init(ll *a, int n)     //a[]下标从1开始，a[0] = 0
+	{
+	    c1.Init(n); c2.Init(n);
+	    rep(i, 1, n+1) {
+	        c1.Add(i, a[i] - a[i-1]);
+	        c2.Add(i, (i-1) * (a[i] - a[i-1]));
+	    }
+	}
+	
+	void Update(ll l, ll r, ll x)
+	{
+	    c1.Add(l, x); c1.Add(r+1, -x);
+	    c2.Add(l, (l-1) * x); c2.Add(r+1, r * -x);
+	}
+	
+	ll Query(ll l, ll r)
+	{
+	    ll R = r * c1.Sum(r) - c2.Sum(r);
+	    ll L = (l-1) * c1.Sum(l-1) - c2.Sum(l-1);
+	    return R - L;
+	}
+};
+
+struct Node {
+	int l, r, dep;
+};
+
+Sec_Fenwick ans[2];
+Node tree[N];
+int n, m, a[N], cnt;
+ll aa[N << 1];
+vi e[N];
+
+//--------函数--------//
+
+void dfs(int x, int fa, int dep) {
+    tree[x].l = ++cnt;
+    tree[x].dep = dep;
+    rep(i, 0, sz(e[x])) {
+        int v = e[x][i];
+        if (v == fa) continue;
+        dfs(v, x, !dep);
+    }
+    tree[x].r = ++cnt;
+}
+
+void Init() {
+    rep(i, 1, n+1) scanf("%d", a + i);
+    rep(i, 1, n) {
+        int u, v;
+        scanf("%d%d", &u, &v);
+        e[u].pb(v);
+        e[v].pb(u);
+    }
+    cnt = 0;
+    dfs(1, 0, 1);
+    aa[0] = 0;
+    memset(aa, 0, sizeof(aa));
+    ans[0].Init(aa, n << 1);
+    ans[1].Init(aa, n << 1);
+}
+
+int Solve() {
+    while (m--) {
+        int t;
+        scanf("%d", &t);
+        if (t == 1) {
+            int x, val;
+            scanf("%d%d", &x, &val);
+            ans[tree[x].dep].Update(tree[x].l, tree[x].r, val);
+        } else {
+            int x;
+            scanf("%d", &x);
+            ll tmp = ans[tree[x].dep].Query(tree[x].l, tree[x].l) - ans[!tree[x].dep].Query(tree[x].l, tree[x].l);
+            printf("%lld\n", tmp + a[x]);
+        }
+    }
+}
+
+//--------main--------//
+
+int main ()
+{
+    while (~scanf("%d%d", &n, &m)) {
+        Init();
+        Solve();
+    }
+    return 0;
+}

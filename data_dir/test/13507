@@ -1,0 +1,244 @@
+#include<bits/stdc++.h>
+#include<unordered_set>
+#include<unordered_map>
+using namespace std;
+
+#define MAX_N 110
+#define MAX_K 100002
+
+struct Prime{
+	vector<bool> v;
+public:
+	void resize(int N){
+		v.assign(N + 2, true);
+		v[0] = v[1] = false;
+		int siz = v.size();
+		for (int i = 2; i < siz; i++){
+			if (v[i]){
+				for (int j = i * 2; j < siz; j += i)v[j] = false;
+			}
+		}
+	}
+	bool isprime(int val){
+		return (v[val] == true);
+	}
+};
+class dinic{  //Dinic�@
+	/*
+	max_frow(�X�^�[�g,�S�[��)�@�ő��t���[�����߂�
+	dinic(int n)�@���_��
+	add(from,go,�e��)�@�ӂ̒ǉ�
+	*/
+	struct ed{
+		int cap;  //�e��
+		int rev;  //�t
+		int to;  //�s����
+	};
+	vector<vector<ed> > g;  //���_
+	vector<int> level;  //start�����̋���
+	vector<int> iter;  //�ǂ��܂Œ��ׂ���
+	void bfs(int start){
+		int kari = start;
+		level.clear();
+		level.assign(g.size(), -1);
+		level[kari] = 0;
+		queue<int> q;
+		q.push(kari);
+		while (!q.empty()){
+			kari = q.front();
+			q.pop();
+			for (int i = 0; i<g[kari].size(); i++){
+				if (g[kari][i].cap>0 && level[g[kari][i].to]<0){
+					level[g[kari][i].to] = level[kari] + 1;
+					q.push(g[kari][i].to);
+				}
+			}
+		}
+	}
+	int dfs(int g1, int v66, int f66){  //���ݒn�A�ړI�n�Afrow
+		if (g1 == v66){
+			return f66;
+		}
+		/*�������ꏊ��������*/
+		for (int &i = iter[g1]; i<g[g1].size(); i++){
+			if (level[g1]<level[g[g1][i].to] && g[g1][i].cap>0){
+				int kari = 0;
+				if (f66 == -1){
+					kari = dfs(g[g1][i].to, v66, g[g1][i].cap);
+				}
+				else{
+					kari = dfs(g[g1][i].to, v66, min(g[g1][i].cap, f66));
+				}
+				if (kari == -1){
+					continue;
+				}
+				else{
+					g[g1][i].cap -= kari;
+					g[g[g1][i].to][g[g1][i].rev].cap += kari;
+					return kari;
+				}
+			}
+		}
+		return -1;
+	}
+public:
+	int max_frow(int s09, int t09){  //s����t�ւ̍ő��t���[
+		int re = 0;
+		while (1){
+			bfs(s09);
+			if (level[t09] == -1){
+				return re;
+			}
+			iter.clear();
+			iter.assign(g.size(), 0);
+			while (1){
+				int ka = dfs(s09, t09, -1);
+				if (ka == -1){
+					break;
+				}
+				else{
+					re += ka;
+				}
+			}
+		}
+	}
+	void add(int ss21, int gg21, int cost21){  //ss����gg��cost��������
+		ed kari;
+		kari.to = gg21;
+		kari.cap = cost21;
+		kari.rev = g[gg21].size();
+		g[ss21].push_back(kari);
+		kari.cap = 0;
+		kari.rev = g[ss21].size() - 1;
+		kari.to = ss21;
+		g[gg21].push_back(kari);
+	}
+	vector<int> mat;
+	vector<bool> vis;
+	bool b_dfs(int v){
+		vis[v] = true;
+		for (int i = 0; i < g[v].size(); i++){
+			int go = g[v][i].to;
+			int w = mat[go];
+			if (w < 0 || (vis[w] == false && b_dfs(w))){
+				mat[v] = go;
+				mat[go] = v;
+				return true;
+			}
+		}
+		return false;
+	}
+	int bi(){
+		int res = 0;
+		vis.assign(g.size(), false);
+		mat.assign(g.size(), -1);
+		for (int i = 0; i < mat.size(); i++){
+			if (mat[i] < 0){
+				vis.assign(g.size(), false);
+				if (b_dfs(i)){
+					res++;
+				}
+			}
+		}
+		return res;
+	}
+	dinic(int n132){ //���_��
+		vector<ed> vgg;
+		vgg.clear();
+		g.assign(n132 + 5, vgg);
+	}
+};
+int n;
+int k;
+
+struct st{
+	int p;
+	int c;
+	int l;
+};
+
+vector<st> v;
+
+bool cmp(st a, st b){
+	return a.l < b.l;
+}
+
+
+Prime pr;
+
+
+#define FF
+bool ok(int id){
+	vector<st> val[2];
+	long long int sum = 0;
+	int one = -1;
+	for (int i = 0; i <= id; i++){
+		if (v[i].c == 1){
+			one = max(one, v[i].p);
+		}
+		else{
+			val[v[i].c & 1].push_back(v[i]);
+			sum += v[i].p;
+		}
+	}
+	if (one >= 0){
+		sum += one;
+		val[1].push_back({ one, 1, -1 });
+	}
+	long long int cost = 0;
+	if (val[0].size() && val[1].size()){
+		dinic d(val[0].size()+val[1].size()+2);
+		int star = val[0].size() + val[1].size();
+		int en = star + 1;
+		for (int i = 0; i < val[0].size(); i++){
+			for (int j = 0; j < val[1].size(); j++){
+				int go = val[0][i].c + val[1][j].c;
+				if (pr.isprime(go)){
+					d.add(i, val[0].size() + j, 1145141919810893);
+				}
+				if (i == 0){
+					d.add(val[0].size() + j, en, val[1][j].p);
+				}
+			}
+			d.add(star, i, val[0][i].p);
+		}
+		cost=d.max_frow(star, en);
+	}
+	sum -= cost;
+	return sum >= k;
+}
+
+
+
+int main(){
+	pr.resize(200002);
+	cin >> n >> k;
+	for (int i = 0; i < n; i++){
+		int p, c, l;
+		scanf("%d%d%d", &p, &c, &l);
+		v.push_back({ p, c, l });
+	}
+	sort(v.begin(), v.end(), cmp);
+	int mint = 0;
+	int maxt = v.size() - 1;
+	while (mint + 1 < maxt){
+		int mid = ((mint + maxt) >> 1);
+		if (ok(mid)){
+			maxt = mid;
+		}
+		else{
+			mint = mid;
+		}
+	}
+	if (ok(maxt) == false){
+		puts("-1");
+		return 0;
+	}
+	if (ok(mint)){
+		printf("%d\n", v[mint].l);
+	}
+	else{
+		printf("%d\n", v[maxt].l);
+	}
+	return 0;
+}

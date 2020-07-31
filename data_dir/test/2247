@@ -1,0 +1,251 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define rep(i,n) for(int i=0;i<n;i++)
+#define pi pair<int,int>
+#define f first
+#define s second
+#define fr freopen("in.txt","r",stdin)
+#define ll long long
+#define pb push_back
+struct Edge
+{
+    int u, v, c, ind;
+    Edge(){}
+    Edge(int _u, int _v, int _c, int _ind) {
+        u = _u;
+        v = _v;
+        c = _c;
+        ind = _ind;
+    }
+};
+
+bool MSTEdge[200011];
+int pa[200011];
+int sz[200011];
+Edge edge[200011];
+int n, m;
+int ans[200011];
+bool func(Edge a, Edge b) {
+    return a.c < b.c;
+}
+int f(int x) {
+    if(x == pa[x]) return x;
+    return pa[x] = f(pa[x]);
+}
+bool join(int u, int v) {
+    u = f(u);
+    v = f(v);
+    if(u != v) {
+        if(sz[u] < sz[v]) swap(u, v);
+        sz[u] += sz[v];
+        pa[v] = u;
+        return 1;
+    }
+    return 0;
+}
+
+vector<pi> tree[200011];
+vector<pi> badGraph[200011];
+
+void makeSpanningTree() {
+    vector<Edge> E;
+    rep(i, m) {
+        E.push_back(edge[i]);
+    }
+    for(int i=1;i<=n;i++) {
+        pa[i] = i;
+        sz[i] = 1;
+    }
+    sort(E.begin(), E.end(), func);
+    rep(i, m) {
+        if(join(E[i].u, E[i].v)) {
+            MSTEdge[E[i].ind] = 1;
+            tree[E[i].u].push_back(make_pair(E[i].v, E[i].ind));
+            tree[E[i].v].push_back(make_pair(E[i].u, E[i].ind));
+        }
+        else{
+            MSTEdge[E[i].ind] = 0;
+            badGraph[E[i].u].push_back(make_pair(E[i].v, E[i].ind));
+            badGraph[E[i].v].push_back(make_pair(E[i].u, E[i].ind));
+        }
+    }   
+}
+
+int dp[200011][20];
+int sdp[200011][20];
+int d[200011];
+
+void init(int v,int p, int w) {
+    if(p != -1) {
+        d[v] = d[p]+1;
+        dp[v][0] = p;
+        sdp[v][0] = w;
+    }
+    rep(i, tree[v].size()) {
+        if(tree[v][i].f != p) {
+            init(tree[v][i].f, v, edge[tree[v][i].s].c);
+        }
+    }
+}
+void build() {
+    for(int j=1;j<20;j++) {
+        for(int i=1; i<=n ;i++) {
+            dp[i][j] = dp[dp[i][j-1]][j-1];
+            sdp[i][j] = max(sdp[i][j-1], sdp[dp[i][j-1]][j-1]);
+        }
+    }
+}
+int LCA(int u, int v) {
+    if(d[u] < d[v]) swap(u, v);
+    int diff = d[u] - d[v];
+    rep(i, 20) {
+        if(diff&(1<<i)) u = dp[u][i];
+    }
+    if(u != v) {
+        for(int i=19;i>=0;i--) {
+            if(dp[u][i] != dp[v][i]) {
+                u = dp[u][i];
+                v = dp[v][i];
+            }
+        }
+        u = dp[u][0];
+    }
+    return u;
+}
+int maxValue(int L, int u) {
+    int diff = d[u] - d[L];
+    int ans = 0;
+    rep(i,20) {
+        if(diff&(1<<i)) {
+            ans = max(ans, sdp[u][i]);
+            u = dp[u][i];
+        }
+    }
+    return ans;
+}
+int maxPathValue(int u, int v) {
+    int L = LCA(u, v);
+    return max(maxValue(L, u), maxValue(L, v));
+}
+void calcForNonMSTEdges() {
+    rep(i, m) {
+        if(!MSTEdge[i]) {
+            ans[i] = maxPathValue(edge[i].u, edge[i].v)-1;
+        }
+    }
+}
+
+int pa_edge[200011];
+bool del[200011];
+int curval[200011];
+int tot = 0;
+std::vector<int> V;
+void dfs(int v, int p) {
+    sz[v] = 1;
+    tot++;
+    V.pb(v);
+    rep(i, tree[v].size()) {
+        if(!del[tree[v][i].f] and tree[v][i].f != p) {
+            dfs(tree[v][i].f, v);
+            sz[v] += sz[tree[v][i].f];
+        }
+    }
+}
+
+int centroid(int v, int p) {
+    int mx = -1;
+    rep(i, tree[v].size()) {
+        if(tree[v][i].f != p and !del[tree[v][i].f]) {
+            if(mx == -1) {
+                mx = tree[v][i].f;
+            }
+            else{
+                if(sz[mx] < sz[tree[v][i].f]) mx = tree[v][i].f;
+            }
+        }
+    }
+    if(mx ==-1 or sz[mx] <= tot/2) return v;
+    return centroid(mx, v);
+}
+int mark[200011];
+void marknodes(int v, int p, int s) {
+    mark[v] = s;
+    curval[v] = INT_MAX;
+    rep(i, tree[v].size()) {
+        if(tree[v][i].f != p and !del[tree[v][i].f]) {
+            marknodes(tree[v][i].f, v, s);
+        }
+    }
+}
+void dfscalc(int v,int p, int id) {
+    rep(i, tree[v].size()) {
+        if(tree[v][i].f != p and !del[tree[v][i].f]) {
+            dfscalc(tree[v][i].f, v, tree[v][i].s);
+            curval[v] = min(curval[v], curval[tree[v][i].f]);
+        }
+    }
+    if(id!=-1 and curval[v]!=INT_MAX) {
+        ans[id] = min(ans[id], curval[v]-1);
+    }
+}
+void calcForMSTEdges(int v, int id) {
+
+    tot = 0;
+    V.clear();
+    dfs(v, -1);
+
+    int root = centroid(v,-1);    
+    del[root] = 1;
+
+    int tmp = 1;
+    rep(i, tree[root].size()) {
+        if(!del[tree[root][i].f]) {
+            marknodes(tree[root][i].f,root,tmp++);
+        }
+    }
+    curval[root] = INT_MAX;
+    mark[root] = tmp++;
+
+    int x, y;
+    rep(i, V.size()) {
+        x = V[i];
+        rep(j, badGraph[x].size()) {
+            y = badGraph[x][j].f;
+            if(mark[x]!=0 and mark[y]!=0 and mark[x] != mark[y]) {
+                curval[x] = min(curval[x], edge[badGraph[x][j].s].c);
+                curval[y] = min(curval[y], edge[badGraph[x][j].s].c);
+            }
+        }
+    }
+
+    rep(i, V.size()) mark[V[i]] = 0;
+    mark[root] = 0;
+    
+    dfscalc(root,-1,-1);
+
+    rep(i, tree[root].size()) {
+        if(!del[tree[root][i].f]) {
+            calcForMSTEdges(tree[root][i].f, tree[root][i].s);
+        }
+    }
+}
+int main() {
+    cin >> n >> m;
+    rep(i, m) {
+        cin >> edge[i].u >>  edge[i].v >> edge[i].c;
+        edge[i].ind = i;
+    }
+    makeSpanningTree();
+    init(1, -1, -1);
+    build();
+    rep(i, m) {
+        ans[i] = INT_MAX;
+    }
+    calcForNonMSTEdges();    
+    calcForMSTEdges(1,-1);
+    rep(i, m) {
+        if(ans[i] == INT_MAX) ans[i] = -1;
+        if(ans[i] == -1) assert(MSTEdge[i]);
+        cout << ans[i] << " ";
+    }
+}

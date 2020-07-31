@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+#define endl '\n';
+#define IOS ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define floop(i,a,b) for(int i=a;i<=b;++i)
+const ll mod=1e9+7;
+struct Edge
+{
+    int from, to, capacity, cost;
+    Edge(int a,int b,int c,int d){
+    	from=a;
+    	to=b;
+    	capacity=c;
+    	cost=d;
+    }
+};
+
+vector<vector<int>> adj, cost, capacity;
+
+const int INF = 1e9;
+
+void shortest_paths(int n, int v0, vector<int>& d, vector<int>& p) {
+    d.assign(n, INF);
+    d[v0] = 0;
+    vector<int> m(n, 2);
+    deque<int> q;
+    q.push_back(v0);
+    p.assign(n, -1);
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop_front();
+        m[u] = 0;
+        for (int v : adj[u]) {
+            if (capacity[u][v] > 0 && d[v] > d[u] + cost[u][v]) {
+                d[v] = d[u] + cost[u][v];
+                p[v] = u;
+                if (m[v] == 2) {
+                    m[v] = 1;
+                    q.push_back(v);
+                } else if (m[v] == 0) {
+                    m[v] = 1;
+                    q.push_front(v);
+                }
+            }
+        }
+    }
+}
+
+int min_cost_flow(int N, vector<Edge> edges, int K, int s, int t) {
+    adj.assign(N, vector<int>());
+    cost.assign(N, vector<int>(N, 0));
+    capacity.assign(N, vector<int>(N, 0));
+    for (Edge e : edges) {
+        adj[e.from].push_back(e.to);
+        adj[e.to].push_back(e.from);
+        cost[e.from][e.to] = e.cost;
+        cost[e.to][e.from] = -e.cost;
+        capacity[e.from][e.to] = e.capacity;
+    }
+
+    int flow = 0;
+    int cosT = 0;
+    vector<int> d, p;
+    while (flow < K) {
+        shortest_paths(N, s, d, p);
+        if (d[t] == INF)
+            break;
+
+        // find max flow on that path
+        int f = K - flow;
+        int cur = t;
+        while (cur != s) {
+            f = min(f, capacity[p[cur]][cur]);
+            cur = p[cur];
+        }
+
+        // apply flow
+        flow += f;
+        cosT += f * d[t];
+        cur = t;
+        while (cur != s) {
+            capacity[p[cur]][cur] -= f;
+            capacity[cur][p[cur]] += f;
+            cur = p[cur];
+        }
+    }
+
+    // if (flow < K)
+    //     return -1;
+    // else
+        return cosT;
+}
+int lessthanorequal[55],morethanorequal[55];
+int main(){
+	IOS;
+	int n,q;
+	cin>>n>>q;
+	for (int i = 1; i <= n; ++i)
+	{
+		lessthanorequal[i]=n;
+		morethanorequal[i]=1;
+	}
+	for (int i = 0; i < q; ++i)
+	{
+		int t,l,r,v;
+		cin>>t>>l>>r>>v;
+		floop(j,l,r){
+			if(t==1){
+				morethanorequal[j]=max(morethanorequal[j],v);
+			}
+			else lessthanorequal[j]=min(lessthanorequal[j],v);
+		}
+	}
+	for (int i = 1; i <= n; ++i)
+	{
+		if(morethanorequal[i]>lessthanorequal[i]){
+			cout<<-1<<endl;
+			return 0;
+		}
+	}
+	vector<Edge>edges;
+	floop(i,1,n){
+		edges.emplace_back(Edge(0,i,1,0));
+	}
+	floop(i,1,n){
+		floop(j,morethanorequal[i],lessthanorequal[i]){
+			edges.emplace_back(Edge(i,n+j,1,0));
+		}
+	}
+	floop(i,n+1,2*n){
+		floop(j,1,n){
+			edges.emplace_back(Edge(i,j+2*n,1,2*j-1));
+		}
+	}
+	floop(i,2*n+1,3*n) {
+		edges.emplace_back(Edge(i,3*n+1,n+5,0));
+	}
+	int ans=min_cost_flow(3*n+10,edges,1e9,0,3*n+1);
+	cout<<ans<<endl;
+	return 0;
+}

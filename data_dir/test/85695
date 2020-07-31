@@ -1,0 +1,59 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=3e6+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a,T b){T ret=1;for (;b;b>>=1ll,a=a*a%M) ret=1ll*ret*a%M;return ret;}
+
+int n,m;
+int i,j;
+LL k,l;
+char s[4];
+bool guess(int a,int b){
+	printf("1 %d %d\n",a,b);
+	fflush(stdout);
+	scanf("%s",s);
+	if (s[0]=='T') return 1;
+	else return 0;
+}
+int judge(int x,int y){
+	int mid;
+	while (x<y){
+		mid=(x+y)/2;
+		if (!guess(mid,mid+1)) x=mid+1;
+		else y=mid;
+	}
+	return x;
+}
+int main(){
+	int x,y=0;
+	scanf("%d%d",&n,&k);
+	x=judge(1,n);
+	if (x!=n) y=judge(x+1,n);
+	if (y==0||!guess(y,x)) y=judge(1,x-1);
+	printf("2 %d %d",x,y);
+	fflush(stdout);
+}

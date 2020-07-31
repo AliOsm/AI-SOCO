@@ -1,0 +1,161 @@
+#include<bits/stdc++.h>
+#define IOS ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define ll long long
+#define INF 2000000000
+#define pb push_back 
+#define max(a,b) (a>b?a:b)
+#define min(a,b) (a<b?a:b)
+
+using namespace std;
+
+int n,k;
+string s;
+vector<int>sets[300001];
+vector<int>positions[300001];
+int id[300001];
+int dist[300001];
+int force[300001];
+ll dp[300001][2];
+int ans = 0;
+
+void dfs(int node,int val)
+{
+	dist[node] = val;
+	for(auto it:sets[node])
+	{
+		for(auto it2:positions[it])
+		{
+			if(dist[it2] == INF)
+			{
+				if(s[it-1] == '0')
+					dfs(it2,1-val);
+				else
+					dfs(it2,val);
+			}
+		}
+	}
+}
+
+int parent(int idx)
+{
+	while(idx != id[idx])
+	{
+		id[idx] = id[id[idx]];
+		idx = id[idx];
+	}
+	return id[idx];
+}
+
+void un(int a,int b)
+{
+	int x = parent(a);
+	int y = parent(b);
+	if(x == y)
+		return;
+	id[y] = x;
+	ans -= min(dp[x][0],dp[x][1]) + min(dp[y][0],dp[y][1]);
+	if(force[x] != -1)
+	{
+		if(dist[x] == dist[y])
+		{
+			dp[x][force[x]] += dp[y][force[x]];
+			dp[x][1 - force[x]] = INF;
+		}
+		else
+		{
+			dp[x][force[x]] += dp[y][force[x] ^ 1];
+			dp[x][1 - force[x]] = INF;
+		}
+	}
+	else if(force[y] != -1)
+	{
+		if(dist[x] == dist[y])
+		{
+			dp[x][force[y]] += dp[y][force[y]];
+			dp[x][1 - force[y]] = INF;
+		}
+		else
+		{
+			dp[x][force[y] ^ 1] += dp[y][force[y]];
+			dp[x][force[y]] = INF;
+		}
+	}
+	else
+	{
+		if(dist[x]%2 == dist[y]%2)
+		{
+			dp[x][0] += dp[y][0];
+			dp[x][1] += dp[y][1];
+		}
+		else
+		{
+			dp[x][0] += dp[y][1];
+			dp[x][1] += dp[y][0];
+		}
+	}
+	ans += min(dp[x][0],dp[x][1]);
+}
+
+int main()
+{
+    IOS;
+    #ifndef ONLINE_JUDGE
+        freopen("input.txt","r",stdin);
+        freopen("output.txt","w",stdout);
+    #endif
+    cin >> n >> k;
+    cin >> s;
+    for(int i = 1; i <= k; i++)
+    {
+    	int x;
+    	cin >> x;
+    	force[i] = -1;
+    	id[i] = i;
+    	dp[i][0] = 0;
+    	dp[i][1] = 1;
+    	dist[i] = INF;
+    	for(int j = 1; j <= x; j++)
+    	{
+    		int val;
+    		cin >> val;
+    		sets[i].push_back(val); 
+    		positions[val].push_back(i);
+    	}
+    }
+    for(int i = 1; i <= k; i++)
+    {
+    	if(dist[i] == INF)
+    		dfs(i,0);
+    }
+
+    for(int i = 0; i < n; i++)
+    {
+    	int curr = i + 1;
+    	if(positions[curr].size())
+    	{
+    		if(positions[curr].size() == 1)
+    		{
+    			int node = positions[curr][0];
+    			int par = parent(node);
+    			if(s[i] == '0')
+    				force[node] = 1;
+    			else
+    				force[node] = 0;
+    			ans -= min(dp[par][0],dp[par][1]);
+    			if(dist[par] == dist[node])
+    				dp[par][force[node] ^ 1] = INF; 
+    			else
+    				dp[par][force[node]] = INF;
+    			ans += min(dp[par][0],dp[par][1]);
+    		}
+    		else
+    		{
+    			int node1 = positions[curr][0];
+    			int node2 = positions[curr][1];
+    			un(node1,node2);
+    		}
+    	}
+    	cout << ans << "\n";
+    }
+}   	
+

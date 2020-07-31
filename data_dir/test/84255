@@ -1,0 +1,148 @@
+#include "bits/stdc++.h"
+using namespace std;
+ 
+const int N = 3e5 + 5;
+const int BLOCK = 1 + (int) (sqrt(3e5));
+ 
+int cnt[N];
+int answer = 0;
+ 
+struct Query {
+	int l;
+	int r;
+	int which;
+ 
+	Query() : l(0), r(0), which(0) {}
+	Query(int l, int r, int which) : l(l), r(r), which(which) {}
+};
+ 
+void add(int position, vector<int>& a) {
+	cnt[a[position]]++;
+	if(cnt[a[position]] == 1) {
+		answer++;
+	}
+}
+ 
+void remove(int position, vector<int>& a) {
+	cnt[a[position]]--;
+	if(cnt[a[position]] == 0) {
+		answer--;
+	}
+}
+ 
+void resolveQueries(vector<Query>& vq, vector<int>& mx, vector<int>& a) {
+	int n = (int) mx.size();
+	sort(vq.begin(), vq.end(), [] (const Query& q1, const Query& q2) {
+		if(q1.l / BLOCK != q2.l / BLOCK) {
+			return q1.l / BLOCK < q2.l / BLOCK;
+		}
+		return q1.r < q2.r;
+	});
+	int m = (int) vq.size();
+	int currentL = 0, currentR = 0;
+	for(int i=0; i<m; i++) {
+		int L = vq[i].l, R = vq[i].r;
+		while(currentL < L) {
+			remove(currentL, a);
+			currentL++;
+		}
+		while(currentL > L) {
+			add(currentL-1, a);
+			currentL--;
+		}
+		while(currentR <= R) {
+			add(currentR, a);
+			currentR++;
+		}
+		while(currentR > R+1) {
+			remove(currentR-1, a);
+			currentR--;
+		}
+		mx[vq[i].which] = max(mx[vq[i].which], answer);
+	}
+}
+ 
+vector<int> getMxArray(int n, int m, vector<int>& a) {
+	vector<int> mx(n);
+	for(int i = 0; i < n; ++i) {
+		mx[i] = i;
+	}
+	vector<int> bit(n + 1, 0), seen(n, 0);
+ 
+	auto get = [] (int idx, vector<int>& bit) {
+		int res = 0;
+		while(idx > 0) {
+			res += bit[idx];
+			idx -= idx & (-idx);
+		}
+		return res;
+	};
+ 
+	auto upd = [] (int idx, int N, vector<int>& bit) {
+		while(idx < N) {
+			bit[idx]++;
+			idx += idx & (-idx);
+		}
+	};
+ 	
+ 	int dist = 0;
+	for(int i = 0; i < m; ++i) {
+		if(!seen[a[i]]) {
+			// distinct numbers greater than a[i]
+			mx[a[i]] = a[i] + dist - get(a[i] + 1, bit);
+			upd(a[i] + 1, n + 1, bit);
+			seen[a[i]] = true;
+			dist++;
+		}
+	}
+	for(int i = 0; i < n; ++i) {
+		if(!seen[i]) {
+			mx[i] = i + dist - get(i + 1, bit);
+		}
+	}
+	//find occurence index for each value i from 0 to n - 1
+	vector<vector<int>> occ(n, vector<int>());
+	for(int i = 0; i < m; ++i) {
+		occ[a[i]].push_back(i);
+	}
+	vector<Query> vq;
+	for(int i = 0; i < n; ++i) {
+		int sz = (int) occ[i].size();
+		if(!sz) continue;
+		for(int j = 0; j < sz; ++j) {
+			int l = occ[i][j] + 1;
+			int r = j == sz - 1 ? m - 1 : occ[i][j + 1] - 1;
+			if(l <= r) {
+				vq.push_back(Query(l, r, i));
+			}
+		}
+	}
+	resolveQueries(vq, mx, a);
+	return mx;
+}
+ 
+void getAC() {	
+	ios_base :: sync_with_stdio(false); cin.tie(0);
+	int n , m; cin >> n >> m;
+	vector<int> a(m);
+	for(int i = 0; i < m; ++i) {
+		cin >> a[i];
+		a[i]--;
+	}
+	vector<int> mn(n);
+	for(int i = 0; i < n; ++i) {
+		mn[i] = i;
+	}
+	for(int i = 0; i < m; ++i) {
+		mn[a[i]] = 0;
+	}
+	vector<int> mx = getMxArray(n, m, a);
+	for(int i = 0; i < n; ++i) {
+		cout << 1 + mn[i] << ' ' << 1 + mx[i] << '\n';
+	}
+}
+ 
+int main() {	
+	getAC();
+	return 0;
+}

@@ -1,0 +1,89 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using LL = long long;
+
+class SegmentTree {
+	int sz;
+	vector<int> lo, hi, lazy;
+
+	void split(int node) {
+		lo[2 * node] += lazy[node];
+		hi[2 * node] += lazy[node];
+		lazy[2 * node] += lazy[node];
+
+		lo[2 * node + 1] += lazy[node];
+		hi[2 * node + 1] += lazy[node];
+		lazy[2 * node + 1] += lazy[node];
+
+		lazy[node] = 0;
+	}
+	void merge(int node) {
+		lo[node] = min(lo[2 * node], lo[2 * node + 1]);
+		hi[node] = max(hi[2 * node], hi[2 * node + 1]);
+	}
+public:
+	SegmentTree(int n) {
+		for (sz = 1; sz < n; sz <<= 1);
+		lo.resize(2 * sz, 0);
+		hi.resize(2 * sz, 0);
+		lazy.resize(2 * sz, 0);
+	}
+	void add(int l, int r, int delta, int node = 1, int x = 0, int y = -1) {
+		if (y == -1) y = sz;
+		if (r <= x || l >= y) return;
+		if (l <= x && y <= r) {
+			lo[node] += delta;
+			hi[node] += delta;
+			lazy[node] += delta;
+			return;
+		}
+		split(node);
+		add(l, r, delta, 2 * node, x, (x + y) / 2);
+		add(l, r, delta, 2 * node + 1, (x + y) / 2, y);
+		merge(node);
+	}
+	int getlo() {
+		return lo[1];
+	}
+	int gethi() {
+		return hi[1];
+	}
+};
+
+int main() {
+#ifdef LOCAL_EXEC
+	freopen("sample.in", "r", stdin);
+//	freopen("sample.out", "w", stdout);
+#else
+	ios_base::sync_with_stdio(false); cin.tie(NULL);
+#endif
+
+	int n; cin >> n;
+	string s; cin >> s;
+	int loc = 0, total = 0;
+	n += 5;
+	vector<int> val(n, 0);
+	SegmentTree tree(n);
+	for (char ch: s) {
+		if (ch == 'L') {
+			if (loc > 0) loc--;
+		} else if (ch == 'R') {
+			loc++;
+		} else {
+			int nval = ch == '(' ? 1 : ch == ')' ? -1 : 0;
+			tree.add(loc, n, nval - val[loc]);
+			total += nval - val[loc];
+			val[loc] = nval;
+		}
+
+		if (tree.getlo() == 0 && total == 0) {
+			cout << tree.gethi() << ' ';
+		} else {
+			cout << "-1 ";
+		}
+	}
+	cout << endl;
+
+	return 0;
+}

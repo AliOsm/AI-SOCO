@@ -1,0 +1,130 @@
+
+// ~/BAU/ACM-ICPC/Teams/OverflowLimitExceeded/Corvus
+// ~/sudo apt-get verdict Accpeted
+
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <memory.h>
+#include <limits.h>
+#include <math.h>
+#include <string.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+const int N = 200001;
+const ll MOD = 1e9 + 7;
+
+int n, a, b, p[N], cnt, c, idx[N], low[N], cmp[N], cmp_head[N], v[N];
+bool in_stack[N];
+stack<int> stk;
+
+vector<vector<int> > g;
+
+inline int Not(int x) {
+	return x >= n ? x - n : x + n;
+}
+
+inline void add(int a, int b) {
+	g[Not(a)].push_back(b);
+	g[Not(b)].push_back(a);
+}
+
+void dfs(int u) {
+	idx[u] = low[u] = ++cnt;
+	in_stack[u] = 1;
+	stk.push(u);
+
+	for (int i = 0; i < g[u].size(); i++) {
+		if (!idx[g[u][i]])
+			dfs(g[u][i]);
+		if (in_stack[g[u][i]])
+			low[u] = min(low[u], low[g[u][i]]);
+	}
+
+	if (idx[u] == low[u]) {
+		while (!stk.empty()) {
+			int v = stk.top();
+			stk.pop();
+			in_stack[v] = 0;
+			cmp[v] = c;
+			if (v == u) break;
+		}
+		cmp_head[c++] = u;
+	}
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.in", "r", stdin);
+#endif
+
+	scanf("%d%d%d", &n, &a, &b);
+	g.resize(2 * n);
+
+	map<int, int> idx_of;
+	for (int i = 0; i < n; i++) {
+		scanf("%d", p + i);
+		idx_of[p[i]] = i;
+	}
+	
+	for (int i = 0; i < n; i++) {
+		bool x = idx_of.find(a - p[i]) != idx_of.end(), y = idx_of.find(b - p[i]) != idx_of.end();
+		int x2 = idx_of[a - p[i]], y2 = idx_of[b - p[i]];
+
+		if (x && y) {
+			add(Not(i), y2);
+			add(i, Not(x2));
+			add(Not(x2), y2);
+		}
+		else if (x) {
+			add(Not(i), Not(i));
+			add(Not(x2), Not(x2));
+		}
+		else if (y) {
+			add(i, i);
+			add(y2, y2);
+		}
+		else {
+			puts("NO");
+			return 0;
+		}
+	}
+	
+	for (int i = 0; i < 2 * n; i++)
+		if (!idx[i])
+			dfs(i);
+
+	for(int i=0; i<n; i++)
+		if (cmp[i] == cmp[Not(i)]) {
+			puts("NO");
+			return 0;
+		}
+	
+	memset(v, -1, sizeof v);
+	for(int i=0; i<c; i++)
+		if (v[i] == -1) {
+			v[i] = 0;
+			v[cmp[Not(cmp_head[i])]] = 1;
+		}
+
+	puts("YES");
+	for (int i = 0; i < n; i++)
+		printf("%s%d", (i ? " " : ""), 1-v[cmp[i]]);
+	puts("");
+
+	return 0;
+}

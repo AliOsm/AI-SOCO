@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define F first
+#define S second
+#define PI acos(-1)
+#define X real()
+#define Y imag()
+
+typedef long long lli;
+typedef complex<lli> P;
+const lli MX = 100005 , infi =1110111110111 , mod = 1000000007 ;
+typedef pair<int,int> pii;
+
+int n , m , v[MX] , sol = -10000000 , l , r;
+vector<pii> Ps;
+
+int MTree[4*MX] , mTree[4*MX], Lazy[4*MX] , pre , aux , sz , ans , mPre[MX] , mSuf[MX];
+
+void update(int node , int l , int r , int L , int R , int val)
+{
+    if(L>r||R<l)return;
+    if(L<=l&&r<=R)Lazy[node]+=val;
+    else
+    {
+        int mid = (l+r)/2;
+        update(2*node+1,l,mid,L,R,val);
+        update(2*node+2,mid+1,r,L,R,val);
+        mTree[node] = min(mTree[2*node+1]+Lazy[2*node+1],mTree[2*node+2]+Lazy[2*node+2]);
+        MTree[node] = max(MTree[2*node+1]+Lazy[2*node+1],MTree[2*node+2]+Lazy[2*node+2]);
+    }
+}
+
+int query(int node , int l , int r , int L , int R)
+{
+    if(r<L||l>R)return aux==0 ? -10000000 : 10000000 ;
+    if(l>=L && r<=R)return (aux==0 ? MTree[node]:mTree[node]) + Lazy[node];
+    else
+    {
+        int mid = (l+r)/2;
+        int s1 = query(2*node+1,l,mid,L,R);
+        int s2 = query(2*node+2,mid+1,r,L,R);
+        return (aux==0 ? max(s1,s2) : min(s1,s2)) + Lazy[node] ;
+    }
+}
+
+bool inc(pii pa , int x){return x>=pa.F && x<=pa.S;}
+
+int mXm(int x)
+{
+    if(x==1)return mSuf[1];
+    else if(x==n)return mPre[n-2];
+    else return max(mPre[x-1],mSuf[x]);
+}
+
+int main(){
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);cout.tie(0);
+    scanf("%d%d",&n,&m);
+    for(int i=0;i<n;i++)
+    {
+        scanf("%d",&v[i]);
+        update(0,1,MX,i+1,i+1,v[i]);
+        if(i)mPre[i] = max(v[i],mPre[i-1]);
+        else mPre[i] = v[i];
+    }
+    mSuf[n-1] = v[n-1];
+    for(int i=n-2;i>=0;i--)
+        mSuf[i] = max(mSuf[i+1],v[i]);
+    int tax = 0;
+    for(int i=0;i<m;i++)
+    {
+        scanf("%d%d",&l,&r);
+        if(l==1 && r==n){
+            tax++;
+            Ps.push_back({-1,-1});
+            continue;
+        }
+        Ps.push_back({l,r});
+    }
+    sol = *max_element(v,v+n) - *min_element(v,v+n);
+    for(int i=1;i<=n;i++)
+    {
+        int ac = 0;
+        for(int k=0;k<m;k++)
+            ac+=inc(Ps[k],i);
+        if(mXm(i)-(v[i-1]-ac)<=sol )continue;
+        int acc = 0;
+        for(int j=0;j<m;j++)if(inc(Ps[j],i))
+            update(0,1,MX,Ps[j].F,Ps[j].S,-1) , acc++;
+        aux = 0;
+        int ret = query(0,1,MX,1,n);
+        aux = 1;
+        ret -=query(0,1,MX,1,n);
+        if(ret>sol)
+        {
+            ans = i;
+            sz = acc;
+            sol = ret;
+        }
+        for(int j=0;j<m;j++)if(inc(Ps[j],i))
+            update(0,1,MX,Ps[j].F,Ps[j].S,1);
+    }
+    printf("%d\n%d\n",max(sol,0),sz);
+    for(int i=0;i<m;i++)
+        if(inc(Ps[i],ans))printf("%d ",i+1);
+    return 0;
+}

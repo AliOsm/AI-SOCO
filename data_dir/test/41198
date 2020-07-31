@@ -1,0 +1,103 @@
+#include <bits/stdc++.h>
+using namespace std;
+//#define int long long
+#define IOS ios::sync_with_stdio(0) , cin.tie(0) , cout.tie(0)
+inline int in(){int32_t x ; scanf("%d",&x) ; return x ;}
+inline long long lin(){long long x ; scanf("%lld",&x) ; return x;}
+const int maxn = 5e5 + 10;
+const int maxm = 5e5 + 10;
+const int mod = 1e9 + 7;
+const long long infll = 2e18 + 10;
+const int inf = 1e9;
+typedef pair<int,int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<pair<int,int> > vii;
+struct Str
+{
+    int a , b;
+    inline long long value(int x) {return 1LL * a * x + b;}
+}Line[maxn];
+vector<int> Queries[maxn];
+vector<pair<int,int> > events[maxn];
+int cur = 0;
+bool mark[maxn];
+int q[maxn];
+inline int when(int a , int b)
+{
+    if (Line[a].a <= Line[b].a) return inf;
+    int ret = (Line[b].b - Line[a].b)/(Line[a].a - Line[b].a);
+    if (Line[a].value(ret) <= Line[b].value(ret)) ret ++;
+    return ret;
+}
+inline void do_job(int id) // id of Queries block
+{
+    int t = 0 ;
+    for (auto x : Queries[id])
+        if (!mark[x])
+            q[t ++] = x;
+    sort(q,q+t,[](const int &a , const int &b) {return Line[a].value(-inf) > Line[b].value(-inf) ;});
+    events[id].clear();
+    if (t == 0 ) return ;
+    events[id].push_back({-inf,q[0]});
+    for (int _ = 1 ; _ < t ; _ ++){
+        int i = q[_];
+        while (events[id].size() >= 2 && when(i,events[id].back().second) <= events[id].back().first)
+            events[id].pop_back();
+        int hit = when(i,events[id].back().second);
+        if (hit - inf) events[id].push_back({hit,i});
+    }
+    events[id].shrink_to_fit();
+}
+const int LIM = 500;
+int where[maxn];
+int32_t main()
+{
+    int q = in();
+    int tot = 0;
+    for (int _ = 0 ; _ < q ; _ ++)
+    {
+        int tp = in();
+        if (tp == 1)
+        {
+            tot ++;
+            Line[_].a = in() , Line[_].b = in();
+            where[_] = cur;
+            Queries[cur].push_back(_);
+            
+            if (Queries[cur].size() >= LIM){
+                do_job(cur);
+                cur ++;
+            }
+        }
+        else if (tp == 2)
+        {
+            tot --;
+            int id = in() - 1;
+            mark[id] = true;
+            if (Queries[where[id]].size() == LIM)
+            do_job(where[id]);
+        }
+        else
+        {
+            int x = in();
+            if (tot == 0){
+                printf("EMPTY SET\n");
+                continue;
+            }
+            long long ret = -infll;
+            for (int i = 0 ; i < cur ; i ++){
+                if (!events[i].size() ) continue;
+                int upp = upper_bound(events[i].begin(),events[i].end(),make_pair(x,inf))-events[i].begin();
+                upp --;
+                assert(!mark[events[i][upp].second]);
+                ret = max(ret,Line[events[i][upp].second].value(x));
+            }
+            for (auto id : Queries[cur]){
+                if (mark[id]) continue;
+                ret = max(ret,Line[id].value(x));
+            }
+            printf("%lld\n",ret);
+        }
+    }
+}

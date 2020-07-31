@@ -1,0 +1,200 @@
+//marico el que lo lea
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <stdlib.h>
+#include <assert.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int, int> ii;
+
+void fastIO() {
+	std::ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+}
+
+#define FOR(i,f,t) for(int i=f; i<(int)t; i++)
+#define FORR(i,f,t) for(int i=f; i>(int)t; i--)
+#define FORE(i,c) for(auto i = (c).begin(); i != (c).end(); i++)
+#define pb push_back
+#define all(obj) obj.begin(), obj.end()
+#define ms(obj, val) memset(obj, val, sizeof(obj))
+#define ms2(obj, val, sz) memset(obj, val, sizeof(obj[0])*sz)
+
+#define fst first
+#define snd second
+
+template<typename T, typename U> inline void mnze(T &x, U y) { if(y < x) x = y; }
+template<typename T, typename U> inline void mxze(T &x, U y) { if(x < y) x = y; }
+
+void _scan( int &x ) { scanf("%d",&x); }
+void _scan( long long &x ) { scanf("%lld",&x); }
+void _scan( double &x ) { scanf("%lf",&x); }
+void _scan( char &x ) { scanf(" %c",&x); }
+void _scan( char *x ) { scanf("%s",x); }
+void scan() {}
+template<typename T, typename... U>
+void scan( T& head, U&... tail ) { _scan(head); scan(tail...);}
+
+template<typename T> void _dbg(const char* sdbg, T h) { cerr<<sdbg<<"="<<h<<"\n"; }
+template<typename T, typename... U> void _dbg(const char* sdbg, T h, U... t) {
+	while(*sdbg != ',')cerr<<*sdbg++; cerr<<"="<<h<<","; _dbg(sdbg+1, t...);
+}
+
+#ifdef LOCAL
+#define debug(...) _dbg(#__VA_ARGS__, __VA_ARGS__)
+#define debugv(x) {{cerr <<#x <<" = "; FORE(_i, (x)) cerr <<*_i <<", "; cerr <<"\n"; }}
+#define debuga(x, sz) {{cerr <<#x <<" = "; FOR(_i, 0, sz) cerr << x[_i] <<", "; cerr <<"\n"; }}
+#else
+#define debug(...) (__VA_ARGS__)
+#define debugv(x)
+#define debuga(x, sz)
+#define cerr if(0)cout
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+
+const ll INF = 1e16;
+
+vll tw, ew;
+
+ll infi(ll x){
+	return max(x, -INF);
+}
+
+struct stnode{
+	ll all, bst, bl, br;
+	void merge(stnode& L, stnode& R, int M){
+		ll e = ew[M-1];
+		all = infi(L.all + e + R.all);
+		bl = infi(max(L.bl, L.all + e + R.bl));
+		br = infi(max(R.br, R.all + e + L.br));
+		bst = infi(max(max(R.bst, L.bst), L.br + e + R.bl));
+	}
+	void operator=(int l){
+		bst=bl=br=tw[l];
+		all=0;
+	}
+};
+struct ST{
+	vector<stnode> T;
+	int N;
+	void init(int n){
+		T.resize(4*n + 4);
+		N = n;
+	}
+	void build(){build(1,0,N);}
+	void build(int id, int l, int r){
+		if(r - l < 2){
+			T[id] = l;
+			return;
+		}
+		int M = (l+r)>>1, L=id<<1, R=L|1;
+		build(L, l, M); build(R, M, r);
+		T[id].merge(T[L],T[R],M);
+	}
+
+	stnode query(int x, int y){return query(x,y,1,0,N);}
+	stnode query(int x, int y, int id, int l, int r){
+		if(x == l && y == r)	return T[id];
+		int M = (l+r)>>1, L=id<<1, R=L|1;
+		if(x>=M)	return query(x,y,R,M,r);
+		if(y<=M)	return query(x,y,L,l,M);
+		stnode res,ln=query(x, M, L, l, M),rn=query(M, y, R, M, r);
+		return res.merge(ln, rn, M), res;
+	}
+};
+
+const int MAXN = 2e5+5;
+struct edge{
+	int to; ll c;
+};
+
+int n;
+vector<edge> G[MAXN];
+
+ll ansin, mxto[MAXN];
+int C;
+vi rt;
+
+int ROOT = -1;
+bool vis[MAXN], isr[MAXN];
+void dfsc(int v, int p=-1){
+	vis[v]=1;
+	for(auto &e:G[v]){
+		int u=e.to;
+		if(u==p) continue;
+		if(vis[u]){
+			ROOT=u;
+		}
+		if(ROOT==-1) dfsc(u,v);
+		if(ROOT!=-1) break;
+	}
+	if(ROOT>-1){
+		rt.pb(v); isr[v]=true;
+		if(ROOT==v) ROOT=-2;
+	}
+}
+void dfst(int v, int p=-1){
+	vector<ll> mxs;
+	for(auto &e:G[v]){
+		int u=e.to, c=e.c;
+		if(u==p || isr[u]) continue;
+		dfst(u, v);
+		mxze(mxto[v], mxto[u]+c);
+		mxs.pb(mxto[u]+c);
+		debug(v, mxto[u]+c);
+		if(mxs.size() > 2){
+			if(mxs[2] > mxs[0]) swap(mxs[2], mxs[0]);
+			if(mxs[2] > mxs[1]) swap(mxs[2], mxs[1]);
+			mxs.pop_back();
+		}
+	}
+	if(mxs.size()==2) mxze(ansin, mxs[0]+mxs[1]);
+}
+
+ST st;
+
+int main(){
+	scan(n);
+	FOR(i,0,n){
+		int v,u,c; scan(v,u,c); v--; u--;
+		G[v].pb({u,c});
+		G[u].pb({v,c});
+	}
+	dfsc(0);
+	FOR(v,0,n) if(isr[v]) dfst(v);
+	C = rt.size();
+	tw = vll(2*C+5, -INF);
+	ew = vll(2*C+5, -INF);
+	FOR(i,0,C){
+		int v=rt[i], u=rt[(i+1)%C];
+		tw[i] = mxto[v];
+		for(auto w:G[v]){
+			if(w.to==u){
+				ew[i] = w.c;
+			}
+		}
+	}
+	FOR(i,0,C){
+		tw[i+C] = tw[i];
+		ew[i+C] = ew[i];
+	}
+	st.init(2*C + 4);
+	st.build();
+	ll mncut = st.query(0,C).bst;
+	FOR(i,1,C){
+		mnze(mncut, st.query(i,C+i).bst);
+	}
+	printf("%lld\n",max(ansin, mncut));
+}

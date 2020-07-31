@@ -1,0 +1,112 @@
+#include<bits/stdc++.h>
+#define MAXV   1000100
+#define FOR(i,a,b) for (int i=(a),_b=(b);i<=_b;i=i+1)
+#define REP(i,n) for (int i=0,_n=(n);i<_n;i=i+1)
+#define FORE(i,v) for (__typeof((v).begin()) i=(v).begin();i!=(v).end();i++)
+#define ALL(v) (v).begin(),(v).end()
+#define fi   first
+#define se   second
+using namespace std;
+const long long INF=(long long)2e12+7LL;
+bool notPrime[MAXV];
+vector<int> prime;
+void eratosthene(void) {
+    REP(i,2) notPrime[i]=true;
+    FOR(i,2,MAXV-1) if (!notPrime[i]) {
+        prime.push_back(i);
+        for (int j=2*i;j<MAXV;j=j+i) notPrime[j]=true;
+    }
+}
+bool isPrime(long long x) {
+    if (x<MAXV) return (!notPrime[x]);
+    for (int i=2;1LL*i*i<=x;i=i+1) if (x%i==0) return (false);
+    return (true);
+}
+struct Triple {
+    long long fi;
+    int se,th;
+    Triple() {
+        fi=se=th=0;
+    }
+    Triple(long long _fi,int _se,int _th) {
+        fi=_fi;se=_se;th=_th;
+    }
+    bool operator < (const Triple &t) const {
+        return (fi<t.fi);
+    }
+};
+vector<Triple> powPrime;
+void calcPowPrime(void) {
+    FORE(it,prime) {
+        long long mul=*it;
+        int res=1;
+        while (mul<INF) {
+            powPrime.push_back(Triple(mul,*it,res));
+            mul*=*it;
+            res++;
+        }
+    }
+    sort(ALL(powPrime));
+}
+pair<long long,int> isPowPrime(long long x) {
+    if (x<1) return (make_pair(-1,-1));
+    int id=lower_bound(ALL(powPrime),Triple(x,-1,-1))-powPrime.begin();
+    if (id<powPrime.size() && powPrime[id].fi==x) return (make_pair(powPrime[id].se,powPrime[id].th));
+    if (isPrime(x)) return (make_pair(x,1));
+    else return (make_pair(-1,-1));
+}
+long long x;
+vector<long long> divX;
+vector<long long> impPrime;
+vector<vector<long long> > impMul;
+vector<vector<long long> > countWay;
+void init(void) {
+    cin>>x;
+}
+void prepare(void) {
+    for (int i=1;1LL*i*i<=x;i=i+1) if (x%i==0) {
+        divX.push_back(i);
+        divX.push_back(x/i);
+    }
+    sort(ALL(divX));
+    divX.resize(unique(ALL(divX))-divX.begin());
+    FORE(it,divX) {
+        pair<long long,int> tmp=isPowPrime(*it-1);
+        if (tmp.fi<0 || tmp.se<0) continue;
+        impPrime.push_back(tmp.fi);
+    }
+    sort(ALL(impPrime));
+    impPrime.resize(unique(ALL(impPrime))-impPrime.begin());
+    impMul.assign(impPrime.size(),vector<long long>());
+    FORE(it,divX) {
+        pair<long long,int> tmp=isPowPrime(*it-1);
+        if (tmp.fi<0 || tmp.se<0) continue;
+        int id=lower_bound(ALL(impPrime),tmp.fi)-impPrime.begin();
+        impMul[id].push_back(*it);
+    }
+    REP(i,impPrime.size()) {
+        sort(ALL(impMul[i]));
+        impMul[i].resize(unique(ALL(impMul[i]))-impMul[i].begin());
+    }
+}
+void process(void) {
+    countWay.assign(impPrime.size()+1,vector<long long>(divX.size(),0));
+    countWay[0][0]=1;
+    REP(i,impPrime.size()) REP(j,divX.size()) if (countWay[i][j]>0) {
+        FORE(it,impMul[i]) {
+            if (INF/(*it)<divX[j] || divX[j]*(*it)>x) break;
+            int id=lower_bound(ALL(divX),divX[j]*(*it))-divX.begin();
+            if (id<divX.size() && divX[id]==divX[j]*(*it)) countWay[i+1][id]+=countWay[i][j];
+        }
+        countWay[i+1][j]+=countWay[i][j];
+    }
+    cout<<countWay[impPrime.size()][divX.size()-1]<<endl;
+}
+int main(void) {
+    eratosthene();
+    calcPowPrime();
+    init();
+    prepare();
+    process();
+    return 0;
+}

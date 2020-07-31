@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+const int N = 2e5+50;
+const ll oo = 1e18;
+const ll mod = 1e9+7;
+
+int a[N];
+ll seg[4*N],lazy[4*N],sum[N],pos[N];
+
+void pro(int n,int s,int e){
+    seg[n] += lazy[n];
+    if(s != e){
+        lazy[n*2]+=lazy[n];
+        lazy[n*2+1]+=lazy[n];
+    }
+    lazy[n]=0;
+}
+
+void build(int n,int s,int e){
+    if(s == e){
+        seg[n] = a[s] - sum[s-1];
+        return;
+    }
+    build(n*2,s,(s+e)/2);
+    build(n*2+1,(s+e)/2+1,e);
+    seg[n] = max(seg[n*2],seg[n*2+1]);
+}
+
+ll l,r,val;
+
+void update(int n,int s,int e){
+    if(l > r)return;
+    pro(n,s,e);
+    if(s > r || e < l)return;
+    if(s >= l && e <= r){
+        lazy[n]+=val;
+        pro(n,s,e);
+        return;
+    }
+    if (l <= (s+e)/2 && l == r){
+        update(n*2,s,(s+e)/2);
+        pro(n*2+1,(s+e)/2+1,e);
+    }else if(l == r){
+        update(n*2+1,(s+e)/2+1,e);
+        pro(n*2,s,(e+s)/2);
+    }else{
+        update(n*2,s,(s+e)/2);
+        update(n*2+1,(s+e)/2+1,e);
+    } 
+    seg[n] = max(seg[n*2],seg[n*2+1]);
+}
+
+ll get(int n,int s,int e){
+    pro(n,s,e);
+    if(seg[n] < 0)return -1;
+    if(s==e)return (seg[n]==0)?s:-1;
+    ll w = get(n*2,s,(s+e)/2);
+    if(w != -1)return w;
+    return get(n*2+1,(s+e)/2+1,e);
+}
+
+int main(){
+    int n,q;
+    scanf("%d%d",&n,&q);
+    for(int i=1;i<=n;i++){
+        scanf("%d",a+i);
+        sum[i] = sum[i-1]+a[i];
+    }
+    build(1,1,n);
+    for(int i=0;i<q;i++){
+        ll idx,x;
+        scanf("%lld%lld",&idx,&x);
+        val = a[idx]-x;
+        l=idx+1;
+        r=n;
+        update(1,1,n);
+        val=-val;
+        l = r = idx;
+        update(1,1,n);
+        a[idx]=x;
+        printf("%lld\n", get(1,1,n));
+    }
+}

@@ -1,0 +1,223 @@
+#pragma comment(linker, "/STACK:64000000")
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
+#include <ctime>
+#include <sstream>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <string>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <map>
+#include <set>
+
+using namespace std;
+
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define pii pair < int, int >
+#define pll pair < long long, long long>
+#define ull unsigned long long
+#define y1 stupid_cmath
+#define left stupid_left
+#define right stupid_right
+#define vi vector <int>
+#define sz(a) (int)a.size()
+#define forit(it, s) for(__typeof(s.begin()) it = s.begin(); it != s.end(); it++)
+#define all(a) a.begin(), a.end()
+#define sqr(x) ((x) * (x))
+
+const int inf = (int)1e9;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+const int mod1 = 1000002361;
+const int mod2 = 1000001621;
+const int mod4 = 1034569891;
+const int p1 = 3001613;
+const int p2 = 301577;
+const unsigned int p3 = 779267;
+const int p4 = 4569553;
+
+struct Hash {
+    int x1, x2;
+    unsigned int x3;
+    int x4;
+
+    Hash () {}
+    Hash (int _x1, int _x2, unsigned int _x3, int _x4) {
+        x1 = _x1;
+        x2 = _x2;
+        x3 = _x3;
+        x4 = _x4;
+    }
+
+    Hash const operator +(Hash o) {
+        return Hash((x1 + o.x1) % mod1, (x2 + o.x2) % mod2, x3 + o.x3, (x4 + o.x4) % mod4);
+    }
+    Hash const operator -(Hash o) {
+        return Hash((x1 - o.x1 + 0ll + mod1) % mod1, (x2 - o.x2 + 0ll + mod2) % mod2, x3 - o.x3, (x4 - o.x4 + mod4) % mod4);
+    }
+    Hash const operator *(Hash o) {
+        return Hash(1ll * x1 * o.x1 % mod1, 1ll * x2 * o.x2 % mod2, x3 * o.x3, 1ll * x4 * o.x4 % mod4);
+    }
+
+    pair<pii, pair<unsigned int, int> > get() {
+        return mp(mp(x1, x2), mp(x3, x4));
+    }
+} ex[300300];
+
+int n, m;
+vector<int> g[300300], a[300300], b[300300];
+int col[300300];
+map<pair<pii, pair<unsigned int, int> >, vector<int> > gr;
+int ans[300300];
+
+bool dfs(int v, int val) {
+    ans[v] = val;
+    int res = 1;
+    forit (it, b[v]) {
+        int x = *it;
+        if (ans[x] != -1 && abs(ans[v] - ans[x]) != 1) return false;
+        if (ans[x] == -1) {
+            res &= dfs(x, val + 1);
+        }
+    }
+    return res;
+}
+
+void fail() {
+    printf("NO\n");
+    exit(0);
+}
+
+bool same(int x, int y) {
+    if (g[x].size() != g[y].size()) return false;
+    for (int i = 0; i < g[x].size(); i++) {
+        if (g[x][i] != g[y][i]) return false;
+    }
+    return true;
+}
+
+int p[300300];
+
+int get_parent(int x) {
+    if (x == p[x]) return x;
+    return p[x] = get_parent(p[x]);
+}
+
+void unique(int x, int y) {
+    x = get_parent(x);
+    y = get_parent(y);
+    if (x == y) return;
+    if (rand() & 1) p[x] = y;
+    else p[y] = x;
+}
+
+int main(){
+
+    scanf("%d%d", &n, &m);
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        g[x].pb(y);
+        g[y].pb(x);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (g[i].size() > 2000) fail();
+    }
+    for (int i = 1; i <= n; i++) g[i].pb(i);
+    for (int i = 1; i <= n; i++) {
+        sort(all(g[i]));
+        p[i] = i;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        forit (it, g[i]) {
+            int x = i, y = *it;
+            if (x >= y) continue;
+            if (same(x, y)) {
+                unique(x, y);
+            }
+        }
+    }
+
+    set<int> s;
+    for (int i = 1; i <= n; i++) s.insert(get_parent(i));
+    map<int, int> tmp;
+
+    int sz = 0;
+    forit (it, s) tmp[*it] = sz++;
+
+    for (int i = 1; i <= n; i++) {
+        col[i] = tmp[get_parent(i)];
+        a[col[i]].pb(i);
+    }
+
+    map<pii, int> cnt;
+
+    for (int i = 1; i <= n; i++) {
+        forit (it, g[i]) {
+            if (*it <= i) continue;
+            int x = col[i], y = col[*it];
+            if (x > y) swap(x, y);
+            cnt[mp(x, y)]++;
+        }
+    }
+
+    forit (it, cnt) {
+        pii p = it->f;
+        int x = p.f, y = p.s;
+        if (x != y) {
+            b[x].pb(y);
+            b[y].pb(x);
+        }
+        int cur = it->s;
+        int kx = a[x].size();
+        int ky = a[y].size();
+        if (x == y) {
+            if (kx * 1ll * (kx - 1) / 2 != cur) fail();
+        } else {
+            if (kx * 1ll * ky != cur) fail();
+        }
+    }
+
+    int tmpcnt = 0;
+    int tmpcnt2 = 0;
+
+    for (int i = 0; i < sz; i++) {
+        if (b[i].size() == 1) tmpcnt++;
+        else if (b[i].size() == 2) tmpcnt2++;
+        else if (b[i].size() > 2) fail();
+    }
+
+    int v = -1;
+    for (int i = 0; i < sz; i++) {
+        if (b[i].size() == 1 || b[i].size() == 0) v = i;
+    }
+    memset(ans, -1, sizeof ans);
+    if (!dfs(v, 1)) fail();
+
+    for (int i = 0; i < sz; i++) {
+        if (ans[i] == -1) fail();
+    }
+
+    printf("YES\n");
+    for (int i = 1; i <= n; i++) {
+        if (i > 1) printf(" ");
+        printf("%d", ans[col[i]]);
+    }
+    printf("\n");
+
+    return 0;
+}
+

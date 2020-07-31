@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define MAX 400005
+#define ll long long int
+#define pii pair<int,int>
+
+int L[MAX];
+int R[MAX];
+int Cost[MAX];
+vector<pii>SET[MAX];
+vector<int>indx[MAX];
+set<int>Durations;
+set<int>:: iterator it;
+
+int n,x;
+int ara[MAX];
+int tree[MAX*3];
+
+void build(int node, int lo, int hi){
+    if (lo==hi) {tree[node]=INT_MAX; return;}
+    int Left=node*2;
+    int Right=node*2+1;
+    int mid=(lo+hi)/2;
+    build(Left,lo,mid);
+    build(Right,mid+1,hi);
+    tree[node]=min(tree[Left],tree[Right]);
+}
+
+int query(int node, int lo, int hi, int i, int j){
+    if (i>hi || j<lo) return INT_MAX;
+    if (lo>=i && hi<=j) return tree[node];
+    int Left=node*2;
+    int Right=node*2+1;
+    int mid=(lo+hi)/2;
+    int p1=query(Left,lo,mid,i,j);
+    int p2=query(Right,mid+1,hi,i,j);
+    return min(p1,p2);
+}
+
+void update(int node, int lo, int hi, int i, int val,bool Type){
+    if (i>hi || i<lo) return;
+    if (lo==hi)  {
+        if(!Type) tree[node]=val;
+        else tree[node]=min(tree[node],val);
+        return;
+    }
+    int Left=node*2;
+    int Right=node*2+1;
+    int mid=(lo+hi)/2;
+    update(Left,lo,mid,i,val,Type);
+    update(Right,mid+1,hi,i,val,Type);
+    tree[node]=min(tree[Left],tree[Right]);
+}
+
+
+int main(){
+    scanf("%d %d",&n,&x);
+    for(int i=1;i<=n;i++){
+        scanf("%d %d %d",&L[i],&R[i],&Cost[i]);
+        SET[R[i]-L[i]+1].push_back(make_pair(L[i],Cost[i]));
+        indx[R[i]-L[i]+1].push_back(i);
+        Durations.insert(R[i]-L[i]+1);
+    }
+
+    ll cost=INT_MAX;
+    build(1,1,MAX-1);
+
+    for(it=Durations.begin();it!=Durations.end();it++){
+        int D=*it;
+        if(SET[x-D].size()==0) continue;
+
+        for(int i=0;i<SET[x-D].size();i++){
+            pii now=SET[x-D][i];
+            update(1,1,MAX-1,now.first,now.second,1);
+        }
+
+        for(int i=0;i<indx[D].size();i++){
+            int idx=indx[D][i];
+            ll q=query(1,1,MAX-1,R[idx]+1,MAX-1);
+            cost=min(cost,Cost[idx]+q);
+        }
+
+        for(int i=0;i<SET[x-D].size();i++){
+            pii now=SET[x-D][i];
+            update(1,1,MAX-1,now.first,INT_MAX,0);
+        }
+    }
+
+    if(cost>=INT_MAX) printf("-1");
+    else cout<<cost<<endl;
+
+}

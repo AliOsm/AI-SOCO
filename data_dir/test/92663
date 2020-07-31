@@ -1,0 +1,174 @@
+#include <iostream>
+#include <cmath>
+#include <string>
+#include <algorithm>
+#include <cstring>
+#include <cstdio>
+#include <fstream>
+#include <cassert>
+#include <map>
+#include <set>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <functional>
+#include <numeric>
+#include <ctime>
+#include <cstdlib>
+#include <sstream>
+
+using namespace std;
+
+const int inf = (int)1e9;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+const int m1 = (int)1e9 + 7;
+const int m2 = (int)1e9 + 9;
+
+int n, m, k;
+string s;
+int a[100100];
+long long pp1[100100], pp2[100100];
+long long sp1[100100], sp2[100100];
+
+struct Hash{
+    int v1, v2, len;
+    Hash (int _v1, int _v2, int _len){
+        v1 = _v1;
+        v2 = _v2;
+        len = _len; 
+    }
+    bool operator==(const Hash& o){
+        return v1 == o.v1 && v2 == o.v2;
+    }   
+    Hash operator+(const Hash& b){
+        Hash a = *this;
+        if ( a.len == 0 ) return b;
+        if ( b.len == 0 ) return a;
+        int v1 = (a.v1*pp1[b.len] + b.v1)%m1;
+        int v2 = (a.v2*pp2[b.len] + b.v2)%m2;
+        return Hash(v1, v2, a.len + b.len);
+    }
+    Hash(){
+        v1 = v2 = len = 0;
+    }
+};
+
+struct Tree {
+    int len, color;
+    Hash h;
+
+    Tree (int _len, int ch){
+        len = _len;
+        color = -1;
+        h = Hash(ch, ch, len);
+    }
+    Tree (Tree t1, Tree t2){
+        len = t1.len + t2.len;
+        color = -1;
+        h = t1.h + t2.h;        
+    }
+    Tree (){}
+};
+
+Tree T[400400];
+
+void push(int v, int tl, int tr){
+    if ( T[v].color == -1 ) return;
+    T[v].h = Hash(sp1[tr-tl]*T[v].color%m1, sp2[tr-tl]*T[v].color%m2, T[v].len);
+    if ( tl != tr ){
+        T[2*v].color = T[2*v+1].color = T[v].color;
+    } 
+    T[v].color = -1;
+}
+
+void build(int v, int tl, int tr){
+    if ( tl == tr ){
+        T[v] = Tree(tr - tl + 1, a[tl]);
+        return; 
+    }
+    int mid = (tl + tr)/2;
+    build(2*v, tl, mid);
+    build(2*v+1, mid+1, tr);
+    T[v] = Tree(T[2*v], T[2*v+1]);
+}
+
+void update(int v, int tl, int tr, int l, int r, int val){
+    push(v, tl, tr);
+    if ( l > tr || r < tl ) return;
+    if ( l <= tl && tr <= r ){
+        T[v].color = val;
+        push(v, tl, tr);
+        return;
+    }
+    int mid = (tl + tr)/2;
+    update(2*v, tl, mid, l, r, val);
+    update(2*v+1, mid+1, tr, l, r, val);
+    T[v] = Tree(T[2*v], T[2*v+1]);
+}
+
+Tree get(int v, int tl, int tr, int l, int r){
+    push(v, tl, tr);
+    if ( l > tr || r < tl ) return Tree(0, 0);
+    if ( l <= tl && tr <= r ) return T[v];
+    int mid = (tl + tr)/2;
+    return Tree(get(2*v, tl, mid, l, r), get(2*v+1, mid+1, tr, l, r));
+}
+
+
+
+int main () {
+    #ifdef LOCAL
+    freopen("a.in", "r", stdin);
+    freopen("a.out", "w", stdout);
+    #endif
+
+    scanf("%d%d%d\n", &n, &m, &k);
+
+    srand(time(NULL));
+
+    int p1 = (rand() * 10000 + 1000) * 2 + 1;
+    int p2 = (rand() * 10000 + 1000) * 2 + 1;
+
+    pp1[0] = pp2[0] = 1;
+    sp1[0] = sp2[0] = 1;
+
+    for (int i=1;i<100100;i++){
+        pp1[i] = pp1[i-1] * p1 % m1;
+        pp2[i] = pp2[i-1] * p2 % m2;
+
+        sp1[i] = (sp1[i-1] + pp1[i])%m1;
+        sp2[i] = (sp2[i-1] + pp2[i])%m2;    
+    }
+
+    cin >>s;
+    for (int i=0;i<s.length();i++)
+        a[i+1] = s[i];
+
+    build(1, 1, n);
+    
+    for (int i=0;i<m+k;i++){
+        int id, l, r, cd;
+        scanf("%d%d%d%d", &id, &l, &r, &cd);
+        if ( id == 1 ){
+            update(1, 1, n, l, r, cd + '0');
+        }
+        else {
+            Tree t1 = get(1, 1, n, l, r - cd);
+            Tree t2 = get(1, 1, n, l + cd, r);
+
+            if (t1.h == t2.h){
+                printf("YES\n");
+            }
+            else
+                printf("NO\n");
+        }
+    }
+
+
+    #ifdef LOCAL
+    cerr << (double)clock() * 1.0 / CLOCKS_PER_SEC << endl;
+    #endif
+
+    return 0;
+}

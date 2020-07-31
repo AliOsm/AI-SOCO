@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int N = 1e3 + 7;
+const int M = 1e6 + 7;
+
+int t[N][N];
+int ans[N][N];
+bool mark[N][N];
+pair<int, int> ord[M];
+int par[M];
+int sz[M];
+int com[M], val[M], pos[M];
+int dr[] = {1, -1, 0, 0};
+int dc[] = {0, 0, -1, 1};
+int n, m;
+
+bool valid(int r, int c)
+{
+	return r >= 0 && c >= 0 && r < n && c < m;
+}
+
+int dfs(int r, int c, int cnt, int val)
+{
+	mark[r][c] = 1;
+	ans[r][c] = val;
+	cnt--;
+	for (int i=0; i<4; i++)
+	{
+		int R = r + dr[i];
+		int C = c + dc[i];
+		if (valid(R, C) && t[R][C] >= val && !mark[R][C] && cnt)
+			cnt = dfs(R, C, cnt, val);
+	}
+	return cnt;
+}
+
+
+int root(int v)
+{
+	return par[v] == v ? v : par[v] = root(par[v]);
+}
+
+void merge(int v, int u)
+{
+	u = root(u);
+	v = root(v);
+	if (v == u)
+		return;
+	if (sz[u] < sz[v])
+		swap(u, v);
+	par[v] = u;
+	sz[u] += sz[v];
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+
+	ll k;
+	cin >> n >> m >> k;
+
+	for (int i=0; i<M; i++)
+		par[i] = i, sz[i] = 1;
+
+	for (int i=0; i<n; i++)
+		for (int j=0; j<m; j++)
+		{
+			int val;
+			cin >> val;
+			t[i][j] = val;
+			ord[i*m+j] = {val, i*m+j};
+		}
+	int all = n * m;
+	sort(ord, ord+all);
+	reverse(ord, ord+all);
+	
+	int cnt = 0;
+	int mx = -1;
+	for (int i=0; i<all; i++)
+	{
+		int r = ord[i].second / m;
+		int c = ord[i].second % m;
+		int p = ord[i].second;
+		for (int j=0; j<4; j++)
+		{
+			int R = r + dr[j];
+			int C = c + dc[j];
+			int P = R * m + C;
+			if (valid(R, C) && t[R][C] >= ord[i].first)
+				merge(p, P);
+		}
+		if (mx == -1 || sz[root(mx)] < sz[root(p)])
+			mx = p;
+		if (i+1 == all || ord[i].first != ord[i+1].first)
+		{
+			val[cnt] = ord[i].first, com[cnt] = sz[root(mx)], pos[cnt] = mx, cnt++;
+			mx = -1;
+		}
+	}
+	
+	for (int i=0; i<cnt; i++)
+		if (k % val[i] == 0 && 1LL * com[i] * val[i] >= k)
+		{
+			cout << "YES\n";
+			int x = k / val[i];
+			int r = pos[i] / m;
+			int c = pos[i] % m;
+			dfs(r, c, x, val[i]);
+			for (int i=0; i<n; i++)
+			{
+				for (int j=0; j<m; j++)
+					cout << ans[i][j] << " ";
+				cout << "\n";
+			}
+			return 0;
+		}
+	cout << "NO\n";
+	return 0;
+}

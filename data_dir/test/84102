@@ -1,0 +1,189 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int MAXN = 1e5+5;
+
+const int INF = 1e9;
+
+set <int> adj[MAXN];
+
+int p[20][MAXN];
+
+int ans[MAXN];
+
+int sub[MAXN];
+
+int cp[MAXN];
+
+int h[MAXN];
+
+int compSz;
+
+int n, q;
+
+void init (){
+   for (int i = 1; i <= n; ++ i){
+      ans[i] = INF;
+   }
+}
+
+void preDfs (int v, int pr){
+   p[0][v] = pr;
+
+   for (int to : adj[v]){
+      if (to == pr){
+         continue;
+      }
+
+      h[to] = h[v] + 1;
+      preDfs (to, v);
+   }
+}
+
+void dfs (int v, int pr){
+   sub[v] = 1;
+   ++ compSz;
+
+   for (int to : adj[v]){
+      if (to == pr){
+         continue;
+      }
+
+      dfs (to, v);
+      sub[v] += sub[to];
+   }
+}
+
+int getCentroid (int v, int pr){
+   for (int to : adj[v]){
+      if (to == pr){
+         continue;
+      }
+
+      if ((sub[to] << 1) > compSz){
+         return getCentroid (to, v);
+      }
+   }
+
+   return v;
+}
+
+void decompose (int v, int pr){
+   compSz = 0; dfs (v, -1);
+   int cur = getCentroid (v, -1);
+
+   if (pr == -1){
+      pr = cur;
+   }
+
+   cp[cur] = pr;
+
+   for (int to : adj[cur]){
+      adj[to].erase (cur);
+      decompose (to, cur);
+   }
+
+   adj[cur].clear ();
+}
+
+int getLca (int a, int b){
+   if (h[a] < h[b]){
+      swap (a, b);
+   }
+
+   int diff = h[a] - h[b];
+
+   for (int i = 0; i < 20; ++ i){
+      if (diff & (1 << i)){
+         a = p[i][a];
+      }
+   }
+
+   if (a == b){
+      return a;
+   }
+
+   for (int i = 19; i >= 0; -- i){
+      if (p[i][a] != p[i][b]){
+         a = p[i][a];
+         b = p[i][b];
+      }
+   }
+
+   return p[0][a];
+}
+
+int dist (int a, int b){
+   return h[a] + h[b] - 2 * h[getLca (a, b)];
+}
+
+void upd (int v){
+   for (int cur = v; ; cur = cp[cur]){
+      ans[cur] = min (ans[cur], dist (v, cur));
+
+      if (cur == cp[cur]){
+         break;
+      }
+   }
+}
+
+int query (int v){
+   int rt = INF;
+
+   for (int cur = v; ; cur = cp[cur]){
+      rt = min (rt, ans[cur] + dist (v, cur));
+
+      if (cur == cp[cur]){
+         break;
+      }
+   }
+
+   return rt;
+}
+
+void solve (){
+   scanf ("%d %d", &n, &q);
+
+   init ();
+
+   for (int i = 1, l, r; i < n; ++ i){
+      scanf ("%d %d", &l, &r);
+
+      adj[l].insert (r);
+      adj[r].insert (l);
+   }
+
+   preDfs (1, 1);
+
+   decompose (1, -1);
+
+   for (int i = 1; i < 20; ++ i){
+      for (int j = 1; j <= n; ++ j){
+         p[i][j] = p[i - 1][p[i - 1][j]];
+      }
+   }
+
+   upd (1);
+
+   for (int i = 1, tp, v; i <= q; ++ i){
+      scanf ("%d %d", &tp, &v);
+
+      if (tp == 1){
+         upd (v);
+      }
+      else {
+         printf ("%d\n", query (v));
+      }
+   }
+}
+
+int main (){
+   int tt = 1;
+
+   while (tt --){
+      solve ();
+   }
+
+   return 0;
+}

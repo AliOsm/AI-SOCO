@@ -1,0 +1,196 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll N = 2e5 + 3;
+const ll L = 20;
+ll n, m, k;
+ll cur;
+ll ans;
+ll px;
+ll py;
+
+ll sum[N];
+ll cnt[N];
+ll wgt[N];
+ll a[N];
+ll b[N];
+
+vec <pii> sml;
+
+vec <ll> two;
+vec <ll> x;
+vec <ll> y;
+vec <ll> z;
+
+void update(ll i, ll x, ll bit[]) {
+    for(; i < N; i += lsb(i)) {
+        bit[i] += x;
+    }
+}
+
+ll query(ll i, ll bit[]) {
+    ll res = 0;
+    for(; i; i -= lsb(i)) {
+        res += bit[i];
+    }
+    return res;
+}
+
+ll bin_lift(ll x, ll bit[]) {
+    ll pos = 0;
+    ll rem = x;
+    for(ll i = L - 1; i >= 0; --i) {
+        ll newpos = pos + (1 << i);
+        if(newpos < N && bit[newpos] < rem) {
+            pos = newpos;
+            rem -= bit[pos];
+        }
+    }
+    return pos + 1;
+}
+
+void compress() {
+    sml.pb({0, 0});
+    sort(all(sml));
+    for(ll i = 1; i <= n; ++i) {
+        wgt[sml[i].yy] = i;
+    }
+}
+
+void input() {
+    cin >> n >> m >> k;
+    for(ll i = 1; i <= n; ++i) {
+        cin >> wgt[i];
+        sml.pb({wgt[i], i});
+    }
+    ll c; cin >> c;
+    while(c--) {
+        ll i; cin >> i;
+        a[i] = 1;
+    }
+    ll d; cin >> d;
+    while(d--) {
+        ll i; cin >> i;
+        b[i] = 1;
+    }
+}
+
+void solve() {
+    compress();
+    for(ll i = 1; i <= n; ++i) {
+        if(a[i] && b[i]) {
+            two.pb(i);
+        } else if(a[i]) {
+            x.pb(i);
+        } else if(b[i]) {
+            y.pb(i);
+        } else {
+            z.pb(i);
+        }
+    }
+    for(ll e: x) {
+        update(wgt[e], 1, cnt);
+        update(wgt[e], sml[wgt[e]].xx, sum);
+    }
+    for(ll e: y) {
+        update(wgt[e], 1, cnt);
+        update(wgt[e], sml[wgt[e]].xx, sum);
+    }
+    for(ll e: z) {
+        update(wgt[e], 1, cnt);
+        update(wgt[e], sml[wgt[e]].xx, sum);
+    }
+    sort(all(two), [](ll x, ll y) {
+        return wgt[x] < wgt[y];
+    });
+    sort(all(x), [](ll x, ll y) {
+        return wgt[x] < wgt[y];
+    });
+    sort(all(y), [](ll x, ll y) {
+        return wgt[x] < wgt[y];
+    });
+    for(ll i = 0; i < min(m, len(two)); ++i) {
+        cur += sml[wgt[two[i]]].xx;
+    }
+    ans = inf;
+    for(ll i = min(m, len(two)) - 1; i >= -1; --i) {
+        ll r = k - i - 1;
+        if(r > len(x) || r > len(y)) {
+            break;
+        }
+        while(px < r) {
+            ll e = x[px++];
+            update(wgt[e], -1, cnt);
+            update(wgt[e], -sml[wgt[e]].xx, sum);
+            cur += sml[wgt[e]].xx;
+        }
+        while(py < r) {
+            ll e = y[py++];
+            update(wgt[e], -1, cnt);
+            update(wgt[e], -sml[wgt[e]].xx, sum);
+            cur += sml[wgt[e]].xx;
+        }
+        ll rem = m - (i + 2 * px + 1);
+        if(rem >= 0) {
+            if(rem) {
+                ll ind = bin_lift(rem, cnt);
+                if(ind < N) {
+                    ans = min(ans, cur + query(ind, sum));
+                }
+            } else {
+                ans = min(ans, cur);
+            }
+        }
+        if(i != -1) {
+            cur -= sml[wgt[two[i]]].xx;
+        }
+    }
+    if(ans == inf) {
+        cout << "-1\n";
+    } else {
+        cout << ans << "\n";
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

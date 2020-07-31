@@ -1,0 +1,78 @@
+#include <bits/stdc++.h>
+#define pb(a)           push_back(a)
+#define ll              long long int
+#define scd(a)          scanf("%d",&a)
+#define mp(a,b)         make_pair(a,b)
+#define scl(w)          scanf("%I64d",&w)
+#define scdd(a,b)       scanf("%d %d",&a,&b)
+#define srt(a)          sort(a.begin(),a.end())
+#define rsrt(a)         sort(a.rbegin(),a.rend())
+#define scll(a,b)       scanf("%I64d %I64d",&a,&b)
+///4direction ->        int del_x[]={-1,0,1,0},del_y[]={0,1,0,-1};
+#define input(v,n)      for (int i=0;i<n;i++){int a;cin >> a;v.push_back(a);}
+#define inputll(v,n)    for (ll i=0;i<n;i++){ll a;cin >> a;v.push_back(a);}
+#define vii             vector < int >
+#define vll             vector < ll >
+#define pii             pair < int , int >
+#define mk              make_pair
+#define inf8            100000008
+
+using namespace std;
+
+ll n,m;
+vector < ll > G[200006];
+map < pair < ll , ll > ,ll > mp;
+ll level[200006];
+ll X[200006],Y[200006];
+
+void BFS()
+{
+    queue < ll > q;
+    q.push(1);
+    level[1] = 0;
+    while(!q.empty()){
+        ll u = q.front();
+        q.pop();
+
+        for (int i=0;i<G[u].size();i++){
+            ll v = G[u][i];
+            if(level[u]+1<level[v]){
+                level[v] = level[u]+1;
+                q.push(v);
+            }
+        }
+    }
+}
+
+int main()
+{
+    cin >> n>> m;
+    for (int i=1;i<=n;i++)level[i]=1000000000;
+    for (int i=0;i<m;i++){
+        ll a,b;
+        scll(a,b);
+        G[a].pb(b);
+        G[b].pb(a);
+        X[i]= a, Y[i]=b;
+    }
+    BFS();
+
+    string s= "";
+    bool ans = true;
+    for (int i=0;i<m;i++){
+        if (level[X[i]]%2 == level[Y[i]]%2)ans = false;
+        else {
+            if (level[X[i]]%2==0)s+="1";
+            else s+="0";
+        }
+    }
+    if (!ans){
+        cout << "NO" << endl;
+    }
+    else {
+        cout << "YES" << endl;
+        cout << s << endl;
+    }
+
+    return 0;
+}

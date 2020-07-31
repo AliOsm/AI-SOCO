@@ -1,0 +1,148 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <stack>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <set>
+#include <cstdlib>
+#include <bitset>
+#include <tuple>
+#include <assert.h>
+#include <deque>
+#include <bitset>
+#include <iomanip>
+#include <limits>
+#include <chrono>
+#include <random>
+#include <array>
+#include <unordered_map>
+#include <functional>
+#include <complex>
+#include <numeric>
+
+template<class T> inline bool chmax(T& a, T b) { if (a < b) { a = b; return 1; } return 0; }
+template<class T> inline bool chmin(T& a, T b) { if (a > b) { a = b; return 1; } return 0; }
+
+constexpr long long MAX = 5100000;
+constexpr long long INF = 1LL << 60;
+constexpr int inf = 1 << 28;
+constexpr long long mod = 1000000007LL;
+//constexpr long long mod = 998244353LL;
+
+using namespace std;
+typedef unsigned long long ull;
+typedef long long ll;
+
+bool IsPrime[MAX];
+ll MinFactor[MAX]; vector<ll> preprocess(ll n = MAX) {
+    vector<ll> res;
+    for (ll i = 0; i < n; ++i) IsPrime[i] = true, MinFactor[i] = -1;
+    IsPrime[0] = false; IsPrime[1] = false;
+    MinFactor[0] = 0; MinFactor[1] = 1;
+    for (ll i = 2; i < n; ++i) {
+        if (IsPrime[i]) {
+            MinFactor[i] = i;
+            res.push_back(i);
+            for (ll j = i * 2; j < n; j += i) {
+                IsPrime[j] = false;
+                if (MinFactor[j] == -1) MinFactor[j] = i;
+            }
+        }
+    }
+    return res;
+}
+
+vector<pair<ll, ll> > fast_prime_factor(ll n) {
+    vector<pair<ll, ll> > res;
+    while (n != 1) {
+        ll prime = MinFactor[n];
+        ll exp = 0;
+        while (MinFactor[n] == prime) {
+            ++exp;
+            n /= prime;
+        }
+        res.push_back(make_pair(prime, exp));
+    }
+    return res;
+}
+
+int bfs(int start, vector<int>& d, vector<vector<int>> &g, vector<int> &lst) {
+    d[start] = 0;
+    int last = -1;
+    queue<int> q;
+    q.push(start);
+    while (!q.empty()) {
+        int cur = q.front();
+        q.pop();
+        lst.push_back(cur);
+        last = cur;
+        for (int next : g[cur]) {
+            if (d[next] != -1) continue;
+            d[next] = d[cur] + 1;
+            q.push(next);
+        }
+    }
+    return last;
+}
+
+int main()
+{
+	/*
+	cin.tie(nullptr);
+	ios::sync_with_stdio(false);
+	*/
+    preprocess();
+	ll n; scanf("%lld", &n);
+	vector<ll> a(n); for (int i = 0; i < n; i++) scanf("%lld", &a[i]);
+    vector<int> pr; for (int i = 0; i < MAX; i++) if (IsPrime[i]) pr.push_back(i);
+    vector<vector<pair<int, int>>> vp(pr.size() + 1);
+    for (int i = 0; i < n - 1; i++) {
+        int u, v; scanf("%d %d", &u, &v);
+        u--; v--;
+        ll g = gcd(a[u], a[v]);
+        auto p = fast_prime_factor(g);
+        for (auto e : p) {
+            int idx = lower_bound(pr.begin(), pr.end(), e.first) - pr.begin();
+            vp[idx].emplace_back(u, v);
+        }
+    }
+    int res = 0;
+    for (int i = 0; i < pr.size(); i++) {
+        vector<int> v;
+        for (auto e : vp[i]) {
+            v.push_back(e.first);
+            v.push_back(e.second);
+        }
+        sort(v.begin(), v.end());
+        v.erase(unique(v.begin(), v.end()), v.end());
+        if (v.size() <= 1) continue;
+        vector<vector<int>> g(v.size());
+        for (auto e : vp[i]) {
+            int u = lower_bound(v.begin(), v.end(), e.first) - v.begin();
+            int t = lower_bound(v.begin(), v.end(), e.second) - v.begin();
+            g[u].push_back(t);
+            g[t].push_back(u);
+        }
+        vector<bool> used(v.size(), false);
+        vector<int> d(v.size(), -1);
+        for (int i = 0; i < v.size(); i++) {
+            if (used[i]) continue;
+            vector<int> lst;
+            int p = bfs(i, d, g, lst);
+            for (int e : lst) {
+                used[e] = true;
+                d[e] = -1;
+            }
+            lst.clear();
+            int q = bfs(p, d, g, lst);
+            chmax(res, d[q] + 1);
+        }
+    }
+    for (int i = 0; i < n; i++) if (a[i] >= 2) chmax(res, 1);
+    cout << res << endl;
+    return 0;
+} 

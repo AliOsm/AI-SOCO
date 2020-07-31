@@ -1,0 +1,35 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+string s;
+
+int main() {
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+  cout.tie(0);
+
+  int n;
+  cin >> n;
+  set<string> st;
+  for (int i = 1; i <= n; i++) {
+    cin >> s;
+    string cur = "";
+    for (auto e : s) {
+      if (e == 'u') {
+        cur += "oo";
+      } else if (e == 'h') {
+        while ((int) cur.size() > 0 && cur.back() == 'k') {
+          cur.pop_back();
+        }
+        cur += "h";
+      } else {
+        cur += e;
+      }
+    }
+    st.insert(cur);
+  }
+  cout << (int) st.size() << '\n';
+
+  return 0;
+}

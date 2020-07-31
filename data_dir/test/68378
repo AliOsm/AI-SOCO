@@ -1,0 +1,88 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int N = 3e5 + 5;
+long long ans[N], seg[4 * N], lazy[4 * N];
+bool vis[N];
+vector < vector < int > > adj(N);
+vector < vector < pair < int , long long > > > V(N);
+void Lazy(int node, int l, int r, int x, int y, long long val){
+    if(lazy[node] != 0)
+    {
+        seg[node] += lazy[node] ;
+        if(l != r)
+        {
+            lazy[node*2] += lazy[node];
+            lazy[node*2+1] += lazy[node];
+        }
+        lazy[node] = 0;
+    }
+    if(l > y || r < x )
+        return;
+    //cout << l <<' ' <<r <<' ' <<val << endl;
+    if(l >= x && r <= y)
+    {
+        seg[node] += val;
+        if(l != r)
+        {
+            lazy[node*2] += val;
+            lazy[node*2+1] += val;
+        }
+        return;
+    }
+    int mid = (l + r) / 2;
+    Lazy(node*2, l, mid, x, y, val);
+    Lazy(node*2 + 1, mid + 1, r, x, y, val);
+}
+long long get(int p , int l , int r , int node){
+    if (node > r || node < l)
+        return -1;
+    if(lazy[p] != 0)
+    {
+        seg[p] += lazy[p];
+        if(l != r)
+        {
+            lazy[p*2] += lazy[p];
+            lazy[p*2+1] += lazy[p];
+        }
+        lazy[p] = 0;
+    }
+    if (l == node &&  r == node)
+        return seg[p];
+    return max(get(2 * p, l, (l+r)/2, node), get(2 * p + 1, (l+r)/2 + 1,r , node));
+}
+void dfs(int x, int level){
+    if (vis[x])
+        return;
+    vis[x] = 1;
+    for(int i = 0 ; i <V[x].size() ; i++){
+        Lazy(1,1, N - 5, level, level + V[x][i].first, V[x][i].second);
+    }
+    //cout << seg[1] <<' ' <<lazy[1] <<' ' <<endl;
+    ans[x] = get(1, 1,  N - 5, level);
+    for(int i = 0 ; i <adj[x].size() ; i++)
+        dfs(adj[x][i], level + 1);
+    for(int i = 0 ; i <V[x].size() ; i++){
+        Lazy(1,1,  N - 5, level, level + V[x][i].first, -V[x][i].second);
+    }
+}
+int main (){
+    int n;
+    scanf("%d",&n);
+    for(int i = 1 ; i < n ; i++){
+        int x, y;
+        scanf("%d%d",&x,&y);
+        adj[x].push_back(y);
+        adj[y].push_back(x);
+    }
+    int m;
+    scanf("%d",&m);
+    for(int i = 1 ; i <= m ; i++){
+        int v, d, x;
+        scanf("%d%d%d",&v,&d,&x);
+        V[v].push_back({d,x});
+    }
+    dfs(1, 1);
+    for(int i = 1 ; i <= n ; i++)
+        printf("%I64d ",ans[i]);
+    return 0;
+}

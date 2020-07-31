@@ -1,0 +1,297 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+ 
+using namespace std;
+typedef long long ll;
+typedef unsigned long long ull;
+typedef pair<int, int> ii;
+typedef pair<int, ii> iii;
+ 
+ll pwr(ll base, ll p, ll mod = MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+ 
+ll gcd(ll a, ll b){
+    if(b == 0)  return a;
+    return gcd(b, a%b);
+}
+
+
+struct Edge{
+    int a, b, idx;
+    ll w, c;
+    Edge(){}
+    Edge(int a, int b, ll w, ll c){
+        this->a = a;
+        this->b = b;
+        this->w = w;
+        this->c = c;
+    }
+};
+
+bool comp_w(Edge a, Edge b){
+    return a.w < b.w;
+}
+
+bool comp_c(Edge a, Edge b){
+    return a.c < b.c;
+}
+
+bool comp_idx(Edge a, Edge b){
+    return a.idx < b.idx;
+}
+
+int n, e, sz[200005], dsu_par[200005];
+vector<Edge> edgeList;
+bool done[200005];
+ll S;
+vector<int> adj[200005];
+
+
+int root(int v){
+    if(v == dsu_par[v]) return v;
+    return dsu_par[v] = root(dsu_par[v]);
+}
+
+void unite(int a, int b){
+    a = root(a);
+    b = root(b);
+    if(a == b)  return;
+    if(sz[a] < sz[b])   swap(a, b);
+    dsu_par[b] = a;
+    sz[a] += sz[b];
+}
+
+
+int depth[200005], par[20][200005], sparse[20][200005], par_edge[200005];
+
+void dfs(int v, int p, int d, int last_w, int last_idx){
+
+    depth[v] = d;
+    par_edge[v] = last_idx;
+
+    par[0][v] = p;
+    for(int j=0;j<19;j++)
+        if(par[j][v] != -1)
+            par[j+1][v] = par[j][par[j][v]];
+
+    sparse[0][v] = last_w;
+    for(int j=0;j<19;j++)
+        if(par[j][v] != -1 && sparse[j][par[j][v]] != -1)
+            sparse[j+1][v] = max(sparse[j][v], sparse[j][par[j][v]]);
+
+    for(auto e : adj[v]){
+        int vv = v ^ edgeList[e].a ^ edgeList[e].b;
+        int w = edgeList[e].w;
+        if(vv == p) continue;
+        dfs(vv, v, d+1, w, e);
+    }
+}
+
+int LCA(int a, int b){
+    
+    if(depth[a] < depth[b]) swap(a, b);
+ 
+    int diff = depth[a] - depth[b];
+    for(int i=0;i<20;i++)
+        if((diff & (1<<i)) > 0) a = par[i][a];
+ 
+    if(a == b)  return a;
+    for(int i=19;i>=0;i--)
+        if(par[i][a] != par[i][b]){
+            a = par[i][a];  b = par[i][b];
+        }
+ 
+    if(a == b)  return a;
+    a = par[0][a];
+    return a;
+}
+
+
+int query_up(int v, int dist){
+    int ans = -1;
+    for(int i=19;i>=0;i--)
+        if((dist >> i) & 1){
+            ans = max(ans, sparse[i][v]);
+            v = par[i][v];
+            dist -= (1<<i);
+        }
+    return ans;
+}
+
+int query(int a, int b){
+
+    int lca = LCA(a, b);
+    if(lca == a)    return query_up(b, depth[b]-depth[lca]);
+    if(lca == b)    return query_up(a, depth[a]-depth[lca]);
+
+    return max(query_up(a, depth[a]-depth[lca]), query_up(b, depth[b]-depth[lca]));
+}
+ 
+
+int main(){
+
+    // ios_base::sync_with_stdio(0);
+
+    scanf("%d%d", &n, &e);
+    edgeList.resize(e);
+    for(int i=0;i<e;i++){
+        scanf("%lld", &edgeList[i].w);
+        edgeList[i].idx = i;
+    }
+    for(int i=0;i<e;i++){
+        scanf("%lld", &edgeList[i].c);
+    }
+    for(int i=0;i<e;i++){
+        scanf("%d%d", &edgeList[i].a, &edgeList[i].b);
+    }
+    scanf("%lld", &S);
+   
+    sort(edgeList.begin(), edgeList.end(), comp_w);
+    for(int i=1;i<=n;i++){
+        sz[i] = 1;
+        dsu_par[i] = i;
+    }
+
+    ll tot_w = 0;
+    for(auto it : edgeList){
+
+        int a = it.a, b = it.b, idx = it.idx;
+        a = root(a);    b = root(b);
+        if(a == b)  continue;
+
+        done[idx] = true;
+        unite(a, b);
+        tot_w += it.w;
+    }
+
+// cout<<"edgeList: ";
+// for(auto it : edgeList) cout<<it.a<<":"<<it.b<<":"<<it.c<<":"<<it.w<<":"<<it.idx<<"  ";cout<<endl;
+
+    sort(edgeList.begin(), edgeList.end(), comp_idx);
+    for(int i=0;i<e;i++)
+        if(done[i]){
+            adj[edgeList[i].a].pb(i);
+            adj[edgeList[i].b].pb(i);
+        }
+
+// cout<<"edgeList: ";
+// for(auto it : edgeList) cout<<it.a<<":"<<it.b<<":"<<it.c<<":"<<it.w<<":"<<it.idx<<"  ";cout<<endl;
+// cout<<"done: ";for(int i=0;i<e;i++) cout<<done[i]<<" ";cout<<endl;
+
+// cout<<"adj:\n";
+// for(int i=1;i<=n;i++){
+//     cout<<i<<": ";for(auto j : adj[i])  cout<<j<<" ";cout<<endl;
+// }cout<<endl;
+
+    memset(par, -1, sizeof(par));
+    memset(sparse, -1, sizeof(sparse));
+    dfs(1, -1, 0, -1, -1);
+
+// cout<<"depth: ";for(int i=1;i<=n;i++)   cout<<depth[i]<<" ";cout<<endl;
+// cout<<"par_edge: ";for(int i=1;i<=n;i++)   cout<<par_edge[i]<<" ";cout<<endl;
+
+// cout<<"par:\n";
+// for(int i=1;i<=n;i++){
+//     cout<<i<<": ";for(int j=0;par[j][i]!=-1;j++)    cout<<par[j][i]<<" ";cout<<endl;
+// }cout<<endl;
+
+
+// cout<<"sparse:\n";
+// for(int i=1;i<=n;i++){
+//     cout<<i<<": ";for(int j=0;sparse[j][i]!=-1;j++)    cout<<sparse[j][i]<<" ";cout<<endl;
+// }cout<<endl;
+
+
+// cout<<LCA(4, 5)<<endl;
+
+
+    ll curr = tot_w, min_c = MOD+1;
+    for(int i=0;i<e;i++)
+        if(done[i])
+            min_c = min(min_c, edgeList[i].c);
+    curr -= S/min_c;
+    int pos = -1;
+    for(int i=0;i<e;i++)
+        if(done[i] && edgeList[i].c == min_c)
+            pos = i;
+    
+// cout<<"initially curr = "<<curr<<" as min_c = "<<min_c<<endl;
+
+    sort(edgeList.begin(), edgeList.end(), comp_c);
+    for(int i=0;i<e;i++){
+
+        int a = edgeList[i].a, b = edgeList[i].b, idx = edgeList[i].idx;
+        ll w = edgeList[i].w, c = edgeList[i].c;
+
+        if(done[idx])   continue;
+
+        ll max_w = query(a, b);
+        ll new_tot = tot_w - max_w + w;
+        ll temp = new_tot - S / c;
+        if(temp < curr){
+            curr = temp;
+            pos = idx;
+        }
+    }
+
+    sort(edgeList.begin(), edgeList.end(), comp_idx);
+    if(pos != -1){
+
+        int a = edgeList[pos].a, b = edgeList[pos].b;
+        ll max_w = query(a, b);
+
+// cout<<"will remove "<<max_w<<" from "<<a<<" "<<b<<endl;
+
+        int lca = LCA(a, b);
+// cout<<lca<<endl;
+        int v = a, removed = -1;
+        while(v != lca){
+
+            int x = par_edge[v];
+            if(edgeList[x].w == max_w){
+                removed = x;
+                break;
+            }
+            v = par[0][v];
+        }
+
+// cout<<"removed = "<<removed<<endl;
+
+        v = b;
+        while(v != lca && removed == -1){
+
+            int x = par_edge[v];
+            if(edgeList[x].w == max_w){
+                removed = x;
+                break;
+            }
+            v = par[0][v];
+        }
+
+        done[removed] = false;
+        done[pos] = true;
+    }
+
+    printf("%lld\n", curr);
+    for(int i=0;i<e;i++)
+        if(i == pos){
+            printf("%d %lld\n", i+1, edgeList[i].w - S/edgeList[i].c);
+        }
+        else if(done[i]){
+            printf("%d %lld\n", i+1, edgeList[i].w);
+        }
+
+    return 0;
+}
+
+
+
+
+

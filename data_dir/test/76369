@@ -1,0 +1,173 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+
+typedef unordered_map<int, int> umap;
+
+const int MAXN = 222222;
+const int LEAVES = 1 << 18;
+
+int n, m;
+int sa[MAXN], tmp[MAXN], cnt[MAXN], rnk[MAXN], ranks;
+int lcp[MAXN], pos[MAXN];
+int s[MAXN];
+umap renum;
+int st[18][MAXN];
+int q;
+vector<int> t[LEAVES * 2];
+int Log[MAXN];
+
+void build() {
+  for (int i = 0; i < n; ++i)
+    ++cnt[s[i]];
+  for (int i = 1; i < MAXN; ++i)
+    cnt[i] += cnt[i - 1];
+  for (int i = 0; i < n; ++i)
+    sa[--cnt[s[i]]] = i;
+  memset(cnt, 0, sizeof cnt);
+  rnk[sa[0]] = 0; ranks = 1;
+  for (int i = 1; i < n; ++i) {
+    if (s[sa[i]] != s[sa[i - 1]])
+      rnk[sa[i]] = ranks++;
+    else rnk[sa[i]] = rnk[sa[i - 1]];
+  }
+  for (int step = 1; ranks != n; step <<= 1) {
+    for (int i = 0; i < n; ++i) {
+      tmp[i] = sa[i] - step;
+      if (tmp[i] < 0) tmp[i] += n;
+    }
+    for (int i = 0; i < n; ++i)
+      ++cnt[rnk[i]];
+    for (int i = 1; i < ranks; ++i)
+      cnt[i] += cnt[i - 1];
+    for (int i = n - 1; i > -1; --i)
+      sa[--cnt[rnk[tmp[i]]]] = tmp[i];
+    memset(cnt, 0, sizeof(int) * n);
+    tmp[sa[0]] = 0; ranks = 1;
+    for (int i = 1; i < n; ++i) {
+      if (rnk[sa[i]] != rnk[sa[i - 1]] ||
+	  rnk[(sa[i] + step) % n] != rnk[(sa[i - 1] + step) % n])
+	tmp[sa[i]] = ranks++;
+      else tmp[sa[i]] = tmp[sa[i - 1]];
+    }
+    memcpy(rnk, tmp, sizeof(int) * n);
+  }
+}
+
+void kasai() {
+  for (int i = 0; i < n; ++i)
+    pos[sa[i]] = i;
+  for (int i = 0, k = 0; i < n; ++i) {
+    if (pos[i] == n - 1) {
+      k = 0; continue;
+    }
+    int j = sa[pos[i] + 1];
+    while (s[i + k] == s[j + k]) ++k;
+    lcp[pos[i]] = k;
+    if (k > 0) --k;
+  }
+}
+
+int insert(int x) {
+  int &res = renum[x];
+  if (!res) res = renum.size() + 1;
+  return res;
+}
+
+void sparse() {
+  for (int i = 0; i < n; ++i)
+    st[0][i] = lcp[i];
+  for (int i = 1; i < 18; ++i)
+    for (int j = 0; j + (1 << i) <= n; ++j)
+      st[i][j] = min(st[i - 1][j], st[i - 1][j + (1 << (i - 1))]);
+}
+
+int getMin(int l, int r) {
+  int L = Log[r - l + 1];
+  return min(st[L][l], st[L][r - (1 << L) + 1]);
+}
+
+void merge(vector<int> &x, vector<int> &a, vector<int> &b) {
+  int i1 = 0, i2 = 0;
+  while (i1 < (int)a.size() && i2 < (int)b.size()) {
+    if (a[i1] < b[i2])
+      x.pb(a[i1++]);
+    else x.pb(b[i2++]);
+  }
+  while (i1 < (int)a.size())
+    x.pb(a[i1++]);
+  while (i2 < (int)b.size())
+    x.pb(b[i2++]);
+}
+
+void buildSegTree() {
+  for (int i = 0; i < n; ++i)
+    if (sa[i] >= m)
+      t[LEAVES + i].pb(sa[i]);
+  for (int i = LEAVES - 1; i > -1; --i)
+    merge(t[i], t[i << 1], t[i << 1 | 1]);
+}
+
+int getCount(int v, int tl, int tr, int l, int r, int x, int y) {
+  if (l > r) return 0;
+  if (l == tl && r == tr) {
+    return upper_bound(t[v].begin(), t[v].end(), y) -
+      upper_bound(t[v].begin(), t[v].end(), x);
+  }
+  int tm = (tl + tr) >> 1;
+  return getCount(v << 1, tl, tm, l, min(r, tm), x, y) +
+    getCount(v << 1 | 1, tm + 1, tr, max(l, tm + 1), r, x, y);
+}
+
+int main() {
+  renum.rehash(MAXN);
+  Log[1] = 0;
+  for (int i = 2; i < MAXN; ++i)
+    Log[i] = Log[i >> 1] + 1;
+  scanf("%d", &m);
+  for (int i = 0; i < m; ++i) {
+    scanf("%d", s + i);
+    if (i) {
+      s[i - 1 + m] = insert(s[i] - s[i - 1]);
+      s[i - 1] = insert(s[i - 1] - s[i]);
+    }
+  }
+  s[m - 1] = 1;
+  n = 2 * m;
+  s[n - 1] = 0;
+  build();
+  kasai();
+  sparse();
+  buildSegTree();
+  scanf("%d", &q);
+  for (int i = 0, l, r; i < q; ++i) {
+    scanf("%d%d", &l, &r); --l; r -= 2;
+    if (l > r) {
+      printf("%d\n", m - 1);
+      continue;
+    }
+    int L = -1;
+    int R = pos[l];
+    while (R - L > 1) {
+      int mid = (L + R) >> 1;
+      if (getMin(mid, pos[l] - 1) >= r - l + 1)
+	R = mid;
+      else L = mid;
+    }
+    int lt = R;
+    L = pos[l] - 1;
+    R = n - 1;
+    while (R - L > 1) {
+      int mid = (L + R) >> 1;
+      if (getMin(pos[l], mid) >= r - l + 1)
+	L = mid;
+      else R = mid;
+    }
+    int rt = L + 1;
+    int len = r - l + 1;
+    printf("%d\n", getCount(1, 0, LEAVES - 1, lt, rt, m - 1, n - 1) -
+	   getCount(1, 0, LEAVES - 1, lt, rt, l + m - len - 1, r + m + 1));
+  }
+  return 0;
+}

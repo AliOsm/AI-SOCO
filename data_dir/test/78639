@@ -1,0 +1,122 @@
+#include <iostream>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <cstring>
+#include <ctime>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <queue>
+#include <stack>
+#include <bitset>
+#include <string>
+#include <algorithm>
+#include <complex>
+#include <utility>
+#include <cassert>
+using namespace std;
+#define null NULL
+#define mp make_pair
+#define pb(a) push_back(a)
+#define sz(a) ((int)(a).size())
+#define all(a) a.begin() , a.end()
+#define fi first
+#define se second
+#define relaxMin(a , b) (a) = min((a),(b))
+#define relaxMax(a , b) (a) = max((a),(b))
+#define SQR(a) ((a)*(a))
+typedef vector<int> vi;
+typedef pair<int,int> pii;
+typedef long long ll;
+#define MAXN 6410
+const int INF = 1E9;
+int phi[MAXN];
+int COST , N , F , T;
+struct edge{
+  int f , t , cap , fl , pr;
+  edge(int _f , int _t , int _cap , int _pr){
+   f = _f , t = _t , cap = _cap , pr = _pr;
+   fl = 0;
+                                            }
+  int rc(){return cap - fl;}
+  int cost(){return pr - phi[t] + phi[f];}
+};
+vector<edge> E;
+vi fo[MAXN];
+void add_edge(int f , int t , int cap , int pr){
+  E.pb(edge(f , t , cap , pr)) , fo[f].pb(sz(E) - 1);
+  E.pb(edge(t , f , 0 , -pr)) , fo[t].pb(sz(E) - 1);
+}
+int sp[MAXN + 1] , par[MAXN + 1];
+bool used[MAXN];
+bool djikstra(){
+  fill(sp , sp + N + 1 , INF);
+  fill(used , used + N + 1 , false);
+  sp[F] = 0;
+  for(;;){
+   int vr = N;
+   for(int i=0;i<N;++i)
+    if(!used[i] && sp[i] < sp[vr]) vr = i;
+   if(vr == N) break;
+   used[vr] = true;
+   for(int i=0;i<sz(fo[vr]);++i){
+    edge& e = E[fo[vr][i]];
+    if(e.rc() && sp[e.f] + e.cost() < sp[e.t])
+     par[e.t] = fo[vr][i],
+     sp[e.t] = sp[e.f] + e.cost();
+                                }
+         }
+  return used[T];
+}
+int push_path(int vr , int how){
+  if(vr == F) return how;
+  int e = par[vr];
+  how = push_path(E[e].f ,
+                  min(how , E[e].rc()));
+  E[e].fl += how , E[e^1].fl -= how;
+  COST += how * E[e].pr;
+  return how;
+}
+int mfmc(){
+  COST = 0;
+  fill(phi , phi + N , 0);
+  while(djikstra()){
+   push_path(T , INF);
+   for(int i=0;i<N;++i)
+    if(used[i]) phi[i] += sp[i];
+                   }
+  return COST;
+}
+// Solution
+int n , m , in[85][85] , id[85][85];
+int sft[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+int main(){
+  scanf("%d%d" , &n , &m);
+  N = n*m + 2;
+  F = N-2 , T = N-1;
+  int ALL = n*m/2;
+  for(int i=0;i<n;++i)
+   for(int j=0;j<m;++j)
+    scanf("%d" , &in[i][j]);
+  int cnt[2] = {0};
+  for(int i=0;i<n;++i)
+   for(int j=0;j<m;++j)
+    id[i][j] = cnt[(i+j)&1]++;
+  for(int i=0;i<n;++i)
+   for(int j=0;j<m;++j)
+    if(!((i+j)&1))
+     for(int p=0;p<4;++p){
+      int nx = i + sft[p][0],
+          ny = j + sft[p][1];
+      if(nx>=0 && nx<n && ny>=0 && ny<m)
+       add_edge(id[i][j] , id[nx][ny]+ALL , 1 ,
+                (in[i][j] == in[nx][ny])?0:1);
+                         }
+  for(int i=0;i<ALL;++i)
+   add_edge(F , i , 1 , 0),
+   add_edge(i+ALL , T , 1 , 0);
+  printf("%d\n" , mfmc());
+  return 0;
+}

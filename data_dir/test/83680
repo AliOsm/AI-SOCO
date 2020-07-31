@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define fr(i,n)    for(int i=0;i<n;i++)
+#define fru(i,a,b) for(int i=a;i<=b;i++)
+#define frd(i,a,b) for(int i=a;i>=b;i--)
+
+typedef long long   ll;
+typedef long double ld;
+	
+const int INF = 2e9 + 10;
+const int MOD = 1e9 + 7;
+const int N   = 1e2 + 10;
+
+int n, m, k, T;
+string names[N], msg[N];
+int dp[N][N], pr[N][N];
+
+string getAuthor(string message) {
+   return message.substr(0, message.find(":"));
+}
+
+vector<string> getWords(string message) {
+   vector<string> result;
+   
+   message = message.substr(message.find(":") + 1, -1);
+   
+   int l = 0;
+   int r = 0;
+   
+   string separator = ".,!? ";
+   
+   while(l < message.size())
+   {
+      while(l < message.size() && separator.find(message[l]) != string::npos)
+         l++;
+      
+      r = l + 1;
+      while(r < message.size() && separator.find(message[r]) == string::npos)
+         r++;
+      r--;
+      
+      result.push_back(message.substr(l, r - l + 1));
+      l = r + 1;
+   }
+   
+   return result;
+}
+
+int main() {
+   ios_base::sync_with_stdio(0);
+   cout.tie(0); cin.tie(0);
+   
+   cin >> T;
+   while(T--)
+   {
+      cin >> n;
+      fru(i, 1, n) cin >> names[i];
+      
+      map<string, int> pos;
+      map<int, string> name;
+      
+      fru(i, 1, n)
+      {
+         pos[names[i]] = i;
+         name[i] = names[i]; 
+      }
+      
+      cin >> m;
+      
+      getline(cin, msg[0]);
+      fru(i, 1, m) getline(cin, msg[i]);
+      
+      fru(i, 1, m) fru(j, 1, n) 
+      {
+         dp[i][j] = INF;
+         pr[i][j] = INF;
+      }
+      
+      fru(i, 1, m)
+      {
+         string author        = getAuthor(msg[i]);
+         vector<string> words = getWords(msg[i]);
+
+         vector<int> availableUsers;
+         if(author != "?")
+            availableUsers.push_back(pos[author]);
+         else
+         {
+            int mark[N];
+            fill(mark + 1, mark + 1 + n, 0);
+            
+            fr(j, (int)words.size()) if(pos.count(words[j]) != 0)
+               mark[pos[words[j]]] = 1;
+               
+            fru(j, 1, n) if(!mark[j])
+               availableUsers.push_back(j);
+         }
+         
+         // dp
+         fr(k, (int)availableUsers.size())
+         {
+            if(i == 1)
+            {
+               dp[i][availableUsers[k]] = 1;
+               continue;
+            }
+            
+            fru(j, 1, n) if(dp[i - 1][j] != INF && availableUsers[k] != j)
+            {
+               dp[i][availableUsers[k]] = 1;
+               pr[i][availableUsers[k]] = j;
+               break;
+            }
+         }
+      }
+      
+      int st = -1;
+      fru(i, 1, n) if(dp[m][i] != INF)
+         st = i;
+      
+      if(st == -1)
+         cout << "Impossible\n";
+      else
+      {
+         vector<string> ans;
+         int i = m;
+         while(i >= 1)
+         {
+            ans.push_back(name[st]);
+
+            st = pr[i][st];
+            i--;
+         }
+         
+         reverse(ans.begin(), ans.end());
+         fr(i, (int)ans.size())
+            cout << ans[i] << ":" << msg[i + 1].substr(msg[i + 1].find(":") + 1, -1) << "\n";
+      }
+   }
+   
+   return 0;
+}

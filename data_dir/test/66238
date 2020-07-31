@@ -1,0 +1,222 @@
+/****** BISMILLAH HIR RAHMANIR RAHIM ******/
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+/* Special functions:
+
+        find_by_order(k) --> returns iterator to the kth largest element counting from 0
+        order_of_key(val) --> returns the number of items in a set that are strictly smaller than our item
+*/
+
+typedef tree<
+int,
+null_type,
+less<int>,
+rb_tree_tag,
+tree_order_statistics_node_update>
+ordered_set;
+
+
+#define EPS 1e-9
+#define NL cout<<endl;
+#define MP make_pair
+#define ALL(a) a.begin(), a.end()
+#define DBG(a) cout<< #a <<" --> "<<(a)<<endl;
+#define FastIO ios::sync_with_stdio(false); cin.tie(0);cout.tie(0)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+template < class T1,class T2>
+ostream &operator <<(ostream &os,const pair < T1,T2 > &p)
+{
+    os<<"{"<<p.first<<","<<p.second<<"}";
+    return os;
+}
+template < class T1,class T2>
+pair <T1 ,T2> operator + ( const  pair < T1,T2 > &p1,const pair < T1,T2 > &p2)
+{
+    return make_pair(p1.first+p2.first,p1.second+p2.second);
+}
+/****** END OF HEADER ******/
+
+
+#define mx 100005
+int index[mx];
+int L[mx]; //লেভেল
+int P[mx][22]; //স্পার্স টেবিল
+int T[mx]; //প্যারেন্ট
+vector<int>g[mx];
+vector < int > nodes[mx];
+void dfs(int from,int u,int dep)
+{
+    T[u]=from;
+    L[u]=dep;
+    index[u]= nodes[dep].size();
+    nodes[dep].push_back(u);
+    for(int i=0; i<(int)g[u].size(); i++)
+    {
+
+        int v=g[u][i];
+        if(v==from)
+            continue;
+        dfs(u,v,dep+1);
+    }
+}
+
+int lca_query(int N, int p, int q) //N=নোড সংখ্যা
+{
+    int tmp, log, i;
+
+    if (L[p] < L[q])
+        tmp = p, p = q, q = tmp;
+
+    log=1;
+    while(1)
+    {
+        int next=log+1;
+        if((1<<next)>L[p])
+            break;
+        log++;
+    }
+
+    for (i = log; i >= 0; i--)
+        if (L[p] - (1 << i) >= L[q])
+            p = P[p][i];
+
+    if (p == q)
+        return p;
+
+    for (i = log; i >= 0; i--)
+        if (P[p][i] != -1 && P[p][i] != P[q][i])
+            p = P[p][i], q = P[q][i];
+
+    return T[p];
+}
+
+void lca_init(int N)
+{
+    memset (P,-1,sizeof(P)); //শুরুতে সবগুলো ঘরে -১ থাকবে
+    int i, j;
+    for (i = 0; i < N; i++)
+        P[i][0] = T[i];
+
+    for (j = 1; 1 << j < N; j++)
+        for (i = 0; i < N; i++)
+            if (P[i][j - 1] != -1)
+            {
+                P[i][j] = P[P[i][j - 1]][j - 1];
+            }
+
+
+}
+int kthParent(int N,int p,int k)
+{
+    int lg ;
+    for( lg = 1 ; (1 << lg) <= L[p] ; ++lg )
+        ;
+    lg--;
+    for( int i = lg ; i >= 0 ; i-- )
+    {
+        if( (1 << i) <= k )
+        {
+            p = P[p][i];
+            k -= ( 1 << i );
+        }
+    }
+    return p;
+}
+
+
+void initCase()
+{
+    for(int i=0; i<mx; i++)
+    {
+        g[i].clear();
+    }
+
+}
+int upper(int n,int lvl,int L,int k,int lc)
+{
+    int lo =L,hi=nodes[lvl].size()-1,mi;
+    while(lo<hi)
+    {
+        mi = lo + ( hi- lo+1)/2;
+        if(kthParent(n,nodes[lvl][mi],k)==lc)
+        {
+            lo= mi;
+        }
+        else hi=mi-1;
+    }
+    return lo;
+}
+int lower(int n,int lvl,int R,int k,int lc)
+{
+    int lo =0,hi=R,mi;
+    while(lo<hi)
+    {
+        mi = lo + ( hi- lo)/2;
+        if(kthParent(n,nodes[lvl][mi],k)==lc)
+        {
+            hi= mi;
+        }
+        else lo=mi+1;
+    }
+    return hi;
+}
+
+
+
+
+int main()
+{
+//    IN;
+//    OUT;
+    FastIO;
+    int n;
+    cin>>n;
+    for(int i=1;i<=n;i++)
+    {
+        int p;
+        cin>>p;
+        g[i].push_back(p);
+        g[p].push_back(i);
+    }
+    n++;
+    dfs(0,0,0);
+    lca_init(n);
+//    for(int i=0;i<n;i++)
+//    {
+//        DBG(i);
+//        for(int j: nodes[i])
+//            cout<<j<<" ";
+//        NL;
+//    }
+//    DBG(upper(n,2,1,1,1));
+//    DBG(lower(n,2,1,1,1));
+    int q;
+    cin>>q;
+    while(q--)
+    {
+        int v,p;
+        cin>>v>>p;
+        int par= kthParent(n,v,p);
+        int ans;
+        if(par<=0)
+            ans=0;
+        else
+        {
+            ans= upper(n,L[v],index[v],p,par)-lower(n,L[v],index[v],p,par);
+        }
+        cout<<ans<<" ";
+    }
+    NL;
+}

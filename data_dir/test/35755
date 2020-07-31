@@ -1,0 +1,142 @@
+#include <iostream>
+
+#include <vector>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+#define HIGHESTSETBIT(mask) ( sizeof(int)*8-1-__builtin_clz((mask)) )
+
+#define INF 98765432
+
+struct Edge {
+   int u, v;
+   int cap, flow;
+   Edge(int _u, int _v, int _cap = 1) :
+     u(_u), v(_v), cap(_cap), flow(0) {}
+};
+
+class MaxFlowAdj {
+   size_t N;
+   VI sp_par, sp_D;
+
+public:
+   vector<Edge> edges;
+   VVI adj;  // adjacency lists of edge indices
+
+   MaxFlowAdj(size_t _N) : N(_N), adj(VVI(_N)) {}
+   void add_edge(int u, int v, int _cap=1);
+
+   int augmenting_path_pfs(int src, int dst);
+};
+
+inline void MaxFlowAdj::add_edge(int u, int v, int _cap) {
+   int num_edges = edges.size();
+   // forward edge
+   edges.push_back( Edge(u, v, _cap) );
+   adj[u].push_back(num_edges++);
+}
+
+struct Node {
+   int vertex;
+   int cost;
+   Node(int v, int cst) : vertex(v), cost(cst) {}
+   bool operator< (const Node& x) const {
+   // maximum cost on top of pq
+      return cost < x.cost ||
+             cost == x.cost && vertex > x.vertex;
+   }
+};
+
+int MaxFlowAdj::augmenting_path_pfs(int src, int dst) {
+   sp_D.assign(N, 0);
+
+   priority_queue< Node > pq;
+   pq.push(Node(src, INF));
+
+   sp_D[src] = INF;
+
+   for (int t = 1; !pq.empty(); ++t) {
+      Node cur = pq.top();
+      pq.pop();
+
+   //   cerr << "cur.vertex = " << cur.vertex+1
+   //        << "  cost = " << cur.cost << endl;
+
+      if (cur.vertex == dst) {
+         int cfp = cur.cost;
+         return cfp;
+      }
+
+      if (sp_D[cur.vertex] > cur.cost)
+         continue;
+
+      for (int j = 0; j < (int) adj[cur.vertex].size(); ++j) {
+         int e = adj[cur.vertex][j];
+         int v = edges[e].v;
+         if (edges[e].cap - edges[e].flow > 0) {
+            int newcost = min(cur.cost, edges[e].cap - edges[e].flow);
+         //   cerr << cur.vertex+1 << " -> " << v+1 << "  " << newcost << endl;
+            if (newcost <= sp_D[v]) continue;
+            sp_D[v] = newcost;
+            pq.push(Node(v, newcost));
+         }
+      }
+   }
+
+   return 0;
+}
+
+struct RngEdge {
+   int u, v;
+   int L, R;
+};
+
+RngEdge inp_edges[3004];
+
+int main(int argc, char* argv[]) {
+   ios_base::sync_with_stdio(false); 
+   cin.tie(NULL);
+
+   vector<int> lefts;
+
+   int N, M;
+   cin >> N >> M;
+   for (int i = 0; i < M; ++i) {
+      cin >> inp_edges[i].u >> inp_edges[i].v
+          >> inp_edges[i].L >> inp_edges[i].R;
+      lefts.push_back( inp_edges[i].L );
+   }
+
+   sort(lefts.begin(), lefts.end());
+   lefts.erase( unique(lefts.begin(), lefts.end()), lefts.end() );
+
+   int best = 0;
+   for (int j = 0; j < lefts.size(); ++j) {
+      int start = lefts[j];
+   //   cerr << "** Start: " << start << endl;
+      MaxFlowAdj mf(N);
+      for (int m = 0; m < M; ++m) {
+         if (inp_edges[m].R < start ||
+             inp_edges[m].L > start) continue;
+      //   cerr << "Adding edge " << inp_edges[m].u << ' ' << inp_edges[m].v
+      //        << ' ' << inp_edges[m].R-start << endl;
+         mf.add_edge( inp_edges[m].u-1, inp_edges[m].v-1, inp_edges[m].R-start+1 );
+         mf.add_edge( inp_edges[m].v-1, inp_edges[m].u-1, inp_edges[m].R-start+1 );
+      }
+      int cur = mf.augmenting_path_pfs(0, N-1);
+   //   cerr << "Start: " << start << ' ' << cur << endl;
+      best = max(best, cur);
+   }
+
+   if (best == 0)
+      cout << "Nice work, Dima!" << endl;
+   else
+      cout << best << endl;
+
+   return 0;
+}

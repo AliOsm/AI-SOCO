@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef pair<int, int> pi;
+typedef vector<pi> vpi;
+int x, y;
+vpi l(666);
+
+bool move(int& x, int& y, vpi& l) {
+  if (x < 500) {
+    cout << x + 1 << " " << y << endl;
+    cout.flush();
+    ++x;
+  } else if (x > 500) {
+    cout << x - 1 << " " << y << endl;
+    cout.flush();
+    --x;
+  } else if (y < 500) {
+    cout << x << " " << y + 1 << endl;
+    cout.flush();
+    ++y;
+  } else {
+    cout << x << " " << y - 1 << endl;
+    cout.flush();
+    --y;
+  }
+  int k, xk, yk;
+  cin >> k >> xk >> yk;
+  if (k == -1 && xk == -1 && yk == -1)
+    return true;
+  --k;
+  l[k].first = xk;
+  l[k].second = yk;
+  return false;
+}
+
+int main() {
+  cin >> x >> y;
+  for (int i = 0; i < 666; ++i)
+    cin >> l[i].first >> l[i].second;
+  for (int i = 0; i < 1000; ++i) {
+    if (x == 500 && y == 500)
+      break;
+    bool won = move(x, y, l);
+    if (won)
+      return 0;
+  }
+  int oo = 0, io = 0, oi = 0, ii = 0;
+  for (int i = 0; i < 666; ++i) {
+    if (l[i].first < 500) {
+      if (l[i].second < 500)
+        ++oo;
+      else
+        ++oi;
+    } else {
+      if (l[i].second < 500)
+        ++io;
+      else
+        ++ii;
+    }
+  }
+  
+  int dx, dy;
+  if (oo + oi + io >= 500) {
+    dx = -1; dy = -1;
+  } else if (oo + oi + ii >= 500) {
+    dx = -1; dy = +1;
+  } else if (oo + io + ii >= 500) {
+    dx = +1; dy = -1;
+  } else {
+    dx = +1; dy = +1;
+  }
+
+  for (int i = 0; i < 1000; ++i) {
+    if (find(l.begin(), l.end(), make_pair(x + dx, y + dy)) != l.end()) {
+      if (find(l.begin(), l.end(), make_pair(x + dx, y)) != l.end()) {
+        cout << x << " " << y + dy << endl;
+        cout.flush();
+        return 0;
+      } else {
+        cout << x + dx << " " << y << endl;
+        cout.flush();
+        return 0;
+      }   
+    }
+    cout << x + dx << " " << y + dy << endl;
+    cout.flush();
+    x += dx; y += dy;
+    int k, xk, yk;
+    cin >> k >> xk >> yk;
+    if (k == -1 && xk == -1 && yk == -1)
+      return 0;
+    --k;
+    l[k].first = xk;
+    l[k].second = yk;
+  }
+
+  return 0;
+}

@@ -1,0 +1,236 @@
+#include <cstdlib>
+#include <cstdio>
+
+#include <vector>
+
+#include <cassert>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+#define FOREACH(it,c) for(typeof((c).begin()) it=(c).begin();it!=(c).end();++it)
+
+#define REPD(i,n) for(int i=(n)-1;i>=0;--i)
+#define FORD(i,a,b) for(int i=(a),_b=(b);i>=_b;--i)
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> II;
+
+int nRows, nCols;
+
+class BinaryIndexedTree2D {
+   int nrows, ncols;
+   VVI tree;
+public:
+   void init(int _nrows, int _ncols) {
+     nrows = _nrows;
+     ncols = _ncols;
+     tree = VVI(nrows+1, VI(ncols+1));
+   }
+
+   int query(int x, int y) {
+      if (x <= 0 || y <= 0) return 0;
+      x = min(x, nrows);
+      y = min(y, ncols);
+      int res = 0;
+      for (int x1 = x; x1 > 0; x1 -= (x1 & -x1))
+         for (int y1 = y; y1 > 0; y1 -= (y1 & -y1))
+            res += tree[x1][y1];
+      return res;
+   }
+
+   int query(int x1, int y1, int x2, int y2) {
+      return query(x2, y2)
+             - query(x1-1, y2) - query(x2, y1-1)
+             + query(x1-1, y1-1);
+   }
+
+   void update(int x, int y, int val) {
+      for (int x1 = x; x1 <= nrows; x1 += (x1 & -x1))
+         for (int y1 = y; y1 <= ncols; y1 += (y1 & -y1))
+            tree[x1][y1] += val;
+   }
+
+   int query_single(int x, int y) {
+      if (x <= 0 || y <= 0) return 0;
+      x = min(x, nrows);
+      y = min(y, ncols);
+      int res = tree[x][y];
+      for (int zx = x - (x & -x), x1 = x-1; x1 != zx; x1 -= (x1 & -x1))
+         for (int zy = y - (y & -y), y1 = y-1; y1 != zy; y1 -= (y1 & -y1))
+            res -= tree[x1][y1];
+      return res;
+   }
+};
+
+#define ROW(x, y) ((x)+(y)-1)
+#define COL(x, y) (-(x)+(y)+nRows)
+#define X(p) (((p).first-(p).second+(nRows+1))/2)
+#define Y(p) (((p).first+(p).second-(nRows-1))/2)
+
+BinaryIndexedTree2D bit;
+
+void precompute() {
+   bit.init(nRows+nCols+1, nRows+nCols+1);
+   FOR(x, 1, nRows) FOR(y, 1, nCols) {
+      int r = ROW(x, y), c = COL(x, y);
+      bit.update(r, c, 1);
+   }
+}
+
+
+
+int max_column_in_row(int row, int L, int R) {
+   int lo = L, hi = R;
+   int res = -1;
+// fprintf(stderr, "max_column_in_row(%d, %d, %d)\n", row, L, R);
+   while (lo <= hi) {
+      int mid = lo + (hi-lo)/2;
+      int cnt = bit.query(row, mid, row, R);
+   // fprintf(stderr, "* lo:%d  hi:%d  mid:%d  cnt:%d\n",
+   //         lo, hi, mid, cnt);
+      if (cnt > 0) {
+         lo = mid+1;
+         res = mid;
+      }
+      else {
+         hi = mid-1;
+      }
+   }
+   return res;
+}
+
+int min_row_in_column(int col, int L, int R) {
+   int lo = L, hi = R;
+   int res = -1;
+   while (lo <= hi) {
+      int mid = lo + (hi-lo)/2;
+      int cnt = bit.query(L, col, mid, col);
+      if (cnt > 0) {
+         hi = mid-1;
+         res = mid;
+      }
+      else {
+         lo = mid+1;
+      }
+   }
+   return res;
+}
+
+
+bool trace;
+II solve(int k, int x, int y) {
+   int row = ROW(x, y), col = COL(x, y);
+ 
+   int lo = 0, hi = nRows+nCols;
+   int radius = hi;
+   while (lo <= hi) {
+      int mid = lo + (hi-lo)/2;
+      int cnt = bit.query(row-mid, col-mid, row+mid, col+mid);
+      if (cnt > 0) {
+         hi = mid-1;
+         radius = mid;
+      }
+      else {
+         lo = mid+1;
+      }
+   }
+
+   if (trace)
+      fprintf(stderr, "row:%d  col:%d  radius:%d\n", row, col, radius);
+   
+
+   II res;
+   II best;
+   
+   if (radius == 0) {
+      res  = II(x, y);
+      best = II(row, col);
+   }
+   else {
+      res = II(nRows+1, nCols+1);
+
+      int t;
+      t = max_column_in_row(row-radius, col-radius, col+radius);
+      if (t >= 1) {
+         II p(row-radius, t);
+         II cur(X(p), Y(p));
+         if (trace)
+            fprintf(stderr, "HERE 1: r=%d  c=%d  x=%d  y=%d\n",
+                            p.first, p.second, cur.first, cur.second);
+         if (res > cur) {
+            res = cur;
+            best = p;
+         }
+      }
+
+      t = max_column_in_row(row+radius, col-radius, col+radius);
+      if (t >= 1) {
+         II p(row+radius, t);
+         II cur(X(p), Y(p));
+         if (trace)
+            fprintf(stderr, "HERE 2: r=%d  c=%d  x=%d  y=%d\n",
+                            p.first, p.second, cur.first, cur.second);
+         if (res > cur) {
+            res = cur;
+            best = p;
+         }
+      }
+      
+      t = min_row_in_column(col-radius, row-radius, row+radius);
+      if (t >= 1) {
+         II p(t, col-radius);
+         II cur(X(p), Y(p));
+         if (trace)
+            fprintf(stderr, "HERE 3: r=%d  c=%d  x=%d  y=%d\n",
+                           p.first, p.second, cur.first, cur.second);
+         if (res > cur) {
+            res = cur;
+            best = p;
+         }
+      }
+
+      t = min_row_in_column(col+radius, row-radius, row+radius);
+      if (t >= 1) {
+         II p(t, col+radius);
+         II cur(X(p), Y(p));
+         if (trace)
+            fprintf(stderr, "HERE 4: r=%d  c=%d  x=%d  y=%d\n",
+                           p.first, p.second, cur.first, cur.second);
+         if (res > cur) {
+            res = cur;
+            best = p;
+         }
+      }
+      
+      assert( 1 <= res.first && res.first <= nRows );
+      assert( 1 <= res.second && res.second <= nCols );
+
+   }
+
+   bit.update(best.first, best.second, -1);
+   if (trace)
+      fprintf(stderr, "CLEAR %d,%d\n", best.first, best.second);
+
+   return res;
+}
+
+int main(int argc, char* argv[]) {
+   int K;
+   scanf("%d %d %d", &nRows, &nCols, &K);
+
+   precompute();
+
+   REP(k, K) {
+      int x, y;
+      scanf("%d %d", &x, &y);
+      II res = solve(k, x, y);
+      printf("%d %d\n", res.first, res.second);
+   }
+
+   return 0;
+}

@@ -1,0 +1,199 @@
+#include <bits/stdc++.h>
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define sf scanf
+#define pf printf
+#define pb push_back
+#define mp make_pair
+#define PI ( acos(-1.0) )
+#define mod 1000000007LL
+#define maxn 100005
+#define IN freopen("C.in","r",stdin)
+#define OUT freopen("output.txt","w",stdout)
+#define FOR(i,a,b) for(i=a ; i<=b ; i++)
+#define DBG pf("Hi\n")
+#define INF 1000000000
+#define i64 long long int
+#define eps (1e-8)
+#define xx first
+#define yy second
+#define ln 17
+#define SZ(v) ((int)v.size())
+
+using namespace __gnu_pbds;
+using namespace std ;
+
+typedef tree< i64, null_type, less<i64>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+typedef pair<i64, i64> pii;
+
+class numberTheory{
+
+public:
+    numberTheory(){}
+
+    pii extendedEuclid(i64 a, i64 b) { // returns x, y | ax + by = gcd(a,b)
+
+        if(b == 0) return pii(1LL, 0LL);
+        else {
+            pii d = extendedEuclid(b, a % b);
+            return pii(d.yy, d.xx - d.yy * (a / b));
+        }
+
+    }
+
+    i64 modularInverse(i64 a, i64 n) {
+        pair<i64,i64> ret = extendedEuclid(a, n);
+        return ((ret.xx % n) + n) % n;
+    }
+
+
+    i64 bigMod(i64 a, i64 n , i64 m)
+    {
+        if(n==0) return 1 ;
+        i64 ret = bigMod(a,n/2,m) ;
+        ret = (ret*ret)%m ;
+        if(n%2) ret = (ret*a)%m ;
+        return ret ;
+    }
+};
+
+i64 ans = 0LL , inv10 , M ;
+
+vector <int> g[maxn] ;
+vector <i64> e[maxn] , value[maxn] ;
+map <i64,i64> Mp ;
+
+void dfs1(int u, int par ,i64 val, i64 power, int idx)
+{
+    val = (val%M + M)%M ;
+    value[idx].pb(val) ;
+ //   printf("dfs1 u:%d val:%lld inv10: %lld\n",u,val,inv10) ;
+    if( Mp.find(val) == Mp.end() ) Mp[val] = 1 ;
+    else Mp[val] = Mp[val] + 1 ;
+    int i ;
+    for(i=0 ; i<g[u].size() ; i++)
+    {
+        int v = g[u][i] ;
+        if(v==par) continue ;
+        dfs1(v,u, (val + e[u][i]*power)%M , (power*10LL)%M , idx ) ;
+    }
+}
+void dfs2(int u, int par, i64 val , i64 power )
+{
+  //  printf("dfs2 u:%d val:%lld power:%lld\n",u,val,power) ;
+    i64 ret = (((-val)*power)%M + M)%M ;
+    if( Mp.find(ret)!=Mp.end() ) ans+= Mp[ret] ;
+
+    int i ;
+    for(i=0 ; i<g[u].size() ; i++)
+    {
+        int v = g[u][i] ;
+        if( v==par ) continue ;
+        dfs2(v,u, (val*10LL+e[u][i])%M , (power*inv10)%M ) ;
+    }
+    return ;
+}
+
+void solve(int u)
+{
+    int i , j , k ;
+    Mp[0] = 1LL ;
+    for(i=0 ; i<SZ(g[u]) ; i++)
+    {
+        int v = g[u][i] ;
+        dfs1(g[u][i],u,e[u][i] ,(10LL)%M,v) ;
+    }
+    ans += (Mp[0]-1) ;
+    for(i=0 ; i<SZ(g[u]) ; i++)
+    {
+        int v = g[u][i] ;
+        for(j=0 ; j<value[v].size() ; j++)
+        {
+            Mp[ value[v][j] ] = Mp[ value[v][j] ] - 1 ;
+        }
+        dfs2(v,u,e[u][i],inv10) ;
+        for(j=0 ; j<value[v].size() ; j++)
+        {
+            Mp[ value[v][j] ] = Mp[ value[v][j] ] + 1 ;
+        }
+        value[v].clear() ;
+    }
+  //  printf("u:%d ans:%lld:\n",u,ans) ;
+    Mp.clear() ;
+}
+
+//centroid decomposition starts
+int child[maxn] ;
+void dfsSize(int u, int par)
+{
+    child[u] = 1 ;
+    for(int i=0 ; i<SZ(g[u]) ; i++)
+    {
+        int v = g[u][i] ;
+        if( v!=par ){
+            dfsSize(v,u) ;
+            child[u] += child[v] ;
+        }
+    }
+}
+int dfsFC(int u,int par, int sz)
+{
+    for( int i=0 ; i<SZ(g[u]) ; i++ )
+    {
+        int v = g[u][i] ;
+        if(v==par) continue ;
+        if( child[v] > sz ) return dfsFC(v,u,sz) ;
+    }
+    return u ;
+}
+void dfsCD(int u)
+{
+    dfsSize(u,0) ;
+    int centroid = dfsFC(u,0,child[u]/2) ;
+    solve(centroid) ;
+    for(int i=0 ; i<SZ(g[centroid]) ; i++)
+    {
+        int v= g[centroid][i] ;
+        for(int j=0 ; j<SZ(g[v]) ; j++)
+        {
+            if( g[v][j]==centroid ){
+                g[v].erase( g[v].begin() + j ) ;
+                e[v].erase( e[v].begin() + j ) ;
+                break ;
+            }
+        }
+        dfsCD(v) ;
+    }
+    g[u].clear() ;
+}
+//centroid decomposition ends
+
+int main()
+{
+    int i , j , k , l , m , n ;
+
+    scanf("%d %lld",&n,&M) ;
+
+    numberTheory nt ;
+
+    inv10 = nt.modularInverse(10LL,M) ;
+    inv10 = (inv10%M + M)%M ;
+
+    for(i=1 ; i<n ; i++)
+    {
+        int u , v ;
+        i64 c ;
+        scanf("%d %d %lld",&u,&v,&c) ;
+        u++ ; v++ ;
+        g[u].pb(v) ; g[v].pb(u) ;
+        e[u].pb(c%M) ; e[v].pb(c%M) ;
+    }
+
+    dfsCD(1) ;
+
+    printf("%lld\n",ans) ;
+
+    return 0 ;
+}

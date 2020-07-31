@@ -1,0 +1,171 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const ll N=100001;
+
+vector< pair<ll,ll> > v;
+char s[N];
+ll st[N<<2][26];
+ll lazy[N<<2];
+ll vacio[26];
+
+void fusion(ll ans[], ll l[], ll r[]){
+	for(ll i=0; i<26; i++){
+		ans[i]=l[i]+r[i];
+	}
+	return;
+}
+
+void push(ll l, ll r, ll nod){
+	if(lazy[nod]!=-1){
+		for(ll i=0; i<26; i++){
+			st[nod][i]=0;
+		}
+		st[nod][lazy[nod]]=(r-l+1);
+		if(l!=r){
+			lazy[nod*2]=lazy[nod];
+			lazy[nod*2+1]=lazy[nod];
+		}
+		lazy[nod]=-1;
+	}
+	return;
+}
+
+void build(ll l, ll r, ll nod){
+	if(l==r){
+		st[nod][s[l]-'a']=1;
+		return;
+	}
+	ll med=(l+r)/2;
+	build(l,med,nod*2);
+	build(med+1,r,nod*2+1);
+	fusion(st[nod],st[nod*2],st[nod*2+1]);
+	return;
+}
+
+void update(ll ini, ll fin, ll letra, ll l ,ll r, ll nod){
+	push(l,r,nod);
+	if(fin<l || r<ini) return;
+	if(ini<=l && r<=fin){
+		for(ll i=0; i<26; i++){
+			st[nod][i]=0;
+		}
+		st[nod][letra]=(r-l+1);
+		lazy[nod]=-1;
+		if(l!=r){
+			lazy[nod*2]=letra;
+			lazy[nod*2+1]=letra;
+		}
+		return;
+	}
+	ll med=(l+r)/2;
+	update(ini,fin,letra,l,med,nod*2);
+	update(ini,fin,letra,med+1,r,nod*2+1);
+	fusion(st[nod],st[nod*2],st[nod*2+1]);
+	return;
+}
+
+void query(ll ans[], ll ini, ll fin, ll l, ll r, ll nod){
+	push(l,r,nod);
+	if(fin<l || r<ini){
+		for(ll i=0; i<26; i++){
+			ans[i]=0;
+		}
+		return;
+	}
+	if(ini<=l && r<=fin){
+		for(ll i=0; i<26; i++){
+			ans[i]=st[nod][i];
+		}
+		return;
+	}
+	ll med=(l+r)/2;
+	ll L[26];
+	query(L,ini,fin,l,med,nod*2);
+	ll R[26];
+	query(R,ini,fin,med+1,r,nod*2+1);
+	fusion(ans,L,R);
+	return;
+}
+
+bool puede(ll l, ll r, ll n){
+	v.clear();
+	ll cnt=0;
+	ll pos;
+	ll ans[26];
+	query(ans,l,r,0,n-1,1);
+	for(ll i=0; i<26; i++){
+		if(ans[i]%2!=0){
+            pos=i;         
+			cnt++;
+		}
+		if(ans[i]/2>0){
+            v.push_back(make_pair(i,ans[i]/2));
+        }
+	}
+	if((r-l+1)%2==0 && cnt==0){
+		return true;
+	}else if((r-l+1)%2!=0 && cnt==1){
+		v.push_back(make_pair(pos,1));
+		return true;
+	}
+	return false;
+}
+
+void actualiza(ll l, ll r, ll n){
+	ll ini=l;
+	ll sz=v.size();
+	for(ll i=0; i<sz; i++){
+        update(ini,ini+v[i].second-1,v[i].first,0,n-1,1);
+        ini=ini+v[i].second;
+	}
+	if((r-l+1)%2==1){
+       	for(ll i=sz-2; i>=0; i--){
+            update(ini,ini+v[i].second-1,v[i].first,0,n-1,1);
+            ini=ini+v[i].second;
+    	}
+	}else{
+       	for(ll i=sz-1; i>=0; i--){
+            update(ini,ini+v[i].second-1,v[i].first,0,n-1,1);
+            ini=ini+v[i].second;
+    	}
+    }
+	return;
+}
+
+int main(){
+	freopen ("input.txt","r",stdin);
+	freopen ("output.txt","w",stdout);
+	
+	ll n,q;
+	scanf("%lld %lld",&n,&q);
+	scanf("%s",s);
+	
+	for(ll i=0; i<N*4; i++){
+		lazy[i]=-1;
+	}
+	
+	build(0,n-1,1);
+	
+	ll l,r;
+	for(ll i=0; i<q; i++){
+		scanf("%lld %lld",&l,&r);
+		l--;r--;
+		if(puede(l,r,n)){
+			actualiza(l,r,n);
+		}
+	}
+	for(ll i=0; i<n; i++){
+		ll ans[26];
+		query(ans,i,i,0,n-1,1);
+		for(ll j=0; j<26; j++){
+			if(ans[j]==1){
+				printf("%c",char('a'+j));
+				break;
+			}
+		}
+	}
+	printf("\n");
+	return 0;
+}

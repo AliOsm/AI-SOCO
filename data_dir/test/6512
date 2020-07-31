@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+#ifdef DEBUG
+#include "_debug.cpp"
+#include "callable.hpp/callable.hpp"
+#endif
+#define endl '\n'
+using namespace std;
+using ll = long long;
+#define INF 2'000'000'000'000'000'000ll
+template<typename T>
+vector<int> factorize(T n) {
+    vector<int> factors;
+    for(T i = 2; i * i <= n; i++) {
+        while(n % i == 0) {
+            factors.push_back(i);
+            n /= i;
+        }
+    }
+    if(n > 1) {
+        factors.push_back(n);
+    }
+    return factors;
+}
+vector<int> generate_primes(int n) {
+    vector<bool> is_prime(n+1);
+    vector<int> primes;
+    fill(is_prime.begin(), is_prime.end(), true);
+    is_prime[0] = is_prime[1] = false;
+    for(int i = 2; i <= n; i++) {
+        if(is_prime[i]) {
+            primes.push_back(i);
+            for(int j = 2 * i; j <= n; j += i) {
+                is_prime[j] = false;
+            }
+        }
+    }
+    return primes;
+}
+vector<int> compute_limits(vector<int>& primes) {
+    vector<int> limits(primes.size());
+    for(int i = 0; i < primes.size(); i++) {
+        ll cur = 1;
+        limits[i] = 0;
+        while(cur <= (1ll << 62) / primes[i]) {
+            limits[i]++;
+            cur *= primes[i];
+        }
+    }
+    return limits;
+}
+vector<int> factors;
+vector<int> primes = generate_primes(100);
+vector<int> limit = compute_limits(primes);
+ll mypow(ll x, int y) {
+    return y == 0 ? 1 : x * mypow(x, y - 1);
+}
+bool will_pow_overflow(int pi, int expo) {
+    return expo > limit[pi];
+}
+bool will_overflow(ll x, ll y) {
+    return y == INF or x >= (1ll << 62) / y;
+}
+ll mem[100][100];
+ll opt(int pi, int fi) {
+    ll ans = mem[pi][fi];
+    if(ans == -1) {
+        if(fi == factors.size()) {
+            ans = 1;
+        } else {
+            ans = INF;
+            ll expo = 1;
+            for(int fii = fi; fii < factors.size(); fii++) {
+                expo *= factors[fii];
+                if(will_pow_overflow(pi, expo - 1)) {
+                    break;
+                } else if(not will_overflow(mypow(primes[pi], expo - 1), opt(pi + 1, fii + 1))) {
+                    ans = min(ans, mypow(primes[pi], expo - 1) * opt(pi + 1, fii + 1));
+                }
+            }
+        }
+    }
+    return ans;
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    int n;
+    cin >> n;
+    factors = factorize(n);
+    sort(factors.begin(), factors.end());
+    ll ans = INF;
+    do {
+        memset(mem, -1, sizeof mem);
+        ans = min(ans, opt(0, 0));
+    } while(next_permutation(factors.begin(), factors.end()));
+    cout << ans << endl;
+    return 0;
+}

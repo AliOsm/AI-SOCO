@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair < int, int > ii;
+
+const int N = 1e4 + 5;
+
+ll nn[N], kk[N];
+map < ll, vector < int > > M;
+vector < ll > pr;
+bool res[N];
+
+ll egcd(ll a, ll b, ll &x, ll &y) {
+  if(b == 0) {
+    x = 1;
+    y = 0;
+    return a;
+  }
+  ll x1, y1;
+  ll g = egcd(b, a % b, x1, y1);
+  x = y1;
+  y = x1 - (a / b) * y1;
+  return g;
+}
+
+long long mulmod(long long a, long long b, long long c) {
+  long long sign = 1;
+  if (a < 0) {
+    a = -a;
+    sign = -sign;
+  }
+  if (b < 0) {
+    b = -b;
+    sign = -sign;
+  }
+  a %= c;
+  b %= c;
+  long long res = 0;
+  while (b > 0) {
+    if (b & 1) {
+      res = (res + a) % c;
+    }
+    a = (a + a) % c;
+    b >>= 1;
+  }
+  if (sign == -1) {
+    res = (-res) % c;
+  }
+  return res;
+}
+
+bool calc(ll a, ll b, ll c) {
+  ll x, y;
+  ll g = egcd(a, b, x, y);
+  ll dx = c / a;
+  c -= dx * a;
+  ll dy = c / b;
+  c -= dy * b;
+  x = dx + mulmod(x, c / g, b);
+  y = dy + mulmod(y, c / g, a);
+  if(x < 0) {
+    ll need = (-x + b - 1) / b;
+    ll can = y / a;
+    if(need > can)
+      return 0;
+  }
+  if(y < 0) {
+    ll need = (-y + a - 1) / a;
+    ll can = x / b;
+    if(need > can)
+      return 0;
+  }
+  return 1;
+}
+
+int main() {
+  const int K = sqrt(1e15) + 5;
+  vector < bool > h(K, 0);
+  for(int i = 2; i < K; i++) {
+    if(!h[i]) {
+      pr.push_back(i);
+      for(int j = i + i; j < K; j += i)
+        h[j] = i;
+    }
+  }
+  int t;
+  scanf("%d", &t);
+  for(int i = 1; i <= t; i++) {
+    scanf("%lld %lld", nn + i, kk + i);
+    if(kk[i] == 1)
+      continue;
+    M[kk[i]].push_back(i);
+  }
+  for(auto it : M) {
+    ll k = it.first;
+    ll tmp = k;
+    vector < ll > dv;
+    for(auto x : pr) {
+      if(x * x > k)
+        break;
+      if(k % x == 0) {
+        dv.push_back(x);
+        while(k % x == 0)
+          k /= x;
+      }
+    }
+    if(k > 1)
+      dv.push_back(k);
+    k = tmp;
+    if(dv.size() == 1) {
+      for(auto i : it.second) {
+        res[i] = nn[i] % dv[0] == 0;
+      }
+    }
+    else if(dv.size() == 2) {
+      for(auto i : it.second) {
+        res[i] = calc(dv[0], dv[1], nn[i]);
+      }
+    }
+    else {
+      vector < ll > d(dv[0], 2e18);
+      d[0] = 0;
+      priority_queue < pair < ll, int > > q;
+      q.push({0, 0});
+      while(!q.empty()) {
+        ll c = -q.top().first;
+        int x = q.top().second;
+        q.pop();
+        if(c > d[x])
+          continue;
+        for(auto i : dv) {
+          int y = (x + i) % dv[0];
+          ll nc = c + i;
+          if(nc < d[y]) {
+            d[y] = nc;
+            q.push({-nc, y});
+          }
+        }
+      }
+      for(auto i : it.second) {
+        res[i] = d[nn[i] % dv[0]] <= nn[i];
+      }
+    }
+  }
+  for(int i = 1; i <= t; i++) {
+    puts(res[i] ? "YES" : "NO");
+  }
+  return 0;
+}

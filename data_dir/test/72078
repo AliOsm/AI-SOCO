@@ -1,0 +1,188 @@
+#include <cstdio> 
+#include <cmath>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <stack>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <queue>
+
+using namespace std;
+
+vector<int> g[223456];
+vector<int> gg[223456];
+int parent[223456];
+bool used[223456];
+int cnt[223456];
+int n, k;
+long long x[223456];
+long long y[223456];
+long long m[223456][6];
+long long mm[223456][6];
+
+
+//cnt
+void dfs(int v)
+{
+	used[v] = 1;
+	for(int i = 0; i < gg[v].size(); ++i)
+	{
+		int to = gg[v][i];
+		if(used[to])
+			continue;
+		dfs(to);
+		g[v].push_back(to);
+		parent[to] = v;
+		cnt[v] += cnt[to];
+	}
+
+	cnt[v]++;
+}
+
+// m
+void dfs2(int v)
+{
+	m[v][0] += 1;
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		dfs2(to);
+		if (k > 1)
+		{
+			m[v][0] += m[to][k-1];
+			for(int j = 1; j < k; ++j)
+				m[v][j] += m[to][j-1];
+		}
+		else
+			m[v][0] += m[to][0];
+	}
+}
+
+// mm
+void dfs3(int v)
+{
+	vector<long long> mki(k,0);
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		for(int j = 2; j < k; ++j)
+			mki[j] += m[to][j-2];
+		if(k >= 2)
+		{
+			mki[0] += m[to][k-2];
+			mki[1] += m[to][k-1];
+		}
+		else
+			mki[0] += m[to][0];
+		
+	}
+	mm[v][0]++;
+	for(int j = 1; j < k; ++j)
+		mki[j] += mm[v][j-1];
+	mki[0] += mm[v][k-1];
+
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+
+		for(int j = 0; j < k; ++j)
+			mm[to][j] += mki[j];
+		for(int j = 2; j < k; ++j)
+			mm[to][j] -= m[to][j-2];
+		if(k >= 2)
+			mm[to][0] -= m[to][k-2], mm[to][1] -= m[to][k-1];
+		else
+			mm[to][0] -= m[to][k-1];
+		dfs3(to);
+	}
+}
+
+// x
+void dfs4(int v)
+{
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		dfs4(to);
+		x[v] += m[to][0];
+		x[v] += x[to];
+	}
+}
+
+// y, yy
+void dfs5(int v)
+{
+	vector<long long> Xbl(1, 0);
+	vector<long long> mki(1, 0);
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		Xbl[0] += x[to];
+		mki[0] += m[to][k-1];
+		if(k != 1)
+			mki[0] += m[to][0];
+	}
+
+	for(int i = 0; i < g[v].size(); ++i)
+	{
+		int to = g[v][i];
+		if (k != 1)
+		{
+			y[to] = y[v] + mm[v][0] ;
+			y[to] += Xbl[0] + mki[0];
+			y[to] -= x[to];
+			y[to] -= m[to][k-1];
+			if(k != 1)
+				y[to] -= m[to][0];
+		}
+		else
+		{
+			y[to] = y[v] + mm[v][0] + Xbl[0] - x[to] + 2*(mki[0] - m[to][0]);
+		}
+		dfs5(to);
+	}
+}
+
+int main() 
+{
+	ios_base::sync_with_stdio(0);
+	cin >> n >> k;
+
+	if(n==1)
+		return cout << 0, 0;
+
+	for(int i = 0; i < n-1; ++i)
+	{
+		int a, b;
+		cin >> a >> b;
+		gg[a].push_back(b);
+		gg[b].push_back(a);
+	}
+
+	dfs(1);
+	dfs2(1);
+	dfs3(1);
+	dfs4(1);
+	dfs5(1);
+	vector<long long> answer(1, 0);
+	for(int i = 1; i <= n; ++i)
+		answer[0] += x[i] + y[i];
+
+	cout << answer[0] / 2;
+
+	return 0;
+}
+
+/*
+
+5 1
+1 2
+2 3
+1 4
+4 5
+
+*/

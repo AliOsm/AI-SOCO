@@ -1,0 +1,178 @@
+#include<iostream>
+#include<cstdio>
+#include<vector>
+#include<cmath>
+#define inf 1000000000
+using namespace std;
+bool flag[100003];
+bool flag2[100003];
+int fi[100003];
+int p[100003];
+int dist[100003];
+struct rebro
+{
+    int x,y;
+    int flow;
+    int rflow;
+    int cost;
+};
+vector <rebro> e;
+vector < vector <int> > g;
+void add(int x,int y,int flow,int cost)
+{
+    rebro z;
+    z.rflow=0;
+    z.flow=flow;
+    z.x=x;
+    z.y=y;
+    z.cost=cost;
+    g[x].push_back(e.size());
+    e.push_back(z);
+    z.flow=0;
+    z.cost=-cost;
+    z.x=y;
+    z.y=x;
+    g[y].push_back(e.size());
+    e.push_back(z);
+}
+struct kucha
+{
+    int v,c;
+};
+kucha heap[100003];
+int last;
+int n,m;
+char s[103];
+int a[103];
+int b[103];
+int main()
+{
+    scanf("%d %d",&n,&m);
+    g.resize(m+2*n+3);
+    int i,j;
+    char t[10];
+    int x,y;
+    for(i=0;i<n;i++)
+    {
+        scanf("%s",t);
+        scanf("%d",&a[i]);
+        if(t[0]=='A')
+            s[i]='A';
+        else
+            s[i]='D';
+    }
+    for(i=0;i<m;i++)
+        scanf("%d",&b[i]);
+    int start=2*n+m;
+    int finish=2*n+m+1;
+    for(i=0;i<m;i++)
+        add(2*n+m,i,1,0);
+    for(i=0;i<n;i++)
+        add(m+n+i,m+2*n+1,inf,0);
+    for(i=0;i<m;i++)
+        add(i,m+2*n+2,1,1000000-b[i]);
+    add(m+2*n+2,m+2*n+1,100,0);
+    for(i=0;i<n;i++)
+    {
+        if(s[i]=='A')
+            add(m+i,m+n+i,1,0);
+        else
+            add(m+i,m+n+i,1,0);
+    }
+    for(i=0;i<m;i++)
+        for(j=0;j<n;j++)
+        {
+            if(s[j]=='A' && b[i]>=a[j])
+                add(i,m+j,1,10000-b[i]+a[j]);
+            else if(s[j]=='D' && b[i]>a[j])
+                add(i,m+j,1,10000);
+        }
+    int tmpn=n;
+    n=2*n+m+3;
+    int maxflow=0;
+    int mincost=0;
+    int addflow;
+    int ans=0;
+    int total=0;
+    while(true)
+    {
+        for(i=0;i<n;i++)
+        {
+            flag[i]=false;
+            dist[i]=inf;
+        }
+        dist[start]=0;
+        for(i=0;i<2*e.size();i++)
+            heap[i].c=inf;
+        heap[1].c=0;
+        heap[1].v=start;
+        last=1;
+        while(last>0)
+        {
+            x=heap[1].v;
+            if(!flag[x])
+            {
+                flag[x]=true;
+                for(i=0;i<g[x].size();i++)
+                {
+                    y=e[g[x][i]].y;
+                    if(!flag[y] && e[g[x][i]].flow>e[g[x][i]].rflow)
+                        if(dist[y]>dist[x]+fi[x]-fi[y]+e[g[x][i]].cost)
+                        {
+                            dist[y]=dist[x]+fi[x]-fi[y]+e[g[x][i]].cost;
+                            p[y]=g[x][i];
+                            last++;
+                            j=last;
+                            while(j>1 && heap[j>>1].c>dist[y])
+                            {
+                                heap[j]=heap[j>>1];
+                                j>>=1;
+                            }
+                            heap[j].v=y;
+                            heap[j].c=dist[y];
+                        }
+                }
+            }
+            j=1;
+            while(j*2<last && (heap[last].c>heap[j*2].c || heap[last].c>heap[j*2+1].c))
+            {
+                if(heap[j*2].c<=heap[j*2+1].c)
+                {
+                    heap[j]=heap[j*2];
+                    j*=2;
+                }
+                else
+                {
+                    heap[j]=heap[j*2+1];
+                    j*=2;
+                    j++;
+                }
+            }
+            heap[j]=heap[last--];
+        }
+        if(dist[finish]==inf)
+            break;
+        x=finish;
+        addflow=inf;
+        while(x!=start)
+        {
+            addflow=min(addflow,e[p[x]].flow-e[p[x]].rflow);
+            flag2[x]=true;
+            x=e[p[x]].x;
+        }
+        x=finish;
+        maxflow+=addflow;
+        while(x!=start)
+        {
+            mincost+=e[p[x]].cost*addflow;
+            e[p[x]].rflow+=addflow;
+            e[p[x]^1].rflow-=addflow;
+            x=e[p[x]].x;
+        }
+        ans=max(ans,1000000*max(0,maxflow-tmpn)+10000*min(tmpn,maxflow)-mincost);
+        for(i=0;i<n;i++)
+            fi[i]=min(fi[i]+dist[i],inf);
+    }
+    printf("%d\n",ans);
+    return 0;
+}

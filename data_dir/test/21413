@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 100010;
+const int POW = 18;
+int n, m;
+vector <pair<int, int> > e[N];
+vector <int> key;
+bool vis[N], used[N];
+int fa[N];
+long long dis[N];
+int p[POW][N];
+long long mp[42][N];
+int idx[N];
+int dep[N];
+
+void dfs(int u, int f) {
+  dep[u] = dep[f] + 1;
+  fa[u] = f;
+  p[0][u] = f;
+  vis[u] = true;
+  for (auto it: e[u]) {
+    int v = it.first;
+    int w = it.second;
+    if (!vis[v]) {
+      dis[v] = dis[u] + w;
+      dfs (v, u);
+    } else if (v != f) {
+
+      if(!used[u]) {
+        used[u] = true;
+        key.push_back(u);
+        idx[u] = (int)key.size() - 1;
+      }
+      if (!used[v]) {
+        key.push_back(v);
+        used[v] = true;
+        idx[v] = (int)key.size() - 1;
+      }
+    }
+  }
+}
+
+int lca(int u, int v) {
+  if (dep[u] < dep[v]) {
+    swap(u, v);
+  }
+
+  int delta = dep[u] - dep[v];
+  for (int i = 0; i < POW; i++) {
+    if (delta & (1 << i)) {
+      u = p[i][u];
+    }
+  }
+  if (u != v) {
+    for (int i = POW - 1; i >= 0; i--) {
+      if (p[i][u] != p[i][v]) {
+        u = p[i][u];
+        v = p[i][v];
+      }
+    }
+    u = p[0][u];
+  }
+  return u;
+}
+
+void dijkstra(int s) {
+  priority_queue<pair<long long,int> > q;
+  q.push(make_pair(0LL, s));
+  vector <long long> d(n + 1, -1);
+  d[s] = 0;
+  while (!q.empty()) {
+    auto it = q.top(); q.pop();
+    int u = it.second;
+    if (d[u] != -1 && -it.first > d[u]) {
+      continue;
+    }
+    //printf("d[%d]=%lld\n", u, d[u]);
+    for (auto it2 : e[it.second]) {
+      int v = it2.first;
+      int w = it2.second;
+      if (d[v] == -1 || d[u] + w < d[v]) {
+        d[v] = d[u] + w;
+        q.push(make_pair(-d[v], v));
+      }
+    }
+  }
+
+  for (int i = 1; i <= n; i++) {
+    mp[idx[s]][i] = d[i];
+  }
+}
+
+int main() {
+  scanf("%d%d", &n, &m);
+  int a, b, c;
+  for (int i = 0; i < m; i++) {
+    scanf("%d%d%d", &a, &b, &c);
+    e[a].push_back(make_pair(b, c));
+    e[b].push_back(make_pair(a, c));
+  }
+  dfs(1, 0);
+
+  for (int i = 1; i < POW; i++) {
+    for (int j = 1; j <= n; j++) {
+      p[i][j] = p[i - 1][p[i - 1][j]];
+    }
+  }
+
+  for (int u: key) {
+    dijkstra(u);
+  }
+  /*
+  for (int i = 0; i < (int)key.size(); i++) {
+    cout << key[i] <<endl;
+    for (int j = 1; j <= n; j++) {
+      cout << mp[i][j] << " ";
+    }
+    cout <<endl;
+  }
+  */
+  int q;
+  scanf("%d", &q);
+
+  while (q--) {
+    scanf("%d%d", &a, &b);
+    int c = lca(a, b);
+    long long ret = dis[a] + dis[b] - 2LL * dis[c];
+    for (int i = 0; i < (int)key.size(); i++) {
+      ret = min(ret, mp[i][b] + mp[i][a]);
+    }
+    printf("%lld\n", ret);
+  }
+  return 0;
+}

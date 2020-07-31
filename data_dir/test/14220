@@ -1,0 +1,182 @@
+///****In the name of Allah, most Gracious, most Compassionate****//
+
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+
+#define NL cout<<"\n";
+#define ALL(a) a.begin(), a.end()
+#define DBG(a) cout<< #a <<" --> "<<(a)<<endl;
+#define FastIO ios::sync_with_stdio(false); cin.tie(0);cout.tie(0)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+template < class T1,class T2>
+ostream &operator <<(ostream &os,const pair < T1,T2 > &p)
+{
+    os<<"{"<<p.first<<","<<p.second<<"}";
+    return os;
+}
+
+const int N=2e5+100;
+const int oo=1e9+7;
+vector<int > g[N];
+#define FOR( i , j, n ) for(int i = (j)   ; (i)<(n)  ; (i)++)
+
+
+int dfstime=0;
+int parity[N];
+int a[N];
+int st[N];
+int en[N];
+
+int node[N];
+int val[2][N];
+
+
+void dfs(int u,int p)
+{
+    st[u] = ++dfstime;
+
+    node[dfstime]=u;
+    val[parity[u]][dfstime] = a[u];
+
+    for(int v: g[u]) {
+        if(v==p) continue;
+        parity[v] = ! parity[u];
+        dfs(v,u);
+    }
+    en[u] = dfstime;
+
+}
+
+int value[2][4*N];
+int lazy[2][4*N];
+void UpdateRange(int node , int ss, int se, int us,int ue, int diff ,int par)
+{
+    int mid = ss+(se-ss)/2;
+
+    if (lazy[par][node] != 0)
+    {
+        value[par][node] += (se-ss+1)*lazy[par][node];
+        if (ss != se)
+        {
+            lazy[par][2*node]+=lazy[par][node];
+            lazy[par][2*node+1]+=lazy[par][node];
+        }
+        lazy[par][node] = 0;
+    }
+
+    if (ss>se || ss>ue || se<us)
+        return ;
+
+    if (ss>=us && se<=ue)
+    {
+        value[par][node] += (se-ss+1)*diff;
+
+        if (ss != se)
+        {
+            lazy[par][2*node]+=diff;
+            lazy[par][2*node+1]+=diff;
+        }
+        return;
+    }
+
+
+    UpdateRange(2*node, ss, mid, us, ue, diff , par);
+    UpdateRange(2*node+1, mid+1, se, us, ue, diff , par);
+
+    value[par][node]=value[par][2*node]+value[par][2*node+1];
+
+}
+int GetSum(int node,int ss, int se, int qs, int qe ,int par)
+{
+
+    int mid = ss+(se-ss)/2;
+
+    if (lazy[par][node] != 0)
+    {
+        value[par][node] += (se-ss+1)*lazy[par][node];
+        if (ss != se)
+        {
+            lazy[par][2*node]+=lazy[par][node];
+            lazy[par][2*node+1]+=lazy[par][node];
+        }
+        lazy[par][node] = 0;
+    }
+
+    if (ss>se || ss>qe || se<qs)
+        return 0;
+
+    if (ss>=qs && se<=qe)
+        return value[par][node];
+
+    return GetSum(2*node,ss,mid,qs,qe , par)+GetSum(2*node+1,mid+1,se,qs,qe  , par);
+}
+
+void Build(int node,int *a,int ss,int se)
+{
+    if(ss==se)
+    {
+        value[0][node]=val[0][ss];
+        value[1][node]=val[1][ss];
+        return ;
+    }
+    int mid = ss+(se-ss)/2;
+    Build(2*node,a,ss,mid);
+    Build(2*node+1,a,mid+1,se);
+    value[0][node]=value[0][2*node]+value[0][2*node+1];
+    value[1][node]=value[1][2*node]+value[1][2*node+1];
+}
+
+
+
+
+int32_t main()
+{
+    FastIO;
+    int n,m;
+    cin>>n>>m;
+    for(int i=1;i<=n;i++) cin>>a[i];
+    for(int i=1;i<n;i++)
+    {
+        int u,v;
+        cin>>u>>v;
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+    dfs(1,-1);
+
+//    FOR(i,1,n+1)
+//    {
+//        DBG(parity[i]);
+//    }
+
+    Build(1,a, 1, dfstime);
+
+//    for(int i=1;i<=n;i++)
+//    {
+//        cout<<GetSum(1,1,dfstime ,st[i] ,st[i]  , parity[i])<<"\n";;
+//    }
+    while(m--)
+    {
+        int c;
+        cin>>c;
+        if(c==1)
+        {
+            int x, val ;
+            cin>>x>>val;
+            UpdateRange(1,1,dfstime , st[x] , en[x] , val , parity[x]);
+            UpdateRange(1,1,dfstime , st[x], en[x] , -val ,!parity[x]);
+        }
+        else
+        {
+            int x;
+            cin>>x;
+            cout<<GetSum(1,1,dfstime , st[x] , st[x] , parity[x])<<"\n";
+        }
+    }
+
+}

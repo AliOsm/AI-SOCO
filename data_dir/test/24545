@@ -1,0 +1,180 @@
+#include <cstdio>
+#include <algorithm>
+#include <cstring>
+#include <set>
+#include <iostream>
+#include <stack>
+#include <vector>
+#include <string>
+#include <map>
+#include <cmath>
+#include <queue>
+
+using namespace std;
+
+int n, q;
+const int maxn = 2e5 + 5;
+
+int L[maxn], R[maxn];
+int zero[maxn];
+char t[maxn];
+int s[maxn];
+int tot;
+int id[maxn];
+
+namespace SA{
+    const int maxn = 2e5 + 10;
+    int t1[maxn], t2[maxn], c[maxn];
+    int Rank[maxn], height[maxn];
+    int RMQ[maxn];
+    int mm[maxn];
+    int sa[maxn];
+    int best[25][maxn];
+    int len;
+    bool cmp(int *r, int a, int b, int l){
+        return r[a] == r[b] && r[a+l] == r[b+l];
+    }
+    void da(int str[],int sa[],int Rank[],int height[],int n,int m){
+        n++;
+        int i, j, p, *x = t1, *y = t2;
+        for(i = 0;i < m;i++)c[i] = 0;
+        for(i = 0;i < n;i++)c[x[i] = str[i]]++;
+        for(i = 1;i < m;i++)c[i]+=c[i-1];
+        for(i = n-1;i >= 0;i--)sa[--c[x[i]]] = i;
+        for(j = 1;j <= n; j <<= 1){
+            p = 0;
+            for(i = n-j; i < n; i++)y[p++] = i;
+            for(i = 0; i < n; i++)if(sa[i] >= j)y[p++] = sa[i] - j;
+            for(i=0;i<m; i++)c[i] = 0;
+            for(i=0;i<n; i++)c[x[y[i]]]++;
+            for(i = 1; i < m;i++)c[i] += c[i-1];
+            for(i = n-1; i >= 0;i--)sa[--c[x[y[i]]]] = y[i];
+            swap(x,y);
+            p = 1; x[sa[0]] = 0;
+            for(i = 1;i < n;i++)
+                x[sa[i]] = cmp(y,sa[i-1],sa[i],j)?p-1:p++;
+            if(p >= n)break;
+            m = p;
+        }
+        int k = 0;
+        n--;
+        for(i = 0;i <= n;i++)Rank[sa[i]] = i;
+        for(i = 0;i < n;i++){
+            if(k)k--;
+            j = sa[Rank[i]-1];
+            while(str[i+k] == str[j+k])k++;
+            height[Rank[i]] = k;
+        }
+    }
+    void initRMQ(int n){
+        for(int i = 1;i <= n;i++)
+            RMQ[i] = height[i];
+        mm[0]=-1;
+        for(int i=1;i<=n;i++)
+            mm[i]=((i&(i-1))==0)?mm[i-1]+1:mm[i-1];
+        for(int i=1;i<=n;i++)best[0][i]=i;
+            for(int i=1;i<=mm[n];i++)
+                for(int j=1;j+(1<<i)-1<=n;j++){
+                    int a=best[i-1][j];
+                    int b=best[i-1][j+(1<<(i-1))];
+                    if(RMQ[a]<RMQ[b])best[i][j]=a;
+                    else best[i][j]=b;
+                 }
+    }
+
+    int askRMQ(int a,int b){
+        int t;
+        t=mm[b-a+1];
+        b-=(1<<t)-1;
+        a=best[t][a];b=best[t][b]; return RMQ[a]<RMQ[b]?a:b;
+    }
+
+    int lcp(int a, int b){
+        if(a == b) return len - a;
+        a = Rank[a]; b = Rank[b];
+        if(a > b) swap(a, b);
+        //cout << askRMQ(a + 1, b) << endl;
+        return height[askRMQ(a + 1, b)];
+    }
+    void preprocess(int *str, int n, int m){
+        len = n;
+        da(str, sa, Rank, height, len, m); 
+        initRMQ(n);
+    }
+}
+
+void precompute(){
+    zero[0] = 0;
+    int pre = 0, suf = n + 1;
+    for(int i = 1;i <= n;i++){
+        zero[i] = zero[i - 1];
+        zero[i] += (t[i] == '0');
+        if(t[i] == '0')
+            pre = i;
+        L[i] = pre;
+    }
+    for(int i = n;i >= 1;i--){
+        if(t[i] == '0')
+            suf = i;
+        R[i] = suf;
+    }
+    tot = 0;
+    int cur = 0;
+    for(int i = 1;i <= n;i++){
+        if(t[i] == '1'){
+            cur++;
+        }else{
+            id[i] = tot;
+            s[tot] = (cur & 1) + '0';
+            cur = 0;
+            tot++;
+        }
+    } 
+    SA::preprocess(s, tot, 128); 
+}
+
+int main(){
+    cin >> n;
+    scanf("%s", t + 1);
+    precompute();
+    cin >> q;
+    for(int i = 1;i <= q;i++){
+        int l1, l2, len;
+        scanf("%d%d%d", &l1, &l2, &len);
+        int r1 = l1 + len - 1;
+        int r2 = l2 + len - 1;
+        if(zero[r1] - zero[l1 - 1] != zero[r2] - zero[l2 - 1]){
+            puts("No");
+            continue;
+        }
+        int z0 = zero[r1] - zero[l1 - 1];
+        if(z0 == 0){
+            puts("Yes");
+            continue;
+        }
+        int front1 = R[l1] - l1, rear1 = r1 - L[r1], front2 = R[l2] - l2, rear2 = r2 - L[r2];
+        front1 &= 1;
+        rear1 &= 1;
+        front2 &= 1;
+        rear2 &= 1;
+        if(front1 != front2 or rear1 != rear2){
+            puts("No");
+            continue;
+        }
+        //if(z0 == 1){
+        //    puts("Yes");
+        //    continue;
+        //}
+        //if(id[R[l1]] == id[R[l2]]){
+        //    puts("Yes");
+        //    continue;
+        //}
+        int alen = SA::lcp(id[R[l1]] + 1, id[R[l2]] + 1);
+        if(alen >= z0 - 1){
+            puts("Yes");
+        }else{
+            puts("No");
+        }
+    }
+    return 0;
+}

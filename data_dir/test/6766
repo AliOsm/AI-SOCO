@@ -1,0 +1,176 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace __gnu_pbds;
+using namespace std;
+
+template <class T>
+using ordered_set =
+       tree <T,null_type,less <T>,rb_tree_tag,tree_order_statistics_node_update> ;
+///find_by_order()
+///order_of_key()
+
+template <class T,class U>
+void maximize(T &x,U y){
+    if(x < y)x=y;
+}
+template <class T,class U>
+void minimize(T &x,U y){
+    if(x > y)x=y;
+}
+template <class T>
+T Abs(T x){
+    return (x < (T)0 ? -x : x);
+}
+template <class T>
+T safe_sqrt(T x){
+    return sqrt(max(x,(T)0));
+}
+template <class T,class U,class V>
+T addmod(T x,U k,V MOD){
+    return ((x+k)%MOD + MOD)%MOD;
+}
+template <class T,class U,class V>
+T submod(T x,U k,V MOD){
+    return ((x-k)%MOD + MOD)%MOD;
+}
+template <class T,class U,class V>
+T mul(T x,U y,V MOD){
+    return ( (x % MOD) * (y % MOD) ) % MOD;
+}
+
+#define ll long long
+#define pll pair <ll,ll>
+#define pii pair <int,int>
+#define fir first
+#define sec second
+#define mp make_pair
+#define pb push_back
+#define emp emplace_back
+#define MASK(i) ((1LL)<<(i))
+#define BIT(x,i) (((x)>>(i))&1)
+#define all(c) (c).begin(),(c).end()
+#define sz(c) (int)((c).size())
+#define fn "test"    ///FILE_NAME_HERE
+
+/*------------------------------------------END_OF_TEMPLATE------------------------------------------*/
+
+namespace task{
+
+	const int N = 1e5 + 5;
+	struct E{
+		int u,v,c;
+		E(){};
+		E(int _u,int _v,int _c):u(_u),v(_v),c(_c){};
+	};
+	E edges[N];
+	vector <int> adj[N],gr[N];
+	vector <int> cyc[N];
+	vector <int> roads;
+	vector <int> topo;
+	int col[N],pos[N];
+	int n,m,cur = 0,ans = 0;
+	bool has_cycle = false;
+
+	void dfs_check(int u){
+		col[u] = 1;
+		for(int i = 0;i < sz(gr[u]);++i){
+			int v = gr[u][i];
+			if(!col[v]){
+				dfs_check(v);
+			} else {
+				if(col[v] == 1){
+					has_cycle = true;
+				}
+			}
+		}
+		col[u] = 2;
+	}
+
+	bool ok(int mid){
+		fill(col + 1,col + 1 + n,0);
+		for(int u = 1;u <= n;++u){
+			gr[u].clear();
+		}
+		for(int u = 1;u <= n;++u){
+			for(int i = 0;i < sz(adj[u]);++i){
+				E e = edges[adj[u][i]];
+				if(e.c > mid){
+					gr[e.u].emp(e.v);
+				}
+			}
+		}
+		has_cycle = false;
+		for(int u = 1;u <= n;++u){
+			if(!col[u]){
+				dfs_check(u);
+			}
+		}
+		return has_cycle ^ 1;
+	}
+
+	void topo_sort(int u){
+		col[u] = 1;
+		for(int i = 0;i < sz(gr[u]);++i){
+			int v = gr[u][i];
+			if(!col[v]){
+				topo_sort(v);
+			}
+		}
+		topo.emp(u);
+	}
+
+    void solve(){
+    	cin>>n>>m;
+    	int l = 0,r = 1;
+    	for(int i = 1;i <= m;++i){
+    		int u,v,c;
+    		cin>>u>>v>>c;
+    		adj[u].emp(i);
+    		edges[i] = E(u,v,c);
+    		maximize(r,c);
+    	}
+    	for(int mid = (l + r)>>1;l <= r;mid = (l + r)>>1){
+    		if(ok(mid)){
+    			ans = mid;
+    			r = mid - 1;
+    		} else {
+    			l = mid + 1;
+    		}
+    	}
+    	ok(ans);
+    	fill(col + 1,col + 1 + n,0);
+   		for(int i = 1;i <= n;++i){
+   			if(!col[i]){
+   				topo_sort(i);
+   			}
+   		}
+   		reverse(all(topo));
+   		for(int i = 0;i < sz(topo);++i){
+   			pos[topo[i]] = i;
+   		}
+   		for(int i = 1;i <= m;++i){
+   			if(edges[i].c <= ans){
+   				int u = edges[i].u;
+   				int v = edges[i].v;
+   				if(pos[v] < pos[u]){
+   					roads.emp(i);
+   				}
+   			}
+   		}
+   		cout<<ans<<' '<<sz(roads)<<'\n';
+   		for(int i = 0;i < sz(roads);++i){
+   			cout<<roads[i]<<' ';
+   		}
+    }
+}
+
+int main(void){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+    #ifndef ONLINE_JUDGE
+    freopen(fn".inp","r",stdin);
+    freopen(fn".out","w",stdout);
+    #endif // ONLINE_JUDGE
+    task::solve();
+}

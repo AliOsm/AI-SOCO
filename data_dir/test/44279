@@ -1,0 +1,81 @@
+#include <cstdio>
+#include <vector>
+#include <unordered_map>
+#include <algorithm>
+using namespace std;
+
+const int SIZE = 100005, BLOCK = 1300;
+
+class BITree {
+public:
+    static const int SIZE = 100010, BIAS = 5;
+    int u[SIZE],cnt;
+    void modify(int x, int v){
+        cnt+=v;
+        for(x+=BIAS;x<SIZE;x+=x&-x) u[x]+=v;
+    }
+    int getrhs(int x){
+        int s=cnt;
+        for(x+=BIAS-1;x;x-=x&-x) s-=u[x];
+        return s;
+    }
+}seg[SIZE/BLOCK+1];
+
+int n,a[SIZE],len,rev[SIZE*2];
+int cnt[SIZE/BLOCK+1][SIZE*2];
+unordered_map<int,int> idx;
+
+void modify(int x, int v, int o){
+    for(int i=x/BLOCK;i<len;i++){
+        seg[i].modify(cnt[i][v],-1);
+        seg[i].modify(cnt[i][v]+=o,+1);
+    }
+}
+
+int one(int x){
+    int v=a[x],c=x/BLOCK,sum=c?cnt[c-1][v]:0;
+    for(int i=BLOCK*c;i<=x;i++) sum+=(a[i]==v);
+    return sum;
+}
+
+int two(int x){
+    static int tmp[SIZE*2];
+    int v=one(x),c=x/BLOCK,sum=c?seg[c-1].getrhs(v):0;
+    for(int i=BLOCK*c;i<=x;i++)
+        if((c?cnt[c-1][a[i]]:0)+(++tmp[a[i]])==v) sum++;
+    for(int i=BLOCK*c;i<=x;i++)  --tmp[a[i]];
+    return sum;
+}
+
+int getidx(int x){
+    int& y=idx[x];
+    if(!y) rev[y=idx.size()]=x;
+    return y;
+}
+
+int main(){
+    scanf("%d",&n);
+    len=(n-1)/BLOCK+1;
+    for(int i=0;i<n;i++){
+        scanf("%d",&a[i]);
+        a[i]=getidx(a[i]);
+        modify(i,a[i],+1);
+    }
+    int q;
+    scanf("%d",&q);
+    while(q--){
+        int x,y,z;
+        scanf("%d%d%d",&z,&x,&y);
+        y--,z--;
+        if(!z){
+            modify(y,a[y],-1);
+            modify(y,a[y]=getidx(x),+1);
+        }else{
+            int ans;
+            if(x==1) ans=rev[a[y]]; else
+            if(~x&1) ans=one(y);
+                else ans=two(y);
+            printf("%d\n",ans);
+        }
+    }
+}

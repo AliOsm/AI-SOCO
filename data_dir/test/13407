@@ -1,0 +1,189 @@
+
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using ld = long double;
+#define ff first
+#define ss second
+const char nl = '\n';
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+#include <bits/extc++.h>
+namespace pbds =  __gnu_pbds;
+template <typename key, typename val=pbds::null_type, typename comp=less<key> >
+using ostree = pbds::tree<key, val, comp, pbds::rb_tree_tag,
+                          pbds::tree_order_statistics_node_update>;
+using vi = vector< int >; using vll = vector< ll >;
+#define allOf(x) std::begin(x), std::end(x)
+template <typename...Args>
+ostream&operator<<(ostream&os, pair<Args...> const &p)
+{return os<<'('<<p.first<<", "<<p.second<<')';}
+template <typename...Args>
+ostream&operator<<(ostream&os, vector<Args...> const &v)
+{os<<'[';for(const auto&el:v)os<<' '<<el;return(os<<" ]");}
+template <typename...Args> ostream&operator<<(ostream&os, map<Args...>const&v)
+{os<<'[';for(auto const&el:v)os<<' '<<el;return(os<<" ]");}
+template <typename...Args> ostream&operator<<(ostream&os, set<Args...>const&v)
+{os<<'[';for(auto const&el:v)os<<' '<<el;return(os<<" ]");}
+template <typename...Args>
+ostream&operator<<(ostream&os, unordered_map<Args...>const&v)
+{os<<'[';for(auto const&el:v)os<<' '<<el;return(os<<" ]");}
+template<typename T> void trace_rec(stringstream&sst, const T&t)
+{ string arg; getline(sst, arg, ','); cerr << arg << " : " << t << " }"; }
+template<typename T, typename... Args>
+void trace_rec(stringstream&sst, const T&t, const Args... args)
+{ string arg; getline(sst, arg, ','); cerr << arg << " : " << t << ", ";
+  trace_rec(sst, args...); }
+template<typename... Args> void trace(const string&s, Args... args)
+{stringstream sst(s); cerr << "{ "; trace_rec(sst, args...); cerr << endl;}
+#define dbg(...) trace(#__VA_ARGS__, __VA_ARGS__)
+template <typename T> void dbr(const T lb, const T ub)
+{cerr<<'{';for(auto it=lb; it!=ub; it++)cerr<<' '<<(*it);cerr<<" }"<<endl;}
+template<typename T, typename Comp=less<T> >
+bool setMin(T &mem, const T&v, Comp comp = Comp())
+{ return comp(v, mem) ? mem = v, true : false; }
+template<typename T, typename Comp=less<T> >
+bool setMax(T &mem, const T&v, Comp comp = Comp())
+{ return comp(mem, v) ? mem = v, true : false; }
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+
+uniform_int_distribution<int> prygen;
+struct Treap {
+
+  struct Node {
+    int sz, pry;
+    ll val, sm;
+    Node *l, *r;
+    Node(const int &v): sz(1), pry(prygen(rng)), val(v), sm(v),
+    l(nullptr), r(nullptr) { }
+  };
+
+  Node *root = nullptr;
+
+  inline static int getsz(Node *node) {return node == nullptr ? 0 : node->sz;}
+  inline static ll  getsm(Node *node) {return node == nullptr ? 0 : node->sm;}
+
+  inline ll size() { return getsz(root); }
+
+  // inline void push(Node *&t) { }
+
+  inline void pull(Node *&t) {
+    if( t == nullptr ) return;
+    t->sz = getsz(t->l) + getsz(t->r) + 1;
+    // push(t->l), push(t->r);
+    t->sm = getsm(t->l) + t->val + getsm(t->r);
+  }
+
+  /* Split treap assuming initial offset of `ord'. */
+  void split(const int &pos, int &ord, Node *t, Node *&l, Node *&r) {
+    if( t == nullptr ) { l = r = nullptr; return; }
+    // push(t);
+    int lsz = getsz(t->l);
+    if( pos <= ord + lsz ) { split(pos, ord, t->l, l, t->l); r = t; }
+    else { ord += 1 + lsz; split(pos, ord, t->r, t->r, r); l = t; }
+    pull(t);
+  }
+
+  /* Join treaps. */
+  void join(Node *&t, Node *lt, Node *rt) {
+    if(lt==nullptr or rt==nullptr) {t=(lt == nullptr ? rt : lt); return;}
+    // push(lt); push(rt);
+    if( lt->pry >= rt->pry ) { join(lt->r, lt->r, rt); t = lt; }
+    else { join(rt->l, lt, rt->l); t = rt; }
+    pull(t);
+  }
+
+  /* Insert element at position. */
+  void insert(const int &pos, const ll &val) {
+    Node *t1 = nullptr, *t2 = nullptr;
+    int ord = 0;
+    split(pos, ord, root, t1, t2); 
+    Node *x = new Node(val);
+    join(root, t1, x); join(root, root, t2);
+  }
+
+  inline void pop_front() {
+    Node *t1 = nullptr; int ord = 0;
+    split(1, ord, root, t1, root);
+  }
+
+  ll front() {
+    Node *it = root;
+    while(it->l != nullptr) it = it->l;
+    return it->val;
+  }
+
+  pair<ll, ll> get_index(const ll &v) {
+    int lo = 0, hi = size(), ord;
+    ll ret = 0;
+    Node *tl = nullptr, *th = nullptr;
+    while(lo<hi) {
+      int mid = (lo+hi+1)/2;
+      tl = th = nullptr;
+      ord = 0; split(mid, ord, root, tl, th);
+      // dbg(lo, mid, hi, getsm(tl), getsm(th));
+      ll pfs = getsm(tl);
+      join(root, tl, th);
+      if( pfs <= v ) setMax(ret, pfs), lo = mid; else hi = mid-1;
+    }
+    if( lo == getsz(root) ) setMax(ret, getsm(root));
+    return make_pair(lo, ret);
+  }
+
+  void pop_rotate(const int &pos) {
+    Node *t1 = nullptr, *t2 = nullptr, *t3 = nullptr;
+    int ord = 0;
+    split(pos, ord, root, t1, t2); 
+    split(1, ord, t2, t2, t3);
+    join(root, t3, t1);
+  }
+
+  /* Inorder traversal. */
+  void dfs(Node *t, vll &v) {
+    if( t == nullptr ) return;
+    // push(t);
+    dfs(t->l, v);
+    v.emplace_back(t->val);
+    dfs(t->r, v);
+  }
+  vll linearise() { vll ret; dfs(root, ret); return ret; }
+
+};
+
+Treap T;
+
+int main() {
+  ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+  int n; cin >> n;
+  ll a[n], M, total=0; cin >> M;
+  for(int i=0; i<n; i++) cin >> a[i];
+  for(int i=0; i<n; i++) T.insert(i, a[i]), total += a[i];
+
+  ll x = 0;
+
+  while( T.size() > 0 ) {
+    if( T.front() > M ) T.pop_front();
+    else {
+      pair<int, ll> p = T.get_index(M);
+      int idx = p.ff; ll pfs = p.ss;
+      if( idx == T.size() ) {
+        x += (ll(idx)) * (M / pfs); 
+        M %= pfs;
+        // dbg("all", idx, M, pfs, x);
+        continue;
+      }
+      // dbg(idx, pfs);
+      M -= pfs;
+      T.pop_rotate(idx);
+      x += idx;
+    }
+    // dbg(T.linearise());
+  }
+
+  cout << x << endl;
+
+  return 0;
+}
+
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */

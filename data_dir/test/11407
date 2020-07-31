@@ -1,0 +1,130 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <queue>
+#include <map>
+#include <set>
+#include <stdlib.h>
+#include <sstream>
+#include <assert.h>
+#include <memory.h>
+#include <time.h>
+#include <stack>
+using namespace std;
+#pragma comment(linker, "/STACK:200000000")
+
+#define mp make_pair
+#define pb push_back 
+#define ll long long
+#define sz(x) (int)(x).size()
+
+const int MAXN = 1 << 17;
+const int MAXN2 = 1 << 18;
+
+int tree[MAXN2][26];
+int push[MAXN2][26];
+
+void setval(int idx, int L, int R, int l, int r, int sym, int val) {
+    if(L == l && R == r) {
+        push[idx][sym] = val;
+        tree[idx][sym] = val * (R - L + 1);
+        return;
+    }
+    int mid = (L + R) / 2;
+    int idx1 = idx * 2, L1 = L, R1 = mid, l1 = l, r1 = min(r, R1);
+    int idx2 = idx * 2 + 1, L2 = mid + 1, R2 = R, l2 = max(l, L2), r2 = r;
+    if(push[idx][sym] != 1e9) {
+        push[idx1][sym] = push[idx][sym];
+        tree[idx1][sym] = push[idx][sym] * (R1 - L1 + 1);
+        push[idx2][sym] = push[idx][sym];
+        tree[idx2][sym] = push[idx][sym] * (R1 - L1 + 1);
+        push[idx][sym] = 1e9;
+    }
+    if(l1 <= R1) setval(idx1, L1, R1, l1, r1, sym, val);
+    if(r2 >= L2) setval(idx2, L2, R2, l2, r2, sym, val);
+    tree[idx][sym] = tree[idx1][sym] + tree[idx2][sym];
+}
+
+
+int getval(int idx, int L, int R, int l, int r, int sym) {
+    if(L == l && R == r) {
+        return tree[idx][sym];
+    }
+    int mid = (L + R) / 2;
+    int idx1 = idx * 2, L1 = L, R1 = mid, l1 = l, r1 = min(r, R1);
+    int idx2 = idx * 2 + 1, L2 = mid + 1, R2 = R, l2 = max(l, L2), r2 = r;
+    if(push[idx][sym] != 1e9) {
+        push[idx1][sym] = push[idx][sym];
+        tree[idx1][sym] = push[idx][sym] * (R1 - L1 + 1);
+        push[idx2][sym] = push[idx][sym];
+        tree[idx2][sym] = push[idx][sym] * (R1 - L1 + 1);
+        push[idx][sym] = 1e9;
+    }
+    int res = 0;
+    if(l1 <= R1) res += getval(idx1, L1, R1, l1, r1, sym);
+    if(r2 >= L2) res += getval(idx2, L2, R2, l2, r2, sym);
+    tree[idx][sym] = res;
+    return res;
+}
+
+int cnt[26];
+
+int main()
+{
+    //freopen("a.in","rt",stdin);
+    //freopen("a.out","wt",stdout);
+    
+    int n, q;
+    scanf("%d %d", &n, &q);
+    for(int j = 0; j < 26; j++) {
+        for(int i = 0; i < MAXN2; i++) push[i][j] = 1e9;
+    }
+    
+    string s;
+    cin >> s;
+
+    int N = sz(s);
+    for(int i = 0; i < N; i++) {
+        setval(1, 0, MAXN-1, i, i, s[i] - 'a', 1);
+    }
+
+    for(int Q = 0; Q < q; Q++) {
+        int l, r, k;
+        scanf("%d %d %d", &l, &r, &k);
+        l--;
+        r--;
+        for(int i = 0; i < 26; i++) cnt[i] = getval(1, 0, MAXN-1, l, r, i);
+        for(int i = 0; i < 26; i++) setval(1, 0, MAXN-1, l, r, i, 0);
+        if(k == 1) {
+            int add = 0;
+            for(int i = 0; i < 26; i++) {
+                if(cnt[i] != 0) {
+                    setval(1, 0, MAXN-1, l + add, l + add + cnt[i] - 1, i, 1);
+                    add += cnt[i];
+                }
+            }
+        }
+        else {
+            int add = 0;
+            for(int i = 25; i >= 0; i--) {
+                if(cnt[i] != 0) {
+                    setval(1, 0, MAXN-1, l + add, l + add + cnt[i] - 1, i, 1);
+                    add += cnt[i];
+                }
+            }
+        }
+    }
+    for(int i = 0; i < N; i++) {
+        char sym = '#';
+        for(int j = 0; j < 26; j++) {
+            int x = getval(1, 0, MAXN-1, i, i, j);
+            if(x != 0) sym = 'a' + j;
+        }
+        printf("%c", sym);
+    }
+
+    return 0;
+}

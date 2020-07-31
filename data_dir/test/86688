@@ -1,0 +1,152 @@
+#include <stdio.h>
+#include <string.h>
+
+#define N	500000
+#define Q	500000
+#define N_	(1 << 19)	/* N_ = pow2(ceil(log2(N))) */
+#define INF	0x3f3f3f3f3f3f3f3fLL
+
+long long min(long long a, long long b) { return a < b ? a : b; }
+
+int oo[1 + N - 1], oj[1 + N - 1], ow[1 + N - 1];
+
+int link(int o, int j, int w) {
+	static int _ = 1;
+
+	oo[_] = o, oj[_] = j, ow[_] = w;
+	return _++;
+}
+
+int oo_[1 + Q], oh[1 + Q];
+
+int link_(int o, int h) {
+	static int _ = 1;
+
+	oo_[_] = o, oh[_] = h;
+	return _++;
+}
+
+long long st[N_ * 2], lz[N_]; int n_, h_;
+
+void put(int i, long long x) {
+	st[i] += x;
+	if (i < n_)
+		lz[i] += x;
+}
+
+void pus(int i) {
+	if (lz[i]) {
+		put(i << 1, lz[i]), put(i << 1 | 1, lz[i]);
+		lz[i] = 0;
+	}
+}
+
+void pul(int i) {
+	if (!lz[i])
+		st[i] = min(st[i << 1], st[i << 1 | 1]);
+}
+
+void push(int i) {
+	int h;
+
+	for (h = h_; h > 0; h--)
+		pus(i >> h);
+}
+
+void pull(int i) {
+	while (i > 1)
+		pul(i >>= 1);
+}
+
+void update(int l, int r, int x) {
+	int l_ = l += n_, r_ = r += n_;
+
+	push(l_), push(r_);
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			put(l++, x);
+		if ((r & 1) == 0)
+			put(r--, x);
+	}
+	pull(l_), pull(r_);
+}
+
+long long query(int l, int r) {
+	long long x;
+
+	push(l += n_), push(r += n_);
+	x = INF;
+	for ( ; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			x = min(x, st[l++]);
+		if ((r & 1) == 0)
+			x = min(x, st[r--]);
+	}
+	return x;
+}
+
+int ae[N], ae_[N], ta[N], tb[N], n;
+
+void dfs1(int i, long long w_) {
+	static int time;
+	int o;
+
+	ta[i] = time++;
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o], w = ow[o];
+
+		dfs1(j, w_ + w);
+	}
+	if (!ae[i])
+		st[n_ + ta[i]] = w_;
+	tb[i] = time;
+}
+
+int ll[Q], rr[Q]; long long ans[Q];
+
+void dfs2(int i) {
+	int o;
+
+	for (o = ae_[i]; o; o = oo_[o]) {
+		int h = oh[o];
+
+		ans[h] = query(ll[h], rr[h]);
+	}
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o], w = ow[o];
+
+		update(0, n - 1, w), update(ta[j], tb[j] - 1, -w * 2);
+		dfs2(j);
+		update(0, n - 1, -w), update(ta[j], tb[j] - 1, w * 2);
+	}
+}
+
+int main() {
+	static int pp[N], ww[N];
+	int q, h, i;
+
+	scanf("%d%d", &n, &q);
+	for (i = 1; i < n; i++)
+		scanf("%d%d", &pp[i], &ww[i]), pp[i]--;
+	for (i = n - 1; i > 0; i--) {
+		int p = pp[i], w = ww[i];
+
+		ae[p] = link(ae[p], i, w);
+	}
+	for (h = 0; h < q; h++) {
+		scanf("%d%d%d", &i, &ll[h], &rr[h]), i--, ll[h]--, rr[h]--;
+		ae_[i] = link_(ae_[i], h);
+	}
+	h_ = 0;
+	while (1 << h_ < n)
+		h_++;
+	n_ = 1 << h_;
+	memset(st, 0x3f, n_ * 2 * sizeof *st);
+	dfs1(0, 0);
+	for (i = n_ - 1; i > 0; i--)
+		pul(i);
+	dfs2(0);
+	for (h = 0; h < q; h++)
+		printf("%lld\n", ans[h]);
+	return 0;
+}

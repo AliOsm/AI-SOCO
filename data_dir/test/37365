@@ -1,0 +1,126 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+
+int n, timer = 0;
+vector<vector<int> > g;
+vector<int> tin, tout;
+vector<int> arr;
+vector<pair<int, int> > t;
+
+void dfs(int v) {
+	tin[v] = timer++;
+	for(int i = 0; i < g[v].size(); ++i) {
+		dfs(g[v][i]);
+	}
+	tout[v] = timer - 1;
+}
+
+void build(int v, int tl, int tr) {
+	if(tl == tr) {
+		t[v].first = arr[tl];
+		t[v].second = 0;
+	} else {
+		int tm = (tl + tr) >> 1;
+		build(2 * v + 1, tl, tm);
+		build(2 * v + 2, tm + 1, tr);
+		t[v].first = t[2 * v + 1].first + t[2 * v + 2].first;
+		t[v].second = 0;
+	}
+}
+
+int get(int v, int tl, int tr, int l, int r) {
+	if(tl == l && tr == r) {
+		if(!t[v].second) {
+			return t[v].first;
+		} else {
+			return int(r - l + 1) - t[v].first;
+		}
+	} else {
+		int tm = (tl + tr) >> 1,
+			sum = 0;
+		if(l <= min(tm, r)) {
+			sum += get(2 * v + 1, tl, tm, l, min(tm, r));
+		}
+		if(r >= max(tm + 1, l)) {
+			sum += get(2 * v + 2, tm + 1, tr, max(tm + 1, l), r);
+		}
+		if(!t[v].second) {
+			return sum;
+		} else {
+			return (r - l + 1) - sum;
+		}
+	}
+}
+
+void update(int v, int tl, int tr, int l, int r) {
+	if(tl == l && tr == r) {
+		t[v].second ^= 1;
+	} else {
+		int tm = (tl + tr) >> 1;
+		if(l <= min(tm, r)) {
+			int cur = t[2 * v + 1].first;
+			if(t[2 * v + 1].second) {
+				cur = (tm - tl + 1) - cur;
+			}
+			t[v].first -= cur;
+			update(2 * v + 1, tl, tm, l, min(tm, r));
+			cur = t[2 * v + 1].first;
+			if(t[2 * v + 1].second) {
+				cur = (tm - tl + 1) - cur;
+			}
+			t[v].first += cur;
+		}
+		if(r >= max(tm + 1, l)) {
+			int cur = t[2 * v + 2].first;
+			if(t[2 * v + 2].second) {
+				cur = (tr - tm) - cur;
+			}
+			t[v].first -= cur;
+			update(2 * v + 2, tm + 1, tr, max(tm + 1, l), r);
+			cur = t[2 * v + 2].first;
+			if(t[2 * v + 2].second) {
+				cur = (tr - tm) - cur;
+			}
+			t[v].first += cur;
+		}
+	}
+}
+
+int main (int argc, char *argv[])
+{
+	scanf("%d", &n);
+	g.resize(n);
+	tin.resize(n);
+	tout.resize(n);
+	for(int i = 1; i < n; ++i) {
+		int p;
+		scanf("%d", &p);
+		--p;
+		g[p].push_back(i);
+	}
+	dfs(0);
+	arr.resize(n);
+	for(int i = 0; i < n; ++i) {
+		int a;
+		scanf("%d", &a);
+		arr[tin[i]] = a;
+	}
+	t.resize(4 * n);
+	build(0, 0, n - 1);
+	int q;
+	scanf("%d", &q);
+	while(q--) {
+		char s[4];
+		int v;
+		scanf("%s%d", s, &v);
+		--v;
+		if(s[0] == 'g') {
+			printf("%d\n", get(0, 0, n - 1, tin[v], tout[v]));
+		} else {
+			update(0, 0, n - 1, tin[v], tout[v]);
+		}
+	}
+
+	return 0;
+}
+

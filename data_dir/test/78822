@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+#include <vector>
+#include <tuple>
+
+constexpr int MOD = 998244353;
+constexpr int inv(int x) { return x == 1 ? 1 : (MOD - MOD / x) * 1LL * inv(MOD % x) % MOD; }
+constexpr int B = 1000000;
+constexpr int invB = inv(B);
+constexpr int kN = 31;
+constexpr int kW = kN * kN;
+
+int n, m, bound[kN], values[kW], coef[kW][kN], sum[kW], size[kW];
+int Inv[kN];
+
+int find(int x)
+{
+    return std::lower_bound(values, values + n * m + 1, x) - values;
+}
+
+inline void add(int &a, int b)
+{
+    a += b;
+    if (a >= MOD) a -= MOD;
+}
+
+int main()
+{
+    Inv[1] = 1;
+    for (int i = 2; i < kN; ++ i) Inv[i] = inv(i);
+
+    scanf("%d", &n);
+    std::vector<int> ss{0};
+    for (int i = 0; i < n; ++ i) {
+        double x;
+        scanf("%lf", &x);
+        bound[i] = int(x * B + .5);
+        ss.emplace_back(bound[i] % B);
+    }
+    std::sort(ss.begin(), ss.end());
+    ss.erase(std::unique(ss.begin(), ss.end()), ss.end());
+    m = ss.size();
+    for (int i = n * m; i >= 0; -- i) {
+        values[i] = (i / m) * B + ss[i % m];
+        if (i < n * m)
+            size[i] = (values[i + 1] - values[i] + MOD) * 1LL * invB % MOD;
+    }
+    for (int i = std::min(find(bound[0]), m) - 1; i >= 0; -- i) {
+        sum[i] = size[i];
+        coef[i][1] = 1;
+    }
+    for (int i = 1; i < n; ++ i) {
+        int cut = find(bound[i]);
+        for (int j = n * m - 1; j >= 0; -- j) {
+            if (j < cut) {
+                for (int k = std::max(0, j - m); k < j; ++ k)
+                    add(coef[j][0], sum[k]);
+                if (j >= m)
+                    for (int k = 0; k <= n; ++ k)
+                        add(coef[j][k], MOD - coef[j - m][k]);
+
+                for (int k = n; k > 0; -- k)
+                    coef[j][k] = coef[j][k - 1] * 1LL * Inv[k] % MOD;
+                coef[j][0] = 0;
+
+                sum[j] = 0;
+                for (int k = n; k >= 0; -- k)
+                    sum[j] = (sum[j] * 1LL * size[j] + coef[j][k]) % MOD;
+            } else {
+                std::fill(coef[j], coef[j] + kN, 0);
+                sum[j] = 0;
+            }
+        }
+    }
+    int result = 0;
+    for (int i = 0; i < n * m; ++ i)
+        add(result, sum[i]);
+    printf("%d\n", result);
+}

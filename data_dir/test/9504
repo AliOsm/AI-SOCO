@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct EulerPath{
+    vector<set<int>> st;
+
+    EulerPath(int N, vector<int> edges[]){
+        st.resize(N);
+        for(int i=0; i<N; i++) for(int j : edges[i]) st[i].insert(j);
+    }
+
+    void dfs(int i, vector<int>& result){
+        while(st[i].size()){
+            int j = *(st[i].begin());
+            st[i].erase(j);
+            st[j].erase(i);
+            dfs(j, result);
+        }
+        result.push_back(i);
+    }
+
+    vector<int> calculate(int s){
+        vector<int> result;
+        dfs(s, result);
+        return result;
+    }
+};
+
+const int MX = 1e6+1;
+vector<int> edges[MX];
+
+int main(){
+    int N, M;
+    cin >> N >> M;
+    for(int i=0; i<M; i++){
+        int a, b;
+        scanf("%d %d", &a, &b);
+        edges[a].push_back(b);
+        edges[b].push_back(a);
+    }
+    for(int i=1; i<=N; i++) if(edges[i].size() % 2){
+        edges[0].push_back(i);
+        edges[i].push_back(0);
+    }
+
+    EulerPath ep(N+1, edges);
+    bitset<MX> visited;
+    vector<pair<int, int>> ans;
+    
+    for(int i=0; i<=N; i++){
+        if(visited[i]) continue;
+        auto result = ep.calculate(i);
+        for(int a : result) visited[a] = 1;
+
+        int sz = result.size();
+        vector<pair<int, int>> es;
+        for(int i=0; i<sz-1; i++) es.emplace_back(result[i], result[i+1]);
+        vector<bool> deleted(sz);
+        auto valid = [&](int i){ return !deleted[i] && es[i].first && es[i].second; };
+        sz--;
+
+        for(int i=1; i<sz; i+=2){
+            if(valid(i)){
+                if(!valid(i-1)){
+                    deleted[i-1] = 1;
+                }else if(!valid((i+1)%sz)){
+                    deleted[(i+1)%sz] = 1;
+                }else{
+                    deleted[i] = 1;
+                }
+            }else{
+                deleted[i] = 1;
+            }
+        }
+        for(int i=0; i<sz; i++) if(valid(i)) ans.push_back(es[i]);
+    }
+
+    cout << ans.size() << endl;
+    for(auto& p : ans) printf("%d %d\n", p.first, p.second);
+    return 0;
+}

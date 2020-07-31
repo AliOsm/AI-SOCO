@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define all(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+template < typename TP >
+struct pSegmentTree {
+	LL MAX;
+	TP init;
+	struct node {
+		TP val;
+		node *left = nullptr, *right = nullptr;
+		LL l, r;
+		node(LL L, LL R, TP v) : val(v), l(L), r(R) {}
+	};
+	vector < node* > roots;
+	pSegmentTree(LL n, TP zero) : init(zero) { MAX = 1LL << (64 - __builtin_clzll(n)); roots.push_back(new node(0, MAX - 1, init)); }
+	void check(node *root)
+	{
+		LL m = (root -> l + root -> r) / 2;
+		if(root -> left == nullptr)
+			root -> left = new node(root -> l, m, init);
+		if(root -> right == nullptr)
+			root -> right = new node(m + 1, root -> r, init);
+	}
+	node *add(node *root, LL a, LL b, TP v)
+	{
+		node *res = new node(*root);
+        if(res -> r < a || b < res -> l) return res;
+        if(a <= res -> l && res -> r <= b)
+        {
+            res -> val += v;
+            return res;
+        }
+        check(res);
+        res -> left = add(res -> left, a, b, v);
+        res -> right = add(res -> right, a, b, v);
+        return res;
+	}
+	TP ask(node *root, LL id)
+	{
+		LL m = (root -> l + root -> r) / 2;
+        TP ans = root -> val;
+        if(id <= m && root -> left != nullptr)
+            ans += ask(root -> left, id);
+        if(id > m && root -> right != nullptr)
+            ans += ask(root -> right, id);
+        return ans;
+	}
+	void update(LL a, LL b, TP v, int state = -1)
+	{
+		if(state == -1) state += sz(roots);
+		assert(state < sz(roots));
+		roots.push_back(add(roots[state], a, b, v));
+	}
+    void update2(LL a, LL b, TP v)
+    {
+        roots.back() = add(roots.back(), a, b, v);
+    }
+	TP query(LL id, int state = -1)
+	{
+		if(state == -1) state += sz(roots);
+		assert(state < sz(roots));
+		return ask(roots[state], id);
+	}
+};
+
+const int N = 2e5 + 7;
+const int M = 1e9;
+
+int n;
+pSegmentTree < LL > A(N, 0), B(N, 0);
+
+int main()
+{
+    _upgrade
+    cin >> n;
+    for(int i = 0; i < n; i++)
+    {
+        LL x1, x2, y1, a, b, y2;
+        cin >> x1 >> x2 >> y1 >> a >> b >> y2;
+        B.update(0, x1, y1);
+        B.update2(x1 + 1, x2, b);
+        B.update2(x2 + 1, N, y2);
+        A.update(x1 + 1, x2, a);
+    }
+    int m; cin >> m;
+    LL last = 0;
+    while(m--)
+    {
+        LL l, r, x;
+        cin >> l >> r >> x;
+        x = (x + last) % M;
+        x = min(x, (LL)N);
+        last = B.query(x, r) - B.query(x, l - 1);
+        last += x * (A.query(x, r) - A.query(x, l - 1));
+        cout << last << "\n";
+    }
+	return 0;
+}

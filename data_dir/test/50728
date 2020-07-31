@@ -1,0 +1,162 @@
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
+#include <ctime>
+#include <sstream>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <string>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <map>
+#include <set>
+
+using namespace std;
+
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define pii pair < int, int >
+#define pll pair < long long, long long>
+#define ull unsigned long long
+#define y1 stupid_cmath
+#define left stupid_left
+#define right stupid_right
+#define vi vector <int>
+#define sz(a) (int)a.size()
+#define forit(it, s) for(__typeof(s.begin()) it = s.begin(); it != s.end(); it++)
+#define all(a) a.begin(), a.end()
+#define sqr(x) ((x) * (x))
+
+const int inf = (int)1e9;
+const int mod = inf + 7;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+
+int n, m, k, x;
+vector<int> g[100100], childs[100100];
+int dp[3][11][100100];
+int p[3];
+
+vector<int> get(vector<vector<int> > &states) {
+    vector<int> ans(11, 0);
+    ans[0] = 1;
+    for (int i = 0; i < states.size(); i++) {
+        vector<int> &cur = states[i];
+        vector<int> nxt(11, 0);
+        for (int cnt = 0; cnt <= 10; cnt++) {
+            for (int ncnt = 0; ncnt <= cnt; ncnt++) {
+                nxt[cnt] = nxt[cnt] + ans[ncnt] * 1ll * cur[cnt - ncnt] % mod;
+                nxt[cnt] %= mod;
+            }
+        }
+        ans = nxt;
+    }
+    return ans;
+}
+
+void solve(int v, int par) {
+    vector<int> childs;
+    forit (it, g[v]) {
+        int to = *it;
+        if (to == par) continue;
+        childs.pb(to);
+    }
+    forit (it, childs) solve(*it, v);
+    if (childs.size() == 0) {
+        dp[0][0][v] = p[0];
+        dp[2][0][v] = p[2];
+        dp[1][0][v] = 0;
+        for (int cnt = 1; cnt <= 10; cnt++) {
+            dp[0][cnt][v] = dp[2][cnt][v] = 0;
+            if (cnt == 1) dp[1][cnt][v] = 1;
+            else dp[1][cnt][v] = 0;
+        }
+        return;
+    }
+    // dp[1][cnt][v]
+    {
+        vector<vector<int> > states;
+        forit (it, childs) {
+            int to = *it;
+            vector<int> cur;
+            for (int i = 0; i <= 10; i++) cur.pb(dp[0][i][to]);
+            states.pb(cur);
+        }
+        vector<int> res = get(states);
+        for (int i = 0; i < 10; i++) dp[1][i + 1][v] = res[i];
+        dp[1][0][v] = 0;
+    }
+    // dp[2][cnt][v]
+    {
+        vector<vector<int> > states;
+        forit (it, childs) {
+            int to = *it;
+            vector<int> cur;
+            for (int i = 0; i <= 10; i++) {
+                int val = dp[0][i][to] + dp[2][i][to];
+                if (val >= mod) val -= mod;
+                cur.pb(val);
+            }
+            states.pb(cur);
+        }
+        vector<int> res = get(states);
+        for (int i = 0; i <= 10; i++) dp[2][i][v] = res[i] * 1ll * p[2] % mod;
+    }
+    // dp[0][cnt][v]
+    {
+        vector<vector<int> > states;
+        forit (it, childs) {
+            int to = *it;
+            vector<int> cur;
+            for (int i = 0; i <= 10; i++) {
+                int val = dp[0][i][to] + dp[2][i][to];
+                if (val >= mod) val -= mod;
+                val += dp[1][i][to];
+                if (val >= mod) val -= mod;
+                cur.pb(val);
+            }
+            states.pb(cur);
+        }
+        vector<int> res = get(states);
+        for (int i = 0; i <= 10; i++) dp[0][i][v] = res[i] * 1ll * p[0] % mod;
+    }
+}
+
+int main(){
+
+    scanf("%d%d", &n, &m);
+    for (int i = 1, x, y; i < n; i++) {
+        scanf("%d%d", &x, &y);
+        x--; y--;
+        g[x].pb(y);
+        g[y].pb(x);
+    }
+
+    scanf("%d%d", &k, &x);
+
+    p[0] = k - 1;
+    p[1] = 1;
+    p[2] = m - k;
+
+    solve(0, -1);
+
+    int ans = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j <= x; j++) {
+            ans += dp[i][j][0];
+            if (ans >= mod) ans -= mod;
+        }
+    }
+
+    printf("%d\n", ans);
+
+    return 0;
+}

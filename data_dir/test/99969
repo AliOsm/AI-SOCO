@@ -1,0 +1,126 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+
+const int N = 4e5 + 5, M = 20;
+
+
+int n, cnt[(1 << (M + 3)) + 1], a[N], rt;
+long long dp[N], ans[N];
+bool used[N];
+vector < int > g[N];
+
+int dfs(int v, int sz, int &center, int pr = -1){
+    int cur = 1;
+    dp[v] = 0;
+    for(int to : g[v]){
+        if(to != pr && !used[to]){
+            cur += dfs(to, sz, center, v);
+        }
+    }
+    if(center == -1 && cur >= sz / 2){
+        center = v;
+    }
+    return cur;
+}
+
+void upd(int v, int mask, int val, int pr){
+    mask ^= (1 << a[v]);
+    cnt[mask] += val;
+    for(int to : g[v]){
+        if(to != pr && !used[to]){
+            upd(to, mask, val, v);
+        }
+    }
+}
+
+void get(int v, int mask, int pr){
+    mask ^= (1 << a[v]);
+    dp[v] = cnt[mask];
+    for(int i = 0; i < M; i++){
+        dp[v] += cnt[mask ^ (1 << i)];
+    }
+    for(int to : g[v]){
+        if(to != pr && !used[to]){
+            get(to, mask, v);
+            dp[v] += dp[to];
+        }
+    }
+    ans[v] += dp[v];
+}
+
+void gett(int v, int mask, int pr){
+    dp[v] = 0;
+    mask ^= (1 << a[v]);
+    if(__builtin_popcount(mask) <= 1){
+        ans[rt]++;
+        dp[v]++;
+    }
+    for(int to : g[v]){
+        if(to != pr && !used[to]){
+            gett(to, mask, v);
+            dp[v] += dp[to];
+        }
+    }
+    ans[v] += dp[v];
+}
+
+void build(int v){
+    int tmp = 0, c = -1;
+    dfs(v, dfs(v, 0, tmp), c);
+    used[c] = true;
+    for(int to : g[c]){
+        if(!used[to]){
+            upd(to, (1 << a[c]), +1, c);
+        }
+    }
+    for(int to : g[c]){
+        if(!used[to]){
+            upd(to, (1 << a[c]), -1, c);
+            get(to, 0, c);
+            dp[c] += dp[to];
+            upd(to, (1 << a[c]), +1, c);
+        }
+    }
+    /// each path counted twice (u, v) (v, u)
+    dp[c] /= 2;
+    /// 1 char is palindrome too
+    dp[c]++;
+    ans[c] += dp[c];
+    for(int to : g[c]){
+        if(!used[to]){
+            upd(to, (1 << a[c]), -1, c);
+        }
+    }
+    rt = c;
+    for(int to : g[c]){
+        if(!used[to]){
+            gett(to, (1 << a[c]), c);
+        }
+    }
+    for(int to : g[c]){
+        if(!used[to]){
+            build(to);
+        }
+    }
+}
+
+int main(){
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+    cin >> n;
+    for(int i = 1; i < n; i++){
+        int x, y;
+        cin >> x >> y;
+        g[x].push_back(y);
+        g[y].push_back(x);
+    }
+    string s;
+    cin >> s;
+    for(int i = 1; i <= (int)s.size(); i++){
+        a[i] = s[i - 1] - 'a';
+    }
+    build(1);
+    for(int i = 1; i <= n; i++){
+        cout << ans[i] << " ";
+    }
+}

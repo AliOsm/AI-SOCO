@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int X[150005], P[150005], passenger[150005];
+double profit[150005];
+
+struct node {
+    double ans;
+    double sum, preMax, suffMax;
+} tree[600005];
+
+struct node combine(struct node a, struct node b)
+{
+    struct node x;
+
+    x.sum = a.sum + b.sum;
+    x.preMax = max(a.preMax, a.sum + b.preMax);
+    x.suffMax = max(b.suffMax, b.sum + a.suffMax);
+    x.ans = max(max(a.ans, b.ans), a.suffMax + b.preMax);
+
+    return x;
+};
+
+struct node getAns(int left, int right, int L, int R, int root)
+{
+    if(left==L && right==R)
+        return tree[root];
+
+    int mid = (left+right)/2;
+
+    if(mid>=R)
+        return getAns(left, mid, L, R, root*2);
+    if(mid+1<=L)
+        return getAns(mid+1, right, L, R, root*2+1);
+
+    return combine(getAns(left, mid, L, mid, root*2), getAns(mid+1, right, mid+1, R, root*2+1));
+}
+
+void build(int left, int right, int root)
+{
+    if(left==right)
+    {
+        tree[root].ans = max(0.0, profit[left]);
+        tree[root].sum = tree[root].preMax = tree[root].suffMax = profit[left];
+        return;
+    }
+
+    int mid = (left+right)/2;
+
+    build(left, mid, root*2);
+    build(mid+1, right, root*2+1);
+
+    tree[root] = combine(tree[root*2], tree[root*2+1]);
+}
+
+int main()
+{
+    int N, M, c;
+    scanf("%d %d %d", &N, &M, &c);
+
+    for(int i=1; i<=N; i++)
+        scanf("%d", &X[i]);
+
+    for(int i=1; i<=N-1; i++)
+        scanf("%d", &P[i]);
+
+    for(int i=1; i<=N-1; i++)
+        profit[i] = (X[i+1]-X[i])*0.5 - P[i]*0.01*c;
+
+    double maxProfit = 0;
+    build(1, N-1, 1);
+
+    while(M--)
+    {
+        int L, R;
+        scanf("%d %d", &L, &R);
+
+        maxProfit += getAns(1, N-1, L, R-1, 1).ans;
+    }
+
+    printf("%.9lf\n", maxProfit);
+
+    return 0;
+}

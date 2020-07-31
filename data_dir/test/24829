@@ -1,0 +1,174 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef vector<int> vi;
+typedef vector<vector<int> > vvi;
+typedef pair<int, int> pii;
+
+#define erep(i, x, n) for (auto i = x; i<=(ll)(n); i++)
+#define rep(i, x, n) for(auto i = x; i<(ll)(n); i++)
+#define all(v) ((v).begin()), ((v).end())
+#define sz(v) ((int)((v).size()))
+#define mod(n, m) (((n%m) + m)%m)
+#define reset(n, m) memset(n, m, sizeof n)
+#define endl '\n'
+
+const int N = 1e6 + 100;
+
+int n, x;
+int tree[4 * N], vec[N], first[N], last[N], accum[N], lis[N], lds[N];
+
+void update(int node, int st, int en, int shemal, int yemeen, int val)
+{
+	if (st > en || st > yemeen || en < shemal)
+		return;
+
+	if (shemal <= st && en <= yemeen)
+	{
+		tree[node] = val;
+		return;
+	}
+
+	int mid = (st + en) / 2;
+
+	update(2 * node, st, mid, shemal, yemeen, val);
+	update(2 * node + 1, mid + 1, en, shemal, yemeen, val);
+
+	tree[node] = max(tree[2 * node], tree[2 * node + 1]);
+}
+
+int query(int node, int st, int en, int shemal, int yemeen)
+{
+	if (st > en || st > yemeen || en < shemal)
+		return 0;
+
+	if (shemal <= st && en <= yemeen)
+		return tree[node];
+
+	int mid = (st + en) / 2;
+
+	int a = query(2 * node, st, mid, shemal, yemeen);
+	int b = query(2 * node + 1, mid + 1, en, shemal, yemeen);
+
+	return max(a, b);
+}
+
+int get(int l, int r)
+{
+	return accum[r] - accum[l - 1];
+}
+
+void getLIS()
+{
+	for (int i = n - 1; i >= 0; i--)
+	{
+		int ret = query(1, 0, N - 1, vec[i], x);
+		lis[i] = 1 + ret;
+		update(1, 0, N - 1, vec[i], vec[i], 1 + ret);
+		first[vec[i]] = i;
+		accum[vec[i]]++;
+	}
+}
+
+void getAcc()
+{
+	erep(i, 1, x)
+		accum[i] += accum[i - 1];
+}
+
+void clear()
+{
+	reset(tree, 0);
+}
+
+void getLDS()
+{
+	rep(i, 0, n)
+	{
+		int ret = query(1, 0, N - 1, 0, vec[i]);
+		lds[i] = 1 + ret;
+		update(1, 0, N - 1, vec[i], vec[i], 1 + ret);
+		last[vec[i]] = i;
+	}
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	cin >> n >> x;
+
+	rep(i, 0, n)
+		cin >> vec[i];
+
+	reset(first, -1);
+	reset(last, -1);
+
+	getLIS();
+
+	getAcc();
+
+	clear();
+
+	getLDS();
+
+	erep(i, 1, x)
+		if (last[i] == -1)
+			last[i] = last[i-1];
+
+	for(int i = x; i >= 1; i--)
+		if (first[i] == -1)
+			first[i] = first[i+1];
+
+	ll res = 0;
+//	cout << "-------------------------------------------\n";
+//	rep(i, 0, n)
+//		cout << lis[i] << " ";
+//	cout << endl;
+//	rep(i, 0, n)
+//		cout << lds[i] << " ";
+//	cout << endl << endl;
+
+	erep(i, 1, x)
+	{
+		int st = i, en = x, mid, ret = -1;
+
+		while (st <= en)
+		{
+			mid = (st + en) / 2;
+
+			int cnt = get(i, mid);
+
+			int a = first[mid + 1];
+			int b = last[i - 1];
+
+			if (a != -1)
+				cnt += lis[a];
+
+			if (b != -1)
+				cnt += lds[b];
+
+			if (cnt == n)
+			{
+				if (a != -1 && b != -1 && (a < b))
+					st = mid + 1;
+				else
+					en = mid - 1, ret = mid;
+			}
+			else
+				st = mid + 1;
+		}
+		if (ret != -1)
+			res += (x - ret + 1);
+	}
+
+	cout << res << endl;
+
+	return 0;
+}
+
+// 11, 12, 13, 23, 33

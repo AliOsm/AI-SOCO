@@ -1,0 +1,163 @@
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+
+#include "bits/stdc++.h"
+using namespace std;
+
+#define pb push_back
+#define F first
+#define S second
+#define f(i,a,b)  for(int i = a; i < b; i++)
+#define endl '\n'
+
+using ll = long long;
+using db = long double;
+using ii = pair<int, int>;
+
+const int N = 5e5 + 5, LG = 19, MOD = 1e9 + 7;
+const int SQ =225;
+const long double EPS = 1e-7;
+int S[N];
+struct SparseTable{
+
+  vector<vector<int>> tb;
+  SparseTable(){}
+  SparseTable(vector<int> v){
+    tb.push_back(vector<int>());
+    for(int i = 0; i < v.size(); i++){
+      tb.back().push_back( v[i] );
+    }
+    for(int i = 1; (1 << i) <= v.size(); i++){
+      tb.push_back(vector<int>());
+      for(int j = 0; j + (1 << i) <= v.size(); j++){
+        tb.back().push_back(max(tb[i-1][j], tb[i-1][j+(1 << (i-1))]));
+      }
+    }
+  }
+  int q(int l, int r){
+    int k = S[r-l+1];
+    return max(tb[k][l], tb[k][r-(1 << k) + 1]);
+  }
+} lftT, rtT;
+vector<int> Zalgo(string s){
+  int n = s.size();
+  vector<int> z(n);
+  int L = 0, R = 0;
+  for (int i = 1; i < n; i++)
+  {
+    if (i > R)
+    {
+        L = R = i;
+        while (R < n && s[R-L] == s[R])
+        {
+            R++;
+        }
+        z[i] = R-L;
+        R--;
+    }
+    else
+    {
+        int k = i-L;
+        if (z[k] < R-i+1)
+        {
+            z[i] = z[k];
+        }
+        else
+        {
+            L = i;
+            while (R < n && s[R-L] == s[R])
+            {
+                R++;
+            }
+            z[i] = R-L;
+            R--;
+        }
+    }
+  }
+  int idx = s.find('#') + 1;
+  vector<int> ret;
+  for(int j = idx; j < s.size(); j++){
+    ret.push_back(z[j]);
+  }
+  return ret;
+}
+int32_t main(){
+#ifdef ONLINE_JUDGE
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+#endif
+
+  int n, m, k;
+  cin >> n >> m >> k;
+
+  string s, t;
+
+  cin >> s >> t;
+
+  auto x = Zalgo(t + "#" + s);
+  reverse(t.begin(),t.end());
+  reverse(s.begin(),s.end());
+  auto y = Zalgo(t + "#" + s);
+  reverse(y.begin(),y.end());
+
+  lftT = SparseTable(x);
+  rtT = SparseTable(y);
+
+  f(i,0,n)
+    if(x[i] >= m){
+        int l = max(0,i + m - 2 * k);
+        cout << "Yes\n";
+        cout << l + 1 << ' ' << l + k + 1 << endl;
+        return 0;
+    }
+
+  for(int i = 2; i < N; i++)S[i] = S[i >> 1] +   1;
+  for(int i = 0; i <= t.size(); i++){
+
+    int k1 = i;
+    int k2 = t.size() - i;
+    if(k1 > k || k2 > k)continue;
+    int startingPrefix = k - k1;
+    int lo = startingPrefix, hi = n - 1;
+    while(lo < hi){
+
+      int md = lo + (hi - lo) / 2;
+
+      if(lftT.q(startingPrefix,md) >= k1)
+        hi = md;
+      else
+        lo = md + 1;
+
+    }
+    if(lftT.q(startingPrefix,lo) < k1)continue;
+
+    int r = lo + k1 - 1;
+    int l = r - k + 1;
+    lo = r + k2, hi = n - 1;
+    while(lo < hi){
+
+      int md = lo + (hi - lo) / 2;
+      if(rtT.q(r+k2,md) >= k2)
+        hi = md;
+      else
+        lo = md + 1;
+
+    }
+
+    if(rtT.q(r+k2,lo) < k2)continue;
+
+    int l2 = lo - k2 + 1;
+    int r2 = l2 + k - 1;
+    if(r2 < n){
+      cout << "Yes\n";
+      cout << l + 1 << ' ' << l2 + 1 << endl;
+      return 0;
+    }
+
+
+  }
+
+  cout << "No\n";
+
+  return 0;
+}

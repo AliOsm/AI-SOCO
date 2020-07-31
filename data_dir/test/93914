@@ -1,0 +1,187 @@
+//ITNOA
+#include<bits/stdc++.h> 
+
+using namespace std;
+ 
+#define scan(x) do{while((x=getchar())<'0'); for(x-='0'; '0'<=(_=getchar()); x=(x<<3)+(x<<1)+_-'0');}while(0)
+char _;
+
+//#define int long long
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+#define X first
+#define Y second
+ 
+typedef long long ll;
+typedef long double ld;
+
+const int maxN = 2000 + 5;
+const int maxM = 1400*1000 + 5;
+const int mod = 1000*1000*1000 + 7;
+const int base = 701;
+const int SQ = 500;
+
+int head[maxN], cap[maxM], nex[maxM], to[maxM], cnt;
+void add(int v, int u, int c)
+{
+    nex[cnt] = head[v]; cap[cnt] = c; to[cnt] = u; head[v] = cnt ++;
+    nex[cnt] = head[u]; cap[cnt] = 0; to[cnt] = v; head[u] = cnt ++;
+}
+int h[maxN], itr[maxN];
+int source, sink;
+int dfs(int v, int flow = mod)
+{
+    if(v == sink) return flow;
+    int ans = 0;
+    while(itr[v] != -1)
+    {
+	int e = itr[v];
+	if(cap[e] == 0 || h[to[e]] != h[v]+1) { itr[v] = nex[itr[v]]; continue; }
+	int tmp = dfs(to[e], min(cap[e], flow));
+	cap[e] -= tmp; cap[e^1] += tmp;
+	ans += tmp; flow -= tmp;
+	if(flow == 0) break;       
+	itr[v] = nex[itr[v]];
+    }
+    return ans;
+}
+
+int que[maxN];
+bool bfs()
+{
+    int st = 0, en = 0;
+    que[en++] = source;
+    memset(h,0,sizeof h);
+    h[source] = 1;
+    while(st < en)
+    {
+	int v = que[st++];
+	for(int e = head[v]; e != -1; e = nex[e])
+	    if(cap[e] && h[to[e]] == 0)
+	    {
+		h[to[e]] = h[v] + 1;
+		que[en++] = to[e];
+	    }
+    }
+    if(h[sink] == 0) return false;
+    return true;
+}
+
+int get_max_flow()
+{
+    int res = 0;
+    while(bfs())
+    {
+	memcpy(itr,head,sizeof head);
+	res += dfs(source);
+    }
+    return res;
+}
+
+
+ll dis[2][500][22][22];
+char a[22][22];
+pair<int,int> q[500];
+int n, m;
+bool is_ok(int x, int y)
+{
+    if(x < 0 || y < 0 || n <= x || m <= y) return false;
+    return true;
+}
+int dx[] = {-1,1,0,0};
+int dy[] = {0,0,-1,1};
+vector< pair< pair<int,int>, int> > v[2];
+
+bool check(ll t)
+{
+    memset(head,-1,sizeof head);
+    cnt = 0;
+    
+    source = 0;
+    sink = 2*n*m + v[0].size() + v[1].size() + 1;
+    
+    rep(i,1,(int)v[0].size()+1)
+	add(source,i,1);
+    rep(i,1,(int)v[1].size()+1)
+	add(v[0].size()+2*n*m+i,sink,1);
+    
+    rep(i,0,(int)v[0].size()) rep(j,0,n) rep(k,0,m)
+	if(dis[0][i][j][k] < 2000 && (1LL) * dis[0][i][j][k] * v[0][i].Y <= t)
+	    add(i+1,v[0].size()+1+j*m+k,1);
+    
+    rep(i,0,(int)v[1].size()) rep(j,0,n) rep(k,0,m)
+	if(dis[1][i][j][k] < 2000 && (1LL) * dis[1][i][j][k] * v[1][i].Y <= t)
+	    add(v[0].size()+n*m+1+j*m+k,v[0].size()+2*n*m+i+1,1);
+
+    rep(i,1,n*m+1)
+	add(v[0].size()+i,v[0].size()+n*m+i,1);
+    
+    int res = get_max_flow();
+    if(res == (int)v[0].size()) return true;
+    return false;
+}
+
+int32_t main()
+{
+    ios::sync_with_stdio(0); cin.tie(0);
+    int male,female;
+    cin >> n >> m >> male >> female;
+    rep(i,0,n) rep(j,0,m)
+	cin >> a[i][j];
+
+    int bx, by, bt; cin >> bx >> by >> bt;
+    bx --; by --;
+    rep(i,0,male)
+    {
+	int x,y,t; cin >> x >> y >> t;
+	x --; y --;
+	v[0].push_back({{x,y},t});
+    }
+    rep(i,0,female)
+    {
+	int x,y,t; cin >> x >> y >> t;
+	x --; y --;
+	v[1].push_back({{x,y},t});
+    }
+    
+    if(v[0].size() > v[1].size())
+	v[1].push_back({{bx,by},bt});
+    else
+	v[0].push_back({{bx,by},bt});
+    
+    if(v[0].size() != v[1].size()) { cout << -1 << endl; return 0; }
+    rep(i,0,2) rep(j,0,(int)v[i].size())
+    {
+	int x = v[i][j].X.X, y = v[i][j].X.Y;
+	int st = 0, en = 0;
+	q[en++] = {x,y};
+	rep(xx,0,n) rep(yy,0,m)
+	    dis[i][j][xx][yy] = 2000;
+	dis[i][j][x][y] = 0;
+	while(st < en)
+	{
+	    int x0 = q[st].X, y0 = q[st].Y; st ++;
+	    rep(k,0,4)
+	    {
+		int vv = x0 + dx[k], u = y0 + dy[k];
+		if(is_ok(vv,u) && a[vv][u] == '.' && dis[i][j][vv][u] == 2000)
+		{
+		    dis[i][j][vv][u] = dis[i][j][x0][y0] + 1;
+		    q[en++] = {vv,u};
+		}
+	    }
+	}
+    } 
+//    cout << check(1) << endl; return 0;
+    
+    ll lo = -1, hi = 1000LL * mod;
+    while(hi - lo > 1)
+    {
+	ll mid = (hi+lo) >> 1;
+	if(check(mid)) hi = mid;
+	else lo = mid;
+    }
+    
+    if(hi == 1000LL * mod) { cout << -1 << endl; return 0; }
+    cout << hi << endl;
+    return 0;
+}

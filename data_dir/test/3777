@@ -1,0 +1,203 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define fr first
+#define sc second
+#define mp make_pair
+#define pii pair<int,int>
+#define pll pair<ll,ll>
+
+using namespace std;
+
+const int N = 2e5+100;
+
+int a[N];
+
+pii mx[N][20];
+pii mn[N][20];
+int n;
+void initSparse(){
+    for(int i=1; i <=n ;i ++){
+        mx[i][0] = {a[i],i};
+        mn[i][0] = {a[i],i};
+    }
+
+    for(int j=1 ;j <20 ;j ++){
+        int sh = 1<<(j-1);
+        for(int i=1 ;i <=n ;i ++){
+            mx[i][j] = max(mx[i][j-1],mx[min(n,i+sh)][j-1]);
+            mn[i][j] = min(mn[i][j-1],mn[min(n,i+sh)][j-1]);
+        }
+    }
+}
+
+pii getMx(int l,int r){
+    if(l > r)swap(l,r);
+    int len = r-l+1;
+    int lg = log2(len)-1;
+    while((1<<(1+lg)) <= len)lg++;
+    return max(mx[l][lg],mx[r-(1<<lg)+1][lg]);
+}
+
+pii getMn(int l,int r){
+    if(l > r)swap(l,r);
+    int len = r-l+1;
+    int lg = log2(len)-1;
+    while((1<<(1+lg)) <= len)lg++;
+    return min(mn[l][lg],mn[r-(1<<lg)+1][lg]);
+}
+
+int le[N],ri[N];
+
+void initRange(int in){
+    int l = 1,h = in;
+    while(l <= h){
+        int m = (l+h)/2;
+        if(getMn(m,in).fr != a[in] && getMx(m,in).fr != a[in]){
+            le[in] = m;
+            l = m+1;
+        }
+        else h = m-1;
+    }
+    l = in,h = n;
+    ri[in]=n+1;
+    while(l <= h){
+        int m = (l+h)/2;
+        if(getMn(m,in).fr != a[in] && getMx(m,in).fr != a[in]){
+            ri[in] = m;
+            h = m-1;
+        }
+        else l = m+1;
+    }
+}
+
+struct query{
+    int l,r,in;
+    bool operator <(const query&oth)const{
+        return l > oth.l;
+    }
+
+};
+
+query qu[N];
+
+vector<int>add[N];
+
+vector<int> res[N];
+
+int nx[N];
+
+int main(){
+    int q;
+    cin>>n>>q;
+
+    for(int i=1; i <=n ;i ++){
+        scanf("%d",&a[i]);
+    }
+    map<int,int>ls;
+    for(int i=n ;i >=1 ;i --){
+        nx[i] = ls[a[i]];
+        ls[a[i]] = i;
+    }
+
+    initSparse();
+
+    for(int i=1; i <=n ;i ++){
+        initRange(i);
+    }
+
+    for(int i=0 ;i <q; i ++){
+        scanf("%d%d",&qu[i].l,&qu[i].r);
+        qu[i].in = i;
+    }
+
+    sort(qu,qu+q);
+    int j=n;
+    set<vector<int> >th;
+    set<vector<int> >fo;
+    set<vector<int> >::iterator it1;
+    set<int>st;
+    set<int>::iterator it;
+
+    for(int i=0; i<q ; i++){
+        query qur = qu[i];
+        while(j >= qur.l){
+
+            if(j+1 <= n && a[j] != a[j+1] && nx[j]){
+                vector<int>te;
+                te.push_back(j);
+                te.push_back(j+1);
+                te.push_back(nx[j]);
+                sort(te.begin(),te.end());
+                reverse(te.begin(),te.end());
+                th.insert(te);
+            }
+
+            add[le[j]].push_back(j);
+
+            for(auto ad : add[j]){
+                vector<int>te;
+                te.push_back(ad);
+                te.push_back(getMx(ad,le[ad]).sc);
+                te.push_back(getMn(ad,le[ad]).sc);
+                sort(te.begin(),te.end());
+                reverse(te.begin(),te.end());
+                th.insert(te);
+            }
+            if(ri[j] <= n){
+                vector<int>te;
+                te.push_back(j);
+                te.push_back(getMx(j,ri[j]).sc);
+                te.push_back(getMn(j,ri[j]).sc);
+                sort(te.begin(),te.end());
+                reverse(te.begin(),te.end());
+                th.insert(te);
+
+                it = st.upper_bound(ri[j]);
+                if(it != st.end()){
+                    te.clear();
+                    te.push_back(j);
+                    te.push_back(*it);
+                    te.push_back(getMn(j,*it).sc);
+                    te.push_back(getMx(j,*it).sc);
+                    sort(te.begin(),te.end());
+                    reverse(te.begin(),te.end());
+                    fo.insert(te);
+                }
+            }
+            for(auto ad : add[j]){
+                st.insert(ad);
+            }
+            j--;
+        }
+
+        vector<int>te;
+        te.push_back(qur.r);
+        te.push_back(1e9);
+        it1 = fo.upper_bound(te);
+        if(it1 != fo.begin()){
+            it1--;
+            res[qur.in] = *it1;
+            continue;
+        }
+
+        it1 = th.upper_bound(te);
+        if(it1 != th.begin()){
+            it1--;
+            res[qur.in] = *it1;
+            continue;
+        }
+
+
+    }
+
+    for(int i=0 ; i<q ; i ++){
+        printf("%d\n",res[i].size());
+        sort(res[i].begin(),res[i].end());
+        for(int j=0 ; j < res[i].size(); j++){
+            printf("%d ",res[i][j]);
+        }
+        printf("\n");
+    }
+
+    return 0;
+}

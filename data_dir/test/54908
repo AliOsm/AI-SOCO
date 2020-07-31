@@ -1,0 +1,106 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+ 
+const int MAXN = 100100;
+const int LOGN = 18;
+ 
+int depth[MAXN];
+int par[LOGN][MAXN];
+int pare[MAXN];
+ 
+typedef pair<int, int> pii;
+ 
+vector<pii> adj[MAXN];
+ 
+void dfs(int a, int p, int pe, int d) {
+        par[0][a] = p;
+        pare[a] = pe;
+        depth[a] = d;
+        for (int i = 0; i < (int)adj[a].size(); i++) {
+                int b = adj[a][i].first;
+                if (b != p) {
+                        dfs(b, a, adj[a][i].second, d + 1);
+                }
+        }
+}
+ 
+int ans[MAXN];
+int aug[MAXN];
+ 
+int dfs2(int a, int p) {
+        int sum = aug[a];
+        for (int i = 0; i < (int)adj[a].size(); i++) {
+                int b = adj[a][i].first;
+                if (b != p) {
+                        sum += dfs2(b, a);
+                }
+        }
+        if (pare[a] != -1) ans[pare[a]] = sum;
+        return sum;
+}
+ 
+int goup(int a, int k) {
+        for (int i = 0; i < LOGN; i++) {
+                if (k % 2) {
+                        a = par[i][a];
+                }
+                k /= 2;
+        }
+        return a;
+}
+ 
+void addseg(int a, int b) {
+        aug[a]++;
+        aug[b]++;
+        if (depth[a] > depth[b]) {
+                swap(a, b);
+        }
+        int da = depth[a], db = depth[b];
+        b = goup(b, db - da);
+        if (b != a) {
+                for (int i = LOGN - 1; i >= 0; i--) {
+                        if (par[i][b] != par[i][a]) {
+                                b = par[i][b];
+                                a = par[i][a];
+                        }
+                }
+                a = par[0][a];
+        }
+        aug[a] -= 2;
+}
+ 
+int main() {
+        int n;
+        cin >> n;
+        for (int i = 0; i < n - 1; i++) {
+                int a, b;
+                cin >> a >> b;
+                a--; b--;
+                adj[a].push_back(pii(b, i));
+                adj[b].push_back(pii(a, i));
+        }
+        dfs(0, 0, -1, 0);
+        for (int i = 1; i < 17; i++) {
+                for (int j = 0; j < n; j++) {
+                        par[i][j] = par[i - 1][par[i - 1][j]];
+                }
+        }
+        
+        int k;
+        cin >> k;
+        for (int i = 0; i < k; i++) {
+                int a, b;
+                cin >> a >> b;
+                a--; b--;
+                addseg(a, b);
+        }
+        
+        dfs2(0, 0);
+        for (int i = 0; i < n - 1; i++) {
+                if (i) cout << ' ';
+                cout << ans[i];
+        }
+        cout << '\n';
+}

@@ -1,0 +1,87 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+#include <cassert>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+#define dbg(x) cout <<#x<<" = "<<x<<" ;  "
+#define dbgln(x) cout <<#x<<" = "<<x<<endl
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=2e5+7;
+const double eps=0.00000001;
+LL gcd(LL a, LL b) {return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a, T b) {
+	T ret=1;
+	for (; b; b>>=1ll,a=(LL)a*a%M)
+		if (b&1) ret=(LL)ret*a%M;
+	return ret;
+}
+
+int n,m;
+vector<int> edge[maxn];
+priority_queue<int> Q;
+int ans[maxn];
+int depth,root;
+void dfsroot(int x,int fa,int dep){
+	if (dep>=depth) root=x,depth=dep;
+	for (int v:edge[x]) if (v!=fa) dfsroot(v,x,dep+1); 
+}
+int len[maxn],son[maxn];
+void dfs1(int x,int fa,int dep){
+	len[x]=dep;
+	for (int v:edge[x]) if (v!=fa){
+		dfs1(v,x,dep+1);
+		if (!son[x]||len[v]>len[son[x]])
+			son[x]=v;
+		len[x]=max(len[x],len[v]);
+	}
+}
+void dfs2(int x,int fa,int dep){
+	if (son[x]) dfs2(son[x],x,dep+1);
+	else Q.push(dep+1);
+	for (int v:edge[x]) if (v!=fa&&v!=son[x]){
+		dfs2(v,x,0);
+	}
+}
+int main() {
+	int i;
+	scanf("%d",&n);
+	FOR(i,1,n) Q.push(0);
+	FOR(i,1,n-1){
+		int u,v;
+		scanf("%d%d",&u,&v);
+		edge[u].push_back(v);
+		edge[v].push_back(u);
+	}dfsroot(1,0,0);
+	dfs1(root,0,0);
+	dfs2(root,0,0);
+	FOR(i,2,n) ans[i]=ans[i-1]+Q.top(),Q.pop();
+	ans[1]=1;
+	FOR(i,1,n) printf("%d ",ans[i]);
+	return 0;
+}
+/*
+8 3
+3 3 1 2 2 1 1 3
+0 0 1
+*/

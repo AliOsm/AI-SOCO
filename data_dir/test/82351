@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define si(a) scanf("%d",&a)
+#define f first
+#define s second
+#define mp(a,b) make_pair(a,b)
+#define MAX 100005
+
+map<pair<int,int>,pair<int,int> > dp;
+set<pair<int,int> > consumed_area[MAX];
+
+int intersect(pair<int,int> x,pair<int,int> y)
+{
+    return max(0,min(x.s,y.s)-max(x.f,y.f));
+}
+
+bool is_valid(int id,pair<int,int> &seg)
+{
+    set<pair<int,int> >::iterator it=consumed_area[id].upper_bound(mp(seg.f,2000000000));
+    if(it!=consumed_area[id].end() && intersect(*it,seg))return false;
+    if(it==consumed_area[id].begin())return true;
+    it--;
+    if(intersect(*it,seg))return false;
+    return true;
+}
+
+void consume_it(int id,pair<int,int> &seg)
+{
+    set<pair<int,int> >::iterator it=consumed_area[id].upper_bound(mp(seg.f,2000000000)),tmp;
+    if(it!=consumed_area[id].begin()){
+        it--;
+        if(!intersect(*it,seg))it++;
+    }
+    while(it!=consumed_area[id].end()){
+        pair<int,int> now=*it;
+        if(now.f>=seg.s)break;
+        tmp=it;
+        it++;
+        consumed_area[id].erase(tmp);
+        if(now.f<seg.f)
+            consumed_area[id].insert(mp(now.f,seg.f));
+        if(now.s>seg.s)
+            consumed_area[id].insert(mp(seg.s,now.s));
+    }
+    consumed_area[id].insert(seg);
+}
+
+
+void print_dp(void)
+{
+    for(map<pair<int,int>,pair<int,int> >::iterator it=dp.begin();it!=dp.end();it++)
+        cout<<(it->f).f<<" "<<(it->f).s<<" "<<(it->s).f<<" "<<(it->s).s<<endl;
+}
+
+void do_it(pair<int,int> now,int lvl)
+{
+    int ret=0;
+    map<pair<int,int>,pair<int,int> >::iterator it=dp.lower_bound(mp(now.f,2000000000)),tmp;
+    it--;
+    while(it!=dp.end()){
+        pair<int,int> seg=(it->f);
+        int val=(it->s).f,dirty=(it->s).s;
+
+        if(seg.f>=now.s)break;
+
+        tmp=it;
+        it++;
+        dp.erase(tmp);
+
+        if(is_valid(dirty,now))
+            ret=max(ret,min(val,intersect(now,seg)));
+        consume_it(dirty,now);
+
+        if(seg.f<now.f)
+            dp[mp(seg.f,now.f)]=mp(min(now.f-seg.f,val),dirty);
+        if(seg.s>now.s)
+            dp[mp(now.s,seg.s)]=mp(min(seg.s-now.s,val),dirty);
+    }
+    dp[now]=mp(ret,lvl);
+}
+
+vector<pair<int,pair<int,int> > > all;
+
+int main()
+{
+    //freopen("input.txt","r",stdin);
+    int n,t,i;
+    si(n);si(t);
+    for(i=0;i<n;i++){
+        int h,l,r;
+        si(h);si(l);si(r);
+        all.push_back(mp(h,mp(l,r)));
+    }
+    sort(all.begin(),all.end());
+    dp[mp(-1000000000,1000000000)]=mp(2000000000,n);
+    for(i=all.size()-1;i>=0;i--)do_it(all[i].s,i);
+    int ans=0;
+    for(map<pair<int,int>,pair<int,int> >::iterator it=dp.begin();it!=dp.end();it++)
+        if(consumed_area[(it->s).s].size()==0)ans=max(ans,(it->s).f);
+    cout<<ans<<endl;
+    return 0;
+}

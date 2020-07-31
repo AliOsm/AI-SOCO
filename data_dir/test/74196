@@ -1,0 +1,105 @@
+#pragma GCC optimize("Ofast,no-stack-protector")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+#include<bits/stdc++.h>
+
+using namespace std;
+
+class Hash {
+public:
+    int mod, p;
+
+    int madd(int a, int b) {
+        a += b;
+        if (a >= mod) {
+            a -= mod;
+        }
+        return a;
+    }
+
+    int msub(int a, int b) {
+        a -= b;
+        if (a < 0) {
+            a += mod;
+        }
+        return a;
+    }
+
+    int mmul(int a, int b) {
+        return (long long)a * b % mod;
+    }
+
+    vector<char> s;
+    vector<int> H, P;
+
+    void init() {
+        H = {0};
+        P = {1};
+    }
+
+    void add_char(char c) {
+        s.push_back(c);
+        H.push_back(madd(mmul(H.back(), p), s.back() - 'a' + 1));
+        P.push_back(mmul(P.back(), p));
+    }
+
+    void delete_char() {
+        s.pop_back();
+        H.pop_back();
+        P.pop_back();
+    }
+
+    int get_hash(int l, int r) {
+        return msub(H[r + 1], mmul(H[l], P[r + 1 - l]));
+    }
+
+    Hash(int _mod, int _p) {
+        mod = _mod;
+        p = _p;
+        init();
+    }
+};
+
+const int N = 5050;
+const int mod0 = 1e9 + 7, mod1 = 1e9 + 9;
+const int P0 = 239, P1 = 331;
+
+bool contains[N][N];
+long long dp[N];
+
+int main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    int n, a, b;
+    string s;
+    cin >> n >> a >> b >> s;
+    Hash f(mod0, P0), g(mod1, P1);
+    for (int i = 0; i < n; i++) {
+        f.add_char(s[i]);
+        g.add_char(s[i]);
+    }
+    for (int len = 1; len <= n; len++) {
+        set<pair<int, int>> hashes;
+        for (int pos = len - 1; pos < n; pos++) {
+            if (hashes.find({f.get_hash(pos - len + 1, pos), g.get_hash(pos - len + 1, pos)}) == hashes.end()) {
+                contains[pos][len] = false;
+            } else {
+                contains[pos][len] = true;
+            }
+            if (pos + 1 - len >= len - 1) {
+                hashes.insert({f.get_hash(pos - len * 2 + 2, pos + 1 - len), g.get_hash(pos - len * 2 + 2, pos + 1 - len)});
+            }
+        }
+    }
+    dp[0] = a;
+    for (int i = 1; i < n; i++) {
+        dp[i] = dp[i - 1] + a;
+        for (int j = 1; j <= i + 1; j++) {
+            if (contains[i][j]) {
+                dp[i] = min(dp[i], dp[i - j] + b);
+            }
+        }
+    }
+    cout << dp[n - 1];
+    return 0;
+}

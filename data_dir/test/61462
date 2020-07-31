@@ -1,0 +1,69 @@
+# include <bits/stdc++.h>
+# define LL long long
+using namespace std;
+const int N = 2e5 + 10;
+int tree[26][N << 2], lazy[26][N << 2];
+void push(int l, int r, int p, int i){
+	if(lazy[i][p] == -1)return;
+	if(l != r){
+		lazy[i][p << 1] = lazy[i][p];
+		lazy[i][p << 1 | 1] = lazy[i][p];
+	}
+	tree[i][p] = lazy[i][p] * (r - l + 1);
+	lazy[i][p] = -1;
+}
+void upd(int l, int r, int L, int R, int v, int p, int i){
+	push(l, r, p, i);
+	if(l > R || L > r)return;
+	if(L <= l && R >= r){
+		lazy[i][p] = v;
+		push(l, r, p, i);
+		return;
+	}
+	int m = (l + r) >> 1;
+	upd(l, m, L, R, v, p << 1, i);
+	upd(m + 1, r, L, R, v, p << 1 | 1, i);
+	tree[i][p] = tree[i][p << 1] + tree[i][p << 1 | 1];
+}
+int count(int l, int r, int L, int R, int p, int i){
+	push(l, r, p, i);
+	if(l > R || L > r)return 0;
+	if(L <= l && R >= r)return tree[i][p];
+	int m = (l + r) >> 1;
+	return count(l, m, L, R, p << 1, i) + count(m + 1, r, L, R, p << 1 | 1, i);
+}
+int main(){
+	ios::sync_with_stdio(0);
+	cin.tie(0); cout.tie(0);
+	int n, q;
+	string s;
+	cin >> n >> q >> s;
+	for(int i = 1; i <= n; i++){
+		upd(1, n, i, i, 1, 1, s[i - 1] - 'a');
+	}
+	while(q --){
+		int l, r, ty, start, end, diff;
+		cin >> l >> r >> ty;
+		if(ty == 1){
+			start = 0, end = 26, diff = 1;
+		}else{
+			start = 25, end = -1, diff = -1;
+		}
+		int ll = l, rr = l - 1;
+		for(int i = start; i != end; i += diff){
+			ll = rr + 1;
+			rr = ll + count(1, n, l, r, 1, i) - 1;
+			upd(1, n, ll, rr, 1, 1, i);
+			upd(1, n, l, ll - 1, 0, 1, i);
+			upd(1, n, rr + 1, r, 0, 1, i);
+		}
+	}
+	for(int i = 1; i <= n; i++){
+		for(int j = 0; j < 26; j++){
+			if(count(1, n, i, i, 1, j) == 1){
+				cout << char(j + 'a');
+				break;
+			}
+		}
+	}
+}

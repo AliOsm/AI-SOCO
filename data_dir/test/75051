@@ -1,0 +1,135 @@
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <stack>
+#include <vector>
+#include <algorithm>
+#include <map>
+#include <queue>
+#include <vector>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(n);i++)
+#define FOR(i,a,b) for(int i=(a);i<(b);i++)
+typedef long long ll;
+
+int nextint()
+{
+	int t;
+	scanf("%d",&t);
+	return t;
+}
+
+const int INF=2000000000;
+
+struct info
+{
+	int id;
+	int c,f,l;
+	info(int id=0,int c=0,int f=0,int l=0):id(id),c(c),f(f),l(l) {;}
+	bool operator<(const info& b) const
+	{
+		return f<b.f;
+	}
+};
+
+struct cmp_by_c
+{
+	bool operator()(const info&a, const info& b) const
+	{
+		return a.c<b.c;
+	}
+};
+
+struct cmp_by_f
+{
+	bool operator()(const info&a, const info& b) const
+	{
+		if((a.c==0) ^ (b.c==0)) return a.c<b.c;
+		return a.f>b.f;
+	}
+};
+
+
+vector<int> used;
+priority_queue<info,vector<info>,cmp_by_c > by_c;
+priority_queue<info,vector<info>,cmp_by_f > by_f;
+vector<ll> zerocap;
+
+void getzeroval(int sum,ll freetake,ll &zerotake, ll &zerofuel)
+{
+	int l=0;
+	int r=int(zerocap.size())-1;
+	while(l<r)
+	{
+		int c=(l+r+1)/2;
+		if(zerocap[c]>sum)
+			r=c-1;
+		else
+			l=c;
+	}
+	zerotake = min(l+freetake,ll(zerocap.size())-1);
+	if(zerotake<0) zerotake=0;
+	int c=max(zerotake - freetake,0LL);
+	zerofuel = zerocap[c];
+}
+
+int main()
+{
+	int n=nextint();
+	int d=nextint();
+	int S=nextint();
+	zerocap.push_back(0);
+	REP(i,n)
+	{
+		int c=nextint();
+		int f=nextint();
+		int l=nextint();
+		if(c!=0||l<d)
+		{
+			by_f.push(info(i,c,f,l));
+			by_c.push(info(i,c,f,l));
+		}
+		else
+		{
+			zerocap.push_back(f);
+		}
+	}
+	sort(zerocap.begin(),zerocap.end());
+	FOR(i,1,zerocap.size())
+		zerocap[i]+=zerocap[i-1];
+	ll free_place=0;
+	ll curtake=0,curfuel=0;
+	ll restake=0, resfuel=0;
+	ll zerotake, zerofuel;
+	used.resize(2*n);
+	getzeroval(S,0,restake,resfuel);
+	while(!by_f.empty())
+	{
+		info cur=by_f.top(); by_f.pop();
+		if(cur.l<d) continue;
+		if(cur.f>S-curfuel) continue;
+		if(used[cur.id]) continue;
+		free_place+=cur.c;
+		used[cur.id]=1;
+		if(cur.id<n)
+			curtake++;
+		curfuel+=cur.f;
+		while(!by_c.empty()&&free_place!=0)
+		{
+			info cc=by_c.top(); by_c.pop();
+			if(used[cc.id]) continue;
+			used[cc.id]=1;
+			free_place+=cc.c;
+			free_place--;
+			curtake++;
+			by_f.push(info(cc.id+n,1,cc.f,cc.l));
+		}
+		getzeroval(S-curfuel,free_place,zerotake,zerofuel);
+		if(restake<curtake+zerotake||(restake==curtake+zerotake&&resfuel>curfuel+zerofuel))
+		{
+			restake=curtake+zerotake;
+			resfuel=curfuel+zerofuel;
+		}
+	}
+	printf("%d %d\n",int(restake),int(resfuel));
+}

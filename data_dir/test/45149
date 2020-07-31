@@ -1,0 +1,115 @@
+#include <bits/stdc++.h>
+
+#define MAX_N 100010
+int Max[MAX_N * 20], lbd[MAX_N * 20], rbd[MAX_N * 20];
+int h[MAX_N], id[MAX_N], n;
+int rt[MAX_N * 20], ls[MAX_N * 20], rs[MAX_N * 20];
+
+bool cmp(int i, int j) { return h[i] > h[j]; }
+
+inline void checkmax(int &x, int val) {if(x < val)	x = val;}
+void up(int l, int r, int o) {
+	int mid = l + r >> 1;
+	checkmax(Max[o], Max[ls[o]]);
+	checkmax(Max[o], Max[rs[o]]);
+
+	lbd[o] = lbd[ls[o]];
+	if(lbd[ls[o]] == mid - l + 1)
+		lbd[o] = mid - l + 1 + lbd[rs[o]];
+
+	rbd[o] = rbd[rs[o]];
+	if(rbd[rs[o]] == r - mid)
+		rbd[o] = rbd[ls[o]] + r - mid;
+
+	checkmax(Max[o], rbd[ls[o]] + lbd[rs[o]]);
+}
+void Build(int l, int r, int L, int last, int &o) {
+	o = ++ n;
+	Max[o] = Max[last];
+	lbd[o] = lbd[last];
+	rbd[o] = rbd[last];
+	if(l == r) {
+		Max[o] = 1;	
+		lbd[o] = rbd[o] = 1;
+	} else {
+		ls[o] = ls[last];
+		rs[o] = rs[last];
+		int mid = l + r >> 1;
+		if(L <= mid) 
+			Build(l, mid, L, ls[last], ls[o]);
+		else
+			Build(mid + 1, r, L, rs[last], rs[o]);
+		up(l, r, o);
+	}
+}
+std::pair<int, int> query(int l, int r, int L, int R, int o, int w) {
+	if(L <= l && r <= R) {
+		if(Max[o] >= w)
+			return std::make_pair(-1, -1);
+		//printf("%d %d:%d->%d\n", l, r, lbd[o], rbd[o]);
+		return std::make_pair(lbd[o], rbd[o]);
+	}
+	int mid = l + r >> 1;
+	if(L > mid)
+		return query(mid + 1, r, L, R, rs[o], w);
+	else if(R <= mid)
+		return query(l, mid, L, R, ls[o], w);
+	else {
+		std::pair<int, int> lret = query(l, mid, L, R, ls[o], w);
+		std::pair<int, int> rret = query(mid+1, r, L, R, rs[o], w);
+		if(lret.first == -1 || rret.first == -1)
+			return std::make_pair(-1, -1);
+		if(lret.second + rret.first >= w)
+			return std::make_pair(-1, -1);
+		int Lbd = lret.first, Rbd = rret.second;
+		if(Lbd == mid - l + 1) {
+			if(lret.second != mid - l + 1)
+				while(1);
+			Lbd += rret.first;
+		}
+		if(Rbd == r - mid) {
+			if(rret.first != r - mid)
+				while(1);
+		//	printf("%d->%d\n", r - mid, rret.first);
+			Rbd += lret.second;
+		}
+		return std::make_pair(Lbd, Rbd);
+	}
+}
+int N;
+int find(int l, int r, int w) {
+	int L = 1, R = N + 1;
+	while(L < R) {
+		int mid = L + R >> 1;
+		std::pair<int, int> res = query(1, N, l, r, rt[mid], w);
+		if(res.first == -1)
+			R = mid;
+		else
+			L = mid + 1;
+	}
+	return h[id[R]];
+}
+int main() {
+	int Q;
+	scanf("%d", &N);
+	for(int i = 1; i <= N; i ++) {
+		scanf("%d", h + i);
+		id[i] = i;
+	}
+	std::sort(id + 1, id + 1 + N, cmp);
+	for(int i = 1; i <= N; i ++) {
+		Build(1, N, id[i], rt[i - 1], rt[i]);
+	}
+//	printf("%d..\n", Max[rs[rt[N]]]);
+	scanf("%d", &Q);
+	int l, r, w;
+	while(Q --) {
+		scanf("%d%d%d", &l, &r, &w);
+		printf("%d\n", find(l, r, w));
+	}
+	return 0;
+}
+	
+
+
+

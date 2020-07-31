@@ -1,0 +1,128 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int int64_t
+const int INF = 1LL << 60;
+const int N = 1000000 + 5;
+
+template< typename T >
+class BIT{
+	private:
+		int n;
+		vector< T > arr;
+		inline int lowbit( int x ) { return x & ( - x ); }
+		T query( int x ) {
+			T ret = 0;
+			while ( x ) {
+				ret += arr[ x ];
+				x -= lowbit( x );
+			}
+			return ret;
+		}
+	public:
+		void init( int n_ ) {
+			n = n_; arr.clear();
+			arr.resize( n );
+		}
+		void modify( int p, T x ) {
+			while ( p < n ) {
+				arr[ p ] += x;
+				p += lowbit( p );
+			}
+		}
+		T query( int l, int r ) {
+			// 1-base (l, r]
+			return query( r ) - query( l );
+		}
+};
+BIT< int > bit1;
+BIT< int64_t > bit2;
+
+int arr[ N ], stk[ N ], qll[ N ], qrr[ N ];
+pair< int, int > L[ N ], R[ N ], ql[ N ], qr[ N ];
+int64_t ans[ N ];
+
+signed main() {
+	ios_base::sync_with_stdio( false );
+	cin.tie( nullptr );
+	int n, q; cin >> n >> q;
+	for ( int i = 1 ; i <= n ; ++ i )
+		cin >> arr[ i ];
+	for ( int i = 1 ; i <= q ; ++ i )
+		cin >> qll[ i ];
+	for ( int i = 1 ; i <= q ; ++ i )
+		cin >> qrr[ i ];
+	arr[ 0 ] = INF; arr[ n + 1 ] = INF;
+	{
+		int ptr = 0;
+		stk[ ptr ++ ] = 0;
+		for ( int i = 1 ; i <= n ; ++ i ) {
+			while ( arr[ stk[ ptr - 1 ] ] < arr[ i ] )
+				ptr--;
+			L[ i ].first = stk[ ptr - 1 ];
+			stk[ ptr ++ ] = i;
+		}
+	}
+	{
+		int ptr = 0;
+		stk[ ptr ++ ] = n + 1;
+		for ( int i = n ; i >= 1 ; -- i ) {
+			while ( arr[ stk[ ptr - 1 ] ] < arr[ i ] )
+				ptr--;
+			R[ i ].first = stk[ ptr - 1 ];
+			stk[ ptr ++ ] = i;
+		}
+	}
+	for ( int i = 1 ; i <= n ; ++ i )
+		L[ i ].second = R[ i ].second = i;
+	for ( int i = 1 ; i <= q ; ++ i )
+		ql[ i ].first = qll[ i ];
+	for ( int i = 1 ; i <= q ; ++ i )
+		qr[ i ].first = qrr[ i ];
+	for ( int i = 1 ; i <= q ; ++ i )
+		ql[ i ].second = qr[ i ].second = i;
+
+	sort( L + 1, L + 1 + n );
+	sort( R + 1, R + 1 + n );
+	reverse( L + 1, L + 1 + n );
+	sort( ql + 1, ql + 1 + q );
+	sort( qr + 1, qr + 1 + q );
+	reverse( ql + 1, ql + 1 + q );
+
+
+	{
+		int ptr = 1; bit1.init( n + 1 ); bit2.init( n + 1 );
+		for ( int i = 1 ; i <= q ; ++ i ) {
+			while ( ptr <= n and R[ ptr ].first <= qr[ i ].first ) {
+				bit1.modify( R[ ptr ].second, R[ ptr ].first );
+				bit2.modify( R[ ptr ++ ].second, 1 );
+			}
+			int ll = qll[ qr[ i ].second ];
+			int rr = qrr[ qr[ i ].second ];
+			ans[ qr[ i ].second ] += bit1.query( ll - 1, rr );
+			ans[ qr[ i ].second ] += ( rr + 1 ) * ( rr - ll + 1 - bit2.query( ll - 1, rr ) );
+		}
+	}
+	{
+		int ptr = 1; bit1.init( n + 1 ); bit2.init( n + 1 );
+		for ( int i = 1 ; i <= q ; ++ i ) {
+			while ( ptr <= n and L[ ptr ].first >= ql[ i ].first ) {
+				bit1.modify( L[ ptr ].second, L[ ptr ].first );
+				bit2.modify( L[ ptr ++ ].second, 1 );
+			}
+			int ll = qll[ ql[ i ].second ];
+			int rr = qrr[ ql[ i ].second ];
+			ans[ ql[ i ].second ] -= bit1.query( ll - 1, rr );
+			ans[ ql[ i ].second ] -= ( ll - 1 ) * ( rr - ll + 1 - bit2.query( ll - 1, rr ) );
+		}
+	}
+	for ( int i = 1 ; i <= q ; ++ i )
+		cout << ans[ i ] - ( qrr[ i ] - qll[ i ] + 1 ) << " \n"[ i == q ];
+	return 0;
+}
+/*
+3 1 4 2
+3: (0, 3) 
+1: (1, 3)
+4: (1, 4)
+
+*/

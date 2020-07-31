@@ -1,0 +1,125 @@
+// Kono Giorno Giovanna wa yume ga aru
+
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/rope>
+using namespace __gnu_pbds;
+using namespace __gnu_cxx;
+
+template<class T> using Tree = tree<T, null_type, less<T>, rb_tree_tag,tree_order_statistics_node_update>;
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+const long long mod = 1000000007;
+//const long long mod = 998244353;
+mt19937 rng((int) chrono::steady_clock::now().time_since_epoch().count());
+
+// watch this
+using ll = long long;
+//typedef long long LL;
+//using uint = unsigned int;
+#define ll long long
+#undef ll
+
+const int mxN = 5010;
+vector<int> g[mxN];
+int dist[mxN], C[mxN];
+long long k[mxN], p[mxN];
+int id[mxN];
+
+int N;
+
+void bfs(int s) {
+	fill(dist, dist + N + 1, INT_MAX);
+	dist[s] = 0;
+	queue<int> q { { s } };
+	while (!q.empty()) {
+		auto u = q.front();
+		q.pop();
+		for (auto v : g[u])
+			if (dist[v] > dist[u] + 1) {
+				dist[v] = dist[u] + 1;
+				q.push(v);
+			}
+	}
+}
+
+int main(int argc, char** argv) {
+#ifdef ONLINE_JUDGE
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+#endif
+
+	int M, Q, u, v, w;
+	long long r, a;
+	cin >> N >> M;
+	for (int i = 0; i < M; i++) {
+		cin >> u >> v;
+		g[u].push_back(v);
+		g[v].push_back(u);
+	}
+	cin >> w;
+	for (int i = 0; i < w; i++) {
+		cin >> C[i] >> k[i] >> p[i];
+		id[i] = i;
+	}
+	cin >> Q;
+	for (int i = 0; i < Q; i++) {
+		cin >> u >> r >> a;
+		bfs(u);
+		sort(id, id + w, [&](int f1,int f2) {
+			if(dist[C[f1]] == dist[C[f2]]) return p[f1] < p[f2];
+			return dist[C[f1]] < dist[C[f2]];
+		});
+		long long curAt = 0, curTot = 0, curPr = 0;
+		multiset<pair<long long, long long> > m3aya;
+		for (; curAt < w && (curTot < r || curPr > a); curAt++) {
+			if (dist[C[id[curAt]]] == INT_MAX)
+				break;
+			long long mx = k[id[curAt]];
+			long long nwPr = p[id[curAt]];
+			long long cnt = 0;
+			while (mx > 0 && curTot + mx > r && !m3aya.empty()
+					&& m3aya.rbegin()->first > nwPr) {
+				auto par = *m3aya.rbegin();
+				m3aya.erase(prev(m3aya.end()));
+				long long d = min(mx, min(curTot + mx - r, par.second));
+				par.second -= d;
+				mx -= d;
+				cnt += d;
+				curPr -= (par.first - nwPr) * d;
+				if (par.second)
+					m3aya.insert(par);
+			}
+			{
+				long long d = min(mx, r - curTot);
+				curPr += d * nwPr;
+				curTot += d;
+				cnt += d;
+			}
+			if (cnt)
+				m3aya.insert( { nwPr, cnt });
+		}
+		if (curTot < r || curPr > a)
+			cout << "-1\n";
+		else
+			cout << dist[C[id[curAt - 1]]] << '\n';
+	}
+	return 0;
+}

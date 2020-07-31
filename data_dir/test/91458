@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+struct edge {
+	int v, u;
+	int cost, flow, cap;
+	list<edge>::iterator back;
+};
+
+struct graph {
+	int V;
+
+	vector<list<edge> > g;
+
+	graph(int n = 0) {
+		g.resize(n);
+		V = n;
+	}
+
+	void add_edge(int v, int u, int cap, int cost) {
+		g[v].push_back({v, u,  cost, 0, cap, g[u].end()});
+		g[u].push_back({u, v, -cost, 0,   0, g[v].end()});
+
+		g[v].back().back = (--g[u].end());
+		g[u].back().back = (--g[v].end());
+	}
+
+	int get_vertex() {
+		V++;
+		g.resize(V);
+		return V - 1;
+	}
+};
+
+void apply_residual(graph &g, int bg, int ed, int &delta_cost, int &delta_flow) {
+	vector<int> cost(g.V, int(1e9));
+	vector<list<edge> :: iterator> pred(g.V);
+
+	cost[bg] = 0;
+	for (int step = 0; step <= g.V; step++) {
+		for (int v = 0; v < g.V; v++) {
+			if (cost[v] == (int)(1e9))
+				continue;
+			for (list<edge>::iterator i = g.g[v].begin(); i != g.g[v].end(); ++i) {
+				edge e = *i;
+				if (e.cap - e.flow > 0 && cost[e.u] > cost[e.v] + e.cost) {
+					cost[e.u] = cost[e.v] + e.cost;
+					pred[e.u] = i -> back;
+				}
+			}
+		}
+	}
+
+	if (cost[ed] == (int)(1e9)) {
+		delta_flow = delta_cost = 0;
+		return;
+	}
+
+	vector<list<edge> :: iterator> path;
+
+	int v = ed;
+	while (v != bg) {
+		path.push_back(pred[v]);
+		v = pred[v] -> u;
+	}
+
+	delta_flow = 1;
+	delta_cost = 0;
+
+	for (auto &i : path) {
+		i -> back -> flow++;
+		i -> back -> back -> flow--;
+
+		delta_cost += i -> back -> back -> cost;
+	}
+	return;
+}
+
+int max_flow_max_cost(graph &g, int bg, int ed) {
+	int flow = 0;
+	int cost = 0;
+	while (true) {
+		int delta_flow = 0;
+		int delta_cost = 0;
+		apply_residual(g, bg, ed, delta_cost, delta_flow);
+
+		flow += delta_flow;
+		cost += delta_cost;
+//		cout << delta_cost << " " << delta_flow << "\n";
+		if (delta_cost == 0 && delta_flow == 0)
+			break;
+	}
+//	cout << flow << "\n";
+	return cost;
+}
+
+int main() {
+	ios::sync_with_stdio(false);
+//	freopen("input.txt", "r", stdin);
+
+	int n;
+	cin >> n;
+
+	string str;
+	cin >> str;
+
+    vector<int> cnt('z' - 'a' + 1);
+	for(char c : str) {
+        cnt[c - 'a']++;
+	}
+
+	vector<int> d(n);
+	for (auto &i : d)
+		cin >> i;
+
+	graph g;
+
+	int bg = g.get_vertex(), ed = g.get_vertex();
+	vector<int> vert[2];
+	vert[0].resize('z' - 'a' + 1);
+	vert[1].resize(n / 2);
+
+	for (int i = 0; i <= 'z' - 'a'; i++) {
+		vert[0][i] = g.get_vertex();
+		if(cnt[i])
+            g.add_edge(bg, vert[0][i], cnt[i], 0);
+	}
+
+	for (auto &i : vert[1]) {
+		i = g.get_vertex();
+        g.add_edge(i, ed, 2, 0);
+	}
+
+
+	for (int i = 0; i <= 'z' - 'a'; i++) {
+		for (int j = 0; j < n / 2; j++) {
+			int cost = 0;
+            if ((i + 'a') == str[j])
+                cost = max(d[j], cost);
+            if ((i + 'a') == str[n - j - 1])
+                cost = max(d[n - j - 1], cost);
+			g.add_edge(vert[0][i], vert[1][j], 1, -cost);
+		}
+	}
+
+	int answer = max_flow_max_cost(g, bg, ed);
+
+	cout << answer << "\n";
+
+	return 0;
+}

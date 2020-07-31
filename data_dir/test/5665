@@ -1,0 +1,136 @@
+/* practice with Dukkha */
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N	2000
+#define M	2000
+#define K	2000
+#define L	2000
+#define Z	10
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+int ii[L], jj[L], ww[L];
+
+struct V {
+	struct V *l, *r;
+	int imin, imax, jmin, jmax;
+	long long **ww, w;
+} *vv[K];
+
+struct V *new_V(int imin, int imax, int jmin, int jmax, long long w) {
+	struct V *v = (struct V *) calloc(1, sizeof *v);
+
+	v->imin = imin, v->imax = imax, v->jmin = jmin, v->jmax = jmax, v->w = w;
+	return v++;
+}
+
+long long **alloc(int n, int m) {
+	long long **aa = (long long **) malloc(n * sizeof *aa);
+	int i;
+
+	for (i = 0; i < n; i++)
+		aa[i] = (long long *) calloc(m, sizeof *aa[i]);
+	return aa;
+}
+
+struct V *process(int l, int r) {
+	struct V *v;
+	int n, m, imin, imax, jmin, jmax, h;
+	long long w;
+
+	imin = jmin = N, imax = jmax = -1, w = 0;
+	for (h = l; h < r; h++) {
+		imin = min(imin, ii[h]);
+		imax = max(imax, ii[h]);
+		jmin = min(jmin, jj[h]);
+		jmax = max(jmax, jj[h]);
+		w += ww[h];
+	}
+	n = imax - imin + 1;
+	m = jmax - jmin + 1;
+	v = new_V(imin, imax, jmin, jmax, w);
+	if (n * m <= (r - l) * Z) {
+		int i, j;
+
+		v->ww = alloc(n, m);
+		for (h = l; h < r; h++) {
+			i = ii[h] - imin;
+			j = jj[h] - jmin;
+			v->ww[i][j] = ww[h];
+		}
+		for (i = 1; i < n; i++)
+			for (j = 0; j < m; j++)
+				v->ww[i][j] += v->ww[i - 1][j];
+		for (i = 0; i < n; i++)
+			for (j = 1; j < m; j++)
+				v->ww[i][j] += v->ww[i][j - 1];
+	} else {
+		m = (l + r) / 2;
+		v->l = process(l, m);
+		v->r = process(m, r);
+	}
+	return v;
+}
+
+int imin, imax, jmin, jmax;
+
+long long query(struct V *v) {
+	int i1, i2, j1, j2;
+	long long ans;
+
+	if (imin <= v->imin && v->imax <= imax && jmin <= v->jmin && v->jmax <= jmax)
+		return v->w;
+	if (v->imax < imin || imax < v->imin || v->jmax < jmin || jmax < v->jmin)
+		return 0;
+	if (!v->ww)
+		return query(v->l) + query(v->r);
+	i1 = max(imin, v->imin) - v->imin;
+	i2 = min(imax, v->imax) - v->imin;
+	j1 = max(jmin, v->jmin) - v->jmin;
+	j2 = min(jmax, v->jmax) - v->jmin;
+	ans = v->ww[i2][j2];
+	if (i1 > 0)
+		ans -= v->ww[i1 - 1][j2];
+	if (j1 > 0)
+		ans -= v->ww[i2][j1 - 1];
+	if (i1 > 0 && j1 > 0)
+		ans += v->ww[i1 - 1][j1 - 1];
+	return ans;
+}
+
+int main() {
+	static char off[K];
+	int n, m, k, q, h;
+
+	scanf("%d%d%d", &n, &m, &k);
+	for (h = 0; h < k; h++) {
+		int l, h_;
+
+		scanf("%d", &l);
+		for (h_ = 0; h_ < l; h_++)
+			scanf("%d%d%d", &ii[h_], &jj[h_], &ww[h_]), ii[h_]--, jj[h_]--;
+		vv[h] = process(0, l);
+	}
+	scanf("%d", &q);
+	while (q--) {
+		static char e[8];
+
+		scanf("%s", e);
+		if (e[0] == 'S') {
+			scanf("%d", &h), h--;
+			off[h] ^= 1;
+		} else {
+			long long ans;
+
+			scanf("%d%d%d%d", &imin, &jmin, &imax, &jmax), imin--, jmin--, imax--, jmax--;
+			ans = 0;
+			for (h = 0; h < k; h++)
+				if (!off[h])
+					ans += query(vv[h]);
+			printf("%lld\n", ans);
+		}
+	}
+	return 0;
+}

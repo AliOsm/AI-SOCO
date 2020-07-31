@@ -1,0 +1,215 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define x first
+#define y second
+#define mp make_pair
+#define pb push_back
+#define sqr(a) ((a) * (a))
+#define sz(a) int(a.size())
+#define all(a) a.begin(), a.end()
+#define forn(i, n) for(int i = 0; i < int(n); i++) 
+#define fore(i, l, r) for(int i = int(l); i < int(r); i++)
+
+typedef long long li;
+typedef long double ld;
+typedef pair<int, int> pt;
+
+template <class A, class B> ostream& operator << (ostream& out, const pair<A, B> &a) {
+	return out << "(" << a.x << ", " << a.y << ")";
+}
+
+template <class A> ostream& operator << (ostream& out, const vector<A> &v) {
+	out << "[";
+	forn(i, sz(v)) {
+		if(i) out << ", ";
+		out << v[i];
+	}
+	return out << "]";
+}
+
+mt19937 rnd(time(NULL));
+
+const int INF = int(1e9);
+const li INF64 = li(1e18);
+const int MOD = INF + 7;
+const ld EPS = 1e-9;
+const ld PI = acos(-1.0);
+
+const int N = 1000 * 1000 + 13;
+const int LOGN = 21;
+
+int n, m;
+int a[N], b[N];
+
+bool read () {
+	if (scanf("%d%d", &n, &m) != 2)
+		return false;
+	forn(i, n){
+		scanf("%d", &a[i]);
+		--a[i];
+	}
+	forn(i, m){
+		scanf("%d", &b[i]);
+		--b[i];
+	}
+	return true;
+}
+
+int pos[N];
+bool del[N];
+
+int p[N], rk[N];
+
+int getP(int a){
+	return (a == p[a] ? a : p[a] = getP(p[a]));
+}
+
+void unite(int a, int b){
+	a = getP(a), b = getP(b);
+	if (a == b)
+		return;
+	//cerr << a << " " << b << endl;
+	if (rk[b] > rk[a])
+		swap(a, b);
+	rk[a] += rk[b];
+	p[b] = a;
+}
+
+int st[N][LOGN];
+int pw[N];
+
+void init(){
+	forn(i, n)
+		st[i][0] = a[i];
+	
+	fore(j, 1, LOGN) forn(i, n){
+		st[i][j] = st[i][j - 1];
+		if (i + (1 << (j - 1)) < n)
+			st[i][j] = max(st[i][j], st[i + (1 << (j - 1))][j - 1]);
+	}
+	
+	pw[0] = pw[1] = 0;
+	fore(i, 2, N)
+		pw[i] = pw[i / 2] + 1;
+}
+
+int get(int l, int r){
+	if (l >= r) return -INF;
+	int len = pw[r - l];
+	return max(st[l][len], st[r - (1 << len)][len]);
+}
+
+int nxt[N], prv[N];
+
+int getNxt(int x){
+	int l = x, r = nxt[x];
+	while (l < r - 1){
+		int mid = (l + r) / 2;
+		if (get(x + 1, mid + 1) > a[x])
+			r = mid;
+		else
+			l = mid;
+	}
+	fore(i, l, r + 1) if (get(x + 1, i + 1) > a[x])
+		return i;
+	return -1;
+}
+
+int getPrv(int x){
+	int l = prv[x], r = x;
+	while (l < r - 1){
+		int mid = (l + r) / 2;
+		if (get(mid, x) > a[x])
+			l = mid;
+		else
+			r = mid;
+	}
+	for (int i = r; i >= l; --i) 
+		if (get(i, x) > a[x])
+			return i;
+	return -1;
+}
+
+void solve() {
+	init();
+	
+	forn(i, n) pos[a[i]] = i;
+	forn(i, n) del[i] = true;
+	forn(i, m) del[b[i]] = false;
+	forn(i, n) p[i] = i, rk[i] = 1;
+	
+	forn(i, n){
+		if (!del[a[i]]){
+			prv[i] = (i && del[a[i - 1]] ? prv[i - 1] : max(0, i - 1));
+			continue;
+		}
+		
+		int j = i;
+		while (j + 1 < n && del[a[j + 1]])
+			++j;
+		
+		fore(k, i, j + 1){
+			prv[k] = max(0, i - 1);
+			nxt[k] = min(n - 1, j + 1);
+		}
+		
+		i = j;
+	}
+	
+	forn(i, n) if (!del[a[i]])
+		nxt[i] = (i < n - 1 && del[a[i + 1]] ? nxt[i + 1] : min(n - 1, i + 1));
+	
+	int mx = 1;
+	li ans = 0;
+	
+	//forn(i, n) cerr << a[i] << " "; cerr << endl;
+	//forn(i, n) cerr << del[a[i]] << " "; cerr << endl;
+	
+	for (int i = n - 1; i >= 0; --i){
+		int x = pos[i];
+		int tmp;
+		
+		tmp = getPrv(x);
+		if (tmp != -1) unite(x, tmp);
+		tmp = getNxt(x);
+		if (tmp != -1) unite(x, tmp);
+		
+		if (del[i]){
+			ans += rk[getP(x)];
+			//cerr << "! " << i << " " << rk[getP(x)] << endl;
+		}
+	}
+	
+	printf("%lld\n", ans);
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+//	freopen("output.txt", "w", stdout);
+	
+	int tt = clock();
+	
+#endif
+	
+	cerr.precision(15);
+	cout.precision(15);
+	cerr << fixed;
+	cout << fixed;
+
+#ifdef _DEBUG
+	while(read()) {	
+#else
+	if (read()){
+#endif
+		solve();
+		
+#ifdef _DEBUG
+	cerr << "TIME = " << clock() - tt << endl;
+	tt = clock();
+#endif
+
+	}
+}

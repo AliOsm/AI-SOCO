@@ -1,0 +1,118 @@
+//satyaki3794
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <cassert>
+#include <cstring>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<int, ii> iii;
+
+ll pwr(ll base, ll p, ll mod = MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+
+
+int n, offset;
+ll tree[4*2*200001+10], lazy[4*2*200001+10], cost[200005];
+vector<ii> roads[200005];
+
+int idx(int last_roads){
+    return offset + n - last_roads;
+}
+
+void update(int node, int s, int e, int lo, int hi, ll val){
+    if(s > e)   return;
+    if(lazy[node] != 0){
+        tree[node] += lazy[node];
+        if(s != e){
+            lazy[LEFT(node)] += lazy[node];
+            lazy[RIGHT(node)] += lazy[node];
+        }
+        lazy[node] = 0;
+    }
+    if(s > hi || lo > e)    return;
+    if(s >= lo && e <= hi){
+        tree[node] += val;
+        if(s != e){
+            lazy[LEFT(node)] += val;
+            lazy[RIGHT(node)] += val;
+        }
+        return;
+    }
+    int mid = (s+e)/2;
+    update(LEFT(node), s, mid, lo, hi, val);
+    update(RIGHT(node), mid+1, e, lo, hi, val);
+    tree[node] = max(tree[LEFT(node)], tree[RIGHT(node)]);
+}
+
+
+ll query(int node, int s, int e, int lo, int hi){
+    if(s > e)   return -(ll)1e16;
+    if(lazy[node] != 0){
+        tree[node] += lazy[node];
+        if(s != e){
+            lazy[LEFT(node)] += lazy[node];
+            lazy[RIGHT(node)] += lazy[node];
+        }
+        lazy[node] = 0;
+    }
+    if(s > hi || lo > e)    return -(ll)1e16;
+    if(s >= lo && e <= hi)  return tree[node];
+    int mid = (s+e)/2;
+    ll a = query(LEFT(node), s, mid, lo, hi);
+    ll b = query(RIGHT(node), mid+1, e, lo, hi);
+    return max(a, b);
+}
+
+
+int main(){
+
+    // ios_base::sync_with_stdio(0);
+    // freopen("input.txt", "r", stdin);
+
+    int m;
+    scanf("%d%d", &n, &m);
+    for(int i=1;i<=n;i++)
+        scanf("%lld", &cost[i]);
+
+    while(m--){
+        int l, r, val;
+        scanf("%d%d%d", &l, &r, &val);
+        roads[r].pb(ii (l, val));
+    }
+
+    int lim = (n+1) + n - 1;
+    offset = 1;
+    ll ans = 0, last = 0;
+    for(int r=1;r<=n;r++){
+
+        update(1, 1, lim, idx(0), idx(0), last);
+        update(1, 1, lim, idx(r), idx(1), -cost[r]);
+        for(int i=0;i<(int)roads[r].size();i++){
+            int l = roads[r][i].ff, profit = roads[r][i].ss;
+            update(1, 1, lim, idx(r), idx(r-l+1), profit);
+        }
+        ans = max(ans, query(1, 1, lim, idx(n), idx(0)));
+        last = query(1, 1, lim, idx(n), idx(0));
+        last = max(last, 0LL);
+
+        offset++;
+    }
+
+    printf("%lld\n", ans);
+    return 0;
+}
+
+
+
+

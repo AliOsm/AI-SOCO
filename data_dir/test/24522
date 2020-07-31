@@ -1,0 +1,114 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cerr<<#x<<" = "<<x<<"\n";
+
+using namespace std;
+
+typedef pair<int, int> ii;
+const int MAX = 2e5 + 5, INF = 2e9, LOG = 9;
+int n, T, a[MAX];
+ii tree[15][4 * MAX];
+
+int read() {
+    char c = getchar();
+    while (c < '0' || c > '9')
+        c = getchar();
+    int rs = 0;
+    while ('0' <= c && c <= '9') {
+        rs = rs * 10 + c - '0';
+        c = getchar();
+    }
+    return rs;
+}
+
+ii combine(ii x1, ii x2) {
+    ii rs;
+    if (x1.first < x2.first) {
+        rs.first = x1.first;
+        rs.second = min(x1.second, x2.first);
+    } else {
+        rs.first = x2.first;
+        rs.second = min(x2.second, x1.first);
+    }
+    return rs;
+}
+
+void initIT(int k, int l, int r) {
+    if (l == r) {
+        int tmp = a[l], cnt = 0;
+        while (tmp > 0) {
+            cnt++;
+            if (tmp % 10 > 0)
+                tree[cnt][k] = ii(a[l], INF);
+            tmp /= 10;
+        }
+        return;
+    }
+    int mid = (l + r) / 2;
+    initIT(2 * k, l, mid);
+    initIT(2 * k + 1, mid + 1, r);
+    for (int i = 1; i <= LOG; i++)
+        tree[i][k] = combine(tree[i][2 * k], tree[i][2 * k + 1]);
+}
+
+void updateIT(int k, int l, int r, int pos, int val) {
+    if (l == r) {
+        int tmp = a[l], cnt = 0;
+        while (tmp > 0) {
+            cnt++;
+            if (tmp % 10 > 0)
+                tree[cnt][k] = ii(val, INF);
+            tmp /= 10;
+        }
+        return;
+    }
+    int mid = (l + r) / 2;
+    if (pos <= mid)
+        updateIT(2 * k, l, mid, pos, val);
+    else
+        updateIT(2 * k + 1, mid + 1, r, pos, val);
+    for (int i = 1; i <= LOG; i++)
+        tree[i][k] = combine(tree[i][2 * k], tree[i][2 * k + 1]);
+}
+
+ii queryIT(int t, int k, int l, int r, int L, int R) {
+    if (l > R || L > r)
+        return ii(INF, INF);
+    if (L <= l && r <= R)
+        return tree[t][k];
+    int mid = (l + r) / 2;
+    return combine(queryIT(t, 2 * k, l, mid, L, R), queryIT(t, 2 * k + 1, mid + 1, r, L, R));
+}
+
+int main() {
+#ifdef ACM
+    freopen("input", "r", stdin);
+#endif
+    n = read();
+    T = read();
+    for (int i = 1; i <= n; i++)
+        a[i] = read();
+    for (int i = 1; i <= 10; i++)
+        for (int j = 1; j <= 4 * n; j++)
+            tree[i][j] = ii(INF, INF);
+    initIT(1, 1, n);
+    int type, l, r;
+    while (T--) {
+        type = read();
+        l = read();
+        r = read();
+        if (type == 1) {
+            updateIT(1, 1, n, l, INF);
+            a[l] = r;
+            updateIT(1, 1, n, l, a[l]);
+        } else {
+            int rs = INF;
+            for (int i = 1; i <= LOG; i++) {
+                ii tmp = queryIT(i, 1, 1, n, l, r);
+                if (tmp.first != INF && tmp.second != INF)
+                    rs = min(rs, tmp.first + tmp.second);
+            }
+            cout << (rs == INF ? -1 : rs) << "\n";
+        }
+    }
+}

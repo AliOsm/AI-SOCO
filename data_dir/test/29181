@@ -1,0 +1,111 @@
+#include <algorithm>
+#include <bitset>
+#include <cassert>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+const int A_MAX = 2005;
+
+int N, K;
+int f[A_MAX];
+vector<int> A;
+vector<bitset<A_MAX>> possible;
+vector<pair<int, int>> operations;
+
+void generate_operations(int mask, int goal) {
+    if (__builtin_popcount(mask) <= 1)
+        return;
+
+    for (int i = 0; i < N; i++)
+        if (mask >> i & 1) {
+            int mask_without = mask ^ 1 << i;
+
+            for (int a = 0; a < A_MAX; a++)
+                if (possible[mask_without][a] && f[a + A[i]] == goal) {
+                    generate_operations(mask_without, a);
+                    operations.emplace_back(a, A[i]);
+                    return;
+                }
+    }
+
+    for (int i = 0; i < N; i++)
+        if (mask >> i & 1)
+            for (int j = i + 1; j < N; j++)
+                if (mask >> j & 1) {
+                    int mask_without = mask ^ 1 << i ^ 1 << j;
+                    int together = f[A[i] + A[j]];
+
+                    for (int a = 0; a < A_MAX; a++)
+                        if (possible[mask_without][a] && f[a + together] == goal) {
+                            generate_operations(mask_without, a);
+                            operations.emplace_back(A[i], A[j]);
+                            operations.emplace_back(a, together);
+                            return;
+                        }
+                }
+
+    assert(false);
+
+}
+
+int main() {
+    cin >> N >> K;
+    A.resize(N);
+    possible.assign(1 << N, {});
+
+    for (int &a : A) {
+        cin >> a;
+        assert(a % K != 0);
+    }
+
+    f[0] = 0;
+
+    for (int a = 1; a < A_MAX; a++)
+        f[a] = a % K != 0 ? a : f[a / K];
+
+    for (int i = 0; i < N; i++)
+        possible[1 << i][A[i]] = true;
+
+    for (int mask = 0; mask < 1 << N; mask++) {
+        if (__builtin_popcount(mask) <= 1)
+            continue;
+
+        bitset<A_MAX> reach;
+
+        for (int i = 0; i < N; i++)
+            if (mask >> i & 1)
+                reach |= possible[mask ^ 1 << i] << A[i];
+
+        for (int i = 0; i < N; i++)
+            if (mask >> i & 1)
+                for (int j = i + 1; j < N; j++)
+                    if (mask >> j & 1)
+                        reach |= possible[mask ^ 1 << i ^ 1 << j] << f[A[i] + A[j]];
+
+        // for (int sub = mask; sub != 0; sub = (sub - 1) & mask)
+        //     if (__builtin_popcount(sub) <= 2)
+        //         for (int a = 0; a < A_MAX; a++)
+        //             if (possible[sub][a])
+        //                 reach |= possible[mask ^ sub] << a;
+
+        for (int a = 0; a < A_MAX; a += K) {
+            reach[f[a]] = reach[f[a]] | reach[a];
+            reach[a] = false;
+        }
+
+        possible[mask] = reach;
+        // cerr << mask << ": " << possible[mask].count() << endl;
+    }
+
+    if (!possible[(1 << N) - 1][1]) {
+        cout << "NO" << '\n';
+        return 0;
+    }
+
+    cout << "YES" << '\n';
+    generate_operations((1 << N) - 1, 1);
+
+    for (auto &op : operations)
+        cout << op.first << ' ' << op.second << '\n';
+}

@@ -1,0 +1,119 @@
+/*input
+147
+75 38 96 58 30 46 12 28 105 8 31 6 12 9 24 2 147 114 86 14 82 102 34 94 76 22 96 52 15 38 6 81 28 66 74 44 93 24 41 126 87 16 22 108 99 30 10 68 138 54 78 48 98 135 60 90 37 32 42 56 7 6 1 4 20 48 62 64 70 29 14 32 30 90 26 123 111 26 84 144 3 25 48 51 43 13 49 69 20 72 10 132 36 33 36 45 12 92 4 60 44 19 16 24 23 21 78 27 129 72 117 40 36 9 54 66 42 84 3 11 15 21 5 34 17 57 46 42 63 39 80 88 141 8 50 18 33 27 18 18 120 39 47 40 45 35 2
+
+6
+1 2 4 8 16 32
+
+3
+13 35 77
+*/
+#ifdef UncleGrandpa
+#include <prettyprint.hpp>
+#endif
+#include <bits/stdc++.h>
+using namespace std;
+#define sp ' '
+#define endl '\n'
+#define fi first
+#define se second
+#define loop(i,l,r) for(int i=(l); i<=(r); i++)
+#define rloop(i,l,r) for(int i=(l); i>=(r); i--)
+#define debug(x...) {cout << "[" << #x << "] ="; _co(x);}
+void _co() {cout << endl;}
+template<typename T, typename... Ts> void _co(const T& value, const Ts&... values) {cout << ' ' << value; _co(values...);}
+template<typename T, typename... Ts> void co(const T& value, const Ts&... values) {cout << "deb: " << value; _co(values...);}
+#ifdef UncleGrandpa
+const int N = 1005;
+#else
+const int N = 1e5 + 5;
+#endif
+using ll = long long ;
+
+const int M = N;
+int primes[M]; // bitset for faster speed
+int mobius[M];
+void eratosthene() {
+	for (int i = 2, lim = sqrt(M - 5); i <= lim; i++) if (primes[i] == 0) {for (int j = i * i; j <= M - 5; j += i) primes[j] = i;}
+	loop(i, 2, M - 5) if (primes[i] == 0) primes[i] = i;
+}
+
+int _mobius(int X) {
+	int ret = 1;
+	while (X > 1) {
+		int u = primes[X]; int cnt = 0;
+		ret *= -1;
+		while (X % u == 0) {
+			X /= u; cnt++;
+		}
+		if (cnt >= 2) return 0;
+	}
+	return ret;
+}
+
+vector<int> divi[N], multi[N], a;
+int n;
+
+void prep() {
+	eratosthene();
+	loop(i, 1, N - 5) mobius[i] = _mobius(i);
+	loop(i, 1, N - 5) {
+		for (int j = i; j <= N - 5; j += i) divi[j].push_back(i);
+	}
+	for (auto &num : a) {
+		for (auto &div : divi[num]) multi[div].push_back(num / div);
+	}
+	loop(i, 1, N - 5) {
+		vector<int> nx; for (auto &it : divi[i]) if (mobius[it] != 0) nx.push_back(it);
+		divi[i].swap(nx);
+	}
+}
+
+int cnt[N];
+
+void modify(int num, int dir) {
+	for (auto &it : divi[num]) cnt[it] += dir;
+}
+
+ll countN(int num) {
+	ll ret = 0;
+	for (auto &it : divi[num]) {
+		ret += mobius[it] * cnt[it];
+	}
+	return ret;
+}
+
+ll solve(int lab, vector<int> &inp) {
+	ll ret = 0;
+	stack<int> st;
+	for (auto &it : inp) {
+		int last = 0;
+		while (!st.empty() && countN(it) != 0) {
+			last = st.top(); modify(last, -1);
+			st.pop();
+		}
+		modify(it, 1); st.push(it);
+		ret = max(ret, 1LL * it * last * lab);
+	}
+	while (!st.empty()) {
+		int u = st.top(); st.pop(); modify(u, -1);
+	}
+	return ret;
+}
+
+signed main() {
+	ios_base::sync_with_stdio(false); cin.tie(0);
+	ll ans = 0;
+	cin >> n;
+	loop(i, 1, n) {
+		int t; cin >> t; a.push_back(t);
+	}
+	sort(a.begin(), a.end(), greater<int>());
+	loop(i, 1, a.size() - 1) if (a[i] == a[i - 1]) {ans = a[i]; break;}
+	a.resize(distance(a.begin(), unique(a.begin(), a.end())));
+	prep();
+	loop(i, 1, N - 5) {
+		ans = max(ans, solve(i, multi[i]));
+	}
+	cout << ans << endl;
+}

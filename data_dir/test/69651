@@ -1,0 +1,50 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <cstring>
+#include <stack>
+#include <cmath>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=1e5+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+
+int n;
+long double ans; 
+int i,j;
+struct point{
+	long double x,y;
+}a[maxn];
+long double L(point A,point B){
+	return sqrt((A.x-B.x)*(A.x-B.x)+(A.y-B.y)*(A.y-B.y));
+}
+long double S(point A,point B,point C){
+	return abs(A.x*B.y+B.x*C.y+C.x*A.y-A.y*B.x-B.y*C.x-C.y*A.x);
+}
+long double height(point A,point B,point C){
+	return S(A,B,C)/L(A,C);
+}
+int main()
+{
+	scanf("%d",&n);
+	REP(i,n) scanf("%Lf%Lf",&a[i].x,&a[i].y);
+	a[n]=a[0];a[n+1]=a[1];
+	ans=2e9;
+	REP(i,n) ans=min(ans,height(a[i],a[i+1],a[i+2])/2);
+	printf("%.20Lf",ans);
+}

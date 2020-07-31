@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+const int N = 1e6 + 5;
+int tree[N << 2], lazy[N << 2], mx[N << 2], a[N];
+vector<int> g[N];
+int lvl[N], lg[N], sp[N][20], tim, in[N], out[N];
+
+void dfs(int node, int l) {
+	lvl[node] = l;
+	in[node] = ++tim;
+	for (int i = 0; i < g[node].size(); i++)
+		dfs(g[node][i], l + 1);
+	out[node] = tim;
+}
+void build() {
+	for (int i = 0; 1 << i < N; i++)
+		lg[1 << i] = i;
+	for (int i = 1; i < N; i++)
+		lg[i] = max(lg[i], lg[i - 1]), sp[i][0] = a[i];
+	for (int i = 1; i < 20; i++) {
+		for (int j = 1; j + (1 << (i - 1)) <= N; j++) {
+			sp[j][i] = max(sp[j][i - 1], sp[j + (1 << (i - 1))][i - 1]);
+		}
+	}
+
+}
+int get(int l, int r) {
+	int k = lg[r - l + 1];
+	return max(sp[l][k], sp[r - (1 << k) + 1][k]);
+}
+void propagate(int i, int l, int r) {
+//	cout << tree[i] << " " << lazy[i] << endl;
+	if (!lazy[i]) return;
+	mx[i] = tree[i] - lazy[i] + 1;
+	//	mx[i] = tree[i] - lazy[i] + 1;
+	if (l != r) {
+		lazy[i << 1] = lazy[i << 1 | 1] = lazy[i];
+		tree[i] = max(tree[i << 1], tree[i << 1 | 1]);
+//		mx[i] = max(mx[i << 1], mx[i << 1 | 1]);
+		lazy[i] = 0;
+	}
+}
+void update(int i, int l, int r, int a, int b, int v, bool f) {
+	propagate(i, l, r);
+	if (l > b || r < a) return;
+	if (l >= a && r <= b) {
+		if (f) tree[i] = v;
+		else lazy[i] = v + 1;
+//		if (f) cout << a << " " << b << ' ' << v << endl;
+		propagate(i, l, r);
+		return;
+	}
+	int mid = (l + r) >> 1;
+	update(i << 1, l, mid, a, b, v, f);
+	update(i << 1 | 1, mid + 1, r, a, b, v, f);
+	tree[i] = max(tree[i << 1], tree[i << 1 | 1]);
+	mx[i] = max(mx[i << 1], mx[i << 1 | 1]);
+//	mx[i] = max(mx[i], tree[i] - lazy[i] + 1);
+}
+
+int get(int i, int l, int r, int a, int b) {
+	propagate(i, l, r);
+	return mx[i];
+}
+int res[N];
+int main() {
+
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	int n, k;
+	cin >> n >> k;
+	for (int i = 1; i <= n; i++)
+		cin >> a[i];
+	build();
+	vector<int> roots;
+	for (int i = 1; i <= n; i++) {
+		int s = i + 1, e = n, ans = -1;
+		while (s <= e) {
+			int mid = (s + e) >> 1;
+			if (get(i, mid) > a[i]) e = mid - 1, ans = mid;
+			else s = mid + 1;
+		}
+		if (ans == -1) roots.push_back(i);
+		else g[ans].push_back(i);
+	}
+	for (int u : roots)
+		dfs(u, 1);
+	for (int i = n - k + 1; i <= n; i++)
+		update(1, 1, n, in[i], in[i], lvl[i], 1);
+	update(1, 1, n, 1, n, 0, 0);
+
+//	cout << get(1, 1, n, 1, n) << endl;
+//	return 0;
+	for (int i = n - k + 1; i >= 1; i--) {
+		res[i] = get(1, 1, n, 1, n);
+		int node = i + k - 1;
+//		cout << node << " " << in[node] << " " << out[node] << " "
+//				<< lvl[node] + 1 << endl;
+		update(1, 1, n, in[node], out[node], lvl[node], 0);
+		update(1, 1, n, in[i - 1], in[i - 1], lvl[i - 1], 1);
+	}
+	for (int i = 1; i <= n - k + 1; i++)
+		cout << res[i] << ' ';
+	return 0;
+}

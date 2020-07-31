@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 100002;
+const int sigma = 26;
+
+char buf[N];
+struct SegmentTree {
+#define lc o<<1
+#define rc o<<1|1
+#define lson l,m,lc
+#define rson m+1,r,rc
+	int cnt[N<<2][sigma], set[N<<2];
+	int now[sigma];
+
+	void clear() {
+		rep(c, sigma)
+			now[c] = 0;
+	}
+
+	void up(int o) {
+		rep(i, 26)
+			cnt[o][i] = cnt[lc][i] + cnt[rc][i];
+	}
+
+	void build(int l, int r, int o) {
+		set[o] = -1;
+		if(l == r) {
+			cnt[o][buf[l]-'a'] ++;
+		} else {
+			int m = l + r >> 1;
+			build(lson);
+			build(rson);
+			up(o);
+		}
+	}
+
+	void down(int l, int r, int o) {
+		int m = l + r >> 1;
+		if(~set[o]) {
+			if(set[o] == 1) {
+				set[lc] = set[rc] = 1;
+				int ct = m - l + 1;
+				rep(c, sigma)	cnt[lc][c] = 0;
+				rep(c, sigma) {
+					int t = std::min(ct, cnt[o][c]);
+					cnt[lc][c] = t;
+					ct -= t;
+					cnt[o][c] -= t;
+					if(ct == 0)	break;
+				}
+				rep(c, sigma)	cnt[rc][c] = cnt[o][c];
+			} else {
+				set[lc] = set[rc] = 0;
+				int ct = m - l + 1;
+				rep(c, sigma)	cnt[lc][c] = 0;
+				for(int c = sigma-1; ~c; c --) {
+					int t = std::min(ct, cnt[o][c]);
+					cnt[lc][c] = t;
+					ct -= t;
+					cnt[o][c] -= t;
+					if(ct == 0)	break;
+				}
+				rep(c, sigma)	cnt[rc][c] = cnt[o][c];
+			}
+			set[o] = -1;
+		}
+	}
+
+	void query(int l, int r, int o, int L, int R) {
+		if(L <= l & r <= R) {
+			rep(c, sigma)
+				now[c] += cnt[o][c];
+		} else {
+			int m = l + r >> 1;
+			down(l, r, o);
+			if(L <= m)	query(lson, L, R);
+			if(R > m)	query(rson, L, R);
+			up(o);
+		}
+	}
+
+	void update(int l, int r, int o, int L, int R, int v) {
+		if(L <= l & r <= R) {
+			int ct = r - l + 1;
+			set[o] = v;
+			rep(c, sigma)	cnt[o][c] = 0;
+			if(v == 1) {
+				rep(c, sigma) {
+					int t = std::min(ct, now[c]);
+					cnt[o][c] = t;
+					ct -= t;
+					now[c] -= t;
+					if(ct == 0)	break;
+				}
+			} else {
+				for(int c = sigma-1; ~c; c --) {
+					int t = std::min(ct, now[c]);
+					cnt[o][c] = t;
+					ct -= t;
+					now[c] -= t;
+					if(ct == 0)	break;
+				}
+			}
+		} else {
+			int m = l + r >> 1;
+			down(l, r, o);
+			if(L <= m)	update(lson, L, R, v);
+			if(R > m)	update(rson, L, R, v);
+			up(o);
+		}
+	}
+
+	void out(int l, int r, int o) {
+		if(l == r) {
+			rep(i, 26) if(cnt[o][i]) {
+				putchar('a' + i);
+			}
+		} else {
+			int m = l + r >> 1;
+			down(l, r, o);
+			out(lson);
+			out(rson);
+			up(o);
+		}
+	}
+
+}ly;
+
+			
+
+
+int main() {
+	int n, q, op, l, r;	
+	scanf("%d%d", &n, &q);
+	scanf("%s", buf + 1);
+	ly.build(1, n, 1);
+	while(q --) {
+		scanf("%d%d%d", &l, &r, &op);
+		ly.clear();
+		ly.query(1, n, 1, l, r);
+		ly.update(1, n, 1, l, r, op);
+//	ly.out(1, n, 1);
+//	puts("");
+	}
+	ly.out(1, n, 1);
+	puts("");
+	return 0;
+}
+

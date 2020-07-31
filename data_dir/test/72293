@@ -1,0 +1,312 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("no-stack-protector")
+//#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,popcnt,abm,mmx,tune=native")
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stdio.h>
+#include <cstdio>
+#include <math.h>
+#include <cmath>
+#include <string>
+#include <cstring>
+#include <queue>
+#include <deque>
+#include <random>
+#include <iomanip>
+#include <bitset>
+                        
+using namespace std;
+                        
+template<typename T> void uin(T &a, T b) {
+    if (b < a) {
+        a = b;
+    }
+}
+                        
+template<typename T> void uax(T &a, T b) {
+    if (b > a) {
+        a = b;
+    }
+}
+ 
+#define int long long
+#define ghost signed
+#define left left228
+#define right right228
+#define complex complex228
+#define count count228
+#define sin sin228
+#define list list228
+
+vector<int> iik;
+ 
+struct ST
+{
+    struct node
+    {
+        pair<int, int> mx;
+        int mod;
+        int l, r;
+        node() {
+            mx.first = mx.second = mod = l = r = 0;
+        }
+    };
+ 
+    vector< node > d;
+ 
+    void build(int l, int r, int v = 1) {
+        d[v].l = l;
+        d[v].r = r;
+        // d[v].mx.second = l;
+        if (l == r) {
+            d[v].mx.first = iik[l - 1];
+            d[v].mx.second = l;
+            return;
+        }
+        int m = (l + r) >> 1;
+        build(l, m, v << 1);
+        build(m + 1, r, v << 1 | 1);
+        d[v].mx = max(d[v << 1].mx, d[v << 1 | 1].mx);
+    }
+ 
+    ST() {d.clear();}
+ 
+    ST(int n) {
+        int ss = 1;
+        while (ss < n) ss <<= 1;
+        ss <<= 1;
+        d.resize(ss + 1, node());
+        build(1, n);
+    }
+ 
+    pair<int, int> gets(int v) {
+        return make_pair(d[v].mx.first + d[v].mod, d[v].mx.second);
+    }
+ 
+    void push(int v) {
+        if (d[v].mod) {
+            d[v << 1].mod += d[v].mod;
+            d[v << 1 | 1].mod += d[v].mod;
+            d[v].mod = 0;
+        }
+        d[v].mx = max(gets(v << 1), gets(v << 1 | 1));
+    }
+ 
+    void update(int l, int r, int x, int v = 1) {
+        if (l > r || d[v].l > r || d[v].r < l) return;
+        if (l <= d[v].l && d[v].r <= r) {
+            d[v].mod += x;
+        } else {
+            push(v);
+            update(l, r, x, v << 1);
+            update(l, r, x, v << 1 | 1);
+            d[v].mx = max(gets(v << 1), gets(v << 1 | 1));
+        }
+    }
+ 
+    pair<int, int> get(int l, int r, int v = 1) {
+        if (l > r || d[v].l > r || d[v].r < l) return {0, 0};
+        if (l <= d[v].l && d[v].r <= r) return gets(v);
+        push(v);
+        return max(get(l, r, v << 1), get(l, r, v << 1 | 1));
+    }
+};
+ 
+const int N = 100 * 1000 + 228;
+ 
+vector< pair<int, int> > g[N];
+bool used[N];
+int pc[N], sz[N];
+int centroid = 0;
+vector<int> order;
+ 
+void ffs(int v, int par = -1) {
+    order.push_back(v);
+    sz[v] = 1;
+    for (pair<int, int> go : g[v]) {
+        int to = go.first;
+        if (to == par || used[to]) continue;
+        ffs(to, v);
+        sz[v] += sz[to];
+    }
+}
+ 
+int FindCentroid(int s) {
+    order.clear();
+    ffs(s);
+    int SZ = (int)order.size();
+    for (int v : order) {
+        if (sz[v] >= SZ / 2) {
+            bool OK = 1;
+            for (pair<int, int> go : g[v]) {
+                int to = go.first;
+                if (sz[to] < sz[v] && sz[to] > SZ / 2) {
+                    OK = 0;
+                    break;
+                }
+            }
+            if (OK) return v;
+        }
+    }
+    return -1;
+}
+ 
+vector<int> tout[N], dist[N], whatson[N];
+multiset<int> ms[N];
+map< pair<int, int> , vector<int> > list;
+map<int, int> met[N];
+vector<int> vertices;
+ST st[N];
+int timer = 0;
+int GC = 0;
+int id[N];
+ 
+void jfs(int v, int dst = 0, int par = 0) {
+    if (par) {
+        list[make_pair(par, v)].push_back(centroid);
+    }
+    order.push_back(v);
+    id[v] = timer;
+    int i = timer;
+    met[centroid][v] = i;
+    dist[centroid][i] = dst;
+    ++timer;
+    for (pair<int, int> go : g[v]) {
+        int to = go.first;
+        int w = go.second;
+        if (to == par || used[to]) continue;
+        jfs(to, dst + w, v);
+    }
+    tout[centroid][i] = timer;
+}
+ 
+void godfs(int v, int s, int par = -1) {
+    whatson[centroid][id[v]] = s;
+    for (pair<int, int> go : g[v]) {
+        int to = go.first;
+        if (to == par || used[to]) continue;
+        godfs(to, s, v);
+    }
+}
+ 
+void haha(int c, int SZ) {
+    dist[c].resize(SZ + 1);
+    tout[c].resize(SZ + 1);
+    whatson[c].resize(SZ + 1);
+    timer = 0;
+    order.clear();
+    jfs(c);
+    iik = dist[c];
+    st[c] = ST(timer);
+    if (c == GC) vertices = order;
+    vector<int> a;
+    // for (int i = 0; i < (int)order.size(); ++i) st[c].update(i + 1, i + 1, dist[c][i]);
+    //st[c] = ST(dist[c]);
+    for (pair<int, int> go : g[c]) {
+        int to = go.first;
+        if (used[to]) continue;
+        int i = met[c][to];
+        godfs(to, i, c);
+        ms[c].insert(st[c].get(i + 1, tout[c][i]).first);
+    }
+}
+ 
+void build_cd(int v, int parc = 0) {
+    int c = FindCentroid(v);
+    centroid = c;
+    if (parc == 0) GC = c;
+    pc[c] = parc;
+    haha(c, sz[v]);
+    used[c] = 1;
+    for (pair<int, int> go : g[c]) {
+        int to = go.first;
+        if (!used[to]) build_cd(to, c);
+    }
+}
+ 
+struct edge
+{
+    int from, to, w;
+    edge() {}
+    edge(int _from, int _to, int _w) {
+        from = _from, to = _to, w = _w;
+    }
+};
+ 
+void change(int a, int b, int delta) {
+    for (int c : list[make_pair(a, b)]) {
+        int i = met[c][b];
+        int ws = whatson[c][i];
+        int D = st[c].get(ws + 1, tout[c][ws]).first;
+        ms[c].erase(ms[c].find(D));
+        st[c].update(i + 1, tout[c][i], delta);
+        D = st[c].get(ws + 1, tout[c][ws]).first;
+        ms[c].insert(D);
+    }
+}
+ 
+int answer() {
+    pair<int, int> p = st[GC].get(1, tout[GC][0]);
+    int s = vertices[p.second - 1];
+    int ans = 0;
+    int cur = 0;
+    while (s) {
+        if (ms[s].empty()) ;
+        else if ((int)ms[s].size() == 1) uax(ans, *ms[s].begin());
+        else {
+            cur = *ms[s].rbegin();
+            int kek = cur;
+            ms[s].erase(ms[s].find(cur));
+            cur += *ms[s].rbegin();
+            ms[s].insert(kek);
+            uax(ans, cur);
+        }
+        s = pc[s];
+    }
+    return ans;
+}
+ 
+ghost main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    int n, q, W;
+    cin >> n >> q >> W;
+    vector< edge > edges;
+    for (int i = 0; i < n - 1; ++i) {
+        int a, b, c;
+        cin >> a >> b >> c;
+        edges.emplace_back(a, b, c);
+        g[a].emplace_back(b, c);
+        g[b].emplace_back(a, c);
+    }
+    build_cd(1);
+    int last = 0;
+    while(q--) {
+        int D, E;
+        cin >> D >> E;
+        D = (D + last) % (n - 1);
+        E = (E + last) % W;
+        int delta = E - edges[D].w;
+        edges[D].w = E;
+        int a = edges[D].from;
+        int b = edges[D].to;
+        change(a, b, delta);
+        change(b, a, delta);
+        last = answer();
+        cout << last << '\n';
+    }
+    return 0;
+} // kek ;
+// Ого! Кажетсья это $#@!
+ 
+ 
+ 
+ 
+ 

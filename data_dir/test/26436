@@ -1,0 +1,94 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 123;
+const int M = 17;
+
+int n;
+int a[N];
+int dp[N][1 << M];
+int from[N][1 << M];
+int what[N][1 << M];
+vector<int> primes;
+bool is_prime[N];
+
+void sieve() {
+  for (int i = 2; i < N; i++) is_prime[i] = 1;
+  for (int i = 2; i < N; i++) {
+    if (is_prime[i]) {
+      primes.push_back(i);
+      for (int j = i * i; j < N; j += i) is_prime[j] = 0;
+    }
+  }
+}
+
+int prime_fact(int n) {
+  int ret = 0;
+  for (int i = 0; i < (int) primes.size() && primes[i] * primes[i] <= n; i++) {
+    if (n % primes[i] == 0) {
+      ret |= 1 << i;
+      while (n % primes[i] == 0) n /= primes[i];
+    }
+  }
+  if (n > 1) {
+    for (int i = 0; i < (int) primes.size(); i++) {
+      if (primes[i] == n) {
+        ret |= 1 << i;
+        break;
+      }
+    }
+  }
+  return ret;
+}
+
+void go(int i, int opt) {
+  if (i == 0) return;
+  go(i - 1, from[i][opt]);
+  printf("%d ", what[i][opt]);
+}
+
+void build(int opt) {
+  for (int i = 0; i < n; i++) {
+    for (int j = 1; j <= a[i] + a[i]; j++) {
+      int fact = prime_fact(j);
+      for (int msk = 1; msk < 1 << M; msk++) {
+        if (!(msk & fact)) {
+          if (dp[i + 1][msk | fact] == dp[i][msk] + abs(a[i] - j)) {
+            from[i + 1][msk | fact] = msk;
+            what[i + 1][msk | fact] = j;
+          }
+        }
+      }
+    }
+  }
+  go(n, opt);
+  puts("");
+}
+
+int main() {
+  scanf("%d", &n);
+  sieve();
+  for (int i = 0; i < n; i++) scanf("%d", a + i);
+  for (int i = 0; i < n; i++) for (int msk = 1; msk < 1 << M; msk++) dp[i + 1][msk] = 1 << 30;
+  for (int i = 0; i < n; i++) {
+    for (int j = 1; j <= a[i] + a[i]; j++) {
+      int fact = prime_fact(j);
+      for (int msk = 1; msk < 1 << M; msk++) {
+        if (!(msk & fact)) dp[i + 1][msk | fact] = min(dp[i + 1][msk | fact], dp[i][msk] + abs(a[i] - j));
+      }
+    }
+  }
+  int ans = 1 << 30;
+  int which = -1;
+  for (int msk = 1; msk < 1 << M; msk++) {
+    if (dp[n][msk] < ans) {
+      ans = dp[n][msk];
+      which = msk;
+    }
+  }
+  assert(which > -1);
+  build(which);
+  puts("");
+  return 0;
+}

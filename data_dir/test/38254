@@ -1,0 +1,123 @@
+#include <sstream>
+#include <fstream>
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+#include <cassert>
+#include <bitset>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+ 
+#define DEBUG
+#ifdef DEBUG
+#define debug(...) fprintf(stderr, __VA_ARGS__)
+#define deputs(str) fprintf(stderr, "%s\n",str)
+#else
+#define debug(...)
+#define deputs(str)
+#endif // DEBUG
+typedef unsigned long long ULL;
+typedef unsigned long long ull;
+typedef unsigned int ui;
+typedef long long LL;
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=2e5+107;
+const double pi=acos(-1.0);
+const double eps=0.0000000001;
+LL gcd(LL a, LL b) {return b?gcd(b,a%b):a;}
+template<typename T>inline void pr2(T x,int k=64) {ll i; REP(i,k) debug("%d",(x>>i)&1); putchar(' ');}
+template<typename T>inline void add_(T &A,int B,ll MOD=M) {A+=B; (A>=MOD) &&(A-=MOD);}
+template<typename T>inline void mul_(T &A,ll B,ll MOD=M) {A=(A*B)%MOD;}
+template<typename T>inline void mod_(T &A,ll MOD=M) {A%=MOD; A+=MOD; A%=MOD;}
+template<typename T>inline void max_(T &A,T B) {(A<B) &&(A=B);}
+template<typename T>inline void min_(T &A,T B) {(A>B) &&(A=B);}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a, T b) {
+    T ret=1;
+    for (; b; b>>=1ll,a=(LL)a*a%M)
+        if (b&1) ret=(LL)ret*a%M;
+    return ret;
+}
+int startTime;
+void startTimer() {startTime=clock();}
+void printTimer() {debug("/--- Time: %ld milliseconds ---/\n",clock()-startTime);}
+int n,m,q;
+char str[maxn];
+
+int ans;
+int A[maxn];
+vector<int> fac[maxn];
+vector<int> edge[maxn];
+map<int,int> V[maxn];
+int len[maxn];
+void dfs(int x,int fa){
+	for (int v:edge[x]) if (v!=fa)
+		dfs(v,x);
+	for (int v:fac[A[x]]) len[v]=(A[x]!=1);
+	for (int v:edge[x]) if (v!=fa){
+		for (auto now:V[v]){
+			int y=gcd(now.first,A[x]);
+			if (y==1) continue;
+			for (int v:fac[y])
+				ans=max(ans,len[v]+now.second);
+			// printf("%d : %d %d+%d\n",x,y,len[y],now.second);
+		}
+		for (auto now:V[v]){
+			int y=gcd(now.first,A[x]);
+			for (int v:fac[y])
+				len[v]=max(len[v],now.second+1);
+		}
+		map<int,int>().swap(V[v]);
+	}
+	for (int v:fac[A[x]]) if (len[v]) {
+		ans=max(ans,len[v]);
+		V[x][v]=len[v];
+	} 
+}
+bool no[maxn];
+int main() {
+	int i,j,MAX=0;
+	FOR(i,2,200000) {
+		if (!no[i])
+			for (j=i;j<=200000;j+=i) fac[j].push_back(i),no[j]=1;
+		// MAX=max(MAX,(int)fac[i].size());
+	}
+	// printf("SIZE=%d\n",MAX);
+	scanf("%d",&n);
+	FOR(i,1,n) scanf("%d",&A[i]);
+	FOR(i,1,n-1) {
+		int u,v;
+		scanf("%d%d",&u,&v);
+		edge[u].push_back(v);
+		edge[v].push_back(u);
+	}
+	dfs(1,0);
+	printf("%d\n",ans);
+}
+/*
+4
+2 4 1 8
+1 2
+2 3
+3 4
+*/

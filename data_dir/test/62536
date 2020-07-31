@@ -1,0 +1,130 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define MAX_N 200005
+
+struct Node {
+	int num, left, right, level;
+} node[MAX_N];
+
+struct Item {
+	long long even = 0, odd = 0;
+} tree[4 * MAX_N];
+
+int n, m, u, v, type, x, add, idx = -1;
+vector <long long> arr, graph[MAX_N];
+
+//void init(int p, int l, int r) {
+//	if (l == r) tree[p].val = arr[node[l].num];
+//	else {
+//		init(2*p, l, (l+r)/2);
+//		init(2*p+1, (l+r)/2+1, r);
+//	}
+//}
+
+void dfs(int v, int p, int lvl) {
+	node[v].num = ++idx;
+	node[v].left = idx;
+	node[v].level = lvl;
+	for (int i = 0; i < (int)graph[v].size(); i++) {
+		int child = graph[v][i];
+		if (child == p) continue;
+		dfs(child, v, lvl+1);
+	}
+	node[v].right = idx;
+}
+
+void update(int p, int l, int r, int L, int R, int add, int odd) {
+	if (tree[p].even != 0 || tree[p].odd != 0) {
+		if (l != r) {
+			tree[2*p].even += tree[p].even;
+			tree[2*p].odd += tree[p].odd;
+			tree[2*p+1].even += tree[p].even;
+			tree[2*p+1].odd += tree[p].odd;
+			tree[p].even = 0;
+			tree[p].odd = 0;
+		}
+	}
+	if (l > r || l > R || r < L) return;
+	if (l >= L && r <= R) {
+		if (odd) {
+			tree[p].even -= add;
+			tree[p].odd += add;
+		} else {
+			tree[p].even += add;
+			tree[p].odd -= add;
+		}
+		return;
+	}
+	update(2*p, l, (l+r)/2, L, R, add, odd);
+	update(2*p+1, (l+r)/2+1, r, L, R, add, odd);
+}
+
+long long rmq(int p, int l, int r, int x) {
+	if (tree[p].even != 0 || tree[p].odd != 0) {
+		if (l != r) {
+			tree[2*p].even += tree[p].even;
+			tree[2*p].odd += tree[p].odd;
+			tree[2*p+1].even += tree[p].even;
+			tree[2*p+1].odd += tree[p].odd;
+			tree[p].even = 0;
+			tree[p].odd = 0;
+		}
+	}
+	if (l > r || l > node[x].num || r < node[x].num) return 0;
+	if (l == node[x].num && r == node[x].num) {
+		long long res = 0;
+		if (node[x].level & 1) {
+			res += arr[x] + tree[p].odd;
+		} else {
+			res += arr[x] + tree[p].even;
+		}
+		return res;
+	}
+	return rmq(2*p, l, (l+r)/2, x) + rmq(2*p+1, (l+r)/2+1, r, x);
+}
+
+int main() {
+	scanf("%d%d", &n, &m);
+	arr.resize(n);
+	for (int i = 0; i < n; i++) {
+		scanf("%lld", &arr[i]);
+	}
+	for (int i = 1; i < n; i++) {
+		scanf("%d%d", &u, &v);
+		u--;--v;
+		graph[u].push_back(v);
+		graph[v].push_back(u);
+	}
+	dfs(0, 0, 0);
+	
+//	for (int i = 0; i < n; i++) {
+//		cout << i << "   ";
+//	} cout << endl;
+//	for (int i = 0; i < n; i++) {
+//		cout << node[i].num << "   ";
+//	} cout << endl;
+//	for (int i = 0; i < n; i++) {
+//		cout << node[i].level << "   ";
+//	} cout << endl;
+//	for (int i = 0; i < n; i++) {
+//		cout << node[i].left << " " << node[i].right << " ";
+//	} cout << endl;
+	
+//	init(1, 0, n-1);
+
+	for (int i = 0; i < m; i++) {
+		scanf("%d%d", &type, &x);
+		x--;
+		if (type == 1) {
+			scanf("%d", &add);
+			update(1, 0, n-1, node[x].left, node[x].right,
+				add, node[x].level & 1);
+		} else {
+			printf("%lld\n", rmq(1, 0, n-1, x));
+		}
+	}
+	return 0;
+}
+
+

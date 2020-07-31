@@ -1,0 +1,148 @@
+#pragma GCC optimize ("O3")
+#include <bits/stdc++.h>
+#define abdelrahman010 ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+typedef long long ll;
+using namespace std;
+const int N = 1e5 + 5;
+const int lg = 20;
+int n , q , a[N];
+int l[N] , r[N];
+int lvl[N] , sp[N][lg];
+ll seg[4 * N] , lazy[4 * N];
+vector<int> g[N];
+vector<int> flatten;
+void dfs(int node , int par) {
+    l[node] = flatten.size();
+    flatten.push_back(node);
+    lvl[node] = lvl[par] + 1;
+    sp[node][0] = par;
+    for(int i = 1;i < lg;i++) {
+        int tmp = sp[node][i - 1];
+        sp[node][i] = sp[tmp][i - 1];
+    }
+    for(auto &i : g[node])
+        if(i != par)
+            dfs(i , node);
+    r[node] = flatten.size() - 1;
+}
+int get_kth(int u , int k) {
+    if(k < 0)
+        return 0;
+    for(int i = 0;i < lg;i++)
+        if((1 << i) & k)
+            u = sp[u][i];
+    return u;
+}
+int get_lca(int u , int v) {
+    if(lvl[v] < lvl[u])
+        swap(u , v);
+    v = get_kth(v , lvl[v] - lvl[u]);
+    if(u == v)
+        return u;
+    for(int i = lg - 1;i >= 0;i--)
+        if(sp[u][i] != sp[v][i])
+            u = sp[u][i] , v = sp[v][i];
+    return sp[u][0];
+}
+void build(int node , int s , int e) {
+    if(s == e) {
+        seg[node] = a[flatten[s]];
+        return;
+    }
+    int mid = s + e >> 1;
+    build(node << 1 , s , mid);
+    build(node << 1 | 1 , mid + 1 , e);
+    seg[node] = seg[node << 1] + seg[node << 1 | 1];
+}
+void propagate(int node , int s , int e) {
+    seg[node] += (e - s + 1) * lazy[node];
+    if(s != e) {
+        lazy[node << 1] += lazy[node];
+        lazy[node << 1 | 1] += lazy[node];
+    }
+    lazy[node] = 0;
+}
+void update(int node , int s , int e , int l , int r , int val) {
+    propagate(node , s , e);
+    if(s > r || e < l)
+        return;
+    if(l <= s && e <= r) {
+        lazy[node] += val;
+        propagate(node , s , e);
+        return;
+    }
+    int mid = s + e >> 1;
+    update(node << 1 , s , mid , l , r , val);
+    update(node << 1 | 1 , mid + 1 , e , l , r , val);
+    seg[node] = seg[node << 1] + seg[node << 1 | 1];
+}
+ll query(int node , int s , int e , int l , int r) {
+    propagate(node , s , e);
+    if(s > r || e < l)
+        return 0;
+    if(l <= s && e <= r)
+        return seg[node];
+    int mid = s + e >> 1;
+    return query(node << 1 , s , mid , l , r) + query(node << 1 | 1 , mid + 1 , e , l , r);
+}
+int main() {
+    abdelrahman010
+    cin >> n >> q;
+    for(int i = 1;i <= n;i++)
+        cin >> a[i];
+    for(int i = 1;i < n;i++) {
+        int u , v;
+        cin >> u >> v;
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+    dfs(1 , 1);
+    build(1 , 0 , n - 1);
+    int root = 1;
+    while(q--) {
+        int t , u;
+        cin >> t >> u;
+        if(t == 1) {
+            root = u;
+        } else if(t == 2) {
+            int v , x;
+            cin >> v >> x;
+            int lca;
+            if(l[u] >= l[root] && l[u] <= r[root] && l[v] >= l[root] && l[v] <= r[root]) {
+                lca = get_lca(u , v);
+            } else if((l[u] > l[root] && l[u] <= r[root]) || (l[v] > l[root] && l[v] <= r[root])) {
+                lca = root;
+            } else {
+                int p1 = get_lca(u , root);
+                int p2 = get_lca(v , root);
+                int p3 = get_lca(u , v);
+                (lvl[p1] > lvl[p2]) ? lca = p1 : lca = p2;
+                (lvl[p3] > lvl[lca]) ? lca = p3 : lca = lca;
+            }
+            if(lca == root)
+                update(1 , 0 , n - 1 , 0 , n - 1 , x);
+            else if(l[root] > l[lca] && l[root] <= r[lca]) {
+                int par = get_kth(root , lvl[root] - lvl[lca] - 1);
+                update(1 , 0 , n - 1 , 0 , n - 1 , x);
+                if(par)
+                    update(1 , 0 , n - 1 , l[par] , r[par] , -x);
+            } else {
+                update(1 , 0 , n - 1 , l[lca] , r[lca] , x);
+            }
+        } else {
+            if(u == root)
+                cout << query(1 , 0 , n - 1 , 0 , n - 1) << '\n';
+            else if(l[root] > l[u] && l[root] <= r[u]) {
+                int par = get_kth(root , lvl[root] - lvl[u] - 1);
+                ll ans = query(1 , 0 , n - 1 , 0 , n - 1);
+                if(par)
+                    ans -= query(1 , 0 , n - 1 , l[par] , r[par]);
+                cout << ans << '\n';
+            }
+            else {
+                cout << query(1 , 0 , n - 1 , l[u] , r[u]) << '\n';
+            }
+        }
+    }
+    return 0;
+}

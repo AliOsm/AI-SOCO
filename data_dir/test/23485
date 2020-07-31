@@ -1,0 +1,96 @@
+#include<bits/stdc++.h>
+using namespace std;
+int ara[200005];
+queue<int>q[200005];
+int seg[4*200005], p;
+int val[4*200005];
+typedef pair<int, int>pi;
+pi pp[200005];
+int res[200005];
+vector<int>vec;
+void update(int n, int s, int e, int indx, int v)
+{
+    if(s==indx && e==indx)
+    {
+        seg[n]+= v;
+        if(seg[n]>p)
+            val[n]= s;
+        else val[n]= -1;
+        return;
+    }
+
+    int mid= (s+e)>>1;
+    if(mid>=indx) update(n*2, s, mid, indx, v);
+    else update(n*2 +1, mid+1, e, indx, v);
+
+    if(val[n*2 +1]!=-1) val[n]= val[n*2 +1];
+    else val[n]= val[n*2];
+    return;
+}
+int query(int n, int s, int e, int l, int r)
+{
+    if(s>=l && e<=r)
+        return val[n];
+    if(s>r || e<l)
+        return -1;
+    int mid= (s+e)>>1;
+    int x= query(n*2, s, mid, l, r);
+    int y= query(n*2 +1, mid+1, e, l, r);
+
+    if(y!=-1)return y;
+    else return x;
+}
+int main()
+{
+    int n, m, x;
+    while(scanf("%d %d", &n, &m)==2)
+    {
+        memset(seg, 0, sizeof seg);
+        p= n/m;
+        for(int i=0; i<n; i++)
+            scanf("%d", &x), q[x%m +1].push(x), pp[i]= {x, i};
+        sort(pp, pp+n);
+        for(int i=1; i<=m; i++)
+            update(1, 1, m, i, q[i].size());
+        int sum= 0;
+        long long mv= 0;
+        for(int i=1; i<=m; i++)
+        {
+            if(q[i].size()<p)
+            {
+                int b= p-q[i].size();
+                for(int j=0; j<b; j++)
+                {
+                    if(sum>((i-1)*p))
+                    {
+                        sum--;
+                        x= query(1, 1, m, 1, i-1);
+                        q[i].push(q[x].front()+(i-x)), mv+=(i-x);
+                        q[x].pop();
+                        update(1, 1, m, x, -1);
+                    }
+                    else
+                    {
+                        x= query(1, 1, m, i+1, m);
+                        q[i].push(q[x].front()+(m-x)+i), mv+= (m-x+i);
+                        q[x].pop();
+                        update(1, 1, m, x, -1);
+                    }
+                }update(1, 1, m, i, b);
+            }sum+= q[i].size();
+        }printf("%lld\n", mv);
+        for(int i=1; i<=m; i++)
+        {
+            while(!q[i].empty())
+                vec.push_back(q[i].front()), q[i].pop();
+        }sort(vec.begin(), vec.end());
+        for(int i=0; i<n; i++)
+            res[ pp[i].second ]= vec[i];
+        vec.clear();
+        for(int i=0; i<n; i++)
+            printf("%d ", res[i]);
+        printf("\n");
+    }
+
+    return 0;
+}

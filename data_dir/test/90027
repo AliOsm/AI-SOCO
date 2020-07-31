@@ -1,0 +1,184 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+#define pii pair<int,int>
+#define F first
+#define S second
+#define mp make_pair
+
+const  int mx = 200050;
+
+int sparse[mx][20];
+int sweight[mx][20];
+vector<pii> vec[mx];
+int par[mx];
+int rnk[mx];
+vector<pair<int,pii> > edge;
+
+
+int fnd(int i)
+{
+    if(par[i] == i) return i;
+
+    par[i] = fnd(par[i]);
+    return par[i];
+}
+
+void unn(int u , int v )
+{
+    if(rnk[u] > rnk[v])
+    {
+        par[v] = u;
+    }
+    else if(rnk[v] > rnk[u])
+    {
+        par[u] = v;
+    }
+    else
+    {
+        par[u] = v;
+        rnk[v]++;
+    }
+
+}
+
+void dfs(int u , int from , int dep , int w)
+{
+    rnk[u]= dep;
+    sparse[u][0] = from;
+    sweight[u][0] = w;
+
+    int i , j , v , l = vec[u].size();
+
+    for(i = 0 ; i < l ; i++)
+    {
+        v = vec[u][i].F;
+        if(v == from) continue;
+        dfs(v,u,dep+1,vec[u][i].S);
+    }
+}
+
+int lca(int u , int v)
+{
+    int i , j , k , mx = 0;
+
+    if(rnk[u] < rnk[v])swap(u,v);
+
+    for( i = 19 ; i >= 0 ; i--)
+    {
+        if(sparse[u][i] != -1 && rnk[sparse[u][i]] >= rnk[v])
+        {
+            mx = max(mx,sweight[u][i]);
+            u = sparse[u][i];
+        }
+    }
+
+    if(u==v) return mx;
+
+    for(i = 19 ; i >= 0 ; i--)
+    {
+        if(sparse[u][i] != sparse[v][i])
+        {
+            mx = max(mx,sweight[u][i]);
+            mx = max(mx,sweight[v][i]);
+
+            u = sparse[u][i];
+            v = sparse[v][i];
+        }
+
+    }
+
+    mx = max(mx,sweight[u][0]);
+    mx = max(mx,sweight[v][0]);
+
+    return mx;
+
+}
+
+
+int main()
+{
+    int n , m , u ,v , w , i , j , k;
+
+    scanf("%d %d",&n,&m);
+
+    for(i = 1 ; i <= n ; i++)
+    {
+        par[i] = i;
+        rnk[i] = 0;
+    }
+
+
+
+    for(i =  0 ; i < m ; i++)
+    {
+        scanf("%d %d %d",&u,&v,&w);
+        edge.push_back(mp(w,mp(u,v)));
+    }
+    sort(edge.begin(),edge.end());
+    vector<int> unused;
+
+    int a , b ;
+
+    for(i = 0 ; i < m ; i++)
+    {
+        u = edge[i].S.F;
+        v = edge[i].S.S;
+        w = edge[i].F;
+
+        a = fnd(u);
+        b = fnd(v);
+
+        if(a != b)
+        {
+            unn(a,b);
+            vec[u].push_back(mp(v,w));
+            vec[v].push_back(mp(u,w));
+        }
+        else
+        {
+            unused.push_back(i);
+        }
+    }
+
+    dfs(1,-1,-1,-1);
+
+    for(j = 1 ; j < 20 ; j++)
+    {
+        for(i = 1 ; i <= n ; i++)
+        {
+            if(sparse[i][j-1] == -1)
+            {
+                sparse[i][j] = -1;
+            }
+            else
+            {
+                sparse[i][j] = sparse[sparse[i][j-1]][j-1];
+                sweight[i][j] = max(sweight[i][j-1],sweight[sparse[i][j-1]][j-1]);
+            }
+        }
+    }
+
+    int l = unused.size();
+    int ans = 0;
+    for(i = 0 ; i < l ; i++)
+    {
+        u = edge[unused[i]].S.F;
+        v = edge[unused[i]].S.S;
+
+        w = edge[unused[i]].F;
+
+        k = lca(u,v);
+
+        if(w <= k) ans++;
+
+
+    }
+
+    printf("%d\n",ans);
+
+    return 0;
+}

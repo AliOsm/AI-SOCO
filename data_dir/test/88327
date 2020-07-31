@@ -1,0 +1,53 @@
+#pragma GCC optimize("Ofast")
+
+#include <bits/stdc++.h>
+using namespace std;
+
+#define y0 holdtheflower
+#define y1 enjoythecolorandscent
+#define yn walkthroughthesoulgarden
+#define j1 feelthewarmbreathofkindnessandsalvation
+
+#define endl '\n'
+mt19937 rng32(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng64(chrono::steady_clock::now().time_since_epoch().count());
+
+int n, m, k; vector<long long> a;
+vector<int> x, y;
+
+long long SumRange(int L, int R, vector<long long> &prefix) {
+	long long ans = prefix[R] - prefix[L-1];
+	return ans;
+}
+
+void Input() {
+	cin >> n >> m >> k; a.resize(n+1);
+	x.resize(m); y.resize(m);
+	for (int i=1; i<=n; i++) cin >> a[i];
+	for (int i=0; i<m; i++) cin >> x[i] >> y[i];
+}
+
+void Solve() {
+	sort(a.begin(), a.end());
+	vector<long long> prefixSum(n+1, 0);
+	for (int i=1; i<=n; i++) prefixSum[i] = prefixSum[i-1] + a[i];
+	vector<long long> dp(k+1, LLONG_MAX); dp[0] = 0;
+	for (int i=0; i<=k; i++) {
+		for (int j=0; j<m; j++) {
+			if (i < k) dp[i+1] = min(dp[i+1], dp[i] + a[i+1]);
+			if (i + x[j] > k) continue;
+			dp[i+x[j]] = min(dp[i+x[j]], dp[i] + SumRange(i+y[j]+1, i+x[j], prefixSum));
+		}
+	}
+	cout << dp[k] << endl;
+}
+
+int main(int argc, char* argv[]) {
+	ios_base::sync_with_stdio(0); cin.tie(NULL);
+	Input(); Solve(); return 0;
+}
+
+/******************************************\
+ *  Thuy-Trang Tran, #Team4T's Leader     *
+ *  #Team4T Primary Flagship - Salvation  *
+\******************************************/

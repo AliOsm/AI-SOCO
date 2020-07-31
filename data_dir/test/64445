@@ -1,0 +1,132 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> ii;
+
+const int MAX = 1e5 + 5;
+constexpr int LOGMAX = 31 - __builtin_clz(MAX) + 3;
+vector<int> adj[MAX];
+int p[LOGMAX][MAX], level[MAX], id[MAX], back[MAX];
+int n, k;
+
+int nxt_id = 1;
+void dfs(int node, int father) {
+    back[nxt_id] = node;
+    id[node] = nxt_id++;
+    for(auto &each : adj[node]) {
+        if(each != father) {
+            level[each] = level[node] + 1;
+            p[0][each] = node;
+            dfs(each, node);
+        }
+    }
+}
+
+int lca(int u, int v) {
+    if(level[u] > level[v]) {
+        swap(u, v);
+    }
+    int lg = 31 - __builtin_clz(level[v]);
+    ford(i, lg, 0) {
+        if(level[v] - (1 << i) >= level[u]) {
+            v = p[i][v];
+        }
+    }
+    if(u == v) {
+        return u;
+    }
+    lg = 31 - __builtin_clz(level[v]);
+    ford(i, lg, 0) {
+        if(p[i][v] != p[i][u]) {
+            u = p[i][u];
+            v = p[i][v];
+        }
+    }
+    return p[0][u];
+}
+
+inline int dis(int a, int b) {
+    return level[a] + level[b] - 2 * level[lca(a, b)];
+}
+
+int set_size = 1;
+set<int> nodes {1};
+inline void add(int node) {
+    if(nodes.size() == 1) {
+        set_size += dis(node, back[*nodes.begin()]);
+    }
+    else {
+        auto nxt = nodes.lower_bound(id[node]);
+        set<int>::iterator prv;
+        if(nxt == nodes.begin()) {
+            prv = prev(nodes.end());
+        }
+        else if(nxt == nodes.end()) {
+            prv = prev(nodes.end());
+            nxt = nodes.begin();
+        }
+        else {
+            prv = prev(nxt);
+        }
+        set_size += (dis(node, back[*prv]) + dis(node, back[*nxt]) - dis(back[*prv], back[*nxt])) / 2;
+    }
+    nodes.insert(id[node]);
+}
+
+inline void remove(int node) {
+    nodes.erase(id[node]);
+    if(nodes.size() == 1) {
+        set_size -= dis(node, back[*nodes.begin()]);
+    }
+    else {
+        auto nxt = nodes.lower_bound(id[node]);
+        set<int>::iterator prv;
+        if(nxt == nodes.begin()) {
+            prv = prev(nodes.end());
+        }
+        else if(nxt == nodes.end()) {
+            prv = prev(nodes.end());
+            nxt = nodes.begin();
+        }
+        else {
+            prv = prev(nxt);
+        }
+        set_size -= (dis(node, back[*prv]) + dis(node, back[*nxt]) - dis(back[*prv], back[*nxt])) / 2;
+    }
+}
+
+int main() {
+    scanf("%d %d", &n, &k);
+    fori(i, 0, n - 1) {
+        int u, v;
+        scanf("%d %d", &u, &v);
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    memset(p, -1, sizeof p);
+    dfs(1, -1);
+    fori(i, 1, LOGMAX) {
+         fori(j, 1, n + 1) {
+             if(p[i - 1][j] != -1) {
+                 p[i][j] = p[i - 1][p[i - 1][j]];
+             }
+         }
+    }
+    int left = 1, ans = 1;
+    fori(right, 2, n + 1) {
+        add(right);
+        while(set_size > k) {
+            remove(left++);
+        }
+        ans = max(ans, right - left + 1);
+    }
+    printf("%d\n", ans);
+    return 0;
+}

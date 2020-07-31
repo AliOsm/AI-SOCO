@@ -1,0 +1,175 @@
+#include<iostream>
+#include<cstdio>
+#include<vector>
+#include<cmath>
+#define inf 1000000000
+using namespace std;
+int p[10003];
+int fi[10003];
+bool flag[10003];
+int dist[10003];
+struct kucha
+{
+    int v,c;
+};
+kucha heap[1000003];
+int last;
+struct rebro
+{
+    int x,y;
+    int flow;
+    int rflow;
+    int cost;
+};
+vector < rebro > e;
+vector < vector<int> > g;
+void add(int x,int y,int flow,int cost)
+{
+    rebro z;
+    z.x=x;
+    z.y=y;
+    z.rflow=0;
+    z.flow=flow;
+    z.cost=cost;
+    g[x].push_back(e.size());
+    e.push_back(z);
+    z.x=y;
+    z.y=x;
+    z.cost=-cost;
+    z.flow=0;
+    g[y].push_back(e.size());
+    e.push_back(z);
+}
+int n,m;
+int a[103][103];
+int main()
+{
+    scanf("%d %d",&n,&m);
+    g.resize(n*m+2);
+    int i,j;
+    int x,y;
+    for(i=0;i<n;i++)
+        for(j=0;j<m;j++)
+            scanf("%d",&a[i][j]);
+    for(i=0;i<n;i++)
+        for(j=0;j<m;j++)
+        {
+            if((i+j)&1)
+                add(i*m+j,n*m+1,1,0);
+            else
+                add(n*m,i*m+j,1,0);
+        }
+    for(i=0;i<n;i++)
+        for(j=0;j<m;j++)
+        {
+            if( ((i+j)&1)==0 )
+            {
+                if(a[i][j]==a[i][j-1] && j-1>-1)
+                    add(i*m+j,i*m+j-1,1,0);
+                else if(j-1>-1)
+                    add(i*m+j,i*m+j-1,1,1);
+
+                if(a[i][j]==a[i][j+1] && j+1<m)
+                    add(i*m+j,i*m+j+1,1,0);
+                else if(j+1<m)
+                    add(i*m+j,i*m+j+1,1,1);
+
+                if(a[i][j]==a[i-1][j] && i-1>-1)
+                    add(i*m+j,(i-1)*m+j,1,0);
+                else if(i-1>-1)
+                    add(i*m+j,(i-1)*m+j,1,1);
+
+                if(a[i][j]==a[i+1][j] && i+1<n)
+                    add(i*m+j,(i+1)*m+j,1,0);
+                else if(i+1<n)
+                    add(i*m+j,(i+1)*m+j,1,1);
+            }
+        }
+    int addflow;
+    int mincost=0;
+    int maxflow=0;
+    int start=n*m;
+    int finish=n*m+1;
+    n=n*m+2;
+    while(true)
+    {
+        for(i=0;i<n;i++)
+        {
+            dist[i]=inf;
+            flag[i]=false;
+        }
+        for(i=0;i<2*e.size();i++)
+            heap[i].c=inf;
+        dist[start]=0;
+        heap[1].c=0;
+        heap[1].v=start;
+        last=1;
+        while(last>0)
+        {
+            x=heap[1].v;
+            if(!flag[x])
+            {
+                flag[x]=true;
+                for(i=0;i<g[x].size();i++)
+                {
+                    y=e[g[x][i]].y;
+                    if(!flag[y] && e[g[x][i]].flow>e[g[x][i]].rflow)
+                    {
+                        if(dist[y]>dist[x]+e[g[x][i]].cost+fi[x]-fi[y])
+                        {
+                            dist[y]=dist[x]+e[g[x][i]].cost+fi[x]-fi[y];
+                            p[y]=g[x][i];
+                            last++;
+                            j=last;
+                            while(j>1 && dist[y]<heap[j>>1].c)
+                            {
+                                heap[j]=heap[j>>1];
+                                j>>=1;
+                            }
+                            heap[j].v=y;
+                            heap[j].c=dist[y];
+                        }
+                    }
+                }
+            }
+            j=1;
+            while(j*2<last && (heap[last].c>heap[j*2].c || heap[last].c>heap[j*2+1].c))
+            {
+                if(heap[j*2].c<=heap[j*2+1].c)
+                {
+                    heap[j]=heap[j*2];
+                    j*=2;
+                }
+                else
+                {
+                    heap[j]=heap[j*2+1];
+                    j*=2;
+                    j++;
+                }
+            }
+            heap[j]=heap[last--];
+        }
+        if(dist[finish]==inf)
+            break;
+        for(i=0;i<n;i++)
+            fi[i]=min(fi[i]+dist[i],inf);
+        x=finish;
+        addflow=inf;
+        while(x!=start)
+        {
+            addflow=min(addflow,e[p[x]].flow-e[p[x]].rflow);
+            x=e[p[x]].x;
+        }
+        maxflow+=addflow;
+        x=finish;
+        while(x!=start)
+        {
+            mincost+=addflow*e[p[x]].cost;
+            e[p[x]].rflow+=addflow;
+            e[p[x]^1].rflow-=addflow;
+            x=e[p[x]].x;
+        }
+    }
+    printf("%d\n",mincost);
+    return 0;
+}

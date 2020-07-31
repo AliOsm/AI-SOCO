@@ -1,0 +1,267 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+
+
+using namespace std;
+
+#ifdef WIN32
+  #define LLD "%I64d"
+#else
+  #define LLD "%lld"
+#endif
+
+typedef pair<int, int> pii;
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<bool> vb;
+typedef vector<vb> vvb;
+typedef vector<ll> vll;
+typedef vector<vll> vvll;
+
+ll rdtsc() {
+  ll tmp;
+  asm("rdtsc" : "=A"(tmp));
+  return tmp;
+}
+
+inline int myrand() {
+  return abs((rand() << 15) ^ rand());
+}
+
+inline int rnd(int x) {
+  return myrand() % x;
+}
+
+#define TASKNAME "text"
+#define pb push_back
+#define mp make_pair
+#define EPS (1e-9)
+#define INF ((int)1e9)
+#define sqr(x) ((x) * (x))
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#define sz(x) ((int)(x).size())
+
+const int MOD = (int)1e9;
+
+void add(int &x, int y) {
+  if ((x += y) >= MOD)
+    x -= MOD;
+}
+
+int mult(int x, int y) {
+  return (long long) x * y % MOD;
+}
+
+const int maxn = (int)2e5 + 10; 
+
+int _f[maxn + 2];
+
+int *f = _f + 2;
+void precalc() {
+  f[0] = f[1] = 1;
+  f[-1] = 0;
+  f[-2] = 1;
+  for (int i = 2; i < maxn; ++i)
+    f[i] = f[i - 2], add(f[i], f[i - 1]);
+}
+
+struct Info {
+  int value[2];
+  int n;
+
+  Info() : n(0) {
+    for (int i = 0; i < 2; ++i)
+      value[i] = 0;
+  }
+
+  Info(int a) : n(1) {
+    for (int i = 0; i < 2; ++i)
+      value[i] = a;
+  }
+
+  Info(const Info &left, const Info &right) {
+    n = left.n + right.n;
+    for (int i = 0; i < 2; ++i) {
+      value[i] = left.value[i];
+      ::add(value[i], mult(right.value[0], f[left.n - 2 + i]));
+      ::add(value[i], mult(right.value[1], f[left.n - 1 + i]));
+    }
+  }
+
+  void add(int toadd) {
+    ::add(value[0], mult(toadd, f[n + 1] + MOD - 1));
+    ::add(value[1], mult(toadd, (f[n + 2] + MOD - 1 - f[0])));
+  }
+};
+
+struct NodeInfo {
+  Info info;
+  int toadd;
+
+  NodeInfo() : info(), toadd(0) {}
+  NodeInfo(const Info &_info) : info(_info), toadd(0) {}
+
+  void add(int _toadd) {
+    ::add(toadd, _toadd);
+    info.add(_toadd);
+  }
+};
+
+struct SegmTree {
+  const static int maxn = (1 << 18);
+  NodeInfo a[2 * maxn];
+  int n;
+
+  void build(int _n, int *_a) {
+    for (n = 1; n < _n; n <<= 1) ;
+    assert(n <= maxn);
+    for (int i = 0; i < n; ++i)
+      a[i + n] = NodeInfo(i < _n ? _a[i] : 0);
+    for (int i = n - 1; i > 0; --i)
+      a[i] = NodeInfo(Info(a[2 * i].info, a[2 * i + 1].info));
+  }
+
+  void push(int v) {
+    if (a[v].toadd) {
+      a[2 * v].add(a[v].toadd);
+      a[2 * v + 1].add(a[v].toadd);
+      a[v].toadd = 0;
+    }
+  }
+
+  void add(int v, int l, int r, int l0, int r0, int toadd) {
+    if (l >= r0 || l0 >= r)
+      return;
+    if (l0 <= l && r <= r0) {
+      a[v].add(toadd);
+      return;
+    }
+
+    push(v);
+
+    int m = (l + r) / 2;
+    add(2 * v, l, m, l0, r0, toadd);
+    add(2 * v + 1, m, r, l0, r0, toadd);
+
+    a[v].info = Info(a[2 * v].info, a[2 * v + 1].info);
+  }
+
+  void add(int l, int r, int toadd) {
+    add(1, 0, n, l, r, toadd);
+  }
+
+  void change(int v, int l, int r, int pos, int newval) {
+    if (l > pos || r <= pos)
+      return;
+    if (l + 1 == r) {
+      a[v] = NodeInfo(newval);
+      return;
+    }
+
+    push(v);
+
+    int m = (l + r) / 2;
+    change(2 * v, l, m, pos, newval);
+    change(2 * v + 1, m, r, pos, newval);
+
+    a[v].info = Info(a[2 * v].info, a[2 * v + 1].info);
+  }
+
+  void change(int pos, int newval) {
+    change(1, 0, n, pos, newval);
+  }
+
+  Info get(int v, int l, int r, int l0, int r0) {
+    if (l0 >= r || l >= r0)
+      return Info();
+    if (l0 <= l && r <= r0)
+      return a[v].info;  
+
+    push(v);
+
+    int m = (l + r) / 2;
+    Info left = get(2 * v, l, m, l0, r0);
+    Info right = get(2 * v + 1, m, r, l0, r0);
+
+    a[v].info = Info(a[2 * v].info, a[2 * v + 1].info);
+    return Info(left, right);
+  }
+
+  int get(int l, int r) {
+    return get(1, 0, n, l, r).value[0];
+  }
+} tree;
+
+int a[maxn];
+
+bool solve() {
+  int n, m;
+  if (scanf("%d%d", &n, &m) < 2)
+    return 0;
+  for (int i = 0; i < n; ++i)
+    scanf("%d", &a[i]);
+  tree.build(n, a);
+
+  for (int i = 0; i < m; ++i) {
+    int type;
+    scanf("%d", &type);
+    if (type == 1) {
+      int pos, newval;
+      scanf("%d%d", &pos, &newval);
+      --pos;
+      tree.change(pos, newval);
+      continue;
+    }
+
+    if (type == 2) {
+      int l, r;
+      scanf("%d%d", &l, &r);
+      --l;
+      int res = tree.get(l, r);
+      printf("%d\n", res);
+      continue;
+    }
+
+    if (type == 3) {
+      int l, r, toadd;
+      scanf("%d%d%d", &l, &r, &toadd);
+      --l;
+      tree.add(l, r, toadd);
+      continue;
+    }
+
+    assert(0);
+  }
+
+  return 1;
+}
+
+int main() {
+  srand(rdtsc());
+#ifdef DEBUG
+  freopen(TASKNAME".in", "r", stdin);
+  freopen(TASKNAME".out", "w", stdout);
+#endif
+  
+  precalc();
+
+  while (1) {
+    if (!solve())
+      break;
+    #ifdef DEBUG
+      eprintf("%.18lf\n", (double)clock() / CLOCKS_PER_SEC);
+    #endif
+  }
+  return 0;
+}

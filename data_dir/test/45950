@@ -1,0 +1,172 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <cmath>
+#include <algorithm>
+#include <set>
+
+using namespace std;
+
+typedef pair<int, int> pi;
+
+const int MAXN = 1000005;
+
+vector<int> ID[MAXN];
+vector<int> H[MAXN];
+vector< pair< pi, int> > Q[MAXN];
+vector<int> E[MAXN];
+vector<int> roots;
+int inicio[MAXN], fin[MAXN];
+map<string, int> idx;
+bool seen[MAXN];
+int height[MAXN];
+int TT = 0;
+int ans[MAXN];
+int valor[MAXN];
+int BLOCK_SIZE;
+
+inline bool mo_cmp(const pair< pair<int, int>, int> &x,
+        const pair< pair<int, int>, int> &y)
+{
+    int block_x = x.first.first / BLOCK_SIZE;
+    int block_y = y.first.first / BLOCK_SIZE;
+    if(block_x != block_y)
+        return block_x < block_y;
+    return x.first.second < y.first.second;
+}
+
+
+void dfs(int node, int h){
+
+    seen[node] = true;
+    height[node] = h;
+
+    ID[h].push_back( valor[node] );
+    H[h].push_back(TT);
+
+    inicio[node] = TT++;
+
+    for(int i = 0 ; i < E[node].size(); i++){
+        int to = E[node][i];
+        dfs(to, h + 1);
+    }
+
+    fin[node] = TT;
+}
+
+int cnt[MAXN];
+int current_answer = 0;
+multiset<int> x;
+
+void add(int valor){
+
+    if( !x.count(valor))current_answer++;
+    x.insert(valor);
+
+}
+
+void remove(int valor){
+
+
+    if(x.count(valor))
+        x.erase( x.find(valor) );
+
+    if(!x.count(valor)) current_answer--;
+}
+
+int main()
+{
+
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    int n; cin >> n;
+    BLOCK_SIZE = static_cast<int>(sqrt(n));
+
+    int k = 0;
+    for(int i = 1; i <= n; i++){
+        string w;
+        int dad;
+        cin >> w >> dad;
+
+        if(!dad) roots.push_back(i);
+        else E[dad].push_back(i);
+
+        if( idx.find(w) == idx.end())
+            idx[w] = k++;
+
+        valor[i] = idx[w];
+
+    }
+
+    for(int i = 1; i <= n; i++){
+        if(!seen[i]) dfs(i, 1);
+    }
+
+    int q; cin >> q;
+
+    for(int i = 0; i < q; i++){
+
+        int v, h; cin >> v >> h;
+        h += height[v];
+
+        int l = lower_bound( H[h].begin(), H[h].end(), inicio[v]) - H[h].begin();
+        int r = lower_bound( H[h].begin(), H[h].end(), fin[v]) - H[h].begin();
+        r--;
+
+        if(r < l)
+            ans[i] = 0;
+        else{
+
+            Q[h].push_back( make_pair( make_pair(l, r), i));
+        }
+    }
+
+    for(int i = 1; i <= n; i++)
+    {
+
+        //MO mo;
+
+        sort( Q[i].begin(), Q[i].end(), mo_cmp);
+
+        int mo_left = 0, mo_right = -1;
+
+        for(int j = 0; j < Q[i].size(); j++){
+            int left = Q[i][j].first.first;
+            int right = Q[i][j].first.second;
+            int id = Q[i][j].second;
+
+            while(mo_right < right){
+                mo_right++;
+                add( ID[i][mo_right] );
+
+            }
+
+            while(mo_right > right){
+                remove( ID[i][mo_right]);
+                mo_right--;
+            }
+
+            while(mo_left < left){
+                remove( ID[i][mo_left]);
+                mo_left++;
+            }
+
+            while(mo_left > left){
+                mo_left--;
+                add( ID[i][mo_left]);
+            }
+
+            ans[id] = current_answer;
+        }
+        x.clear();
+        current_answer = 0;
+
+    }
+
+    for(int i = 0; i < q; i++){
+        cout << ans[i] << "\n";
+    }
+    return 0;
+}

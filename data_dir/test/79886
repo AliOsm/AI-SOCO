@@ -1,0 +1,37 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 3e5+5, maxx = 2e6+6;
+int n, k, a[maxn];
+int cnt[maxx];
+
+int sum(int l, int r) {
+    return cnt[min(r,1000000)]-cnt[l-1];
+}
+
+int main() {
+    cin >> n >> k;
+    int mn = maxx;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        cnt[a[i]]++;
+        mn = min(mn,a[i]);
+    }
+    for (int i = 1; i <= 1000000; i++) {
+        cnt[i] += cnt[i-1];
+    }
+    for (int i = mn; i >= 1; i--) {
+        int num = 0;
+        for (int j = i; j <= 1000000; j += i) {
+            //printf("adding [%d,%d]: %d\n",j,min(j+i-1,j+k),cnt[min(j+i-1,j+k)]-cnt[j-1]);
+            num += sum(j,min(j+i-1,j+k));
+        }
+        //cout << i << ": " << num << '\n';
+        if (num >= n) {
+            cout << i << '\n';
+            return 0;
+        }
+    }
+}
+

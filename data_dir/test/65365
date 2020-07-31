@@ -1,0 +1,141 @@
+#include<bits/stdc++.h>
+#define MAX   1000100
+#define MAXV   1000100
+#define FOR(i,a,b) for (int i=(a),_b=(b);i<=_b;i=i+1)
+#define FORD(i,b,a) for (int i=(b),_a=(a);i>=_a;i=i-1)
+#define REP(i,n) for (int i=0,_n=(n);i<_n;i=i+1)
+#define FORE(i,v) for (__typeof((v).begin()) i=(v).begin();i!=(v).end();i++)
+#define ALL(v) (v).begin(),(v).end()
+#define fi   first
+#define se   second
+#define MASK(i) (1LL<<(i))
+#define BIT(x,i) (((x)>>(i))&1)
+#define next   ___next
+#define prev   ___prev
+#define left   ___left
+#define right   ___right
+using namespace std;
+template<class X,class Y>
+    void minimize(X &x,const Y &y) {
+        if (x>y) x=y;
+    }
+template<class X,class Y>
+    void maximize(X &x,const Y &y) {
+        if (x<y) x=y;
+    }
+const int mod=(int)1e9+7;
+int inverse(int x) {
+    int res=1;
+    int mul=x;
+    int k=mod-2;
+    while (k>0) {
+        if (k&1) res=1LL*res*mul%mod;
+        mul=1LL*mul*mul%mod;
+        k>>=1;
+    }
+    return (res);
+}
+class SegmentTree {
+    private:
+    vector<int> mul;
+    int n;
+    void update(int i,int l,int r,int u,int v,int x) {
+        if (l>v || r<u || l>r || v<u) return;
+        if (u<=l && r<=v) {
+            mul[i]=1LL*mul[i]*x%mod;
+            return;
+        }
+        int m=(l+r)>>1;
+        update(2*i,l,m,u,v,x);
+        update(2*i+1,m+1,r,u,v,x);
+    }
+    public:
+    SegmentTree() {
+        n=0;
+    }
+    SegmentTree(int n) {
+        this->n=n;
+        mul.assign(4*n+7,1);
+    }
+    void update(int l,int r,int v) {
+        update(1,1,n,l,r,v);
+    }
+    int get(int x) const {
+        int res=1;
+        int i=1;
+        int l=1;
+        int r=n;
+        while (true) {
+            res=1LL*res*mul[i]%mod;
+            if (l==r) return (res);
+            int m=(l+r)>>1;
+            if (x>m) {
+                i=2*i+1;
+                l=m+1;
+            } else {
+                i=2*i;
+                r=m;
+            }
+        }
+    }
+};
+int primeDiv[MAXV],primeInv[MAXV];
+int prod[MAX],prodInv[MAX];
+int n,q,a[MAX];
+vector<int> primePos[MAXV],primeFact[MAX];
+vector<pair<int,int> > queryAt[MAX];
+int answer[MAX];
+void eratosthene(void) {
+    REP(i,2) primeDiv[i]=-1;
+    FOR(i,2,MAXV-1) if (primeDiv[i]==0)
+        for (int j=i;j<MAXV;j=j+i) primeDiv[j]=i;
+    FOR(i,1,MAXV-1) primeInv[i]=inverse(i);
+}
+void init(void) {
+    scanf("%d",&n);
+    FOR(i,1,n) scanf("%d",&a[i]);
+    FOR(i,1,MAXV-1) if (primeDiv[i]==i) primePos[i].push_back(0);
+    FOR(i,1,n) {
+        int x=a[i];
+        while (x>1) {
+            int p=primeDiv[x];
+            primeFact[i].push_back(p);
+            primePos[p].push_back(i);
+            while (x%p==0) x/=p;
+        }
+        sort(ALL(primeFact[i]));
+    }
+    prod[0]=1;
+    FOR(i,1,n) prod[i]=1LL*prod[i-1]*a[i]%mod;
+    FOR(i,0,n) prodInv[i]=inverse(prod[i]);
+    FOR(i,1,MAXV-1) if (primeDiv[i]==i) primePos[i].push_back(n+1);
+}
+int getProduct(int l,int r) {
+    return (1LL*prod[r]*prodInv[l-1]%mod);
+}
+void process(void) {
+    scanf("%d",&q);
+    FOR(i,1,q) {
+        int l,r;
+        scanf("%d%d",&l,&r);
+        queryAt[l].push_back(make_pair(r,i));
+    }
+    SegmentTree myit(n);
+    FORD(i,n,1) {
+        int val=1;
+        FORE(it,primeFact[i]) {
+            int id=lower_bound(ALL(primePos[*it]),i)-primePos[*it].begin();
+            myit.update(i+1,primePos[*it][id+1]-1,1LL*(*it-1)*primeInv[*it]%mod);
+            val=1LL*val*(*it-1)%mod*primeInv[*it]%mod;
+        }
+        myit.update(i,i,val);
+        FORE(it,queryAt[i]) answer[it->se]=1LL*getProduct(i,it->fi)*myit.get(it->fi)%mod;
+    }
+    FOR(i,1,q) printf("%d\n",answer[i]);
+}
+int main(void) {
+    eratosthene();
+    init();
+    process();
+    return 0;
+}

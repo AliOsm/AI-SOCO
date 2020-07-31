@@ -1,0 +1,64 @@
+// In the name of Allah the Lord of the Worlds.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+int main(void)
+{
+    ios::sync_with_stdio(0);
+    cin.tie(0);cout.tie(0);
+
+    int n , p;
+    string ar;
+    cin >> n >> p >> ar;
+
+    if(p>n/2){
+
+        reverse(ar.begin() , ar.end());
+        p = n-p+1;
+    }
+
+    int l = 1e9 , r = -1;
+
+    for(int i=1;i<=n/2;i++){
+
+        if(ar[i-1]!=ar[n-i]){
+
+            l = min(l , i);
+            r = max(r , i);
+        }
+    }
+
+    if(r==-1){
+
+        cout << 0 << endl;
+        return 0;
+    }
+
+    int counter;
+
+    if(l==r)counter = abs(p-l);
+    else if(r<=p)counter = p-l;
+    else if(l>=p)counter = r-p;
+    else counter = min(p-l+r-l , r-p+r-l);
+
+    for(int i=1;i<=n/2;i++){
+
+        if(ar[i-1]!=ar[n-i]){
+
+            int t = ar[n-i] - 'a';
+            int now = ar[i-1] - 'a';
+
+            if(t<now)swap(t , now);
+
+            counter+=min(t-now , 26-t+now);
+        }
+    }
+
+    cout << counter << endl;
+
+
+    return 0;
+}

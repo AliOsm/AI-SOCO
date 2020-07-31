@@ -1,0 +1,187 @@
+#include <bits/stdc++.h>
+#ifdef BUG
+    #include "debug.hpp"
+#else
+    #define DEBUG(var)
+#endif
+
+using namespace std;
+template< class T1, class T2 > inline istream &
+operator>>( istream & fin, pair< T1, T2 > & pr )
+{ fin >> pr.first >> pr.second; return fin; }
+template< class T0, class T1, class T2 > inline istream &
+operator>>( istream & fin, tuple< T0, T1, T2 > & t )
+{ fin >> get<0>(t) >> get<1>(t) >> get<2>(t); return fin; }
+template< class T > inline istream &
+operator>>( istream & fin, vector< T > & a ) {
+for( auto & u: a) fin >> u; return fin; }
+template<class T, size_t n> inline istream &
+operator>>( istream & fin, array<T, n> & a ) {
+for( auto & u: a) fin >> u; return fin; }
+/* @@@ ----------------------------------- */
+
+inline vector<size_t>
+merge(const vector<size_t> & a, const vector<size_t> & b){
+    const auto n = a.size();
+    const auto m = b.size();
+    vector<size_t> out;
+
+    for(size_t i = 0, j = 0; out.size() < 10 && (i < n || j < m); )
+        if(j == m) out.push_back(a[i++]);
+        else if (i == n) out.push_back(b[j++]);
+        else if (a[i] == b[j]) out.push_back(a[i++]), ++j;
+        else if (a[i] < b[j]) out.push_back(a[i++]);
+        else out.push_back(b[j++]);
+
+    return out;
+}
+
+vector<size_t>
+lca(size_t u,
+    size_t v,
+    const vector<size_t> & dist,
+    const vector<vector<size_t>> & par,
+    const vector<vector<vector<size_t>>> & tr)
+{
+    /* first bring them to same height */
+    if(dist[u] < dist[v]) swap(u, v);
+
+    vector<size_t> out(tr[u][0]);
+
+    while(dist[v] < dist[u]) {
+        size_t i = 1;
+        while(i < par[u].size() && dist[v] < dist[par[u][i]] + 1)
+            ++ i;
+
+        out = merge(out, tr[u][i]);
+        u = par[u][i-1];
+    }
+
+    if(u == v) return out; /* u was in sub-tree of v */
+
+    out = merge(out, tr[v][0]);
+
+    /* u & v are @ same level but not same nodes */
+    /* find the nodes right below their lowest common ancesstor */
+    while (par[u][0] != par[v][0]) {
+        size_t i = 1;
+        while(i < par[u].size() && par[u][i] != par[v][i])
+            ++ i;
+
+        out = merge(out, tr[u][i]);
+        out = merge(out, tr[v][i]);
+
+        u = par[u][i - 1];
+        v = par[v][i - 1];
+    }
+
+    return merge(out, tr[u][1]);
+}
+
+
+
+void c587()
+{
+    size_t n, m, q;
+    cin >> n >> m >> q;
+
+    vector<vector<size_t>> adj(n), ids(n);
+
+    for(size_t u, v, i = 0; i + 1 < n; ++i)
+    {
+        cin >> u >> v;
+        -- u; -- v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    for(size_t u, i = 0; i < m; ++ i)
+    {
+        cin >> u;
+        ids[--u].push_back(i + 1);
+    }
+
+    vector<size_t> par(n, -1), dist(n, -1), ord;
+    {
+    queue<size_t> q;
+
+    par[0] = dist[0] = 0;
+    for(q.push(0); !q.empty(); q.pop())
+    {
+        const auto r = q.front();
+        ord.push_back(r);
+        for(const auto i: adj[r])
+            if(i != par[r]) q.push(i), par[i] = r, dist[i] = dist[r] + 1;
+    }
+    }
+
+    // const auto xpar = lca(dist, par);
+
+    vector<vector<size_t>> xpar(n);
+    vector<vector<vector<size_t>>> tr(n);
+
+    for(size_t i = 0; i < n; ++ i)
+    {
+        xpar[i].push_back(par[i]);
+        sort(begin(ids[i]), end(ids[i]));
+
+        if(10 < ids[i].size())
+            ids[i].erase(begin(ids[i]) + 10, end(ids[i]));
+
+        tr[i].push_back(ids[i]);
+    }
+
+    for(size_t i = 1; i < n; ++ i)
+        tr[i].push_back(merge(tr[i][0], tr[par[i]][0]));
+
+
+    reverse(begin(ord), end(ord));
+
+    {
+        const auto pred = [&par](const size_t i){
+            return i == 0 || par[i] == 0;
+        };
+
+        ord.erase(remove_if(begin(ord), end(ord), pred), end(ord));
+    }
+
+    while(!ord.empty())
+    {
+        auto iter = begin(ord);
+        for(const auto i: ord)
+        {
+            /* append the last node of the last node */
+            const auto j = xpar[i].back();
+            tr[i].push_back(merge(tr[i].back(), tr[j].back()));
+
+            const auto inc = xpar[j].back();
+            xpar[i].push_back(inc);
+            if(inc != 0) *iter++ = i; /* not hit the root yet */
+        }
+        ord.erase(iter, end(ord));
+    }
+
+    DEBUG(xpar);
+    DEBUG(tr);
+
+    for(size_t u, v, a; 0 < q; -- q)
+    {
+        cin >> u >> v >> a;
+        --u; -- v;
+
+        auto out = lca(u, v, dist, xpar, tr);
+        cout << min(out.size(), a);
+        for(size_t i = 0; i < out.size() && i < a; ++ i)
+            cout << ' ' << out[i];
+
+        cout << '\n';
+    }
+}
+
+int main( const int argc, char * argv [])
+{
+    ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+    c587();
+
+    return EXIT_SUCCESS;
+}

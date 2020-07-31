@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+typedef long long ll;
+
+const int mod = 1e9+7;
+
+
+//returns x such that x*a == 1 (mod b)
+//x only exists if gcd(a, b) == 1
+ll modInverse(ll a, ll b){
+    return 1<a ? b - modInverse(b%a,a)*b/a : 1;
+}
+
+//returns a^pw % mod
+ll fastPow(ll a, ll pw, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while(pw > 0) {
+        if(pw & 1) res = (res*a)%mod;
+        a = (a*a)%mod;
+        pw >>= 1;
+    }
+    return res;
+}
+
+struct NchooseK {
+    int range, mod;
+    vector<ll> fact,ifact;
+
+    NchooseK(int currMod) {
+        this->mod = currMod;
+        range = (int)2e5+3;
+        fact.resize(range+1);
+        ifact.resize(range+1);
+        calcFacts();
+    }
+
+    void calcFacts() {
+        fact[0] = 1;
+        for(ll i = 1; i <= range; ++i) {
+            fact[i] = (1LL*fact[i-1]*i)%this->mod;
+        }
+        ifact[range] = fastPow(fact[range], this->mod-2, this->mod);
+        for(int i = range-1; i >= 0; --i) {
+            ifact[i] = (1LL*ifact[i+1]*(i+1))%this->mod;
+        }
+    }
+
+    //classic n choose k
+    //***use prime moduli***
+    ll choose(int n, int k) const {
+        if(k < 0 || k > n || n < 0) return 0;
+        return ((1LL*fact[n]*ifact[k])%this->mod * 1LL*ifact[n-k])%this->mod;
+    }
+
+};
+
+signed main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n, T;
+    cin >> n >> T;
+    vector<int> arr;
+    int sum = 0;
+    for(int i = 0; i < n; ++i) {
+        int val;
+        cin >> val;
+        sum += val;
+        if(sum <= T) {
+            arr.push_back(val);
+        }
+    }
+    NchooseK nk(mod);
+    n = arr.size();
+    vector<int> powHalf(n+2, 1);
+    const int half = fastPow(2, mod-2, mod);
+    assert((half+half)%mod == 1);
+    for(int i = 1; i < (int)powHalf.size(); ++i) {
+        powHalf[i] = (powHalf[i-1]*half) % mod;
+    }
+    sum = 0;
+    int res = 0;
+
+    int prefixPascal = 1;
+    int lastBot = 0;
+    for(int i = 0; i < n; ++i) {
+        sum += arr[i];
+        if(sum+i+1 <= T) {
+            ++res;
+        } else {
+            assert(sum <= T);
+            int X = min(T-sum, i+1);
+
+            prefixPascal *= 2;
+            prefixPascal -= nk.choose(i, lastBot);
+            prefixPascal %= mod;
+            prefixPascal += mod;
+            prefixPascal %= mod;
+
+            while(lastBot < X) {
+                ++lastBot;
+                prefixPascal += nk.choose(i+1, lastBot);
+                prefixPascal %= mod;
+            }
+            while(lastBot > X) {
+                prefixPascal -= nk.choose(i+1, lastBot) + 2*mod;
+                prefixPascal %= mod;
+                --lastBot;
+            }
+            res += prefixPascal*powHalf[i+1]%mod;
+            res %= mod;
+            res += mod;
+            res %= mod;
+        }
+    }
+    cout << res<< '\n';
+}

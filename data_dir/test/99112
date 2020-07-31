@@ -1,0 +1,112 @@
+#include <cstdio>
+#include <vector>
+using namespace std;
+char s[200010], t[200010];
+int sl, tl;
+int z[500010], x[500010];
+int go(int xl) {
+	int L = 0, R = 0;
+	for (int i = 0; i < xl; i++) {
+		z[i] = 0;
+	}
+	for (int i = 0; i < xl; i++) {
+		if (i > R) {
+			L = R = i;
+			while (R < xl && x[R] == x[R-L]) ++R;
+			z[i] = R - L;
+			--R;
+		} else {
+			int k = i - L;
+			if (z[k] < R - i + 1) {
+				z[i] = z[k];
+			} else {
+				L = i;
+				while (R < xl && x[R] == x[R-L]) ++R;
+				z[i] = R - L;
+				--R;
+			}
+		}
+	}
+}
+vector<int> freq[26];
+vector<int> ft[26];
+int ok[26][200010];
+int main() {
+	scanf("%d%d", &sl, &tl);
+	scanf("%s%s", s, t);
+	for (int i = 0; i < sl; i++) {
+		freq[s[i]-'a'].push_back(i);
+	}
+	for (int i = 0; i < tl; i++) {
+		ft[t[i]-'a'].push_back(i);
+	}
+	for (int i = 0; i < 26; i++) {
+		for (int j = 0; j < sl; j++) {
+			ok[i][j] = ft[i].size() ? -1 : -2;
+		}
+		if (!ft[i].size()) continue;
+		if (ft[i].size() == 1) {
+			int tpos = ft[i][0];
+			for (int j = 0; j < 26; j++) {
+				if (!freq[j].size()) continue;
+				for (int q = 0; q < freq[j].size(); q++) {
+					if (freq[j][q] - tpos >= 0) {
+						ok[i][freq[j][q]-tpos] = j;
+					}
+				}
+			}
+		} else {
+			int tpos = ft[i][0], k = ft[i].size();
+			for (int j = 0; j < ft[i].size() - 1; j++) {
+				x[j] = ft[i][j+1] - ft[i][j];
+			}
+			x[k-1] = -1;
+			for (int j = 0; j < 26; j++) {
+				if (freq[j].size() <= 1) continue;
+				int spos = freq[j][0], nd = k;
+				for (int q = 0; q < freq[j].size() - 1; q++) {
+					x[nd++] = freq[j][q+1] - freq[j][q];
+				}
+				go(nd);
+				for (int q = k; q < nd; q++) {
+					if (z[q] == k - 1 && spos - tpos >= 0) {
+						ok[i][spos-tpos] = j;
+					}
+					spos += x[q];
+				}
+			}
+		}
+	}
+	vector<int> ans;
+	for (int i = 0; i < sl - tl + 1; i++) {
+		int f = 1;
+		int cnt[26] = {};
+		for (int j = 0; j < 26; j++) {
+			if (!ft[j].size()) continue;
+			if (ok[j][i] == -1) {
+				f = 0;
+				break;
+			}
+			if (ok[j][i] == j) {
+				cnt[j]++;
+			} else if (ok[ok[j][i]][i] == j) {
+				cnt[ok[j][i]]++;
+			} else if (ok[ok[j][i]][i] == -2) {
+				cnt[ok[j][i]]++;
+			} else {
+				f = 0;
+			}
+		}
+		for (int j = 0; j < 26; j++) {
+			if (cnt[j] > 1) f = 0;
+		}
+		if (f) {
+			ans.push_back(i);
+		}
+	}
+	printf("%d\n", ans.size());
+	for (int i = 0; i < ans.size(); i++) {
+		printf("%d ", ans[i] + 1);
+	}
+	return 0;
+}

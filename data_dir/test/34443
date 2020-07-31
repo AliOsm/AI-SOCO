@@ -1,0 +1,116 @@
+#include <bits/stdc++.h>
+#define F first
+#define S second
+using namespace std;
+const int N=2e5+5,Lg=20;
+int n,m,depth,Lca;
+bool Dot[N];
+int a[N],b[N],c[N],p[N],M[N],dep[N],ANS[N];
+int Pr[N][Lg],C[N][Lg];
+multiset < int > st[N];
+vector < int > L[N],R[N]; 
+vector < pair < int , int > > s,v[N];
+
+int P(int x) {
+	if (p[x]==x) return x;
+	return p[x]=P(p[x]);	
+}
+
+void Uni(int a,int b) {
+	a=P(a);
+	b=P(b);
+	p[b]=a;
+}
+
+void Dfs(int x,int p,int cost) {
+	dep[x]=++depth,Pr[x][0]=p,C[x][0]=cost,M[x]=x;
+	for (int i=0; i<v[x].size(); i++) 
+		if (v[x][i].F!=p) Dfs(v[x][i].F,x,c[v[x][i].S]);
+	--depth;
+}
+
+pair < int , int > LCA(int a,int b) {
+	int res=0;
+	if (dep[a]<dep[b]) swap(a,b);
+	for (int i=18; i>=0; i--)	
+		if (dep[Pr[a][i]]>=dep[b]) res=max(res,C[a][i]),a=Pr[a][i];
+	if (a==b) return {res,a};
+	for (int i=18; i>=0; i--)	
+		if (Pr[a][i]!=Pr[b][i]) res=max(res,max(C[a][i],C[b][i])),a=Pr[a][i],b=Pr[b][i];
+	res=max(res,max(C[a][0],C[b][0]));
+	return {res,Pr[a][0]};
+}
+
+int Merge(int x,int y) {
+	for (multiset < int > :: iterator it=st[y].begin(); it!=st[y].end(); it++) 
+		st[x].insert((*it));
+	return x;
+}
+
+void Df(int x,int p,int idx) {
+	for (int i=0; i<v[x].size(); i++) {
+		int to=v[x][i].F;
+		if (to==p) continue;
+		Df(to,x,v[x][i].S);
+		if (st[M[x]].size()>st[M[to]].size()) M[x]=Merge(M[x],M[to]);
+										 else M[x]=Merge(M[to],M[x]);
+	}
+	
+	for (int i=0; i<L[x].size(); i++) 
+		st[M[x]].insert(L[x][i]);
+	
+	for (int i=0; i<R[x].size(); i++) 
+		st[M[x]].erase(st[M[x]].find(R[x][i])),
+		st[M[x]].erase(st[M[x]].find(R[x][i]));
+	
+	if (!st[M[x]].size()) ANS[idx]=-1;	
+				     else ANS[idx]=(*st[M[x]].begin())-1;
+}
+
+
+main () {
+	scanf("%d%d",&n,&m);
+	
+	for (int i=1; i<=m; i++) {
+		scanf("%d%d%d",&a[i],&b[i],&c[i]);
+		s.push_back({c[i],i});
+	}
+	
+	sort(s.begin(),s.end());
+	
+	for (int i=1; i<=n; i++)
+		p[i]=i;
+	
+	for (int i=0; i<s.size(); i++) {
+		int idx=s[i].S,A=a[idx],B=b[idx],C=c[idx];
+		
+		if (P(A)!=P(B)) {
+			Uni(A,B);
+			v[A].push_back({B,idx});
+			v[B].push_back({A,idx});
+		}
+			else Dot[idx]=1;
+	}
+	
+	Dfs(1,1,0);
+	
+	for (int j=1; j<=18; j++)
+		for (int i=1; i<=n; i++){
+			Pr[i][j]=Pr[Pr[i][j-1]][j-1];
+			C[i][j]=max(C[i][j-1],C[Pr[i][j-1]][j-1]);
+		}
+	
+	for (int i=1; i<=m; i++) 
+		if (Dot[i]) {
+			pair < int , int > pr=LCA(a[i],b[i]);
+			ANS[i]=pr.F-1;
+			L[a[i]].push_back(c[i]);
+			L[b[i]].push_back(c[i]);
+			R[pr.S].push_back(c[i]);
+		}
+		
+	Df(1,1,0);
+	
+	for (int i=1; i<=m; i++) 
+		printf("%d ",ANS[i]);
+}

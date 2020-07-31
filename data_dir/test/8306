@@ -1,0 +1,443 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+    AssertsCounter(): counter(0) {}
+    ~AssertsCounter() { std::cout << std::endl << "DIAG: " << (counter == 0 ? "OK" : "!!!") << " Asserts count: " << counter << std::endl; }
+    void Increment() { counter++; }
+    uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED (" << __LINE__ << "): '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cout << "ASSERT FAILED (" << __LINE__ << "): '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint16_t> vector_uint16_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+typedef std::vector<uint8_t> vector_uint8_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> inline std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+    return ist;
+}
+
+template<typename T> inline std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+    return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+
+class SegTreeXorSum
+{
+public:
+    void Init(const vector_uint32_t& data)
+    {
+        n = data.size();
+        vector_uint32_t(n * 4).swap(sum);
+        vector_uint16_t(n * 4).swap(inv);
+
+        for (size_t i = 0; i < n; i++)
+        {
+            LOCAL_ASSERT(data[i] <= 1);
+            if (data[i] != 0)
+                Inverse(i, i + 1);
+        }
+    }
+
+    uint32_t GetSum(const size_t iBegin, const size_t iEnd)
+    {
+        if (iBegin == iEnd)
+            return 0;
+        return GetImpl(iBegin, iEnd, 0, 0, n);
+    }
+
+    void Inverse(const size_t iBegin, const size_t iEnd)
+    {
+        if (iBegin == iEnd)
+            return;
+        InverseImpl(iBegin, iEnd, 0, 0, n);
+    }
+    
+private:
+    uint32_t GetActualSum(const size_t tp, const size_t lb, const size_t rb)
+    {
+        if (!inv[tp])
+            return sum[tp];
+        LOCAL_ASSERT(rb - lb >= sum[tp]);
+        return rb - lb - sum[tp];
+    }
+
+    void Push(const size_t tp, const size_t lb, const size_t rb)
+    {
+        LOCAL_ASSERT(lb < rb);
+
+        if (!inv[tp])
+            return;
+
+        sum[tp] = GetActualSum(tp, lb, rb);
+        inv[tp] = 0;
+
+        if (rb - lb > 1)
+        {
+            LOCAL_ASSERT(2 * tp + 2 < inv.size());
+            inv[2 * tp + 1] ^= 1;
+            inv[2 * tp + 2] ^= 1;
+        }
+    }
+
+    void InverseImpl(const size_t iBegin, const size_t iEnd, const size_t tp, const size_t lb, const size_t rb)
+    {
+        if (lb == rb)
+            return;
+
+        LOCAL_ASSERT(lb <= iBegin && iBegin < iEnd && iEnd <= rb);
+        Push(tp, lb, rb);
+
+        LOCAL_ASSERT(tp < sum.size());
+        if (iBegin == lb && iEnd == rb)
+        {
+            inv[tp] ^= 1;
+            return;
+        }
+
+        const size_t m = lb + (rb - lb) / 2;
+        if (iBegin < m)
+        {
+            InverseImpl(iBegin, std::min(m, iEnd), 2 * tp + 1, lb, m);
+        }
+        if (iEnd > m)
+        {
+            InverseImpl(std::max(iBegin, m), iEnd, 2 * tp + 2, m, rb);
+        }
+
+        sum[tp] = GetActualSum(2 * tp + 1, lb, m) + GetActualSum(2 * tp + 2, m, rb);
+    }
+   
+    uint32_t GetImpl(const size_t iBegin, const size_t iEnd, const size_t tp, const size_t lb, const size_t rb)
+    {
+        if (lb == rb)
+            return 0;
+
+        LOCAL_ASSERT(lb <= iBegin && iBegin < iEnd && iEnd <= rb);
+        Push(tp, lb, rb);
+
+        LOCAL_ASSERT(tp < sum.size());
+        if (iBegin == lb && iEnd == rb)
+        {
+            LOCAL_ASSERT(inv[tp] == 0);
+            return sum[tp];
+        }
+
+        uint32_t res = 0;
+        const size_t m = lb + (rb - lb) / 2;
+        if (iBegin < m)
+        {
+            res += GetImpl(iBegin, std::min(m, iEnd), 2 * tp + 1, lb, m);
+        }
+        if (iEnd > m)
+        {
+            res += GetImpl(std::max(iBegin, m), iEnd, 2 * tp + 2, m, rb);
+        }
+        
+        return res;
+    }
+    
+    size_t n;
+    vector_uint32_t sum; // sum
+    vector_uint16_t inv; // should inverse
+};
+
+
+const uint32_t BitsCount = 20;
+
+class Storage
+{
+public:
+    Storage(const vector_uint32_t& a): m_trees(BitsCount)
+    {
+        for (size_t b = 0; b < BitsCount; b++)
+        {
+            const uint32_t mask = 1UL << b;
+
+            vector_uint32_t bits(a.size());
+            for (size_t i = 0; i < a.size(); i++)
+            {
+                if (a[i] & mask)
+                    bits[i] = 1;
+            }
+            m_trees[b].Init(bits);
+        }
+    }
+
+    void Modify(const size_t iBegin, const size_t iEnd, const uint32_t x)
+    {
+        for (size_t b = 0; b < BitsCount; b++)
+        {
+            const uint32_t mask = 1UL << b;
+            if (x & mask)
+            {
+                m_trees[b].Inverse(iBegin, iEnd);
+            }
+        }
+    }
+
+    uint64_t GetSum(const size_t iBegin, const size_t iEnd)
+    {
+        uint64_t ans = 0;
+        for (size_t b = 0; b < BitsCount; b++)
+        {
+            const uint64_t z = m_trees[b].GetSum(iBegin, iEnd);
+            ans += (z << b);
+        }
+        return ans;
+    }
+
+private:
+    std::vector<SegTreeXorSum> m_trees;
+};
+
+#if LOCAL_TEST
+class StorageRef
+{
+public:
+    StorageRef(const vector_uint32_t& a): m_data(a)
+    {
+    }
+
+    void Modify(const size_t iBegin, const size_t iEnd, const uint32_t x)
+    {
+        std::for_each(m_data.begin() + iBegin, m_data.begin() + iEnd, [&x](uint32_t& z) { z ^= x; });
+    }
+
+    uint64_t GetSum(const size_t iBegin, const size_t iEnd)
+    {
+        return std::accumulate(m_data.begin() + iBegin, m_data.begin() + iEnd, 0ULL);
+    }
+
+private:
+    vector_uint32_t m_data;
+};
+#endif
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; (void)sw;
+
+    // 
+    size_t n;
+    ist >> n;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+#if LOCAL_TEST
+    ost << std::endl << "Next test" << std::endl;
+#endif
+
+    // 
+    vector_uint32_t a(n);
+    ist >> a;
+
+    Storage storage(a);
+#if LOCAL_TEST
+    StorageRef storageRef(a);
+#endif
+
+    size_t m;
+    ist >> m;
+
+    for (size_t i = 0; i < m; i++)
+    {
+        size_t t;
+        ist >> t;
+
+        if (t == 1)
+        {
+            size_t l, r;
+            ist >> l >> r;
+            --l;
+
+            const uint64_t ans = storage.GetSum(l, r);
+            ost << ans;
+#if LOCAL_TEST
+            const uint64_t ansRef = storageRef.GetSum(l, r);
+            ost << ", ref: " << ansRef;
+#endif
+            ost << "\n";
+        }
+        else if (t == 2)
+        {
+            size_t l, r;
+            uint32_t x;
+            ist >> l >> r >> x;
+            --l;
+
+            storage.Modify(l, r, x);
+#if LOCAL_TEST
+            storageRef.Modify(l, r, x);
+#endif
+        }
+
+    #if LOCAL_TEST
+        for (size_t l = 0; l < n; l++)
+        {
+            for (size_t r = l + 1; r <= n; r++)
+            {
+                Storage storageCopy = storage;
+                const uint64_t bans = storageCopy.GetSum(l, r);
+                const uint64_t bansRef = storageRef.GetSum(l, r);
+                LOCAL_ASSERT_EQ(bansRef, bans);
+            }
+        }
+    #endif
+    }
+
+    return multipleTestMode;
+}
+
+#if LOCAL_TEST
+void TestTree()
+{
+    vector_uint32_t data;
+    data.push_back(1);
+    data.push_back(1);
+    data.push_back(0);
+    data.push_back(1);
+    data.push_back(0);
+    data.push_back(0);
+    data.push_back(1);
+    data.push_back(1);
+    const size_t n = data.size();
+
+    SegTreeXorSum st;
+    st.Init(data);
+
+    for (size_t t = 0; t < 100; t++)
+    {
+        for (size_t l = 0; l < n; l++)
+        {
+            for (size_t r = l + 1; r <= n; r++)
+            {
+                const uint32_t bansRef = std::accumulate(data.begin() + l, data.begin() + r, 0U);
+
+                SegTreeXorSum treeCopy = st;
+                const uint32_t bans1 = treeCopy.GetSum(l, r);
+                LOCAL_ASSERT_EQ(bansRef, bans1);
+
+                const uint32_t bans2 = treeCopy.GetSum(l, r);
+                LOCAL_ASSERT_EQ(bansRef, bans2);
+            }
+        }       
+    }
+}
+#endif
+
+int main(int argc, const char *argv[])
+{
+#if LOCAL_TEST
+    TestTree();
+#endif
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

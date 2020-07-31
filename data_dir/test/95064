@@ -1,0 +1,167 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define fi first
+#define se second
+#define mk make_pair
+
+using namespace std;
+
+typedef pair<int, int> ii;
+typedef long long ll;
+
+const int INF = 0x3f3f3f3f;
+
+struct edge {
+	int to, cost, cap, flow, rid;
+
+	edge () {}
+
+	edge (int a, int b, int c, int d, int e) : 
+		to(a), cost(b), cap(c), flow(d), rid(e) {}
+};
+
+const int N = 111;
+vector <edge> g[N];
+int n;
+
+void add (int a, int b, int cost, int cap) {
+	g[a].pb(edge(b, cost, cap, 0, g[b].size()));
+	g[b].pb(edge(a, -cost, 0, 0, g[a].size() - 1));
+}
+
+int h[N];
+/*negative edges*/
+void bellman_ford (int s) {
+	fill (h, h + N, INF);
+	h[s] = 0;
+	for (int i = 0; i < n - 1; i++) 
+		for (int at = 0; at < n; at++) 
+			for (int j = 0; j < (int)g[at].size(); j++) {
+				if (!g[at][j].cap)	continue;
+				int next = g[at][j].to, w = g[at][j].cost;
+				h[next] = min (h[next], h[at] + w);
+			}
+}
+
+ii pai[N];
+int dist[N];
+int dijkstra (int s, int t) {
+	fill (dist, dist + N, INF);
+	for (int i = 0; i < N; i++)
+		pai[i] = ii(-1, -1);
+	priority_queue <ii, vector <ii>, greater<ii> > pq;
+
+	dist[s] = 0;
+	pq.push(ii(0, s));
+
+	bool ret = false;
+	while (pq.size()) {
+		int at = pq.top().se;
+		int d = pq.top().fi;
+		pq.pop();
+
+		if (at == t) 
+			ret = true;
+
+		if (d != dist[at])
+			continue;
+
+		for (int i = 0; i < (int)g[at].size(); i++) {
+			edge edg = g[at][i];
+			int next = edg.to;
+			if (edg.cap - edg.flow <= 0)	continue;
+			ll w = dist[at] + edg.cost + h[at] - h[next];
+			if (dist[next] > w) {
+				dist[next] = w;
+				pai[next] = ii(at, i);
+				pq.push(ii(dist[next], next));
+			}
+		}
+	}
+
+	for (int i = 0; i < N; i++)
+		if (h[i] < INF and dist[i] < INF)
+			h[i] += dist[i];
+
+	return ret;
+}
+
+ii max_flow (int s, int t) {
+	int cost = 0, flow = 0;
+	bellman_ford(s);
+
+	while (dijkstra(s, t)) {
+		int f = INF;
+		for (int at = t; at != s; at = pai[at].fi) {
+			edge edg = g[pai[at].fi][pai[at].se];
+			f = min (f, edg.cap - edg.flow);
+		}
+		flow += f;
+		for (int at = t; at != s; at = pai[at].fi) {
+			edge &edg = g[pai[at].fi][pai[at].se];
+			edg.flow += f;
+			g[edg.to][edg.rid].flow -= f;
+			cost += edg.cost;
+		}
+	}
+
+	return mk(cost, flow);
+}
+
+
+int a[N];
+int ub[N], lb[N];
+
+int main()
+{
+	int nn, q;
+	scanf("%d %d", &nn, &q);
+	for (int i = 1; i <= nn; i++)
+	{
+		ub[i] = nn;
+		lb[i] = 1;
+	}
+	n = 2*nn + 2;
+	const int S = 0, T = n-1;
+	while(q--)
+	{
+		int t, l, r, v;
+		scanf("%d %d %d %d", &t, &l, &r, &v);
+		for (int i = l; i <= r; i++)
+		{
+			if (t == 1)
+				lb[i] = max(lb[i], v);
+			else
+				ub[i] = min(ub[i], v);
+		}
+	}
+
+	for (int i = 1; i <= nn; i++)
+	{
+		if (lb[i] > ub[i])
+		{
+			printf("-1\n");
+			return 0;
+		}
+	}
+
+	for (int i = 1; i <= nn; i++)
+	{
+		add(nn+i, T, 0, 1);
+		for (int j = lb[i]; j <= ub[i]; j++)
+			add(j, nn+i, 0, 1);
+	}
+
+	for (int i = 1; i <= nn; i++)
+	{
+		for (int a = 1, c = 1; a <= nn; a++, c += 2)
+		{
+			add(S, i, c, 1);
+		}
+	}
+	printf("%d\n", max_flow(S, T).fi);
+	return 0;
+}
+
+

@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <assert.h>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <bitset>
+#include <string>
+#include <sstream>
+#include <memory.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <functional>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+int n, k;
+vector<vector<int> > v;
+vector<int> freq;
+void insert(string &s, int f) {
+	int cur = 0;
+	for (int i = 0; i < s.size(); ++i) {
+		int z = s[i] - '0';
+		if (v[cur][z] == -1) {
+			v[cur][z] = v.size();
+			v.push_back(vector<int>(10, -1));
+			freq.push_back(0);
+		}
+		cur = v[cur][z];
+	}
+	freq[cur] += f;
+}
+vector<int> sum;
+void DFS(int u, int d) {
+	sum[u] = freq[u];
+	for (auto g : v[u])
+		if (g != -1) {
+			DFS(g, d + 1);
+			sum[u] += sum[g];
+		}
+}
+int dp[501][501][11][11];
+int calc(int u, int i, int last, int k, int d) {
+	if (u == -1 || i == -1)
+		return 0;
+	int &ret = dp[u][last][i][k];
+	if (ret != -1)
+		return ret;
+	ret = 0;
+	if (i == 10) {
+		ret = calc(u, i - 1, last, k, d + 1);
+		if (k)
+			ret = max(ret, sum[u] * (d - last) + calc(u, i - 1, d, k - 1, d + 1));
+	}
+	else {
+		for (int take = 0; take <= k; ++take)
+			ret = max(ret, calc(v[u][i], 10, last, take, d) + calc(u, i - 1, last, k - take, d));
+	}
+	return ret;
+}
+int main()
+{
+	v.resize(1, vector<int>(10, -1));
+	freq.push_back(0);
+	scanf("%d%d", &n, &k);
+	int all = 0;
+	for (int i = 0; i < n; ++i) {
+		string s;
+		int z;
+		cin >> s >> z;
+		insert(s, z);
+		all += z*s.size();
+	}
+	sum.resize(v.size());
+	DFS(0, 0);
+	memset(dp, -1, sizeof(dp));
+	printf("%d\n", all - calc(0, 10, 0, k, 0));
+	return 0;
+}

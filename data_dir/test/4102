@@ -1,0 +1,149 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+#define MAXN (1 << 9)
+#define mod ((int)1e9 + 7)
+
+using namespace std;
+using namespace __gnu_pbds;
+
+template <typename T> using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+int n, m;
+char a[MAXN][MAXN];
+char temp[MAXN];
+
+void read()
+{
+	scanf("%d %d", &n, &m);
+
+	for(int i = 1; i <= n; i++)
+	{
+		scanf("%s", &temp);
+			
+		for(int j = 1; j <= m; j++)
+			a[i][j] = temp[j - 1];
+	}
+}
+
+int dp[MAXN][MAXN][2];
+int half, all;
+
+int dx_1[2] = {1, 0};
+int dx_2[2] = {-1, 0};
+int dy_1[2] = {0, 1};
+int dy_2[2] = {0, -1};
+
+bool adj(int x1, int y1, int x2, int y2)
+{
+	if(x1 == x2 && y1 + 1 == y2) 
+		return true;
+	
+	if(x1 + 1 == x2 && y1 == y2)
+		return true;
+
+	return false;
+}
+
+void solve()
+{
+	if(a[1][1] != a[n][m])
+	{
+		//printf("why!   %c %c\n", a[1][1], a[n][m]);
+		printf("%d\n", 0);
+		return;
+	}
+
+	all = n + m - 1;
+	half = all / 2 + (all % 2);
+
+	memset(dp, 0, sizeof(dp));
+	dp[1][n][1] = 1;
+
+	for(int len = 2; len <= half; len++)
+		for(int x1 = 1; x1 <= n; x1++)
+			for(int x2 = 1; x2 <= n; x2++)			
+			{
+				dp[x1][x2][len & 1] = 0;
+
+				int y1 = len - x1 + 1, y2 = m - (len - (n - x2)) + 1;	
+
+				if(x1 <= 0 || x2 <= 0 || y1 <= 0 || y2 <= 0 || x1 > n || x2 > n || y1 > m || y2 > m)
+				{
+                	dp[x1][x2][len & 1] = 0;
+					continue;
+				}
+				
+				if(a[x1][y1] != a[x2][y2])
+				{
+					dp[x1][x2][len & 1] = 0;
+					continue;
+				}
+				
+				int &memo = dp[x1][x2][len & 1];
+				memo = 0;
+
+				for(int i = 0; i < 2; i++)
+					for(int j = 0; j < 2; j++)
+					{
+						if(x1 - dx_1[i] <= 0 || x2 - dx_2[j] <= 0 || y1 - dy_1[i] <= 0 || y2 - dy_2[j] <= 0 
+						   || x1 - dx_1[i] > n || x2 - dx_2[j] > n || y1 - dy_1[i] > m || y2 - dy_2[j] > m)
+							continue;
+			
+						if(a[x1 - dx_1[i]][y1 - dy_1[i]] == a[x2 - dx_2[j]][y2 - dy_2[j]])
+							memo += dp[x1 - dx_1[i]][x2 - dx_2[j]][(len - 1) & 1];
+					
+						memo %= mod;
+					}
+
+				memo %= mod;
+			}
+		
+	long long ans = 0;
+
+	if(all % 2 == 0)
+	{
+		for(int x1 = 1; x1 <= n; x1++)
+			for(int x2 = 1; x2 <= n; x2++)
+			{	
+				int y1 = half - x1 + 1, y2 = m - (half - (n - x2)) + 1;	
+
+				if(x1 <= 0 || x2 <= 0 || y1 <= 0 || y2 <= 0 || x1 > n || x2 > n || y1 > m || y2 > m)
+					continue;
+				if(adj(x1, y1, x2, y2))
+				{
+					//printf("{%d, %d} {%d, %d} : %d\n", x1, y1, x2, y2, dp[x1][x2][half & 1]);
+					ans += dp[x1][x2][half & 1];
+				}
+
+				ans %= mod;
+			}
+
+	}
+	else
+	{
+		for(int x1 = 1; x1 <= n; x1++)
+			for(int x2 = 1; x2 <= n; x2++)
+			{
+				int y1 = half - x1 + 1, y2 = m - (half - (n - x2)) + 1;	
+				
+				if(x1 <= 0 || x2 <= 0 || y1 <= 0 || y2 <= 0 || x1 > n || x2 > n || y1 > m || y2 > m)
+					continue;
+				
+				if(x1 == x2 && y1 == y2)
+					ans += dp[x1][x2][half & 1];
+				
+				ans %= mod;
+			}
+	}
+
+	printf("%d\n", ans);
+}
+
+int main()
+{
+	read();
+	solve();
+	return 0;
+}

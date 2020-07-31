@@ -1,0 +1,138 @@
+#include<bits/stdc++.h>
+
+#define ssync ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0)
+#define F first
+#define S second
+#define SQR(a) ((a)*(a))
+
+using namespace std;
+
+typedef long long int ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<string> vs;
+typedef vector<vs> vvs;
+typedef vector<ll> vll;
+typedef vector<vll> vvl;
+typedef pair<int,int> pii;
+typedef pair<ll,int> pli;
+const ll MOD = 1000000007;
+const long double PI = 3.14159265;
+
+ll powerWithMod(ll base, ll exponent, ll modulus)
+{
+	ll result = 1;
+	base %= modulus;
+	while(exponent > 0)
+	{
+		if(exponent % 2 == 1)
+			result = (result * base) % modulus;
+		exponent >>= 1;
+		base = (base * base) % modulus;
+	}
+	return result;
+}
+
+ll gcdExtended(ll a, ll b, ll *x, ll *y)
+{
+	if (a == 0)
+	{
+		*x = 0, *y = 1;
+		return b;
+	}
+	ll x1, y1;
+	ll gcd = gcdExtended(b%a, a, &x1, &y1);
+	*x = y1 - (b/a) * x1;
+	*y = x1;
+	return gcd;
+}
+
+ll modInverse(ll a, ll m)
+{
+	ll x, y;
+	ll g = gcdExtended(a, m, &x, &y);
+	ll res = (x%m + m) % m;
+	return res;
+}
+
+char grid[3][123];
+bool visited[1234];
+int n, newn, start;
+vector<int> adjLis[1234];
+
+bool valid(int x, int y)
+{
+	if(x < 0 || x > 2)
+		return false;
+	return (grid[x][y] == '.');
+}
+
+int getnum(int x, int y)
+{
+	return x*newn + y;
+}
+
+void dfs(int curr)
+{
+	if(!visited[curr])
+	{
+		visited[curr]=true;
+		for(int x: adjLis[curr])
+			dfs(x);
+	}
+}
+
+int main()
+{
+	ssync;
+	int t, k;
+	cin>>t;
+	while(t--)
+	{
+		memset(&visited[0], false, sizeof(visited));
+		cin>>n>>k;
+		newn = n+3;
+		for(int i=0; i<3; i++)
+		{
+			cin>>grid[i];
+			if(grid[i][0] == 's')
+			{
+				start=getnum(i,0);
+				grid[i][0] = '.';
+			}
+			grid[i][n]='.';
+			grid[i][n+1]='.';
+			grid[i][n+2]='.';
+			grid[i][n+3]='.';
+		}
+		for(int i=0; i<3*newn; i++)
+			adjLis[i].clear();
+		for(int i=0; i<3; i++)
+		{
+			for(int j=0; j<n; j++)
+			{
+				if(valid(i,j) && valid(i,j+1))
+				{
+					if(valid(i-1,j+1) && valid(i-1, j+2) && valid(i-1, j+3))
+						adjLis[getnum(i,j)].push_back(getnum(i-1, j+3));
+					if(valid(i,j+2) && valid(i,j+3))
+						adjLis[getnum(i,j)].push_back(getnum(i,j+3));
+					if(valid(i+1,j+1) && valid(i+1, j+2) && valid(i+1, j+3))
+						adjLis[getnum(i,j)].push_back(getnum(i+1, j+3));
+				}
+			}
+		}
+		dfs(start);
+		bool ans=false;
+		for(int i=0; i<3; i++)
+		{
+			for(int j=n-1; j<n+3; j++)
+				ans|=visited[getnum(i,j)];
+		}
+		if(ans)
+			cout << "YES\n";
+		else
+			cout << "NO\n";
+	}
+	return 0;
+}

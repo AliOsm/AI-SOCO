@@ -1,0 +1,266 @@
+#include <cstdio>
+#include <utility>
+#include <iostream>
+#include <set>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <numeric>
+#include <cassert>
+#include <cstring>
+#include <functional>
+#include <sstream>
+#include <map>
+
+using namespace std;
+
+typedef long long Long;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef pair<int,int> PII;
+
+typedef long double Double;
+
+struct Box {
+    Long w, x;
+};
+
+struct Fenwick {
+    vector<Long> V;
+    Fenwick(int N) : V(N+10) {}
+
+    void add(int x, Long v) {
+        for (int i = x + 1; i < V.size(); i += (i & -i)) {
+            V[i] += v;
+        }
+    }
+    Long get(int x) {
+        Long r = 0;
+        for (int i = x + 1; i > 0; i -= (i & -i)) {
+            r += V[i];
+        }
+        return r;
+    }
+    Long segSum(int i, int j) {
+        return get(j) - get(i-1);
+    }
+};
+
+template<class T, class U>
+struct SegmentTree {
+    struct Node {
+        bool hasCarry = 0;
+        int b = 0,e = 0;
+        U carry = U(); T val = T();
+        Node(){ }
+        void join(const Node &l, const Node &r){
+            val = l.val + r.val;
+            b = l.b;
+            e = r.e;
+        }
+        void update(const U &u){
+            carry += u;
+            u(val);
+            hasCarry = 1;
+        }
+        void pushDown(Node &l, Node &r){
+            if(!hasCarry)return;
+            l.update(carry.trim(0,r.e-r.b+1));
+            r.update(carry.trim(l.e-l.b+1,0));
+            carry = U();
+            hasCarry = 0;
+        }
+    };
+    vector<Node> V;
+#define idx(b, e) (((b)+(e))|((b)!=(e))) // memory optimized index
+    int N;
+    SegmentTree(int N) : V(2*N), N(N){ }
+    template<class I>
+    void create(const vector<I> &VEC, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (b == e) {
+            V[n].val = T(VEC[b]), V[n].b = b, V[n].e = e;
+        } else {
+            int m = (b + e) / 2;
+            create(VEC, b, m);
+            create(VEC, m + 1, e);
+            V[n].join(V[idx(b, m)], V[idx(m+1, e)]);
+        }
+    }
+    T query(int i, int j, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (i <= b && e <= j){
+            return V[n].val;
+        } else {
+            int m = (b + e) / 2;
+            V[n].pushDown(V[idx(b, m)], V[idx(m+1, e)]);
+            if (i >  m) return query(i, j, m+1, e);
+            if (j <= m) return query(i, j, b, m);
+            return query(i, j, b, m) + query(i, j, m+1, e);
+        }
+    }
+    int findOkPrefix(int i, const function<bool(T)> &isOk){
+        vector<int> stk;
+        stk.reserve(20);
+        stk.push_back(idx(0, N-1));
+        T acum; int sz = 0;
+        while(stk.size()) {
+            int t = stk.back(); stk.pop_back();
+            Node &n = V[t];
+            int m = (n.b + n.e) / 2;
+            if(n.e < i) continue;
+            T newAcum = sz == 0 ? n.val : (acum + n.val);
+            if (i <= n.b) {
+                if (isOk(newAcum)) {
+                    sz += n.e - n.b + 1;
+                    acum = newAcum;
+                } else {
+                    if(n.b == n.e) return sz;
+                    stk.push_back(idx(m+1, n.e));
+                    stk.push_back(idx(n.b, m));
+                }
+            } else {
+                if(n.b == n.e) continue;
+                stk.push_back(idx(m+1, n.e));
+                stk.push_back(idx(n.b, m));
+            }
+        }
+        return sz;
+    }
+    void update(int i, int j, const U &v, int b = 0, int e = -1) {
+        if(e == -1) e = N-1;
+        int n = idx(b, e);
+        if (i <= b && e <= j) {
+            V[n].update(v.trim(max(b-i,0), max(j-e,0)));
+        } else if (i > e || j < b)
+            return;
+        else {
+            int m = (b + e) / 2;
+            int l = idx(b, m), r = idx(m+1, e);
+            V[n].pushDown(V[l], V[r]);
+            update(i, j, v, b, m);
+            update(i, j, v, m + 1, e);
+            V[n].join(V[l], V[r]);
+        }
+    }
+};
+typedef long long Long;
+
+#define MOD 1000000007
+struct Sum {
+    Long s;
+    Sum(Long w = 0) {
+        s = w;
+    }
+    Sum operator+(const Sum &o) const {
+        Sum r;
+        r.s = (s + o.s);
+        return r;
+    }
+};
+struct ToSides {
+    int toL, toR, pl, pr, w;
+    ToSides(Box b = (Box){0, 0}){
+        toL = 0;
+        toR = 0;
+        pl = b.x;
+        pr = b.x;
+        w = b.w;
+    }
+    ToSides operator+(const ToSides &a)const{
+        ToSides r = a;
+        r.toL = (toL + a.toL + (1LL * (a.pl - pl) * a.w)) % MOD;
+        r.toR = (toR + a.toR + (1LL * (a.pr - pr) *   w)) % MOD;
+        r.pl =   pl;
+        r.pr = a.pr;
+        r.w  = (a.w + w) % MOD;
+        return r;
+    }
+};
+struct Replace {
+    Long w;
+    Replace(Long w = 0){
+        this->w = w;
+    }
+    Replace trim(int l, int r)const{ return *this; }
+    void operator+=(const Replace &a){
+        w = a.w;
+    }
+    void operator()(ToSides &a)const{
+        a.w = w;
+    }
+    void operator()(Sum &a)const{
+        a.s = w;
+    }
+};
+
+int main() {
+
+    int N, Q;
+    cin >> N >> Q;
+    vector<Box> V(N);
+    Fenwick FX(N);
+    for (int i = 0; i < N; ++i) {
+        scanf("%lld", &V[i].x);
+        V[i].x -= i;
+        FX.add(i, V[i].x);
+    }
+    Fenwick F(N);
+    for (int i = 0; i < N; ++i) {
+        scanf("%lld", &V[i].w);
+        F.add(i, V[i].w);
+    }
+    SegmentTree<ToSides, Replace> ST(N);
+    SegmentTree<Sum, Replace> SU(N);
+    ST.create(V);
+    {
+        vector<Long> WW(N);
+        for (int i = 0; i < N; ++i) {
+            WW[i] = V[i].w;
+        }
+        SU.create(WW);
+    }
+    for (int i = 0; i < Q; ++i) {
+        Long l, r;
+        cin >> l >> r;
+        if (l < 0) {
+            Long id = (-l)-1, nw = r;
+            ST.update(id, id, Replace(nw));
+            SU.update(id, id, Replace(nw));
+        } else {
+            l--;r--;
+            Long tots = SU.query(l, r).s;
+            int sz = SU.findOkPrefix(l, [tots](Sum s) { return s.s*2 < tots; });
+            int m = l + sz;
+            Long a = ST.query(l, m).toR;
+            Long b = ST.query(m, r).toL;
+            printf("%d\n", (int) ((a+b) % MOD));
+        }
+    }
+
+
+
+
+}
+
+/*
+
+5 8
+1 2 6 7 10
+1 1 1 1 2
+1 1
+1 5
+1 3
+3 5
+-3 5
+-1 10
+1 4
+2 5
+
+
+
+ */

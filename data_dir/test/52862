@@ -1,0 +1,97 @@
+#include <cstdio>
+#include <vector>
+#include <cstring>
+#include <queue>
+#include <set>
+#include <iostream>
+#include <algorithm>
+using namespace std;
+typedef long long LL;
+const int N = 100005;
+struct Node {
+	int left , right;
+	int mn , lazy;
+}L[N << 2];
+int n , a[N];
+#define lson step << 1
+#define rson step << 1 | 1
+void build (int step , int l , int r) {
+	L[step].left = l;
+	L[step].right = r;
+	L[step].lazy = 0;
+	if (l == r) {
+		L[step].mn = a[l];
+		return ;
+	}
+	int m = (L[step].left + L[step].right) >> 1;
+	build (lson , l , m);
+	build (rson , m + 1 , r);
+	L[step].mn = min (L[lson].mn , L[rson].mn);
+}
+void update (int step , int l , int r , int v);
+void push_down (int step) {
+	int l = L[step].left , r = L[step].right , &z = L[step].lazy , m = (l + r) >> 1;
+	if (z) {
+		update (lson , l , m , z);
+		update (rson , m + 1 , r , z);
+		z = 0;
+	}
+}
+int query (int step , int l , int r) {
+	if (L[step].left == l && L[step].right == r) {
+		return L[step].mn;
+	}
+	push_down (step);
+	int m = (L[step].left + L[step].right) >> 1;
+	if (r <= m) return query (lson , l , r);
+	else if (l > m) return query (rson , l , r);
+	else return min (query (lson , l , m) , query (rson , m + 1 , r));
+}
+void update (int step , int l , int r , int v) {
+	if (L[step].left == l && L[step].right == r) {
+		L[step].mn += v;
+		L[step].lazy += v;
+		return ;
+	}
+	push_down (step);
+	int m = (L[step].left + L[step].right) >> 1;
+	if (r <= m) update (lson , l , r , v);
+	else if (l > m) update (rson , l , r , v);
+	else {
+		update (lson , l , m , v);
+		update (rson , m + 1 , r , v);
+	}
+	L[step].mn = min (L[lson].mn , L[rson].mn);
+}
+vector <pair <int , int> > ret;
+int main(){
+#ifndef ONLINE_JUDGE 
+    freopen ("input.txt" , "r" , stdin);
+    // freopen ("output.txt" , "w" , stdout);
+#endif  
+    scanf ("%d" , &n);
+    for (int i = 1 ; i <= n ; i ++)
+    	scanf ("%d" , &a[i]);
+    build (1 , 1 , n);
+    for (int i = 1 ; i <= n ; i ++) {
+    	int d = query (1 , i , i);
+    	while (d --) {
+    		int low = i , high = n , mid , ans;
+    		while (low <= high) {
+    			mid = (low + high) >> 1;
+    			int t = query (1 , i , mid);
+    			if (t >= 1) {
+    				ans = mid;
+    				low = mid + 1;
+    			}
+    			else high = mid - 1;
+    		}
+    		ret.push_back (make_pair (i , ans));
+    		update (1 , i , ans , -1);
+    	}
+    }
+    printf ("%d\n" , ret.size ());
+    for (int i = 0 ; i < ret.size() ; i ++)
+    	printf ("%d %d\n" , ret[i].first , ret[i].second);
+    return 0;
+}

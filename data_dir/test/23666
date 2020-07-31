@@ -1,0 +1,180 @@
+//ITNOG
+#include<bits/stdc++.h>
+ 
+using namespace std;
+
+#define scan(x) do{while((x=getchar())<'0'); for(x-='0'; '0'<=(_=getchar()); x=(x<<3)+(x<<1)+_-'0');}while(0)
+char _;
+
+#define rep(i, s, e) for(int i = s; i < e; i ++)
+typedef double ld;
+
+const int maxN = 100*1000 + 5;
+const int mod = 1000*1000*1000+7;
+const int sq = 320;
+const int maxL = 20;
+typedef long long ll;
+#define X first
+#define Y second
+struct Que
+{
+    int s, e, k, st, et;
+};
+
+vector<int> a[maxN];
+int h[maxN], st[maxN], en[maxN], dcnt;
+int lca[maxN][maxL];
+
+void DFS(int v) 
+{
+    st[v] = dcnt++; 
+    for(auto u : a[v]) h[u]=h[v]+1, DFS(u);
+    en[v] = dcnt;
+}
+int get_par(int v, int k) 
+{
+    rep(i,0,maxL) if(k >> i & 1) v = lca[v][i];
+    return v;
+}
+int LCA(int v, int u) 
+{
+    if(h[v] < h[u]) swap(v,u);
+    v=get_par(v,h[v]-h[u]);
+    if(v==u) return v;
+    for(int i = maxL-1; i >= 0; i --) if(lca[v][i] != lca[u][i]) v=lca[v][i], u=lca[u][i];
+    return lca[v][0];
+}
+int get_dis(int v, int u) { int par = LCA(v,u); return h[v]+h[u]-2*h[par]; }
+
+Que que[maxN];
+int te;
+
+bool cmp(Que p, Que q)
+{
+    if(p.st / sq == q.st / sq) return (p.et < q.et);
+    return (p.st < q.st);
+}
+
+int fen[maxN];
+void addF(int n, int k) { for(; n > 0; n -= n & (-n)) fen[n] += k; }
+int getF(int n) { int res = 0; for(; n < maxN; n += n & (-n)) res += fen[n]; return res; }
+
+int ccc[maxN];
+void add(int v, int k)
+{
+    if(v == 0) return;
+    if(ccc[v] && k == 1) { ccc[v] ++; return; }
+    if(ccc[v] > 1 && k == -1) { ccc[v] --; return; }
+    addF(en[v], k);
+    addF(st[v],-k);
+    if(k == 1) ccc[v] = 1;
+    else ccc[v] = 0;
+}
+
+int lo, hi, p[maxN];
+void upd(int l, int r)
+{
+    while(hi > r) add(p[hi],-1), hi--;
+    while(hi < r) hi++, add(p[hi], 1);
+    
+    while(lo > l) lo--, add(p[lo], 1);
+    while(lo < l) add(p[lo],-1), lo++;
+}
+
+int Ak(int v, int u)
+{
+    int mid = LCA(v,u);
+    int tmp = getF(st[v]+1) + getF(st[u]+1) - 2 * getF(st[mid]+1) + bool(ccc[mid]), dis = get_dis(v,u)+1;
+    return dis-tmp;
+}
+
+int W(int v, int u, int k)
+{
+    int par = LCA(v,u);
+    if(h[v] - h[par] >= k) return get_par(v, k);
+    int dis = h[v]+h[u]-2*h[par];
+    return get_par(u, dis-k);
+}
+
+int n; 
+int get(int v, int u, int k)
+{
+    if(get_dis(v,u) == 1) return -1;
+    
+    int par = LCA(v,u);
+    if(h[v] == h[par]) v = get_par(u,h[u]-h[v]-1);
+    else v = lca[v][0];
+
+    if(h[u] == h[par]) u = get_par(v,h[v]-h[u]-1);
+    else u = lca[u][0];
+   
+    if(Ak(v,u) < k) return -1;
+    if(k == 1 && ccc[v] == 0) return v;
+
+    int lo = 0, hi = get_dis(v,u);
+    
+    while(hi-lo > 1)
+    {
+	  int mid = (hi+lo) >> 1;
+	  int w = W(v,u,mid);
+	  if(Ak(v,w) < k) lo = mid;
+	  else hi = mid;
+    }
+
+    return W(v,u,hi);
+}
+
+
+int mark[maxN], ans[maxN];
+main()
+{
+    //ios::sync_with_stdio(0); cin.tie(0);
+    scan(n); 
+    int root = 0;
+    rep(i,1,n+1) 
+    {
+	  scan(lca[i][0]); 
+	  if(lca[i][0]) a[lca[i][0]].push_back(i);
+	  if(lca[i][0] == 0) root = i;
+    }
+
+    rep(i,1,maxL) rep(j,1,n+1) lca[j][i] = lca[lca[j][i-1]][i-1];
+    DFS(root);
+    
+    int q; cin >> q;
+    int ff = -1;
+    rep(i,0,q)
+    {
+	  int t; scan(t);
+	  if(t == 2)
+	  {
+		if(ff == -1) ff = i;
+		Que tmp; scan(tmp.s); scan(tmp.e); scan(tmp.k); scan(tmp.st); tmp.et = i;
+//		if(ff == i || n != 465)
+		que[te++] = tmp;
+	  }
+	  else
+		scan(p[i]);
+    }
+    
+    sort(que,que+te,cmp);
+    add(p[0],1);
+    rep(i,0,te)
+    {
+	  upd(que[i].st, que[i].et);
+	  mark[que[i].et] = 1; 
+	  /*
+	  if(n == 465 && que[i].et == ff)
+	  {
+		cout << que[i].s << ' ' << que[i].e << ' ' << get_dis(que[i].s, que[i].e) << ' ' << que[i].k << endl;
+		cout << get_dis(193,448) << endl;
+		cout << Ak(que[i].s, 193) << ' ' << Ak(que[i].s, 448) << endl;
+	  }
+	  */
+	  ans[que[i].et] = get(que[i].s, que[i].e, que[i].k);
+    }
+
+    rep(i,0,q) if(mark[i]) printf("%d\n", ans[i]);
+
+    return 0;
+}

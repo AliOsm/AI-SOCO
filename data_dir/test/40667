@@ -1,0 +1,174 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100005;
+
+typedef long long cod;
+double eps = 1e-7;
+bool eq(cod a, cod b){ return abs(a - b) <= 0; }
+
+pair<cod, cod> get(cod a, cod b) {
+	cod g = __gcd(a, b);
+	a /= g, b /= g;
+	return {a, b};
+}
+
+struct vec{
+	cod x, y; int id;
+	vec(cod a = 0, cod b = 0) : x(a), y(b) {}
+	vec operator+(const vec &o) const{
+		return {x + o.x, y + o.y};
+	}
+	vec operator-(const vec &o) const{
+		return {x - o.x, y - o.y};
+	}
+	vec operator*(cod t) const{
+		return {x * t, y * t};
+	}
+	vec operator/(cod t) const{
+		return {x / t, y / t};
+	}
+	cod operator*(const vec &o) const{ // cos
+		return x * o.x + y * o.y;
+	}
+	long double operator^(const vec &o) const{ // sin
+		return (long double) x * o.y - (long double)y * o.x;
+	}
+	bool operator==(const vec &o) const{
+		return eq(x, o.x) && eq(y, o.y);
+	}
+	bool operator<(const vec &o) const{
+		if(!eq(x, o.x)) return x < o.x;
+		return y < o.y;
+	}
+	long double cross(const vec &a, const vec &b) const{
+		return (a-(*this)) ^ (b-(*this));
+	}
+    int ccw(const vec &a, const vec &b) const{
+        long double tmp = cross(a, b);
+        return (tmp > 0) - (tmp < 0);
+    }
+	cod dot(const vec &a, const vec &b) const{
+		return (a-(*this)) * (b-(*this));
+	}
+	cod len() const{
+		return (x * x + y * y); // <
+	}
+	double angle(const vec &a, const vec &b) const{
+		return atan2(cross(a, b), dot(a, b));
+	}
+	pair<cod, cod> tan(const vec &a, const vec &b) const{
+		return get(cross(a, b), dot(a, b));
+	}
+	vec unit() const{
+		return operator/(len());
+	}
+	int quad() const{
+		if(x > 0 && y >=0) return 0;
+		if(x <=0 && y > 0) return 1;
+		if(x < 0 && y <=0) return 2;
+		return 3;
+	}
+	bool comp(const vec &a, const vec &b) const{
+		return (a - *this).comp(b - *this);
+	}
+	bool comp(vec b){
+		if(quad() != b.quad()) return quad() < b.quad();
+		if(!eq(operator^(b), 0)) return operator^(b) > 0;
+		return (*this) * (*this) < b * b;
+	}
+	template<class T>
+	void sort_by_angle(T first, T last) const{
+		std::sort(first, last, [=](const vec &a, const vec &b){
+			return comp(a, b);
+		});
+	}
+};
+
+vector<vec> ch(vector<vec> P){
+    sort(P.begin(), P.end());
+
+    vector<vec> L, U;
+	int id = 0;
+    for(auto p : P){
+        while(L.size() >= 2 && L[L.size() - 2].ccw(L.back(), p) <= 0)
+            L.pop_back();
+
+        L.push_back(p);
+		id++;
+    }
+
+    reverse(P.begin(), P.end());
+    for(auto p : P){
+        while(U.size() >= 2 && U[U.size() - 2].ccw(U.back(), p) <= 0)
+            U.pop_back();
+
+        U.push_back(p);
+    }
+
+    L.pop_back(), U.pop_back();
+
+    L.insert(L.end(), U.begin(), U.end()); 
+
+    return L;
+}
+
+
+vector<vec> mk(const vector<vec>&a,const vector<vec>&b){
+    int i = 0, j = 0;
+    for(int k = 0; k < (int)a.size(); k++)if(a[k] <a[i])
+        i = k;
+    for(int k = 0; k < (int)b.size(); k++)if(b[k] <b[j])
+        j = k;
+
+    vector<vec> c;
+    c.reserve(a.size() + b.size());
+    for(int k = 0; k < int(a.size()+b.size()); k++){
+        vec pt{a[i] + b[j]};
+        while((int)c.size() >= 2
+         && c[c.size()-2].ccw(c.back(), pt) == 0)
+            c.pop_back();
+        c.push_back(pt);
+        int q = i+1, w = j+1;
+        if(q == int(a.size())) q = 0;
+        if(w == int(b.size())) w = 0;
+        if(c.back().ccw(a[i]+b[w], a[q]+b[j]) < 0) i = q;
+        else j = w;
+    }
+	c = ch(c);
+    c.shrink_to_fit();
+
+    return c;
+}
+
+int main() {
+
+	int n;
+	scanf("%d", &n);
+	vector<vec> a(n);
+	for(vec &p : a) {
+		scanf("%lld %lld", &p.x, &p.y);
+	}
+
+	vector<vec> b = a;
+	for(vec &p : b) p.x *= -1, p.y *= -1;
+	auto c = mk(a, b);
+
+	a = ch(a), c = ch(c);
+	if(c.size() != a.size()) return printf("No\n"), 0;
+
+	auto ratio = get((a[0]-a[n-1]).len(), (c[0]-c[n-1]).len());
+	for(int i = 0; i + 1 < n; i++) {
+		auto r1 = get((a[i+1]-a[i]).len(), (c[i+1]-c[i]).len());
+		if(r1 != ratio) return printf("No\n"), 0;
+	}
+
+	for(int i = 0; i < n; i++) {
+		auto ta = a[(i + 1) % n].tan(a[i], a[(i + 2) % n]);
+		auto tc = c[(i + 1) % n].tan(c[i], c[(i + 2) % n]);
+		if(ta != tc) return printf("No\n"), 0;
+	}
+
+	printf("Yes\n");
+}

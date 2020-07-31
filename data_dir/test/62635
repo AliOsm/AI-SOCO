@@ -1,0 +1,25 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int limN = 2e5 + 7;
+
+string* minStr(int n, char *a) {
+    if(n%2) {
+        return new string(a,n);
+    }
+    string *x = minStr(n/2, a), *y = minStr(n/2, a + n/2);
+    string *ans = new string(*x<*y? *x + *y : *y+*x);
+    delete x;
+    delete y;
+    return ans;
+}
+
+int main() {
+    int n ;
+    char strA[limN], strB[limN];
+
+    scanf("%s", strA);
+    scanf("%s", strB);
+    n = strlen(strA);
+    
+    printf("%s\n", *minStr(n, strA) == *minStr(n, strB)? "YES" : "NO");
+}

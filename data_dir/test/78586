@@ -1,0 +1,108 @@
+#include <iostream>
+
+#include <string>
+#include <regex>
+#include <iterator>
+#include <map>
+
+#include <cstring>
+
+using namespace std;
+
+regex word_re("[0-9a-zA-Z]+");
+regex msg_re("(.+):(.*)");
+
+int N;
+string users[104];
+map<string,int> user_id;
+
+int M;
+string msg[104];
+int sender[104];
+string msg_body[104];
+bool mentioned[104][104];
+
+int memo[104][104];
+int P[104][104];
+int go(int msg_id = 1, int last_sender = 0) {
+   if (msg_id > M)
+      return true;
+   int& ret = memo[msg_id][last_sender];
+   if (ret < 0) {
+      ret = 0;
+      if (sender[msg_id] < 0) {
+         for (int n = 1; n <= N; ++n) {
+            if (n == last_sender || mentioned[msg_id][n]) continue;
+            if (go(msg_id+1, n)) {
+               ret = 1;
+               P[msg_id][last_sender] = n;
+            }
+         }
+      }
+      else {
+         if (sender[msg_id] != last_sender) {
+            if (go(msg_id+1, sender[msg_id])) {
+               ret = 1;
+               P[msg_id][last_sender] = sender[msg_id];
+            }
+         }
+      }
+   }
+   return ret;
+}
+
+void solve() {
+   user_id.clear();
+   for (int i = 1; i <= N; ++i)
+      user_id[ users[i] ] = i;
+
+   memset(sender, -1, sizeof(sender));
+   memset(mentioned, 0, sizeof(mentioned));
+
+   sregex_iterator end;
+   for (int m = 1; m <= M; ++m) {
+      smatch match;
+      if (regex_match(msg[m], match, msg_re)) {
+         string sender_name = match.str(1);
+         msg_body[m]        = match.str(2);
+         sender[m] = sender_name == "?" ? -1 : user_id[sender_name];
+         for (sregex_iterator nxt(msg_body[m].begin(), msg_body[m].end(),
+                                  word_re); nxt != end; ++nxt) {
+            smatch match2 = *nxt;
+            auto it = user_id.find(match2.str());
+            if (it != user_id.end())
+               mentioned[m][it->second] = true;
+         }
+      }
+   }
+
+   memset(memo, -1, sizeof(memo));
+   if (go()) {
+      for (int msg_id = 1, last_sender = 0; msg_id <= M; ++msg_id) {
+         int n = P[msg_id][last_sender];
+         cout << users[n] << ":" << msg_body[msg_id] << endl;
+         last_sender = n;
+      }
+   }
+   else {
+      cout << "Impossible\n";
+   }
+}
+
+int main() {
+   int TC;
+   cin >> TC;
+   for (int tc = 1; tc <= TC; ++tc) {
+      cin >> N;
+      for (int i = 1; i <= N; ++i)
+         cin >> users[i];
+      cin >> M;
+      string line;
+      getline(cin, line);
+      for (int m = 1; m <= M; ++m)
+         getline(cin, msg[m]);
+      solve();
+   }
+
+   return 0;
+}

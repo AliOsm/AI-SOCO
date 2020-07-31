@@ -1,0 +1,89 @@
+// KALAM
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 77;
+int n , q , From[N] , To[N] , Par[N];
+bool D[N];
+map < pair < int , int > , int > Map;
+vector < pair < int , int > > S[N << 2];
+void Add(int l , int r , int id , int ql , int qr , int v , int u){
+	if(r <= ql || qr <= l){return;}
+	if(ql <= l && r <= qr){S[id].push_back(make_pair(v , u));return;}
+	Add(l , (l + r) >> 1 , id << 1 , ql , qr , v , u);
+	Add((l + r) >> 1 , r , (id << 1) ^ 1 , ql , qr , v , u);
+}
+pair < int , bool > Find(int v){
+	if(Par[v] < 0){
+		return make_pair(v , 0);
+	}
+	auto T = Find(Par[v]);T.second ^= D[v];
+	return T;
+}
+void Solve(int l = 1 , int r = q + 1 , int id = 1 , bool W = true){
+	vector < pair < int , pair < int , int > > > Operations;
+	for(auto x : S[id]){
+		int v = x.first , u = x.second;
+		auto v1 = Find(v) , u1 = Find(u);
+		if(v1.first == u1.first){
+			if(v1.second == u1.second){W = false;}
+			continue;
+		}
+		if(Par[v1.first] > Par[u1.first]){
+			swap(v1 , u1);swap(v , u);
+		}
+		if(v1.first != u1.first){
+			if(v1.second == u1.second){
+				D[u1.first] = ! D[u1.first];
+				Operations.push_back(make_pair(1 , make_pair(u1.first , 0)));
+			}
+			Operations.push_back(make_pair(2 , make_pair(v1.first , Par[v1.first])));
+			Operations.push_back(make_pair(2 , make_pair(u1.first , Par[u1.first])));
+			Par[v1.first] = Par[v1.first] + Par[u1.first];
+			Par[u1.first] = v1.first;
+		}
+	}
+	if(l + 1 == r){
+		if(W){
+			printf("YES\n");
+		}
+		else{
+			printf("NO\n");
+		}
+	}
+	else{
+		Solve(l , (l + r) >> 1 , id << 1 , W);
+		Solve((l + r) >> 1 , r , (id << 1) ^ 1 , W); 
+	}
+	reverse(Operations.begin() , Operations.end());
+	for(auto x : Operations){
+		int tp = x.first;
+		if(tp == 1){
+			D[x.second.first] = ! D[x.second.first];
+		}
+		if(tp == 2){
+			Par[x.second.first] = x.second.second;
+		}
+	}
+}
+int main(){
+	for(int i = 1;i < N;i++){Par[i] --;}
+	scanf("%d %d" , & n , & q);
+	for(int i = 1;i <= q;i++){
+		int v , u ;scanf("%d %d" , & v ,  & u);From[i] = v;To[i] = u;
+		if(Map[make_pair(v , u)] > 0){
+			Add(1 , q + 1 , 1 , Map[make_pair(v , u)] , i  , v , u);
+			Map[make_pair(v , u)] = 0;
+		}
+		else{
+			Map[make_pair(v , u)] = i;
+		}
+	}
+	for(auto x : Map){
+		if(x.second == 0){continue;}
+		Add(1 , q + 1 , 1 , x.second , q + 1 , x.first.first , x.first.second);
+	}
+	Solve();
+	return 0;
+}

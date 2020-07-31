@@ -1,0 +1,450 @@
+//#define DEBUG
+//#define USEPB_DS
+#define USETR1
+#define CPPELEVEN
+#define GPP
+
+/*
+ * temp.cpp
+ *
+ *  Created on: 2012-7-18
+ *      Author: BSBandme
+ */
+//#pragma comment(linker, "/STACK:1024000000,1024000000")
+
+#include <iostream>
+#include <fstream>
+#include <string.h>
+#include <cstdio>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <queue>
+#include <cassert>
+#include <list>
+#include <iomanip>
+#include <math.h>
+#include <deque>
+#include <utility>
+#include <map>
+#include <set>
+#include <bitset>
+#include <numeric>
+#include <climits>
+#include <cctype>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <functional>
+#include <sstream>
+
+using namespace std;
+
+#ifndef CPPELEVEN
+#ifdef USETR1
+#include <tr1/unordered_map>
+#include <tr1/unordered_set>
+using namespace tr1;
+#endif
+#else
+#include <unordered_map>
+#include <unordered_set>
+#endif
+
+#ifdef USEPB_DS
+#include <ext/pb_ds/priority_queue.hpp>
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+// binomial_heap_tag, rc_binomial_heap_tag, thin_heap_tag, binary_heap_tag
+typedef __gnu_pbds::priority_queue<int, greater<int>, pairing_heap_tag> pq_type;
+// splay_tree_tag, ov_tree_tag
+typedef tree <int, null_type, less <int>, rb_tree_tag, tree_order_statistics_node_update> tree_type;
+#endif
+
+#define mpr make_pair
+typedef unsigned int ui;
+typedef unsigned long long ull;
+typedef long long ll;
+typedef pair <int, int> pii;
+typedef pair <ll, ll> pll;
+typedef pair <double, double> pdd;
+typedef vector <int> vi;
+typedef vector <ll> vll;
+typedef vector <double> vd;
+typedef vector <string> vs;
+typedef map <string, int> mpsi;
+typedef map <double, int> mpdi;
+typedef map <int, int> mpii;
+
+const double pi = acos(0.0) * 2.0;
+const long double eps = 1e-10;
+const int step[8][2] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, 1}, {1, 1}, {1, -1}, {-1, -1}};
+
+template <class T> inline T abs1(T a) {return a < 0 ? -a : a;}
+
+#ifndef CPPELEVEN
+template <class T> inline T max1(T a, T b) { return b < a ? a : b; }
+template <class T> inline T max1(T a, T b, T c) { return max1(max1(a, b), c); }
+template <class T> inline T max1(T a, T b, T c, T d) { return max1(max1(a, b, c), d); }
+template <class T> inline T max1(T a, T b, T c, T d, T e) { return max1(max1(a, b, c, d), e); }
+template <class T> inline T min1(T a, T b) { return a < b ? a : b; }
+template <class T> inline T min1(T a, T b, T c) { return min1(min1(a, b), c); }
+template <class T> inline T min1(T a, T b, T c, T d) { return min1(min1(a, b, c), d); }
+template <class T> inline T min1(T a, T b, T c, T d, T e) { return min1(min1(a, b, c, d), e); }
+#else
+template <typename t, typename t1>
+t min1(t a, t1 b) { return a < b ? a : b; }
+template <typename t, typename... arg>
+t min1(t a, arg... arr) { return min1(a, min1(arr...)); }
+template <typename t, typename t1>
+t max1(t a, t1 b) { return a > b ? a : b; }
+template <typename t, typename... arg>
+t max1(t a, arg... arr) { return max1(a, max1(arr...)); }
+#endif
+
+inline int jud(double a, double b){
+	if(abs(a) < eps && abs(b) < eps) return 0;
+	else if(abs1(a - b) / abs1(a) < eps) return 0;
+	if(a < b) return -1;
+	return 1;
+}
+template <typename t> inline int jud(t a, t b){
+	if(a < b) return -1;
+	if(a == b) return 0;
+	return 1;
+}
+
+// f_lb == 1代表返回相同的一串的左边界，f_small == 1代表返回如果没有寻找的值返回小的数
+template <typename it, typename t1>
+inline int find(t1 val, it a, int na, bool f_small = 1, bool f_lb = 1){
+	if(na == 0) return 0;
+	int be = 0, en = na - 1;
+	if(*a <= *(a + na - 1)){
+		if(f_lb == 0) while(be < en){
+			int mid = (be + en + 1) / 2;
+			if(jud(*(a + mid), val) != 1) be = mid;
+			else en = mid - 1;
+		}else while(be < en){
+			int mid = (be + en) / 2;
+			if(jud(*(a + mid), val) != -1) en = mid;
+			else be = mid + 1;
+		}
+		if(f_small && jud(*(a + be), val) == 1) be--;
+		if(!f_small && jud(*(a + be), val) == -1) be++;
+	} else {
+		if(f_lb) while(be < en){
+			int mid = (be + en + 1) / 2;
+			if(jud(*(a + mid), val) != -1) be = mid;
+			else en = mid - 1;
+		}else while(be < en){
+			int mid = (be + en) / 2;
+			if(jud(*(a + mid), val) != 1) en = mid;
+			else be = mid + 1;
+		}
+		if(!f_small && jud(*(a + be), val) == -1) be--;
+		if(f_small && jud(*(a + be), val) == 1) be++;
+	}
+	return be;
+}
+
+template <class T> inline T lowb(T num) {return num & (-num); }
+#ifdef GPP
+inline int bitnum(ui nValue) { return __builtin_popcount(nValue); }
+inline int bitnum(int nValue) { return __builtin_popcount(nValue); }
+inline int bitnum(ull nValue) { return __builtin_popcount(nValue) + __builtin_popcount(nValue >> 32); }
+inline int bitnum(ll nValue) { return __builtin_popcount(nValue) + __builtin_popcount(nValue >> 32); }
+inline int bitmaxl(ui a) { if(a == 0) return 0; return 32 - __builtin_clz(a); }
+inline int bitmaxl(int a) { if(a == 0) return 0; return 32 - __builtin_clz(a); }
+inline int bitmaxl(ull a) { int temp = a >> 32; if(temp) return 32 - __builtin_clz(temp) + 32; return bitmaxl(int(a)); }
+inline int bitmaxl(ll a) { int temp = a >> 32; if(temp) return 32 - __builtin_clz(temp) + 32; return bitmaxl(int(a)); }
+#else
+#endif
+
+long long pow(long long n, long long m, long long mod = 0){
+	if(m < 0) return 0;
+	long long ans = 1;
+	long long k = n;
+	while(m){
+		if(m & 1) {
+			ans *= k;
+			if(mod) ans %= mod;
+		}
+		k *= k;
+		if(mod) k %= mod;
+		m >>= 1;
+	}
+	return ans;
+}
+
+#define  MOD 1000000007
+template <class t1, class t2>
+inline void add(t1 &a, t2 b, int mod = -1) {
+	if(mod == -1) mod = MOD;
+	a += b;
+	while(a >= mod) a -= mod;
+	while(a < 0) a += mod;
+}
+template <class t>
+void output1(t arr) {
+	for(int i = 0; i < (int)arr.size(); i++)
+		cerr << arr[i] << ' ';
+	cerr << endl;
+}
+template <class t>
+void output2(t arr) {
+	for(int i = 0; i < (int)arr.size(); i++)
+		output1(arr[i]);
+}
+
+
+//....................密..........封..........线..........下..........禁..........止..........hack...............................................
+
+const int maxn = 160;
+
+struct bset {
+	ull num[3]; int l;
+	bset(int a = 155, ull orig = 0) : l(a) {
+		num[0] = orig;
+	}
+	inline void init(int a) {
+		l = a;
+		for(int i = 0; i << 6 < l; i++) num[i] = 0;
+	}
+	inline void operator = (const int &a);
+	inline void operator = (const ll &a);
+	inline void operator = (const ull &a);
+	inline void operator = (const bset &a);
+	inline void operator |= (const bset &a);
+	inline void operator &= (const bset &a);
+	inline void operator ^= (const bset &a);
+	inline bset operator | (const bset &a);
+	inline bset operator & (const bset &a);
+	inline bset operator ^ (const bset &a);
+	inline bset operator << (const int &l);
+	inline bset operator >> (const int &l);
+	inline bool get(int loc);
+	inline void set(int loc, int f);
+	inline void output();
+};
+
+inline void bset :: operator = (const int &a) {
+	num[0] = a;
+}
+inline void bset :: operator = (const ll &a) {
+	num[0] = a;
+}
+inline void bset :: operator = (const ull &a) {
+	num[0] = a;
+}
+inline void bset :: operator = (const bset &a) {
+	l = a.l;
+	for(int i = 0, link = 0; i < a.l; i += 64, link++)
+		num[link] = a.num[link];
+}
+inline bset bset :: operator << (const int &l1) {
+	bset ans(l);
+	int have = l1 >> 6, last = l1 ^ (have << 6);
+	for(int i = 0; i <= have; i++) ans.num[i] = 0;
+	for(int i = have; i << 6 < l; i++) {
+		ans.num[i] |= num[i - have] << last;
+		ans.num[i + 1] = num[i - have] >> (64 - last);
+	}
+	return ans;
+}
+inline bset bset :: operator >> (const int &l1) {
+	bset ans(l);
+	int have = l1 >> 6, last = l1 ^ (have << 6);
+	for(int i = have; i << 6 < l; i++) {
+		ans.num[i - have] = num[i] >> last;
+		ans.num[i - have] |= num[i + 1] << (64 - last);
+	}
+	int ff = l - l1;
+	for(; ff & 63; ff++) ans.set(ff, 0);
+	for(; ff < l; ff += 1 << 6) ans.num[ff >> 6] = 0;
+	return ans;
+}
+// based 0
+inline bool bset :: get(int loc) {
+	int yu = (loc >> 6 << 6) ^ loc;
+	return num[loc >> 6] & (1ull << yu);
+}
+// based 0
+inline void bset :: set(int loc, int f) {
+	int yu = (loc >> 6 << 6) ^ loc;
+	if(f) {
+		if(!(num[loc >> 6] & (1ull << yu)))
+			num[loc >> 6] ^= 1ull << yu;
+	}else if(num[loc >> 6] & (1ull << yu))
+		num[loc >> 6] ^= 1ull << yu;
+}
+inline void bset :: operator |= (const bset &a) {
+	for(int i = 0; i << 6 < l;  i++) num[i] |= a.num[i];
+}
+inline void bset :: operator &= (const bset &a) {
+	for(int i = 0; i << 6 < l;  i++) num[i] &= a.num[i];
+}
+inline void bset :: operator ^= (const bset &a) {
+	for(int i = 0; i << 6 < l;  i++) num[i] ^= a.num[i];
+}
+inline bset bset :: operator | (const bset &a) {
+	bset ans(l);
+	for(int i = 0; i << 6 < l;  i++) ans.num[i] = num[i] | a.num[i];
+	return ans;
+}
+inline bset bset :: operator & (const bset &a) {
+	bset ans(l);
+	for(int i = 0; i << 6 < l;  i++) ans.num[i] = num[i] & a.num[i];
+	return ans;
+}
+inline bset bset :: operator ^ (const bset &a) {
+	bset ans(l);
+	for(int i = 0; i << 6 < l;  i++) ans.num[i] = num[i] ^ a.num[i];
+	return ans;
+}
+inline void bset :: output() {
+	for(int i = 0; i < l; i++) if(get(i)) printf("1");
+	else printf("0");
+	printf("\n");
+}
+
+int n, m;
+bset ab[maxn], bb[maxn];
+
+void output(int arr[][maxn]) {
+	for(int i = 0; i < n; i++) {
+		for(int j = 0; j < n; j++)
+			cerr << arr[i][j] << ' ';
+		cerr << endl;
+	}
+	cerr << endl;
+}
+void multi(int a[][maxn], int b[][maxn], int ans[][maxn]) {
+	for(int i = 0; i < n; i++) {
+		for(int j = 0; j < 3; j++) {
+			ab[i].num[j] = 0;
+			bb[i].num[j] = 0;
+		}
+	}
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < n; j++) {
+			if(a[i][j]) ab[i].set(j, 1);
+			if(b[i][j]) bb[j].set(i, 1);
+		}
+	ull temp[5];
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < n; j++) {
+			bool flag = 0;
+			for(int k = 0; k < 3; k++) {
+				temp[k] = ab[i].num[k] & bb[j].num[k];
+				if(temp[k]) {
+					flag = 1;
+					break;
+				}
+			}
+			if(flag) ans[i][j] = 1;
+			else ans[i][j] = 0;
+		}
+}
+
+void pow(int m[][maxn], int rn, int ans[][maxn]) {
+	int temp[maxn][maxn];
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < n; j++)
+			temp[i][j] = m[i][j];
+	for(int i = 0; i < n; i++) {
+		for(int j = 0; j < n; j++)
+			ans[i][j] = bool(i == j);
+	}
+	//
+	#ifdef DEBUG //......................................................................................................
+	output(temp);
+	output(ans);
+	#endif //...........................................................................................................
+
+
+	for(; rn; rn >>= 1) {
+		if(rn & 1) multi(ans, temp, ans);
+		multi(temp, temp, temp);
+		//
+		#ifdef DEBUG //......................................................................................................
+		output(temp);
+		output(ans);
+		#endif //...........................................................................................................
+
+	}
+}
+
+int mat[maxn][maxn];
+int can[maxn];
+pair <ll, pii> orig[maxn];
+
+ll check() {
+	ll dis[maxn];
+	memset(dis, 0x3f, sizeof(dis));
+	int q[maxn], lq = 0, rq = 0;
+	for(int i = 0; i < n; i++) if(can[i]) {
+		dis[i] = 0;
+		q[rq++] = i;
+	}
+	for(; lq != rq; lq++) {
+		int no = q[lq];
+		for(int j = 0; j < n; j++) if(mat[no][j] && dis[j] > dis[no] + 1){
+			dis[j] = dis[no] + 1;
+			q[rq++] = j;
+		}
+	}
+	return dis[n - 1];
+}
+
+
+int main() {
+
+//............................不要再忘了检查maxn大小了！！！！BSBandme你个SB！！！！...................................................
+
+	ios_base::sync_with_stdio(0);
+	#ifdef DEBUG //......................................................................................................
+	freopen("input.txt", "r", stdin);
+	int __size__ = 256 << 20; // 256MB
+	char *__p__ = (char*)malloc(__size__) + __size__;
+	__asm__("movl %0, %%esp\n" :: "r"(__p__));
+	#endif //...........................................................................................................
+
+	scanf("%d%d", &n, &m);
+	can[0] = 1;
+	for(int i = 0; i < m; i++) {
+		int a, b, d;
+		scanf("%d%d%d", &a, &b, &d);
+		a--; b--;
+		orig[i] = mpr(d, mpr(a, b));
+	}
+	sort(orig, orig + m);
+
+	ll now = 0;
+	ll rans = MOD * 2;
+	for(int i = 0; i < m; i++) {
+		int ans[maxn][maxn];
+		int rcan[maxn];
+		memcpy(rcan, can, sizeof(can));
+		memset(can, 0, sizeof(can));
+		pow(mat, orig[i].first - now, ans);
+		//
+		#ifdef DEBUG //......................................................................................................
+		output(mat);
+		output(ans);
+		#endif //...........................................................................................................
+
+		for(int i = 0; i < n; i++) {
+			for(int j = 0; j < n; j++)
+				if(ans[j][i] && rcan[j])
+					can[i] = 1;
+		}
+		mat[orig[i].second.first][orig[i].second.second] = 1;
+		now = orig[i].first;
+		rans = min(rans, check() + now);
+	}
+	if(rans >= MOD * 2) puts("Impossible");
+	else printf("%I64d\n", rans);
+
+    return 0;
+}
+

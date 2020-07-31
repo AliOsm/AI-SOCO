@@ -1,0 +1,236 @@
+////////////////////////////////////////////    _LeMur_
+#pragma GCC optimize("Ofast,no-stack-protector")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+#define _CRT_SECURE_NO_WARNINGS
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <chrono>
+#include <random>
+#include <bitset>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <list>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 200005;
+const int C = 20005;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 1000 * 1000 * 1000 + 7;
+
+int n , q;
+
+long long a[N] , b[N];
+
+int ina[N] , inb[N];
+int xumb[N];
+
+vector <int> gg[N];
+int p[N];
+
+int tin[N] , tout[N] , timer;
+int hamar[N];
+
+void dfs(int v){
+    tin[v] = ++timer;
+    hamar[timer] = v;
+    for(int i=0;i<(int)gg[v].size();i++){
+        int to = gg[v][i];
+        a[to] += a[v];
+        b[to] += b[v];
+        dfs(to);
+    }
+    tout[v] = timer;
+}
+
+struct line{
+    long long k , b;
+};
+
+struct convex_hull{
+    vector < line > st;
+    int it = 0;
+
+    void add(line p){
+        while((int)st.size() > 1){
+            line p1 = st[(int)st.size() - 1];
+            line p2 = st[(int)st.size() - 2];
+            if(p1.k == p.k){
+                if(p.b > p1.b)
+                    st.pop_back();
+                else
+                    break;
+            }
+            else{
+                if((long double)(p.b - p2.b) / (p2.k - p.k) < (long double)(p2.b - p1.b) / (p1.k - p2.k))
+                    st.pop_back();
+                else
+                    break;
+            }
+        }
+        if((int)st.size() && st.back().k == p.k){
+            if(st.back().b < p.b){
+                st.pop_back();
+                st.push_back(p);
+            }
+        }
+        else
+            st.push_back(p);
+    }
+
+    long long calc(line p,long long x){
+        return p.k * x + p.b;
+    }
+
+    long long get(long long x){
+        it = min(it , (int)st.size() - 1);
+        while(it < (int)st.size() - 1){
+            if(calc(st[it] , x) <= calc(st[it + 1] , x))
+                ++it;
+            else
+                break;
+        }
+        return calc(st[it] , x);
+    }
+};
+
+int query_x[C];
+convex_hull mas1[C] , mas2[C];
+vector < pair<long long,int> > g[C];
+
+long long query(int l,int r){
+    long long res = 0;
+    int x1 = xumb[l];
+    int x2 = xumb[r];
+    if(x1 != x2){
+        for(int i=l;i<=inb[x1];i++){
+            int v = hamar[i];
+            res = max(res , b[v] * 1ll * (a[v] + query_x[x1]));
+            res = max(res , b[v] * (-1ll) * (a[v] + query_x[x1]));
+        }
+        ++x1;
+        l = ina[x1];
+    }
+    while(x1 != x2){
+        res = max(res , mas1[x1].get(query_x[x1]));
+        res = max(res , mas2[x1].get(query_x[x1]));
+        ++x1;
+        l = ina[x1];
+    }
+    for(int i=l;i<=r;i++){
+        int v = hamar[i];
+        res = max(res , b[v] * 1ll * (a[v] + query_x[x1]));
+        res = max(res , b[v] * (-1ll) * (a[v] + query_x[x1]));
+    }
+    return res;
+}
+
+void rebuild(int x1,int l,int r,long long x){
+    ///
+    mas1[x1].st.clear();
+    mas2[x1].st.clear();
+    ///
+    mas1[x1].it = 0;
+    mas2[x1].it = 0;
+    ///
+    for(int i=l;i<=r;i++){
+        int v = hamar[i];
+        a[v] += x;
+    }
+    for(int j=0;j<(int)g[x1].size();j++){
+        int v = hamar[ g[x1][j].second ];
+        mas1[x1].add({b[v] , a[v] * b[v]});
+    }
+    for(int j=(int)g[x1].size()-1;j>=0;j--){
+        int v = hamar[ g[x1][j].second ];
+        mas2[x1].add({-b[v] , a[v] * (-1ll) * b[v]});
+    }
+}
+
+void update(int l,int r,long long x){
+    int x1 = xumb[l];
+    int x2 = xumb[r];
+    if(x1 != x2){
+        rebuild(x1 , l , inb[x1] , x);
+        ++x1;
+        l = ina[x1];
+    }
+    while(x1 != x2){
+        query_x[x1] += x;
+        ++x1;
+        l = ina[x1];
+    }
+    rebuild(x1 , l , r , x);
+}
+
+int main(){
+	mt19937 myrand(chrono::steady_clock::now().time_since_epoch().count());
+    scanf("%d%d",&n,&q);
+    for(int i=2;i<=n;i++){
+        scanf("%d",&p[i]);
+        gg[ p[i] ].push_back(i);
+    }
+    for(int i=1;i<=n;i++){
+        scanf("%lld",&a[i]);
+    }
+    for(int i=1;i<=n;i++){
+        scanf("%lld",&b[i]);
+    }
+    dfs(1);
+    int arm = sqrt(n / 6) + 1;
+    int z = 0;
+    for(int i=1;i<=n;i+=arm){
+        int l = i , r = min(n , i + arm - 1);
+        ++z;
+        ina[z] = l;
+        inb[z] = r;
+        ///
+        for(int j=l;j<=r;j++){
+            xumb[j] = z;
+            int v = hamar[j];
+            g[z].push_back(make_pair(b[v] , j));
+        }
+        ///
+        sort(g[z].begin() , g[z].end());
+        for(int j=0;j<(int)g[z].size();j++){
+            int v = hamar[ g[z][j].second ];
+            mas1[z].add({b[v] , a[v] * b[v]});
+        }
+        for(int j=(int)g[z].size()-1;j>=0;j--){
+            int v = hamar[ g[z][j].second ];
+            mas2[z].add({-b[v] , a[v] * (-1ll) * b[v]});
+        }
+        ///
+    }
+    while(q--){
+        int tp;
+        scanf("%d",&tp);
+        int l , r;
+        if(tp == 1){
+            int v;
+            long long x;
+            scanf("%d%lld",&v,&x);
+            l = tin[v] , r = tout[v];
+            update(l , r , x);
+        }
+        else{
+            int v;
+            scanf("%d",&v);
+            l = tin[v] , r = tout[v];
+            printf("%lld\n",query(l , r));
+        }
+    }
+    return 0;
+}

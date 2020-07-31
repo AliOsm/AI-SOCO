@@ -1,0 +1,116 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 100000 + 1;
+const double inf = 1e9;
+
+vector<pair<double, int>> tr[N << 1];
+int a[N], b[N], sum[N];
+
+inline int getID(int l, int r) {
+	return l + r | l != r;
+}
+
+double intersec(int l1, int l2) {
+	if(a[l1] == a[l2])	return inf;
+	return (double)(b[l1] - b[l2]) / (a[l2] - a[l1] + 0.);
+}
+
+void up(int l, int r) {
+	int mid = l + r >> 1;
+	static int Q[N];
+	vector<pair<double, int>> &o = tr[getID(l, r)];
+	vector<pair<double, int>> &lc = tr[getID(l, mid)];
+	vector<pair<double, int>> &rc = tr[getID(mid+1, r)];
+	int i = 0, j = 0, nxt, top = 0, l1, l2;
+	for(; i < lc.size() && j < rc.size();) {
+		nxt = lc[i].second;
+		if(a[nxt] < a[rc[j].second] || a[nxt] == a[rc[j].second] && b[nxt] < b[rc[j].second]) {
+			nxt = rc[j].second;
+			j ++;
+		} else {
+			i ++;
+		}
+		while(top >= 2) {
+			l1 = Q[top - 1], l2 = Q[top - 2];
+			if(intersec(nxt, l2) <= intersec(l1, l2))	top --;
+			else	break;
+		}
+		if(top && a[Q[top - 1]] == a[nxt])	top --;
+		Q[top ++] = nxt;
+	}
+	while(i < lc.size()) {
+		nxt = lc[i].second;
+		while(top >= 2) {
+			l1 = Q[top - 1], l2 = Q[top - 2];
+			if(intersec(nxt, l2) <= intersec(l1, l2))	top --;
+			else	break;
+		}
+		if(top && a[Q[top - 1]] == a[nxt])	top --;
+		Q[top ++] = nxt;
+		i ++;
+	}
+	while(j < rc.size()) {
+		nxt = rc[j].second;
+		while(top >= 2) {
+			l1 = Q[top - 1], l2 = Q[top - 2];
+			if(intersec(nxt, l2) <= intersec(l1, l2))	top --;
+			else	break;
+		}
+		if(top && a[Q[top - 1]] == a[nxt])	top --;
+		Q[top ++] = nxt;
+		j ++;
+	}
+	for(int i = 0; i < top; i ++) {
+		if(!i) {
+			o.emplace_back(-inf, Q[i]);
+		} else {
+			o.emplace_back(intersec(Q[i-1], Q[i]), Q[i]);
+		}
+	}
+}
+
+void build(int l, int r) {
+	if(l == r) {
+		tr[getID(l, r)].emplace_back(-inf, l+1);
+	} else {
+		int mid = l + r >> 1;
+		build(l, mid);
+		build(mid+1, r);
+		up(l, r);
+	}
+}
+
+int query(int l, int r,  int ql, int qr, int X, int y) {
+	int o = getID(l, r);
+	if(ql <= l && r <= qr) {
+		auto it = --upper_bound(tr[o].begin(), tr[o].end(), make_pair(X + 0., -inf), less<pair<double, int>>());
+		return sum[y] + a[it->second] * X + b[it->second];
+	} else {
+		int mid = l + r >> 1;
+		int ret = inf;
+		if(ql <= mid)	ret = min(ret, query(l, mid, ql, qr, X, y));
+		if(qr > mid)	ret = min(ret, query(mid+1, r, ql, qr, X, y));
+		return ret;
+	}
+}
+
+int main() {
+	int n, q, x, y;
+	scanf("%d", &n);
+	for(int i = 1; i <= n; i ++) {
+		scanf("%d", &a[i]);
+		sum[i] = sum[i-1] + a[i];
+		b[i] = a[i] * i - sum[i];
+	}
+	build(0, n-1);
+	scanf("%d", &q);
+	while(q --) {
+		scanf("%d%d", &x, &y);
+		printf("%d\n", query(0, n-1, y-x+1-1, y-1, x-y, y));
+	}
+	return 0;
+}
+

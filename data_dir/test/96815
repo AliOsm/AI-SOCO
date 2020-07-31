@@ -1,0 +1,222 @@
+
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <memory.h>
+#include <limits.h>
+#include <math.h>
+#include <string.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <assert.h>
+#include <utility>
+#include <functional>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+const int N = 100003;
+
+struct node {
+	vector<node*> child;
+	int p;
+
+	node() {
+		child.resize(26,NULL);
+		p = -1;
+	}
+
+	node(node * o) {
+		child.resize(26);
+		for(int i=0; i<26; i++)
+			child[i] = o->child[i];
+		p = o->p;
+	}
+};
+
+struct binary_node {
+	binary_node *l, *r;
+	int cnt;
+
+	binary_node() {
+		l = NULL;
+		r = NULL;
+		cnt = 0;
+	}
+
+	binary_node(binary_node * o) {
+		cnt = o->cnt;
+		l = o->l;
+		r = o->r;
+	}
+};
+
+node *cur;
+binary_node *bcur;
+
+void update_rank(int i,string s,int p) {
+	if(i == s.size()) {
+		cur->p = p;
+		return;
+	}
+
+	if(cur->child[s[i]-'a'] == NULL)
+		cur->child[s[i]-'a'] = new node();
+	else cur->child[s[i]-'a'] = new node(cur->child[s[i]-'a']);
+
+	cur = cur->child[s[i]-'a'];
+
+	update_rank(i+1,s,p);
+}
+
+int get_rank(int i,string s) {
+	if(cur == NULL)
+		return -1;
+
+	if(i == s.size()) 
+		return cur->p;
+
+	cur = cur->child[s[i]-'a'];
+	return get_rank(i+1,s);
+}
+
+void update_priority(int x, int val, int b=30) {
+	bcur->cnt += val;
+
+	if(b == -1)
+		return;
+
+	if(x & (1<<b)) {
+		if(bcur->r == NULL) bcur->r = new binary_node();
+		else bcur->r = new binary_node(bcur->r);
+		bcur = bcur->r;
+		update_priority(x,val,b-1); 
+	} else {
+		if(bcur->l == NULL) bcur->l = new binary_node();
+		else bcur->l = new binary_node(bcur->l);
+
+		bcur = bcur->l;
+		update_priority(x,val,b-1);
+	}
+}
+
+int get(int x,int b=30) {
+	if(b == -1)
+		return bcur->cnt;
+
+	if(x & (1<<b)) {
+		int sum = 0;
+		if(bcur->l != NULL) sum += bcur->l->cnt;
+		if(bcur->r != NULL) {
+			bcur = bcur->r;
+			sum += get(x,b-1);
+		}
+		return sum;
+	} else {
+		if(bcur->l != NULL) {
+			bcur = bcur->l;
+			return get(x,b-1);
+		} return 0;
+	}
+}
+
+node * trie[N];
+binary_node * btrie[N];
+
+char cmd[7], t[17];
+
+int main() {
+#ifdef LOCAL
+	freopen("input.txt", "r", stdin);
+#endif
+
+	int q;
+	scanf("%d",&q);
+
+	trie[0] = new node();
+	btrie[0] = new binary_node();
+
+	for(int v=1; v<=q; v++) {
+		scanf("%s",cmd);
+
+		if(cmd[0]=='s') {
+			int p;
+			scanf("%s%d",t,&p);
+			string s = string(t);
+
+			trie[v] = new node(trie[v-1]);
+			btrie[v] = new binary_node(btrie[v-1]);
+
+			cur = trie[v];
+			int old_rank = get_rank(0,s);
+
+			if(old_rank == -1) {
+				cur = trie[v];
+				update_rank(0,s,p);
+				bcur = btrie[v];
+				update_priority(p,1);
+			} else {
+				cur = trie[v];
+				update_rank(0,s,p);
+
+				bcur = btrie[v];
+				update_priority(old_rank,-1);
+				bcur = btrie[v];
+				update_priority(p,1);
+			}
+		} else if(cmd[0]=='r') {
+			scanf("%s",t);
+			string s = string(t);
+
+			trie[v] = new node(trie[v-1]);
+			btrie[v] = new binary_node(btrie[v-1]);
+
+			cur = trie[v];
+			int old_rank = get_rank(0,s);
+			
+			if(old_rank != -1) {
+				cur = trie[v];
+				update_rank(0,s,-1);
+
+				bcur = btrie[v];
+				update_priority(old_rank,-1);
+			}
+		} else if(cmd[0]=='q') {
+			scanf("%s", t);
+			string s = string(t);
+
+			trie[v] = new node(trie[v-1]);
+			btrie[v] = new binary_node(btrie[v-1]);
+
+			cur = trie[v];
+			int rank = get_rank(0,s);
+
+			if(rank == -1) puts("-1");
+			else {
+				bcur = btrie[v];
+				printf("%d\n", rank ? get(rank-1) : 0);
+			}
+
+			fflush(stdout);
+		} else if(cmd[0]=='u') {
+			int x;
+			scanf("%d",&x);
+
+			trie[v] = new node(trie[v-x-1]);
+			btrie[v] = new binary_node(btrie[v-x-1]);
+		}
+	}
+
+	return 0;
+}

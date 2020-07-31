@@ -1,0 +1,95 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define INF 2147483647
+#define mp make_pair
+#define N 200001
+#define M 301
+struct Segment_Tree
+{
+	int a[N];
+	struct rua
+	  {
+	  int l,r,f,mn;
+	  }t[N<<2];
+	void update(int x)
+	  {
+	  t[x].mn=min(t[x*2].mn,t[x*2+1].mn);
+	  }
+	void down(int x)
+	  {
+	  int c=t[x].f;
+	  t[x].f=0;
+	  t[x*2].f+=c,t[x*2+1].f+=c;
+	  t[x*2].mn+=c,t[x*2+1].mn+=c;
+	  }
+	void Build(int l,int r,int x)
+	  {
+	  t[x].l=l,t[x].r=r;
+	  if(l==r){t[x].mn=a[l],t[x].f=0;return;}
+	  int mid=l+r>>1;
+	  Build(l,mid,x*2);
+	  Build(mid+1,r,x*2+1);
+	  update(x);
+	  }
+	void change(int L,int R,int c,int x)
+	  {
+	  int l=t[x].l,r=t[x].r;
+	  int mid=l+r>>1;
+	  if(L<=l && r<=R){t[x].f+=c,t[x].mn+=c;return;}
+	  if(t[x].f)down(x);
+	  if(L<=mid)change(L,R,c,x*2);
+	  if(mid<R)change(L,R,c,x*2+1);
+	  update(x);
+	  }
+	int ask(int L,int R,int x)
+	  {
+	  int l=t[x].l,r=t[x].r;
+	  int mid=l+r>>1,res=INF;
+	  if(L<=l && r<=R)return t[x].mn;
+	  if(t[x].f)down(x);
+	  if(L<=mid)res=min(res,ask(L,R,x*2));
+	  if(mid<R)res=min(res,ask(L,R,x*2+1));
+	  return res;
+	  }
+}T;
+int n,m,l[M],r[M],mx,ans=1,cnt;
+multiset<pair<int,int> >L,R;
+int main()
+{
+	scanf("%d%d",&n,&m);
+	for(int i=1;i<=n;i++)
+	  scanf("%d",&T.a[i]);
+	T.Build(1,n,1);
+	for(int i=1;i<=m;i++)
+	  {
+	  scanf("%d%d",&l[i],&r[i]);
+	  T.change(l[i],r[i],-1,1);
+	  R.insert(mp(l[i],r[i]));
+	  }
+	for(int i=1;i<=n;i++)
+	  {
+	  while(!R.empty() && (*R.begin()).first<=i)
+	    {
+	    auto tmp=*R.begin();
+	    int l=tmp.first,r=tmp.second;
+	    R.erase(R.begin());
+	    T.change(l,r,1,1);
+	    L.insert(mp(r,l));
+		}
+	  int res=T.ask(i,i,1)-T.ask(1,n,1);
+	  if(res>mx)mx=res,ans=i;
+	  while(!L.empty() && (*L.begin()).first<=i)
+	    {
+	    auto tmp=*L.begin();
+	    int l=tmp.second,r=tmp.first;
+	    L.erase(L.begin());
+	    T.change(l,r,-1,1);
+		}
+	  }
+	for(int i=1;i<=m;i++)
+	  cnt+=(l[i]>ans || r[i]<ans);
+	printf("%d\n%d\n",mx,cnt);
+	for(int i=1;i<=m;i++)
+	  if(l[i]>ans || r[i]<ans)
+	    cnt--,printf("%d%c",i,cnt?' ':'\n');
+}

@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100010;
+
+typedef long long ll;
+
+int n;
+double tr[4 * N], lzs[4 * N], lzm[4 * N];
+ll v[N];
+
+void build(int no, int l, int r) {
+  lzs[no] = 0;
+  lzm[no] = 1.0;
+  if(l == r)  {
+    tr[no] = v[l];
+    return;
+  }
+  int nxt = (no << 1), mid = (l + r) >> 1;
+  build(nxt, l, mid); build(nxt + 1, mid + 1, r);
+  tr[no] = tr[nxt] + tr[nxt + 1];
+}
+
+void propagate(int no, int l, int r) {
+  tr[no] *= lzm[no];
+  tr[no] += lzs[no] * (double)(r - l + 1);
+  if(l != r) {
+    int nxt = (no << 1);
+    lzm[nxt] *= lzm[no];
+    lzs[nxt] *= lzm[no];
+    lzs[nxt] += lzs[no];
+    lzm[nxt + 1] *= lzm[no];
+    lzs[nxt + 1] *= lzm[no];
+    lzs[nxt + 1] += lzs[no];
+  }
+  lzm[no] = 1.0;
+  lzs[no] = 0.0;
+}
+
+double query(int no, int l, int r, int i, int j) {
+  propagate(no, l, r);
+  if(r < i || l > j) return 0;
+  if(l >= i && r <= j) return tr[no];
+  int nxt = (no << 1), mid = (l + r) >> 1;
+  return query(nxt, l, mid, i, j) + query(nxt + 1, mid + 1, r, i, j);
+}
+
+void update(int no, int l, int r, int i, int j, double m, double x) {
+  propagate(no, l, r);
+  if(r < i || l > j) return;
+  if(l >= i && r <= j) {
+    lzm[no] = m;
+    lzs[no] = x;
+    propagate(no, l, r);
+    return;
+  }
+  int nxt = (no << 1), mid = (l + r) >> 1;
+  update(nxt, l, mid, i, j, m, x); update(nxt + 1, mid + 1, r, i, j, m, x);
+  tr[no] = tr[nxt] + tr[nxt + 1];
+}
+
+inline void go(int l1, int r1, int l2, int r2) {
+  double sa = query(1, 1, n, l1, r1);
+  double sb = query(1, 1, n, l2, r2);
+  double fooA = sa / (r1 - l1 + 1);
+  double fooB = sb / (r2 - l2 + 1);
+  update(1, 1, n, l1, r1, (double)(r1 - l1) / (double)(r1 - l1 + 1), fooB / (r1 - l1 + 1));
+  update(1, 1, n, l2, r2, (double)(r2 - l2) / (double)(r2 - l2 + 1), fooA / (r2 - l2 + 1));
+}
+
+int q;
+
+int main() {
+  scanf("%d %d", &n, &q);
+  for(int i = 1; i <= n; ++i) {
+    scanf("%lld", v + i);
+  }
+  build(1, 1, n);
+  while(q--) {
+    int op, l1, r1, l2, r2;
+    scanf("%d %d %d", &op, &l1, &r1);
+    if(op == 1) {
+      scanf("%d %d", &l2, &r2);
+      go(l1, r1, l2, r2);
+    }
+    else {
+      printf("%.10lf\n", query(1, 1, n, l1, r1));
+    }
+  }
+  return 0;
+}

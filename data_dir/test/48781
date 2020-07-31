@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+#define SQRT 317
+using namespace std;
+const int N = 100005;
+int t, arr[N],arr2[N], n,q, dfsTime[N], endTime[N], mapping[N], ans[N], currL = 1, currR = 0, cnt[N];
+vector <int > adjList[N];
+int BIT[N];
+
+void update(int x,int val) {
+    while(x < N) {
+        BIT[x] += val;
+        x += x & (-x);
+    }
+}
+
+int get(int x) {
+    int ret = 0;
+    while(x) {
+        ret += BIT[x];
+        x -= x & (-x);
+    }
+    return ret;
+}
+struct query {
+    int l,r, id, y;
+    bool operator < (const query & q) const {
+        if(l / SQRT < q.l/SQRT)
+            return true;
+        if(l / SQRT > q.l/SQRT)
+            return false;
+        if( r < q.r)
+            return true;
+        if(r > q.r)
+            return false;
+        return y < q.y;
+    }
+};
+vector <query> vec;
+long long currAns;
+
+void add (int x) {
+    int num = arr2[x];
+    int freq = cnt[num];
+    if(freq)
+        update(freq,-1);
+    cnt[num]++;
+    update(freq+1,1);
+}
+
+void remove(int x) {
+    int num = arr2[x];
+    int freq = cnt[num];
+    if(freq)
+        update(freq,-1);
+    cnt[num]--;
+    if(freq > 1)
+        update(freq-1,1);
+}
+
+int get(int l,int r,int cnt) {
+    while(currL > l)
+        add(--currL);
+    while(currR < r)
+        add(++currR);
+    while(currL < l)
+        remove(currL++);
+    while(currR > r)
+        remove(currR--);
+    return get(N-1) - get(cnt-1);
+}
+
+int dfs(int node,int parent) {
+    dfsTime[node] = ++t;
+    mapping[node] = t;
+    for(int ch:adjList[node])
+        if(ch != parent)
+            dfs(ch,node);
+    endTime[node] = t;
+}
+
+int main()
+{
+    scanf("%d%d",&n,&q);
+    for(int i = 1;i<=n;i++)
+        scanf("%d",&arr[i]);
+    for(int i = 0;i<n-1;i++) {
+        int x,y;
+        scanf("%d%d",&x,&y);
+        adjList[x].push_back(y);
+        adjList[y].push_back(x);
+    }
+    dfs(1,1);
+    for(int i = 1;i<=n;i++)
+        arr2[mapping[i]] = arr[i];
+
+    for(int i = 0;i<q;i++) {
+        int x,y;
+        scanf("%d%d",&x,&y);
+        vec.push_back(query{dfsTime[x],endTime[x],i,y});
+    }
+    sort(vec.begin(),vec.end());
+    for(int i = 0;i<q;i++)
+        ans[vec[i].id] = get(vec[i].l,vec[i].r,vec[i].y);
+    for(int i = 0;i<q;i++)
+        printf("%d\n",ans[i]);
+    return 0;
+}

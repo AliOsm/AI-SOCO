@@ -1,0 +1,129 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 2e6;
+int n,m,r,b,rem,src,src1,sink,sink1,last[N],size,mn[N],mx[N],freq[N],x[N],y[N],is[N],dis[N],last1[N],q[N];
+map<int,int>mp[2];
+int get(int u,bool t){
+    if(mp[t].find(u) != mp[t].end())return mp[t][u];
+    mp[t][u] = size++;
+    return mp[t][u];
+}
+void no(){puts("-1");exit(0);}
+struct edge{
+    int u,v,c,l;
+}e[N];
+void addEdge(int u,int v,int c){
+    e[rem].u = u;e[rem].v = v;e[rem].c = c;e[rem].l = last[u];
+    last[u] = rem++;
+    e[rem].u = v;e[rem].v = u;e[rem].c = 0;e[rem].l = last[v];
+    last[v] = rem++;
+}
+bool bfs(){
+    int l,r;
+    for(int i = 0;i < size;i++){
+        dis[i] = -1;
+        last1[i] = last[i];
+    }
+    dis[src] = 0;
+    l = r = 0;
+    q[0] = src;
+    while(l <= r){
+        int at = q[l++];
+        for(int cur = last[at];cur != -1;cur = e[cur].l)
+            if(dis[e[cur].v] == -1 && e[cur].c){
+                dis[e[cur].v] = dis[at] + 1;
+                q[++r] = e[cur].v;
+            }
+    }
+    return dis[sink] != -1;
+}
+int dfs(int u,int mn){
+    if(u == sink)return mn;
+    for(int &cur = last1[u];cur != -1;cur = e[cur].l){
+        if(e[cur].c && dis[e[cur].v] == dis[u] + 1){
+            int temp = dfs(e[cur].v,min(mn,e[cur].c));
+            if(!temp)continue;
+            e[cur].c-=temp;
+            e[cur^1].c+=temp;
+            return temp;
+        }
+    }
+    return 0;
+}
+int MaxFlow(){
+    int flow = 0;
+    while(bfs()){
+        while(1){
+            int x = dfs(src,1e9);
+            if(!x)break;
+            flow+=x;
+        }
+    }
+    return flow;
+}
+int main(){
+    // freopen("input.txt","r",stdin);
+    scanf("%d%d%d%d",&n,&m,&r,&b);
+    for(int i = 0;i < N;i++)mx[i] = 1e9;
+    memset(last,-1,sizeof last);
+    bool did = 0;
+    if(r > b){
+        swap(r,b);
+        did = 1;
+    }
+    for(int i = 0,x,y;i < n;i++){
+        scanf("%d%d",&x,&y);
+        x = get(x,0);
+        y = get(y,1);
+        is[i] = rem;
+        addEdge(x,y,1);
+        freq[x]++;
+        freq[y]++;
+    }
+    for(int i = 0,l,t,d;i < m;i++){
+        scanf("%d%d%d",&t,&l,&d);
+        l = get(l,--t);
+        if(freq[l] > d){
+            mn[l] = max(mn[l],(freq[l] - d + 1)/2);
+            mx[l] = min(mx[l],(freq[l] + d)/2);
+        }
+    }
+    src = size++;
+    sink = size++;
+    src1 = size++;
+    sink1 = size++;
+    addEdge(sink,src,1e9);
+    long long need = 0;
+    for(int i = 0;i < 2;i++)
+        for(auto j : mp[i]){
+            if(mn[j.second] > mx[j.second])no();
+            need+=mn[j.second];
+            if(!i){
+                if(mn[j.second]){
+                    addEdge(src1,j.second,mn[j.second]);
+                    addEdge(src,sink1,mn[j.second]);
+                }
+                if(mx[j.second] - mn[j.second])addEdge(src,j.second,mx[j.second] - mn[j.second]);
+            }
+            else{
+                if(mn[j.second]){
+                    addEdge(j.second,sink1,mn[j.second]);
+                    addEdge(src1,sink,mn[j.second]);
+                }
+                if(mx[j.second] - mn[j.second])addEdge(j.second,sink,mx[j.second] - mn[j.second]);
+            }
+        }
+    swap(src,src1);
+    swap(sink,sink1);
+    int ans = MaxFlow();
+    if(ans < need)no();
+    swap(src,src1);
+    swap(sink,sink1);
+    ans = MaxFlow();
+    printf("%lld\n",ans*1LL*r + (n - ans)*1LL*b);
+    for(int i = 0;i < n;i++){
+        bool at = !e[is[i]].c;
+        at^=did;
+        printf("%c",at ? 'r' : 'b');
+    }
+}

@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <string.h>
+
+#define N	1000
+#define C	1000
+#define H	20	/* H = ceil(log2(N * C + 1)) */
+#define N_	(1 << H)
+#define MD	469762049
+
+int ww[H + 1], ww_[H + 1];
+
+long long power(int a, int k) {
+	long long p;
+
+	if (k == 0)
+		return 1;
+	p = power(a, k >> 1);
+	p = p * p % MD;
+	if (k & 1)
+		p = p * a % MD;
+	return p;
+}
+
+void init() {
+	int h;
+
+	for (h = 0; h <= H; h++)
+		ww_[h] = power(ww[h] = power(3, MD - 1 >> h), MD - 2);
+}
+
+void ntt(int *aa, int n, int inverse) {
+	int h, i, j, a, b;
+
+	for (i = 1, j = 0; i < n; i++) {
+		int tmp;
+
+		b = n;
+		do
+			j ^= b >>= 1;
+		while ((j & b) == 0);
+		if (i < j)
+			tmp = aa[i], aa[i] = aa[j], aa[j] = tmp;
+	}
+	for (h = 0; (b = 1 << h) < n; h++) {
+		long long w = inverse ? ww_[h + 1] : ww[h + 1], w_ = 1;
+
+		for (a = 0; a < b; a++) {
+			for (i = a; i < n; i += b * 2) {
+				int u = aa[i], v = aa[j = i + b] * w_ % MD;
+
+				if ((aa[i] = u + v) >= MD)
+					aa[i] -= MD;
+				if ((aa[j] = u - v) < 0)
+					aa[j] += MD;
+			}
+			w_ = w_ * w % MD;
+		}
+	}
+}
+
+void mult(int *aa, int *bb) {
+	int n, m, n_, i;
+
+	n = N_;
+	while (n > 0 && aa[n - 1] == 0)
+		n--;
+	m = N_;
+	while (m > 0 && bb[m - 1] == 0)
+		m--;
+	n_ = 1;
+	while (n_ < n + m - 1)
+		n_ <<= 1;
+	ntt(aa, n_, 0);
+	ntt(bb, n_, 0);
+	for (i = 0; i < n_; i++)
+		aa[i] = (long long) aa[i] * bb[i] % MD;
+	ntt(aa, n_, 1);
+	for (i = 0; i < n_; i++)
+		if (aa[i] != 0)
+			aa[i] = 1;
+}
+
+void power_(int *aa, int *pp, int *tt, int k) {
+	if (k == 0) {
+		memset(pp, 0, N_ * sizeof *pp);
+		pp[0] = 1;
+		return;
+	}
+	power_(aa, pp, tt, k >> 1);
+	memcpy(tt, pp, N_ * sizeof *pp);
+	mult(pp, tt);
+	if (k & 1) {
+		memcpy(tt, aa, N_ * sizeof *aa);
+		mult(pp, tt);
+	}
+}
+
+int main() {
+	static int aa[N_], pp[N_], tt[N_];
+	int n, k, i;
+
+	init();
+	scanf("%d%d", &n, &k);
+	while (n--) {
+		int c;
+
+		scanf("%d", &c);
+		aa[c] = 1;
+	}
+	power_(aa, pp, tt, k);
+	for (i = 0; i < N_; i++)
+		if (pp[i])
+			printf("%d ", i);
+	printf("\n");
+	return 0;
+}

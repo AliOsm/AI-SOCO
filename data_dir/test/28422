@@ -1,0 +1,109 @@
+﻿#include <bits/stdc++.h>
+using namespace std;
+
+int n;
+vector<pair<int, int> > t[26];
+
+void build(vector<pair<int, int> > &t, int v, int tl, int tr) {
+	if(tl == tr) {
+		t[v].first = t[v].second = 0;
+	} else {
+		int tm = (tl + tr) >> 1;
+		build(t, 2 * v + 1, tl, tm);
+		build(t, 2 * v + 2, tm + 1, tr);
+		t[v].first = -1;
+		t[v].second = 0;
+	}
+}
+
+void update(vector<pair<int, int> > &t, int v, int tl, int tr, int l, int r, int add) {
+	if(l > r) {
+		return;
+	}
+	if(tl == l && tr == r) {
+		t[v].first = add;
+		t[v].second = (tr - tl + 1) * add;
+	} else {
+		int tm = (tl + tr) >> 1;
+		if(t[v].first != -1) {
+			t[2 * v + 1].first = t[2 * v + 2].first = t[v].first;
+			t[2 * v + 1].second = t[2 * v + 1].first * (tm - tl + 1);
+			t[2 * v + 2].second = t[2 * v + 2].first * (tr - tm);
+			t[v].first = -1;
+		}
+		update(t, 2 * v + 1, tl, tm, l, min(tm, r), add);
+		update(t, 2 * v + 2, tm + 1, tr, max(tm + 1, l), r, add);
+		t[v].second = t[2 * v + 1].second + t[2 * v + 2].second;
+	}
+}
+
+int get(vector<pair<int, int> > &t, int v, int tl, int tr, int l, int r) {
+	if(l > r) {
+		return 0;
+	}
+	if(t[v].first != -1) {	
+		return t[v].first * (r - l + 1);
+	}
+	if(tl == l && tr == r) {
+		return t[v].second;
+	} else {
+		int tm = (tl + tr) >> 1;
+		return get(t, 2 * v + 1, tl, tm, l, min(tm, r)) + 
+			get(t, 2 * v + 2, tm + 1, tr, max(tm + 1, l), r);
+	}
+}
+
+int main (int argc, char *argv[])
+{
+	int q;
+	scanf("%d%d", &n, &q);
+	for(int i = 0; i < 26; ++i) {
+		t[i].resize(4 * n);
+		build(t[i], 0, 0, n - 1);
+	}
+	for(int i = 0; i < n; ++i) {
+		char c;
+		scanf(" %c", &c);
+		update(t[(c - 'a')], 0, 0, n - 1, i, i, 1);
+	}
+	while(q--) {
+		int l, r, type;
+		scanf("%d%d%d", &l, &r, &type);
+		--l;
+		--r;
+		int cnt[26];
+		for(int j = 0; j < 26; ++j) {
+			cnt[j] = get(t[j], 0, 0, n - 1, l, r);
+			update(t[j], 0, 0, n - 1, l, r, 0);
+		}
+		int cur = l;
+		if(!type) {
+			for(int j = 25; j >= 0; --j) {
+				if(!cnt[j]) {
+					continue;
+				}
+				update(t[j], 0, 0, n - 1, cur, cur + cnt[j] - 1, 1);
+				cur += cnt[j];
+			}
+		} else {
+			for(int j = 0; j < 26; ++j) {
+				if(!cnt[j]) {
+					continue;
+				}
+				update(t[j], 0, 0, n - 1, cur, cur + cnt[j] - 1, 1);
+				cur += cnt[j];
+			}
+		}
+	}
+
+	for(int i = 0; i < n; ++i) {
+		for(int j = 0; j < 26; ++j) {
+			if(get(t[j], 0, 0, n - 1, i, i)) {
+				printf("%c", char(j + 'a'));
+			}
+		}
+	}
+
+	return 0;
+}
+

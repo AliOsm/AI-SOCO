@@ -1,0 +1,166 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 5;
+const long long inf = 1e18;
+
+int c[N];
+long long dboth[N], da[N], db[N], dno[N];
+vector<int> both, a, b, no;
+set<int> A, B;
+
+long long rem[N];
+int cnt[N][3];
+long long got[N][3];
+int pt[N][2];
+
+void rapi(long long* d, vector<int>& source) {
+  sort(source.begin(), source.end());
+  for (int i = 0; i < source.size(); i++) {
+    d[i + 1] = d[i] + source[i];
+  }
+}
+
+int main() {
+  int n, m, k;
+  scanf("%d %d %d", &n, &m, &k);
+  for (int i = 1; i <= n; i++) scanf("%d", c + i);
+  int q;
+  scanf("%d", &q);
+  while (q--) {
+    int v;
+    scanf("%d", &v);
+    A.insert(v);
+  }
+  scanf("%d", &q);
+  while (q--) {
+    int v;
+    scanf("%d", &v);
+    B.insert(v);
+  }
+  for (int i = 1; i <= n; i++) {
+    if (A.count(i) && B.count(i)) {
+      both.push_back(c[i]);
+    } else if (A.count(i)) {
+      a.push_back(c[i]);
+    } else if (B.count(i)) {
+      b.push_back(c[i]);
+    } else {
+      no.push_back(c[i]);
+    }
+  }
+  rapi(dboth, both);
+  rapi(da, a);
+  rapi(db, b);
+  rapi(dno, no);
+  vector<pair<int, int>> tmp;
+  for (int i = 0; i < a.size(); i++) tmp.emplace_back(a[i], 0);
+  for (int i = 0; i < b.size(); i++) tmp.emplace_back(b[i], 1);
+  for (int i = 0; i < no.size(); i++) tmp.emplace_back(no[i], 2);
+  sort(tmp.begin(), tmp.end());
+  for (int i = 0; i < tmp.size(); i++) {
+    rem[i + 1] = rem[i] + tmp[i].first;
+    for (int j = 0; j < 3; j++) {
+      cnt[i + 1][j] = cnt[i][j];
+      got[i + 1][j] = got[i][j];
+    }
+    if (tmp[i].second == 0) {
+      cnt[i + 1][0]++;
+      got[i + 1][0] += tmp[i].first;
+    } else if (tmp[i].second == 1) {
+      cnt[i + 1][1]++;
+      got[i + 1][1] += tmp[i].first;
+    } else {
+      for (int j = 0; j < 3; j++) {
+        cnt[i + 1][j]++;
+        got[i + 1][j] += tmp[i].first;
+      }
+    }
+  }
+  int p = 0; q = 0;
+  for (int i = 0; i < tmp.size(); i++) {
+    if (tmp[i].second == 0) {
+      p++;
+      pt[p][0] = i + 1;
+    } else if (tmp[i].second == 1) {
+      q++;
+      pt[q][1] = i + 1;
+    }    
+  }
+  assert(p == a.size());
+  assert(q == b.size());
+  if (n == 100 && m == 98 && k == 60) {
+    //printf("%d %d %d %d\n", both.size(), a.size(), b.size(), no.size());
+  }
+  
+  long long ans = inf;
+  for (int i = 0; i <= both.size(); i++) {
+    if (i > m) continue;
+    int wajib_a = max(0, k - i);
+    int wajib_b = max(0, k - i);
+    int sisa = max(0, m - i - wajib_a - wajib_b);
+    if (wajib_a > a.size() || wajib_b > b.size() || i + wajib_a + wajib_b > m || m - i > tmp.size()) {
+      continue;
+    }
+    long long cur = dboth[i] +  da[wajib_a] + db[wajib_b];
+    int lim = max(pt[wajib_a][0], pt[wajib_b][1]);
+    if (pt[wajib_a][0] < lim) {
+      int l = 0, r = pt[wajib_a][0];
+      while (l < r) {
+        int mid = (l + r) >> 1;
+        if (cnt[mid][2] < sisa) {
+          l = mid + 1;
+        } else {
+          r = mid;
+        }
+      }
+      sisa -= cnt[l][2];
+      cur += got[l][2];
+      
+      l = pt[wajib_a][0];
+      r = lim;
+      while (l < r) {
+        int mid = (l + r) >> 1;
+        if (cnt[mid][0] - cnt[pt[wajib_a][0]][0] < sisa) {
+          l = mid + 1;
+        } else {
+          r = mid;
+        }
+      }
+      sisa -= cnt[l][0] - cnt[pt[wajib_a][0]][0];
+      cur += got[l][0] - got[pt[wajib_a][0]][0];
+    } else if (lim > pt[wajib_b][1]) {
+      int l = 0, r = pt[wajib_b][1];
+      while (l < r) {
+        int mid = (l + r) >> 1;
+        if (cnt[mid][2] < sisa) {
+          l = mid + 1;
+        } else {
+          r = mid;
+        }
+      }
+      sisa -= cnt[l][2];
+      cur += got[l][2];
+      
+      l = pt[wajib_b][1];
+      r = lim;
+      while (l < r) {
+        int mid = (l + r) >> 1;
+        if (cnt[mid][1] - cnt[pt[wajib_b][1]][1] < sisa) {
+          l = mid + 1;
+        } else {
+          r = mid;
+        }
+      }
+      sisa -= cnt[l][1] - cnt[pt[wajib_b][1]][1];
+      cur += got[l][1] - got[pt[wajib_b][1]][1];
+    }
+    cur += rem[lim + sisa] - rem[lim];
+    //printf("cur %d: %lld\n", i, cur);
+    ans = min(ans, cur);
+  }
+  if (ans == inf) ans = -1;
+  cout << ans << endl;
+  return 0;
+}

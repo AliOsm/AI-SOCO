@@ -1,0 +1,92 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int M[] = {int(1e9) + 7, int(1e9) + 9};
+
+signed main() {
+  ios::sync_with_stdio(false);
+
+  auto powmod = [&](int x, int p, int m) {
+    int r = 1;
+    for (int i = p; i; i >>= 1) {
+      if (i & 1) r = 1LL * r * x % m;
+      x = 1LL * x * x % m;
+    }
+    return r;
+  };
+
+  vector<vector<int>> fact(2, vector<int>(40));
+  for (int t = 0; t < 2; ++t) {
+    for (int i = fact[t][0] = 1; i < fact[t].size(); ++i) {
+      fact[t][i] = 1LL * fact[t][i - 1] * i % M[t];
+    }
+  }
+
+  string N;
+  cin >> N;
+
+  vector<int> cnt(10);
+  for (int i = 0; i < N.size(); ++i) {
+    ++cnt[N[i] - '0'];
+  }
+
+  auto solve = [&](int t, const vector<int> &cnt) {
+    assert(cnt.size() == 10);
+    int res = 0;
+    vector<int> take(10);
+    function<void(int)> dfs = [&](int d) {
+      if (d == 10) {
+        int cc = accumulate(take.begin(), take.end(), 0);
+        if (cc == 0) return;
+        int u = fact[t][cc];
+        for (int i = 0; i < 10; ++i) {
+          u = 1LL * u * powmod(fact[t][take[i]], M[t] - 2, M[t]) % M[t];
+        }
+        if (cnt[0]) {
+          for (int i = 1; i <= cnt[0]; ++i) {
+            auto choose = [&](int n, int m) -> int {
+              if (n < m) return 0;
+              return 1LL * fact[t][n] * powmod(fact[t][m], M[t] - 2, M[t]) % M[t] * powmod(fact[t][n - m], M[t] - 2, M[t]) % M[t];
+            };
+            auto h = [&](int n, int m) {
+              return choose(n + m - 1, m);
+            };
+            (res += 1LL * u * h(cc, i) % M[t]) %= M[t];
+          }
+        } else {
+          (res += u) %= M[t];
+        }
+        return;
+      }
+      if (cnt[d]) {
+        for (int i = 1; i <= cnt[d]; ++i) {
+          take[d] = i;
+          dfs(d + 1);
+        }
+      } else {
+        dfs(d + 1);
+      }
+    };
+    dfs(1);
+    return res;
+  };
+
+  int mans[2] = {solve(0, cnt), solve(1, cnt)};
+
+  auto mul = [&](int64_t x, int64_t y, int64_t m) -> int64_t {
+    int64_t r = 0;
+    for (int64_t i = y; i; i >>= 1) {
+      if (i & 1LL) (r += x) %= m;
+      (x += x) %= m;
+    }
+    return r;
+  };
+
+  int64_t mm = 1LL * M[0] * M[1];
+  int64_t ans = (mul(mul(powmod(M[1], M[0] - 2, M[0]), M[1], mm), mans[0], mm) + mul(mul(powmod(M[0], M[1] - 2, M[1]), M[0], mm), mans[1], mm)) % mm;
+
+  if (ans < 0) ans += mm;
+  cout << ans << endl;
+
+  return 0;
+}

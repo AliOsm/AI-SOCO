@@ -1,0 +1,101 @@
+#include<bits/stdc++.h>
+using namespace std;
+int const N = 4e5+10;
+typedef pair<int,int> pii;
+
+int n;
+
+string s[N];
+int x[N], y[N];
+set<int> sett;
+map<int,int> m, rmap;
+
+set<int> seg[4*N];
+int maior[4*N];
+
+void build(int idx, int i, int j){
+  if(i == j){
+    maior[idx] = -1;
+    return;
+  }
+  int mid=(i+j)>>1, left=idx<<1, right=left|1;
+  build(left,i,mid), build(right,mid+1,j);
+  maior[idx] = -1;
+}
+
+void update(int idx, int i, int j, int pos, int Y){
+  if(i == j){
+    seg[idx].insert(Y);
+    maior[idx] = *(--(seg[idx].end()));
+    return;
+  }
+  int mid=(i+j)>>1, left=idx<<1, right=left|1;
+  if(pos <= mid) update(left,i,mid,pos,Y);
+  else update(right,mid+1,j,pos,Y);
+  maior[idx] = max(maior[left],maior[right]);
+}
+
+void upd(int idx, int i, int j, int pos, int Y){
+  if(i == j){
+    seg[idx].erase(Y);
+    if(seg[idx].empty()) maior[idx] = -1;
+    else maior[idx] = *(--(seg[idx].end()));
+    return;
+  }
+  int mid=(i+j)>>1, left=idx<<1, right=left|1;
+  if(pos <= mid) upd(left,i,mid,pos,Y);
+  else upd(right,mid+1,j,pos,Y);
+  maior[idx] = max(maior[left],maior[right]);
+}
+
+pii query(int idx, int i, int j, int ini, int fim, int Y){
+  if(i>j || j<ini || fim<i) return pii(-1,-1);
+  if(maior[idx] <= Y) return pii(-1,-1);
+  if(i == j){
+     auto ret = seg[idx].upper_bound(Y);
+     if(ret == seg[idx].end()) return pii(-1,-1);
+     return pii(i,*ret);
+  }
+  int mid=(i+j)>>1, left=idx<<1, right=left|1;
+  pii ret = query(left,i,mid,ini,fim,Y);
+  if(ret.second != -1) return ret;
+  ret = query(right,mid+1,j,ini,fim,Y);
+  return ret;
+}
+
+int main(){
+  
+  cin.sync_with_stdio(0);
+  cin.tie(0);
+  cout.tie(0);
+  
+  cin >> n;
+  for(int i = 1; i <= n; i++) cin >> s[i] >> x[i] >> y[i], sett.insert(x[i]);
+  
+  int cont = 0;
+  for(auto i: sett) m[i] = ++cont, rmap[cont] = i;
+  build(1,1,n);
+  
+  for(int i = 1; i <= n; i++){
+    if(s[i] == "add"){
+      int pos = m[x[i]];
+      update(1,1,cont,pos,y[i]);
+    }
+    if(s[i] == "remove"){
+      int pos = m[x[i]];
+      upd(1,1,cont,pos,y[i]);
+    }
+    if(s[i] == "find"){
+      int pos = m[x[i]];
+      pii ans = query(1,1,cont,pos+1,cont,y[i]);
+      if(ans.second == -1) cout << "-1" << '\n';
+      else{
+        ans.first = rmap[ans.first];
+        cout << ans.first << " " << ans.second << '\n';
+      }
+    }
+  }
+  
+  return 0;
+  
+}

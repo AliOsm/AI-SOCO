@@ -1,0 +1,98 @@
+// Can U hack it?
+
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int maxn=1e5+10,mod=1e9+7;
+
+vector<pll>v[maxn];
+int sp[20][maxn],h[maxn],n;
+ll SZ[maxn],dd1[maxn],dd2[maxn],uu1[maxn],uu2[maxn],hw[maxn];
+
+void dfs1(int u,int par=0){
+    sp[0][u]=par;
+    for(int i=1;i<20;i++)
+	sp[i][u]=sp[i-1][sp[i-1][u]];
+    for(auto p:v[u]){
+	if(p.F!=par){
+	    h[p.F]=h[u]+1;
+	    hw[p.F]=(hw[u]+p.S)%mod;
+	    dfs1(p.F,u);
+	    dd1[u]=(dd1[u]+dd1[p.F]+p.S*SZ[p.F])%mod;
+	    dd2[u]=(dd2[u]+dd2[p.F]+(p.S*p.S %mod *SZ[p.F])+p.S*2*dd1[p.F])%mod;
+	    SZ[u]+=SZ[p.F];
+	}
+    }
+    SZ[u]++;
+}
+
+void dfs2(int u,ll w,int par=0){
+    ll ww=w*w %mod;
+    if(par!=0){
+	ll A=(dd1[par]-dd1[u]-w*SZ[u])%mod,B=(dd2[par]-dd2[u]-ww*SZ[u]-w*2*dd1[u]+ww*(SZ[par]-SZ[u]-1)+w*2*A)%mod;
+	uu1[u]=(A+w*(SZ[par]-SZ[u]-1)+uu1[par]+w*(n-SZ[par]+1))%mod;
+	uu2[u]=(B+uu2[par]+ww*(n-SZ[par]+1)+w*2*uu1[par])%mod;
+    }
+    for(auto p:v[u])
+	if(p.F!=par)
+	    dfs2(p.F,p.S,u);
+}
+
+int LCA(int a,int b){
+    if(h[a]<h[b]) swap(a,b);
+    for(int i=19;i>=0;i--){
+	if(h[sp[i][a]]>=h[b])
+	    a=sp[i][a];
+    }
+    if(a==b) return a;
+    for(int i=19;i>=0;i--)
+	if(sp[i][a]!=sp[i][b])
+	    a=sp[i][a],b=sp[i][b];
+    return sp[0][a];
+}
+
+ll f(int u,ll w){
+    ll ww=w*w %mod;
+    return (dd2[u]+ww*SZ[u]+2ll*w*dd1[u])%mod;
+}
+
+ll g(ll u,ll w){
+    ll ww=w*w %mod;
+    return (uu2[u]+ww*(n-SZ[u])+2ll*w*uu1[u])%mod;
+}
+
+int main(){
+    scanf("%d",&n);
+    for(int i=0;i<n-1;i++){
+	int a,b,c;scanf("%d%d%d",&a,&b,&c);
+	v[a].PB({b,c});
+	v[b].PB({a,c});
+    }
+    h[1]=1;
+    dfs1(1);
+    dfs2(1,0);
+    int q;scanf("%d",&q);
+    while(q--){
+	int a,b;scanf("%d%d",&a,&b);
+	int lc=LCA(a,b);
+	ll ans=0;
+	if(lc==b)
+	    ans=(uu2[a]+dd2[a]-2ll*g(b,hw[a]-hw[b]))%mod;
+	else
+	    ans=(-uu2[a]-dd2[a]+2ll*f(b,hw[a]+hw[b]-2*hw[lc]))%mod;
+	int ANS=(ans<0?ans+mod:ans);
+	printf("%d\n",ANS);
+    }
+    return 0;
+}

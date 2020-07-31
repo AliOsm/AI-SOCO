@@ -1,0 +1,168 @@
+/*
+    Author: Nguyen Tan Bao
+    Status:
+    Idea:
+*/
+ 
+#include <bits/stdc++.h>
+#define FI first
+#define SE second
+#define EPS 1e-9
+#define ALL(a) a.begin(),a.end()
+#define SZ(a) int((a).size())
+#define MS(s, n) memset(s, n, sizeof(s))
+#define FOR(i,a,b) for (int i = (a); i <= (b); i++)
+#define FORE(i,a,b) for (int i = (a); i >= (b); i--)
+#define FORALL(it, a) for (__typeof((a).begin()) it = (a).begin(); it != (a).end(); it++)
+//__builtin_ffs(x) return 1 + index of least significant 1-bit of x
+//__builtin_clz(x) return number of leading zeros of x
+//__builtin_ctz(x) return number of trailing zeros of x
+ 
+using namespace std;
+using ll = long long;
+using ld = double;
+typedef pair<int, int> II;
+typedef pair<II, int> III;
+typedef complex<ld> cd;
+typedef vector<cd> vcd;
+ 
+const ll MODBASE = 1000000007LL;
+const int MAXN = 200010;
+const int MAXM = 1000;
+const int MAXK = 16;
+const int MAXQ = 200010;
+
+int n, m, N;
+ll d[MAXN], h[MAXN], L[MAXN], R[MAXN];
+II ML[MAXN][20], MR[MAXN][20];
+
+II getMaxL(II a, II b) {
+    if (a == b) return a;
+
+    vector<int> p;
+    if (a.FI != -1) p.push_back(a.FI);
+    if (a.SE != -1) p.push_back(a.SE);
+    if (b.FI != -1) p.push_back(b.FI);
+    if (b.SE != -1) p.push_back(b.SE);
+
+    sort(ALL(p));
+    p.erase(unique(ALL(p)), p.end());
+
+    sort(ALL(p), [](int x, int y) {
+        return L[x] > L[y];
+    });
+
+    if (SZ(p) == 1) return II(p[0], -1);
+    return II(p[0], p[1]);
+}
+
+II getMaxR(II a, II b) {
+    if (a == b) return a;
+
+    vector<int> p;
+    if (a.FI != -1) p.push_back(a.FI);
+    if (a.SE != -1) p.push_back(a.SE);
+    if (b.FI != -1) p.push_back(b.FI);
+    if (b.SE != -1) p.push_back(b.SE);
+
+    sort(ALL(p));
+    p.erase(unique(ALL(p)), p.end());
+
+    sort(ALL(p), [](int x, int y) {
+        return R[x] > R[y];
+    });
+
+    if (SZ(p) == 1) return II(p[0], -1);
+    return II(p[0], p[1]);
+}
+
+void RMQ() {
+    FOR(i,1,N) {
+        ML[i][0] = II(i, -1);
+        MR[i][0] = II(i, -1);
+    }
+
+    for (int k = 1; (1<<k) <= N; k++)
+        for (int i = 1; i + (1<<k) - 1 <= N; i++) {
+            ML[i][k] = getMaxL(ML[i][k-1], ML[i+(1<<(k-1))][k-1]);
+            MR[i][k] = getMaxR(MR[i][k-1], MR[i+(1<<(k-1))][k-1]);
+        }
+}
+
+II getL(int u, int v) {
+    int k = int(log2(v - u + 1));
+    return getMaxL(ML[u][k], ML[v-(1<<k)+1][k]);
+}
+
+II getR(int u, int v) {
+    int k = int(log2(v - u + 1));
+    return getMaxR(MR[u][k], MR[v-(1<<k)+1][k]);
+}
+
+ll consider(int l, int r) {
+    if (l >= r) return 0;
+    II x = getL(l, r);
+    II y = getR(l, r);
+    // cout << l << ' ' << r << endl;
+    // cout << x.FI << ' ' << x.SE << ' ' << y.FI << ' ' << y.SE << endl;
+    if (x.FI == y.FI) {
+        ll res = 0;
+        if (y.SE != -1) res = max(res, L[x.FI] + R[y.SE]);
+        if (x.SE != -1) res = max(res, L[x.SE] + R[y.FI]);
+        return res;
+    }
+    return L[x.FI] + R[y.FI];
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(nullptr);
+    cin >> n >> m;
+    FOR(i,1,n) cin >> d[i];
+    FOR(i,1,n) cin >> h[i];
+    N = 2*n;
+    FOR(i,n+1,N) {
+        d[i] = d[i-n];
+        h[i] = h[i-n];
+    }
+
+    ll sumD = 0;
+    FOR(i,1,N) {
+        L[i] = 2 * h[i] - sumD;
+        R[i] = 2 * h[i] + sumD;
+        sumD += d[i];
+    }
+    
+    RMQ();
+
+    // cout << ML[1][1].FI << ' ' << ML[1][1].SE << endl;
+    // cout << ML[2][1].FI << ' ' << ML[2][1].SE << endl;
+
+    while (m--) {
+        int u, v;
+        cin >> u >> v;
+        u--;
+        if (u < 1) u = n;
+        v++;
+        if (v > n) v = 1;
+        vector<II> a;
+        a.push_back(II(u, 1));
+        a.push_back(II(n+u, 1));
+        a.push_back(II(v, 0));
+        a.push_back(II(n+v, 0));
+        sort(ALL(a));
+
+        int pre = 1;
+        ll res = 0;
+        FOR(i,0,SZ(a)-1) {
+            if (a[i].SE) res = max(res, consider(pre, a[i].FI));
+            else {
+                pre = a[i].FI;
+                if (i == SZ(a)-1) res = max(res, consider(pre, N));
+            }
+        }
+        cout << res << "\n";
+    }
+
+    return 0;
+}

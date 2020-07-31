@@ -1,0 +1,87 @@
+///==================================================///
+///                HELLO WORLD !!                    ///
+///                  IT'S ME                         ///
+///               BISHAL GAUTAM                      ///
+///         [ bsal.gautam16@gmail.com ]              ///
+///==================================================///
+#include<bits/stdc++.h>
+#define X first
+#define Y second
+#define mpp make_pair
+#define nl printf("\n")
+#define SZ(x) (int)(x.size())
+#define pb(x) push_back(x)
+#define pii pair<int,int>
+#define pll pair<ll,ll>
+///---------------------
+#define S(a) scanf("%d",&a)
+#define P(a) printf("%d",a)
+#define SL(a) scanf("%lld",&a)
+#define S2(a,b) scanf("%d%d",&a,&b)
+#define SL2(a,b) scanf("%lld%lld",&a,&b)
+///------------------------------------
+#define all(v) v.begin(),v.end()
+#define CLR(a) memset(a,0,sizeof(a))
+#define SET(a) memset(a,-1,sizeof(a))
+#define fr(i,a,n) for(int i=a;i<=n;i++)
+using namespace std;
+typedef long long ll;
+
+///  Digit     0123456789012345678 ///
+#define MX     200005
+#define inf    2000000010
+#define MD     1000000007
+#define eps    1e-9
+///===============================///
+
+struct data {
+    int x,y,id;
+    data() {};
+    data(int l,int r,int idx) {
+        x=l,y=r,id=idx;
+    }
+    bool friend operator <(data A,data B) {
+        if(A.y==B.y) return A.x>B.x;
+        else return A.y<B.y;
+    }
+};
+vector<int>v;
+vector< data >vv;
+int xx[MX+2],yy[MX+2],ans[MX+2],BIT[2*MX+5];
+
+void add(int p,int v){
+    for(int i=p;i<=MX+MX;i+=i&-i)BIT[i]+=v;
+}
+
+int read(int p){
+    int ret=0;
+    for(int i=p;i>0;i-=i&-i)ret+=BIT[i];
+    return ret;
+}
+
+int main() {
+    int n,x,y;
+    S(n);
+    for(int i=1; i<=n; i++) {
+        S2(x,y);
+        v.pb(x);
+        v.pb(y);
+        xx[i]=x,yy[i]=y;
+    }
+    sort( all(v) );
+    v.resize( unique( all(v) )-v.begin() );
+    for(int i=1; i<=n; i++) {
+        x=lower_bound( all(v),xx[i] )-v.begin()+1;
+        y=lower_bound( all(v),yy[i] )-v.begin()+1;
+        vv.pb( data(x,y,i) );
+    }
+    sort( all(vv) );
+    for(int i=0; i<n; i++) {
+        ans[ vv[i].id ]=( read( vv[i].y )-read( vv[i].x ) );
+        add( vv[i].x, +1 );
+    }
+    for(int i=1;i<=n;i++){
+        printf("%d\n",ans[i]);
+    }
+    return 0;
+}

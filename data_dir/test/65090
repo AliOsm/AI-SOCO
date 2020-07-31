@@ -1,0 +1,157 @@
+#include <iostream>
+#include <stdio.h>
+#include <string>
+#include <memory.h>
+#include <set>
+#include <map>
+#include <vector>
+#include <queue>
+#include <time.h>
+#include <assert.h>
+#include <cmath>
+#include <stack>
+#include <string.h>
+#include <sstream>
+#include <functional>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const int N = 1000011;
+char a[N], b[N], s[N];
+int main() {
+	int t;
+	scanf("%d", &t);
+	while (t--) {
+		int k;
+		scanf("%d%s%s%s", &k, s, a, b);
+		int n = strlen(s);
+		int at = 0;
+		while (at < n && a[at] == b[at])
+			++at;
+		string res(k, '.');
+		int mask = 0;
+		for (int i = 0; i < at; ++i) {
+			int cur = s[i] - 'a';
+			int need = a[i] - 'a';
+			if (res[cur] != '.' && res[cur] - 'a' != need) {
+				res = "-";
+				break;
+			}
+			if (res[cur] == '.' && ((mask >> need) & 1)) {
+				res = "-";
+				break;
+			}
+			res[cur] = need + 'a';
+			mask |= 1 << need;
+		}
+		if (res != "-") {
+			bool l = false, g = false;
+			while (at < n && res[s[at] - 'a'] != '.') {
+				if ((!g && res[s[at] - 'a'] < a[at]) || (!l && res[s[at] - 'a'] > b[at])) {
+					res = "-";
+					break;
+				}
+				if (res[s[at] - 'a'] < b[at])
+					l = true;
+				if (res[s[at] - 'a'] > a[at])
+					g = true;
+				++at;
+			}
+			if (at < n && res != "-") {
+				char other = -1;
+				for (int i = 0; i < k; ++i)
+					if ((g || i > a[at] - 'a') && (l || i < b[at] - 'a') && !((mask >> i) & 1)) {
+						other = i + 'a';
+						break;
+					}
+				if (other != -1) {
+					res[s[at] - 'a'] = other;
+					mask |= 1 << (other - 'a');
+				}
+				else {
+					vector<char> op;
+					if (!((mask >> (a[at] - 'a')) & 1))
+						op.push_back(a[at]);
+					if (!((mask >> (b[at] - 'a')) & 1))
+						op.push_back(b[at]);
+					string RES = res;
+					int AT = at, MASK = mask;
+					bool L = l, G = g;
+					if (op.empty())
+						res = "-";
+					for (auto o : op) {
+						res = RES;
+						at = AT;
+						mask = MASK;
+						l = L;
+						g = G;
+						res[s[at] - 'a'] = o;
+						mask |= 1 << (o - 'a');
+						if ((!g && res[s[at] - 'a'] < a[at]) || (!l && res[s[at] - 'a'] > b[at])) {
+							res = "-";
+							continue;
+						}
+						l = l || res[s[at] - 'a'] < b[at];
+						g = g || res[s[at] - 'a'] > a[at];
+						++at;
+						deque<char> options;
+						for (int i = 0; i < k; ++i)
+							if (!((mask >> i) & 1))
+								options.push_back(i + 'a');
+						while ((!l || !g) && at < n && res != "-") {
+							if (res[s[at] - 'a'] != '.') {
+								if ((!g && res[s[at] - 'a'] < a[at]) || (!l && res[s[at] - 'a'] > b[at])) {
+									res = "-";
+									break;
+								}
+								l = l || res[s[at] - 'a'] < b[at];
+								g = g || res[s[at] - 'a'] > a[at];
+							}
+							else if (l) {
+								if (options.back() < a[at]) {
+									res = "-";
+									break;
+								}
+								res[s[at] - 'a'] = options.back();
+								mask |= 1 << (options.back() - 'a');
+								options.pop_back();
+								g = g || res[s[at] - 'a'] > a[at];
+							}
+							else if (g) {
+								if (options.front() > b[at]) {
+									res = "-";
+									break;
+								}
+								res[s[at] - 'a'] = options.front();
+								mask |= 1 << (options.front() - 'a');
+								options.pop_front();
+								l = l || res[s[at] - 'a'] < b[at];
+							}
+							++at;
+						}
+						if (res != "-")
+							break;
+					}
+				}
+			}
+		}
+		if (res == "-")
+			res = "NO";
+		else {
+			int j = 0;
+			for (int i = 0; i < k; ++i)
+				if (res[i] == '.') {
+					while ((mask >> j) & 1)
+						++j;
+					res[i] = j + 'a';
+					mask |= 1 << j;
+				}
+			for (int i = 0; i < n; ++i)
+				s[i] = res[s[i] - 'a'];
+			assert(strcmp(s, b) <= 0 && strcmp(s, a) >= 0);
+			res = "YES\n" + res;
+		}
+		puts(res.c_str());
+	}
+	return 0;
+}

@@ -1,0 +1,132 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for (int i = x; i < (int)(n); ++i)
+
+int const N = 100000, B = 17;
+char s[N + 1];
+pair<int, int> lr[N];
+int mns[N][B], mxs[N][B], lg[N + 1], n, lst[26], IL, IR, tosL[N << 1], tosR[N << 1], gol[N][26], gor[N][26];
+map<int, int> sidl[N], sidr[N];
+pair<int, ll> spl[N << 1][B], spr[N << 1][B];
+ll an;
+
+int gtmn(int l, int r){
+	assert(l <= r);
+	int k = lg[r - l + 1];
+	int &a = mns[l][k], &b = mns[r - (1 << k) + 1][k];
+	return lr[a].first < lr[b].first ? a : b;
+}
+
+int gtmx(int l, int r){
+	assert(l <= r);
+	int k = lg[r - l + 1];
+	int &a = mxs[l][k], &b = mxs[r - (1 << k) + 1][k];
+	return lr[a].second > lr[b].second ? a : b;
+}
+
+int gt(int st, int ed, bool L){
+	return L ? gtmn(ed, st) : gtmx(st, ed);
+}
+
+int gtid(map<int, int> mp[], pair<int, ll> sp[][B], int &I, int pw, int ed, bool L);
+
+void calc(pair<int, ll> sp[][B], int id, int pw, int ed, bool L){
+	int to = L ? lr[pw].first : lr[pw].second, pw2 = gt(ed, to, L);
+	L ? tosL[id] = ed : tosR[id] = ed;
+	sp[id][0] = make_pair(gtid(L ? sidl : sidr, sp, L ? IL : IR, pw2, to, L), L ? ed : n - 1 - ed);
+	f(i, 1, B)sp[id][i] = make_pair(sp[sp[id][i - 1].first][i - 1].first, sp[id][i - 1].second + sp[sp[id][i - 1].first][i - 1].second);
+}
+
+int gtid(map<int, int> mp[], pair<int, ll> sp[][B], int &I, int pw, int ed, bool L){
+	auto it = mp[pw].find(ed);
+	if (it == mp[pw].end()){
+		int t = I++;
+		mp[pw][ed] = t;
+		calc(sp, t, pw, ed, L);
+		return t;
+	}
+	return it->second;
+}
+
+void go(int m){
+	int l = m, r = m;
+	bool sad = false;
+	while (l || r + 1 < n){
+		int tor = gtmx(l, m), tol = gtmn(m, r);
+		if (lr[tor].second > r || lr[tol].first < l || sad){
+			an += n - (r - l + 1);
+			int t = l;
+			l = lr[gtmn(l, r)].first;
+			r = lr[gtmx(t, r)].second;
+			sad = false;
+		}else {
+			int sadl = 0, sadr = n - 1;
+			f(j, 0, 26){
+				int tl = gol[l][j], tr = gor[l][j];
+				if (tl < l && tr > r){
+					sadl = max(sadl, tl);
+					sadr = min(sadr, tr);
+				}
+			}
+			
+			tol = gtid(sidl, spl, IL, gtmn(l, r), l, true);
+			tor = gtid(sidr, spr, IR, gtmx(l, r), r, false);
+			for (int i = B - 1; i >= 0; --i)if ((l == 0 || tosL[spl[tol][i].first] > sadl) && (r + 1 == n || tosR[spr[tor][i].first] < sadr)){
+				an += spl[tol][i].second;
+				tol = spl[tol][i].first;
+				an += spr[tor][i].second;
+				tor = spr[tor][i].first;
+			}
+			
+			l = tosL[tol];
+			r = tosR[tor];
+			sad = true;
+		}
+	}
+}
+
+int main(){
+	scanf("%s", s);
+	n = strlen(s);
+	f(i, 0, n){
+		lr[i].first = lst[s[i] - 'a'];
+		lst[s[i] - 'a'] = i;
+		f(j, 0, 26)gol[i][j] = lst[j];
+	}
+	f(i, 0, 26)lst[i] = n - 1;
+	for (int i = n - 1; i >= 0; --i){
+		lr[i].second = lst[s[i] - 'a'];
+		lst[s[i] - 'a'] = i;
+		f(j, 0, 26)gor[i][j] = lst[j];
+	}
+	
+	f(i, 2, n + 1)lg[i] = lg[i - 1] + (i == (i & -i));
+	
+	for (int i = n - 1; i >= 0; --i){
+		mns[i][0] = i;
+		int k = 1;
+		while (k < B && i + (1 << k) <= n){
+			int &a = mns[i][k - 1], &b = mns[i + (1 << k - 1)][k - 1];
+			mns[i][k] = lr[a].first < lr[b].first ? a : b;
+			++k;
+		}
+	}
+	
+	for (int i = n - 1; i >= 0; --i){
+		mxs[i][0] = i;
+		int k = 1;
+		while (k < B && i + (1 << k) <= n){
+			int &a = mxs[i][k - 1], &b = mxs[i + (1 << k - 1)][k - 1];
+			mxs[i][k] = lr[a].second > lr[b].second ? a : b;
+			++k;
+		}
+	}
+	
+	
+	f(i, 0, n)gtid(sidl, spl, IL, i, i, true);
+	for (int i = n - 1; i >= 0; --i)gtid(sidr, spr, IR, i, i, false);
+	
+	f(i, 0, n)go(i);
+	printf("%lld\n", an);
+}

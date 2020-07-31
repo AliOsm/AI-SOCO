@@ -1,0 +1,182 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/detail/standard_policies.hpp>
+#include <ext/pb_ds/assoc_container.hpp> // Common file
+#include <ext/pb_ds/tree_policy.hpp> // Including tree_order_statistics_node_update
+
+
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define clr(dp,i) memset(dp,i,sizeof(dp))
+#define opt     ios_base::sync_with_stdio(NULL);cin.tie(NULL);cout.tie(NULL);
+
+using namespace std;
+using namespace __gnu_pbds;
+//typedef tree<int, null_type, less<int>, rb_tree_tag,
+//tree_order_statistics_node_update> oset;
+typedef long long ll;
+typedef long double ld;
+typedef unsigned long long ull;
+typedef pair<int, int> pii;
+const long long mod = 1e9+7;
+const ld pi = 3.14159265358979323846264338327950288;
+//==================================================
+const int N = 3e5+1;
+const int inf = 1e17;
+ll n, c, t, m, cnt, comp[N], len[N], R[N], disc[N], low[N];
+ll comp_len[N], comp_r[N], ans[N], mn_len[N], mn_r[N], ans1, ans2;
+bool inStack[N];
+string s[N];
+map<string, int> mep;
+vector<int> adj[N], vec[N];
+stack<int> st;
+vector< pii > Edges;
+set< pii > E;
+
+string convert(string str)
+{
+	for(char &k : str)
+	{
+		if(k < 'a')
+		k += ('a'-'A');
+	}
+	return str;
+}
+void info(string &str)
+{
+	int i = mep[str];
+	len[i] = str.size();
+	for(char ch : str)
+	{
+		if(ch == 'r')
+		R[i]++;
+	}
+}
+void dfs(int u)
+{
+	disc[u] = low[u] = ++t;
+	st.push(u);
+	inStack[u] = 1;
+	for(int v : adj[u])
+	{
+		if(disc[v] == -1)
+		{
+			dfs(v);
+			low[u] = min(low[u], low[v]);
+		}
+		else if(inStack[v])
+		low[u] = min(low[u], disc[v]);
+	}
+	if(low[u] == disc[u])
+	{
+		cnt++;
+		while(st.top() != u)
+		{
+			int tmp = st.top();
+			st.pop();
+			comp[tmp] = cnt;
+			inStack[tmp] = 0;
+			if(comp_r[cnt] > R[tmp])
+			comp_r[cnt] = R[tmp], comp_len[cnt] = len[tmp];
+			else if(comp_r[cnt] == R[tmp])
+			comp_len[cnt] = min(comp_len[cnt], len[tmp]);
+		}
+		int tmp = st.top();
+		st.pop();
+		comp[tmp] = cnt;
+		inStack[tmp] = 0;
+		if(comp_r[cnt] > R[tmp])
+		comp_r[cnt] = R[tmp], comp_len[cnt] = len[tmp];
+		else if(comp_r[cnt] == R[tmp])
+		comp_len[cnt] = min(comp_len[cnt], len[tmp]);
+	}
+}
+void tarjan()
+{
+	for(int k=0; k<=c; k++)
+	{
+		comp_len[k] = inf;
+		comp_r[k] = inf;
+		
+	}
+	clr(low, -1);
+	clr(disc, -1);
+	for(int k=1; k<=c; k++)
+	{
+		if(disc[k] == -1)
+		dfs(k);
+	}
+}
+void dfs2(int u)
+{
+	mn_r[u] = comp_r[u];
+	mn_len[u] = comp_len[u];
+	for(int v : vec[u])
+	{
+		if(mn_r[v] == inf)
+		{
+			dfs2(v);
+		}
+		if(mn_r[v] < mn_r[u])
+		mn_r[u] = mn_r[v], mn_len[u] = mn_len[v];
+		else if(mn_r[v] == mn_r[u])
+		mn_len[u] = min(mn_len[u], mn_len[v]);
+	}
+}
+int main()
+{
+	cin >> n;
+	for(int i=0; i<n; i++)
+	{
+		cin >> s[i];
+		s[i] = convert(s[i]);
+		if(!mep.count(s[i]))
+		mep[s[i]] = ++c, info(s[i]);
+	}
+	cin >> m;
+	for(int k=0; k<m; k++)
+	{
+		string x, y;
+		cin >> x >> y;
+		x = convert(x), y = convert(y);
+		if(!mep.count(x))
+		mep[x] = ++c, info(x);
+		if(!mep.count(y))
+		mep[y] = ++c, info(y);
+		int l, r;
+		l = mep[x], r = mep[y];
+		Edges.pb(mp(l, r));
+		adj[l].pb(r);
+	}
+	tarjan();
+	for(auto i : Edges)
+	{
+		int x = comp[i.f];
+		int y = comp[i.s];
+		if(x != y)
+		E.insert(pii(x, y));
+	}
+	for(auto i : E)
+	{
+		vec[i.f].pb(i.s);
+	}
+	for(int i=0; i<=cnt; i++)
+	mn_r[i] = inf, mn_len[i] = inf;
+	
+	for(int k=1; k<=cnt; k++)
+	{
+		if(mn_r[k] == inf)
+		dfs2(k);
+	}
+	for(int i=0; i<n; i++)
+	{
+		int x = comp[mep[s[i]]];
+		//cout << s[i] << endl;
+		//cout << mn_r[x] << " " << mn_len[x] << endl;
+		ans1 += mn_r[x];
+		ans2 += mn_len[x];
+	}
+	//cout << cnt << " " << c << endl;
+	cout << ans1 << " " << ans2 << endl;
+}

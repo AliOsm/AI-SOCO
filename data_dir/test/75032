@@ -1,0 +1,206 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define str string
+#define rtn return
+#define endl '\n'
+#define xx first
+#define yy second
+#define pb push_back
+#define db double
+#define loop(i,a,b) for(ll i=(a); i<(b); i++)
+#define rep(i, b) for(ll i=(0); i<(b); i++)
+#define rloop(i, a, b) for(ll i=b-1; i>=a; i--)
+#define rrep(i, a) for(ll i=(a-1); i>=0; i--)
+
+using namespace std;
+
+const ll nu = 202020;
+vector<int> add[nu];
+vector<int> s1, s2;
+ll n, m;
+ll a[nu], sz[nu], ar[nu], par[nu];
+ll vis[nu], v[nu];
+map<ll, int> has, was, rev1, rev2;
+ll seg[2][4*nu], lazy[2][4*nu];
+
+void build(int node, int tree, int st, int en) {
+    if (st == en) {
+        seg[tree][node] = ar[st];
+        rtn;
+    }
+    int mid = st + en;
+    mid /= 2;
+    build (2*node, tree, st, mid);
+    build (2*node+1, tree, mid+1, en);
+    seg[tree][node] = seg[tree][2*node] + seg[tree][2*node+1];
+}
+
+void update(int node, int tree, int st, int en, int l, int r, int val) {
+    if (lazy[tree][node] != 0) {
+        seg[tree][node] += lazy[tree][node] * (en-st+1);
+        if (st != en) {
+            lazy[tree][2*node] += lazy[tree][node];
+            lazy[tree][2*node+1] += lazy[tree][node];
+        }
+        lazy[tree][node] = 0;
+    }
+    if (st > r || en < l) rtn;
+    if (st >= l && en <= r) {
+        seg[tree][node] += val * (en-st+1);
+        if (st != en) {
+            lazy[tree][2*node] += val;
+            lazy[tree][2*node+1] += val;
+        }
+        rtn;
+    }
+    int mid = st+en;
+    mid /= 2;
+    update(2*node, tree, st, mid, l, r, val);
+    update(2*node+1, tree, mid+1, en, l, r, val);
+    seg[tree][node] = seg[tree][2*node] + seg[tree][2*node+1];
+}
+
+int query(int node, int tree, int st, int en, int l, int r) {
+    if (st > r || en < l) rtn 0;
+    if (lazy[tree][node] != 0) {
+        seg[tree][node] += lazy[tree][node] * (en-st+1);
+        if (st != en) {
+            lazy[tree][2*node] += lazy[tree][node];
+            lazy[tree][2*node + 1] += lazy[tree][node];
+        }
+        lazy[tree][node] = 0;
+    }
+    if (st >= l && en <= r) rtn seg[tree][node];
+    int mid = (st + en);
+    mid /= 2;
+    int q1 = query(2*node, tree, st, mid, l, r);
+    int q2 = query(2*node+1, tree, mid+1, en, l, r);
+    rtn q1+q2;
+}
+
+void dfs(int src, int p) {
+    par[src] = p;
+    vis[src] = vis[p] + 1;
+    for (auto i : add[src]) {
+        if (vis[i] == -1) {
+            dfs(i, src);
+            sz[p] += sz[i];
+        }
+    }
+}
+
+void dfs_order(int src) {
+    v[src] = 1;
+    if (vis[src] % 2) {
+        s1.pb(src);
+    } else {
+        s2.pb(src);
+    }
+    for (auto i : add[src]) {
+        if (v[i] == 0) dfs_order(i);
+    }
+}
+
+#define TRACE
+#ifdef TRACE
+#define trace(...) __f(#__VA_ARGS__, __VA_ARGS__)
+template <typename Arg1>
+void __f(const char* name, Arg1&& arg1){
+    cerr << name << " = " << arg1 << '\n';
+}
+template <typename Arg1, typename... Args>
+void __f(const char* names, Arg1&& arg1, Args&&... args){
+    const char* comma = strchr(names + 1, ',');cerr.write(names, comma - names) << " = " << arg1<<" |";__f(comma+1, args...);
+}
+#else
+#define trace(...)
+#endif
+
+
+int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+    std::cout.tie(NULL);
+    //start
+    memset(vis, -1, sizeof(vis));
+    cin >> n >> m;
+    if (n == 1) {
+        ll x;
+        cin >> x;
+        while (m--) {
+            ll ch, val, xx;
+            cin >> ch;
+            if (ch == 1) {
+                cin >> xx >> val;
+                x += val;
+            } else {
+                cin >> xx;
+                cout << x << endl;
+            }
+        }
+        rtn 0;
+    }
+    loop (i, 1, n+1) cin >> a[i];
+    loop (i, 1, n+1) sz[i] = 1;
+    rep (i, n - 1) {
+        int x, y; cin >> x >> y;
+        add[x].pb(y);
+        add[y].pb(x);
+    }
+    vis[1] = 1;
+    for (auto i : add[1]) {
+        dfs(i, 1);
+    }
+    dfs_order(1);
+    // s1 contains vis[i] % 2;
+    int cr = 1;
+    for (auto i : s1) {
+        has[i] = cr;
+        rev1[cr] = i;
+        cr++;
+    }
+    cr = 1;
+    for (auto i : s2) {
+        was[i] = cr;
+        rev2[cr] = i;
+        cr++;
+    }
+    cr = 1;
+    for (auto i : s1) {
+        ar[cr++] = a[i];
+    }
+    build(1, 0, 1, s1.size());
+    cr = 1;
+    for (auto i : s2) {
+        ar[cr++] = a[i];
+    }
+    build(1, 1, 1, s2.size());
+    while (m--) {
+        int ch, x, val;
+        cin >> ch;
+        if (ch == 1) {
+            cin >> x >> val;
+            if (vis[x] % 2) {
+                update(1, 0, 1, s1.size(), has[x], has[x] + sz[x]-1, val);
+                for (auto i : add[x]) {
+                    if (par[x] == i) continue;
+                    update(1, 1, 1, s2.size(), was[i], was[i] + sz[i]-1, -val);
+                }
+            } else {
+                update(1, 1, 1, s2.size(), was[x], was[x] + sz[x]-1, val);
+                for (auto i : add[x]) {
+                    if (par[x] == i) continue;
+                    update(1, 0, 1, s1.size(), has[i], has[i] + sz[i]-1, -val);
+                }
+            }
+        } else {
+            cin >> x;
+            if (vis[x] % 2) {
+                cout << query(1, 0, 1, s1.size(), has[x], has[x]) << endl;
+            } else {
+                cout << query(1, 1, 1, s2.size(), was[x], was[x]) << endl;
+            }
+        }
+    }
+    return 0;
+}

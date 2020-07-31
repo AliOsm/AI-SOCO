@@ -1,0 +1,23 @@
+// code by khanh
+#include <bits/stdc++.h>
+#define ll long long
+using namespace std;
+ll n,l,r,a[100005],pos[100005],res[100005];
+int main(){
+    scanf("%lld %lld %lld",&n,&l,&r);
+    for(int i=1;i<=n;i++)
+        scanf("%lld",&a[i]);
+    for(int i=1;i<=n;i++){
+        ll x;
+        scanf("%lld",&x);
+        pos[x] = i;
+    }
+    ll mi = (ll) -1e18;
+    for(int i=1;i<=n;i++){
+        if (mi + 1ll > r - a[pos[i]]) return printf("-1"),0;
+        mi = max(mi + 1ll, l - a[pos[i]]);
+        res[pos[i]] = l + mi - (l-a[pos[i]]);
+    }
+    for(int i=1;i<=n;i++)
+        printf("%lld ",res[i]);
+}

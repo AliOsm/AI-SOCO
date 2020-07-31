@@ -1,0 +1,92 @@
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <cstring>
+#include <cassert>
+#include <queue>
+#include <bitset>
+using namespace std;
+#define forr(i, a, b) for(int i = (a); i < (int) (b); i++)
+#define forn(i, n) forr(i, 0, n)
+#define pb push_back
+#define fst first
+#define snd second
+#define SZ(x) ((int)x.size())
+typedef long long ll;
+#define dforn(i, n) for(int i = n - 1; i >= 0; i--)
+const int MAXN=1001000;
+
+int n,cnt[MAXN],mx,cand[MAXN];
+
+int getMinDist(){
+  if(cnt[1]!=4)return 0;
+  int st=4;
+  forr(i,1,MAXN){
+    st+=4;
+    if(cnt[i+1]!=st)return i;
+  }
+  return -1; // dafaq
+}
+
+int main() {
+  //~ freopen("input.in","r",stdin);
+  scanf("%d",&n);
+  forn(i,n){
+    int t;
+    scanf("%d",&t);
+    cnt[t]++; mx=max(mx,t);
+  }
+  if(cnt[0]!=1){
+    puts("-1");
+    return 0;
+  }
+  if(n==1){
+    puts("1 1\n1 1");
+    return 0;
+  }
+  int k = getMinDist();
+  //~ printf("k dio %d\n", k);
+  forr(d,2,n+1){
+    if(n%d==0){
+      int f=d;
+      int c=n/d;
+      //~ printf("Testeando con %d %d\n", f, c);
+      
+      // tenemos un tablero de f*c
+      forn(i,f){
+        int j=mx-i;
+        if(j<c){
+          // evaluando la casilla (i,j)
+          int inr = min(i,f-1-i);
+          int inc = min(j,c-1-j);
+          int dd=min(inr,inc);
+          if(dd==k){
+            // esta es un coso candidato!
+            //~ printf("La casilla (%d,%d) es candidata\n",i+1,j+1);
+            memset(cand,0,sizeof(cand));
+            forn(p,f){
+              forn(q,c){
+                int dst=abs(p-i)+abs(q-j);
+                cand[dst]++;
+                //~ printf("A distancia %d hay uno mas, %d>?%d\n",dst,cand[dst],cnt[dst]);
+                if(cand[dst]>cnt[dst]){
+                  goto HELL;
+                }
+              }
+            }
+            printf("%d %d\n%d %d\n", f, c, i+1, j+1);
+            return 0;
+          }
+          HELL:
+          continue;
+        }
+      }
+    }
+  }
+  puts("-1");
+  return 0;
+}

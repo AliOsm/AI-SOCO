@@ -1,0 +1,46 @@
+#include<bits/stdc++.h>
+using namespace std;
+inline void read(int &x){
+    register int c=getchar();
+    x=0;
+    for(;c<'0'||c>'9';c=getchar());
+    for(;c>='0'&&c<='9';c=getchar())
+        x=(x<<1)+(x<<3)+c-'0';
+}
+const long long mod=1e9+7;
+long long power(int k){
+    if(k==0)
+        return 1;
+    else{
+        long long z=power(k/2);
+        z=z*z%mod;
+        if(k%2)
+            return z*2%mod;
+        else
+            return z;
+    }
+}
+int a[200005],b[200005],c[200005];
+int main(){
+    int n,i,j,k;
+    long long z=1;
+    read(n);
+    for(i=1;i<=n;++i)
+        read(a[i]),b[i]=0;
+    for(i=1;i<=n;++i)
+        if(b[i]==0){
+            j=i;k=0;
+            while(b[j]==0){
+                c[j]=++k;
+                b[j]=i;
+                j=a[j];
+            }
+            if(b[j]==i){
+                z=(z*(power(k-c[j]+1)-2)%mod+mod)%mod;
+                z=(z*power(c[j]-1)%mod+mod)%mod;
+            }
+            else
+                z=(z*power(k)%mod+mod)%mod;
+        }
+    cout<<z;
+}

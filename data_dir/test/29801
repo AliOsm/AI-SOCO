@@ -1,0 +1,97 @@
+//    . .. ... .... ..... be name khoda ..... .... ... .. .     \\
+
+#include <bits/stdc++.h>
+using namespace std;
+
+inline int in() { int x; scanf("%d", &x); return x; }
+const int N = 321123, B = 20;
+
+struct Edge
+{
+	int u, v, w, id;
+	bool operator <(const Edge &e) const { return w < e.w; }
+};
+
+vector <Edge> g[N], es;
+int par[N][B], maxE[N][B], dsuPar[N], h[N];
+long long ans[N];
+
+int root(int v) { return dsuPar[v] == -1 ? v : dsuPar[v] = root(dsuPar[v]); }
+
+void dfs(int v, int dad = 0, int lastE = -1)
+{
+	h[v] = h[dad] + 1;
+	par[v][0] = dad;
+	maxE[v][0] = lastE;
+	for(int i = 1; i < B; i++)
+	{
+		par[v][i] = par[par[v][i - 1]][i - 1];
+		maxE[v][i] = max(maxE[v][i - 1], maxE[par[v][i - 1]][i - 1]);
+	}
+	for(Edge e : g[v])
+		if(e.u != dad)
+			dfs(e.u, v, e.w);
+}
+
+int lca(int u, int v)
+{
+	if(h[u] > h[v])
+		swap(u, v);
+	int diff = h[v] - h[u];
+	for(int i = 0; i < B; i++)
+		if(diff >> i & 1)
+			v = par[v][i];
+	if(u == v)
+		return v;
+	for(int i = B - 1; i >= 0; i--)
+		if(par[v][i] != par[u][i])
+		{
+			v = par[v][i];
+			u = par[u][i];
+		}
+	return par[v][0];
+}
+
+int getMax(int v, int l)
+{
+	int diff = h[v] - h[l];
+	int ans = -1;
+	for(int i = 0; i < B; i++)
+		if(diff >> i & 1)
+		{
+			ans = max(ans, maxE[v][i]);
+			v = par[v][i];
+		}
+	return ans;
+}
+
+int main()
+{
+	int n = in(), m = in();
+	while(m--)
+	{
+		int u = in() - 1, v = in() - 1, w = in();
+		es.push_back({u, v, w, es.size()});
+	}
+	long long mstW = 0;
+	sort(es.begin(), es.end());
+	fill(dsuPar, dsuPar + n, -1);
+	for(Edge e : es)
+	{
+		if(root(e.u) == root(e.v))
+			continue;
+		mstW += e.w;
+		dsuPar[root(e.u)] = e.v;
+		g[e.v].push_back(e);
+		g[e.u].push_back({e.v, e.u, e.w});
+	}
+	dfs(0);
+	for(Edge e : es)
+	{
+		int l = lca(e.u, e.v);
+		ans[e.id] = mstW - max(getMax(e.u, l), getMax(e.v, l)) + e.w;
+	}
+	for(int i = 0; i < es.size(); i++)
+		cout << ans[i] << "\n";
+}
+

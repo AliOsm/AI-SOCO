@@ -1,0 +1,91 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb  push_back
+#define ll  long long
+#define vi  vector<ll >
+#define vvi vector<vi >
+#define all(x) x.begin(), x.end()
+
+ll mod = 1e9 + 7;
+
+struct fenwick {
+    int n;
+    vi  t;
+    fenwick(int n = 0) : n(n) {
+        t.assign(n, 0);
+    }
+    void incr(int l, int r, ll delta) {
+        delta %= mod;
+        for (; l < n; l |= (l + 1)) {
+            t[l] += delta;
+            if (t[l] >= mod)
+                t[l] -= mod;
+        }
+        if (++r == n) return;
+        for (; r < n; r |= (r + 1)) {
+            t[r] += mod - delta;
+            if (t[r] >= mod)
+                t[r] -= mod;
+        }
+    }
+    ll val(int r) {
+        ll s = 0;
+        for (; r >= 0; r = (r & (r + 1)) - 1) {
+            s += t[r];
+            if (s >= mod)
+                s -= mod;
+        }
+        return s;
+    }
+};
+
+int n, m;
+vector<string> t;
+vector<fenwick> a, b;
+vvi A, B;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin >> n >> m;
+    t.resize(n);
+    for (int i = 0; i < n; ++i)
+        cin >> t[i];
+
+    if (n == 1 && m == 1) {
+        cout << int(t[0][0] == '.');
+        return 0;
+    }
+
+    A = B = vvi(n, vi(m, 0));
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            if (t[i][j] == '.')
+                A[i][j] = B[i][j] = 1;
+    for (int i = 0; i < n; ++i)
+        for (int j = m - 2; j >= 0; --j)
+            A[i][j] += A[i][j + 1];
+    for (int j = 0; j < m; ++j)
+        for (int i = n - 2; i >= 0; --i)
+            B[i][j] += B[i + 1][j];
+
+    a.assign(n, fenwick(m)); a[0].incr(0, 0, 1);
+    b.assign(m, fenwick(n)); b[0].incr(0, 0, 1);
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (i + 1 < n) {
+                int k = B[i + 1][j];
+                if (k > 0)
+                    b[j].incr(i + 1, i + k, a[i].val(j));
+            }
+            if (j + 1 < m) {
+                int k = A[i][j + 1];
+                if (k > 0)
+                    a[i].incr(j + 1, j + k, b[j].val(i));
+            }
+        }
+    }
+    cout << (a[n - 1].val(m - 1) + b[m - 1].val(n - 1)) % mod;
+
+    return 0;
+}

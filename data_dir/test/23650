@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+
+const int N = 100000 + 5;
+int n,m;
+char str[N];
+int A[26],K;
+
+struct SegmentTree {
+#define ls get_id(l,mid)
+#define rs get_id(mid + 1,r)
+#define rt get_id(l,r)
+    int get_id(int l,int r) {
+        return l + r | l != r;
+    }
+
+    int t[N << 1][26],dir[N << 1];
+
+    void build(int l,int r) {
+        if (l == r) {
+            t[rt][str[l] - 'a'] ++;
+            dir[rt] = 1;
+            return ;
+        }
+        int mid = l + r >> 1;
+        build(l,mid);
+        build(mid + 1,r);
+        up(l,r);
+    }
+
+    void up(int l,int r) {
+        int mid = l + r >> 1;
+        for (int i = 0; i < 26; ++ i) {
+            t[rt][i] = t[ls][i] + t[rs][i];
+        }
+        dir[rt] = -1;
+    }
+
+    void down(int l,int r) {
+        int mid = l + r >> 1;
+        if (dir[rt] == 1) {
+            int cnt = mid - l + 1;
+            for (int i = 0; i < 26; ++ i) {
+                int d = std::min(t[rt][i],cnt);
+                t[ls][i] = d;
+                t[rs][i] = t[rt][i] - d;
+                cnt -= d;
+            }
+            dir[ls] = dir[rs] = dir[rt];
+            dir[rt] = -1;
+        } else if (dir[rt] == 0) {
+            int cnt = mid - l + 1;
+            for (int i = 26 - 1; i >= 0; -- i) {
+                int d = std::min(t[rt][i],cnt);
+                t[ls][i] = d;
+                t[rs][i] = t[rt][i] - d;
+                cnt -= d;
+            }
+            dir[ls] = dir[rs] = dir[rt];
+            dir[rt] = -1;
+        }
+    }
+
+    void show(int l,int r) {
+        if (l == r) {
+            for (int i = 0; i < 26; ++ i) {
+                if (t[rt][i]) {
+                    printf("%c",'a' + i);
+                    break;
+                }
+            }
+            return ;
+        }
+        down(l,r);
+        int mid = l + r >> 1;
+        show(l,mid);
+        show(mid + 1,r);
+    }
+
+    void get(int L,int R,int l,int r) {
+        if (R < l || r < L) {
+            return ;
+        }
+        if (L <= l && r <= R) {
+            for (int i = 0; i < 26; ++ i) {
+                A[i] += t[rt][i];
+            }
+            return ;
+        }
+        down(l,r);
+        int mid = l + r >> 1;
+        get(L,R,l,mid);
+        get(L,R,mid + 1,r);
+    }
+
+    void update(int L,int R,int l,int r) {
+        if (R < l || r < L) {
+            return ;
+        }
+        if (L <= l && r <= R) {
+            dir[rt] = K;
+            int cnt = r - l + 1;
+            if (K == 1) {
+                for (int i = 0; i < 26; ++ i) {
+                    int d = std::min(cnt,A[i]);
+                    t[rt][i] = d;
+                    A[i] -= d;
+                    cnt -= d;
+                }
+            } else {
+                for (int i = 26 - 1; i >= 0; -- i) {
+                    int d = std::min(cnt,A[i]);
+                    t[rt][i] = d;
+                    A[i] -= d;
+                    cnt -= d;
+                }
+            }
+            return ;
+        }
+        down(l,r);
+        int mid = l + r >> 1;
+        update(L,R,l,mid);
+        update(L,R,mid + 1,r);
+        up(l,r);
+    }
+
+} sgt;
+
+void work(int l,int r,int k) {
+    memset(A,0,sizeof(A));
+    sgt.get(l,r,0,n - 1);
+    K = k;
+    sgt.update(l,r,0,n - 1);
+}
+
+int main() {
+    scanf("%d%d",&n,&m);
+    scanf("%s",str);
+    sgt.build(0,n - 1);
+    for (int i = 0; i < m; ++ i) {
+        int l,r,k;
+        scanf("%d%d%d",&l,&r,&k); l --; r --;
+        work(l,r,k);
+    }
+    sgt.show(0,n - 1);
+    puts("");
+}

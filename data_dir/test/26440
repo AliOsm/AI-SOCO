@@ -1,0 +1,1460 @@
+//#pragma GCC optimize("O3")
+//#pragma GCC optimize("Ofast")
+//#pragma GCC optimize ("unroll-loops")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma optimize("", off)
+//#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops")
+#include <chrono>
+#include <thread>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <set>
+#include <bitset>
+#include <array>
+#include <algorithm>
+#include <queue>
+#include <map>
+#include <iterator>
+#include <cstring>
+#include <stdlib.h>
+#include <ctime>
+#include <csetjmp>
+#include <unordered_set>
+#include <complex>
+#include <unordered_map>
+#pragma warning( disable:4996 )
+////// long aruthmetic
+#include <stack>
+
+
+#ifndef LINT
+#define LINT
+
+#include <random>
+#include <iomanip>
+
+namespace apa
+{
+    using namespace std;
+
+    template <typename T>
+    class ComparisonOperators
+    {
+        friend bool operator==(T const& lhs, T const& rhs)
+        {
+            return lhs.compare(rhs) == 0;
+        }
+
+        friend bool operator!=(T const& lhs, T const& rhs)
+        {
+            return lhs.compare(rhs) != 0;
+        }
+
+        friend bool operator<(T const& lhs, T const& rhs)
+        {
+            return lhs.compare(rhs) < 0;
+        }
+
+        friend bool operator>(T const& lhs, T const& rhs)
+        {
+            return rhs.compare(lhs) < 0;
+        }
+
+        friend bool operator<=(T const& lhs, T const& rhs)
+        {
+            bool result = lhs.compare(rhs) <= 0;
+            return result;
+        }
+
+        friend bool operator>=(T const& lhs, T const& rhs)
+        {
+            return rhs.compare(lhs) <= 0;
+        }
+    };
+
+    class lint : ComparisonOperators<lint>
+    {
+    public:
+        explicit lint(std::string number);
+
+        lint();
+
+        lint(long long number);
+
+        lint(int number);
+
+        lint(double number);
+
+        lint(vector<int> nums, bool is_neg);
+
+        lint(const lint &obj);
+
+        int get_length() const;
+
+        bool is_negative_number() const;
+
+        lint& operator+=(const lint& b);
+
+        lint& operator-=(const lint& b);
+
+        lint& operator*=(const lint& number2);
+
+        lint& operator/=(const lint& b);
+
+        explicit operator bool() const;
+
+        explicit operator int();
+
+        lint operator+() const;
+
+        lint operator-() const;
+
+        int operator[](size_t index) const;
+
+        lint& operator=(const lint& other);
+
+        lint& operator++();
+
+        lint operator++(int);
+
+        lint& operator--();
+
+        lint operator--(int);
+
+        bool cmp(lint const& rhs) const;
+
+        int compare(lint const& rhs) const;
+
+        bool is_zero() const;
+
+        std::string to_string();
+
+    private:
+        bool is_negative;
+        vector<int> numbers;
+
+        lint abs(lint number) const;
+
+        vector<int> reverse_numbers(vector<int> const& numbers) const;
+
+        void make_equal_length(const lint& b, vector<int> & number1, vector<int> & number2) const;
+
+        void string_to_vector(std::string const& number);
+
+        void integer_to_vector(long long a);
+    };
+
+    lint abs(lint number);
+
+    lint pow(lint a, int n);
+
+    std::ostream& operator<<(std::ostream& os, const lint& obj);
+
+    std::istream& operator>>(std::istream& is, lint& obj);
+
+    lint operator+(const lint& lhs, const lint& rhs);
+
+    lint operator-(const lint& lhs, const lint& rhs);
+
+    lint operator*(const lint& lhs, const lint& rhs);
+
+    lint operator/(const lint& lhs, const lint& rhs);
+}
+
+#endif /* LINT */
+namespace apa
+{
+    lint::lint(std::string number)
+    {
+        string_to_vector(number);
+    }
+
+    lint::lint()
+    {
+        integer_to_vector(0);
+    }
+
+    lint::lint(long long number)
+    {
+        integer_to_vector(number);
+    }
+
+    lint::lint(int number)
+    {
+        integer_to_vector(static_cast<long long>(number));
+    }
+
+    lint::lint(double number)
+    {
+        std::string str = std::to_string(std::trunc(number));
+        std::string result = str.substr(0, str.size() - 7);
+        string_to_vector(result);
+    }
+
+    lint::lint(vector<int> nums, bool is_neg)
+    {
+        numbers = nums;
+        is_negative = is_neg;
+    }
+
+    lint::lint(const lint &obj) {
+        is_negative = obj.is_negative_number();
+
+        for (int t : obj.numbers)
+        {
+            numbers.push_back(t);
+        }
+    }
+
+    int lint::get_length() const
+    {
+        return numbers.size();
+    }
+
+    bool lint::is_negative_number() const
+    {
+        return is_negative;
+    }
+
+    lint& lint::operator+=(const lint& b)
+    {
+        if (!is_negative_number() && b.is_negative_number())
+        {
+            lint temp(b);
+            temp = abs(temp);
+
+            return operator-=(temp);
+        }
+
+        if (is_negative_number() && !b.is_negative_number())
+        {
+            lint temp_this = lint(*this);
+            temp_this.is_negative = false;
+
+            lint temp = lint(b);
+            temp -= temp_this;
+            *this = temp;
+
+            return *this;
+        }
+
+        vector<int> number1;
+        vector<int> number2;
+
+        make_equal_length(b, number1, number2);
+
+        vector<int> result;
+        int rest = 0;
+
+        for (int i = number1.size() - 1; i >= 0; --i)
+        {
+            int sum = number1[i] + number2[i] + rest;
+
+            if (sum > 9)
+            {
+                rest = 1;
+                sum -= 10;
+            }
+            else
+            {
+                rest = 0;
+            }
+
+            result.push_back(sum);
+        }
+
+        if (rest > 0)
+        {
+            result.push_back(rest);
+        }
+
+        vector<int> reverse_result = reverse_numbers(result);
+
+        (*this).numbers = reverse_result;
+
+        return *this;
+    }
+
+    lint& lint::operator-=(const lint& b)
+    {
+        if (!is_negative_number() && b.is_negative_number())
+        {
+            return (*this).operator+=(abs(b));
+        }
+
+        if (is_negative_number() && !b.is_negative_number())
+        {
+            lint temp(b);
+            temp.is_negative = true;
+            return (*this).operator+=(temp);
+        }
+
+        vector<int> number1;
+        vector<int> number2;
+
+        make_equal_length(b, number1, number2);
+
+        int is_number1_more_than_number2 = 0;
+
+        for (unsigned int i = 0; i < number1.size(); ++i)
+        {
+            if (number1[i] > number2[i])
+            {
+                is_number1_more_than_number2 = 1;
+                break;
+            }
+            else if (number1[i] < number2[i])
+            {
+                is_number1_more_than_number2 = 2;
+                break;
+            }
+        }
+
+        if (is_number1_more_than_number2 == 0)
+        {
+            vector<int> t;
+            t.push_back(0);
+            numbers = t;
+            return *this;
+        }
+
+        vector<int> result;
+
+        if (is_number1_more_than_number2 == 1)
+        {
+            for (int i = number1.size() - 1; i >= 0; --i)
+            {
+                if (number1[i] < number2[i])
+                {
+                    number1[i] += 10;
+                    number1[i - 1] -= 1;
+                }
+
+                int r = number1[i] - number2[i];
+
+                result.push_back(r);
+            }
+        }
+        else if (is_number1_more_than_number2 == 2)
+        {
+            for (int i = number2.size() - 1; i >= 0; --i)
+            {
+                if (number2[i] < number1[i])
+                {
+                    number2[i] += 10;
+                    number2[i - 1] -= 1;
+                }
+
+                int r = number2[i] - number1[i];
+
+                result.push_back(r);
+            }
+        }
+
+        bool can_copy = false;
+        vector<int> result_without_zero;
+
+        for (int i = result.size() - 1; i >= 0; --i)
+        {
+            if (result[i] != 0)
+            {
+                can_copy = true;
+            }
+
+            if (can_copy)
+            {
+                result_without_zero.push_back(result[i]);
+            }
+        }
+
+        (*this).numbers = result_without_zero;
+
+        if (!is_negative_number() && !b.is_negative_number())
+        {
+            if (is_number1_more_than_number2 == 2)
+            {
+                is_negative = true;
+            }
+        }
+
+        if (is_negative_number() && b.is_negative_number())
+        {
+            if (is_number1_more_than_number2 == 2)
+            {
+                is_negative = false;
+            }
+        }
+
+        return *this;
+    }
+
+    lint& lint::operator*=(const lint& number2)
+    {
+        vector<int> a = reverse_numbers(numbers);
+        vector<int> b = reverse_numbers(number2.numbers);
+
+        vector<int> c(a.size() + b.size(), 0);
+
+        for (size_t i = 0; i < a.size(); ++i)
+        {
+            int carry = 0;
+
+            for (unsigned int j = 0; j < b.size() || carry; ++j)
+            {
+                long long cur = c[i + j] + a[i] * 1ll * (j < b.size() ? b[j] : 0) + carry;
+
+                c[i + j] = int(cur % 10);
+                carry = int(cur / 10);
+            }
+        }
+
+        while (c.size() > 1 && c.back() == 0)
+        {
+            c.pop_back();
+        }
+
+        vector<int> result = reverse_numbers(c);
+
+        numbers = result;
+
+        if (is_negative_number() && !number2.is_negative_number())
+        {
+            is_negative = true;
+        }
+        else if (!is_negative_number() && number2.is_negative_number())
+        {
+            is_negative = true;
+        }
+        else
+        {
+            is_negative = false;
+        }
+
+        return *this;
+    }
+
+    lint& lint::operator/=(const lint& number2)
+    {
+        if (number2.is_zero())
+        {
+            int d = 4 - 4;
+            int a = 4 / d;
+            numbers.push_back(a);
+        }
+
+        if (is_zero())
+        {
+            vector<int> temp;
+            temp.push_back(0);
+            numbers = temp;
+            is_negative = false;
+            return *this;
+        }
+
+        bool second_number_more_then_first_number = abs(*this).cmp(abs(number2));
+
+        if (second_number_more_then_first_number)
+        {
+            vector<int> temp;
+            temp.push_back(0);
+            numbers = temp;
+            is_negative = false;
+            return *this;
+        }
+
+        vector<int> res;
+        for (int i = (*this).get_length() - 1; i >= 0; --i)
+        {
+            res.push_back(0);
+        }
+
+        lint current_value(0);
+        for (int i = 0; i < (*this).get_length(); ++i)
+        {
+            current_value = current_value * 10;
+            current_value.numbers[current_value.get_length() - 1] = (*this).numbers[i];
+
+            int x = 0;
+            int left_index = 0;
+            int right_index = 10;
+
+            while (left_index <= right_index)
+            {
+                int middle = (left_index + right_index) >> 1;
+
+                lint cur = abs(number2) * middle;
+
+                if (abs(cur) <= abs(current_value))
+                {
+                    x = middle;
+                    left_index = middle + 1;
+                }
+                else
+                {
+                    right_index = middle - 1;
+                }
+            }
+
+            res[i] = x;
+            current_value = current_value - abs(number2) * x;
+        }
+
+        res = reverse_numbers(res);
+
+        while (res.size() > 1 && res.back() == 0)
+        {
+            res.pop_back();
+        }
+
+        res = reverse_numbers(res);
+
+        numbers = res;
+
+        if (is_negative_number() && !number2.is_negative_number())
+        {
+            is_negative = true;
+        }
+        else if (!is_negative_number() && number2.is_negative_number())
+        {
+            is_negative = true;
+        }
+        else
+        {
+            is_negative = false;
+        }
+
+        return *this;
+    }
+
+    lint::operator bool() const
+    {
+        return !is_zero();
+    }
+
+    lint::operator int()
+    {
+        return std::stoi((*this).to_string());
+    }
+
+    lint lint::operator+() const
+    {
+        lint temp(*this);
+        return temp;
+    }
+
+    lint lint::operator-() const
+    {
+        lint temp(*this);
+
+        if (is_negative_number())
+        {
+            temp.is_negative = false;
+        }
+        else
+        {
+            temp.is_negative = true;
+        }
+
+        return temp;
+    }
+
+    int lint::operator[](size_t index) const
+    {
+        return numbers[index];
+    }
+
+    lint& lint::operator=(const lint& other)
+    {
+        if (this != &other)
+        {
+            numbers = other.numbers;
+            is_negative = other.is_negative_number();
+        }
+        return *this;
+    }
+
+    lint& lint::operator++()
+    {
+        lint one(1);
+        (*this) += one;
+        return *this;
+    }
+
+    lint lint::operator++(int) {
+        lint tmp(*this);
+        operator++();
+        return tmp;
+    }
+
+    lint& lint::operator--()
+    {
+        lint one(1);
+        (*this) -= one;
+        return *this;
+    }
+
+    lint lint::operator--(int) {
+        lint tmp(*this);
+        operator--();
+        return tmp;
+    }
+
+    bool lint::cmp(lint const& rhs) const
+    {
+        if (is_negative_number() && !rhs.is_negative_number())
+        {
+            return true;
+        }
+
+        if (!is_negative_number() && rhs.is_negative_number())
+        {
+            return false;
+        }
+
+        if (get_length() < rhs.get_length())
+        {
+            return true;
+        }
+
+        if (get_length() > rhs.get_length())
+        {
+            return false;
+        }
+
+        for (int i = 0; i < get_length(); ++i)
+        {
+            if (numbers[i] < rhs[i])
+            {
+                if (is_negative_number())
+                {
+                    return false;
+                }
+                return true;
+            }
+            else if (numbers[i] > rhs[i])
+            {
+                if (is_negative_number())
+                {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    int lint::compare(lint const& rhs) const
+    {
+        if ((*this).cmp(rhs))
+        {
+            return -1;
+        }
+        else if (rhs.cmp(*this))
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    lint lint::abs(lint number) const
+    {
+        number.is_negative = false;
+        return number;
+    }
+
+    bool lint::is_zero() const
+    {
+        if (numbers.size() == 1 && numbers[0] == 0)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    std::string int_to_string(int i)
+    {
+        std::stringstream ss;
+        std::string s;
+        ss << i;
+        s = ss.str();
+
+        return s;
+    }
+
+    std::string lint::to_string()
+    {
+        std::string result = "";
+
+        if (is_negative_number() && !is_zero())
+        {
+            result += "-";
+        }
+
+        for (int i = 0; i < get_length(); ++i)
+        {
+            int a = (*this)[i];
+            result += int_to_string(a);
+        }
+
+        return result;
+    }
+
+    vector<int> lint::reverse_numbers(vector<int> const& numbers) const
+    {
+        vector<int> reverse_result;
+
+        for (int i = numbers.size() - 1; i >= 0; --i)
+        {
+            reverse_result.push_back(numbers[i]);
+        }
+
+        return reverse_result;
+    }
+
+    void lint::make_equal_length(lint const& b, vector<int>& number1, vector<int>& number2) const
+    {
+        int diff_length = get_length() - b.get_length();
+
+        if (diff_length > 0)
+        {
+            number1 = (*this).numbers;
+
+            for (int i = 0; i < diff_length; ++i)
+            {
+                number2.push_back(0);
+            }
+
+            for (int i = 0; i < b.get_length(); ++i)
+            {
+                number2.push_back(b[i]);
+            }
+        }
+        else if (diff_length < 0)
+        {
+            for (int i = 0; i < b.get_length(); ++i)
+            {
+                number2.push_back(b[i]);
+            }
+
+            for (int i = 0; i < (diff_length * (-1)); ++i)
+            {
+                number1.push_back(0);
+            }
+
+            for (int i = 0; i < get_length(); ++i)
+            {
+                number1.push_back((*this)[i]);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < b.get_length(); ++i)
+            {
+                number1.push_back((*this)[i]);
+                number2.push_back(b[i]);
+            }
+        }
+    }
+
+    void lint::string_to_vector(std::string const& number)
+    {
+        unsigned int from = 0;
+
+        if (number[0] == '-')
+        {
+            is_negative = true;
+            from = 1;
+        }
+        else
+        {
+            is_negative = false;
+        }
+
+        for (unsigned int i = from; i < number.length(); ++i)
+        {
+            int ia = number[i] - '0';
+            numbers.push_back(ia);
+        }
+    }
+
+    void lint::integer_to_vector(long long a)
+    {
+        if (a < 0)
+        {
+            is_negative = true;
+            a = (-1) * a;
+        }
+        else
+        {
+            is_negative = false;
+        }
+
+        if (a == 0)
+        {
+            numbers.push_back(0);
+        }
+
+        vector<int> temp;
+
+        while (a)
+        {
+            int x = a % 10;
+            a /= 10;
+            temp.push_back(x);
+        }
+
+        for (int i = temp.size() - 1; i >= 0; --i)
+        {
+            numbers.push_back(temp[i]);
+        }
+    }
+
+    lint abs(lint number)
+    {
+        lint n(number);
+        lint zero(0);
+
+        bool is_less = n.cmp(zero);
+
+        if (is_less)
+        {
+            n *= lint(-1);
+        }
+        return n;
+    }
+
+    lint pow(lint a, int n) {
+        lint res(1);
+
+        while (n)
+        {
+            if (n & 1)
+            {
+                res *= a;
+            }
+
+            a *= a;
+            n >>= 1;
+        }
+
+        return res;
+    }
+
+    std::ostream& operator<<(std::ostream& os, const lint& obj)
+    {
+        if (obj.is_negative_number())
+        {
+            os << "-";
+        }
+
+        for (int i = 0; i < obj.get_length(); ++i)
+        {
+            os << obj[i];
+        }
+
+        return os;
+    }
+
+    std::istream& operator>>(std::istream& is, lint& obj)
+    {
+        bool is_lead_zeros = true;
+        bool is_negative = false;
+        vector<int> numbers;
+
+        while (is.good())
+        {
+            char c = static_cast<char>(is.get());
+            int ic = c - '0';
+
+            if (c == '\n')
+            {
+                break;
+            }
+
+            if (c == EOF)
+            {
+                break;
+            }
+
+            if (c == '\0')
+            {
+                break;
+            }
+
+            if (is.good())
+            {
+                if (c == '-')
+                {
+                    is_negative = true;
+                }
+                else if (c == '+')
+                {
+                    is_negative = false;
+                }
+                else if (ic == 0 && is_lead_zeros)
+                {
+
+                }
+                else
+                {
+                    numbers.push_back(ic);
+                    is_lead_zeros = false;
+                }
+            }
+        }
+
+        lint temp(numbers, is_negative);
+        obj = temp;
+
+        return is;
+    }
+
+    lint operator+(const lint& lhs, const lint& rhs)
+    {
+        lint temp(lhs);
+
+        return temp += rhs;
+    }
+
+    lint operator-(const lint& lhs, const lint& rhs)
+    {
+        lint temp(lhs);
+
+        return temp -= rhs;
+    }
+
+    lint operator*(const lint& lhs, const lint& rhs)
+    {
+        lint temp(lhs);
+
+        return temp *= rhs;
+    }
+
+    lint operator/(const lint& lhs, const lint& rhs)
+    {
+        lint temp(lhs);
+
+        return temp /= rhs;
+    }
+}
+////////
+#define var auto
+using namespace std;
+//////////////////////////////////////////
+
+/////////////////////////////////////////
+const long long inf = 1000000000;
+#define MEM(a,b) memset(a,b,sizeof(a))
+#define iOS ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);
+
+#define lol long long
+
+template <typename t>
+t gcd(t a, t b) { return (!b) ? a : gcd(b, a%b); }
+template <typename t>
+long long  pow(t a, t b) {
+    if (b == 0)return 1;
+    long  long cur = pow(a, b / 2);
+    if (b % 2 == 0)return (1ll*cur * cur) % 1000000007;
+    else return (1ll*cur * cur * a )% 1000000007;
+}
+template <typename t>
+bool isOk(t x, t y, t boundX, t boundY) {
+    return ((x >= 0) && (y >= 0) && (x < boundX) && (y < boundY));
+}
+
+
+double square(vector<pair<double, double>> nodes)
+{
+    double area = 0;
+    int numPoints = nodes.size();
+    int j = numPoints - 1;  // The last vertex is the 'previous' one to the first
+
+    for (int i = 0; i<numPoints; i++)
+    {
+        area = area + (nodes[j].first + nodes[i].first) * (nodes[j].second - nodes[i].second);
+        j = i;  //j is previous vertex to i
+    }
+    return area / 2;
+}
+
+
+struct PointF
+{
+
+    double X;
+    double Y;
+    PointF(double x, double y)
+    {
+        X = x; Y = y;
+    }
+
+};
+//int FindLineCircleIntersections(
+//	double cx, double cy, double radius,
+//	PointF point1, PointF point2,
+//	PointF &intersection1, PointF &intersection2)
+//{
+//	double dx, dy, A, B, C, det, t;
+//
+//	dx = point2.X - point1.X;
+//	dy = point2.Y - point1.Y;
+//
+//	A = dx * dx + dy * dy;
+//	B = 2 * (dx * (point1.X - cx) + dy * (point1.Y - cy));
+//	C = (point1.X - cx) * (point1.X - cx) +
+//		(point1.Y - cy) * (point1.Y - cy) -
+//		radius * radius;
+//
+//	det = B * B - 4 * A * C;
+//	if ((A <= 0.0000001) || (det < 0))
+//	{
+//		// No real solutions.
+//		intersection1 = PointF(inf, inf);
+//		intersection2 = PointF(inf, inf);
+//		return 0;
+//	}
+//	else if (det == 0)
+//	{
+//		// One solution.
+//		t = -B / (2 * A);
+//		intersection1 =
+//			PointF(point1.X + t * dx, point1.Y + t * dy);
+//		intersection2 = PointF(inf, inf);
+//		return 1;
+//	}
+//	else
+//	{
+//		// Two solutions.
+//		t = (double)((-B + sqrt(det)) / (2 * A));
+//		intersection1 =
+//			PointF(point1.X + t * dx, point1.Y + t * dy);
+//		t = (double)((-B - sqrt(det)) / (2 * A));
+//		intersection2 =
+//			PointF(point1.X + t * dx, point1.Y + t * dy);
+//		return 2;
+//	}
+//}
+//set <int > seta = { 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368 };
+
+
+double distance(double x1, double y1, double x2, double y2)
+{
+    return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+}
+
+//unordered_set<int> primes[2000000];
+//bool er[2000005];
+//void primeFactors(int n, const int& index)
+//{
+//
+//	// Print the number of 2s that divide n
+//	while (n % 2 == 0)
+//	{
+//		n = n / 2;
+//		primes[index].insert(2);
+//	}
+//
+//	// n must be odd at this point.  So we can skip
+//	// one element (Note i = i +2)
+//	for (int i = 3; i*i <= n+1; i = i + 2)
+//	{
+//		// While i divides n, print i and divide n
+//		while (n%i == 0)
+//		{
+//
+//			primes[index].insert(i);
+//			n = n / i;
+//		}
+//	}
+//
+//	// This condition is to handle the case when n
+//	// is a prime number greater than 2
+//	if (n > 2)
+//		primes[index].insert(n);
+//}
+
+struct custom_hash {
+    static uint64_t splitmix64(uint64_t x) {
+        // http://xorshift.di.unimi.it/splitmix64.c
+        x += 0x9e3779b97f4a7c15;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+        return x ^ (x >> 31);
+    }
+
+    size_t operator()(uint64_t x) const {
+        static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count();
+        return splitmix64(x + FIXED_RANDOM);
+    }
+};
+
+class FenwickTree {
+public:
+    void updateBinaryIndexedTree(vector<int>& binaryIndexedTree, int val, int index) {
+        while (index < binaryIndexedTree.size()) {
+            binaryIndexedTree[index] += val;
+            index = getNext(index);
+        }
+    }
+
+    int getSum(vector <int>& binaryIndexedTree, int index) {
+        int sum = 0;
+        while (index >= 0) {
+            sum += binaryIndexedTree[index];
+            index = getParent(index);
+        }
+        return sum;
+    }
+
+    int getParent(int i) {
+        return  (i & (i + 1)) - 1;
+    }
+
+    int getNext(int i) {
+        return i | (i + 1);
+    }
+    static void test() {
+        vector<int> input = { 1,2,3,4,5,6,7 };
+        FenwickTree ft;
+        vector <int> binaryIndexedTree(input.size() + 1, 0);
+
+        for (int i = 0; i< input.size(); ++i)
+        {
+            ft.updateBinaryIndexedTree(binaryIndexedTree, input[i], i);
+        }
+
+        cout << (bool)(1 == (int)ft.getSum(binaryIndexedTree, 0));
+        cout << (bool)(3 == (int)ft.getSum(binaryIndexedTree, 1));
+        cout << (bool)(6 == (int)ft.getSum(binaryIndexedTree, 2));
+        cout << (bool)(10 == (int)ft.getSum(binaryIndexedTree, 3));
+        cout << (bool)(15 == (int)ft.getSum(binaryIndexedTree, 4));
+        cout << (bool)(21 == (int)ft.getSum(binaryIndexedTree, 5));
+        cout << (bool)(28 == (int)ft.getSum(binaryIndexedTree, 6));
+    }
+};
+struct mp {
+    mp(int _x, int _y) {
+        x = _x;
+        y = _y;
+    }
+    mp() {};
+    long long x, y;
+    friend bool operator < (mp rhs, mp another) {
+        return (long long)(rhs.x + (long long)rhs.y * 5322) <  (long long)(another.x + (long long)another.y * 5322);
+    }
+    friend bool operator == (mp rhs, mp another) {
+        return (long long)(rhs.x + (long long)rhs.y * 5322) == (long long)(another.x + (long long)another.y * 5322);
+    }
+};
+
+long long bits[] = { 1
+        ,	2
+        ,	4
+        ,	8
+        ,	16
+        ,	32
+        ,	64
+        ,	128
+        ,	256
+        ,	512
+        ,	1024
+        ,	2048
+        ,	4096
+        ,	8192
+        ,	16384
+        ,	32768
+        ,	65536
+        ,	131072
+        ,	262144
+        ,	524288
+        ,	1048576
+        ,	2097152
+        ,	4194304
+        ,	8388608
+        ,   16777216
+        ,	33554432
+        ,	67108864
+        ,	134217728
+        ,	268435456
+        ,	536870912
+        ,	1073741824
+        ,	2147483648 };
+
+lol merged (lol a , lol b) {
+    return a+ b;
+}
+struct SegTree {
+    vector <lol> tree;
+    vector <lol> lazy;
+    int upbound;
+    SegTree (int n ){
+        int pow2 = 1;
+        while (pow2 < n){
+            pow2 = (pow2<<1);
+        }
+        tree.resize(pow2*2 -1);
+        for (int i = 0 ;i < tree.size();  ++ i){
+            tree[i] = 0;
+        }
+        lazy.resize(pow2*2 -1);
+        upbound = n-1;
+    }
+public:
+
+    void create(vector<lol>& input) {
+        create(input, 0, input.size()-1, 0);
+    }
+    lol query(int l, int r){
+        return query(l,r,0,upbound,0);
+    }
+    void update(int index, int delta){
+        updateSegmentTree(index, delta, 0, upbound,0);
+    }
+    void updateRange(int l, int r, int delta) {
+        updateRange(l,r,delta,0,upbound,0);
+    }
+    void updateLazy(int l, int r, int delta ) {
+        updateLazy(l,r,delta, 0,upbound, 0);
+    }
+    lol queryLazy (int l, int r) {
+        return queryLazy(l,r,0,upbound,0);
+    }
+private:
+
+    void create (vector<lol>& input, int l, int r, int pos) {
+        if (l == r) {
+            tree[pos] = input[l];
+            return;
+        }
+        int mid = (l + r) /2;
+        create(input, l , mid, 2*pos+1);
+        create(input, mid + 1 , r , 2*pos+2);
+        tree[pos] = merged (tree[2*pos + 1], tree[2 * pos+2]);
+    }
+    lol query(int ql, int qr, int l, int r, int pos) {
+        if (ql <= l && qr >= r)
+            return tree[pos];
+        if (ql > r || qr < l) {
+            return 0;
+        }
+        int mid = (l + r)/2;
+        return merged (query(ql, qr, l, mid, pos*2 +1), query(ql, qr, mid + 1, r, pos*2 + 2));
+    }
+
+    void updateSegmentTree(int index, int delta, int low, int high, int pos){
+
+        //if index to be updated is less than low or higher than high just return.
+        if(index < low || index > high){
+            return;
+        }
+
+        //if low and high become equal, then index will be also equal to them and update
+        //that value in segment tree at pos
+        if(low == high){
+            tree[pos] += delta;
+            return;
+        }
+        //otherwise keep going left and right to find index to be updated
+        //and then update current tree position if min of left or right has
+        //changed.
+        int mid = (low + high)/2;
+        updateSegmentTree( index, delta, low, mid, 2 * pos + 1);
+        updateSegmentTree( index, delta, mid + 1, high, 2 * pos + 2);
+        tree[pos] = merged(tree[2*pos+1], tree[2*pos + 2]);
+    }
+
+    void updateRange( int startRange, int endRange, int delta, int low, int high, int pos) {
+        if(low > high || startRange > high || endRange < low ) {
+            return;
+        }
+
+        if(low == high) {
+            tree[pos] += delta;
+            return;
+        }
+
+        int middle = (low + high)/2;
+        updateRange( startRange, endRange, delta, low, middle, 2 * pos + 1);
+        updateRange( startRange, endRange, delta, middle + 1, high, 2 * pos + 2);
+        tree[pos] = merged(tree[2*pos+1], tree[2*pos+2]);
+    }
+
+    void updateLazy( int startRange, int endRange, int delta, int low, int high, int pos) {
+        if (low > high) {
+            return;
+        }
+
+        //make sure all propagation is done at pos. If not update tree
+        //at pos and mark its children for lazy propagation.
+        if (lazy[pos] != 0) {
+            tree[pos] += lazy[pos];
+            if (low != high) { //not a leaf node
+                lazy[2 * pos + 1] += lazy[pos];
+                lazy[2 * pos + 2] += lazy[pos];
+            }
+            lazy[pos] = 0;
+        }
+
+        //no overlap condition
+        if (startRange > high || endRange < low) {
+            return;
+        }
+
+        //total overlap condition
+        if (startRange <= low && endRange >= high) {
+            tree[pos] += delta;
+            if (low != high) {
+                lazy[2 * pos + 1] += delta;
+                lazy[2 * pos + 2] += delta;
+            }
+            return;
+        }
+        int mid = (low + high)/2;
+        updateLazy(  startRange, endRange,
+                     delta, low, mid, 2*pos+1);
+        updateLazy( startRange, endRange,
+                    delta, mid+1, high, 2*pos+2);
+        tree[pos] = merged(tree[2*pos + 1], tree[2*pos + 2]);
+    }
+
+    lol queryLazy( int qlow, int qhigh, int low, int high, int pos) {
+
+        if(low > high) {
+            return 0;
+        }
+
+        //make sure all propagation is done at pos. If not update tree
+        //at pos and mark its children for lazy propagation.
+        if (lazy[pos] != 0) {
+            tree[pos] += lazy[pos];
+            if (low != high) { //not a leaf node
+                lazy[2 * pos + 1] += lazy[pos];
+                lazy[2 * pos + 2] += lazy[pos];
+            }
+            lazy[pos] = 0;
+        }
+
+        //no overlap
+        if(qlow > high || qhigh < low){
+            return 0;
+        }
+
+        //total overlap
+        if(qlow <= low && qhigh >= high){
+            return tree[pos];
+        }
+
+        //partial overlap
+        int mid = (low+high)/2;
+        return merged(queryLazy( qlow, qhigh, low, mid, 2 * pos + 1),
+                      queryLazy( qlow, qhigh, mid + 1, high, 2 * pos + 2));
+
+    }
+public :
+    static void test () {
+        vector<lol> input =  {0,3,4,2,1,6,-1};
+        SegTree tr(input.size());
+        tr.create(input);
+        cout << (bool)(0 == tr.query(0, 3)) << endl;
+        cout << (bool)(1 == tr.query(1, 5)) << endl;
+        cout << (bool)(-1 == tr.query(1, 6)) << endl;
+        tr.update(2,1);
+        cout << (bool)(2 == tr.query(1 , 3 )) << endl;
+        tr.updateRange(3,5,-2);
+        cout << (bool)(-1 == tr.query(5, 6)) << endl;
+        cout << (bool)(0 == tr.query(0, 3)) << endl;
+        vector<lol> input1 = {-1,2,4,1,7,1,3,2};
+        SegTree tr1(input1.size());
+        tr1.create(input1);
+        tr1.updateLazy(0,3,1);
+        tr1.updateLazy(0,0,2);
+        cout << (bool)( 1 == tr1.queryLazy(3,5) ) <<endl;
+    }
+};
+
+//unique vector
+//sort(list.begin(), list.end());
+//list.resize( unique(list.begin(), list.end()) - list.begin() );
+
+void solve () {
+    int n ;
+    cin >> n;
+
+    vector <int> v(7);
+    int s = 0;
+    for (int i = 0 ; i < v.size(); ++i) {
+        cin >> v[i];
+        s += v[i];
+    }
+    int res =  inf;
+    int ans = inf;
+
+    vector<int> revsums (9);
+    vector<int> sums (9);
+
+    for ( int i = 7 ; i  > 0; --i) {
+        revsums [i] = revsums[i + 1]  + v[i - 1];
+    }
+    for ( int i = 1 ; i  <=7 ; ++i) {
+        sums [i] = sums[i - 1]  + v[i-1];
+    }
+
+    if ( n <= 7) {
+        for ( int i = 0; i <= 7 ; ++ i) {
+            for (int j = i ; j <= 7; ++j ) {
+                if (sums[j] - sums[i] == n) {
+                    ans = min ( ans, j - i );
+                }
+            }
+        }
+    }
+
+    for (int i = 0 ; i < 8 ; ++ i) {
+        for (int j = 0; j < 8; ++ j) {
+            int cur = revsums[j] + sums[i];
+            cur = n -cur;
+            if ( cur >= 0) {
+
+                int toend = 8 - j + i ;
+                ;
+                if (cur % s == 0) {
+                    ans = min ( (cur / s ) * 7  +   toend, ans);
+                }
+            }
+
+        }
+    }
+
+
+    cout << ans << endl;
+
+}
+
+
+int32_t  main() {
+    iOS
+    // srand(time(0));
+    // std::freopen("input.in","r",stdin);
+   // std::freopen("output2.txt","w",stdout);
+   // std::freopen("output.txt","r",stdin);
+#ifdef areubreathing
+    double beg=clock();
+#endif
+    int n = 1;
+    cin >> n;
+    for (int i = 0; i < n; ++i) {
+        solve();
+    }
+#ifdef areubreathing
+    double end=clock();
+    fprintf(stderr,"*** Total time = %.1f ***\n",(end-beg)/CLOCKS_PER_SEC);
+#endif
+    return 0;
+}

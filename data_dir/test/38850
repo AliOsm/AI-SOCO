@@ -1,0 +1,91 @@
+#include<bits/stdc++.h>
+#define ld long double
+#define ll long long
+using namespace std;
+const int MAX = 1e5 + 10;
+ll h[MAX] ,st[MAX] , cnt=0  , n;
+ll dp_down[MAX] , dp_up[MAX] , sz[MAX];
+vector<pair<int,int> > t[MAX]; vector<int> a[MAX];
+void dfs1(int v , int p){
+    st[v]=cnt++;
+    sz[v]=1;
+    t[h[v]].push_back({st[v] , v});
+    for(auto u:a[v]){
+        if(u==p)continue;
+        h[u]=h[v]+1; dfs1(u , v);
+        sz[v]+=sz[u];
+        dp_down[v]+=dp_down[u]+sz[u];
+    }
+}
+
+void dfs2(int v, int p){
+    if(p!=-1)dp_up[v]=(dp_up[p] + dp_down[p] - dp_down[v] - sz[v]) + n - sz[v];
+    for(auto u:a[v]){
+        if(u==p)continue;
+        dfs2(u , v);
+    }
+}
+
+
+int findpar(int v, int k){
+    if(k==0)return v;
+    int hp = h[v] - k;
+    if(hp < 0)return -1;
+    int ind =lower_bound(t[hp].begin() , t[hp].end() , pair<int,int>(st[v] , 0)) - t[hp].begin();
+    ind--;
+    return t[hp][ind].second;
+}
+int LCA(int v,int u){
+    if(h[v] < h[u]){
+        int tmp = v; v=u; u=tmp;
+    }
+    int c=h[v] - h[u];
+    v = findpar(v, c);
+    if(v == u)return v;
+    int l = 0 , r = h[v];
+    while( r - l > 1){
+        int mid = (l+r) /2;
+        if(findpar(v , mid) == findpar(u , mid))r=mid; else l=mid;
+    }
+    return findpar(v , r);
+}
+
+int main(){
+    ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+    int m; cin>>n>>m;
+    for(int i=0;i<n-1;i++){
+        int u,v; cin>>u>>v;
+        a[u].push_back(v); a[v].push_back(u);
+    }
+    dfs1(1 , -1);
+    dfs2(1 , -1);
+
+    for(int i=0;i<m;i++){
+        int v,u; cin>>v>>u;
+        int p=LCA(u , v);
+        if(p!=v && p!=u){
+            ld ans=dp_down[u] * (ll)sz[v] + dp_down[v] * (ll)sz[u] + (ll)sz[u]*(ll)sz[v]*(h[v] + h[u] - 2*h[p] + 1);
+            ans=ans/(ld)(sz[v] * sz[u]);
+            cout<<fixed<<setprecision(10)<<ans<<'\n';
+        }else if(p==v){
+            //cout<<p<<" PAR "<<endl;
+            int height=h[u] - h[v] - 1;
+            //cout<<height<<" HEIGHT "<<endl;
+            int k=findpar(u , height);
+            ll c=dp_up[p] + dp_down[p] - dp_down[k] - sz[k];
+            ld ans=c*sz[u] + dp_down[u] * (n - sz[k]) + sz[u]*(n-sz[k])*(h[u]-h[p]+1);
+            ans=ans/(ld)(sz[u] * (n-sz[k]));
+            cout<<fixed<<setprecision(10)<<ans<<'\n';
+        }else{
+            int tmp=u; u=v; v=tmp;
+            int height=h[u] - h[v] - 1;
+            //cout<<height<<" HEIGHT "<<endl;
+            int k=findpar(u , height);
+            ll c=dp_up[p] + dp_down[p] - dp_down[k] - sz[k];
+            ld ans=c*sz[u] + dp_down[u] * (n - sz[k]) + sz[u]*(n-sz[k])*(h[u]-h[p]+1);
+            ans=ans/(ld)(sz[u] * (n-sz[k]));
+            cout<<fixed<<setprecision(10)<<ans<<'\n';
+        }
+    }
+
+}

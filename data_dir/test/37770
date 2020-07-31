@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define SZ(x) ((int)(x).size())
+#define PB(x) push_back(x)
+#define MEMSET(x,v) memset(x,v,sizeof(x))
+#define REP(i,n) for(int (i)=0;(i)<(n);++(i))
+#define x first
+#define y second
+#define INF (0x3f3f3f3f)
+
+typedef long long LL;
+typedef pair<int, int> P2;
+template<class A, class B> inline bool mina(A &x, B y) {return (x > y)?(x=y,1):0;}
+template<class A, class B> inline bool maxa(A &x, B y) {return (x < y)?(x=y,1):0;}
+
+//  dp[i] = min(dp[j] + b[j] * a[i]), j < i
+//  y     = min(c     + m    * x)
+//
+//  Requires b[j] >= b[j + 1] (lines are added in decreasing order of slopes
+//  Requires for this implementation: a[i] <= a[i + 1] (query x in increasing order)
+template<class T, int MAX_SIZE>
+class ConvexHullOptimization {
+public:
+    typedef struct line_st {
+        T c, m;
+    } Line;
+    vector<Line> sk;
+    int front, rear;
+    ConvexHullOptimization () { front = rear = 0; sk.resize(MAX_SIZE); }
+    void add_line(T m, T c) {
+        Line new_line = {c, m};
+        if (front < rear && sk[rear - 1].m == new_line.m) {
+            sk[rear - 1].c = min(sk[rear - 1].c, new_line.c);
+            return ;
+        }
+        while (rear - front >= 2 && cross_left(sk[rear - 2], sk[rear - 1], new_line)) rear--;
+        sk[rear++] = new_line;
+    }
+    // Returns the minimum value of y
+    T minimize(T x) {
+        if (front == rear) return 0;
+        while (rear - front >= 2 && cal_y(sk[front], x) > cal_y(sk[front + 1], x)) front++;
+        return cal_y(sk[front], x);
+    }
+private:
+    // Returns true if x_ab > x_bc
+    //   x_ab = the x-coordinate of the intersection of A and B
+    //   x_bc = the x-coordinate of the intersection of B and new_line
+    bool cross_left(Line A, Line B, Line new_line) {
+        long double x_ab = (long double)(B.c - A.c) / (A.m - B.m);
+        long double x_bc = (long double)(new_line.c - B.c) / (B.m - new_line.m);
+        return x_ab > x_bc;
+    }
+    T cal_y(Line A, T x) {
+        return A.m * x + A.c;
+    }
+};
+
+const int MAXN = 2e5 + 5;
+
+int N;
+int in[MAXN];
+LL ans;
+
+int main() {
+    LL origin = 0;
+    scanf("%d", &N);
+    REP(i, N) {
+        scanf("%d", &in[i + 1]);
+        ans += 1LL * in[i + 1] * (i + 1);
+    }
+    origin = ans;
+    ConvexHullOptimization<LL, MAXN> solver;
+    LL sum_l = in[1];
+    LL pre = -in[1];
+    solver.add_line(pre, 1LL * in[1] - sum_l);
+    for (int i = 2; i <= N; i++) {
+        sum_l += in[i];
+        maxa(ans, origin - solver.minimize(i) - sum_l);
+        if (-in[i] < pre) {
+            pre = -in[i];
+            solver.add_line(pre, 1LL * in[i] * i - sum_l);
+        }
+    }
+
+    ConvexHullOptimization<LL, MAXN> solver2;
+    LL sum_r = in[N];
+    pre = in[N];
+    solver2.add_line(pre, 1LL * N * in[N] + sum_r);
+    for (int i = N - 1; i >= 1; i--) {
+        sum_r += in[i];
+        maxa(ans, origin - solver2.minimize(-i) + sum_r);
+        if (in[i] < pre) {
+            pre = in[i];
+            solver2.add_line(pre, 1LL * i * in[i] + sum_r);
+        }
+    }
+    cout << ans << endl;
+    return 0;
+}

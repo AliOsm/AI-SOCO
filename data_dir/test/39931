@@ -1,0 +1,175 @@
+#pragma GCC optimize ("O3")
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef vector<int> vi;
+typedef vector<vector<int> > vvi;
+typedef pair<int, int> pii;
+#define erep(i, x, n) for (auto i = x; i<=(ll)(n); i++)
+#define rep(i, x, n) for(auto i = x; i<(ll)(n); i++)
+#define all(v) ((v).begin()), ((v).end())
+#define sz(v) ((int)((v).size()))
+#define mod(n, m) (((n%m) + m)%m)
+#define reset(n, m) memset(n, m, sizeof n)
+#define endl '\n'
+
+const int N = 1e5 + 5;
+
+ll arr[N][3];
+int n;
+vi node[N];
+
+int root = 1;
+ll memo[N][4][4];
+
+int ans[N];
+
+ll solve(int idx, int par, int ana, int baba)
+{
+	ll &ret = memo[idx][ana][baba];
+	if (~ret)
+		return ret;
+
+	ret = 1e16;
+	bool flag = false;
+	if (idx == root && sz(node[root]) > 1)
+	{
+		rep(i, 0, 3)
+		{
+			rep(j, 0, 3)
+			{
+				if (i == ana || j == ana || i == j)
+					continue;
+				flag = true;
+				int u = node[root][0], v = node[root][1];
+				ret = min(ret,
+						arr[u][i] + solve(u, idx, i, ana) + arr[v][j]
+								+ solve(v, idx, j, ana));
+			}
+		}
+	}
+	else
+	{
+		rep(i, 0, 3)
+		{
+			if (i == baba || i == ana)
+				continue;
+			for (auto j : node[idx])
+			{
+				if (j == par)
+					continue;
+				flag = true;
+				ret = min(ret, arr[j][i] + solve(j, idx, i, ana));
+			}
+		}
+	}
+	if (!flag)
+		ret = 0;
+
+	return ret;
+}
+
+void trace(int idx, int par, int ana, int baba)
+{
+	ll &ret = memo[idx][ana][baba];
+	ans[idx] = ana + 1;
+	bool flag = false;
+	if (idx == root && sz(node[root]) > 1)
+	{
+		rep(i, 0, 3)
+		{
+			rep(j, 0, 3)
+			{
+				if (i == ana || j == ana || i == j)
+					continue;
+				flag = true;
+				int u = node[root][0], v = node[root][1];
+
+				if (ret
+						== arr[u][i] + solve(u, idx, i, ana) + arr[v][j]
+								+ solve(v, idx, j, ana))
+				{
+					trace(u, idx, i, ana);
+					trace(v, idx, j, ana);
+					return;
+				}
+
+			}
+		}
+	}
+	else
+	{
+		rep(i, 0, 3)
+		{
+			if (i == baba || i == ana)
+				continue;
+			for (auto j : node[idx])
+			{
+				if (j == par)
+					continue;
+				flag = true;
+				if (ret == arr[j][i] + solve(j, idx, i, ana))
+				{
+					trace(j, idx, i, ana);
+					return;
+				}
+			}
+		}
+	}
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	cin >> n;
+	rep(j, 0, 3)
+		erep(i, 1, n)
+			cin >> arr[i][j];
+
+	rep(i, 0, n - 1)
+	{
+		int u, v;
+		cin >> u >> v;
+		node[u].push_back(v);
+		node[v].push_back(u);
+	}
+
+	erep(i, 1, n)
+		if (sz(node[i]) > 2)
+			return cout << -1, 0;
+
+	erep(i, 1, n)
+		if (sz(node[i]) > sz(node[root]))
+			root = i;
+
+	reset(memo, -1);
+
+	ll ret = arr[root][0] + solve(root, 0, 0, 3);
+	ret = min(ret, arr[root][1] + solve(root, 0, 1, 3));
+	ret = min(ret, arr[root][2] + solve(root, 0, 2, 3));
+
+	if (ret == arr[root][0] + solve(root, 0, 0, 3))
+	{
+		trace(root, 0, 0, 3);
+	}
+	else if (ret == arr[root][1] + solve(root, 0, 1, 3))
+	{
+		trace(root, 0, 1, 3);
+	}
+	else
+	{
+		trace(root, 0, 2, 3);
+	}
+	cout << ret << endl;
+	erep(i, 1, n)
+		cout << ans[i] << " ";
+	cout << endl;
+
+	return 0;
+}
+

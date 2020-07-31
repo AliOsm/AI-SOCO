@@ -1,0 +1,47 @@
+#include <bits/stdc++.h>
+using namespace std;
+bool ok = true;
+pair<int,int>v[8];
+set<pair<int,int>>st;
+set<int>x, y;
+vector<int>vx, vy;
+int n = 8, xx, yy;
+int main()
+{
+    for (int i=1;i<=n;++i)
+    {
+        cin>>xx>>yy;
+        x.insert(xx);
+        y.insert(yy);
+        st.insert(make_pair(xx,yy));
+    }
+    if (x.size() != 3 || y.size() != 3){
+        cout<<"ugly\n";
+        return 0;
+    }
+    for (auto v:x){
+        vx.push_back(v);
+    }
+    for (auto v:y){
+        vy.push_back(v);
+    }
+    for (int i=0;i<3 && ok;++i){
+        for (int j=0;j<3 && ok;++j){
+            if (i == 1 && j == 1){
+                if (st.count(make_pair(vx[i],vy[j]))){
+                    ok = false;
+                }
+            } else {
+                if (!st.count(make_pair(vx[i],vy[j]))){
+                    ok = false;
+                }
+            }
+        }
+    }
+    if (ok){
+        cout<<"respectable\n";
+    } else {
+        cout<<"ugly\n";
+    }
+    return 0;
+}

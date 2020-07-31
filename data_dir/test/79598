@@ -1,0 +1,171 @@
+#include<iostream>
+#include<cstdio>
+#include<cassert>
+#include<cstring>
+#include<ctime>
+#include<cstdlib>
+#include<cmath>
+#include<string>
+#include<sstream>
+#include<map>
+#include<set>
+#include<queue>
+#include<stack>
+#include<vector>
+#include<bitset>
+#include<algorithm>
+#pragma comment(linker, "/STACK:640000000")
+#define pb push_back
+#define ppb pop_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define sz(x) (int)(x).size()
+#define ll long long
+#define bit __builtin_popcountll
+#define sqr(x) (x) * (x)
+#define forit(it,S) for(__typeof((S).begin()) it = (S).begin(); it != (S).end(); it++)
+using namespace std;
+typedef pair<int, int> pii;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+const int mod = (int)1e9 + 7;
+int n,m,k;
+int L[205],R[205],w[205][205],le[205];
+int nxt[205][22],link[205],curS[205],curL = 0;
+int add[205],go[205][22],cost[205];
+int dp[205][2][205][505];
+int Lsz,Rsz,root = 0,fre = 1;
+void SUM(int &x, int y) {
+    x += y;
+    if (x >= mod) x -= mod;
+}
+void ADD(int i) {
+    int v = root;
+    for (int j = 0; j < le[i]; j++) {
+        if (nxt[v][w[i][j]] == -1) {
+            nxt[v][w[i][j]] = fre++;
+        }
+        v = nxt[v][w[i][j]];
+    }
+}
+int getL(int pos, int low, int state, int sum) {
+    if (sum > k) return 0;
+    if (pos == Lsz) return low;
+    int &res = dp[pos][low][state][sum];
+    if (res != -1) return res;
+    res = 0;
+    for (int i = 0; i <= (low ? m - 1 : L[pos]); i++) {
+        int next = go[state][i];
+        SUM(res,getL(pos + 1,low | (i < L[pos]),next,sum + add[next]));
+    }
+    return res;
+}
+int getR(int pos, int low, int state, int sum) {
+    if (sum > k) return 0;
+    if (pos == Rsz) return 1;
+    int &res = dp[pos][low][state][sum];
+    if (res != -1) return res;
+    res = 0;
+    for (int i = 0; i <= (low ? m - 1 : R[pos]); i++) {
+        int next = go[state][i];
+        SUM(res,getR(pos + 1,low | (i < R[pos]),next,sum + add[next]));
+    }
+    return res;
+}
+void dfs(int v) {
+    for (int i = 0; i < n; i++) if (le[i] <= curL) {
+        bool good = true;
+        for (int j = 0; j < le[i]; j++) {
+            if (w[i][j] != curS[curL - le[i] + j]) {
+                good = false;
+                break;
+            }
+        }
+        if (good) add[v] += cost[i];
+    }   
+    for (int i = 0; i < m; i++) if (nxt[v][i] != -1) {
+        curS[curL++] = i;
+        dfs(nxt[v][i]);
+        curL--;
+    }
+}
+int main() {
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt","r",stdin);
+    freopen("output.txt","w",stdout);
+    #endif
+    cin >> n >> m >> k;
+    cin >> Lsz;
+    for (int i = 0; i < Lsz; i++) {
+        scanf("%d",&L[i]);
+    }
+    cin >> Rsz;
+    for (int i = 0; i < Rsz; i++) {
+        scanf("%d",&R[i]);
+    }
+    memset(nxt,-1,sizeof(nxt));
+    memset(link,-1,sizeof(link));
+    for (int i = 0; i < n; i++) {
+        cin >> le[i];
+        for (int j = 0; j < le[i]; j++) {
+            scanf("%d",&w[i][j]);
+        }
+        cin >> cost[i];
+        ADD(i);
+    }
+    dfs(root);
+    queue<int> q;
+    q.push(root);
+    while(!q.empty()) {
+        int v = q.front(); q.pop();
+        for (int i = 0; i < m; i++) {
+            int to = nxt[v][i];
+            if (to == -1) continue;
+            int e = link[v];
+            while(e != -1 && nxt[e][i] == -1) e = link[e];
+            if (e == -1) {
+                e = root;
+            } else {
+                e = nxt[e][i];
+            }
+            link[to] = e;
+            q.push(to);
+        }
+    }
+    q.push(root);
+    while(!q.empty()) {
+        int v = q.front(); q.pop();
+        for (int i = 0; i < m; i++) {
+            if (nxt[v][i] != -1) {  
+                go[v][i] = nxt[v][i];
+                q.push(nxt[v][i]);
+            } else {
+                int e = link[v];
+                while(e != -1 && nxt[e][i] == -1) e = link[e];
+                if (e == -1) {
+                    e = root;
+                } else {
+                    e = nxt[e][i];
+                }
+                go[v][i] = e;
+            }
+        }
+    }
+    int ans = 0;
+    memset(dp,-1,sizeof(dp));
+    for (int i = 0; i < Lsz; i++) {
+        for (int j = 1; j <= (i == 0 ? L[0] : m - 1); j++) {
+            int next = go[root][j];
+            SUM(ans,mod - getL(i + 1,(i > 0) | (j < L[0]),next,add[next]));
+          }
+    }
+    memset(dp,-1,sizeof(dp));
+    for (int i = 0; i < Rsz; i++) {
+        for (int j = 1; j <= (i == 0 ? R[0] : m - 1); j++) {
+            int next = go[root][j];
+            SUM(ans,getR(i + 1,(i > 0) | (j < R[0]),next,add[next]));
+          }
+    }
+    cout << ans << endl;
+    return 0;
+}

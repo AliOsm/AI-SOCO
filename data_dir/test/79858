@@ -1,0 +1,154 @@
+// KALAM
+# include<bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+
+const int N = 100000 + 77;
+int n , Mod , sz[N] , gb , Wd[N] , Wu[N] , Pow[N] , dis[N] , Ph , Inv[N];
+long long A;
+bool M[N];
+vector < pair < int , int > > a[N];
+cc_hash_table < int , int > T;
+int Pw(int x , int y){
+   if(y == 0){
+      return 1;
+   }
+   int res = Pw(x , y >> 1);
+   res = res * 1ll * res % Mod;
+   if(y & 1){
+      res = res * 1ll * x % Mod;
+   }
+   return res;
+}
+int Get_Phi(int x){
+   int res = x;
+   for(int i = 2;i * i <= x;i ++){
+      if(x % i == 0){
+         res /= i;
+         res *= i - 1;
+      }
+      while(x % i == 0){
+         x /= i;
+      }
+   }
+   if(x > 1){
+      res /= x;
+      res *= x - 1;
+   }
+   return res;
+}
+void dfsSz(int v , int prev = - 1){
+   sz[v] = 1;
+   for(auto x : a[v]){
+      int u = x.first , w = x.second;
+      if(u == prev || M[u]){
+         continue ;
+      }
+      dis[u] = dis[v] + 1;
+      Wd[u] = (Wd[v] * 10ll + w) % Mod;
+      Wu[u] = (Wu[v] + Pow[dis[v]] * 1ll * w) % Mod;
+      dfsSz(u , v);
+      sz[v] += sz[u];
+   }
+}
+int Centroid(int v , int prev = - 1){
+   for(auto x : a[v]){
+      int u = x.first , w = x.second;
+      if(u == prev || M[u]){
+         continue ;
+      }
+      if(sz[u] > (sz[gb] >> 1)){
+         return Centroid(u , v);
+      }
+   }
+   return v;
+}
+void Get(int v , int prev = - 1){
+   /*
+   A += T[Pw(Wd[v] , Ph - 1)];
+   cout << "Getting " << Pw(Wd[v] , Ph - 1) << ' ' << T[Pw(Wd[v] , Ph - 1)] << ' ' << v << '\n';*/
+   int rev = Mod - Wd[v];
+   int need = Inv[dis[v]];
+   A += T[need * 1ll * rev % Mod];
+   A += (gb < 0 && Wd[v] == 0);
+   for(auto x : a[v]){
+      int u = x.first;
+      if(u == prev || M[u]){
+         continue ;
+      }
+      Get(u , v);
+   }
+}
+void Add(int v , int prev = - 1){
+   //cout << "Adding " << Wu[v] << " " << v << '\n';
+   ++ T[Wu[v]];
+   for(auto x : a[v]){
+      int u = x.first;
+      if(u == prev || M[u]){
+         continue ;
+      }
+      Add(u , v);
+   }
+}
+void dfsCalc(int C){
+   for(auto x : a[C]){
+      int u = x.first;
+      if(M[u]){
+         continue ;
+      }
+      Get(u , C);
+      Add(u , C);
+   }
+}
+void Solve(int v){
+
+   dfsSz(v);
+   gb = v;
+   int C = Centroid(v);
+   Wu[C] = Wd[C] = 0;
+   dis[C] = 0;
+   dfsSz(C);
+   T.clear();
+   dfsCalc(C);
+   reverse(a[C].begin() , a[C].end());
+   T.clear();
+   gb = - 1;
+   dfsCalc(C);
+   M[C] = 1;
+   A += T[0];
+   for(auto x : a[C]){
+      if(M[x.first]){
+         continue ;
+      }
+      Solve(x.first);
+   }
+}
+int main(){
+   scanf("%d %d" , & n , & Mod);
+   if(Mod == 1){
+      printf("%lld" , n * 1ll * (n - 1));
+      return 0;
+   }
+   Ph = Get_Phi(Mod);
+   Pow[0] = 1;
+   Inv[0] = 1;
+   for(int i = 1;i < N;i ++){
+      Pow[i] = Pow[i - 1] * 10ll % Mod;
+      Inv[i] = Pw(Pow[i] , Ph - 1);
+   }
+
+   for(int i = 1;i < n;i ++){
+      int v , u , w;
+      scanf("%d %d %d" , & v , & u , & w);
+      ++ v;
+      ++ u;
+      a[v].push_back(make_pair(u , w));
+      a[u].push_back(make_pair(v , w));
+   }
+   Solve(1);
+   printf("%lld" , A);
+   return 0;
+}

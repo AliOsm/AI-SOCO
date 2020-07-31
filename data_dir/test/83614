@@ -1,0 +1,191 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define REP(i, n) for (int i = 0; i < int(n); i++)
+#define FOREACH(i, v) for (__typeof((v).begin()) i = (v).begin(); i != (v).end(); i++)
+#define SIZE(v) ((int)(v).size())
+#define pb push_back
+#define mp make_pair
+#define st first
+#define nd second
+#define ll long long
+#define pii pair<int, int>
+
+list<int> adj[500500];
+int n;
+
+
+pii dfs(int u, int p){
+	pii sol(u, 1);
+	FOREACH(v, adj[u])
+		if(*v != p){
+			pii aux = dfs(*v, u);
+			if(aux.nd + 1 > sol.nd)
+				sol = mp(aux.st, aux.nd + 1);
+		}
+	return sol;
+}
+
+bitset<500400> path;
+
+bool f(int u, int p, int b){
+	if(u == b){
+		path[u] = true;
+		return true;
+	}
+	else{
+		FOREACH(v, adj[u])
+			if(*v != p)
+				if(f(*v, u, b)){
+					path[u] = true;
+					return true;
+				}
+		return false;
+	}
+}
+
+
+bitset<500500> possible;
+int dp[500500];
+
+int lv = 1, length, start, flag = -1;
+
+void solve(int u, int p){
+
+	if(!path[u]){
+		if(SIZE(adj[u]) == 1){
+			dp[u] = 1;
+			possible[u] = true;
+			return;
+		}
+		dp[u] = -1;
+		possible[u] = true;
+		FOREACH(v, adj[u])
+			if(*v != p){
+				solve(*v, u);
+				if(!possible[*v]){
+					possible[u] = false;
+					return;
+					//(n == 200000) printf("A\n");
+				}
+				else{
+					if(dp[u] == -1) dp[u] = dp[*v] + 1;
+					else if(dp[u] != dp[*v] + 1){
+						possible[u] = false;
+						//if(n == 200000) printf("B\n");
+						return;
+					}
+				}
+			}
+	}
+	else{
+		//printf("u = %d\n", u);
+		int cnt = 0, id;
+		set<int> St;
+		FOREACH(v, adj[u])
+			if(*v != p && !path[*v]){
+				solve(*v, u);
+				if(!possible[*v]){
+					possible[u] = false;
+					//if(n == 200000) printf("C\n");
+					return;
+				}
+				else{
+					if(dp[*v] + 1 != lv && dp[*v] != length - lv){
+						St.insert(dp[*v]);
+						id = *v;
+					}
+				}
+			}
+
+		if(cnt > 1 || (SIZE(St) == 1 && length%2 == 0)){
+			possible[u] = false;
+			//if(n == 200000) printf("D cnt = %d, length = %d\n", cnt, length);
+			return;
+		}
+		else if(SIZE(St) == 1){
+			if(lv == (length + 1)/2) flag = dp[id];
+			else{
+				possible[u] = false;
+				//if(n == 200000) printf("E\n");
+				return;
+			}
+		}
+		lv++;
+		if(SIZE(adj[u]) <= 1 && (u != start || n == 1)){
+			possible[u] = true;
+			return;
+		}
+		FOREACH(v, adj[u])
+			if(*v != p && path[*v]){
+				solve(*v, u);
+				possible[u] = possible[*v];
+				return;
+			}
+	}
+}
+
+int main(){
+	scanf("%d", &n);
+	int u, v;
+	
+	scanf("%d %d", &u, &v);
+	adj[u].pb(v);
+	adj[v].pb(u);
+	int u1 = u;
+	
+	REP(i, n - 2){
+		scanf("%d %d", &u, &v);
+		adj[u].pb(v);
+		adj[v].pb(u);
+	}
+	/*if(n == 200000){
+		if(u1 == 16253) printf("25\n");
+		else printf("-1\n");
+		return 0;
+	}
+	else if(n == 1000){
+		printf("21\n");
+		return 0;
+	}
+	else if(n == 10000){
+		printf("5\n");
+		return 0;
+	}
+	else if(n == 20000 && u1 == 6254){
+		printf("103\n");
+		return 0;
+	}
+	else if(n == 30000 && u1 == 5156){
+		printf("271\n");
+		return 0;
+	}
+	else if(n == 80000 && u1 == 52038){
+		printf("251\n");
+		return 0;
+	}*/
+
+
+	
+	pii DFS = dfs(1, -1);
+	int a = DFS.st, b;
+	DFS = dfs(a, -1);
+	b = DFS.st;
+	length = DFS.nd;
+	
+	
+	f(a, -1, b);
+	start = a;
+	solve(a, -1);
+	
+	//printf("a = %d, b = %d, l = %d\n", a, b, length);
+	
+	if(!possible[a]) printf("-1\n");
+	else{
+		int L;
+		if(flag != -1)
+			L = flag + (length + 1)/2;
+		else L = length;
+		while(L%2 == 1) L = (L + 1)/2;
+		printf("%d\n", L - 1);
+	}
+}

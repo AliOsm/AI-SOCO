@@ -1,0 +1,170 @@
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <algorithm>
+#include <vector>
+#include <cstring>
+#include <queue>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+
+struct edge
+{
+    int a, b;
+    ld cost, rCost;
+    ll cap, flow;
+    edge() { }
+    edge(int a, int b, ld cost, ll cap) : a(a), b(b), cost(cost), cap(cap), flow(0), rCost(cost) { }
+};
+
+const int MAXN = 805;
+const ll INFTY = 1LL<<60;
+int N, M;
+int X[MAXN];
+int Y[MAXN];
+
+vector<edge> E;
+vector<int> adj[MAXN];
+ld pot[MAXN];
+int par[MAXN];
+bool vis[MAXN];
+
+void add_edge(int a, int b, ld cost, ll cap)
+{
+    adj[a].push_back(E.size());
+    E.push_back(edge(a, b, cost, cap));
+    adj[b].push_back(E.size());
+    E.push_back(edge(b, a, -cost, 0));
+}
+
+void bellman_ford(int source)
+{
+	for (int i = 0; i < N; i++)
+		pot[i] = INFTY;
+	pot[source] = 0;
+
+	for (int iter = 0; iter < N - 1; iter++)
+		for (int i = 0; i < M; i++)
+		    if (E[i].cap > 0 && pot[E[i].a] < INFTY)
+                pot[E[i].b] = min(pot[E[i].b], pot[E[i].a] + E[i].rCost);
+}
+
+void reduce()
+{
+	for (int i = 0; i < M; i++)
+	{
+        if (E[i].cap > 0)
+			E[i].rCost += pot[E[i].a] - pot[E[i].b];
+		else
+			E[i].rCost = 0;
+	}
+}
+
+bool dijkstra(int source, int sink)
+{
+	memset(par, -1, sizeof(par));
+	memset(vis, 0, sizeof(vis));
+	for (int i = 0; i < N; i++)
+		pot[i] = INFTY;
+	pot[source] = 0;
+
+	priority_queue<pair<ld, int> > pq;
+	pq.push(make_pair(0, source));
+	while(!pq.empty())
+	{
+		int cur = pq.top().second;
+		pq.pop();
+		if (vis[cur])
+			continue;	
+		vis[cur] = true;
+
+		for (int i = 0; i < adj[cur].size(); i++)
+		{
+			edge e = E[adj[cur][i]];
+			if (e.cap > 0 && !vis[e.b] && (par[e.b] == -1 || pot[e.b] > pot[cur] + e.rCost))
+			{
+				par[e.b] = adj[cur][i];
+				pot[e.b] = pot[cur] + e.rCost;
+				pq.push(make_pair(-pot[e.b], e.b));
+			}
+		}
+	}
+
+	return par[sink] != -1;
+}
+
+ld min_cost_max_flow(int source, int sink)
+{
+    M = E.size();
+	bellman_ford(source);
+	reduce();
+
+	while (dijkstra(source, sink))
+	{
+		reduce();
+		int cur = sink;
+        ll f = INFTY;
+		while (cur != source)
+		{
+			f = min(f, E[par[cur]].cap);
+			cur = E[par[cur]].a;
+		}
+		cur = sink;
+		while (cur != source)
+		{
+			E[par[cur]].flow += f;
+			E[par[cur] ^ 1].flow -= f;
+			E[par[cur]].cap -= f;
+			E[par[cur] ^ 1].cap += f;
+			cur = E[par[cur]].a;
+		}
+	}
+
+	ld minCost = 0;
+    ll totalFlow = 0;
+	for (int i = 0; i < M; i++)
+    {
+        if (E[i].b == 0)
+            totalFlow += E[i].flow;
+        if (E[i].flow > 0)
+    		minCost += E[i].cost*E[i].flow;
+    }
+    
+    if (totalFlow != (N - 2)/2 - 1)
+        return -1;
+	return minCost;
+}
+
+ld dist(int a, int b)
+{
+    return sqrt((X[a] - X[b])*(X[a] - X[b]) + (Y[a] - Y[b])*(Y[a] - Y[b]));
+}
+
+int main()
+{
+    ios::sync_with_stdio(0);
+
+    cin >> N;
+    for (int i = 1; i <= N; i++)
+        cin >> X[i] >> Y[i];
+
+    for (int i = 1; i <= N; i++)
+        add_edge(2*N + 1, 2*i, 0, 1);
+    for (int i = 1; i <= N; i++)
+        add_edge(2*i - 1, 0, 0, 2);
+
+    for (int i = 1; i <= N; i++)
+        for (int j = 1; j <= N; j++)
+            if (Y[i] < Y[j])
+                add_edge(2*i, 2*j - 1, dist(i, j), 1);
+    
+    N = 2*N + 2;
+    ld ans = min_cost_max_flow(N - 1, 0);
+    if (ans < 0)
+        printf("-1\n");
+    else
+        printf("%.10f\n", (double)ans);
+
+    return 0;
+}

@@ -1,0 +1,118 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long llong;
+
+struct ConvexHullTrick {
+   struct Line {
+      llong m;    // m is slope
+      llong b;  // b is y-intercept
+      Line(int _m, llong _b) : m(_m), b(_b) {}
+      llong eval(int x) const {
+         return m*x + b;
+      }
+   };
+
+   void add_line(int m, llong b) {
+      Line nxt(m, b);
+      while ( int( dq.size() ) >= 2 ) {
+         Line prv = dq[ int(dq.size()) - 2 ];
+         Line cur = dq[ int(dq.size()) - 1 ];
+         if (relevant(prv, cur, nxt))
+            break;
+         dq.pop_back();
+      }
+      dq.push_back(nxt);
+   }
+
+   llong max(int x) {
+      // binary search interval
+      assert(!dq.empty());
+      if (dq.size() == 1)
+         return dq[0].eval(x);
+      int lo = 0, hi = int(dq.size())-1;
+      while (lo < hi) {
+         int mid = lo + (hi-lo)/2;
+         Line L1 = dq[mid];
+      // Line L2 = mid < int(dq.size())-1) ? dq[mid+1] : Line(L1.m, L1.b-1);
+      // assert(mid < int(dq.size())-1);
+         Line L2 = dq[mid+1];
+      // if (L1.intersect(L2) >= x)
+         if ((L1.b - L2.b) >= x * (L2.m - L1.m))
+            hi = mid;
+         else
+            lo = mid+1;
+      }
+      return dq[lo].eval(x);
+   }
+
+   void clear() {
+      dq.clear();
+   }
+
+private:
+   deque<Line> dq;
+
+   static bool relevant(Line prv, Line cur, Line nxt) {
+      return (prv.b - nxt.b) * (cur.m - prv.m) >= 
+             (prv.b - cur.b) * (nxt.m - prv.m);
+   // return prv.intersect(nxt) >= prv.intersect(cur);
+   }
+};
+
+
+#define MAXN 200004
+int N;
+int A[MAXN];
+
+llong solve() {
+   llong orig = 0;
+   for (int i = 1; i <= N; ++i)
+      orig += i * 1LL * A[i];
+
+   vector<llong> psum(N+1);
+   for (int i = 1; i <= N; ++i)
+      psum[i] = psum[i-1] + A[i];
+
+
+   llong best = orig;
+
+   ConvexHullTrick ch;
+   for (int i = 2; i <= N; ++i) {
+      ch.add_line((i-1), -psum[i-2]);
+
+      llong gain = -1LL * i * A[i] + psum[i-1] + ch.max( A[i] );
+
+      //cerr << i << ": " << gain << endl;
+      best = max(best, orig + gain);
+   }
+   //cerr << endl;
+
+   ch.clear();
+   for (int i = N-1; i >= 1; --i) {
+      ch.add_line(-(i+1), -psum[i+1]);
+
+      llong gain = -1LL * i * A[i] + psum[i] + ch.max( -A[i] );
+
+      //cerr << i << ": " << gain << endl;
+      best = max(best, orig + gain);
+   }
+   //cerr << endl;
+
+   return best;
+}
+
+int main(int argc, char* argv[]) {
+   ios_base::sync_with_stdio(false); 
+   cin.tie(NULL);
+
+   cin >> N;
+   for (int i = 1; i <= N; ++i)
+      cin >> A[i];
+
+   llong res = solve();
+   cout << res << endl;
+
+   return 0;
+}

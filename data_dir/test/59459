@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+#define F first
+#define S second
+#define vec vector
+#define ms multiset
+#define pb push_back
+#define pll pair<ll,ll>
+#define pdd pair<ld, ld>
+#define pq priority_queue
+#define umap unordered_map
+#define uset unordered_set
+#define pii pair<int, int>
+#define pnn pair<Node*, Node*>
+#define uid uniform_int_distribution
+#define FILE ifstream in("board.in");ofstream out("board.out");
+#define fast cin.tie(0);cout.tie(0);cin.sync_with_stdio(0);cout.sync_with_stdio(0);
+using namespace std;
+typedef string str;
+typedef long long ll;
+typedef long double ld;
+mt19937 rnd(77); //uid u1(5, 10); u1(rnd);
+
+vec<int> m, lg, prec;
+vec<vec<int>> st;
+int blg;
+
+int maxnum(int l, int r){
+    int cp = l;
+    for(int q=blg-1; q>=0; q--){
+        if(st[q][cp]==-1 || m[st[q][cp]]>r) continue;
+        cp = st[q][cp];
+    }
+    return cp;
+}
+
+int otrmin(int l, int r){
+    if(l==r) return prec[l];
+    int d = r-l+1, k = lg[d];
+    return (d&(d-1))==0 ? st[k][l] : min(st[k][l], st[k][r-(1<<k)]);
+}
+
+int main() {
+    fast;
+    int a,b,k; cin>>a>>b>>k;
+    blg = log2(b)+1;
+    lg = vec<int>(b+5);
+    st = vec<vec<int>>(blg, vec<int>(b, -1));
+    lg[2] = 1;
+    for(int q=3; q<b+5; q++) lg[q] = 2<<lg[q-1]>q ? lg[q-1] : lg[q-1]+1;
+    vec<int> zm(a);
+    m = vec<int>(b);
+    for(int q=0; q<a; q++){
+        int i; cin>>i; i--;
+        zm[i] = q;
+    }
+    for(int q=0; q<b; q++){
+        cin>>m[q];
+        m[q] = zm[m[q]-1];
+    }
+    vec<vec<int>> que(a, vec<int>());
+    for(int q=0; q<b; q++){
+        int c = m[q];
+        que[c].pb(q);
+        if(c==0) continue;
+        for(int i : que[c-1]) st[0][i] = q;
+        for(; que[c-1].size()>0;) que[c-1].pop_back();
+    }
+    for(int q=1; q<blg; q++) for(int w=0; w<b; w++) st[q][w] = st[q-1][w]==-1 ? -1 : st[q-1][st[q-1][w]];
+    vec<set<int>> pos(a, set<int>());
+    for(int q=0; q<b; q++) pos[m[q]].insert(q);
+    prec = vec<int>(b);
+    for(int q=0; q<b; q++){
+        int n = maxnum(q, 1e6);
+        if(m[n]!=a-1){prec[q] = -1; continue;}
+        if(n==b-1){prec[q] = m[q]==0 ? n : -1;continue;}
+        if(m[q]==0){prec[q] = n; continue;}
+        if(pos[0].upper_bound(n)==pos[0].end()){prec[q] = -1; continue;}
+        int np = *pos[0].upper_bound(n), n2 = maxnum(np, m[q]-1);
+        if(m[n2]==m[q]-1) prec[q] = n2;
+        else prec[q] = -1;
+    }
+    for(int q=0; q<b; q++) prec[q] = prec[q]==-1 ? 1e6 : prec[q];
+    st = vec<vec<int>>(blg, vec<int>(b, 1e6));
+    for(int q=0; q<b; q++) st[0][q] = prec[q];
+    for(int q=1; q<blg; q++){
+        int d = 1<<q-1;
+        for(int w=0; w+d<b; w++) st[q][w] = min(st[q-1][w], st[q-1][w+d]);
+    }
+    str o;
+    for(int g=0; g<k; g++){
+        int l, r; cin>>l>>r; l--; r--;
+        int p = otrmin(l,r);
+        if(p>r) o.pb('0');
+        else o.pb('1');
+        //cout<<endl;
+    }
+    cout<<o;
+}

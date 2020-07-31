@@ -1,0 +1,231 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#define N	100000
+#define LN	16	/* LN = floor(log2(N)) */
+#define M	(N * (LN + 1))
+#define L	0
+#define R	1
+#define INF	0x3f3f3f3f3f3f3f3f
+
+long long max(long long a, long long b) { return a > b ? a : b; }
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_() {
+	return (rand() * 76543LL + rand()) % 0x7fffffff;
+}
+
+int oo[1 + (N - 1) * 2], oj[1 + (N - 1) * 2];
+
+int link(int o, int j) {
+	static int _ = 1;
+
+	oo[_] = o, oj[_] = j;
+	return _++;
+}
+
+long long xx[N], yy[N]; int mode;
+
+double cross(int i, int j, int k) {
+	return (double) (xx[j] - xx[i]) * (yy[k] - yy[i]) - (double) (xx[k] - xx[i]) * (yy[j] - yy[i]);
+}
+
+int sign(int i, int j, int k) {
+	return mode == L ? (cross(i, j, k) > 0 ? -1 : 1) : (cross(i, j, k) <= 0 ? -1 : 1);
+}
+
+int zz[1 + M * 2], ll[1 + M * 2], rr[1 + M * 2], ii1[1 + M * 2], ii2[1 + M * 2], u_, il, ir, l_, r_;
+
+int node(int i1, int i2) {
+	static int _ = 1;
+
+	zz[_] = rand_(), ii1[_] = i1, ii2[_] = i2;
+	return _++;
+}
+
+void split_x(int u, int i) {
+	if (u == 0) {
+		l_ = r_ = 0;
+		return;
+	}
+	if (xx[ii1[u]] <= xx[i]) {
+		split_x(rr[u], i);
+		rr[u] = l_, l_ = u;
+	} else {
+		split_x(ll[u], i);
+		ll[u] = r_, r_ = u;
+	}
+}
+
+void split_c(int u, int i) {
+	if (u == 0) {
+		l_ = r_ = 0;
+		return;
+	}
+	if (sign(ii1[u], ii2[u], i) < 0) {
+		split_c(rr[u], i);
+		rr[u] = l_, l_ = u;
+	} else {
+		split_c(ll[u], i);
+		ll[u] = r_, r_ = u;
+	}
+}
+
+int merge(int u, int v) {
+	if (u == 0)
+		return v;
+	if (v == 0)
+		return u;
+	if (zz[u] < zz[v]) {
+		rr[u] = merge(rr[u], v);
+		return u;
+	} else {
+		ll[v] = merge(u, ll[v]);
+		return v;
+	}
+}
+
+int first(int u) {
+	while (ll[u])
+		u = ll[u];
+	return u;
+}
+
+int last(int u) {
+	while (rr[u])
+		u = rr[u];
+	return u;
+}
+
+int split_l(int u, int i) {
+	mode = L, split_c(u, i);
+	return l_ == 0 ? node(il, i) : merge(l_, node(ii2[last(l_)], i));
+}
+
+int split_r(int u, int i) {
+	mode = R, split_c(u, i);
+	return r_ == 0 ? node(i, ir) : merge(node(i, ii1[first(r_)]), r_);
+}
+
+void update(int i) {
+	if (il == -1 && ir == -1)
+		il = ir = i;
+	else if (il == ir) {
+		if (xx[il] == xx[i]) {
+			if (yy[il] > yy[i])
+				il = ir = i;
+		} else {
+			int tmp;
+
+			ir = i;
+			if (xx[il] > xx[ir])
+				tmp = il, il = ir, ir = tmp;
+			u_ = node(il, ir);
+		}
+	} else {
+		if (xx[il] > xx[i] || xx[il] == xx[i] && yy[il] <= yy[i])
+			u_ = split_r(u_, il = i);
+		else if (xx[ir] < xx[i] || xx[ir] == xx[i] && yy[ir] >= yy[i])
+			u_ = split_l(u_, ir = i);
+		else {
+			int u, l, r;
+
+			split_x(u_, i), l = l_, r = r_;
+			u = last(l);
+			if (cross(ii1[u], ii2[u], i) < 0) {
+				l = split_l(l, i);
+				r = split_r(r, i);
+			}
+			u_ = merge(l, r);
+		}
+	}
+}
+
+long long query(int x, int y) {
+	long long z;
+	int u;
+
+	if (il == ir)
+		return xx[il] * x + yy[il] * y;
+	u = u_, z = -INF;
+	while (u) {
+		long long z1 = xx[ii1[u]] * x + yy[ii1[u]] * y, z2 = xx[ii2[u]] * x + yy[ii2[u]] * y;
+
+		z = max(z, max(z1, z2));
+		u = z1 > z2 ? ll[u] : rr[u];
+	}
+	return z;
+}
+
+int ae[N], aa[N], sz[N], tr[N], iil[N], iir[N];
+
+void dfs_(int p, int i) {
+	int o;
+
+	update(i);
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o];
+
+		if (j != p)
+			dfs_(i, j);
+	}
+}
+
+void dfs(int p, int i) {
+	int o, j_;
+
+	j_ = -1, sz[i] = 1;
+	for (o = ae[i]; o; o = oo[o]) {
+		int j = oj[o];
+
+		if (j != p) {
+			dfs(i, j);
+			if (j_ == -1 || sz[j_] < sz[j])
+				j_ = j;
+			sz[i] += sz[j];
+		}
+	}
+	if (j_ == -1) {
+		yy[i] = 0;
+		u_ = 0, il = ir = -1;
+	} else {
+		u_ = tr[j_], il = iil[j_], ir = iir[j_];
+		for (o = ae[i]; o; o = oo[o]) {
+			int j = oj[o];
+
+			if (j != p && j != j_)
+				dfs_(i, j);
+		}
+		yy[i] = -query(-aa[i], -1);
+	}
+	update(i);
+	tr[i] = u_, iil[i] = il, iir[i] = ir;
+}
+
+int main() {
+	int n, h, i, j;
+
+	srand_();
+	scanf("%d", &n);
+	for (i = 0; i < n; i++)
+		scanf("%d", &aa[i]);
+	for (i = 0; i < n; i++)
+		scanf("%lld", &xx[i]);
+	for (h = 0; h < n - 1; h++) {
+		scanf("%d%d", &i, &j), i--, j--;
+		ae[i] = link(ae[i], j);
+		ae[j] = link(ae[j], i);
+	}
+	dfs(-1, 0);
+	for (i = 0; i < n; i++)
+		printf("%lld ", yy[i]);
+	printf("\n");
+	return 0;
+}

@@ -1,0 +1,133 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+using namespace std;
+const int N=200010;
+char s[1010];
+int a[100];
+
+typedef struct
+{
+    int l,r,id;
+    int min;
+    int lazy;
+    void init(int ll,int rr)
+    {
+        l=ll;
+        r=rr;
+        min=0;
+        lazy=0;
+    }
+} Tree;
+
+Tree tt[N*10];
+
+void build(int id,int ll,int rr)
+{
+    tt[id].init(ll,rr);
+    if (ll<rr)
+    {
+        int mid=(ll+rr)>>1;
+        build(id*2,ll,mid);
+        build(id*2+1,mid+1,rr);
+    }
+}
+
+void lazy(int id)
+{
+    int l=tt[id].l,r=tt[id].r;
+    tt[id].min+=tt[id].lazy;
+    if (l<r)
+    {
+        tt[id*2].lazy+=tt[id].lazy;
+        tt[id*2+1].lazy+=tt[id].lazy;
+    }
+    tt[id].lazy=0;
+}
+
+void maintain(int id)
+{
+    if (tt[id*2].lazy) lazy(id*2);
+    if (tt[id*2+1].lazy) lazy(id*2+1);
+    tt[id].min=min(tt[id*2].min,tt[id*2+1].min);
+}
+
+void add(int id,int ll,int rr,int num)
+{
+    int l=tt[id].l,r=tt[id].r;
+    if (l>rr) return;
+    if (r<ll) return;
+    if (tt[id].lazy) lazy(id);
+    if (ll<=l&&rr>=r)
+        tt[id].lazy=num;
+    else
+    {
+        add(id*2,ll,rr,num);
+        add(id*2+1,ll,rr,num);
+        maintain(id);
+    }
+}
+
+int query(int id,int ll,int rr)
+{
+    int l=tt[id].l,r=tt[id].r;
+    if (tt[id].lazy) lazy(id);
+    int mid=(l+r)>>1;
+    if (ll<=l&&rr>=r) return tt[id].min;
+    if (rr<=mid) return query(id*2,ll,rr);
+    if (ll>mid) return query(id*2+1,ll,rr);
+    return min(query(id*2,ll,mid),query(id*2+1,mid+1,rr));
+}
+
+int main()
+{
+    int n;
+    while (scanf("%d",&n)==1)
+    {
+        build(1,0,n-1);
+        for (int i=0; i<n; i++)
+        {
+            int num;
+            scanf("%d",&num);
+            add(1,i,i,num);
+        }
+        int m;
+        scanf("%d",&m);
+        getchar();
+        for (int i=0; i<m; i++)
+        {
+            gets(s);
+            int len=strlen(s);
+            int cnt=0;
+            int num=0;
+            bool fu=false;
+            for (int i=0; i<=len; i++)
+            {
+                if (s[i]=='-') fu=true;
+                else if (s[i]>='0'&&s[i]<='9') num=num*10+s[i]-'0';
+                else if (i!=0&&s[i-1]>='0'&&s[i-1]<='9')
+                {
+                    if (fu) num=-num;
+                    a[cnt++]=num;
+                    num=0;
+                    fu=false;
+                }
+            }
+            if (cnt==2)
+            {
+                if (a[0]<=a[1]) printf("%d\n",query(1,a[0],a[1]));
+                else printf("%d\n",min(query(1,0,a[1]),query(1,a[0],n-1)));
+            }
+            else
+            {
+                if (a[0]<=a[1]) add(1,a[0],a[1],a[2]);
+                else
+                {
+                    add(1,0,a[1],a[2]);
+                    add(1,a[0],n-1,a[2]);
+                }
+            }
+        }
+    }
+    return 0;
+}

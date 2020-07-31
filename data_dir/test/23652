@@ -1,0 +1,76 @@
+// Besmellah
+
+#include <bits/stdc++.h>
+using namespace std ;
+
+const int MAXN = 100 * 1000 + 19 , SQ = 500 , LOG = 18 , inf = 2e9 + 19 ;
+
+int n , m , up[MAXN][LOG + 1] , dis[MAXN] , distmp[MAXN] , timer , tin[MAXN] , tout[MAXN] , h[MAXN] ;
+queue<int> q ; 
+bool mark[MAXN] ;
+vector<int> g[MAXN] , vec ;
+
+void dfs(int v = 1 , int p = 0) {
+        tin[v] = ++ timer;
+        h[v] = h[p] + 1 ;
+        up[v][0] = p ;
+        for (int i = 1 ; i <= LOG ; i ++)
+                up[v][i] = up[up[v][i - 1]][i - 1] ;
+        for (auto u : g[v])
+                if (u ^ p)
+                        dfs(u , v) ;
+        tout[v] = ++ timer ;
+}
+
+bool is_anc(int v , int u) {
+        return tin[v] <= tin[u] && tout[v] >= tout[u] ;
+}
+
+int lca(int v , int u) {
+        if (is_anc(v , u))
+                return v ;
+        for (int i = LOG ; ~i ; i --)
+                if (!is_anc(up[v][i], u))
+                        v = up[v][i];
+        return up[v][0];
+}
+
+inline void bfs(int v) {
+        for (int u : g[v]) {
+                if (!mark[u])
+                        mark[u] = true , distmp[u] = distmp[v] + 1 , q.push(u) ;
+        }
+}
+
+int main() {
+        ios_base::sync_with_stdio(false) , cin.tie(0) , cout.tie(0) ;
+        cin >> n >> m ;
+        tout[0] = inf ;
+        for (int i = 1 , v , u ; i <= n - 1 ; i ++)
+                cin >> v >> u , g[u].push_back(v) , g[v].push_back(u) ;
+        fill(dis , dis + MAXN , inf) ;
+        dfs() ;
+        vec.push_back(1) ;
+        while (m --) {
+                int t , v ;
+                cin >> t >> v ;
+                if (t == 1)
+                        vec.push_back(v) , dis[v] = 0 ;
+                else {
+                        int tmp = dis[v] ;
+                        for (int i : vec) tmp = min(tmp , h[v] + h[i] - 2 * h[lca(v , i)]) ;
+                        cout << tmp << endl ;
+                }
+                if (!(m % SQ)) {
+                        memset(mark , 0 , sizeof(mark)) ;
+                        for (int i : vec)
+                                q.push(i) , distmp[i] = 0 , mark[i] = true ;
+                        while (!q.empty())
+                                bfs(q.front()) , q.pop() ;
+                        for (int i = 1 ; i <= n ; i ++)
+                                dis[i] = min(dis[i] , distmp[i]) ;
+                        vec.clear() ;
+                }
+        }
+        return (0) ;
+}

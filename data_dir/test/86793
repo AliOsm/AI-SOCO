@@ -1,0 +1,114 @@
+#include<iostream>
+#include<stdio.h>
+#include<cassert>
+#include<cstring>
+#include<time.h>
+#include<cstdlib>
+#include<cmath>
+#include<string>
+#include<sstream>
+#include<map>
+#include<set>
+#include<queue>
+#include<stack>
+#include<vector>
+#include<algorithm>
+#pragma comment(linker, "/STACK:16777216")
+#define pb push_back
+#define ppb pop_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define sz(x) (int)(x).size()
+#define LL long long
+#define bit __builtin_popcountll
+#define sqr(x) (x) * (x)
+#define forit(it,S) for(__typeof((S).begin()) it = (S).begin(); it != (S).end(); it++)
+using namespace std;
+typedef pair<int, int> pii;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+const int maxn = (int)1e5 + 10;
+const int maxm = (int)1e4 + 10;
+int a[maxn],h[maxn],ll[maxn],rr[maxn],b[maxm],z[maxm];
+double t[16 * maxn],mul[16 * maxn];
+void build(int l, int r, int idx) {
+    mul[idx] = 1.0;
+    if (l == r) {
+        t[idx] = 1.0;
+    } else {
+        int m = (l + r) >> 1;
+        build(l,m,2 * idx);
+        build(m + 1,r,2 * idx + 1);
+        t[idx] = t[2 * idx] * t[2 * idx + 1];
+    }
+}
+void push(int idx) {
+    if (mul[idx] != 1.0) {
+        mul[2 * idx] *= mul[idx];
+        mul[2 * idx + 1] *= mul[idx];
+        t[2 * idx] *= mul[idx];
+        t[2 * idx + 1] *= mul[idx];
+        mul[idx] = 1.0;
+    }
+}
+void update(int l, int r, int a, int b, double mm, int idx) {
+    if (b < l || r < a) return;
+    if (a <= l && r <= b) {
+        mul[idx] *= mm;
+        t[idx] *= mm;
+    } else {
+        push(idx);
+        int m = (l + r) >> 1;
+        update(l,m,a,b,mm,2 * idx);
+        update(m + 1,r,a,b,mm,2 * idx + 1);
+        t[idx] = t[2 * idx] * t[2 * idx + 1];
+    }
+}
+double get(int l, int r, int p, int idx) {
+    if (l == r) {
+        return t[idx];          
+    } else {
+        push(idx);
+        int m = (l + r) >> 1;
+        if (p <= m) return get(l,m,p,2 * idx);
+        return get(m + 1,r,p,2 * idx + 1);
+    }
+}
+int main()
+{
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt","r",stdin);
+    freopen("output.txt","w",stdout);
+    #endif
+    int n,m; cin >> n >> m;
+    vector<int> x;
+    for (int i = 0; i < n; i++) {
+        scanf("%d%d%d%d",&a[i],&h[i],&ll[i],&rr[i]);
+        x.pb(a[i] - h[i]);
+        x.pb(a[i]);
+        x.pb(a[i] + h[i]);
+    }
+    for (int i = 0; i < m; i++) {
+        scanf("%d%d",&b[i],&z[i]);
+        x.pb(b[i]);
+    }
+    sort(all(x));
+    x.erase(unique(all(x)),x.end());
+    int X = sz(x);
+    build(0,X - 1,1);
+    for (int i = 0; i < n; i++) {
+        int L = upper_bound(all(x),a[i]) - x.begin();
+        int R = lower_bound(all(x),a[i] + h[i]) - x.begin();
+        update(0,X - 1,L,R,(100 - rr[i]) / 100.0,1);
+        L = lower_bound(all(x),a[i] - h[i]) - x.begin();
+        R = lower_bound(all(x),a[i]) - x.begin() - 1;
+        update(0,X - 1,L,R,(100 - ll[i]) / 100.0,1);
+    }
+    double res = 0.0;
+    for (int i = 0; i < m; i++) {
+        int p = lower_bound(all(x),b[i]) - x.begin();
+        res += z[i] * get(0,X - 1,p,1);
+    }
+    printf("%.12lf\n",res);
+    return 0;
+}

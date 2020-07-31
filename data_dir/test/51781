@@ -1,0 +1,298 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using namespace placeholders;
+
+template <class T> void mini(T &l, T r) {l = min(l, r);}
+template <class T> void maxi(T &l, T r) {l = max(l, r);}
+
+template <class TH> void _dbg(const char *sdbg, TH h) {
+  cerr << sdbg << "=" << h << "\n";
+}
+template <class TH, class ...TA> void _dbg(const char *sdbg, TH h, TA ...a) {
+  while (*sdbg != ',') cerr << *sdbg++; cerr << "=" << h << ","; _dbg(sdbg + 1, a...);
+}
+template <class T> ostream &operator<<(ostream &os, vector <T> v) {
+  os << "[";
+  for (auto vv : v) os << vv << ",";
+  return os << "]";
+}
+template <class L, class R> ostream &operator<<(ostream &os, pair <L, R> p) {
+  return os << "(" << p.first << "," << p.second << ")";
+}
+
+#define eput(...) //_dbg(#__VA_ARGS__, __VA_ARGS__)
+
+using llint = long long;
+
+const int N = 1e5 + 10, inf = 1e8 + 10;
+
+struct Frac {
+  // a / b, b >= 0
+  llint a, b;
+
+  Frac() {
+    a = 0, b = 1;
+  }
+  
+  Frac(int _a) {
+    a = _a;
+    b = 1;
+  }
+
+  Frac(int _a, int _b) {
+    a = _a;
+    b = _b;
+    norm();
+  }
+
+  void norm() {
+    if (b < 0) b = -b, a = -a;
+    llint g = __gcd(abs(a), abs(b));
+    a /= g;
+    b /= g;
+  }
+
+  Frac operator+(const Frac &r) const {
+    Frac ret;
+    llint t = b * r.b;
+    llint ta = a * r.b + r.a * b;
+    ret.a = ta;
+    ret.b = t;
+    ret.norm();
+    return ret;
+  }
+
+  Frac operator-(Frac r) const {
+    r.a = -r.a;
+    return (*this) + r;
+  }
+  
+  Frac operator*(const Frac &r) const {
+    Frac ret;
+    ret.a = a * r.a;
+    ret.b = b * r.b;
+    ret.norm();
+    return ret;
+  }
+
+  Frac operator/(const Frac &r) const {
+    Frac ret;
+    ret.a = a * r.b;
+    ret.b = b * r.a;
+    ret.norm();
+    return ret;
+  }
+
+  bool operator<(const Frac &r) const {
+    return a * r.b < b * r.a;
+  }
+
+  bool operator>(const Frac &r) const {
+    return a * r.b > b * r.a;
+  }
+
+  bool operator<=(const Frac &r) const {
+    return a * r.b <= b * r.a;
+  }
+
+  bool operator>=(const Frac &r) const {
+    return a * r.b >= b * r.a;
+  }
+
+  bool operator==(const Frac &r) const {
+    return a * r.b == b * r.a;
+  }
+  
+  bool operator!=(const Frac &r) const {
+    return !(*this == r);
+  }
+
+};
+
+bool in(int a, int b, int c) {
+  if (a > c) swap(a, c);
+  return a <= b && b <= c;
+}
+
+bool stric_in(int a, int b, int c) {
+  if (a > c) swap(a, c);
+  return a < b && b < c;
+}
+
+bool in(int a, Frac b, int c) {
+  if (a > c) swap(a, c);
+  return Frac(a) <= b && b <= c;
+}
+
+struct Seg {
+  Frac bg, ed;
+  bool fl;
+};
+
+
+int n;
+int x[2], y[2];
+int rx[N], ry[N], vx[N], vy[N];
+Seg seg[N];
+vector <Frac> v;
+int d[N * 2];
+
+struct Edge {
+  int x1, y1, x2, y2;
+} edge[4];
+
+void add(int a, int b) {
+/*
+  if (a + 1 <= b) {
+    d[a + 1]++;
+    d[b]--;
+  }*/
+  d[a]++;
+  d[b]--;
+}
+
+Frac intersect(int x, int y, int vx, int vy, Edge a) {
+  //eput(x, y, vx, vy, a.x1, a.y1, a.x2, a.y2);
+  if (a.x1 == a.x2) {
+    //ver
+    if (x == a.x1) {
+      if (vx == 0) {
+        return -1;
+        if (in(a.y1, vy, a.y2)) {
+          return 0;
+        } else {
+          if (vy == 0) {
+            if (in(a.y1, vy, a.y2)) return 0;
+            else return -1;
+          }
+          Frac t = Frac(a.y1 - y) / vy;
+          t = min(t, Frac(a.y2 - y) / vy);
+          if (t >= 0)
+            return t;
+          else
+            return -1;
+        }
+      } else {
+        Frac t = 0;
+        if (in(a.y1, y, a.y2)) {
+          return 0;
+        } else {
+          return -1;
+        }
+      }
+    } else {
+      if (vx == 0) return -1;
+      Frac t = Frac(a.x1 - x) / vx;
+      if (t < 0) return -1;
+      Frac ye = t * vy + y;
+      if (in(a.y1, ye, a.y2)) return t;
+      else return -1;
+    }
+  } else {
+    Edge b = Edge{a.y1, a.x1, a.y2, a.x2};
+    return intersect(y, x, vy, vx, b);
+  }
+}
+
+Seg go(int rx, int ry, int vx, int vy) {
+  Seg ret;
+  ret.bg = -1;
+  ret.ed = -1;
+  ret.fl = 0;
+
+  if (vx == 0 && (rx == x[0] || rx == x[1])) return ret;
+  if (vy == 0 && (ry == y[0] || ry == y[1])) return ret;
+
+  eput(rx, ry, vx, vy);
+
+  Frac t[4];
+  for (int i = 0; i < 4; ++i) {
+    t[i] = intersect(rx, ry, vx, vy, edge[i]);
+    eput(t[i].a, t[i].b);
+  }
+
+  Frac mn = inf, mx = -inf;
+
+  for (int i = 0; i < 4; ++i) {
+    if (t[i] == -1) {
+      continue;
+    }
+    mn = min(mn, t[i]);
+    mx = max(mx, t[i]);
+  }
+
+  eput(mn.a, mn.b);
+  eput(mx.a, mx.b);
+
+  if (mn != inf) ret.bg = mn;
+  if (mx != -inf) ret.ed = mx;
+
+  if (in(x[0], rx, x[1]) && in(y[0], ry, y[1])) {
+    ret.bg = 0;
+    ret.fl = 1;
+    if (stric_in(x[0], rx, x[1]) && stric_in(y[0], ry, y[1]) && vx == 0 && vy == 0)
+      ret.ed = inf;
+  }
+
+  if (ret.bg != -1 && ret.ed != -1) ret.fl = 1;
+
+  if (ret.bg == ret.ed) ret.fl = 0;
+
+  return ret;
+}
+
+void run() {
+  scanf("%d", &n);
+  scanf("%d%d%d%d", x + 0, y + 0, x + 1, y + 1);
+  edge[0] = {x[0], y[0], x[1], y[0]};
+  edge[1] = {x[0], y[1], x[1], y[1]};
+  edge[2] = {x[0], y[0], x[0], y[1]};
+  edge[3] = {x[1], y[0], x[1], y[1]};
+  for (int i = 1; i <= n; ++i) {
+    scanf("%d%d%d%d", rx + i, ry + i, vx + i, vy + i);
+  }
+
+  for (int i = 1; i <= n; ++i) {
+    seg[i] = go(rx[i], ry[i], vx[i], vy[i]);
+    eput(seg[i].fl);
+    eput(seg[i].bg.a, seg[i].bg.b, seg[i].ed.a, seg[i].ed.b);
+    if (seg[i].fl) {
+      v.push_back(seg[i].bg);
+      //v.push_back(seg[i].bg + Frac(1, inf));
+      v.push_back(seg[i].ed);
+      //v.push_back(seg[i].ed - Frac(1, inf));
+    }
+  }
+
+  sort(v.begin(), v.end());
+  unique(v.begin(), v.end()); 
+
+  for (int i = 1; i <= n; ++i) {
+    if (seg[i].fl) {
+      int a = lower_bound(v.begin(), v.end(), seg[i].bg) - v.begin();
+      int b = lower_bound(v.begin(), v.end(), seg[i].ed) - v.begin();
+      add(a, b);
+    }
+  }
+
+  for (int i = 1; i < v.size(); ++i) {
+    d[i] += d[i - 1];
+  }
+
+  int p = max_element(d, d + v.size()) - d;
+
+  eput(d[p]);
+
+  if (d[p] >= n) {
+    printf("%.12f\n", 1.0 * v[p].a / v[p].b);
+  } else {
+    puts("-1");
+  }
+
+}
+
+int main() {
+  run();
+  return 0;
+}

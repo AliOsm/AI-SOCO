@@ -1,0 +1,133 @@
+#pragma GCC optimize(3)
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef pair <int, int> P;
+
+const int N = 2e5;
+const int VALVE = 200;
+const int mod = 998244353;
+
+vector <int> tr[N];
+vector <int> temptr[N];
+int l[N], r[N], sz[N], rec[N], cnt[N], dp[N], C[N];
+vector <P> temp;
+int n, now;
+
+inline void ADD(int& x, int y) {
+	x += y;
+	if (x >= mod) {
+		x -= mod;
+	} else if (x < 0) {
+		x += mod;
+	}
+}
+
+void dfs1(int x, int fa) {
+	l[x] = ++now; sz[x] = 1;
+	for (auto it : temptr[x]) {
+		if (it == fa) continue;
+		dfs1(it, x);
+		sz[x] += sz[it];
+		tr[x].push_back(it);
+	}
+	r[x] = now;
+}
+
+void dfs2(int x, int now) {
+	dp[x] = now;
+	int res = 1LL * cnt[x] * (n - sz[x]) % mod;
+	ADD(dp[x], res);
+	for (auto it : tr[x]) {
+		int res2 = 1LL * cnt[x] * (n - sz[it]) % mod;
+		dfs2(it, (now + res2) % mod);
+	}
+}
+
+int mod_pow(int x, int n) {
+	int ret = 1;
+	while (n) {
+		if (n & 1) {
+			ret = 1LL * ret * x % mod;
+		}
+		x = 1LL * x * x % mod;
+		n >>= 1;
+	}
+	return ret;
+}
+
+inline int lowbit(int x) {
+	return x & -x;
+} 
+
+void add(int x, int d) {
+	while (x <= n) {
+		ADD(C[x], d);
+		x += lowbit(x);
+	}
+}
+
+int sum(int x) {
+	int ret = 0;
+	while (x) {
+		ADD(ret, C[x]);
+		x -= lowbit(x);
+	}
+	return ret;
+}
+
+int main() {
+	int q;
+	scanf("%d %d", &n, &q);
+	for (int i = 1, u, v; i < n; i++) {
+		scanf("%d %d", &u, &v);
+		temptr[u].push_back(v);
+		temptr[v].push_back(u);
+	}
+	dfs1(1, 0);
+	int invn = mod_pow(n, mod - 2);
+	for (int i = 1, ty, x, d; i <= q; i++) {
+		scanf("%d", &ty);
+		if (ty == 1) {
+			scanf("%d %d", &x, &d);
+			int res = 1LL * d * sz[x] % mod;
+			add(1, res);
+			add(l[x] + 1, -res);
+			add(r[x] + 1, res);
+			temp.push_back({x, d});
+		} else {
+			scanf("%d", &x);
+			int ans = sum(l[x]);
+			ADD(ans, rec[x]);
+			for (auto it : temp) {
+				if (it.first == x) {
+					int res = 1LL * (n - sz[x]) * it.second % mod;
+					ADD(ans, res);
+				}
+				else if (l[x] >= l[it.first] && l[x] <= r[it.first]) {
+					int dd = *lower_bound(tr[it.first].begin(), tr[it.first].end(), x,
+							[&](int p, int q){return r[p] < r[q];});
+					int res = 1LL * (n - sz[dd]) * it.second % mod;
+					ADD(ans, res);
+				}
+			}
+			ans = 1LL * ans * invn % mod;
+			printf("%d\n", ans);
+		}
+		if ((int)temp.size() > VALVE) {
+			for (int i = 1; i <= n; i++) {
+				cnt[i] = 0;
+				dp[i] = 0;
+			}
+			for (auto it : temp) {
+				ADD(cnt[it.first], it.second);
+			}
+			dfs2(1, 0);
+			for (int i = 1; i <= n; i++) {
+				ADD(rec[i], dp[i]);
+			}
+			temp.clear();
+		}
+	}
+	return 0;
+}

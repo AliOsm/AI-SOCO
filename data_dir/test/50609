@@ -1,0 +1,145 @@
+#pragma GCC optimize("O3")
+#pragma comment(linker, "/stack:200000000")
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define ld long double
+#define pii pair<int,int>
+#define pb push_back
+#define N 300003
+#define inf (ll)1e9+11
+#define warmup ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+ll mod=1e9+7;
+const int M=1000001;
+int a[N], cnt[M], n, m, tr2[4*N];
+set<int> se;
+ll tree[4*N];
+
+void build(int node,int s,int e)
+{
+    if(s==e)                                                
+        tree[node]=a[s], tr2[node]=a[s];
+    else
+    {
+        int mid=s+(e-s>>1);
+
+        build(node<<1,s,mid);
+        build(node<<1|1,mid+1,e);
+
+        tree[node]=tree[node<<1]+tree[node<<1|1]; 
+        tr2[node]=max(tr2[node<<1],tr2[node<<1|1]);  
+    }
+}
+
+void update2(int node,int s,int e,int idx,int val)
+{
+    if(s==e)   
+        a[idx]=tr2[node]=val;
+    else
+    {
+        int mid=s+(e-s>>1);
+
+        if(idx<=mid)
+            update2(node<<1,s,mid,idx,val);
+        else                                                
+            update2(node<<1|1,mid+1,e,idx,val);
+
+        tr2[node]=max(tr2[node<<1],tr2[node<<1|1]);        
+    }
+}
+
+int query2(int node,int s,int e,int l,int r)
+{
+    if(r<s or e<l)                                          
+        return 0;
+    if(l<=s and e<=r)                                       
+        return tr2[node];
+
+    int mid=s+(e-s>>1);
+
+    int p1=query2(node<<1,s,mid,l,r);
+    int p2=query2(node<<1|1,mid+1,e,l,r);
+
+    return max(p1,p2);
+}
+
+void update(int node,int s,int e,int l,int r)
+{
+    if(s==e)   
+    {
+        if(s>=l and s<=r and a[s]>2)
+        {
+            a[s]=cnt[a[s]], tree[node]=a[s];
+            if(a[s]<=2)
+                se.erase(s);
+            update2(1,1,n,s,a[s]);
+        }
+    }
+    else if(e>s)
+    {
+        int mid=s+(e-s>>1);
+
+        if(query2(1,1,n,max(s,l),min(mid,r))>2)
+            update(node<<1,s,mid,l,r);
+        if(query2(1,1,n,max(l,mid+1),min(e,r))>2)
+            update(node<<1|1,mid+1,e,l,r);
+        
+        tree[node]=tree[node<<1]+tree[node<<1|1];        
+    }
+}
+
+ll query(int node,int s,int e,int l,int r)
+{
+    if(r<s or e<l)                                          
+        return 0;
+    if(l<=s and e<=r)                                       
+        return tree[node];
+
+    int mid=s+(e-s>>1);
+
+    ll p1=query(node<<1,s,mid,l,r);
+    ll p2=query(node<<1|1,mid+1,e,l,r);
+
+    return p1+p2;
+}
+
+void sieve()
+{
+    int i,j;
+    for(i=1;i<M;++i)
+        for(j=i;j<M;j+=i)
+            ++cnt[j];
+}   
+
+signed main()
+{
+    warmup
+    
+    cin>>n>>m;
+    int i,j,t,l,r;
+    ll sum;
+    for(i=1;i<=n;++i)
+        cin>>a[i];
+    
+    sieve();
+    for(i=1;i<=n;++i)
+        if(a[i]>2)
+            se.insert(i);
+    
+    build(1,1,n);
+    while(m--)
+    {
+        cin>>t>>l>>r;
+        if(t==1)
+        {
+            if(query2(1,1,n,l,r)>2)
+                update(1,1,n,l,r);
+        }
+        else
+            cout<<query(1,1,n,l,r)<<'\n';
+    }   
+    
+    return 0;
+}

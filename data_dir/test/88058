@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long i64;
+
+
+const int NMAX = 300010;
+int lgr[NMAX], n;
+
+namespace Next_big {
+    int d[NMAX];
+    i64 cost[NMAX];
+    int to_st[NMAX], to_dr[NMAX]; /// pana unde se poate duce o pereche
+
+    void calc() {
+
+        /// calc spre dreapta
+        for (int i = 1; i < n; i++)
+            cost[i] = 1LL * (d[i] - d[i + 1]) * (d[i] - d[i + 1]);
+
+        /// cost[i] -> costul sa iau perechea (i, i + 1)
+
+        vector <int> poz;
+
+        for (int i = n - 1; i >= 1; i--) {
+            while (!poz.empty() && cost[poz.back()] <= cost[i])
+                poz.pop_back();
+            if (poz.empty())
+                to_dr[i] = n;
+            else
+                to_dr[i] = poz.back();
+            poz.push_back(i);
+        }
+
+        poz.clear();
+
+        for (int i = 1; i <= n; i++) {
+            while (!poz.empty() && cost[poz.back()] <= cost[i])
+                poz.pop_back();
+            if (poz.empty())
+                to_st[i] = 1;
+            else
+                to_st[i] = poz.back() + 1;
+            poz.push_back(i);
+        }
+    }
+}
+
+struct RMQ {
+    i64 rmq[20][NMAX];
+
+    void build() {
+        for (int i = 1; i < 20; i++)
+            for (int j = 0; j + (1 << i) - 1 <= n; j++)
+                rmq[i][j] = max(rmq[i - 1][j], rmq[i - 1][j + (1 << i) / 2]);
+    }
+    i64 query(int a, int b) {
+        int l = lgr[b - a + 1];
+        return max(rmq[l][a], rmq[l][b - (1 << l) + 1]);
+    }
+} spre_st, spre_dr;
+
+i64 sp_spre_st[NMAX], sp_spre_dr[NMAX];
+int c[NMAX];
+
+int main()
+{
+    for (int i = 2; i < NMAX; i++)
+        lgr[i] = 1 + lgr[i / 2];
+
+    int a;
+    scanf("%d%d", &n, &a);
+
+    for (int i = 1; i <= n; i++) {
+        int d;
+        scanf("%d%d", &d, c + i);
+        Next_big::d[i] = d;
+        sp_spre_st[i] = a - c[i];
+        sp_spre_dr[i] = a - c[i] + sp_spre_dr[i - 1];
+        spre_dr.rmq[0][i] = sp_spre_dr[i];
+    }
+    for (int i = n; i >= 1; i--)
+        spre_st.rmq[0][i] = (sp_spre_st[i] += sp_spre_st[i + 1]);
+
+    spre_st.build();
+    spre_dr.build();
+    Next_big::calc();
+
+    i64 best = 0;
+
+    for (int i = 1; i <= n; i++)
+        best = max(best, 1LL * a - c[i]); /// daca il iau sg
+
+
+    for (int i = 1; i < n; i++) {
+        /// iau perechea (i, i + 1)
+
+        i64 bestst = spre_st.query(Next_big::to_st[i], i) - sp_spre_st[i + 1];
+        i64 bestdr = spre_dr.query(i + 1, Next_big::to_dr[i]) - sp_spre_dr[i];
+        best = max(best, bestst + bestdr - Next_big::cost[i]);
+    }
+
+    cout << best << '\n';
+
+
+	return 0;
+}

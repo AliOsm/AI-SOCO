@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+
+#define SZ(x) (((int)x.size()))
+
+typedef long long ll;
+
+using namespace std;
+
+const int maxn = 100*1000+10, maxt = 2100*1000;
+pair<int, int> a[maxn];
+pair<int, pair<int, int>> tmp;
+int n, m, w, cur, ql, qr, root[maxn], ind = -1, s, f, mid, mx[maxt], ml[maxt], mr[maxt], lc[maxt], rc[maxt];
+
+inline int build(int l, int r)
+{
+	ind++;
+	int ret = ind;
+	if (r - l > 1)
+	{
+		int middle = (l + r) / 2;
+		lc[ret] = build(l, middle);
+		rc[ret] = build(middle, r);
+	}
+	return ret;
+}
+
+inline int add(int x, int l, int r)
+{
+	ind++;
+	int ret = ind;
+	if (r - l > 1)
+	{
+		int middle = (l + r) / 2;
+		lc[ret] = lc[x];
+		rc[ret] = rc[x];
+		if (cur < middle)
+			lc[ret] = add(lc[x], l, middle);
+		else
+			rc[ret] = add(rc[x], middle, r);
+		ml[ret] = ml[lc[ret]];
+		if (ml[lc[ret]] == middle - l)
+			ml[ret] += ml[rc[ret]];
+		mr[ret] = mr[rc[ret]];
+		if (mr[rc[ret]] == r - middle)
+			mr[ret] += mr[lc[ret]];
+		mx[ret] = max(max(mx[lc[ret]], mx[rc[ret]]), mr[lc[ret]] + ml[rc[ret]]);
+	}
+	else
+		mx[ret] = ml[ret] = mr[ret] = 1;
+	return ret;
+}
+
+inline pair<int, pair<int, int>> get(int x, int l, int r)
+{
+	if (l >= qr || ql >= r)
+		return {0, {0, 0}};
+	if (ql <= l && r <= qr)
+		return {mx[x], {ml[x], mr[x]}};
+	int middle = (l + r) / 2;
+	pair<int, pair<int, int>> ans, ansl = get(lc[x], l, middle), ansr = get(rc[x], middle, r);
+	ans.first = max(max(ansl.first, ansr.first), ansl.second.second + ansr.second.first);
+	ans.second.first = ansl.second.first;
+	if (ansl.second.first == middle - l)
+		ans.second.first += ansr.second.first;
+	ans.second.second = ansr.second.second;
+	if (ansr.second.second == r - middle)
+		ans.second.second += ansl.second.second;
+	return ans;
+}
+
+int main()
+{
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	cin >> n;
+	for (int i = 0; i < n; i++)
+	{
+		cin >> a[i].first;
+		a[i].second = i;
+	}
+	sort(a, a + n, greater<pair<int, int>>());
+	root[0] = build(0, n);
+	for (int i = 0; i < n; i++)
+	{
+		cur = a[i].second;
+		root[i + 1] = add(root[i], 0, n);
+	}
+	cin >> m;
+	for (int i = 0; i < m; i++)
+	{
+		cin >> ql >> qr >> w;
+		ql--;
+		s = 0;
+		f = n;
+		while (f - s > 1)
+		{
+			mid = (s + f) / 2;
+			tmp = get(root[mid], 0, n);
+			if (get(root[mid], 0, n).first >= w)
+				f = mid;
+			else
+				s = mid;
+		}
+		cout << a[f - 1].first << endl;
+	}
+	return 0;
+}

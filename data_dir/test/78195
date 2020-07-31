@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(s) int(s.size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+
+const int MAXN=2e5+10;
+ll wh[MAXN],ans[MAXN],tot[MAXN];
+
+#define oper max
+#define NEUT 0
+struct STree { // segment tree for min over integers
+	vector<ll> st;int n;
+	STree(int n): st(4*n+5,NEUT), n(n) {}
+	void upd(int k, int s, int e, int p, ll v){
+		if(s+1==e){st[k]+=v;return;}
+		int m=(s+e)/2;
+		if(p<m)upd(2*k,s,m,p,v);
+		else upd(2*k+1,m,e,p,v);
+		st[k]=oper(st[2*k],st[2*k+1]);
+	}
+	//ultimo valor a la izq de pos que es >=v
+	int query(int k, int s, int e, int pos, ll v){
+		if(s>pos) return n;
+		if(e-1<=pos){
+			if(st[k]<v) return n;
+			if(s+1==e) return s;
+		}
+		int m=(s+e)/2;
+		int wh=query(2*k,s,m,pos,v);
+		if(wh==n) wh=query(2*k+1,m,e,pos,v);
+		return wh;
+	}
+	
+	void upd(int p, ll v){upd(1,0,n,p,v);}
+	int query(int pos, ll v){return query(1,0,n,pos,v);}
+}; // usage: STree rmq(n);rmq.init(x);rmq.upd(i,v);rmq.query(s,e);
+
+int main(){FIN;
+	int n,q; cin>>n>>q;
+	vector<pair<ii,int>> a(n);
+	fore(i,0,n){
+		cin>>a[i].fst.fst>>a[i].fst.snd;
+		a[i].snd=i;
+		ans[i]=a[i].fst.snd;
+	}
+	sort(ALL(a));
+	STree st(n);
+	fore(i,0,n) st.upd(i,a[i].fst.fst+a[i].fst.snd);
+	vector<ll> dst;
+	fore(i,0,n) dst.pb(a[i].fst.fst),wh[i]=a[i].snd;
+	multiset<ii> rem;
+	while(q--){
+		int x,y; cin>>x>>y;
+		int top=upper_bound(ALL(dst),x)-dst.begin()-1;
+		int pos=st.query(top,x);
+		if(pos==n){
+			rem.insert({x,y});
+			continue;
+		}
+		st.upd(pos,y);
+		ans[wh[pos]]+=y;
+		tot[wh[pos]]++;
+		while(1){
+			auto it=rem.upper_bound({a[pos].fst.fst+ans[wh[pos]]+1,-1});
+			if(it==rem.begin()) break;
+			--it;
+			if(it->fst<a[pos].fst.fst)break;
+			st.upd(pos,it->snd);
+			ans[wh[pos]]+=it->snd;
+			tot[wh[pos]]++;
+			rem.erase(it);
+		}
+		
+	}
+	fore(i,0,n) cout << tot[i] << " " << ans[i] << "\n";
+}

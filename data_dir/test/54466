@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+#define pb              push_back
+#define ll              long long int
+#define scd(a)          scanf("%d",&a)
+#define mp(a,b)         make_pair(a,b)
+#define scl(w)          scanf("%I64d",&w)
+#define scdd(a,b)       scanf("%d %d",&a,&b)
+#define srt(a)          sort(a.begin(),a.end())
+#define rsrt(a)         sort(a.rbegin(),a.rend())
+#define scll(a,b)       scanf("%I64d %I64d",&a,&b)
+///4direction ->        int del_x[]={-1,0,1,0},del_y[]={0,1,0,-1};
+#define input(v,n)      for (int i=0;i<n;i++){int a;cin >> a;v.push_back(a);}
+#define inputll(v,n)    for (ll i=0;i<n;i++){ll a;cin >> a;v.push_back(a);}
+#define vii             vector < int >
+#define vll             vector < ll >
+#define pii             pair < int , int >
+#define pll             pair < ll , ll >
+#define show(x) cout << #x << " : " << x << endl
+#define mk              make_pair
+#define inf             10000000000000016
+
+#define maxn            1000006
+
+using namespace std;
+
+int main()
+{
+      int tc;
+      cin >> tc;
+
+      while(tc--){
+            ll n ;
+            cin >> n;
+
+            ll A[n+5];
+            for (int i= 1 ; i<= n ;i++)cin >> A[i];
+
+            ll x = 0 , y = n+1 , alice = 0 , bob = 0 , prev = 0 , mv = 0;
+
+            while(x<=y){
+                  ll sum1 = 0 , sum2 = 0 , excep = 0;
+
+                  while(sum1<=prev){
+                        x++;
+                        if (x>=y){
+                              excep = 1;
+                              break;
+                        }
+                        sum1+=A[x];
+                  }
+
+                  if (excep){
+                        if(sum1!= 0)mv++;
+                        alice+=sum1;
+                        break;
+                  }
+
+                 // show(sum1);
+
+                  alice+=sum1;
+                  mv++;
+                  prev = sum1;
+
+                  while(sum2<=prev){
+                        y--;
+                        if (y<=x){
+                              excep = 1;
+                              break;
+                        }
+                        sum2+=A[y];
+                  }
+
+                  if (excep){
+                        if (sum2!=0)mv++;
+                        bob+=sum2;
+                        break;
+                  }
+                  bob+=sum2;
+                  mv++;
+                  prev = sum2;
+
+//                  show(sum2);
+//                  cout << endl;
+            }
+
+            cout << mv << " " << alice << " " << bob << endl;
+      }
+
+
+
+
+      return 0;
+}

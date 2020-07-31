@@ -1,0 +1,220 @@
+/*
+      HET PAGHADAR
+      DA-IICT
+      @HET262
+*/
+
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define vec vector<int>
+#define ld long double
+#define pb push_back
+#define mp make_pair
+#define ff first
+#define ss second
+#define mod 1000000007
+#define INF LONG_LONG_MAX
+#define NINF LONG_LONG_MIN
+#define P pair<ll,ll>
+#define N 100005
+#define bp __builtin_popcountll
+#define FAST ios_base::sync_with_stdio(false),cin.tie(0),cout.tie(0);srand(time(NULL));
+
+ll dd[N];
+
+struct LCA {
+    vector<int> height, euler, first, segtree;
+    vector<bool> visited;
+    int n;
+
+    LCA(vector<vector<int>> &adj,ll nn) {
+        n = N;
+        height.resize(n+1);
+        first.resize(n+1);
+        euler.reserve(n * 2);
+        visited.assign(n, false);
+        for(int i=1;i<=nn;i++)
+            if(dd[i]==0)
+                  dfs(adj, i);
+        int m = euler.size();
+        segtree.resize((m+10) * 4);
+        build(1, 0, m - 1);
+    }
+
+    void dfs(vector<vector<int>> &adj, int node, int h = 0) {
+        visited[node] = true;
+        height[node] = h;
+        first[node] = euler.size();
+        euler.push_back(node);
+        for (auto to : adj[node]) {
+            if (!visited[to]) {
+                dfs(adj, to, h + 1);
+                euler.push_back(node);
+            }
+        }
+    }
+
+    void build(int node, int b, int e) {
+        if (b == e) {
+            segtree[node] = euler[b];
+        } else {
+            int mid = (b + e) / 2;
+            build(node << 1, b, mid);
+            build(node << 1 | 1, mid + 1, e);
+            int l = segtree[node << 1], r = segtree[node << 1 | 1];
+            segtree[node] = (height[l] < height[r]) ? l : r;
+        }
+    }
+
+    int query(int node, int b, int e, int L, int R) {
+        if (b > R || e < L)
+            return -1;
+        if (b >= L && e <= R)
+            return segtree[node];
+        int mid = (b + e) >> 1;
+
+        int left = query(node << 1, b, mid, L, R);
+        int right = query(node << 1 | 1, mid + 1, e, L, R);
+        if (left == -1) return right;
+        if (right == -1) return left;
+        return height[left] < height[right] ? left : right;
+    }
+
+    int lca(int u, int v) {
+        int left = first[u], right = first[v];
+        if (left > right)
+            swap(left, right);
+        return query(1, 0, euler.size() - 1, left, right);
+    }
+};
+
+
+struct DSU
+{
+	int connected;
+	int par[N], sz[N];
+
+	DSU() {} 
+
+	DSU(int n) 
+	{
+		for(int i=1;i<=n;i++)
+		{
+			par[i]=i;
+			sz[i]=1;
+		}
+		connected=n;
+	}
+
+	int root(int k)
+	{
+		while(k!=par[k])
+		{
+			par[k]=par[par[k]];
+			k=par[k];
+		}
+		return k;
+	}
+
+	int getSize(int k)
+	{
+		return sz[root(k)];
+	}
+
+	void unite(int u, int v)
+	{
+		int par1=root(u), par2=root(v);
+
+		if(par1==par2)
+			return;
+
+		connected--;
+
+		if(sz[par1]>sz[par2])
+			swap(par1, par2);
+
+		sz[par2]+=sz[par1];
+		sz[par1]=0;
+		par[par1]=par[par2];
+	}
+};
+
+
+vector<vec> g(N);
+
+int32_t main()
+{
+      FAST;
+      
+      ll n,m,doc=0;
+      cin>>n>>m;
+      
+      vector<pair<P,ll>> ed;
+      vector<pair<P,ll>> qt;
+      ll docc[m];
+      
+      memset(dd,0,sizeof(dd));
+      
+      for(int i=0;i<m;i++)
+      {
+            ll t;
+            cin>>t;
+            if(t==1)
+            {
+                  ll x,y;
+                  cin>>x>>y;
+                  ed.pb({{x,y},doc});
+                  dd[x]++;
+                  g[y].pb(x);
+            }
+            if(t==2)
+            {
+                  ll y;
+                  doc++;
+                  cin>>y;
+                  docc[doc]=y;
+            }
+            if(t==3)
+            {
+                  ll x,d;
+                  cin>>x>>d;
+                  qt.pb({{d,x},i});
+            }
+      }
+      
+      sort(qt.begin(),qt.end());
+      
+      LCA a(g,n);
+      DSU d(n+1);
+      
+      ll t=0;
+      vector<pair<ll,string>> ans;
+      
+      for(int i=0;i<qt.size();i++)
+      {
+            while(t<ed.size() && ed[t].ss<qt[i].ff.ff)
+            {
+                  d.unite(ed[t].ff.ff,ed[t].ff.ss);
+                  t++;
+            }
+            
+            
+            ll lc=a.lca(qt[i].ff.ss,docc[qt[i].ff.ff]);
+            
+            bool f1=(lc==qt[i].ff.ss);
+            bool f2=(d.root(qt[i].ff.ss)==d.root(docc[qt[i].ff.ff]));
+            string s1="NO\n";
+            if(f1&&f2)
+            {
+                  s1="YES\n";
+            }
+            ans.pb({qt[i].ss,s1});
+      }
+      
+      sort(ans.begin(),ans.end());
+      
+      for(auto X:ans)
+            cout<<X.ss;
+      
+}

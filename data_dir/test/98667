@@ -1,0 +1,129 @@
+// https://codeforces.com/contest/1156/submission/53644962 (Dukkha)
+#include <algorithm>
+#include <ctime>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+using namespace std;
+
+unordered_set<string> ss;
+
+struct V {
+	string s;
+	char op;
+	V *u, *v;
+	int d;
+	V(string &s) {
+		this->s = s;
+		op = 0;
+		ss.insert(s);
+		d = 0;
+	}
+	V(char op, V *u, V *v) {
+		s = "";
+		this->op = op; this->u = u; this->v = v;
+		d = max(u->d, v->d) + 1;
+	}
+};
+
+struct X {
+	size_t operator() (V *w) const {
+		return w->op ^ (size_t) w->u ^ (size_t) w->v;
+	}
+};
+
+struct Y {
+	bool operator() (V *w1, V *w2) const {
+		return w1->op == w2->op && w1->u == w2->u && w1->v == w2->v;
+	}
+};
+
+vector<V *> list;
+
+static string getX() {
+	string s = "xxxx";
+	do {
+		s[0] = (char) ('a' + rand() % 26);
+		s[1] = (char) ('a' + rand() % 26);
+		s[2] = (char) ('a' + rand() % 26);
+		s[3] = (char) ('a' + rand() % 26);
+	} while (ss.find(s) != ss.end());
+	return s;
+}
+
+void dfs(V *w, string s) {
+	if (w->s == "") {
+		w->s = s;
+		ss.insert(w->s);
+		list.push_back(w);
+		dfs(w->u, getX());
+		dfs(w->v, getX());
+	}
+}
+
+int main() {
+	srand(time(NULL));
+	int n;
+	cin >> n;
+	unordered_map<string, V *> sv;
+	unordered_set<V *, X, Y> vv;
+	while (n--) {
+		string s;
+		cin >> s;
+		int m = s.length();
+		int p = -1, q = -1;
+		for (int j = 0; j < m; j++)
+			if (s[j] == '=')
+				p = j;
+			else if (s[j] == '$' || s[j] == '^' || s[j] == '#' || s[j] == '&')
+				q = j;
+		string lvalue = s.substr(0, p);
+		if (q == -1) {
+			string rvalue = s.substr(p + 1, m - p - 1);
+			V *v = sv[rvalue];
+			if (v == NULL)
+				sv[rvalue] = v = new V(rvalue);
+			sv[lvalue] = v;
+		} else {
+			string arg1 = s.substr(p + 1, q - p - 1);
+			string arg2 = s.substr(q + 1, m - q - 1);
+			char op = s[q];
+			V *u = sv[arg1];
+			if (u == NULL)
+				sv[arg1] = u = new V(arg1);
+			V *v = sv[arg2];
+			if (v == NULL)
+				sv[arg2] = v = new V(arg2);
+			V *w = new V(op, u, v);
+			auto it = vv.find(w);
+			if (it == vv.end())
+				vv.insert(w);
+			else
+				w = *it;
+			sv[lvalue] = w;
+		}
+	}
+	V *w = sv["res"];
+	if (w == NULL) {
+		cout << 0 << '\n';
+		return 0;
+	}
+	if (w->op == 0) {
+		if (w->s == "res")
+			cout << 0 << '\n';
+		else {
+			cout << 1 << '\n';
+			cout << "res=" << w->s << '\n';
+		}
+		return 0;
+	}
+	dfs(w, "res");
+	cout << list.size() << '\n';
+	sort(list.begin(), list.end(), [] (V *u, V *v) { return u->d < v->d; });
+	for (V *w : list)
+		cout << w->s << '=' << w->u->s << w->op << w->v->s << '\n';
+	return 0;
+}

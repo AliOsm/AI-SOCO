@@ -1,0 +1,215 @@
+#include <bits/stdc++.h>
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(s) int(s.size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+typedef vector<vector<int>> state;
+
+int n,m;
+state a;
+state ans;
+ii get(int x){return {x/m,x%m};}
+int ind(ii x){return m*x.fst+x.snd;}
+
+void rot(state &m, vector<int> &cyc){
+	for(int i=SZ(cyc)-1;i>0;i--){
+		ii pre=get(cyc[i]), now=get(cyc[i-1]);
+		swap(m[pre.fst][pre.snd],m[now.fst][now.snd]);
+	}
+}
+
+void add_ans(vector<int> &v){
+	vector<int> res;
+	for(auto x:v){
+		ii pos=get(x);
+		res.pb(a[pos.fst][pos.snd]);
+	}
+	ans.pb(res);
+}
+
+void left(int x, int y){
+	int v=ind({x,y});
+	vector<int> cyc;
+	assert(y>0);
+	if(x==n-1) cyc={v,v-1,v-m-1,v-m};
+	else cyc={v,v-1,v+m-1,v+m};
+	add_ans(cyc);
+	rot(a,cyc);
+}
+
+void right(int x, int y){
+	int v=ind({x,y});
+	vector<int> cyc;
+	assert(y<m-1);
+	if(x==n-1) cyc={v,v+1,v-m+1,v-m};
+	else cyc={v,v+1,v+m+1,v+m};
+	add_ans(cyc);
+	rot(a,cyc);
+}
+
+void up(int x, int y){
+	int v=ind({x,y});
+	vector<int> cyc;
+	assert(x>0);
+	if(y==m-1) cyc={v,v-m,v-m-1,v-1};
+	else cyc={v,v-m,v-m+1,v+1};
+	add_ans(cyc);
+	rot(a,cyc);
+}
+
+void down(int x, int y){
+	int v=ind({x,y});
+	assert(x<n-1);
+	vector<int> cyc;
+	if(y==m-1) cyc={v,v+m,v+m-1,v-1};
+	else cyc={v,v+m,v+m+1,v+1};
+	add_ans(cyc);
+	rot(a,cyc);
+}
+
+void print(state st){
+	cout << "\n";
+	for(auto x:st){
+		for(auto y:x) cout << y+1 << " "; cout << "\n";
+	}
+	cout << "\n";
+}
+
+void move(int x, int y, int dx, int dy){
+	while(y<dy) right(x,y),y++;
+	while(y>dy) left(x,y),y--;
+	while(x<dx) down(x,y),x++;
+	while(x>dx) up(x,y),x--;
+}
+
+ii find(int x){
+	fore(i,0,n) fore(j,0,m) if(a[i][j]==x) return {i,j};
+	while(1);
+}
+
+
+ii get2(int x){return {x/3,x%3};}
+void rot2(state &m, vector<int> &cyc){
+	for(int i=SZ(cyc)-1;i>0;i--){
+		ii pre=get2(cyc[i]), now=get2(cyc[i-1]);
+		swap(m[pre.fst][pre.snd],m[now.fst][now.snd]);
+	}
+}
+
+state cycs={{0,1,4,3},{3,4,1,0},{1,2,5,4},{4,5,2,1},{0,1,2,5,4,3},{3,4,5,2,1,0}};
+map<state,int> mp;
+map<state,vector<int>> par;
+
+int bfs(state st, state en){
+	queue<pair<state,int>> q;
+	q.push({st,0}); mp[st]=0;
+	while(SZ(q)){
+		state now=q.front().fst; int d=q.front().snd; q.pop();
+		if(now==en) return d;
+		for(auto x:cycs){
+			fore(i,0,SZ(x)){
+				vector<int> cc;
+				fore(j,0,SZ(x)) cc.pb(x[(i+j)%SZ(x)]);
+				state nx=now;
+				rot2(nx,cc);
+				if(!mp.count(nx)){
+					mp[nx]=d+1,q.push({nx,d+1});
+					par[nx]=cc;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
+void solve(){
+	map<int,int> pss={{ind({n-2,m-2}),1},{ind({n-2,m-1}),2},
+									 {ind({n-1,m-2}),4},{ind({n-1,m-1}),5}};
+	map<int,int> rev={{0,ind({n-2,m-3})},{1,ind({n-2,m-2})},
+										{2,ind({n-2,m-1})},{3,ind({n-1,m-3})},
+										{4,ind({n-1,m-2})},{5,ind({n-1,m-1})}};
+									 
+									 
+	state st={{0,1,2},{3,4,5}};
+	state en={{0,1,2},{3,4,5}};
+	
+	st[0][1]=pss[a[n-2][m-2]];
+	st[0][2]=pss[a[n-2][m-1]];
+	st[1][1]=pss[a[n-1][m-2]];
+	st[1][2]=pss[a[n-1][m-1]];
+	//cout << "GOOO"<<"\n";
+	//print(st);
+	//print(en);
+	bfs(st,en);
+	state res;
+	while(par.count(en)){
+		vector<int> vv=par[en];
+		res.pb(vv);
+		reverse(ALL(vv));
+		rot2(en,vv);
+	}
+	reverse(ALL(res));
+	//print(res);
+
+	fore(i,0,SZ(res)){
+		fore(j,0,SZ(res[i])) res[i][j]=rev[res[i][j]];
+	}
+	for(auto x:res) rot(a,x),add_ans(x);
+}
+
+
+
+
+
+
+int main(){FIN;
+	cin>>n>>m;
+	a.resize(n);
+	fore(i,0,n){
+		a[i].resize(m);
+		fore(j,0,m) cin>>a[i][j],a[i][j]--;
+	}
+	//first n-2 rows
+	fore(i,0,n-2){
+		fore(j,0,m-1){
+			ii pos=find(ind({i,j}));
+			move(pos.fst,pos.snd,i,j);
+		}
+		ii pos=find(ind({i,m-1}));
+		if(pos!=ii({i,m-1})){
+			if(pos.snd>=m-2&&pos.fst==i+1) down(pos.fst,pos.snd),pos.fst++;
+			right(i,m-2);
+			move(pos.fst,pos.snd,i+1,m-1);
+			left(i,m-1);
+		}
+	}
+	
+	//last two rows
+	fore(j,0,m-2){
+		ii p1=find(ind({n-2,j}));	//sacarmelo de encima
+		move(p1.fst,p1.snd,n-2,m-1);
+		ii p2=find(ind({n-1,j}));	//poner el 2 en la esquina
+		move(p2.fst,p2.snd,n-2,j);
+		p1=find(ind({n-2,j}));	//poner el 1 al lado del 2
+		move(p1.fst,p1.snd,n-2,j+1);
+		left(n-2,j+1);
+	}
+	
+	//last 2x2 square
+	solve();
+	
+	
+	
+	
+	//print(a);
+	cout << SZ(ans) << "\n";
+	for(auto x:ans){
+		cout << SZ(x) << " "; for(auto y:x) cout << y+1 << " "; cout << "\n";
+	}
+}

@@ -1,0 +1,63 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC target("fma")
+#include <bits/stdc++.h>
+using ll = long long;
+const ll INF = (ll)1e18L;
+const int NMAX = 200 * 1112, gsize = 200;
+ll arr[NMAX], min[NMAX / gsize], add[NMAX / gsize], answ = INF;
+int p[NMAX], w[NMAX], n;
+void push(int g) {
+    if (add[g] == 0) return;
+    for (int i = g * gsize; i < (g+1)*gsize; arr[i++] += add[g]);
+    add[g] = 0;
+}
+void recalc(int g) {
+    min[g] = INF;
+    for (int i = g * gsize; i < (g+1)*gsize; i++) {
+        min[g] = std::min(min[g], arr[i]);
+    }
+}
+void inc(int l, int r, ll x) {
+    const int gl = l / gsize, gr = r / gsize;
+    if (gl == gr) {
+        push(gl);
+        for (int i = l; i <= r; i++) arr[i] += x;
+        recalc(gl);
+    } else {
+        push(gl); push(gr);
+        for (int i = l; i < (gl+1) * gsize; i++) arr[i] += x;
+        for (int g = gl+1; g < gr; g++) add[g] += x;
+        for (int i = gr * gsize; i <= r; i++) arr[i] += x;
+        recalc(gl); recalc(gr);
+    }
+}
+ll get(int l, int r) {
+    ll res = INF;
+    const int gl = l / gsize, gr = r / gsize;
+    if (gl == gr) {
+        push(gl);
+        for (int i = l; i <= r; i++) res = std::min(res, arr[i]);
+        recalc(gl);
+    } else {
+        push(gl); push(gr);
+        for (int i = l; i < (gl+1) * gsize; i++) res = std::min(res, arr[i]);
+        for (int g = gl+1; g < gr; g++) res = std::min(res, min[g] + add[g]);
+        for (int i = gr * gsize; i <= r; i++) res = std::min(res, arr[i]);
+        recalc(gl); recalc(gr);
+    }
+    return res;
+}
+int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin >> n;
+    std::fill(arr+n+1, arr+NMAX, INF);
+    for (int i = 0; i < n; std::cin >> p[i++]);
+    for (int i = 0; i < n; std::cin >> w[i++]);
+    for (int i = 0; i < n; i++) { inc(p[i],n,w[i]); }
+    for (int i = 0; i+1 < n; i++) {
+        inc(p[i],n,-w[i]);
+        inc(0,p[i]-1,w[i]);
+        answ = std::min(get(0,n), answ);
+    }
+    std::cout << answ << std::endl;
+}

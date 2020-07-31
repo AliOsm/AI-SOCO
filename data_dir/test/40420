@@ -1,0 +1,180 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (ll) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <ll, ll> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const ll inf = numeric_limits <ll>::max() >> 1;
+const ll mod = 998'244'353;
+const ll N = 3e5 + 1;
+ll n;
+ll co[N];
+ll dp[N][3][2];
+
+struct Graph {
+    ll par[N];
+    vec <ll> adj[N];
+} graph;
+
+void input() {
+    cin >> n;
+    for(ll i = 1; i < n; ++i) {
+        ll u; cin >> u;
+        ll v; cin >> v;
+        graph.adj[u].pb(v);
+        graph.adj[v].pb(u);
+    }
+}
+
+void dfs(ll u) {
+    for(ll v: graph.adj[u]) {
+        if(graph.par[u] == v) {
+            continue;
+        }
+        graph.par[v] = u;
+        dfs(v);
+    }
+}
+
+ll calc(ll u, ll t, ll p) {
+    if(dp[u][t][p] != -1) {
+        return dp[u][t][p];
+    }
+    if(t == 0) {
+        ll res = 1;
+        for(ll v: graph.adj[u]) {
+            if(graph.par[u] == v) {
+                continue;
+            }
+            res *= calc(v, 0, 0) + calc(v, 1, 0) + calc(v, 2, 0);
+            res %= mod;
+        }
+        return dp[u][t][p] = res;
+    } else if(t == 1) {
+        ll res = 1;
+        ll sub = 1;
+        for(ll v: graph.adj[u]) {
+            if(graph.par[u] == v) {
+                continue;
+            }
+            res *= calc(v, 0, 1) + calc(v, 1, 1) + calc(v, 2, 1) + calc(v, 1, 0) + calc(v, 2, 0);
+            res %= mod;
+            sub *= calc(v, 0, 1) + calc(v, 1, 0) + calc(v, 2, 0);
+            sub %= mod;
+        }
+        if(p) {
+            return dp[u][t][p] = res;
+        } else {
+            return dp[u][t][p] = res - sub;
+        }
+    } else if(t == 2) {
+        ll res = 1;
+        ll sub = 1;
+        for(ll v: graph.adj[u]) {
+            if(graph.par[u] == v) {
+                continue;
+            }
+            res *= calc(v, 0, 1) + calc(v, 1, 1) + calc(v, 1, 0) + calc(v, 2, 0);
+            res %= mod;
+            sub *= calc(v, 0, 1) + calc(v, 1, 0) + calc(v, 2, 0);
+            sub %= mod;
+        }
+        if(p) {
+            return dp[u][t][p] = res;
+        } else {
+            return dp[u][t][p] = res - sub;
+        }
+    }
+    return 0;
+}
+
+ll brute_force(ll i, ll c) {
+    if(i > n && c) {
+        return 0;
+    }
+    if(i > n) {
+        for(int u = 1; u <= n; ++u) {
+            int col = co[u];
+            int fla = 0;
+            int flb = 0;
+            for(int v: graph.adj[u]) {
+                if(co[v] == 1) fla = 1;
+                if(co[v] == 2) flb = 1;
+            }
+            if(col >= 1 && !fla && !flb) {
+                return 0;
+            }
+            if(col == 2 && flb) {
+                return 0;
+            }
+        }
+        return 1;
+    }
+    ll res = 0;
+    co[i] = c;
+    res += brute_force(i + 1, 0);
+    res += brute_force(i + 1, 1);
+    res += brute_force(i + 1, 2);
+    return res;
+}
+
+void solve() {
+    int root = 1;
+    dfs(root);
+    memset(dp, -1, sizeof dp);
+    ll res = 0;
+    res += calc(root, 0, 0);
+    res += calc(root, 1, 0);
+    res += calc(root, 2, 0);
+    res--;
+    res %= mod;
+    res += mod;
+    res %= mod;
+    cout << res << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}
+
+/*
+4
+1 2
+2 3
+3 4
+*/

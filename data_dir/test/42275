@@ -1,0 +1,82 @@
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+using namespace std;
+
+#define FOR(it, c) for(__typeof((c).begin()) it = (c).begin(); it != (c).end(); it++)
+#define SZ(c) ((int)(c).size())
+
+const int N = 100005;
+vector<int> a[N];
+vector<int> b[N];
+int tm=0;
+int l[N], r[N], ans[N];
+
+void dfs(int x, int from=-1) {
+	l[x] = ++tm;
+	FOR(it, a[x]) {
+		if(*it == from) continue;
+		dfs(*it, x);
+	}
+	r[x] = tm;
+}
+
+int seg[5*N][2], n;
+
+void handle(int x, int L, int R) {
+	if(L==R) seg[x][0] = 1-(seg[x][1]>0);
+	else if(seg[x][1] > 0) seg[x][0] = 0;
+	else seg[x][0] = seg[x*2][0] + seg[x*2+1][0];
+}
+
+void add(int x, int L, int R, int ql, int qr, int v) {
+	if(L>=ql && R<=qr) { seg[x][1] += v; handle(x, L, R); return; }
+	int M=(L+R)/2;
+	if(ql<=M) add(x*2, L, M, ql, qr, v);
+	if(qr>M) add(x*2+1, M+1, R, ql, qr, v);
+	handle(x, L, R);
+}
+
+void init(int x, int L, int R) {
+	if(L==R) { seg[x][0] = 1; return; }
+	int M=(L+R)/2;
+	init(x*2, L, M);
+	init(x*2+1, M+1, R);
+	handle(x, L, R);
+}
+
+void go(int x, int from=-1) {
+	if(SZ(b[x])) add(1, 1, tm, l[x], r[x], 1);
+	FOR(it, b[x]) add(1, 1, tm, l[*it], r[*it], 1);
+	ans[x] = max(0, n-1-seg[1][0]);
+	FOR(it, a[x]) {
+		if(*it == from) continue;
+		go(*it, x);
+	}
+	FOR(it, b[x]) add(1, 1, tm, l[*it], r[*it], -1);
+	if(SZ(b[x])) add(1, 1, tm, l[x], r[x], -1);
+}
+
+int main(void) {
+	int m;
+	scanf("%d%d", &n, &m);
+	for(int i=1;i<n;i++) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		a[x].push_back(y);
+		a[y].push_back(x);
+	}
+	dfs(1);
+	for(int i=0;i<m;i++) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		b[x].push_back(y);
+		b[y].push_back(x);
+	}
+	init(1, 1, tm);
+	go(1);
+	for(int i=1;i<=n;i++) printf("%d ", ans[i]);
+	return 0;
+}

@@ -1,0 +1,39 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 5;
+
+vector<int> a[N];
+
+int main() {
+  int n, m;
+  scanf("%d %d", &n, &m);
+  for(int i = 0; i < m; i++) {
+    int junk;
+    scanf("%d", &junk);
+    int num;
+    while(junk--) {
+      scanf("%d", &num);
+      a[i].push_back(num);
+    }
+    sort(a[i].begin(), a[i].end());
+  }
+  int comp = 0;
+  int ans = 0;
+  for(int i = 0; i < m; i++) {
+    int j = 1;
+    while(j < a[i].size() && a[i][j - 1] + 1 == a[i][j]) {
+      j++;
+    }
+    if(a[i][0] != 1) {
+      j = 1;
+    }
+    int dif = a[i].size() - j + 1;
+    comp += dif;
+    ans += dif - 1;
+  }
+  ans += comp - 1;
+  cout << ans << endl;
+  return 0;
+}

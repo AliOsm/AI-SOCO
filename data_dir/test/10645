@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+
+const int N = 2e5 + 5;
+
+vector <int> adj[N];
+int n, st[N], fn[N], timer, t[N], l[N];
+
+struct node { 
+	int ans, lazy, sz;
+	node() {
+		ans = lazy = sz = 0;
+	}
+}seg[N << 2];
+
+void merge(node &a, node b, node c) {
+	a.sz = b.sz + c.sz;
+	a.ans = b.ans + c.ans;
+}
+
+void build(int id = 1, int b = 0, int e = n) {
+	if(e - b == 1) {
+		seg[id].ans = t[l[b]];
+		seg[id].sz = 1;
+		seg[id].lazy = 0;
+		return;
+	}
+	int mid = (b + e) >> 1, lc = id * 2, rc = lc | 1;
+	build(lc, b, mid);
+	build(rc, mid, e);
+	merge(seg[id], seg[lc], seg[rc]);
+}
+
+void dfs(int v) {
+	l[timer] = v;
+	st[v] = timer++;
+	for (auto u : adj[v]) {
+		dfs(u);
+	}
+	fn[v] = timer;
+}
+
+void shift(int id) {
+	if(seg[id].lazy == 1) {
+		seg[id].lazy = 0;
+		int lc = id * 2, rc = lc | 1;
+		seg[lc].ans = seg[lc].sz - seg[lc].ans;
+		seg[rc].ans = seg[rc].sz - seg[rc].ans;
+		seg[lc].lazy ^= 1, seg[rc].lazy ^= 1;
+	}
+}
+
+void modify(int l, int r, int id = 1, int b = 0, int e = n) {
+	if(l >= e || b >= r)
+		return;
+	if(l <= b && e <= r) {
+		seg[id].ans = seg[id].sz - seg[id].ans;
+		seg[id].lazy ^= 1;
+		return;
+	}
+	int mid = (b + e) >> 1, lc = id * 2, rc = lc | 1;
+	shift(id);
+	modify(l, r, lc, b, mid);
+	modify(l, r, rc, mid, e);
+	seg[id].ans = seg[lc].ans + seg[rc].ans;
+	return;
+}
+
+int get(int l, int r, int id = 1, int b = 0, int e = n) {
+	if(l >= e || b >= r)
+		return 0;
+	if(l <= b && e <= r)
+		return seg[id].ans;
+	shift(id);
+	int mid = b + e >> 1, lc = id << 1, rc = lc | 1;
+	return get(l, r, lc, b, mid) + get(l, r, rc, mid, e);
+}
+
+int main() {
+	ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	cin >> n;
+	for (int i = 1; i < n; i++) {
+		int v;
+		cin >> v;
+		v--;
+		adj[v].push_back(i);
+	}
+	for (int i = 0; i < n; i++)
+		cin >> t[i];
+	dfs(0);
+	build();
+	int q;
+	cin >> q;
+	while(q--) {
+		string type;
+		int v;
+		cin >> type >> v;
+		if(type[0] == 'g') {
+			v--;
+			int l = st[v], r = fn[v];
+			cout << get(l, r) << "\n";
+		}
+		else {
+			v--;
+			int l = st[v], r = fn[v];
+			modify(l, r);
+		}
+	}
+}

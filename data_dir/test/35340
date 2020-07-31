@@ -1,0 +1,169 @@
+#include<iostream>
+#include<vector>
+#include<map>
+#include<set>
+#include<cassert>
+#include<cassert>
+#include<unordered_map>
+#include<unordered_set>
+#include<functional>
+#include<queue>
+#include<stack>
+#include<cstring>
+#include<algorithm>
+#include<cmath>
+#include<sstream>
+#include<iomanip>
+#include<cstdio>
+#include<cstdlib>
+#include<numeric>
+#include<random>
+#include<chrono>
+#include<bitset>
+using namespace std;
+
+#define all(x) (x).begin(), (x).end()
+#define pb push_back
+#define xx first
+#define yy second
+#define sz(x) (int)(x).size()
+#define gc getchar
+#define IO ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define mp make_pair
+
+#ifndef ONLINE_JUDGE
+#  define LOG(x) (cerr << #x << " = " << (x) << endl)
+#else
+#  define LOG(x) ((void)0)
+#endif
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+
+const double PI=3.1415926535897932384626433832795;
+const ll INF = 1LL<<62;
+const ll MINF = -1LL<<62;
+
+template<typename T> T getint() {
+	T val=0;
+	char c;
+	
+	bool neg=false;
+	while((c=gc()) && !(c>='0' && c<='9')) {
+		neg|=c=='-';
+	}
+
+	do {
+		val=(val*10)+c-'0';
+	} while((c=gc()) && (c>='0' && c<='9'));
+
+	return val*(neg?-1:1);
+}
+
+//mt19937 rng(chrono::steady_clock::now().time_since_epoch().count()); uniform_int_distribution<int>(0, n-1)(rng)
+
+struct node {
+	int mx;
+	node() {}
+	node(int val) : mx(val) {}
+	
+	node operator+(const node& masik) const {
+		node res=*this;
+		if(res.mx<masik.mx) res.mx=masik.mx;
+		return res;
+	}
+};
+
+const int MAXN=300001;
+
+int n;
+node tr[4*MAXN];
+int lazy[4*MAXN];
+int p[MAXN];
+int inv[MAXN];
+int bal[MAXN]; //értéknek a bal végpontja ha ott van bomba
+
+void build(int ind, int L, int R) {
+	if(L==R) {
+		tr[ind]=node(0);
+	}else {
+		build(2*ind, L, (L+R)/2);
+		build(2*ind+1, (L+R)/2+1, R);
+		tr[ind]=tr[ind*2]+tr[2*ind+1];
+	}
+}
+
+void prop(int ind, int L, int R) {
+	if(lazy[ind]!=0) {
+		tr[ind]=node(tr[ind].mx+lazy[ind]);
+		if(L!=R) {
+			lazy[2*ind]+=lazy[ind];
+			lazy[1+2*ind]+=lazy[ind];
+		}
+		lazy[ind]=0;
+	}
+}
+
+node query(int ind, int L, int R, int i, int j) {
+	prop(ind, L, R);
+	if(R<i || j<L) return node(-1);
+	if(i<=L && R<=j) {
+		return tr[ind];
+	}
+	node res=query(2*ind, L, (L+R)/2, i, j)+query(2*ind+1, (L+R)/2+1, R, i, j);
+	tr[ind]=tr[2*ind]+tr[2*ind+1];
+	return res;
+}
+
+void upd(int ind, int L, int R, int i, int j, int by) {
+	prop(ind, L, R);
+	if(R<i || j<L) return ;
+	if(i<=L && R<=j) {
+		lazy[ind]+=by;
+		prop(ind, L, R);
+		return ;
+	}
+	
+	upd(2*ind, L, (L+R)/2, i, j, by);
+	upd(2*ind+1, (L+R)/2+1, R, i, j, by);
+	tr[ind]=tr[2*ind]+tr[2*ind+1];
+	return ;
+}
+
+
+
+
+
+int main() {
+	IO;
+	cin>>n;
+	for(int i=0;i<n;++i) {
+		cin>>p[i];
+		inv[p[i]]=i;
+	}
+	
+	build(1,0,n-1);
+	vector<int> q(n);
+	for(int i=0;i<n;++i) {
+		cin>>q[i];
+	}
+	
+	upd(1,0,n-1,0,inv[n],1);
+	int cans=n, lll=inv[n], rrr=inv[n];
+	for(int i=0;i<n;++i) {
+		//~ for(int j=0;j<n;++j) cerr<<query(1,0,n-1,j,j).mx<<" ";
+		//~ cerr<<" | "<<lll<<" "<<rrr<<" ,";
+		while(query(1,0,n-1,lll,rrr).mx<=0) {
+			cans--;
+			upd(1,0,n-1,0,inv[cans],1);
+			lll=min(lll, inv[cans]);
+			rrr=max(rrr, inv[cans]);
+		}
+		
+		cout<<cans<<" ";
+		upd(1,0,n-1,0,q[i]-1,-1);
+	}
+	cout<<"\n";
+	return 0;
+}

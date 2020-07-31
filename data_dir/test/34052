@@ -1,0 +1,169 @@
+#include <algorithm>
+#include <bitset>
+#include <complex>
+#include <deque>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <ios>
+#include <iosfwd>
+#include <iostream>
+#include <istream>
+#include <iterator>
+#include <limits>
+#include <list>
+#include <locale>
+#include <map>
+#include <memory>
+#include <new>
+#include <numeric>
+#include <ostream>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdexcept>
+#include <streambuf>
+#include <string>
+#include <typeinfo>
+#include <utility>
+#include <valarray>
+#include <vector>
+#include <cstring>
+#include <unordered_map>
+#include <unordered_set>
+
+using namespace std;
+
+#define ll long long
+#define ull unsigned long long
+#define all(aaa) aaa.begin(), aaa.end()
+#pragma warning(disable : 4996)
+
+struct E {
+	int to, w;
+};
+
+const int N = 2e5 + 5, L = 20;
+vector<int> g[N];
+set<int> g2[N];
+vector<E> g3[N];
+int tin[N], tmn[N], tout[N], anc[N][L], h[N];
+int timer = 0;
+
+void dfs(int node, int anc = -1) {
+	tmn[node] = tin[node] = ++timer;
+	for (int to : g[node]) {
+		if (to != anc) {
+			if (!tin[to]) {
+				dfs(to, node);
+				tmn[node] = min(tmn[node], tmn[to]);
+				if (tin[node] >= tmn[to]) {
+					g2[node].insert(to);
+					g2[to].insert(node);
+				}
+				else {
+					g3[node].push_back({ to, 2 });
+					g3[to].push_back({ node, 2 });
+				}
+			}
+			else {
+				tmn[node] = min(tmn[node], tin[to]);
+				g2[node].insert(to);
+			}
+		}
+	}
+}
+
+void deep(int node) {
+	tin[node] = ++timer;
+	for (int i = 1; i < L; i++) {
+		anc[node][i] = anc[anc[node][i - 1]][i - 1];
+	}
+	for (E e : g3[node]) {
+		if (e.to != anc[node][0]) {
+			anc[e.to][0] = node;
+			h[e.to] = h[node] + e.w;
+			deep(e.to);
+		}
+	}
+	tout[node] = timer;
+}
+
+bool upper(int a, int b) {
+	return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int getLca(int a, int b) {
+	if (upper(a, b))
+		return a;
+	for (int i = L - 1; i >= 0; i--) {
+		if (!upper(anc[a][i], b)) {
+			a = anc[a][i];
+		}
+	}
+	return anc[a][0];
+}
+
+signed main() {
+#ifdef HOME
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+
+	int n, m, q;
+	cin >> n >> m >> q;
+
+	for (int i = 0; i < m; i++) {
+		int a, b;
+		cin >> a >> b;
+		a--, b--;
+		g[a].push_back(b);
+		g[b].push_back(a);
+	}
+
+	dfs(0);
+
+	set<pair<int, int>> st;
+
+	for (int i = 0; i < n; i++) {
+		st.insert({ g2[i].size(), i });
+	}
+
+	while (!st.empty()) {
+		auto p = *st.begin();
+		st.erase(st.begin());
+		if (p.first > 1) {
+			g3[p.second].push_back({ n, 1 });
+			g3[n].push_back({ p.second, 1 });
+			for (int to : g2[p.second]) {
+				g3[to].push_back({ n, 1 });
+				g3[n].push_back({ to, 1 });
+			}
+			n++;
+		}
+
+		for (int to : g2[p.second]) {
+			st.erase({ g2[to].size(), to });
+			g2[to].erase(p.second);
+			for (int to2 : g2[p.second]) {
+				g2[to].erase(to2);
+			}
+			st.insert({ g2[to].size(), to });
+		}
+	}
+
+	deep(0);
+
+	while (q--) {
+		int a, b;
+		cin >> a >> b;
+		a--, b--;
+		cout << (h[a] + h[b]) / 2 - h[getLca(a, b)] << "\n";
+	}
+
+	return 0;
+}

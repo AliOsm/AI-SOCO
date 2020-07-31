@@ -1,0 +1,190 @@
+#include<iostream>
+#include<cstdio>
+#include<cstdlib>
+#include<cmath>
+#include<ctime>
+#include<memory.h>
+#include<algorithm>
+#include<string>
+#define sqr(x) ((x)*(x))
+#define sqrt(x) sqrt((x)*1.)
+#define min(a,b) ((a)<(b)?(a):(b))
+#define max(a,b) ((a)>(b)?(a):(b))
+#define abs(x) ((x)>0?(x):-(x))
+#define getar(m,n) for(int _=0;_<n;++_) cin>>(m)[_];
+#define fill(m,v) memset(m,v,sizeof(m))
+#define flush {cout.flush();fflush(stdout);}
+#define random(x) (((rand()<<15)+rand())%(x))
+#define pi 3.1415926535897932
+#define y1 stupid_cmath
+#define y0 stupid_cmath_make_me_cry
+#define tm stupid_ctime
+#define long long long
+#include<map>
+#include<set>
+#define foreach(c,i) for(typeof((c).begin()) i=(c).begin(); i!=(c).end(); i++)
+using namespace std;
+
+int n,m;
+int i,j,k,l;
+
+const int V=2e5+5;
+const int T=(1<<19)+123;
+const int E=V*2;
+const int L=19, U=-1;
+int e[E], es[E], eb[V], ed;
+void add_e(int v, int u){
+	e[++ed]=u;
+	es[ed]=eb[v];
+	eb[v]=ed;
+}
+
+
+int p[V][L];
+int ti[V], to[V], tm;
+void dfs1(int v, int pr=U){
+	++tm;
+	ti[v] = tm;
+	p[v][0]=pr;
+	for(int l=1;l<L;++l) p[v][l] = (p[v][l-1]!=U ? p[p[v][l-1]][l-1] : U);
+	
+	for(int k=eb[v];k;k=es[k]) if(!ti[e[k]]) dfs1(e[k],v);
+	
+	to[v] = ++tm;
+}
+
+bool isup(int a, int b){
+	if(a==U) return true;
+	if(b==U) return false;
+	return ti[a]<ti[b] && to[a]>to[b];
+}
+int lca(int a, int b){
+	if(a==b) return a;
+	if(isup(a,b)) return a;
+	if(isup(b,a)) return b;
+	for(int l=L-1;l>=0;--l) if( !isup(p[a][l],b) ) a=p[a][l];
+	return p[a][0];
+}
+int nx(int a, int b){
+	for(int l=L-1;l>=0;--l) if(isup(a,p[b][l])) b=p[b][l];
+	return b;
+}
+
+int q;
+multiset<int> qe[V];
+
+int d;
+long t[T], s[T];
+void inc(int i, int j, long v, int l=0, int r=d-1, int q=1){
+	if(i==l&&j==r){
+		s[q]+=v;
+		t[q] += v*(r-l+1);
+	}else{
+		int m = (l+r)>>1;
+		if(i<=m) inc(i,min(j,m),v,l,m,q*2);
+		if(j>m)  inc(max(i,m+1),j,v,m+1,r,q*2+1);
+		t[q] = t[q*2]+t[q*2+1] + s[q]*(r-l+1);
+	}
+}
+long rsq(int i, int j, int l=0, int r=d-1, int q=1){
+	if(i==l&&j==r){
+		return t[q];
+	}else{
+		int m = (l+r)>>1;
+		long s1=0, s2=0;
+		if(i<=m) s1 = rsq(i,min(j,m),l,m,q*2);
+		if(j>m)  s2 = rsq(max(i,m+1),j,m+1,r,q*2+1);
+		return s1+s2+(j-i+1)*s[q];
+	}
+}
+
+map< pair<int,int>, int > ei;
+long ans[V];
+
+bool u[V];
+int w[V], st[V], z;
+void dfsgo(int v, int pr=U){
+	st[z] = v;
+	w[v] = z;
+	++z;
+	
+	//cout<<": ";for(int y=0;y<z;++y) cout<<st[y]<<' '; cout<<endl;
+	
+	foreach(qe[v], it){
+		int i = w[*it];
+		int j = w[v];
+		inc(i,j,1); 
+		//cout<<"upd "<<i<<' '<<j<<endl;
+	}
+	
+	int i,k;
+	for(k=eb[v];k;k=es[k]){
+		i = e[k];
+		if(i==pr) continue;
+		
+		dfsgo(i,v);
+		
+		int x = ei[make_pair(v,i)];
+		ans[x] = rsq(w[i], w[i]);
+		
+		inc(w[i],w[i],-ans[x]);
+	}
+	
+	--z;
+	
+}
+
+int main(){
+	ios_base::sync_with_stdio(0);
+//	freopen("input.txt","r",stdin); freopen("output.txt","w",stdout);
+	
+	cin>>n;
+	for(k=1;k<n;++k){
+		cin>>i>>j;
+		add_e(i,j);
+		add_e(j,i);
+		
+		ei[make_pair(i,j)] = k;
+		ei[make_pair(j,i)] = k;
+	}
+	
+	dfs1(1);
+	
+	
+	/*for(i=1;i<=n;++i){
+		cout<<i<<": "; 
+		for(l=0;l<3;++l) cout<<p[i][l]<<' '; cout<<endl;
+	}*/
+	
+	cin>>q;
+	for(k=0;k<q;++k){
+		cin>>i>>j;
+		if(i==j) continue;
+		
+		if(isup(j,i))swap(i,j);
+		l = lca(i,j);
+		
+		//cout<<i<<' '<<j<<' '<<l<<endl;
+		//cout<<nx(l,i)<<' '<<nx(l,j)<<endl;
+		
+		
+		if(i!=l){
+			qe[i].insert(nx(l,i));
+		}
+		
+		if(j!=l){
+			qe[j].insert(nx(l,j));
+		}
+	}
+	
+	
+	
+	for(d=1;d<n;d<<=1);
+	
+	dfsgo(1);
+	
+	
+	for(i=1;i<n;++i) cout<<ans[i]<<' '; cout<<endl;
+	
+	return 0;
+}

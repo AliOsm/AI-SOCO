@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define all(x) begin(x), end(x)
+
+using ll = long long;
+using ld = long double;
+using pii = pair<int, int>;
+using vi = vector<int>;
+
+constexpr int MOD = 998244353;
+
+struct DSU {
+    int n;
+    // uf[x] = parent of x or negative size of component
+    vector<int> uf;
+    DSU(int n): n(n) {
+        uf.assign(n, -1);
+    }
+
+    int find(int x) {
+        return uf[x] < 0 ? x : (uf[x] = find(uf[x]));
+    }
+
+    int merge(int x, int y) {
+        int xr = find(x);
+        int yr = find(y);
+        if (xr == yr)
+            return 0;
+
+        if (uf[yr] < uf[xr]) {
+            uf[yr] += uf[xr];
+            uf[xr] = yr;
+        } else {
+            uf[xr] += uf[yr];
+            uf[yr] = xr;
+        }
+
+        return 1;
+    }
+};
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0); cout.tie(0);
+
+    int n;
+    cin >> n;
+    vi a(n);
+    map<int, int> first, last;
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i];
+        if (first.find(a[i]) == end(first)) {
+            first[a[i]] = i;
+        }
+        last[a[i]] = max(last[a[i]], i);
+    }
+
+    vector<pii> events;
+    for (auto p : first) {
+        int x = p.second;
+        int y = last[p.first];
+
+        events.emplace_back(x, p.first);
+        events.emplace_back(y + 1, -p.first);
+    }
+
+    sort(all(events));
+
+    set<int> active;
+    int ans = 0;
+    for (auto p : events) {
+        int d = p.second;
+
+        // cout << "Hit event " << v << ", " << d << '\n';
+        if (d < 0) {
+            active.erase(-d);
+        } else {
+            if (active.empty()) {
+                // cout << "new start\n";
+                ++ans;
+            }
+
+            active.insert(d);
+        }
+    }
+
+    // cout << ans << '\n';
+
+    int o = 1;
+    for (int i = 1; i < ans; ++i) {
+        o <<= 1;
+        if (o >= MOD)
+            o -= MOD;
+    }
+
+    cout << o << '\n';
+
+    return 0;
+}

@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+
+#define fi first
+#define se second
+#define pb push_back
+#define mp make_pair
+#define foreach(it, v) for(auto it=(v).begin(); it != (v).end(); ++it)
+
+#define _ ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL);
+#define __ freopen("input.txt","r",stdin);freopen("output.txt","w",stdout);
+
+#define tr(...) cout<<__FUNCTION__<<' '<<__LINE__<<" = ";trace(#__VA_ARGS__, __VA_ARGS__)
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int,int> pii;
+
+template<typename S, typename T> 
+ostream& operator<<(ostream& out,pair<S,T> const& p){out<<'('<<p.fi<<", "<<p.se<<')';return out;}
+
+template<typename T>
+ostream& operator<<(ostream& out,vector<T> const& v){
+int l=v.size();for(int i=0;i<l-1;i++)out<<v[i]<<' ';if(l>0)out<<v[l-1];return out;}
+
+template<typename T>
+void trace(const char* name, T&& arg1){cout<<name<<" : "<<arg1<<endl;}
+
+template<typename T, typename... Args>
+void trace(const char* names, T&& arg1, Args&&... args){
+const char* comma = strchr(names + 1, ',');cout.write(names, comma-names)<<" : "<<arg1<<" | ";trace(comma+1,args...);}
+
+const int N = 100100;
+
+ll rf[N];
+ll irf[N];
+ll p, etf;
+int n, l, r;
+
+vector<pii> primes;
+
+int reduce(int x){
+  for(pii ii : primes){
+    while(x % ii.fi == 0) x /= ii.fi;
+  }
+  return x;
+}
+
+ll fast(ll x, ll y){
+  ll ret = 1;
+  while(y){
+    if(y & 1) ret = ret * x % p;
+    x = x * x % p;
+    y >>= 1;
+  }
+  return ret;
+}
+
+void pre(){
+  // factorize
+  ll tp = p;
+  etf = p;
+  for(int i = 2; i * i <= tp; i++){
+    if(tp % i) continue;
+    int cnt = 0;
+    while(tp % i == 0){
+      tp /= i; cnt++;
+    }
+    
+    primes.pb(mp(i, cnt));
+    etf -= etf / i;
+  }
+  
+  if(tp > 1){
+    primes.pb(mp(tp, 1));
+    etf -= etf / tp;
+  }
+  
+  // compute rf and irf
+  rf[0] = irf[0] = 1;
+  for(int i = 1; i <= n; i++){
+    int ri = reduce(i);
+    rf[i] = rf[i-1] * ri % p;
+    irf[i] = irf[i-1] * fast(ri, etf-1) % p;
+  }
+}
+
+ll get_prime_power(ll n, ll p){
+  ll res = 0;
+  ll den = p;
+  while(den <= n){
+    res += n / den;
+    den *= p;
+  }
+  
+  return res;
+}
+
+ll C(int n, int k){
+  if(k < 0 or k > n) return 0;
+  
+  ll res = rf[n] * (irf[k] * irf[n-k] % p) % p;
+  
+  // now compensate for power of each prime p
+  for(pii ii : primes){
+    ll pwr = get_prime_power(n, ii.fi) - get_prime_power(k, ii.fi) - get_prime_power(n-k, ii.fi);
+    
+    if(pwr) res = res * fast(ii.fi, pwr) % p;
+  }
+  
+  return res;
+}
+
+int main(){ _
+  cin >> n >> p >> l >> r;
+  
+  if(p == 1){
+    cout << 0 << endl;
+    return 0;
+  }
+  
+  pre();
+  
+  ll ans = 0;
+  
+  for(int R = l; R <= n; R++){
+    int a = max(0, (R - r + 1)/2);
+    int b = min((R-l)/2, R/2);
+   
+    ll term1 = C(n, R);
+    ll term2 = C(R, b);
+    ll term3 = C(R, a-1); 
+    
+    ans += term1 * (term2 - term3 + p) % p;
+    if(ans >= p) ans -= p;
+  }
+  
+  cout << ans << endl;
+  
+  
+  return 0;
+}

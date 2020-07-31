@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+#define ll long long
+using namespace std;
+
+const int N = 3e5 + 5;
+vector<pair<int, int>> v[N];
+ll w[N];
+int sz[N];
+bool ban[N];
+
+int pre(int node, int anc = -1) {
+    sz[node] = 1;
+    for (auto e : v[node]) {
+        int to = e.first;
+        if (to != anc && !ban[to])
+            sz[node] += pre(to, node);
+    }
+    return sz[node];
+}
+
+
+ll mx = 0, ans = 0;
+
+void dfs(int node, ll x, int anc) {
+    x += w[node];
+    mx = max(mx, x);
+    for (auto e : v[node]) {
+        int to = e.first, z = e.second;
+        if (to != anc && !ban[to])
+            dfs(to, x - z, node);
+    }
+}
+
+void deep(int node, ll x, int anc) {
+    x += w[node];
+    ans = max(ans, x);
+    for (auto e : v[node]) {
+        int to = e.first, z = e.second;
+        if (to != anc && !ban[to] && x >= z) {
+            deep(to, x - z, node);
+        }
+    }
+}
+
+int findC(int node, int half, int anc = -1) {
+    for (auto e : v[node]) {
+        int to = e.first;
+        if (to != anc && !ban[to] && sz[to] > half) {
+            return findC(to, half, node);
+        }
+    }
+    return node;
+}
+
+
+void solve(int node) {
+    int half = pre(node) / 2;
+    node = findC(node, half);
+
+    ban[node] = 1;
+
+    mx = 0;
+
+    for (auto e : v[node]) {
+        int to = e.first, z = e.second;
+        if (!ban[to]) {
+            if (mx + w[node] >= z)
+                deep(to, mx + w[node] - z, node);
+            dfs(to, -z, node);
+        }
+    }
+
+    ans = max(ans, mx + w[node]);
+
+    for (auto e : v[node]) {
+        int to = e.first;
+        if (!ban[to])
+            solve(to);
+    }
+}
+
+int main()
+{
+#ifdef HOME
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n;
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        cin >> w[i];
+        ans = max(ans, w[i]);
+    }
+
+    for (int i = 0; i < n - 1; i++) {
+        int x, y, z;
+        cin >> x >> y >> z;
+        x--, y--;
+        v[x].push_back({y, z});
+        v[y].push_back({x, z});
+    }
+
+    solve(0);
+
+    cout << ans;
+
+    return 0;
+}

@@ -1,0 +1,106 @@
+#include<bits/stdc++.h>
+#define LL long long
+#define LD long double
+#define ull unsigned long long
+#define fi first
+#define se second
+#define mk make_pair
+#define PLL pair<LL, LL>
+#define PLI pair<LL, int>
+#define PII pair<int, int>
+#define SZ(x) ((int)x.size())
+#define ALL(x) (x).begin(), (x).end()
+#define fio ios::sync_with_stdio(false); cin.tie(0);
+
+using namespace std;
+
+const int N = 2e5 + 7;
+const int inf = 0x3f3f3f3f;
+const LL INF = 0x3f3f3f3f3f3f3f3f;
+const int mod = 1e9 + 7;
+const double eps = 1e-8;
+const double PI = acos(-1);
+
+template<class T, class S> inline void add(T& a, S b) {a += b; if(a >= mod) a -= mod;}
+template<class T, class S> inline void sub(T& a, S b) {a -= b; if(a < 0) a += mod;}
+template<class T, class S> inline bool chkmax(T& a, S b) {return a < b ? a = b, true : false;}
+template<class T, class S> inline bool chkmin(T& a, S b) {return a > b ? a = b, true : false;}
+
+const int UP = 200000;
+
+int Rt[N];
+int treecnt;
+
+struct info {
+    LL a, b;
+    int ls, rs;
+    // a -> add val
+    // b -> cnt of add i
+} Tree[N * 50];
+
+void update(int p, int va, int vb, int l, int r, int &x, int y) {
+    x = ++treecnt; Tree[x] = Tree[y];
+    Tree[x].a += va; Tree[x].b += vb;
+    if(l == r) return;
+    int mid = l + r >> 1;
+    if(p <= mid) update(p, va, vb, l, mid, Tree[x].ls, Tree[y].ls);
+    else update(p, va, vb, mid + 1, r, Tree[x].rs, Tree[y].rs);
+}
+
+PLL query(int p, int l, int r, int x) {
+    if(r <= p) return mk(Tree[x].a, Tree[x].b);
+    int mid = l + r >> 1;
+    PLL ans = query(p, l, mid, Tree[x].ls);
+    if(p > mid) {
+        PLL tmp = query(p, mid + 1, r, Tree[x].rs);
+        ans.fi += tmp.fi;
+        ans.se += tmp.se;
+    }
+    return ans;
+}
+
+int n, m;
+LL prefix[N];
+
+int main() {
+    scanf("%d", &n);
+    for(int i = 1; i <= n; i++) {
+        int X1, X2, Y1, A, B, Y2, low, high;
+        scanf("%d%d%d%d%d%d", &X1, &X2, &Y1, &A, &B, &Y2);
+        prefix[i] = prefix[i - 1] + Y2;
+
+        low = 0; high = min(UP, X1);
+        update(low, Y1, 0, 0, UP, Rt[i], Rt[i - 1]);
+        if(high + 1 <= UP) update(high + 1, -Y1, 0, 0, UP, Rt[i], Rt[i]);
+
+        if(X1 + 1 <= UP) {
+            low = X1 + 1; high = min(UP, X2);
+            update(low, B, A, 0, UP, Rt[i], Rt[i]);
+            if(high + 1 <= UP) update(high + 1, -B, -A, 0, UP, Rt[i], Rt[i]);
+        }
+
+        if(X2 + 1 <= UP) {
+            low = X2 + 1; high = UP;
+            update(low, Y2, 0, 0, UP, Rt[i], Rt[i]);
+        }
+    }
+
+    LL last = 0;
+    scanf("%d", &m);
+    while(m--) {
+        int L, R, x;
+        scanf("%d%d%d", &L, &R, &x);
+        x = (x + last) % 1000000000;
+        if(x > UP) last = prefix[R] - prefix[L - 1];
+        else {
+            PLL tmpR = query(x, 0, UP, Rt[R]);
+            PLL tmpL = query(x, 0, UP, Rt[L - 1]);
+            last = (tmpR.fi - tmpL.fi) + (tmpR.se - tmpL.se) * x;
+        }
+        printf("%lld\n", last);
+    }
+    return 0;
+}
+
+/*
+*/

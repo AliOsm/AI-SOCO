@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define mp make_pair
+#define f first
+#define s second
+#define pb push_back
+#define sz(x) ((int)(x).size())
+#define sqr(x) ((x)*1ll*(x))
+#define all(x) (x).begin(),(x).end()
+
+#define ROOT 1,1,100000
+#define LS x,v+v,l,mid
+#define RS x,v+v+1,mid+1,r
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int inf = 1<<30;
+
+int n, c, d;
+int b[100100], p[100100], tp[100100];
+vector <pii> vec[2][100100];
+vector <pii> t[2][400100];
+        
+void build(int x, int v, int l, int r) {
+	if(l == r) {
+		for(int i = 0; i < sz(vec[x][l]); ++i)
+			t[x][v].pb(vec[x][l][i]);
+		return;
+	}
+	int mid = (l + r) >> 1;
+	build(LS);
+	build(RS);
+	merge(t[x][v+v].begin(), t[x][v+v].end(),
+		t[x][v+v+1].begin(), t[x][v+v+1].end(), back_inserter(t[x][v]));
+}
+
+pii get(int x, int v, int l, int r, int L, int R, int bad = -1) {
+//	cerr << l << " " << r << " " << L << " " << R << " " << bad << endl;
+	if(r < L || R < l) 
+		return mp(-inf, -1);
+	if(L <= l && r <= R) {
+		if(bad == -1 && sz(t[x][v]) > 0)
+			return t[x][v].back();
+		else {
+			int i = sz(t[x][v]) - 1;
+			while(i >= 0 && t[x][v][i].s == bad) 
+				i--;
+			if(i >= 0)
+				return t[x][v][i];
+			else
+				return mp(-inf, -1);
+		}
+	}
+	int mid = (l + r) >> 1;
+	return max(get(LS, L, R, bad), 
+		get(RS, L, R, bad));
+}
+
+int main() {
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	cin >> n >> c >> d;
+	for(int i = 1; i <= n; ++i) {
+		char ch;
+		cin >> b[i] >> p[i] >> ch;
+		tp[i] = ch == 'C' ? 0 : 1;
+		vec[tp[i]][p[i]].pb(mp(b[i], i));
+		vec[tp[i] ^ 1][p[i]].pb(mp(-inf, i));
+	}
+	for(int i = 0; i < 2; ++i) 
+		for(int j = 1; j <= 100000; ++j)
+			sort(all(vec[i][j]));
+	
+	for(int i = 0; i < 2; ++i)
+		build(i, ROOT);
+	int ans = 0;
+	for(int i = 1; i < c; ++i) {
+		pii c1 = get(0, ROOT, 1, i);
+		pii c2 = get(0, ROOT, 1, c - i, c1.s);
+		ans = max(ans, c1.f + c2.f);
+	}
+	for(int i = 1; i <= c; ++i) {
+		pii c1 = get(0, ROOT, 1, i);
+		pii d1 = get(1, ROOT, 1, d, c1.s);
+		ans = max(ans, c1.f + d1.f);
+	}
+	for(int i = 1; i <= d; ++i) {
+		pii d1 = get(1, ROOT, 1, i);
+		pii c1 = get(0, ROOT, 1, c, d1.s);
+		ans = max(ans, d1.f + c1.f);
+	}
+	for(int i = 1; i < d; ++i) {
+		pii d1 = get(1, ROOT, 1, i);
+		pii d2 = get(1, ROOT, 1, d - i, d1.s);
+		ans = max(ans, d1.f + d2.f);
+	}
+	cout << ans << endl;
+
+	return 0;
+}

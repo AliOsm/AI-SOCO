@@ -1,0 +1,187 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#define _CRT_DISABLE_PERFCRIT_LOCKS
+
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <stdlib.h>
+#include <set>
+#include <vector>
+#include <list>
+#include <algorithm>
+#include <regex>
+#include <math.h>
+#include <map>
+#include <iterator>
+#include <climits>
+#include <numeric>
+#include <bitset>
+#include <unordered_map>
+#include <unordered_set>
+#include <iomanip>
+#include <queue>	
+#include <deque>
+#include <stack>
+#include <array>
+#include <valarray>
+#include <complex>
+#include <random>
+#include <functional>
+#include <thread>
+#include <cassert>
+
+using namespace std;
+
+#define ll long long
+#define ull unsigned long long
+typedef int hv;
+#define double long double
+#define make(type, x) type x; cin>>x	
+#define make2(type, x, y) type x, y; cin>>x>>y
+#define make3(type, x, y, z) type x, y, z; cin>>x>>y>>z
+#define make4(type, x, y, z, q) type x, y, z, q; cin>>x>>y>>z>>q
+#define ALL(x) (x).begin(), (x).end()
+#define RALL(x) (x).rbegin(), (x).rend()
+#define FORIT(p) for(auto it = p.begin(); it != p.end(); it++)
+#define FOR(b) for(signed i = 0; i <(b); i++)
+#define FORE(i, l, r) for(int i = (l); i < (r); i++)
+#define NFOR(i, n) for(int i = (((int) n)-1); i >= 0; i--)
+#define VI vector<int>
+#define VVI vector<vector<int>>
+#define PII pair<int, int>
+#define PPII pair<PII, int>
+#define M7 1000000007ll
+#define M9 1000000009ll
+#define MFFT 998244353ll 
+#define makev(a, n) VI nums(n); FOR(n) cin >> nums[i];
+#define outv(a) for(auto& x: a) cout << x << ' ';
+
+VVI g;
+VI pr;
+vector<ll> opt, sz;
+
+ll sqr(ll a) {
+	return a * a;
+}
+
+void dfs(int v, int p = -1) {
+	pr[v] = p;
+	if (g[v].size() == 1) {
+		opt[v] = 1;
+		return;
+	}
+	for (auto& u : g[v]) {
+		if (u != p) {
+			dfs(u, v);
+			sz[v] += sz[u];
+		}
+	}
+	for (auto& u : g[v]) {
+		if (u != p)
+			opt[v] = min(opt[v], sqr(sz[v] - sz[u]) + opt[u]);
+	}
+}
+
+struct point {
+	ll x, y;
+};
+
+const ll MIN_L = 0ll;
+const ll MAX_R = 500'000ll*500'500ll;
+
+ll calc(const point& a, ll x) {
+	return a.x * x + a.y;
+}
+
+struct node {
+	point a;
+	node* l, * r;
+	node(const point& a) :a(a), l(nullptr), r(nullptr) {};
+}*R;
+
+void add_line(node*& n, ll l, ll r, point nl) {
+	if (n == nullptr) {
+		n = new node(nl);
+		return;
+	}
+	ll mid = (l + r) / 2;
+	bool lv = calc(nl, l) < calc(n->a, l);
+	bool mv = calc(nl, mid + 1) < calc(n->a, mid + 1);
+	if (mv) swap(nl, n->a);
+	if (l == r) return;
+	if (lv != mv) add_line(n->l, l, mid, nl);
+	else add_line(n->r, mid + 1, r, nl);
+}
+
+ll get_ans(const node* n, ll l, ll r, ll x) {
+	if (n == nullptr) return LLONG_MAX;
+	ll val = calc(n->a, x);
+	if (l == r) return val;
+	ll mid = (l + r) / 2;
+	if (x <= mid) return min(val, get_ans(n->l, l, mid, x));
+	return min(val, get_ans(n->r, mid + 1, r, x));
+}
+
+void Solve() {
+	make(ll, n);
+	g = VVI(n);
+	opt = vector<ll>(n, M7 * M7);
+	sz = vector<ll>(n, 1);
+	pr = VI(n);
+	for (int i = 1; i < n; ++i) {
+		make2(int, u, v);
+		u--, v--;
+		g[u].emplace_back(v);
+		g[v].emplace_back(u);
+	}
+	if (n == 2) {
+		cout << 2;
+		return;
+	}
+	int root = -1;
+	for (int i = 0; i < n; ++i) {
+		if (g[i].size() != 1) root = i;
+	}
+	dfs(root);
+	ll ans = M7 * M7;
+	for (int i = 0; i < n; ++i) {
+		R = nullptr;
+		bool was = false;
+		for (auto& v : g[i]) {
+			if (v == pr[i]) continue;
+			if (was) {
+				ans = min(ans, get_ans(R, MIN_L, MAX_R, sz[v]) + opt[v] + sqr(n) + sqr(sz[v]) - 2 * n * sz[v]);
+			}
+			add_line(R, MIN_L, MAX_R, { 2 * sz[v], opt[v] + sqr(sz[v]) - 2 * n * sz[v] });
+			was = true;
+		}
+	}
+	cout << (n * (n - 1) + sqr(n) - ans) / 2;
+}
+
+signed main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+#ifdef _SUPER_DEFINE
+	auto F1 = freopen("input.txt", "r", stdin);
+	auto F2 = freopen("output.txt", "w", stdout);
+	if (F1 == NULL || F2 == NULL) return 0;
+	if (sizeof(int) != 8) cout << "NO LONG!!!\n";
+	Solve();
+	fflush(stdout);
+	while (!cin.eof()) {
+		string s = "_";
+		do getline(cin, s);
+		while (!cin.eof() && !s.empty());
+		if (cin.eof()) break;
+		FOR(2) cout << endl;
+		Solve();
+		fflush(stdout);
+	}
+	fclose(F1), fclose(F2);
+#else
+	Solve();
+#endif
+	return 0;
+}

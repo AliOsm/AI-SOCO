@@ -1,0 +1,137 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+long long process1(vector<pair<int,int> >&arr){
+    long long sum[arr.size()+5]={};
+    long long positiveCount[arr.size()+5]={};
+
+    for(int i=arr.size()-1;i>=0;i--){
+        if(arr[i].second>=0){
+            positiveCount[i]=1;
+            sum[i]=arr[i].first;
+        }
+
+        sum[i]+=sum[i+1];
+        positiveCount[i]+=positiveCount[i+1];
+    }
+
+    long long ret=0;
+    for(int i=0;i<arr.size();i++){
+        if(arr[i].second<0){
+            long long left=(long long)arr[i].first*positiveCount[i];
+            long long right=sum[i];
+
+            ret+=right-left;
+        }
+    }
+
+    return ret;
+}
+
+
+long long query(int idx,long long *tree,int maxId){
+    long long ret=0;
+    while(idx){
+        ret+=tree[idx];
+        idx-=idx&(-idx);
+    }
+    return ret;
+}
+
+void update(int idx,int val,long long *tree,int maxId){
+    while(idx<=maxId){
+        tree[idx]+=val;
+        idx+=idx&(-idx);
+    }
+}
+
+int process(vector<pair<int,int> >&arr){
+    vector<pair<int,int> >idxSorting;
+    
+    for(int i=0;i<arr.size();i++)idxSorting.push_back({arr[i].second,i});
+    sort(idxSorting.begin(),idxSorting.end());
+
+    int id=1;
+    for(int i=0;i<idxSorting.size();i++){
+        while(i+1<idxSorting.size() && idxSorting[i].first==idxSorting[i+1].first){
+            arr[idxSorting[i].second].second=id;
+            i++;
+        }
+        arr[idxSorting[i].second].second=id++;
+    }
+
+    return id;
+}
+long long processPos(vector<pair<int,int> >&arr){
+    int maxId=process(arr);
+    
+    long long treeCnt[maxId]={};
+    long long treeSum[maxId]={};    
+
+    long long ret=0;
+    for(int i=0;i<arr.size();i++){
+        long long val=arr[i].first;
+        long long height=arr[i].second;
+
+        ret+=val*query(height,treeCnt,maxId)-query(height,treeSum,maxId);
+
+        update(height,1LL,treeCnt,maxId);
+        update(height,val,treeSum,maxId);
+    }
+    return ret;
+}
+
+long long processNeg(vector<pair<int,int> >&arr){
+    int maxId=process(arr);
+    
+    long long treeCnt[maxId]={};
+    long long treeSum[maxId]={};
+
+    long long ret=0;
+    for(int i=arr.size()-1;i>=0;i--){
+        long long val=arr[i].first;
+        long long height=arr[i].second;
+
+        ret+=query(height,treeSum,maxId)-val*query(height,treeCnt,maxId);
+
+        update(height,1LL,treeCnt,maxId);
+        update(height,val,treeSum,maxId);
+    }
+    return ret;
+}
+int main(){
+    #ifndef ONLINE_JUDGE
+        freopen("in.txt","r",stdin);
+        freopen("out.txt","w",stdout);
+    #endif
+
+    int n;
+    while(1==scanf("%d",&n)){
+
+        vector<pair<int,int> >arr(n);
+
+        for(int i=0;i<n;i++)scanf("%d",&arr[i].first);
+        for(int i=0;i<n;i++)scanf("%d",&arr[i].second);
+
+        sort(arr.begin(),arr.end());
+
+        vector<pair<int,int> >pos,neg;
+
+        for(int i=0;i<n;i++){
+            if(arr[i].second<0)neg.push_back({arr[i].first,-arr[i].second});
+            else pos.push_back({arr[i].first,arr[i].second+1});
+        }
+
+        long long res=0;
+
+        res+=process1(arr);
+
+        res+=processPos(pos);
+        res+=processNeg(neg);
+
+        printf("%lld\n",res);
+
+    }
+
+    return 0;
+}

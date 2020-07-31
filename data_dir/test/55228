@@ -1,0 +1,42 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+
+string a;
+deque<char> str1,str2;
+
+bool check() {
+    str2.push_back(str2.front());
+    str2.pop_front();
+    if (str1 != str2) {
+        for (int i=0;i<int(str2.size());i++) {
+            if (str2[i] != str2[int(str2.size())-1-i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+int main () {
+    cin >> a;
+    for (auto c : a) {
+        str1.push_back(c);
+        str2.push_back(c);
+    }
+
+    for (int i=0;i<int(a.size());i++) {
+        if (check()) {
+            cout << 1 << endl;
+            return 0;
+        }
+    }
+
+    for (int i=0;i<int(a.size())/2;i++) {
+        if (a[0] != a[i]) {
+            cout << 2 << endl;
+            return 0;
+        }
+    }
+    cout << "Impossible" << endl;
+}

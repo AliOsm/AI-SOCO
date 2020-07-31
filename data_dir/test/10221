@@ -1,0 +1,198 @@
+#include<set>
+#include<map>
+#include<list>
+#include<iomanip>
+#include<cmath>
+#include<string>
+#include<vector>
+#include<queue>
+#include<stack>
+#include<complex>
+#include<sstream>
+#include<iostream>
+#include<fstream>
+#include<algorithm>
+#include<numeric>
+#include<utility>
+#include<functional>
+#include<stdio.h>
+#include<assert.h>
+#include<memory.h>
+#include<bitset>
+#include<math.h>
+
+
+
+#define f first
+#define s second
+#define pb push_back
+
+using namespace std;
+typedef long long ll;
+typedef pair<ll, ll> ii;
+typedef pair<ll, ll> ii;
+
+const int N=200005;
+
+int bit[N],n,m,k;
+int get(int idx){
+  int ret=0;
+  while(idx>0){
+    ret+=bit[idx];
+    idx-=idx&-idx;
+  }
+  return ret;
+}
+void update(int idx,int val){
+   while(idx<=n){
+     bit[idx]+=val;
+     idx+=idx&-idx;
+   }
+}
+/// we will have a set of event to handle all out events
+struct event{
+  ll t;
+  int house,idx;
+  bool person;
+  event(int pos,ll a,int b,bool c){
+     idx=pos;
+     t=a;
+     house=b;
+     person=c;
+  }
+};
+bool operator < (event a,event b){
+  if(a.t!=b.t)
+    return a.t<b.t;
+  if(a.person!=b.person)
+    return a.person<b.person;
+  if(a.idx!=b.idx)
+    return a.idx<b.idx;
+  if(a.house!=b.house)
+    return a.house!=b.house;
+  return 0;
+}
+priority_queue<ii>q[N];/// to store for every house taxis Time,idx
+queue<ii>waiting;/// handle clients
+ii sol[N];
+int a[N],b[N];
+int get_closest(int idx){
+    int low=0,high=n+1;
+    while(low+1<high){
+          int mid=(low+high)/2;
+          int lft=get(idx+1)-get(max(0,idx-mid-1));
+          int rgt=get(min(n,idx+mid))-get(idx-1);
+          if(lft>0||rgt>0)
+            high=mid;
+          else
+            low=mid+1;
+    }
+        int cur=get(idx);
+        int lft=get(idx)-get(max(0,idx-low-1));
+        int rgt=get(min(n,idx+low))-get(idx-1);
+        if(lft>0||rgt>0)return low;
+        return high;
+}
+set<event>st;
+void solve(int idx,ll late,int qidx,ll t){
+   ii top=q[qidx].top();
+   q[qidx].pop();
+   top.f*=-1;
+   top.s*=-1;
+   update(qidx,-1);
+   sol[idx]=ii(late,top.s);
+   st.insert(event(top.s,t+abs(b[idx]-a[idx])+abs(a[idx]-qidx),b[idx],0));
+}
+int main()
+{
+    //freopen("test.in","r",stdin);
+    scanf("%d%d%d",&n,&k,&m);
+    for(int i=1;i<=k;i++){
+        /// initial positions for cars
+        int a;
+        scanf("%d",&a);
+        update(a,1);
+        q[a].push(ii(0,-i));
+    }
+    for(int i=0;i<m;i++){
+        ll tim;
+        cin>>tim>>a[i]>>b[i];
+        st.insert(event(i,tim,a[i],1));
+    }
+    int sum=0;
+    while(sum<m&&!st.empty()){
+        event x=*st.begin();
+        vector<event>v;
+        ll curT=x.t;
+        while(!st.empty()&&(*st.begin()).t==x.t){
+            v.pb(*st.begin());
+            st.erase(st.begin());
+        }
+        /// we have a vector of all events which happen at the same time now
+        /// first take all finished taxis and make them available
+        /// so now we have all taxis which are available @ time <=curT and we get to pick the smallest among them in distance if tie then which came first
+        ///if tie then by idx
+        /// distance is handled by binary search , ties are broken by priorityqueue
+        int i=0;
+        while(i<v.size()&&v[i].person==0){
+            int idx=v[i].house;
+            int id=v[i].idx;
+            q[idx].push(ii(-curT,-id));
+            update(idx,1);
+            i++;
+        }
+        /// all taxis who finished are done
+        /// lets handle ppl now
+        for(;i<v.size();i++){
+            int id=v[i].idx;
+            ll arrival=v[i].t;
+            waiting.push(ii(arrival,id));
+        }//cout<<v[0].t<<' '<<v[0].house<<' '<<v[0].person<<endl;
+        /// will solve ppl accoring
+        while(!waiting.empty()&&get(n)>0){
+            sum++;
+            ii cur=waiting.front();
+            waiting.pop();
+            int idx=a[cur.second],pos=get_closest(a[cur.second]);
+            /// now i have the closest distance to search for a taxi either my right or lft
+            int rgt=pos+idx,lft=idx-pos;
+            ll late=curT-cur.first;
+            bool golft=0,gorgt=0;
+            if(lft>0&&!q[lft].empty()>0)golft=1;
+            if(rgt<=n&&!q[rgt].empty()>0)gorgt=1;
+            if(pos==0)golft=0;
+            if(gorgt&&golft){
+                ii a=q[lft].top();
+                ii b=q[rgt].top();
+                a.f*=-1;
+                b.f*=-1;
+                a.s*=-1;
+                b.s*=-1;
+                int taken=0;/// 0 means take left
+                if(a.f!=b.f){///
+                    if(a.f>b.f)taken=1;
+                }
+                else{
+                    if(a.s>b.s)taken=1;
+                }
+                solve(cur.s,late+pos,taken==1?rgt:lft,curT);
+            }
+            else if(gorgt){
+                solve(cur.s,late+pos,rgt,curT);
+            }
+            else if(golft){
+                solve(cur.s,late+pos,lft,curT);
+            }
+            else
+                cout<<"ERROR\n";
+        }
+    }
+    for(int i=0;i<m;i++){
+        printf("%I64d %I64d\n",sol[i].s,sol[i].f);
+    }
+    return 0;
+}
+
+
+
+

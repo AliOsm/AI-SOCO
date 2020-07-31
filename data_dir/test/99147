@@ -1,0 +1,97 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n, q, ans[100005], val[100005], sparse[25][200005], depth[200005], node[200005], id[200005], cnt;
+vector<vector<pair<int,int>>> adj;
+
+void buildLCA(int u, int par, int dalam) {
+	node[cnt] = u;
+	id[u] = cnt;
+	depth[cnt++] = dalam;
+
+	for (int i = 0; i < adj[u].size(); i++) {
+		int v = adj[u][i].first;
+		if (v == par) continue;
+
+		buildLCA(v, u, dalam + 1);
+
+		node[cnt] = u;
+		id[u] = cnt;
+		depth[cnt++] = dalam;
+	}
+}
+
+void build() {
+	buildLCA(1, 1, 1);
+
+	for (int two = 0, len = 1; len <= cnt; two++, len *= 2) {
+		for (int l = 0; l < cnt - len + 1; l++) {
+			if (len == 1) {
+				sparse[two][l] = l;
+			} else {
+				sparse[two][l] = (depth[sparse[two - 1][l]] < depth[sparse[two - 1][l + (len >> 1)]]) ? sparse[two - 1][l] : sparse[two - 1][l + (len >> 1)];
+			}
+		}
+	}
+}
+
+int findLCA(int u, int v) {
+	int l = min(id[u], id[v]);
+	int r = max(id[u], id[v]);
+
+	int two = 0, len = 1;
+	while (len * 2 <= r - l + 1) {
+		two++;
+		len *= 2;
+	}
+
+	int target = (depth[sparse[two][l]] < depth[sparse[two][r - len + 1]]) ? sparse[two][l] : sparse[two][r - len + 1];
+	return node[target];
+}
+
+void dfs(int u, int par) {
+	for (int i = 0; i < adj[u].size(); i++) {
+		int v = adj[u][i].first;
+		int id = adj[u][i].second;
+		if (v == par) continue;
+
+		dfs(v, u);
+
+		ans[id] = val[v];
+		val[u] += val[v];
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	cin >> n;
+	adj.resize(n + 1);
+
+	for (int i = 0; i < n - 1; i++) {
+		int u, v; cin >> u >> v;
+		adj[u].push_back({v, i});
+		adj[v].push_back({u, i});
+	}
+
+	build();
+
+	cin >> q;
+	while (q--) {
+		int u, v; cin >> u >> v;
+		int lca = findLCA(u, v);
+
+		val[u]++; val[v]++;
+		val[lca] -= 2;
+	}
+
+	dfs(1, 1);
+
+	for (int i = 0; i < n - 1; i++) {
+		cout << ans[i] << (i < n - 2 ? ' ' : '\n');
+	}
+
+	return 0;
+}

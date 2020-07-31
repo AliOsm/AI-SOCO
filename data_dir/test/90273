@@ -1,0 +1,108 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for (int i = x; i < (int)(n); ++i)
+ 
+int const N = 100000, md = 1e9 + 7, inf = 1e9;
+bool vis[N + 1];
+vector<pair<int, string> > g[N + 1];
+int n, m, an[N + 1];
+ 
+string tos(int x){
+	string an;
+	while (x){
+		an += x % 10 + '0';
+		x /= 10;
+	}
+	return an;
+}
+ 
+void dag(){
+	f(i, 1, n + 1)an[i] = inf;
+	an[1] = 0;
+	priority_queue<pair<int, int> > q;
+	q.push(make_pair(0, 1));
+	while (!q.empty()){
+		int v = q.top().second, c = -q.top().first;
+		q.pop();
+		if (c > an[v])continue;
+		for (auto &u: g[v]){
+			int nc = c + u.second.size();
+			if (nc < an[u.first]){
+				an[u.first] = nc;
+				q.push(make_pair(-nc, u.first));
+			}
+		}
+	}
+}
+ 
+struct X{
+	char c;
+	string s;
+	int v, x;
+	X(){}
+	X(string z, int u, int y):s(z), v(u), x(y){
+		nxt();
+	}
+	void nxt(){
+		c = s.back();
+		s.pop_back();
+		x = ((ll)x * 10 + c - '0') % md;
+	}
+	bool operator <(X const &o)const { return c < o.c; }
+}tmp;
+ 
+vector<X> nx;
+ 
+void fn(){
+	stack<X> st;
+	st.push(X("0", 1, 0));
+	while (!st.empty()){
+		char c = st.top().c;
+		int t = st.top().x;
+		while (!st.empty() && st.top().c == c && st.top().x == t){
+			X &x = st.top();
+			if (x.s.empty()){
+				if (!vis[x.v]){
+					vis[x.v] = true;
+					an[x.v] = x.x;
+					for (auto &u: g[x.v])nx.push_back(X(u.second, u.first, x.x));
+				}
+			}else {
+				tmp = x;
+				tmp.nxt();
+				nx.push_back(tmp);
+			}
+			st.pop();
+		}
+		sort(nx.begin(), nx.end());
+		for (int i = nx.size() - 1; i >= 0; --i)st.push(nx[i]);
+		nx.clear();
+	}
+}
+ 
+int main(){
+	scanf("%d%d", &n, &m);
+	f(i, 1, m + 1){
+		int a, b;
+		scanf("%d%d", &a, &b);
+		string c = tos(i);
+		g[a].emplace_back(b, c);
+		g[b].emplace_back(a, c);
+	}
+	
+	dag();
+	
+	f(i, 1, n + 1)f(j, 0, g[i].size()){
+		int u = g[i][j].first, c = g[i][j].second.size();
+		if (an[i] + c != an[u]){
+			swap(g[i][j], g[i].back());
+			g[i].pop_back();
+			--j;
+		}
+	}
+	
+	fn();
+	
+	f(i, 2, n + 1)printf("%d\n", an[i]);
+}

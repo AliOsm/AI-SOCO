@@ -1,0 +1,148 @@
+ /// Bismillahir-Rahmanir-Rahim
+#include <bits/stdc++.h>
+#define        ll                              long long int
+#define        FOR(x,y,z)                      for(int x=y;x<z;x++)
+#define        pii                             pair<int,int>
+#define        pll                             pair<ll,ll>
+#define        CLR(a)                          memset(a,0,sizeof(a))
+#define        SET(a)                          memset(a,-1,sizeof(a))
+#define        N                               1000010
+#define        M                               1000000007
+#define        pi                              acos(-1.0)
+#define        ff                              first
+#define        ss                              second
+#define        pb                              push_back
+#define        inf                              (1e9)+1000
+#define        eps                             1e-9
+#define        ALL(x)                          x.begin(),x.end()
+using namespace std;
+int dx[]={0,0,1,-1,-1,-1,1,1};
+int dy[]={1,-1,0,0,-1,1,1,-1};
+template < class T> inline T biton(T n,T pos){return n |((T)1<<pos);}
+template < class T> inline T bitoff(T n,T pos){return n & ~((T)1<<pos);}
+template < class T> inline T ison(T n,T pos){return (bool)(n & ((T)1<<pos));}
+template < class T> inline T gcd(T a, T b){while(b){a%=b;swap(a,b);}return a;}
+template <typename T> string NumberToString ( T Number ) { ostringstream ss; ss << Number; return ss.str(); }
+inline int nxt(){int aaa;scanf("%d",&aaa);return aaa;}
+inline ll lxt(){ll aaa;scanf("%lld",&aaa);return aaa;}
+inline double dxt(){double aaa;scanf("%lf",&aaa);return aaa;}
+template <class T> inline T bigmod(T p,T e,T m){T ret = 1;
+for(; e > 0; e >>= 1){
+    if(e & 1) ret = (ret * p) % m;p = (p * p) % m;
+} return (T)ret;}
+#ifdef sayed
+     #define debug(...) __f(#__VA_ARGS__, __VA_ARGS__)
+    template < typename Arg1 >
+    void __f(const char* name, Arg1&& arg1){
+        cerr << name << " is " << arg1 << std::endl;
+    }
+    template < typename Arg1, typename... Args>
+    void __f(const char* names, Arg1&& arg1, Args&&... args){
+        const char* comma = strchr(names+1, ',');
+        cerr.write(names, comma - names) << " is " << arg1 <<" | ";
+        __f(comma+1, args...);
+    }
+#else
+    #define debug(...)
+#endif
+///******************************************START******************************************
+int ar[N];
+map<string,int> mp;
+vector<int>adj[N];
+vector<pii> query[N];
+int color[N];
+int cnt[N];
+bool big[N];
+int sz[N],level[N];
+void dfs1(int u,int d,int p=-1) {
+    sz[u] = 1;
+    level[u]=d;
+    for(auto it : adj[u]) {
+        if(it==p) continue;
+        dfs1(it,d+1,u);
+        sz[u] +=sz[it];
+    }
+}
+multiset<int> st[N];
+void add(int u, int p, int x){
+    if(x==1) {
+        int l = level[u];
+        int c = color[u];
+        if(st[l].find(c)==st[l].end()) cnt[l]++;
+        st[l].insert(c);
+    } else {
+        int l = level[u];
+        int c = color[u];
+        st[l].erase(st[l].find(c));
+        if(st[l].find(c)==st[l].end()) cnt[l]--;
+
+    }
+    for(auto v: adj[u])
+        if(v != p && !big[v])
+            add(v, u, x);
+}
+int ans[N];
+int vis[N];
+void dfs(int u, int p, bool keep){
+    int mx = -1, bigChild = -1;
+    vis[u]=1;
+    for(auto v : adj[u])
+       if(v != p && sz[v] > mx)
+          mx = sz[v], bigChild = v;
+    for(auto v : adj[u])
+        if(v != p && v != bigChild)
+            dfs(v, u, 0);  // run a dfs on small childs and clear them from cnt
+    if(bigChild != -1)
+        dfs(bigChild, u, 1), big[bigChild] = 1;  // bigChild marked as big and not cleared from cnt
+    add(u, p, 1);
+    for(auto it: query[u]) {
+        ans[it.ss] = cnt[it.ff];
+    }
+    if(bigChild != -1)
+        big[bigChild] = 0;
+    if(keep == 0)
+        add(u, p, -1);
+}
+int main(){
+    #ifdef sayed
+    //freopen("out.txt","w",stdout);
+    // freopen("in.txt","r",stdin);
+    #endif
+    //ios_base::sync_with_stdio(false);
+    //cin.tie(0);
+    int n= nxt();
+    for(int i = 0;i<n;i++) {
+        char t[50];
+        scanf("%s",t);
+        int p = nxt();
+        string s = t;
+        if(p)
+            adj[p-1].pb(i);
+        int f =0;
+        if(mp.find(s)!=mp.end()) f = mp[s];
+        else f=mp[s]= mp.size();
+        color[i]= f;
+    }
+    for(int i = 0;i<n;i++) {
+        if(level[i]==0)
+            dfs1(i,1,-1);
+    }
+    int q= nxt();
+    for(int i = 0;i<q;i++) {
+        int a= nxt()-1;
+        int k = nxt();
+        query[a].pb(make_pair(level[a]+k,i));
+    }
+    int last=-1;
+    for(int i = 0;i<n;i++){
+        if(vis[i]==0){
+            if(last>-1) add(last,-1,-1);
+            dfs(i,-1,1);
+            last = i;
+        }
+    }
+    for(int i = 0;i<q;i++) printf("%d\n",ans[i]);
+
+    return 0;
+}
+

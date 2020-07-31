@@ -1,0 +1,161 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define aLL(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#define __gcd gcd
+#else
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+namespace FFT {
+
+    typedef double T;
+    const T PI = acos(-1.0);
+
+//    typedef C < double > C;
+
+    struct C {
+        T re, im;
+        C () : re(0), im(0) {}
+        C (T r) : re(r), im(0) {}
+        C (T r, T i) : re(r), im(i) {}
+        C operator * (const C &c) const {
+            return C(re * c.re - im * c.im, im * c.re + re * c.im);
+        }
+        C operator + (const C &c) const {
+            return C(re + c.re, im + c.im);
+        }
+        C operator - (const C &c) const {
+            return C(re - c.re, im - c.im);
+        }
+        void operator += (const C &c) {
+            re += c.re;
+            im += c.im;
+        }
+        C conj() const {
+            return C(re, -im);
+        }
+    };
+    T real (C x) { return x.re; }
+
+    typedef vector < C > VC;
+    typedef vector < LL > VLL;
+
+    inline void FFT(C *a, int n, int dir)
+    {
+        for(int j = 0; j < n; j++)
+        {
+            int rev = 0;
+            for(int i = 1; i < n; i <<= 1)
+            {
+                rev <<= 1;
+                if(j & i) rev |= 1;
+            }
+            if(j < rev) swap(a[j], a[rev]);
+        }
+        for(int p = 2; p <= n; p <<= 1)
+        {
+            C wn(cos(2.0 * dir * PI / p), sin(2.0 * dir * PI / p));
+            for(int k = 0; k < n; k += p)
+            {
+                C w = 1;
+                for(int j = 0; j < (p >> 1); j++)
+                {
+                    C xx = a[k + j];
+                    C yy = w * a[k + j + (p >> 1)];
+                    a[k + j] = xx + yy;
+                    a[k + j + (p >> 1)] = xx - yy;
+                    w = w * wn;
+                }
+            }
+        }
+    }
+
+    void multiply(vector<LL> &a, vector<LL> &b, vector<LL> &res) 
+    {
+        int n = max(a.size(), b.size()), p = 1;
+        while(p < n) p <<= 1;
+        p <<= 1;
+        C *fa = new C[p];
+        for(int i = 0; i < a.size(); i++) fa[i] += C(a[i], 0);
+        for(int i = 0; i < b.size(); i++) fa[i] += C(0, b[i]);
+        FFT(fa, p, 1);
+        for(int i = 0; i <= p/2; i++) {
+            C bp = fa[i] + fa[(p - i) % p].conj();
+            C _q = fa[(p - i) % p] - fa[i].conj();
+            C q(_q.im, _q.re);
+            fa[i] = (bp * q) * C(0.25);
+            if(i > 0) fa[p - i] = fa[i].conj();
+        }
+        FFT(fa, p, -1);
+        res.resize(p);
+        for(int i = 0; i < p; i++) {
+            res[i] = round(fa[i].re / p);
+        }
+    }
+}
+
+const int N = 1e6 + 7;
+
+int n, x, v[N];
+int p[N];
+
+int main()
+{
+    _upgrade
+	cin >> n >> x;
+
+	vector < LL > a(2 * n + 5, 0), ans(2 * n + 5), b(2 * n + 5, 0);
+
+	for(int i = 0; i < n; i++)
+    {
+		cin >> v[i];
+		p[i+1] = v[i] < x;
+	}
+
+	LL fs = 0;
+
+	for(int i = 1; i <= n; i++) 
+    {
+        if(!p[i])
+        {
+            int j = i;
+            while(j + 1 <= n && !p[j + 1]) 
+                j++;
+            int sz = j - i + 1;
+            fs += 1LL * sz * (sz + 1) / 2;
+            i = j;
+	    }
+    }
+
+	partial_sum(p, p + N, p);
+
+	for(int i = 0; i <= n; i++)
+		a[p[i]]++;
+	
+	for(int i = 0; i <= n; i++)
+		b[n - p[i]]++;
+		
+	FFT::multiply(a, b, ans);
+
+	cout << fs << " ";
+	for(int i = n + 1; i <= n + n; i++)
+		cout << ans[i] << " ";
+    return 0;
+}

@@ -1,0 +1,142 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define loop(i,n) for(int i = 0;i < int(n);i++)
+#define rloop(i,n) for(int i = int(n);i >= 0;i--)
+#define range(i,a,b) for(int i = int(a);i <= int(b);i++)
+#define SZ(c) int(c.size())
+#define ALL(c) c.begin(), c.end()
+#define RALL(c) c.rbegin(), c.rend()
+#define PI acos(-1)
+#define pb push_back
+#define mp make_pair
+#define fr first
+#define sc second
+#define sfi1(v) scanf("%d",&v)
+#define sfi2(v1,v2) scanf("%d %d",&v1,&v2)
+#define sfi3(v1,v2,v3) scanf("%d %d %d",&v1,&v2,&v3)
+#define sfll1(v) scanf("%I64d",&v);
+#define sfll2(v1,v2) scanf("%I64d %I64d",&v1,&v2)
+#define sfll3(v1,v2,v3) scanf("%I64d %I64d %I64d",&v1,&v2,&v3)
+
+typedef vector<int> vi;
+typedef vector<pair<int,int> > vii;
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int N = 1e5 + 5;
+const int M = N*4;
+int v[N] , tree[N] , vis[N];
+int s[M] , idx[N];
+int dp[N];
+int n;
+
+void build(int id = 1,int l = 0,int r = n){
+	if(r - l < 2){	//	l + 1 == r
+		s[id] = n;
+		return ;
+	}
+	int mid = (l+r)/2;
+	build(id * 2, l, mid);
+	build(id * 2 + 1, mid, r);
+	s[id] = n;
+}
+
+void modify(int p,int x,int id = 1,int l = 0,int r = n){
+	if(r - l < 2){	//	l = r - 1 = p
+		s[id] = x;
+		return ;
+	}
+
+	int mid = (l + r)/2;
+	if(p < mid)
+		modify(p, x, id * 2, l, mid);
+	else
+		modify(p, x, id * 2 + 1, mid, r);
+    s[id] = min(s[id*2] , s[id*2+1]);
+}
+
+int query(int x,int y,int id = 1,int l = 0,int r = n){
+	if(x >= r or l >= y)	return n;
+	if(x <= l && r <= y)	return s[id];
+	int mid = (l+r)/2;
+	return min(query(x, y, id * 2, l, mid)  , query(x, y, id * 2 + 1, mid, r));
+}
+
+
+void increase(int i, int delta)
+{
+    for (; i < N; i |= i + 1)
+        tree[i] += delta;
+}
+
+int sum(int i)
+{
+	int ans = 0;
+	for (; i >= 0; i = (i & (i + 1)) - 1)
+		ans += tree[i];
+	return ans;
+}
+
+int getsum(int l , int r){
+    if(l > r)return 0;
+    if(l)return dp[r] - dp[l-1];
+    return dp[r];
+}
+
+int main()
+{
+
+#ifndef ONLINE_JUDGE
+	//freopen("in.in", "r", stdin);
+	//freopen("out.in", "w", stdout);
+	//ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#endif
+    sfi1(n);
+    loop(i,n)sfi1(v[i]) , v[i]--;
+    build();
+
+    int cur = 0;
+    loop(i,n){
+        int s = sum(v[i]);
+        s = i - s;
+        if(!s)cur++ , vis[i] = 1;
+        increase(v[i],1);
+    }
+
+    loop(i,n)increase(v[i],-1);
+    loop(i,n){
+        int s = sum(v[i]);
+        s = i - s;
+        if(s == 1)dp[i] = 1;
+        increase(v[i],1);
+        if(i)dp[i] += dp[i-1];
+    }
+
+    rloop(i,n-1){
+        idx[i] = query(v[i]+1 , n);
+        modify(v[i] , i);
+    }
+
+    int ans = v[0];
+    int best = -1;
+
+    loop(i,n){
+        int nw = cur;
+        if(vis[i])nw--;
+        nw += getsum(i+1 , idx[i]-1);
+        //cout << i << " " << nw << endl;
+        if(nw > best){
+            best = nw;
+            ans = v[i];
+        }
+
+        if(nw == best){
+            ans = min(ans , v[i]);
+        }
+    }
+
+    printf("%d\n",ans+1);
+
+    return 0;
+}

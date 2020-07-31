@@ -1,0 +1,185 @@
+#include "bits/stdc++.h"
+#define MAXN 100009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+const int N=1e7+5;
+int lp[N],id[N],lca[MAXN],in[MAXN],ans[MAXN];
+int P[MAXN][20],out[MAXN],TIM,n,lvl[MAXN];
+vector<int>adj[MAXN];
+vector<PII>query[MAXN*7];
+PII arr[MAXN];
+int mod(ll x){x%=INF;
+	if(x<0)
+		x+=INF;
+	return x;	
+}
+int Fe(int x,int y){
+	if(!y)
+		return 1;
+	int h=Fe(x,y/2);
+	h=mod(h*1LL*h);
+	if(y&1)
+		h=mod(h*1LL*x);
+	return h;	
+}
+struct tree{
+	int F[MAXN];
+	void upd(int x,int val){
+		for(;x<MAXN;x+=x&(-x))
+			F[x]+=val;
+	}
+	int tap(int x){
+		int res=0;
+		for(;x;x-=x&(-x))
+			res+=F[x];
+		return res;
+	}
+}A,B;
+void dfs(int nd,int pr){
+	in[nd]=++TIM;
+	lvl[nd]=(~pr?lvl[pr]+1:1);
+	P[nd][0]=pr;
+	for(int i=0;i<int(adj[nd].size());i++){
+		int to=adj[nd][i];
+		if(to==pr)
+			continue;
+		dfs(to,nd);	
+	}out[nd]=TIM;
+}
+void build(){
+	for(int j=1;j<=17;j++)
+		for(int i=1;i<=n;i++)
+			if(~P[i][j-1])
+				P[i][j]=P[P[i][j-1]][j-1];
+}	
+int LCA(int x,int y){
+	if(lvl[x]<lvl[y])
+		swap(x,y);
+	for(int i=17;i>=0;i--)
+		if(~P[x][i] and lvl[x]-(1<<i)>=lvl[y])
+			x=P[x][i];
+	if(x==y)
+		return x;
+	for(int i=17;i>=0;i--)
+		if(~P[x][i] and P[x][i]!=P[y][i])
+			x=P[x][i],y=P[y][i];
+	return P[x][0];	
+}
+int main(){
+    //~ freopen("file.in", "r", stdin);
+    vector<int>pr;
+    for(int i=2;i<N;i++){
+		if(lp[i])
+			continue;
+		id[i]=pr.size();
+		pr.pb(i);
+		for(int j=i;j<N;j+=i)
+			if(!lp[j])
+				lp[j]=i;
+	}
+	scanf("%d",&n);
+	for(int i=1;i<n;i++){
+		int u,v;
+		scanf("%d%d",&u,&v);
+		adj[u].pb(v);
+		adj[v].pb(u);
+	}dfs(1,-1);
+	build();
+	for(int i=1;i<=n;i++){
+		int x;
+		scanf("%d",&x);
+		int last=-1,cnt=0;
+		while(x>1){
+			if(~last and last!=lp[x]){
+				query[id[last]].pb(mp(cnt,i));
+				cnt=1;
+			}
+			else
+				cnt++;
+			last=lp[x];	
+			x/=lp[x];
+		}
+		query[id[last]].pb(mp(cnt,i));
+	}
+	int q;
+	scanf("%d",&q);
+	for(int i=1;i<=q;i++){
+		int u,v,x;
+		scanf("%d%d%d",&u,&v,&x);
+		lca[i]=LCA(u,v);
+		arr[i]=mp(u,v);
+		int last=-1,cnt=0;
+		while(x>1){
+			if(~last and last!=lp[x]){
+				query[id[last]].pb(mp(cnt,-i));
+				cnt=1;
+			}
+			else
+				cnt++;
+			last=lp[x];	
+			x/=lp[x];
+		}
+		query[id[last]].pb(mp(cnt,-i));ans[i]=1;
+	}
+	for(int i=0;i<int(pr.size());i++){
+		int nd=i;
+		if(query[nd].size()==0)
+			continue;	
+		sort(all(query[nd]));
+		for(int j=0;j<int(query[nd].size());j++){
+			int ind=query[nd][j].ss;
+			if(ind>=1){	
+				B.upd(in[ind],+1);
+				B.upd(out[ind]+1,-1);
+			}
+		}
+		for(int j=0;j<int(query[nd].size());j++){
+			int cnt=query[nd][j].ff;
+			int ind=query[nd][j].ss;
+			//~ cout<<cnt<<" "<<ind<<endl;
+			if(ind>=1){
+				B.upd(in[ind],-1);
+				B.upd(out[ind]+1,+1);
+				A.upd(in[ind],cnt);
+				A.upd(out[ind]+1,-cnt);
+			}
+			else{ind*=-1;
+				int u=arr[ind].ff,v=arr[ind].ss,z=lca[ind];
+				int a=A.tap(in[u])+A.tap(in[v])-A.tap(in[z]);
+				int b=B.tap(in[u])+B.tap(in[v])-B.tap(in[z]);
+				if(z>1){
+					a-=A.tap(in[P[z][0]]);
+					b-=B.tap(in[P[z][0]]);
+				}
+				assert(b*cnt+a<INF);
+				ans[ind]=mod(ans[ind]*1LL*Fe(pr[i],b*cnt+a));
+			}
+		}
+		for(int j=0;j<int(query[nd].size());j++){
+			int ind=query[nd][j].ss;
+			int cnt=query[nd][j].ff;
+			if(ind>=1){	
+				A.upd(in[ind],-cnt);
+				A.upd(out[ind]+1,+cnt);
+			}
+		}	
+	}
+	for(int i=1;i<=q;i++)
+		printf("%d\n",ans[i]);
+	return 0;
+}

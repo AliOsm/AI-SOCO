@@ -1,0 +1,116 @@
+
+#include<bits/stdc++.h>
+#include<ctime>
+#include<random>
+using namespace std;
+
+struct FordFulkerson{  //O(maxflow*E)
+	struct st{
+		int to;
+		int cap;
+		int rev;
+	};
+	vector<vector<st> > v;
+	int ans;
+	void resize(int N){
+		v.resize(N, vector<st>());
+		ans = 0;
+	}
+	void add_edge(int from, int to, int cap){
+		v[from].push_back({ to, cap, v[to].size() });
+		v[to].push_back({ from, 0, v[from].size() - 1 });
+	}
+	vector<int> use;
+	int u_s;
+
+	inline void dfs(int b,int go,int &mx){
+		if (b == go){
+			return;
+		}
+		use[b] = u_s;
+		for (auto &nex : v[b]){
+			if (use[nex.to] != u_s){
+				if (nex.cap == 0)continue;
+				int wa = min(mx,nex.cap);
+				dfs(nex.to, go, wa);
+				if (wa == 0){
+					continue;
+				}
+				nex.cap -= wa;
+				v[nex.to][nex.rev].cap += wa;
+				mx = wa;
+				return;
+			}
+		}
+		mx = 0;
+	}
+	int maximum_flow(int from, int to){
+		use.assign(v.size(), -1);
+		u_s=0;
+		while (1){ 
+			u_s++;
+			int mx = INT_MAX;
+			dfs(from, to, mx);
+			if (mx == 0){
+				break;
+			}
+			ans += mx;
+		}
+		return ans;
+	}
+};
+#define MAX 5002
+int n;
+int m;
+FordFulkerson F;
+
+vector<pair<int, int> > vv;
+
+int main(){
+	cin >> n >> m;
+	F.resize(n + m + 2);
+	int star = n + m;
+	int en = n + m + 1;
+	for (int i = 0; i < m; i++){
+		int a, b;
+		scanf("%d%d", &a, &b);
+		a--;
+		b--;
+		F.add_edge(star, i, 1);
+		F.add_edge(i, m+a, 1);
+		F.add_edge(i, m + b, 1);
+		vv.push_back(make_pair(a, b));
+	}
+	for (int i = 0; i < n; i++){
+		F.add_edge(m + i, en, 0);
+	}
+	int ans = 0;
+	while (1){
+		int mx = F.maximum_flow(star, en);
+		if (mx == m){
+			break;
+		}
+		for (int i = m; i < n+m; i++){
+			for (int j = 0; j < F.v[i].size(); j++){
+				if (F.v[i][j].to == en){
+					F.v[i][j].cap++;
+				}
+			}
+		}
+		ans++;
+	}
+	cout << ans << endl;
+	for (int i = 0; i < m; i++){
+		for (int j = 0; j < F.v[i].size(); j++){
+			if (F.v[i][j].cap == 0){
+				if (F.v[i][j].to != star){
+					if (vv[i].first != F.v[i][j].to-m){
+						swap(vv[i].first, vv[i].second);
+					}
+					printf("%d %d\n", vv[i].first+1, vv[i].second+1);
+				}
+			}
+		}
+	}
+	return 0;
+}

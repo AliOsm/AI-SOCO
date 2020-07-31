@@ -1,0 +1,104 @@
+#include <iostream>
+#include <cassert>
+#include <vector>
+#include <deque>
+#include <algorithm>
+#include <utility>
+
+using namespace std;
+
+typedef long long tint;
+
+#define forn(i,n) for(tint i=0;i<(tint)(n); i++)
+
+void dfsVisita (deque<tint> &ordenDfs, vector<bool> &visitado, vector<vector<tint> > &listaVecinos, tint nodo, tint k, vector<tint> &scc)
+{
+	// ACA COMIENZA LA VISITA
+	visitado[nodo] = true;
+	for (auto vecino : listaVecinos[nodo])
+		if (!visitado[vecino])
+			dfsVisita(ordenDfs,visitado,listaVecinos,vecino,k,scc);
+	// ACA FINALIZA LA VISITA
+	scc[nodo] = k;
+	ordenDfs.push_front(nodo); /* Notar que lo ponemos al principio para 
+								* que quede directamente ordenado por 
+								* orden decreciente de finalizacion */
+}
+
+deque<tint> dfs (vector<bool> &visitado, deque<tint> &orden, vector<vector<tint> > &listaVecinos, vector<tint> &scc)
+{
+	tint k = 0;
+	deque<tint> ordenDfs;
+	for(auto nodo : orden)
+		if (!visitado[nodo])
+			dfsVisita(ordenDfs,visitado,listaVecinos, nodo,k++,scc);
+	return ordenDfs;
+}
+
+const tint nmod = 1000000007;
+
+int main()
+{
+	#ifdef ACMTUYO
+		assert(freopen("entrada.in", "r", stdin));
+	#endif
+	ios_base::sync_with_stdio(0);
+	cin.tie(NULL);
+	
+	tint n;
+	while (cin >> n)
+	{
+		
+		/* Leemos la entrada, y guardamos la lista de adyacencia del 
+		 * grafo original y su transpuesto (vamos a usar Kosaraju) */
+		vector<vector<tint> > listaVecinosOriginal (n);
+		vector<vector<tint> > listaVecinosTranspuesto (n);
+		vector<tint> costo (n);
+		forn(i,n)
+			cin >> costo[i];
+		tint m;
+		cin >> m;
+		forn(i,m)
+		{
+			tint u,v;
+			cin >> u >> v; 
+			// Las aulas vienen numeradas desde 1, de ahi el "-1"
+			listaVecinosOriginal[u-1].push_back(v-1);
+			listaVecinosTranspuesto[v-1].push_back(u-1);
+		}
+		// La funcion dfs, toma un orden en el que genera el dfs-forest
+		deque<tint> ordenUsual (n);
+		forn(i,n)
+			ordenUsual[i] = i;
+		vector<bool> visitado (n,false);
+		vector<tint> scc (n); 
+		deque<tint> ordenDfs = dfs(visitado, ordenUsual, listaVecinosOriginal,scc);
+		forn(i,n)
+			visitado[i] = false;
+		ordenDfs = dfs(visitado,ordenDfs,listaVecinosTranspuesto,scc);
+		
+		// EN "scc[i]" esta guardada la componente fuertemente conexa del nodo i 
+		
+		vector<pair<tint,tint> > r (*max_element(scc.begin(),scc.end())+1,{1e15,1e15});
+		forn(i,n)
+		{
+			if (costo[i] < r[scc[i]].first)
+				r[scc[i]] = {costo[i],1};
+			else if (costo[i] == r[scc[i]].first)
+				r[scc[i]].second++;
+		}
+		
+		pair<tint,tint> ans = {0,1};
+		for (auto x : r)
+			ans = {ans.first + x.first, (ans.second * x.second) % nmod};
+		cout << ans.first << " " << ans.second << "\n";	
+		
+		
+	}
+	return 0;
+}
+
+
+
+
+

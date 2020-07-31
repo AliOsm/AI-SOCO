@@ -1,0 +1,153 @@
+		//	   - -- --- ---- -----be name khoda----- ---- --- -- -		\\
+
+#include <bits/stdc++.h>
+using namespace std;
+
+inline int in() { int x; scanf("%d", &x); return x; }
+const int N = 404, Q = 4 * N * N;
+
+bool t1[Q], t2[Q], mark[N], isV[40], g[N][N], gR[N][N];
+int pos1[Q], pos2[Q], comp[N], val[N];
+stack <int> stk;
+int n, q, l;
+
+void _addE(int u, int v)
+{
+	g[u][v] = 1;
+	gR[v][u] = 1;
+//	cerr << "(" << u/2 << ", " << u % 2 << ") => (" << v/2 << ", " << v % 2 << ")\n";
+}
+
+void addE(int u, int v)
+{
+	_addE(u, v);
+	_addE(v ^ 1, u ^ 1);
+}
+
+void dfs(int v)
+{
+	mark[v] = 1;
+	for(int u = 0; u < 2 * n; u++)
+		if(g[v][u] && !mark[u])
+			dfs(u);
+	stk.push(v);
+}
+
+void filC(int v, int c)
+{
+	comp[v] = c;
+	for(int u = 0; u < 2 * n; u++)
+		if(gR[v][u] && !comp[u])
+			filC(u, c);
+}
+
+bool check(int pref)
+{
+	for(int i = 0; i < 2 * n; i++)
+	{
+		fill(g[i], g[i] + 2 * n, 0);
+		fill(gR[i], gR[i] + 2 * n, 0);
+	}
+	for(int i = 0; i < q; i++)
+		addE(pos1[i] * 2 + t1[i], pos2[i] * 2 + t2[i]);
+	for(int i = 0; i < pref; i++)
+	{
+		if(isV[val[i]])
+			addE(i * 2, i * 2 + 1);
+		else
+			addE(i * 2 + 1, i * 2);
+	}
+	for(int i = pref; i < n; i++)
+	{
+		bool ok = 0;
+		for(int c = val[i]; c < l; c++)
+			if(isV[c] != isV[val[i]])
+				ok = 1;
+		if(!ok)
+			addE(i * 2 + isV[val[i]] ^ 1, i * 2 + isV[val[i]]);
+	}
+	fill(mark, mark + 2 * n, 0);
+	fill(comp, comp + 2 * n, 0);
+	stack <int>().swap(stk);
+	for(int i = 0; i < 2 * n; i++)
+		if(!mark[i])
+			dfs(i);
+	int cmps = 1;
+	while(stk.size())
+	{
+		int i = stk.top();
+		stk.pop();
+		if(!comp[i])
+			filC(i, cmps++);
+	}
+	for(int i = 0; i < 2 * n; i += 2)
+		if(comp[i] == comp[i ^ 1])
+			return 0;
+	return 1;
+}
+
+int main()
+{
+	string cc;
+	cin >> cc;
+	l = cc.size();
+	for(int i = 0; i < l; i++)
+		isV[i] = (cc[i] == 'V');
+	cin >> n >> q;
+	for(int i = 0; i < q; i++)
+	{
+		char c1, c2;
+		scanf("%d %c %d %c", pos1 + i, &c1, pos2 + i, &c2);
+		pos1[i]--;
+		pos2[i]--;
+		t1[i] = (c1 == 'V');
+		t2[i] = (c2 == 'V');
+	}
+	string s;
+	cin >> s;
+	for(int i = 0; i < n; i++)
+		val[i] = s[i] - 'a';
+	if(check(n))
+	{
+		cout << s << endl;
+		return 0;
+	}
+	int fz;
+	for(fz = n - 1; fz >= 0; fz--)
+	{
+		if(val[fz] + 1 >= l)
+		{
+			val[fz] = 0;
+			continue;
+		}
+		val[fz]++;
+		if(check(fz + 1))
+			break;
+		int x = isV[val[fz]];
+		while(isV[val[fz]] == x && val[fz] + 1 < l) 
+			val[fz]++;
+		if(check(fz + 1))
+			break;
+		val[fz] = 0;
+	}
+	if(fz < 0)
+	{
+		cout << "-1\n";
+		return 0;
+	}
+	for(int i = fz + 1; i < n; i++)
+	{
+		if(check(i + 1))
+			continue;
+		int x = isV[val[i]];
+		while(isV[val[i]] == x && val[i] + 1 < l) 
+			val[i]++;
+		if(isV[val[i]] != x && check(i + 1))
+			continue;
+		cout << "-1\n";
+		return 0;
+	}
+	for(int i = 0; i < n; i++)
+		cout << char('a' + val[i]);
+	cout << endl;
+}

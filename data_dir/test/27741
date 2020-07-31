@@ -1,0 +1,170 @@
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <queue>
+#include <algorithm>
+#include <map>
+#include <cmath>
+#include <set>
+#include <deque>
+#include <cstdio>
+#include <cstring>
+#include <iomanip>
+
+#define pb push_back
+#define mp make_pair
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pi;
+typedef pair<long long, long long> pll;
+
+const int MOD = 1e9 + 7;
+
+struct Node{
+	long long tot;
+	long long left, right;
+	long long lazy;
+	
+};
+Node ST[800005];
+int v[222222];
+
+void build(int node, int lo, int hi){
+	
+	ST[node].lazy = 0;
+	ST[node].left = 0;
+	ST[node].right = 0;
+	
+	if(lo == hi){
+		
+		ST[node].tot = v[lo];
+		
+		return;
+	}
+	
+	int mid = (lo + hi) / 2;
+	build(2*node, lo, mid);
+	build(2*node+1, mid+1, hi);
+	
+	ST[node].left = ST[2*node].tot;
+	ST[node].right = ST[2*node+1].tot;
+	
+	ST[node].tot = ST[node].left + ST[node].right;
+	
+}
+
+void push_down(int node, int lo, int hi){
+	
+	if(ST[node].lazy){
+		
+		ST[node].tot -= ST[node].lazy;
+		
+		if(lo != hi){
+			
+			long long left_share = min(ST[node].left, ST[node].lazy);
+			ST[node].left -= left_share;
+			
+			ST[node].lazy -= left_share;
+			
+			long long right_share = min(ST[node].right, ST[node].lazy);
+			ST[node].right -= right_share;
+			ST[node].lazy -= right_share;
+			ST[2*node].lazy += left_share;
+			ST[2*node+1].lazy += right_share;
+		}
+		
+		ST[node].lazy = 0;
+	}
+}
+
+long long update(int node, int lo, int hi, int i, int j, long long x){
+	
+	push_down( node, lo, hi);
+	
+	if(i > hi || j < lo)
+		return 0LL;
+	
+	int mid = (lo + hi) >> 1;
+	
+	if(lo >= i && hi <= j){
+		long long will_take = min(ST[node].tot, x);
+		ST[node].tot -= will_take;
+		
+		if(lo != hi){
+			long long left_share = min(ST[node].left, x);
+			ST[node].left -= left_share;
+			ST[node<<1].lazy += left_share;
+			
+			x -= left_share;
+			
+			long long right_share = min(ST[node].right, x);
+			ST[node].right -= right_share;
+			ST[(node<<1)+1].lazy += right_share;
+			
+		}
+		return will_take;
+	}
+	
+	long long taken_left = update(2*node, lo, mid, i, j, x);
+	x -= taken_left;
+	
+	long long taken_right = update(2*node+1, mid+1, hi, i, j, x);
+	
+	
+	ST[node].left = ST[2*node].tot;
+	ST[node].right = ST[2*node+1].tot;
+	ST[node].tot = ST[node].left + ST[node].right;
+	return taken_left + taken_right;
+	
+}
+
+int query(int node, int lo, int hi, int pos){
+
+	push_down(node, lo, hi);
+	
+	if(lo == hi)
+		return ST[node].tot;
+	
+	
+	int mid = (lo+hi)>>1;
+	
+	
+	if( pos > mid)
+		return query(2*node+1, mid + 1, hi, pos);
+	else
+		return query(2*node, lo, mid, pos);
+		
+}
+int main(){
+
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	cout.tie(0);
+	
+	int n; cin >> n;
+	
+	for(int i = 0; i < n; i++)
+		cin >> v[i];
+	
+	build(1, 0, n-1);
+	
+	int q;  cin >> q;
+	
+	for(int i = 0; i < q; i++){
+		int t; cin >> t;
+		
+		if(t == 1){
+			int p, x; cin >> p >> x;
+			
+			update(1, 0, n-1, p - 1, n - 1, x);
+			
+		}else{
+			int k; cin >> k;
+			
+			cout << v[k - 1] - max(0, query(1, 0, n-1, k - 1)) << "\n";
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,90 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ff first
+#define ss second
+using ll = long long; using ld = long double; const char nl = '\n';
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+
+#include <bits/extc++.h>
+namespace pbds =  __gnu_pbds;
+template <typename key, typename val=pbds::null_type, typename comp=less<key>>
+using ostree=pbds::tree<key,val,comp,pbds::rb_tree_tag,pbds::tree_order_statistics_node_update>;
+using vi = vector< int >; using vll = vector< ll >;
+#define all(x) std::begin(x), std::end(x)
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+template <typename...Args, template<typename...> typename T> string to_string(T<Args...> const&);
+string to_string(string const&s){return '"'+s+'"';}
+string to_string(char const &c) {return to_string(string(1,c));}
+string to_string(char const *c) {return to_string(string(c));}
+string to_string(bool const &b) {return (b ? "1" : "0");}
+template<typename... Args> string to_string(pair<Args...> const&p)
+{return "("+to_string(p.first)+", "+to_string(p.second)+")";}
+template <typename...Args, template<typename...> typename T> string to_string(T<Args...> const&S)
+{string s = "{"; for(auto const& e: S)s+=" "+to_string(e);s+=" }"; return s;}
+template<typename Tail> void debug_out(Tail t) {cerr<<" "<<to_string(t)<<" ]"<<endl;}
+template<typename Head, typename... Tail> void debug_out(Head h, Tail... t)
+{cerr << " " << to_string(h) << ","; debug_out(t...);}
+#define pr(...) cerr<<"["<<(#__VA_ARGS__)<<"] : [", debug_out(__VA_ARGS__)
+template <typename T> void dbr(T lb, T ub)
+{cerr<<'{';for(auto it=lb; it!=ub; it++)cerr<<' '<<to_string(*it); cerr<<" }"<<endl;}
+template<typename T, typename Comp=less<T>> bool setMin(T &mem, const T&v, Comp comp = Comp())
+{return comp(v, mem) ? mem = v, true : false;}
+template<typename T, typename Comp=less<T>> bool setMax(T &mem, const T&v, Comp comp = Comp())
+{return comp(mem, v) ? mem = v, true : false;}
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */
+
+int n, m, a[16][10000];
+int del[16][16], delshift[16][16];
+
+int dp[16][16][1<<16];
+const int INF = 1e9 + 7.2;
+
+int fx(int u, int v, int mask) {
+  auto&d = dp[u][v][mask];
+  if( d != -1 ) return d;
+  if( mask == ((1<<u)|(1<<v)) ) return del[u][v];
+  d = 0;
+  for(int i=0; i<n; i++) {
+    if( i == u ) continue;
+    if( (mask & (1<<i)) == 0 ) continue;
+    auto ret = fx(u, i, mask^(1<<v));
+    setMax(d, min(ret, del[i][v]));
+  }
+  return d;
+}
+
+int main() {
+  ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+
+  cin >> n >> m;
+  for(int i=0; i<n; i++)
+    for(int j=0; j<m; j++) cin>>a[i][j];
+
+  if( n == 1 ) { int ans = INF; for(int j=1; j<m; j++) setMin(ans, abs(a[0][j] - a[0][j-1])); cout << ans << endl; return 0; }
+
+  for(int i=0; i<n; i++)
+    for(int j=0; j<i; j++) {
+      int foo = INF;
+      for(int col = 0; col < m; col++) setMin(foo, abs(a[i][col] - a[j][col]));
+      del[i][j] = del[j][i] = foo;
+    }
+
+  for(int i=0; i<n; i++)
+    for(int j=0; j<n; j++) { // i to j
+      if( i == j ) { delshift[i][j] = 0; continue; }
+      int foo = INF;
+      for(int col=1; col<m; col++) setMin(foo, abs(a[i][col] - a[j][col-1]));
+      delshift[i][j] = foo;
+    }
+
+  memset(dp, -1, sizeof dp);
+  int ans = 0;
+  for(int i=0; i<n; i++) {
+    for(int j=0; j<n; j++) {
+      if( i == j ) { continue; }
+      setMax(ans, min(delshift[i][j], fx(i, j, -1+(1<<n))));
+    }
+  }
+  cout << ans << nl;
+}
+/* -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- -*- */

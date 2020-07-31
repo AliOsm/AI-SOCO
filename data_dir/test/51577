@@ -1,0 +1,131 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+const LL MOD = 998244353;
+
+LL sum(LL a, LL b)
+{
+    return a+b >= MOD?a+b-MOD:a+b;
+}
+LL sub(LL a, LL b)
+{
+    return a-b < 0?a-b+MOD:a-b;
+}
+LL mul(LL a, LL b)
+{
+    return (a*b)%MOD;
+}
+
+int k;
+
+
+int flg[20][1<<10];
+LL dp[20][1<<10];
+LL dp2[20][1<<10];
+
+LL p10[20];
+
+typedef pair<LL,LL>PLL;
+PLL solve(int ps, int msk)
+{
+    int cnt = __builtin_popcount(msk);
+    if (cnt > k) return PLL(0, 0);
+    if (ps==-1) return PLL(1, 0);
+
+    LL &ans = dp[ps][msk];
+    LL &ans2 = dp2[ps][msk];
+    if (flg[ps][msk]) return PLL(ans2, ans);
+    flg[ps][msk] = 1;
+
+    ans = 0;
+    ans2 = 0;
+    for (int i = 0; i < 10; i++) {
+        PLL p = solve(ps-1, msk|(1<<i));
+        LL tmp = mul(p10[ps], mul(p.first, i));
+        ans = sum(ans, sum(tmp, p.second));
+        ans2 = sum(p.first, ans2);
+//        cout << ans << endl;
+    }
+
+//    cout << ans2 << " - " << ans << " for " << ps << " " << bitset<10>(msk) << endl;
+    return PLL(ans2, ans);
+}
+
+vector<LL>digs(LL n)
+{
+    vector<LL>rt;
+    if (n==0) {
+        rt.push_back(0);
+        return rt;
+    }
+    while (n > 0) {
+        rt.push_back(n%10);
+//        cout << n%10 << ' ';
+        n /= 10;
+    }
+//    cout << endl;
+    return rt;
+}
+
+LL total(int ps)
+{
+    LL ans = 0;
+    for (int i = 1; i < 10; i++) {
+        PLL p = solve(ps-1, 1<<i);
+        ans = sum(ans,sum(p.second, mul(p.first, mul(p10[ps], i))));
+    }
+//    cout << ans << " dig " << ps+1 << endl;
+    return ans;
+}
+
+LL fff(vector<LL>vs)
+{
+    int n = vs.size()-1;
+
+    LL ans = 0;
+    for (int i = 0; i < n; i++) ans = sum(ans, total(i));
+
+    int msk = 0;
+
+    LL geez = 0;
+    for (int i = n; i >= 0; i--) {
+        for (int j = (i == n); j < vs[i]; j++) {
+            PLL p = solve(i-1, msk|(1<<j));
+            LL tmp = p.second;
+            tmp = sum(tmp, mul(p.first, sum(geez, mul(p10[i], j))));
+            ans = sum(ans, tmp);
+        }
+        msk |= (1<<vs[i]);
+        geez = sum(geez, mul(p10[i], vs[i]));
+//        cout << ans << " for " << i << endl;
+    }
+
+    ans = sum(ans, mul(geez, solve(-1, msk).first));
+
+    return ans;
+}
+int main()
+{
+    p10[0] = 1;
+    for (int i = 1; i < 20; i++) {
+        p10[i] = mul(p10[i-1], 10);
+    }
+
+    LL l, r;
+    cin >> l >> r >> k;
+
+    vector<LL>L(digs(l-1));
+    vector<LL>R(digs(r));
+//    cout << "her " << endl;
+//    for (LL p : R) cout << p << ' ';
+//    cout << endl;
+    LL x = fff(R);
+//    cout << "x " << x << endl;
+    LL y = fff(L);
+//    cout << "y " << y << endl;
+
+
+    cout << sub(x, y) << endl;
+
+    return 0;
+}

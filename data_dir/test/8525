@@ -1,0 +1,36 @@
+#include <bits/stdc++.h>
+#define LL long long int
+using namespace std;
+int const MAXN = 5e6+9;
+int p [MAXN];
+LL nDiv [MAXN];
+LL get_nDiv (int x){
+    LL ret = 0;
+    while (x > 1){
+        int d = p[x];
+        while (x % d == 0){
+            ret++;
+            x/=d;
+        }
+    }
+    return ret;
+
+}
+int main (){
+    ios_base::sync_with_stdio(0);
+    cin . tie(0), cout.tie (0);
+    p [1] = 1;
+    for (int i = 2; i < MAXN ; i++)
+        if ( !p[i] )
+            for (int j = i; j < MAXN; j+=i)
+                p[j] = i;
+    for (int i = 1 ; i < MAXN; i++)
+        nDiv [i] = nDiv [i-1] + get_nDiv(i);
+    int T;
+    cin >> T;
+    while (T--){
+        int a , b;
+        cin >> a >> b;
+        cout<< nDiv[a] - nDiv[b] << "\n";
+    }
+}

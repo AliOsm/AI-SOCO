@@ -1,0 +1,133 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int N = 200000 + 10;
+const int M = 1000000007;
+const double eps = 1e-9;
+const double PI = acos(-1);
+const int oo = 1000000000;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef pair<int, int> ii;
+#define pb push_back 
+#define all(c) (c).begin(),(c).end()
+int n,sz[N];
+vi g[N];
+char s[N];
+bool rem[N];
+ll ans[N];
+
+void cen(int u, int p=-1){
+	sz[u]=1;
+	for(int i=0; i<g[u].size(); ++i){
+		int d=g[u][i];
+		if(d==p || rem[d])continue;
+		cen(d,u);
+		sz[u]+=sz[d];
+	}
+}
+int all[1<<20];
+vi ev,pt;
+int root;
+ll add(int u, int p, int msk, int br){
+	ll ret=all[msk];
+	for(int i=0; i<g[u].size(); ++i){
+		int d=g[u][i];
+		if(rem[d] || d==p)continue;
+		ret+=add(d, u, msk^(1<<s[d]), br);
+	}
+	for(int i=0; i<20; ++i)
+		ret+=all[msk^1<<i];
+	ans[u]+=ret;
+	return ret;
+}
+
+void dfs(int u, int p, int msk, int br, int val){
+	for(int i=0; i<g[u].size(); ++i){
+		int d=g[u][i];
+		if(rem[d] || d==p)continue;
+		dfs(d, u, msk^(1<<s[d]), br, val);
+	}
+	ev.pb(msk);
+	all[msk]+=val;
+}
+void snapshot(){
+	pt.pb(ev.size());
+}
+void reverse(){
+	int d=pt.back();
+	pt.pop_back();
+	bool f=pt.empty();
+	while(ev.size()>d){
+		if(f)
+			--all[ev.back()];
+		else
+			++all[ev.back()];
+		ev.pop_back();
+	}
+}
+void dec(int u, int p=-1){
+	cen(u);
+	int cc=sz[u];
+	while(true){
+		int id=-1;
+		for(int i=0; i<g[u].size(); ++i){
+			int d=g[u][i];
+			if(d==p || rem[d])continue;
+			if(sz[d]>cc/2)
+				id=d;
+		}
+		if(id==-1)
+			break;
+		p=u;
+		u=id;
+	}
+	snapshot();
+	rem[u]=true;
+	root=u;
+	ev.pb(1<<s[u]);
+	++all[1<<s[u]];
+	for(int i=0; i<g[u].size(); ++i){
+		int d=g[u][i];
+		if(rem[d])continue;
+		dfs(d, -1, (1<<s[u])^(1<<s[d]), i, 1);	
+	}
+	ll cur=0;
+	for(int i=0; i<g[u].size(); ++i){
+		int d=g[u][i];
+		if(rem[d])continue;
+		snapshot();
+		dfs(d, -1, (1<<s[u])^(1<<s[d]), i, -1);
+		cur+=add(d, -1, 1<<s[d], i);
+		reverse();	
+	}
+	cur+=all[0]+1;
+	for(int i=0; i<20; ++i)
+		cur+=all[1<<i];
+	ans[u]+=cur/2;
+	reverse();
+	for(int i=0; i<g[u].size(); ++i){
+		int d=g[u][i];
+		if(rem[d])continue;
+		dec(d);
+	}
+}
+int main(){
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+#endif
+	cin>>n;
+	for(int a,b,i=0; i<n-1; ++i){
+		scanf("%d%d",&a,&b);
+		--a;--b;
+		g[a].pb(b);
+		g[b].pb(a);
+	}
+	scanf("%s", s);
+	for(int i=0; i<n; ++i)
+		s[i]-='a';
+	dec(0);
+	for(int i=0; i<n; ++i)
+		printf("%lld ", ans[i]);
+	return 0;	
+}

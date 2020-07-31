@@ -1,0 +1,172 @@
+///****In the name of Allah, most Gracious, most Compassionate****//
+
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair <int, int> pii;
+
+#define ALL(a) a.begin(), a.end()
+#define FastIO ios::sync_with_stdio(false); cin.tie(nullptr);cout.tie(nullptr)
+#define IN freopen("input.txt","r+",stdin)
+#define OUT freopen("output.txt","w+",stdout)
+
+#define DBG(a) cout<< #a <<" --> "<<(a)<<endl
+#define NL cout<<"\n"
+
+template < class T1,class T2>
+ostream &operator <<(ostream &os,const pair < T1,T2 > &p)
+{
+    os<<"{"<<p.first<<","<<p.second<<"}";
+    return os;
+}
+
+const int N=3e5+5;
+const int oo=1e9+7;
+
+int n,a,b, posa,posb;  // number of nodes
+vector<int> g[N]; // adjacency list of graph
+
+vector<bool> visited;
+vector<int> tin, low;
+int timer;
+void IS_CUTPOINT(int x)
+{
+    if(x==a)
+        posa= 1;
+    if(x==b)
+        posb= 1;
+}
+void dfs(int v, int p = -1)
+{
+    visited[v] = true;
+    tin[v] = low[v] = timer++;
+    int children=0;
+    for (int to : g[v])
+    {
+        if (to == p)
+            continue;
+        if (visited[to])
+        {
+            low[v] = min(low[v], tin[to]);
+        }
+        else
+        {
+            dfs(to, v);
+            low[v] = min(low[v], low[to]);
+            if (low[to] >= tin[v] && p!=-1)
+                IS_CUTPOINT(v);
+            ++children;
+        }
+    }
+    if(p == -1 && children > 1)
+        IS_CUTPOINT(v);
+}
+
+void find_cutpoints()
+{
+    timer = 0;
+    visited.assign(n, false);
+    tin.assign(n, -1);
+    low.assign(n, -1);
+    for (int i = 0; i < n; ++i)
+    {
+        if (!visited[i])
+            dfs (i);
+    }
+}
+
+
+int visa[N];
+int sdfa(int u,int k)
+{
+    if(u==a or u==b)
+        return 0;
+    visa[u]=k;
+    int ret =1;
+    for(int v: g[u])
+    {
+        if(v==a or v==b or visa[v]!=-1)
+            continue;
+        ret+=sdfa(v,k);
+    }
+    return ret;
+}
+int visb[N];
+int sdfb(int u,int k)
+{
+    if(u==a or u==b)
+        return 0;
+    visb[u]=k;
+    int ret =1;
+    for(int v: g[u])
+    {
+        if(v==a or v==b or visb[v]!=-1)
+            continue;
+        ret+=sdfb(v,k);
+    }
+    return ret;
+}
+
+int32_t main()
+{
+    FastIO;
+    int T,cs=0;
+    cin>>T;
+    while(T--)
+    {
+        int m;
+        cin>>n>>m>>a>>b;
+        while(m--)
+        {
+            int u,v;
+            cin>>u>>v;
+            u--,v--;
+            g[u].push_back(v);
+            g[v].push_back(u);
+        }
+        a--;
+        b--;
+        posa=0;
+        posb=0;
+        find_cutpoints();
+        ll ans = 0;
+        if(posa and posb)
+        {
+            ll x = 0, y= 0,t=0;
+            for(int i=0; i<n; i++)
+                visa[i]=-1;
+            for(int i : g[a])
+            {
+                if(visa[i]==-1)
+                {
+                    x+=sdfa(i,t++);
+                }
+            }
+            //for(int i=0;i<n;i++) cout<<visa[i]<<" "; NL;
+
+            for(int i=0; i<n; i++)
+                visb[i]=-1;
+            for(int i : g[b])
+            {
+                if(visb[i]==-1)
+                {
+                    y+=sdfb(i,t++);
+                }
+            }
+            //for(int i=0;i<n;i++) cout<<visb[i]<<" "; NL;
+
+            for(int i=0; i<n; i++)
+                if(visa[i]!=-1 and visb[i]!=-1)
+                    x--,y--;
+
+            assert(x>=0);
+            assert(y>=0);
+
+            ans  = x*y;
+        }
+        cout<<ans<<'\n';
+        for(int i=0; i<n; i++)
+            g[i].clear();
+    }
+}

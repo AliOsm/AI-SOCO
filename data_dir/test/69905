@@ -1,0 +1,171 @@
+#include <bits/stdc++.h>
+typedef long long LL;
+using namespace std;
+#define rep(i,n) for(int i = 0;i < n;i ++)
+
+const int N = 50000 + 5;
+LL answer;
+int n, m;
+vector<int> tree[N];
+
+struct Node *null;
+struct Node {
+	Node *ch[2], *fa;
+	int val, sbt, lazy, cnt;
+	LL sum, pairs;
+
+	void clear() {
+		ch[0] = ch[1] = fa = null;
+		sum = lazy = val = sbt = pairs = 0;
+	}
+
+	void up() {
+		if(this == null)	return;
+		sum = ch[0]->sum + ch[1]->sum + (LL)cnt * val;
+	}
+
+	void apply(int dt) {
+		if(this == null)	return;
+		pairs += (LL)cnt * dt * 2;
+		sbt += dt;
+		lazy += dt;
+	}
+
+	void down() {
+		if(this == null || lazy == 0)	return;
+		ch[0]->apply(lazy);
+		ch[1]->apply(lazy);
+		lazy = 0;
+	}
+
+	bool d() {
+		return fa->ch[1] == this;
+	}
+
+	bool isroot() {
+		return fa == null || fa->ch[0] != this && fa->ch[1] != this;
+	}
+
+	void setc(Node *p, int c) {
+		ch[c] = p;
+		p->fa = this;
+		up();
+	}
+
+	void rot() {
+		Node *f = fa, *ff = fa->fa;
+		int c = d(), cc = fa->d();
+		f->setc(ch[c ^ 1], c);
+		this->setc(f, c ^ 1);
+		if(ff->ch[cc] == f)	ff->setc(this, cc);
+		else	this->fa = ff;
+	}
+
+	void D() {
+		if(!isroot()) {
+			fa->D();
+		}
+		down();
+	}
+
+	Node *splay() {
+		D();
+		while(!isroot()) {
+			if(!fa->isroot()) {
+				d() == fa->d() ? fa->rot(): rot();
+			}
+			rot();
+		}
+		return this;
+	}
+
+	Node *access() {
+		for(Node *p = this, *q = null; p != null; q = p, p = p->fa) {
+			if(q != null) {
+				while(q->ch[0] != null)	q = q->ch[0];
+				q->splay();
+			}
+			p->splay();
+			p->cnt = p->sbt - q->sbt;
+			p->setc(q, 1);
+		}
+		return splay();
+	}
+
+	Node *get_fa() {
+		if(ch[0] == null)	return fa;
+		Node *p = ch[0];
+		while(p->ch[1] != null)	p = p->ch[1];
+		return p;
+	}
+
+}ps[N];
+
+void dfs(int u) {
+	ps[u].cnt = 1;
+	ps[u].pairs = 1;
+	for(int v: tree[u]) {
+		ps[v].fa = ps + u;
+		dfs(v);
+		ps[u].pairs += (LL)ps[u].cnt * ps[v].cnt * 2;
+		ps[u].cnt += ps[v].cnt;
+	}
+	ps[u].sbt = ps[u].cnt;
+	ps[u].up();
+	answer += ps[u].pairs * ps[u].val;
+}
+
+void move(int u, int v) {
+	ps[u].access();
+	ps[v].splay();
+	if(ps[v].fa == null) { // u is in subtree of v
+		swap(u, v);
+	}
+	//printf("u: %d, v: %d\n", u, v);
+	Node *f = ps[v].get_fa()->access();
+	f->cnt -= ps[v].sbt;
+	f->apply(-ps[v].sbt);
+	f->up();
+	answer -= f->sum * ps[v].sbt * 2;
+	ps[u].access();
+	//printf("%d %d\n", ps[v].sbt, ps[u].sum);
+	answer += ps[u].sum * ps[v].sbt * 2;
+	ps[u].apply(ps[v].sbt);
+	ps[u].cnt += ps[v].sbt;
+	ps[u].up();
+	ps[v].fa = ps + u;
+}
+
+int main() {
+	int u, v, q;
+	scanf("%d", &n);
+	null = ps;
+	for(int i = 0; i <= n; i ++) {
+		ps[i].clear();
+	}
+	for(int i = 2, p; i <= n; i ++) {
+		scanf("%d", &p);
+		tree[p].push_back(i);
+	}
+	for(int i = 1; i <= n; i ++) {
+		scanf("%d", &ps[i].val);
+	}
+	answer = 0;
+	dfs(1);
+	printf("%.10f\n", (double)answer / n / n);
+	scanf("%d", &q);
+	while(q --) {
+		char op;
+		scanf(" %c%d%d", &op, &u, &v);
+		if(op == 'P') {
+			move(v, u);
+		} else {
+			ps[u].access();
+			answer += (v - ps[u].val) * ps[u].pairs;
+			ps[u].val = v;
+		}
+		printf("%.10f\n", (double)answer / n / n);
+	}
+	return 0;
+}
+

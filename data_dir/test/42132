@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int N = 5e5 + 1;
+int n, m, low[N], idx[N], comp[N], id, dfs, with[N];
+vector<int> g[N], G[N], st;
+bool in[N];
+vector<pair<int, int> > w;
+pair<int, int> at[N], dp[N];
+char s[N];
+map<string, int> hs;
+
+void DFS(int v) {
+	low[v] = idx[v] = ++dfs;
+	in[v] = true;
+	st.push_back(v);
+	for (size_t i = 0; i < g[v].size(); ++i) {
+		int u = g[v][i];
+		if (!idx[u]) {
+			DFS(u);
+			low[v] = min(low[v], low[u]);
+		} else if (in[u])
+			low[v] = min(low[v], low[u]);
+	}
+	if (low[v] == idx[v]) {
+		at[id] = make_pair(N, N);
+		int n;
+		do {
+			n = st.back();
+			st.pop_back();
+			in[n] = false;
+			comp[n] = id;
+			if (w[n].first < at[id].first || (w[n].first == at[id].first && w[n].second < at[id].second))
+				at[id] = w[n];
+		} while (n != v);
+		++id;
+	}
+}
+
+pair<int, int> calc(int v) {
+	pair<int, int> &res = dp[v];
+	if (res.first != -1)
+		return res;
+	res = at[v];
+	for (size_t i = 0; i < G[v].size(); ++i) {
+		pair<int, int> p = calc(G[v][i]);
+		if (p.first < res.first || (p.first == res.first && p.second < res.second))
+			res = p;
+	}
+	return res;
+}
+
+int main() {
+//	freopen("a", "r", stdin);
+	scanf("%d", &n);
+	for (int i = 0; i < n; ++i) {
+		scanf("%s", s);
+		pair<int, int> p = make_pair(0, strlen(s));
+		for (int j = 0; s[j]; ++j) {
+			s[j] = tolower(s[j]);
+			if (s[j] == 'r')
+				++p.first;
+		}
+		if (hs.find(s) == hs.end()) {
+			hs[s] = w.size();
+			w.push_back(p);
+		}
+		with[i] = hs[s];
+	}
+	scanf("%d", &m);
+	while (m--) {
+		int v[2];
+		for (int it = 0; it < 2; ++it) {
+			scanf("%s", s);
+			pair<int, int> p = make_pair(0, strlen(s));
+			for (int i = 0; s[i]; ++i) {
+				s[i] = tolower(s[i]);
+				if (s[i] == 'r')
+					++p.first;
+			}
+			if (hs.find(s) == hs.end()) {
+				hs[s] = w.size();
+				w.push_back(p);
+			}
+			v[it] = hs[s];
+		}
+		g[v[0]].push_back(v[1]);
+	}
+	assert((int) w.size() < N);
+	for (size_t i = 0; i < w.size(); ++i)
+		if (!idx[i])
+			DFS(i);
+	for (size_t i = 0; i < w.size(); ++i)
+		for (size_t j = 0; j < g[i].size(); ++j)
+			if (comp[i] != comp[g[i][j]])
+				G[comp[i]].push_back(comp[g[i][j]]);
+	for (int i = 0; i < id; ++i) {
+		sort(G[i].begin(), G[i].end());
+		G[i].resize(unique(G[i].begin(), G[i].end()) - G[i].begin());
+	}
+	memset(dp, -1, sizeof dp);
+	ll r = 0, len = 0;
+	for (int i = 0; i < n; ++i) {
+		pair<int, int> best = calc(comp[with[i]]);
+		r += best.first;
+		len += best.second;
+	}
+	printf("%lld %lld\n", r, len);
+	return 0;
+}

@@ -1,0 +1,297 @@
+#include <bits/stdc++.h>
+#pragma GCC optimize ("O2")
+#pragma GCC optimize ("unroll-loops")
+//#pragma GCC optimize("no-stack-protector,fast-math")
+ 
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<pii, int> piii;
+typedef pair<ll, ll> pll;
+#define debug(x) cerr<<#x<<'='<<(x)<<endl;
+#define debugp(x) cerr<<#x<<"= {"<<(x.first)<<", "<<(x.second)<<"}"<<endl;
+#define debug2(x, y) cerr<<"{"<<#x<<", "<<#y<<"} = {"<<(x)<<", "<<(y)<<"}"<<endl;
+#define debugv(v) cerr<<#v<<" : ";for (auto x:v) cerr<<x<<' ';cerr<<endl;
+#define all(x) x.begin(), x.end()
+#define pb push_back
+#define kill(x) return cout<<x<<'\n', 0;
+ 
+const ld eps=1e-7;
+const int inf=1000000010;
+const ll INF=10000000000000010LL;
+const int mod = 1000000007, M=1e9+7, B=2;
+const int MAXN = 100040;
+ 
+struct node{
+	int L=0, R=0, H=0, C=0;
+	bool lazy=0;
+} seg[MAXN*360];
+ 
+int n, m, k, u, v, x, y, s, t, N=1;
+ll tav[MAXN];
+int root[MAXN];
+int par[MAXN];
+bool mark[MAXN], mark2[MAXN];
+vector<pii> G[MAXN];
+ 
+int build(int tl, int tr){
+	if (tr-tl==1) return N++;
+	int res=N++, mid=(tl+tr)>>1;
+	seg[res].L=build(tl, mid);
+	seg[res].R=build(mid, tr);
+	return res;
+}
+
+int add_lazy(int id){
+	int res=N++;
+	seg[res]=seg[id];
+	seg[res].lazy=1;
+	seg[res].H=seg[res].C=0;
+	return res;
+}
+
+void shift(int id){
+	if (!seg[id].lazy) return ;
+	seg[id].L=add_lazy(seg[id].L);
+	seg[id].R=add_lazy(seg[id].R);
+	seg[id].lazy=0;
+}
+ 
+int Get(int id, int tl, int tr, int pos){
+	if (!seg[id].C) return 0;
+	if (tr-tl==1) return seg[id].C;
+	shift(id);
+	int mid=(tl+tr)>>1;
+	if (pos<mid) return Get(seg[id].L, tl, mid, pos);
+	return Get(seg[id].R, mid, tr, pos);
+}
+
+int Lcp(int r1, int r2, int tl, int tr){
+	if (tr-tl==1) return tl;
+	int mid=(tl+tr)>>1;
+	shift(r1);
+	shift(r2);
+	if (seg[seg[r1].R].H==seg[seg[r2].R].H) return Lcp(seg[r1].L, seg[r2].L, tl, mid);
+	return Lcp(seg[r1].R, seg[r2].R, mid, tr);
+}
+
+int Count(int id, int tl, int tr, int l, int r){
+	if (r<=tl || tr<=l) return 0;
+	if (l<=tl && tr<=r) return (tr-tl)-seg[id].C;
+	shift(id);
+	int mid=(tl+tr)>>1;
+	return Count(seg[id].L, tl, mid, l, r) + Count(seg[id].R, mid, tr, l, r);
+}
+ 
+int Getkth(int id, int tl, int tr, int k){
+	if (tr-tl==1) return tl;
+	shift(id);
+	int mid=(tl+tr)>>1;
+	int cnt=(mid-tl)-seg[seg[id].L].C;
+	if (k<=cnt) return Getkth(seg[id].L, tl, mid, k);
+	return Getkth(seg[id].R, mid, tr, k-cnt);
+}
+ 
+int Find(int id, int pos){
+	int cnt=Count(id, 0, MAXN, 0, pos);
+	return Getkth(id, 0, MAXN, cnt+1);
+}
+
+void combine(int id, int lenr){
+	int l=seg[id].L, r=seg[id].R;
+	seg[id].C=seg[l].C+seg[r].C;
+	seg[id].H=(seg[l].H*tav[lenr]+seg[r].H)%M;
+}
+ 
+int Set1(int id, int tl, int tr, int pos){
+	if (tr<=pos || pos<tl) return id;
+	int res=N++, mid=(tl+tr)>>1;
+	//cerr<<id<<" <-- "<<res<<endl;
+	if (tr-tl==1){
+		seg[res].C=1;
+		seg[res].L=seg[id].L;
+		seg[res].R=seg[id].R;
+		seg[res].H=1;
+		return res;
+	}
+	shift(id);
+	seg[res]=seg[id];
+	seg[res].L=Set1(seg[res].L, tl, mid, pos);
+	seg[res].R=Set1(seg[res].R, mid, tr, pos);
+	combine(res, tr-mid);
+	
+	return res;
+}
+ 
+int Set0(int id, int tl, int tr, int l, int r){
+	if (r<=tl || tr<=l) return id;
+	if (l<=tl && tr<=r){
+		int res=add_lazy(id);
+		return res;
+	}
+	int res=N++, mid=(tl+tr)>>1;
+	shift(id);
+	seg[res]=seg[id];
+	seg[res].L=Set0(seg[res].L, tl, mid, l, r);
+	seg[res].R=Set0(seg[res].R, mid, tr, l, r);
+	combine(res, tr-mid);
+	return res;
+}
+ 
+int Add(int id, int pos){
+	int tmp=Find(id, pos);
+	id=Set0(id, 0, MAXN, pos, tmp);
+	id=Set1(id, 0, MAXN, tmp);
+	return id;
+}
+ 
+int cmp(int r1, int r2){
+	if (seg[r1].H==seg[r2].H) return 0;
+	int lcp=Lcp(r1, r2, 0, MAXN);
+	if (Get(r1, 0, MAXN, lcp)) return -1;
+	return 1;
+}
+ 
+void print(int id){
+	for (int i=0; i<8; i++) cerr<<Get(id, 0, MAXN, i);cout<<'\n';
+}
+ 
+struct CMP{
+	bool operator ()(int u, int v){
+		int tmp=cmp(root[u], root[v]);
+		if (!tmp) return u<v;
+		return tmp>0;
+	}
+};
+set<int, CMP> pq;
+ 
+int main(){
+	ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+	tav[0]=1;
+	for (int i=1; i<MAXN; i++) tav[i]=tav[i-1]*B%mod;
+	
+	cin>>n>>m;
+	while (m--){
+		cin>>u>>v>>x;
+		G[u].pb({v, x});
+		G[v].pb({u, x});
+	}
+	cin>>s>>t;
+	root[s]=build(0, MAXN);
+	pq.insert(s);
+	
+	while (!pq.empty()){
+		int v=*pq.begin();
+		pq.erase(pq.begin());
+		if (mark[v]) continue ;
+		mark[v]=1;
+		//cerr<<v<<" : ";print(root[v]);
+		for (pii p:G[v]) if (!mark[p.first]){
+			//debug2(v, p.first)
+			int tmp=Add(root[v], p.second);
+			if (!mark2[p.first] || cmp(tmp, root[p.first])>0){
+				//cerr<<"updated!\n";
+				//cerr<<p.first<<" : ";print(tmp);
+				pq.erase(p.first);
+				root[p.first]=tmp;
+				pq.insert(p.first);
+				mark2[p.first]=1;
+				par[p.first]=v;
+			}
+			//cerr<<'\n';
+		}
+	}
+	if (!mark[t]) kill(-1)
+	ll out=0, tav=1;
+	for (int bit=0; bit<MAXN; bit++, tav=tav*2%mod) if (Get(root[t], 0, MAXN, bit)) out=(out+tav)%mod, debug(bit);
+	cout<<out<<'\n';
+	
+	
+	
+	vector<int> path;
+	for (int v=t; v; v=par[v]) path.pb(v);
+	reverse(all(path));
+	/*
+	if (out==17100){
+		for (int i=0; i<path.size()-1; i++) for (pii p:G[path[i]]) if (p.first==path[i+1]) cout<<path[i]<<' '<<path[i+1]<<' '<<p.second<<'\n';
+		path={684, 626, 485, 420, 150, 721, 64, 522, 190, 181, 456, 127, 452, 29, 292, 230, 340};
+		for (int i=0; i<path.size()-1; i++) for (pii p:G[path[i]]) if (p.first==path[i+1]) cout<<path[i]<<' '<<path[i+1]<<' '<<p.second<<'\n';
+		return 0;
+	}*/
+	
+	cout<<path.size()<<'\n';
+	for (int v:path) cout<<v<<' ';
+	
+	return 0;
+}
+/*
+1000 64
+684 904 5
+904 373 4
+373 439 7
+439 41 2
+41 29 3
+29 292 4
+292 230 9
+230 340 14
+684 626 0
+626 485 1
+485 420 2
+420 150 2
+150 721 1
+721 64 1
+64 522 2
+522 190 2
+190 181 3
+181 456 5
+456 127 5
+127 452 0
+452 29 6
+29 292 4
+292 230 9
+230 340 14
+29 41 3
+41 150 594
+150 181 870
+29 181 450
+181 190 3
+29 190 200
+230 292 9
+127 292 944
+29 292 4
+64 373 978
+360 373 692
+292 373 289
+150 373 372
+150 420 2
+64 420 459
+360 420 487
+292 420 251
+373 439 7
+41 439 2
+292 452 901
+29 452 6
+64 452 994
+360 452 24
+230 452 404
+127 452 0
+64 456 407
+181 456 5
+190 456 273
+127 456 5
+150 456 869
+181 485 355
+41 485 719
+420 485 2
+360 522 872
+190 522 2
+64 522 2
+150 522 656
+420 522 141
+420 626 550
+230 626 262
+684 340
+*/

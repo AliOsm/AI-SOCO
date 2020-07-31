@@ -1,0 +1,240 @@
+#pragma comment(linker, "/STACK:256000000")
+
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+#include <memory.h>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <utility>
+#include <algorithm>
+#include <random>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+const int INF = (int)(1e9 + 1337);
+const int64 LINF = (int64)(4e18);
+const double EPS = 1e-11;
+#define sq(x) ((x)*(x))
+#define FAIL() ((*(int*)(0))++)
+const int MOD = 1000000007;
+const int HBASE = 1003;
+
+const int MAXN = 200500;
+
+int n, m;
+char s[MAXN];
+pii qu[MAXN];
+int cnt[10][MAXN];
+int last[MAXN][10];
+int ans[MAXN];
+int d[4] = {2, 0, 1, 6};
+
+struct node
+{
+	int dp[4][4];
+
+	node()
+	{
+		memset(dp, 0, sizeof(dp));
+	}
+};
+
+node tre[MAXN << 2];
+
+int get_sum(int d, int l, int r)
+{
+	return cnt[d][r] - cnt[d][l - 1];
+}
+
+void init()
+{
+	scanf ("%d%d%s", &n, &m, &s[1]);
+	//reverse(s + 1, s + n + 1);
+	for (int i = 1; i <= m; i++)
+	{
+		scanf ("%d%d", &qu[i].first, &qu[i].second);
+		//qu[i].first = n - qu[i].first + 1;
+		//qu[i].second = n - qu[i].second + 1;
+	}
+}
+
+node merge(node n1, node n2)
+{
+	node res;
+	for (int i = 3; i >= 0; i--)
+	{
+		res.dp[i][i] = n1.dp[i][i] + n2.dp[i][i];
+		for (int j = i + 1; j < 4; j++)
+		{
+			res.dp[i][j] = INF;
+			for (int h = i; h <= j; h++)
+			{
+				res.dp[i][j] = min(n1.dp[i][h] + n2.dp[h][j], res.dp[i][j]);
+			}
+		}
+	}
+	return res;
+}
+
+void build(int tv, int tl, int tr)
+{
+	if (tl == tr)
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			if (s[tl] == '0' + d[i])
+			{
+				tre[tv].dp[i][i]++;
+			}
+		}
+	}
+	else
+	{
+		int tm = (tl + tr) >> 1;
+		build(tv * 2, tl, tm);
+		build(tv * 2 + 1, tm + 1, tr);
+		tre[tv] = merge(tre[tv * 2], tre[tv * 2 + 1]);
+		/*for (int i = 0; i <= 3; i++)
+		{
+			printf("tl %d tr %d i %d dp %d\n", tl, tr, i, tre[tv].dp[i][3]);
+		}*/
+	}
+}
+
+node get(int tv, int tl, int tr, int l, int r)
+{
+	if (l > r)
+	{
+		return node();
+	}
+	if (tl == l && tr == r)
+	{
+		return tre[tv];
+	}
+	int tm = (tl + tr) >> 1;
+	node la = get(tv << 1, tl, tm, l, min(r, tm));
+	node ra = get(tv * 2 + 1, tm + 1, tr, max(l, tm + 1), r);
+	return merge(la, ra);
+}
+
+void solve()
+{
+	init();
+	for (int i = 1; i <= n; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			cnt[j][i] = cnt[j][i - 1];
+		}
+		cnt[s[i] - '0'][i]++;
+	}
+	for (int i = 1; i <= n + 1; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			last[i][j] = last[i - 1][j];
+		}
+		if (i > 0)
+		{
+			last[i][s[i - 1] - '0'] = i - 1;
+		}
+	}
+	build(1, 1, n);
+	for (int i = 1; i <= m; i++)
+	{
+		int r = qu[i].second + 1;
+		int p = last[r][7];
+		if (!p || p < qu[i].first)
+		{
+			ans[i] = -1;
+			continue;
+		}
+		int pos[4];
+		pos[3] = p;
+
+		for (int j = 2; j >= 0; j--)
+		{
+			pos[j] = last[pos[j + 1]][d[j]];
+			if (!pos[j] || pos[j] < qu[i].first)
+			{
+				ans[i] = -1;
+				break;
+			}
+		}
+		if (ans[i] != -1)
+		{
+			node res[6];
+			res[1] = get(1, 1, n, qu[i].first, pos[0] - 1);
+			res[2] = get(1, 1, n, pos[0] + 1, pos[1] - 1); 
+			res[3] = get(1, 1, n, pos[1] + 1, pos[2] - 1); 
+
+			int dp[4][4];
+			memset(dp, 63, sizeof(dp));
+			memset(dp[0], 0, sizeof(dp[0]));
+			for (int p = 1; p <= 3; p++)
+			{
+				for (int j = p; j < 4; j++)
+				{
+					for (int h = 0; h <= j; h++)
+					{
+						dp[p][j] = min(dp[p][j], dp[p - 1][h] + res[p].dp[h][j]);
+					}
+					//printf("p %d j %d dp %d\n", p, j, dp[p][j]);
+				}
+			}
+			ans[i] = dp[3][3] + get_sum(6, pos[2] + 1, pos[3] - 1) + get_sum(6, pos[3] + 1, qu[i].second);
+		}
+	}
+	for (int i = 1; i <= m; i++)
+	{
+		printf("%d\n", ans[i]);
+	}
+}
+
+void precalc()
+{
+	
+}
+
+int main()
+{
+#ifdef _MY_DEBUG
+	freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+	
+#endif
+	srand(88); //gen(10);
+
+	double st = clock();
+
+	precalc();
+	int tests = 1;
+	//scanf ("%d", &tests);
+	for (int i = 1; i <= tests; i++)
+	{
+		solve();
+	}
+
+	//fprintf(stderr, "%.3lf\n", (clock() - st) / CLOCKS_PER_SEC);
+
+	return 0;
+}

@@ -1,0 +1,55 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int maxn = 2e5+5;
+int n;
+
+struct Event
+{
+    int l, r;
+    int id;
+};
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int t; cin >> t;
+    while (t--) {
+        cin >> n;
+        vector<Event> v(n);
+        for (int i = 0; i < n; i++) {
+            cin >> v[i].l >> v[i].r;
+            v[i].id = i;
+        }
+        sort(v.begin(),v.end(),[](auto a, auto b) {
+            return a.l != b.l ? a.l < b.l : a.r > b.r;
+                });
+        set<pair<int,int>> s; //(right, id)
+        vector<int> add(n,0);
+        int cur = 0;
+        for (auto e: v) {
+            if (!s.empty()) {
+                auto p = *s.rbegin();
+                if (p.first < e.l) {
+                    cur++;
+                    add[e.id]--;
+                }
+                else if (s.size() <= 1 || prev(prev(s.end()))->first < e.l) {
+                    add[p.second]++;
+                }
+            }
+            else {
+                cur++;
+                add[e.id]--;
+            }
+            s.insert({e.r,e.id});
+        }
+        int ans = -maxn;
+        for (int i = 0; i < n; i++) {
+            ans = max(ans,cur+add[i]);
+        }
+        //cout << cur << ' ' << mx << '\n';
+        cout << ans << '\n';
+    }
+}
+

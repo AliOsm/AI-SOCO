@@ -1,0 +1,52 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <stack>
+#include <queue>
+#include <cmath>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1007;
+const LL maxn=1e6+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+
+int n,m;
+int i,j,k;
+int a[maxn];
+int b[maxn];
+int ans;
+queue<int> Q;
+int main()
+{
+	scanf("%d%d",&n,&m);
+	REP(i,m) {scanf("%d",&a[i]);a[i]-=n;}
+	Q.push(M);
+	while (!Q.empty()){
+		int t=Q.front();Q.pop();
+		if (b[M]!=0){
+			printf("%d",b[M]);
+			return 0;
+		}
+		REP(i,min(m,3000)) if (t+a[i]>0&&t+a[i]<3000&&b[t+a[i]]==0)
+		{
+			b[t+a[i]]=b[t]+1;
+//			printf("%d %d\n",t+a[i]-M,b[t+a[i]]);
+			Q.push(t+a[i]);
+		}
+	}
+	printf("-1");
+}

@@ -1,0 +1,143 @@
+#include <iostream>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <cstdio>
+#include <cassert>
+#include <set>
+
+using namespace std;
+
+#define all(a) (a).begin(), (a).end()
+
+struct SegmentTree {
+	struct Node {
+		int mx;
+	} ;
+
+	vector<Node> listNode;
+
+	int size;
+
+	SegmentTree(int size) : size(size) {
+		listNode.resize(size * 4 + 22 + 8);
+	}
+
+	void modi(int v, int l, int r, int p, int a) {
+		if (l == r) {
+			if (a == 0) {
+				listNode[v].mx = (int)1e9;
+			} else 
+				listNode[v].mx = a;
+
+			return;
+		}
+
+		int mid = (l + r) / 2;
+		if (p <= mid) 
+			modi(v * 2, l, mid, p, a);
+		else
+			modi(v * 2 + 1, mid + 1, r, p, a);
+
+		listNode[v].mx = min(listNode[v * 2].mx, listNode[v * 2 + 1].mx);
+	}
+
+	void modi(int p, int a) {
+		modi(1, 1, size, p, a);
+	}
+
+	long long get(int v, int l, int r, int _l, int _r) {
+		if (_l > _r) 
+			return (int)1e9;
+
+		if (l == _l && r == _r)
+			return listNode[v].mx;
+
+		int mid = (l + r) / 2;
+		return min(get(v * 2, l, mid, _l, min(mid, _r)), get(v * 2 + 1, mid + 1, r, max(mid + 1, _l), _r));
+	}
+
+	long long get(int l, int r) {
+		return get(1, 1, size, l, r);
+	}
+} ;
+
+int main() {
+	// freopen("input.txt", "r", stdin);
+
+	int n, m;
+	cin >> n >> m;
+
+	vector<int> a(n);
+	SegmentTree t(n);
+
+	map<int, int> l, r;
+	for (int i = 0; i < n; ++i) {
+		cin >> a[i];
+		t.modi(i + 1, a[i]);
+
+		if (l.find(a[i]) == l.end()) {
+			l[a[i]] = i;
+		}
+
+		r[a[i]] = i;
+	}
+
+	vector<pair<int, int> > s;
+	for (int l = 0, r = 0; r <= n; ++r) {
+		if (r == n || a[r]) {
+			if (l < r) {
+				s.push_back({l, r - 1});
+			}
+
+			l = r + 1;
+		}
+	}
+
+	// for (auto i : s) {
+	// 	cout << i.first << " " << i.second << "\n";
+	// }
+
+	for (int i = 1; i <= m; ++i) {
+		if (l.find(i) == l.end())
+			continue;
+
+		if (t.get(l[i] + 1, r[i] + 1) < i) {
+			cout << "NO\n";
+			return 0;
+		}
+	}
+
+	if (l.find(m) == l.end() && s.size() == 0) {
+		cout << "NO\n";
+		return 0;
+	}
+
+	if(l.find(m) == l.end()) {
+		for (int i = s.back().first; i <= s.back().second; ++i) {
+			a[i] = m;
+		}
+		s.pop_back();
+	}
+
+	for (auto i : s) {
+		int c = -1;
+		if (i.first == 0) {
+			c = a[i.second + 1];
+		} else {
+			c = a[i.first - 1];
+		}
+
+		for (int j = i.first; j <= i.second; ++j) {
+			a[j] = c;
+		}
+	}
+
+	cout << "YES\n";
+	for (int i : a) {
+		cout << i << " ";
+	}
+	cout << "\n";
+
+	return 0;
+}

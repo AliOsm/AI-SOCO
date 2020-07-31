@@ -1,0 +1,31 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long double ll;
+ll eps = 1e-11;
+int n;
+ll h , area;
+bool check(ll newh , ll last){
+    ll fakss = (newh-last)*( (h-last+h-newh)/h );
+    fakss /= 2.0;
+    return fakss - area > eps;
+}
+int main(){
+    cin>>n>>h;
+    ll lv=1,last=0;
+    area=h/(2.0*n);
+    vector < ll > ans;
+    while(--n){
+        ll st=last,en=h;
+        for(int j=0;j<69;j++){
+            ll mid = (st+en)/2.0;
+            if(check(mid,last))en=mid;
+            else st=mid;
+        }
+        ans.push_back(h-st);
+        last = st;
+    }
+    cout<<fixed<<setprecision(10);
+    reverse(ans.begin() , ans.end());
+    for(auto bakr : ans) cout<<bakr<<' ';
+    return 0;
+}

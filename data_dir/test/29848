@@ -1,0 +1,177 @@
+#include "bits/stdc++.h"
+#define MAXN 200009
+#define INF 1000000007
+#define mp(x,y) make_pair(x,y)
+#define all(v) v.begin(),v.end()
+#define pb(x) push_back(x)
+#define wr cout<<"----------------"<<endl;
+#define ppb() pop_back()
+#define tr(ii,c) for(__typeof((c).begin()) ii=(c).begin();ii!=(c).end();ii++)
+#define ff first
+#define ss second
+#define my_little_dodge 46
+#define debug(x)  cerr<< #x <<" = "<< x<<endl;
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> PII;
+template<class T>bool umin(T& a,T b){if(a>b){a=b;return 1;}return 0;}
+template<class T>bool umax(T& a,T b){if(a<b){a=b;return 1;}return 0;}
+int a[MAXN],b[MAXN],c[MAXN],d[MAXN],arr[MAXN],f[MAXN];
+int n,k,q,ans,bad;
+void solve(){
+	int res=0;
+	for(int i=0;i<k;i++){
+		res=0;
+		for(int j=i;j<=n;j+=k){
+			res^=d[j];
+			arr[i]+=(res>0);	
+		}
+		if(res)
+			f[i]=1,bad++;
+		ans+=arr[i];	
+	}
+}
+void upd(int x){
+	int mod=(x%k);
+	bad-=f[mod];f[mod]=0;
+	ans-=arr[mod];arr[mod]=0;
+	int res=0;
+	for(int i=mod;i<=n;i+=k){
+		res^=d[i];
+		arr[mod]+=(res>0);
+	}
+	if(res)
+		f[mod]=1;
+	bad+=f[mod];ans+=arr[mod];
+}
+//------------------------------
+int limit[MAXN];
+const int N=(1<<14);
+const int BLOK=60;
+vector<int>adj[BLOK];
+vector<int>cnt[BLOK][N],ty[BLOK],val[BLOK];
+int bel[MAXN],en[MAXN],last[MAXN],st[MAXN];
+void build(int x){
+	int res=0;
+	for(int j=x;j<=n;j+=k){
+		res^=d[j];
+		ty[x][bel[j/k]]+=(!res);
+		umax(limit[x],bel[j/k]);
+		ans+=(!res);
+		cnt[x][res][bel[j/k]]++;
+		adj[x].pb(res);
+	}last[x]=res;
+	bad+=(res>0);
+}
+void upd(int x,int value){
+	int mod=x%k;
+	bad-=(last[mod]>0);
+	last[mod]^=value;
+	bad+=(last[mod]>0);
+	for(int i=bel[x/k]+1;i<=limit[mod];i++){
+		val[mod][i]^=value;
+		ans-=ty[mod][i];
+		ty[mod][i]=cnt[mod][val[mod][i]][i];
+		ans+=ty[mod][i];
+	}	
+	int res=0;
+	int bas=st[bel[x/k]]*k+mod,son=min(n,en[bel[x/k]]*k+mod);
+	int ret=val[mod][bel[x/k]];
+	for(int i=bas;i<=son;i+=k){
+		ans-=(!(ret^adj[mod][i/k]));
+		ty[mod][bel[x/k]]-=(!(ret^adj[mod][i/k]));
+		cnt[mod][adj[mod][i/k]][bel[x/k]]--;
+		adj[mod][i/k]^=ret;
+		if(i>=x)
+			adj[mod][i/k]^=value;
+		cnt[mod][adj[mod][i/k]][bel[x/k]]++;	
+		ans+=(!adj[mod][i/k]);
+		ty[mod][bel[x/k]]+=(!adj[mod][i/k]);
+	}val[mod][bel[x/k]]=0;
+} 
+//-------------------------------
+int main(){
+    //freopen("file.in", "r", stdin);
+    scanf("%d%d%d",&n,&k,&q);
+    for(int i=1;i<=n;i++)
+    	scanf("%d",a+i);
+    for(int i=1;i<=n;i++)
+		scanf("%d",b+i);
+	for(int i=1;i<=n;i++)
+		c[i]=a[i]^b[i];
+	for(int i=0;i<=n;i++)
+		d[i]=c[i]^c[i+1];
+	if(k>=100){//naive
+		solve();
+		if(bad)
+			puts("-1");
+		else
+			printf("%d\n",ans);	
+		while(q--){
+			char c;int p,v;
+			scanf(" %c%d%d",&c,&p,&v);
+			if(c=='a'){
+				d[p]^=a[p]^v;
+				d[p-1]^=a[p]^v;
+				a[p]=v;
+			}
+			else{
+				d[p]^=b[p]^v;
+				d[p-1]^=b[p]^v;
+				b[p]=v;	
+			}
+			upd(p);upd(p-1);
+			if(bad)
+				puts("-1");
+			else
+				printf("%d\n",ans);	
+		}
+	}
+	else{//more complicated
+		int now=0;
+		for(int i=0;i<=n/k;i++){
+			if(i and i%BLOK==0){
+				en[now]=i-1;
+				now++;st[now]=i;
+			}
+			bel[i]=now;
+		}en[now]=n/k;
+		int mx=bel[n/k]+2;
+		for(int i=0;i<k;i++){
+			ty[i].resize(mx);
+			val[i].resize(mx);
+			for(int j=0;j<N;j++)
+				cnt[i][j].resize(mx);	
+		}
+		for(int i=0;i<k;i++)
+			build(i);
+		if(bad)
+			puts("-1");
+		else
+			printf("%d\n",n+1-ans);
+		while(q--){
+			char c;int p,v;
+			scanf(" %c%d%d",&c,&p,&v);
+			if(c=='a'){
+				d[p]^=a[p]^v;
+				upd(p,a[p]^v);
+				d[p-1]^=a[p]^v;
+				upd(p-1,a[p]^v);
+				a[p]=v;
+			}
+			else{
+				d[p]^=b[p]^v;
+				upd(p,b[p]^v);
+				d[p-1]^=b[p]^v;
+				upd(p-1,b[p]^v);
+				b[p]=v;
+			}
+			if(bad)
+				puts("-1");
+			else
+				printf("%d\n",n+1-ans);	
+		}	
+	}
+	return 0;
+}

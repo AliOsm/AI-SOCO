@@ -1,0 +1,131 @@
+#include <bits/stdc++.h>
+
+#define pb push_back
+#define pp pop_back
+#define mp make_pair
+#define ld long double
+#define f first
+#define s second
+#define ll long long
+
+using namespace std;
+
+const int N = 5e5 + 5;
+
+const int mod = 1e9 + 7;
+
+const int Sz = 400;
+
+int n, m, ans[N], tin[N], timer, b[N], lg[N], lvl[N];
+
+bool used[N];
+
+pair < int, int > st[20][N], dp[N];
+
+vector < int > all, g[N];
+
+void dfs(int v = 1, int p = 0, int D = 0)
+{
+	tin[v] = ++timer;
+	b[timer] = v;
+	lvl[v] = D;
+	for (auto to : g[v])
+		if (to != p)
+		{
+			dfs(to, v, D + 1);
+			timer++;
+			b[timer] = v;
+		}
+}
+
+int get_min(int l, int r)
+{
+	if (l > r) swap(l, r);
+	int k = lg[r - l + 1];
+	pair < int, int > cur = min(st[k][l], st[k][r - (1 << k) + 1]);
+	return cur.s;
+}
+
+int get_lca(int a, int b)
+{
+	return get_min(tin[a], tin[b]);
+}
+
+void go(int v = 1, int p = 0)
+{
+	dp[v] = mp(mod, mod);
+	if (used[v]) dp[v].f = 0;
+	for (auto to : g[v])
+		if (to != p)
+		{
+			go(to, v);
+			if (dp[to].f + 1 < dp[v].f)
+			{
+				dp[v].s = dp[v].f;
+				dp[v].f = dp[to].f + 1;
+			}
+			else if (dp[to].f + 1 < dp[v].s) dp[v].s = dp[to].f + 1;
+		}
+}
+
+void calc(int v = 1, int p = 0, int up = mod)
+{
+	ans[v] = min(up, dp[v].f);
+	for (auto to : g[v])	
+		if (to != p)
+			calc(to, v, min(up, (dp[v].f == dp[to].f + 1 ? dp[v].s : dp[v].f)) + 1);
+}
+
+void recalc()
+{
+	go();
+	calc();
+}
+
+int main()
+{
+//  ios_base::sync_with_stdio(0);
+  scanf("%d%d", &n, &m);
+  for (int i = 1, u, v;i < n;i++)
+  {
+    scanf("%d%d", &u, &v);
+  	g[v].pb(u); g[u].pb(v);
+  }
+  dfs();
+  for (int i = 1;i <= timer;i++) 
+  {
+  	st[0][i] = mp(lvl[b[i]], b[i]);
+  	if (i > 1) lg[i] = lg[i >> 1] + 1;
+  }
+  for (int i = 1;i < 20;i++)
+  	for (int j = 1;j <= timer;j++)
+  		st[i][j] = min(st[i - 1][j], st[i - 1][j + (1 << (i - 1))]);
+  used[1] = 1;
+  recalc();
+  for (int i = 1, t, a;i <= m;i++)
+  {
+  	scanf("%d%d", &t, &a);
+  	if (t == 1)
+  	{
+  		used[a] = 1;
+  		all.pb(a);
+  		if (all.size() == Sz)
+  		{
+  			recalc();
+  			all.clear();
+  		}
+  	}
+  	else
+  	{
+  		int cur = ans[a];
+  		for (auto j : all)
+  		{                        	
+  			if (used[j] == 0) continue;
+  			int lca = get_lca(a, j);
+  			cur = min(cur, lvl[a] + lvl[j] - 2 * lvl[lca]);
+  		}
+  		printf("%d\n", cur);
+  	}
+  }
+	return 0;
+}

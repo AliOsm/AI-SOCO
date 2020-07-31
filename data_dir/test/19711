@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(n) ((int)(n).size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+
+const int NEUT = -1e9, NEUT2=1e9, MAXN = 2e5;
+int tree[4*MAXN], lazy[4*MAXN], treemn[4*MAXN];
+
+int op(int a, int b){
+  return max(a,b);
+}
+
+int op2(int a, int b){
+  return min(a,b);
+}
+
+void unlazy(int node, int start, int end){
+  tree[node] += lazy[node];
+  treemn[node] += lazy[node];
+  if(start != end){
+    lazy[2*node] += lazy[node];
+    lazy[2*node+1] += lazy[node];
+  }
+  lazy[node] = 0;
+}
+
+void update(int l, int r, int val, int node = 1, int start = 1, int end = MAXN){
+  if(lazy[node]){
+    unlazy(node, start, end);
+  }
+  if(start > end || start > r || end < l){
+    return;
+  }
+  if(l <= start && end <= r){
+    tree[node] += val;
+    treemn[node] += val;
+    if(start != end){
+      lazy[2*node] += val;
+      lazy[2*node+1] += val;
+    }
+    return;
+  }
+  int mid = (start + end) / 2;
+  update(l, r, val, 2*node, start, mid);
+  update(l, r, val, 2*node + 1, mid + 1, end);
+  tree[node] = op(tree[2*node], tree[2*node+1]);
+  treemn[node] = op2(treemn[2*node], treemn[2*node+1]);
+}
+
+int query(int l, int r, int node = 1, int start = 1, int end = MAXN){
+  if(start > end || start > r || end < l){
+    return NEUT;
+  }
+  if(lazy[node]){
+    unlazy(node, start, end);
+  }
+  if(l <= start && end <= r){
+    return tree[node];
+  }
+  int mid = (start + end) / 2;
+  return op(query(l, r, 2*node, start, mid), query(l, r, 2*node + 1, mid + 1, end));
+}
+
+int query2(int l, int r, int node = 1, int start = 1, int end = MAXN){
+  if(start > end || start > r || end < l){
+    return NEUT2;
+  }
+  if(lazy[node]){
+    unlazy(node, start, end);
+  }
+  if(l <= start && end <= r){
+    return treemn[node];
+  }
+  int mid = (start + end) / 2;
+  return op2(query2(l, r, 2*node, start, mid), query2(l, r, 2*node + 1, mid + 1, end));
+}
+
+int a[MAXN];
+vector<int> in[MAXN], out[MAXN];
+vector<ii> x;
+
+int main(){FIN;
+  int n,m,l,r;
+  ii ans={-1,-1};
+  cin >> n >> m;
+  fore(i,0,n) cin >> a[i], update(i+1,i+1,a[i]);
+  fore(i,0,m) cin >> l >> r, x.pb({l-1,r-1}), in[l-1].pb(r-1), out[r-1].pb(l-1);
+  fore(i,0,n){
+    for(auto x : in[i]) update(i+1,x+1,-1);
+    ans = max(ans,{query(1,n)-query2(1,n),i});
+    for(auto x : out[i]) update(x+1,i+1,1);
+  }
+  vector<int> id;
+  fore(i,0,m) if(x[i].fst <= ans.snd && ans.snd <= x[i].snd) id.pb(i);
+  cout << ans.fst << endl << SZ(id) << endl;
+  for(auto x : id) cout << x+1 << " "; cout << endl;
+}

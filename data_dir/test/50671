@@ -1,0 +1,116 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+
+const int N = 2e5+10, M = 450;
+
+int n, m, arr[N], last[N], magic, ans[N];
+struct trio{
+	int t, x, y;
+}in[N];
+
+vector<int> all;
+map<int,int> mp;
+
+struct ds{
+	int cnt[N], freq[N], blc[M];
+	ds() {
+		memset(cnt,0,sizeof cnt);
+		memset(freq,0,sizeof freq);
+		memset(blc,0,sizeof blc);
+	}
+	void update(int val, int x) {
+		int &v = cnt[val];
+		freq[v]--;
+		blc[v/M]--;
+		v += x;
+		freq[v]++;
+		blc[v/M]++;
+	}
+	int get() {
+		for(int i = 0; i < M; i++) if(blc[i] < M)
+			for(int j = i*M; ; j++) if(freq[j] == 0)
+				return j;
+	}
+}mex;
+
+struct query{
+	int l, r, blockL, blockR, upd, id;
+	bool operator<(query b) const {
+		if(blockL != b.blockL) return blockL < b.blockL;
+		if(blockR != b.blockR) return blockR < b.blockR;
+		return upd < b.upd;
+	}
+}q[N]; 
+struct update{
+	int pos, prev, now;
+}u[N];
+
+
+int l, r, t;
+void apply(int pos, int x, int y) {
+	if(l <= pos && pos <= r) {
+		mex.update(x, -1);
+		mex.update(y, +1);
+	} arr[pos] = y;
+}
+
+int main() {
+	scanf("%d %d", &n, &m);
+	magic = pow((double)n, 2./3.);
+
+	for(int i = 1; i <= n; i++) {
+		scanf("%d", &arr[i]);
+		all.pb(arr[i]);
+	}
+
+	for(int i = 1; i <= m; i++) {
+		scanf("%d %d %d", &in[i].t, &in[i].x, &in[i].y);
+		if(in[i].t == 2) all.pb(in[i].y);
+	}
+
+	sort(all.begin(),all.end());
+
+	int cur = 0, sz = all.size();
+	for(int i = 0; i < sz; i++) {
+		if(i == 0) mp[all[i]] = cur++;
+		else if(all[i] != all[i-1]) mp[all[i]] = cur++;
+	}
+	for(int i = 1; i <= n; i++) arr[i] = mp[arr[i]];
+	for(int i = 1; i <= m; i++) if(in[i].t == 2)
+		in[i].y = mp[in[i].y];
+	for(int i = 1; i <= n; i++) last[i] = arr[i];
+
+
+	int qptr = 0, uptr = 0;
+	for(int i = 1; i <= m; i++) {
+		if(in[i].t == 1) {
+			int l = in[i].x, r = in[i].y;
+			q[qptr] = { l, r, l/magic, r/magic, uptr, qptr };
+			qptr++;
+		}
+		else {
+			int x = in[i].x, y = in[i].y;
+			u[uptr] = { x, last[x], y };
+			last[x] = y, uptr++;
+		}
+	} sort(q,q+qptr);
+
+	l = 1, r = 0, t = 0;
+	for(int i = 0; i < qptr; i++) {
+		while(t < q[i].upd) apply(u[t].pos, u[t].prev, u[t].now), t++;
+		while(t > q[i].upd) --t, apply(u[t].pos, u[t].now, u[t].prev);
+
+		int L = q[i].l, R = q[i].r;
+		while(r < R) mex.update(arr[++r], +1);
+		while(l > L) mex.update(arr[--l], +1);
+		while(r > R) mex.update(arr[r--], -1);
+		while(l < L) mex.update(arr[l++], -1);
+		ans[q[i].id] = mex.get();
+	}
+	for(int i = 0; i < qptr; i++) 
+		printf("%d\n", ans[i]);
+	return 0;
+}
+

@@ -1,0 +1,127 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define SZ(v) int((v).size())
+#define ALL(vec) begin(vec), end(vec)
+typedef long long i64;
+template<typename T> inline bool uax(T &x, T y) {return (y > x) ? x = y, true : false;}
+template<typename T> inline bool uin(T &x, T y) {return (y < x) ? x = y, true : false;}
+#define error(args...) { string _s = #args; replace(_s.begin(), _s.end(), ',', ' '); \
+  stringstream _ss(_s); istream_iterator<string> _it(_ss); err(_it, args); }
+string to_string(char c) { return "'" + string(1, c) + "'";}
+string to_string(string s) { return '"' + s + '"';}
+string to_string(const char* s) { return to_string((string) s);}
+template<typename A> string to_string(A);
+template<typename A, typename B> string to_string(pair<A, B> p){
+  return "(" + to_string(p.first) + ": " + to_string(p.second) + ")";}
+template<typename A> string to_string(A v) {bool f = false; string r = "{"; 
+  for (auto x: v) {if (f) r += ", "; r += to_string(x); f = true;} return r += "}";}
+template<typename A> string to_string(vector<vector<A>> v) {string r; 
+  for (auto x: v) r += "\n" + to_string(x); return r;}
+int Nerr;
+template<typename A> string to_string(A *p) {return to_string(vector<A>(p, p + Nerr));}
+void err(istream_iterator<string>) { cerr << endl; }
+template<typename T,typename... Args> void err(istream_iterator<string> it, T a, Args... args) {
+  cerr << *it << " =: " << to_string(a) << "; "; err(++it, args...); }
+template<typename T> void kek(T ans) {cout << ans << endl; exit(0);}
+int const MOD = 1e9 + 7;
+long long const INF = 1e18 + 42;
+/***********************************************************************/
+const int N = 512;
+int a[N][N], b[5][N][N], c[N][N], logn[N];
+int f[11][N][N];
+int g[11][11][N][N];
+int mp[N];
+int n, m;
+
+inline int get(int k, int x1, int y1, int x2, int y2) {
+  if (x2 < x1) swap(x1, x2);
+  if (y2 < y1) swap(y1, y2);
+  return b[k][x2][y2] - b[k][x1 - 1][y2] - b[k][x2][y1 - 1] + b[k][x1 - 1][y1 - 1];
+}
+
+void build() {
+  for (int k = 1; k <= n; k++) {
+    for (int i = 1; i <= m; i++) {
+      f[0][k][i] = c[k - 1][i - 1];
+    }
+    for (int j = 1; 1 << j <= m; j++) {
+      for (int i = 0; i + (1 << j) - 1 <= m; i++) {
+        f[j][k][i] = max(f[j - 1][k][i], f[j - 1][k][i + (1 << (j - 1))]);
+      }
+    }
+  }
+  for (int k = 1; k <= m; k++) {
+    for (int l = 0; k + (1 << l) - 1 <= m; l++) {
+      for (int i = 1; i <= n; i++) {
+        g[l][0][k][i] = f[l][i][k];
+      }
+      for (int j = 1; 1 << j <= n; j++) {
+        for (int i = 0; i + (1 << j) - 1 <= n; i++) {
+          g[l][j][k][i] = max(g[l][j - 1][k][i], g[l][j - 1][k][i + (1 << (j - 1))]);
+        }
+      }
+    }
+  }
+}
+int ask(int x, int y, int z, int t) {
+  x++, y++, z++, t++;
+  int u = z - x + 1, v = t - y + 1;
+  int lga = logn[u];
+  int lgb = logn[v];
+  int res = g[lgb][lga][y][x];
+  res = max(res, g[lgb][lga][y + v - (1 << (lgb))][x + u - (1 << (lga))]);
+  res = max(res, g[lgb][lga][y][x + u - (1 << (lga))]);
+  res = max(res, g[lgb][lga][y + v - (1 << (lgb))][x]);
+  return res;
+}
+
+int32_t main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
+  
+  for (int i = 2; i < N; ++i) logn[i] = 1 + logn[i >> 1];
+  mp['R'] = 1;
+  mp['G'] = 2;
+  mp['B'] = 3;
+  mp['Y'] = 4;
+  int q;
+  cin >> n >> m >> q;
+  for (int i = 1; i <= n; ++i) {
+    string s; cin >> s;
+    for (int j = 1; j <= m; ++j) {
+      a[i][j] = mp[(int) s[j - 1]];
+      b[a[i][j]][i][j] = 1;
+      for (int k = 1; k <= 4; ++k) {
+        b[k][i][j] += b[k][i - 1][j] + b[k][i][j - 1] - b[k][i - 1][j - 1];
+      }
+    }
+  }
+  for (int i = 1; i < n; ++i) {
+    for (int j = 1; j < m; ++j) {
+      int w = 0;
+      while (i > w && j > w && i + w + 1 <= n && j + w + 1 <= m) {
+        int ok = 1;
+        int sq = (w + 1) * (w + 1);
+        ok &= get(1, i - w, j - w, i, j) == sq;
+        ok &= get(2, i - w, j + w + 1, i, j + 1) == sq;
+        ok &= get(3, i + w + 1, j + w + 1, i + 1, j + 1) == sq;
+        ok &= get(4, i + w + 1, j - w, i + 1, j) == sq;
+        if (!ok) break;
+        ++w;
+      }
+      c[i][j] = w;
+    }
+  }
+  build();
+  while (q--) {
+    int r1, c1, r2, c2;
+    cin >> r1 >> c1 >> r2 >> c2;
+    int lo = 0, hi = min((r2 - r1 + 1) >> 1, (c2 - c1 + 1) >> 1);
+    while (lo < hi) {
+      int md = (lo + hi + 1) >> 1;
+      if (ask(r1 + md - 1, c1 + md - 1, r2 - md, c2 - md) >= md) lo = md;
+      else hi = md - 1;
+    }
+    cout << 4 * lo * lo << '\n';
+  }
+}

@@ -1,0 +1,103 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL M=1e9+7;
+const LL maxn=2e6+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a,T b){T ret=1;for (;b;b>>=1ll,a=a*a%M) if (b&1) ret=1ll*ret*a%M;return ret;}
+
+vector<int> E[maxn];
+int VAL[maxn];//pre
+int tot,cnt;
+int id[maxn],low[maxn],dfn[maxn],vis[maxn];
+vector<int> edge[maxn];
+LL val[maxn];
+int S[maxn],top;
+LL get(LL x){
+	LL l=0,r=20000;
+	while (l+1<r){
+		LL mid=(l+r)/2;
+		if (mid*(mid+1)/2<=x) l=mid;
+		else r=mid;
+	}return x*(l+1)-l*(l+1)*(l+2)/6;
+}
+void tarjan(int x){
+	low[x]=dfn[x]=++tot;
+	S[++top]=x;vis[x]=1;
+	for (int v:E[x]){
+		if (!dfn[v]){
+			tarjan(v);
+			low[x]=min(low[x],low[v]);
+		}else if (vis[v]){
+			low[x]=min(low[x],dfn[v]);
+		}
+	}if (low[x]==dfn[x]){
+		cnt++;bool mark=0;
+		while (1){
+			int now=S[top--];
+			if (now!=x) mark=1;
+			vis[now]=0;
+			if (mark) val[cnt]+=get(VAL[now]);
+			else val[cnt]=VAL[now];
+			id[now]=cnt;
+//			printf("%d:%d;%d V=%d\n",cnt,now,val[cnt],VAL[now]);
+			if (now==x) break;
+		}
+	}
+}
+LL F[maxn];
+LL dfs(int x){
+	LL ret=0;
+	if (F[x]!=-1) return F[x];
+	for (int v:edge[x]){
+		ret=max(ret,dfs(v));
+	}return F[x]=ret+val[x];
+}
+int i,j;
+int n,m,k;
+int main(){
+	scanf("%d%d",&n,&m);
+	FOR(i,1,m){
+		int x,y,w;
+		scanf("%d%d%d",&x,&y,&w);
+		VAL[n+i]=w;
+		E[x].push_back(i+n);
+		E[i+n].push_back(y);
+	}n+=m;
+	FOR(i,1,n) if (!dfn[i]) tarjan(i);
+	FOR(i,1,n){
+		for (int v:E[i]){
+			if (id[i]!=id[v])
+				edge[id[i]].push_back(id[v]);
+		}
+	}
+	int s;scanf("%d",&s);
+	FOR(i,1,cnt) F[i]=-1;
+//	FOR(i,1,n) printf("%d ",val[i]);puts("");printf("id=%d\n",id[s]);
+	printf("%I64d\n",dfs(id[s]));
+}
+/*
+*/

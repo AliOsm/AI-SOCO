@@ -1,0 +1,233 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define all(v) (v).begin() , (v).end()
+#define popcnt(x) __builtin_popcount(x)
+#define inf 0x3f3f3f3f
+#define watch(x) cout << (#x) << " is " << (x) << endl
+#define F first
+#define S second
+
+using namespace std;
+typedef pair<int, int> ii;
+typedef vector<int> vi;
+typedef long long  ll;
+
+const double EPS = 1e-9;
+const double pi = acos(-1);
+int dx[] = {0 , 0 , 1 , -1 , 1 , 1 , -1 , -1};
+int dy[] = {1 ,-1 , 0 , 0 , -1 , 1 ,  1 , -1};
+
+struct point_i{
+    int x , y;
+    point_i(){x = y = 0;};
+    point_i(int x_ , int y_) : x(x_) , y(y_) {}
+};
+
+struct line{
+    double a , b , c;
+};
+
+struct point{
+    double x , y;
+    point(){x = y = 0.0;};
+    point(double x_ , double y_) : x(x_) , y(y_) {}
+
+    bool operator < (point other) const{
+        if(fabs(x - other.x) < EPS)
+            return y < other.y;
+        return x < other.x;
+    }
+
+    bool operator == (point other) const{
+        return fabs(x - other.x) < EPS && fabs(y - other.y) < EPS;
+    }
+};
+
+struct vec { double x, y;  // name: `vec' is different from STL vector
+  vec(double _x, double _y) : x(_x), y(_y) {} };
+
+vec toVec(point a, point b) {       // convert 2 points to vector a->b
+  return vec(b.x - a.x, b.y - a.y); }
+
+vec scale(vec v, double s) {        // nonnegative s = [<1 .. 1 .. >1]
+  return vec(v.x * s, v.y * s); }               // shorter.same.longer
+
+point translate(point p, vec v) {        // translate p according to v
+  return point(p.x + v.x , p.y + v.y); }
+
+
+double dist(point p1, point p2) {                // Euclidean distance
+  return hypot(p1.x - p2.x, p1.y - p2.y); }           // return double
+
+void pointsToLine(point p1 , point p2 , line &l){
+    if(fabs(p1.x - p2.x) < EPS){
+        l.a = 1.0 , l.b = 0.0 , l.c = -p1.x;
+    }
+    else{
+        l.a = -(double)(p1.y - p2.y) / (p1.x - p2.x);
+        l.b = 1.0;
+        l.c = -(double)(l.a * p1.x) - p1.y;
+    }
+}
+
+bool areParallel(line l1 , line l2){
+    return (fabs(l1.a - l2.a) < EPS && fabs(l1.b - l2.b) < EPS);
+}
+
+bool areIntersect(line l1 , line l2 , point &p){
+    if(areParallel(l1 , l2))return false;
+
+    p.x = (l2.b * l1.c - l1.b * l2.c) / (l2.a * l1.b - l1.a * l2.b);
+    if(fabs(l1.b) > EPS)p.y = -(l1.a * p.x + l1.c);
+    else p.y = -(l2.a * p.x + l2.c);
+
+    return true;
+}
+
+bool between(point p1 , point p2 , point p){
+    return (p.x + EPS >= min(p1.x , p2.x) && p.x <= max(p1.x , p2.x) + EPS && p.y + EPS >= min(p1.y , p2.y) && p.y <= max(p1.y , p2.y) + EPS);
+}
+
+
+double dot(vec a, vec b) { return (a.x * b.x + a.y * b.y); }
+
+double norm_sq(vec v) { return v.x * v.x + v.y * v.y; }
+
+double angle(point a, point o, point b) {  // returns angle aob in rad
+  vec oa = toVec(o, a), ob = toVec(o, b);
+  return acos(dot(oa, ob) / sqrt(norm_sq(oa) * norm_sq(ob))); }
+
+double cross(vec a, vec b) { return a.x * b.y - a.y * b.x; }
+
+// returns true if point r is on the same line as the line pq
+bool collinear(point p, point q, point r) {
+  return fabs(cross(toVec(p, q), toVec(p, r))) < EPS; }
+
+// note: to accept collinear points, we have to change the `> 0'
+// returns true if point r is on the left side of line pq
+bool ccw(point p, point q, point r) {
+    if(collinear(p , q , r))return true;
+  return cross(toVec(p, q), toVec(p, r)) > 0;
+}
+
+point pivot;
+bool angleCmp(point a, point b) {                 // angle-sorting function
+  if (collinear(pivot, a, b)) {
+    if(a.x == b.x)return dist(pivot , a) < dist(pivot , b);// special case
+    return dist(pivot, a) > dist(pivot, b);
+    }   // check which one is closer
+  double d1x = a.x - pivot.x, d1y = a.y - pivot.y;
+  double d2x = b.x - pivot.x, d2y = b.y - pivot.y;
+  return (atan2(d1y, d1x) - atan2(d2y, d2x)) < 0; }   // compare two angles
+
+double area(const vector<point> &v){
+    double A = 0.0 , x1 , x2 , y1 , y2;
+    for(int i = 0 ; i + 1 < (int)v.size() ; ++i){
+        x1 = v[i].x , y1 = v[i].y;
+        x2 = v[i + 1].x , y2 = v[i + 1].y;
+        A += (x1 * y2 - x2 * y1);
+    }
+    return fabs(A) / 2.0;
+}
+
+double perimeter(const vector<point> &P) {
+  double result = 0.0;
+  for (int i = 0; i < (int)P.size()-1; i++)  // remember that P[0] = P[n-1]
+    result += dist(P[i], P[i+1]);
+  return result; }
+
+
+bool inPolygon(point pt, const vector<point> &P) {
+  if ((int)P.size() == 0) return false;
+  double sum = 0;    // assume the first vertex is equal to the last vertex
+  for (int i = 0; i < (int)P.size()-1; i++) {
+    if (ccw(pt, P[i], P[i+1]))
+         sum += angle(P[i], pt, P[i+1]);                   // left turn/ccw
+    else
+        sum -= angle(P[i], pt, P[i+1]);                    // right turn/cw
+  }
+  return fabs(fabs(sum) - 2*pi) < EPS;
+}
+
+// returns true if point p is in either convex/concave polygon P
+bool StriclyinPolygon(point pt, const vector<point> &P) {
+  if ((int)P.size() == 0) return false;
+  double sum = 0;    // assume the first vertex is equal to the last vertex
+  for (int i = 0; i < (int)P.size()-1; i++) {
+    if (ccw(pt, P[i], P[i+1]))
+         sum += angle(P[i], pt, P[i+1]);                   // left turn/ccw
+    else {
+        sum -= angle(P[i], pt, P[i+1]);
+        if(angle(P[i] , pt , P[i + 1]) == pi){return false;}
+    }                 // right turn/cw
+  }
+  return fabs(fabs(sum) - 2*pi) < EPS;
+}
+
+vector<point> CH(vector<point> P) {   // the content of P may be reshuffled
+  int i, j, n = (int)P.size();
+  if (n <= 3) {
+    if (!(P[0] == P[n-1])) P.push_back(P[0]); // safeguard from corner case
+    return P;                           // special case, the CH is P itself
+  }
+
+  // first, find P0 = point with lowest Y and if tie: rightmost X
+  int P0 = 0;
+  for (i = 1; i < n; i++)
+    if (P[i].y < P[P0].y || (P[i].y == P[P0].y && P[i].x > P[P0].x))
+      P0 = i;
+
+  point temp = P[0]; P[0] = P[P0]; P[P0] = temp;    // swap P[P0] with P[0]
+
+  // second, sort points by angle w.r.t. pivot P0
+  pivot = P[0];                    // use this global variable as reference
+  sort(++P.begin(), P.end(), angleCmp);              // we do not sort P[0]
+
+  // third, the ccw tests
+  vector<point> S;
+  S.push_back(P[n-1]); S.push_back(P[0]); S.push_back(P[1]);   // initial S
+  i = 2;                                         // then, we check the rest
+  while (i < n) {           // note: N must be >= 3 for this method to work
+    j = (int)S.size()-1;
+    if (ccw(S[j-1], S[j], P[i])) S.push_back(P[i++]);  // left turn, accept
+    else S.pop_back(); }   // or pop the top of S until we have a left turn
+  return S; }                                          // return the result
+
+
+int main(){
+#ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin);
+#endif
+    int n;
+    scanf("%d" , &n);
+
+    map<point , int> mp;
+    vector<point> A(n) , Both;
+    for(int i = 0 ; i < n ; ++i){
+        scanf("%lf %lf" , &A[i].x , &A[i].y);
+        Both.pb(A[i]);
+        mp[A[i]] += 1;
+    }
+
+    int m;
+    scanf("%d" , &m);
+
+    vector<point> B(m);
+    for(int i = 0 ; i < m ; ++i){
+        scanf("%lf %lf" , &B[i].x , &B[i].y);
+        Both.pb(B[i]);
+        mp[B[i]] += 2;
+    }
+
+    pivot = {0 , 0};
+    sort(all(Both) , angleCmp);
+
+    vector<point> CHP = CH(Both);
+
+    bool ok = true;
+    for(auto e : CHP)
+        ok &= (mp[e] != 2 && mp[e] != 3);
+
+    if(ok)puts("YES");
+    else puts("NO");
+}

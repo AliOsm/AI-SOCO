@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int n, m;
+vector<int> g[200010];
+int e = 1, o = 1;
+int loe[200010], hie[200010];
+int loo[200010], hio[200010];
+int a[200010];
+int h[200010];
+int tree[2][4 * 200010], tadd[2][4 * 200010];
+const int maxn = 2e5;
+
+void push(int t, int v, int vl, int vr){
+    tree[t][v] += (vr - vl + 1) * tadd[t][v];
+    if(vl != vr){
+        tadd[t][2*v] += tadd[t][v];
+        tadd[t][2*v+1] += tadd[t][v];
+    }
+    tadd[t][v] = 0;
+}
+
+void update(int t, int v, int vl, int vr, int l, int r, int val){
+    push(t, v, vl, vr);
+    if(l > vr || r < vl) return;
+    if(l <= vl && vr <= r){
+//        cout << t << ' ' << v << ' ' << vl << ' ' << vr << ' ' << val << endl;
+        tadd[t][v] += val;
+        push(t, v, vl, vr);
+        return;
+    }
+    int vm = (vl + vr) >> 1;
+    update(t, 2 * v, vl, vm, l, r, val);
+    update(t, 2 * v + 1, vm + 1, vr, l, r, val);
+    tree[t][v] = tree[t][2*v] + tree[t][2*v+1];
+}
+
+int get(int t, int v, int vl, int vr, int pos){
+    push(t, v, vl, vr);
+    if(vl == vr) return tree[t][v];
+    int vm = (vl + vr) >> 1;
+    if(pos <= vm) return get(t, 2 * v, vl, vm, pos);
+    return get(t, 2 * v + 1, vm + 1, vr, pos);
+}
+
+void dfs(int v, int par, int he){
+    if(he & 1){
+        update(1, 1, 0, maxn, o, o, a[v]);
+        loo[v] = hio[v] = o++;
+    }
+    else{
+        update(0, 1, 0, maxn, e, e, a[v]);
+        loe[v] = hie[v] = e++;
+    }
+    h[v] = he;
+    for(int to: g[v]){
+        if(to != par){
+            dfs(to, v, he + 1);
+            if(loo[v] == 0) loo[v] = loo[to];
+            if(loe[v] == 0) loe[v] = loe[to];
+            hio[v] = max(hio[v], hio[to]);
+            hie[v] = max(hie[v], hie[to]);
+        }
+    }
+}
+
+main()
+{
+    ios_base::sync_with_stdio(false);
+    cin >> n >> m;
+    for(int i = 1; i <= n; i++) cin >> a[i];
+    for(int i = 0; i < n - 1; i++){
+        int from, to;
+        cin >> from >> to;
+        g[from].push_back(to);
+        g[to].push_back(from);
+    }
+    dfs(1, 0, 0);
+    for(int i = 0; i < m; i++){
+        int t;
+        cin >> t;
+        if(t == 1){
+            int x, val;
+            cin >> x >> val;
+            if(h[x] % 2 == 1) val *= -1;
+            update(0, 1, 0, maxn, loe[x], hie[x], val);
+            update(1, 1, 0, maxn, loo[x], hio[x], -val);
+//            cout << loe[x] << ' ' << hie[x] << ' ' << val << endl;
+//            cout << loo[x] << ' ' << hio[x] << ' ' << -val << endl;
+//            cout << endl;
+        }
+        else{
+            int x;
+            cin >> x;
+            if(h[x] & 1) cout << get(1, 1, 0, maxn, loo[x]) << '\n';
+            else cout << get(0, 1, 0, maxn, loe[x]) << '\n';
+        }
+//        for(int x = 1; x <= n; x++){
+//            if(h[x] & 1) cout << get(1, 1, 0, maxn, loo[x]) << ' ';
+//            else cout << get(0, 1, 0, maxn, loe[x]) << ' ';
+//        }
+//        cout << endl;
+    }
+}

@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+#define pb push_back
+const int mod=998244353;
+ll m,g;
+int step;
+bool testbound(vector<ll>v1,vector<ll>v2){
+	ll s1=0,s2=0;
+	for(auto i:v1){
+		s1 += i;
+	}
+	for(auto i:v2){
+		s2 += i;
+	}
+	while(v2.back()<g){
+		v1.pb(s1+1);
+		s1+=v1.back();
+		v2.pb(s2+m);
+		s2+=v2.back();
+	}
+	if(*(--v1.end())>g){
+		return 0;
+	}
+	else{
+		step=v1.size();
+		return 1;
+	}
+}
+bool teststep(vector<ll>v1,vector<ll>v2){
+	ll s1=0,s2=0;
+	for(auto i:v1){
+		s1 += i;
+	}
+	for(auto i:v2){
+		s2 += i;
+	}
+	while((int)v1.size()<step){
+		v1.pb(s1+1);
+		s1+=v1.back();
+		v2.pb(s2+m);
+		s2+=v2.back();
+	}
+	//cout<<v1.back()<<' '<<v2.back()<<' '<<g<<endl;
+	if(v2.back()>=g){
+
+		return 1;
+	}
+	else{
+		return 0;
+	}
+}
+int main(){
+	int t;
+	cin >> t;
+	while(t--){
+		ll a,b;
+		cin >> a >> b >> m;
+		g = b;
+		vector<ll>v1;
+		v1.pb(a);
+		step=0;
+		if(!testbound(v1,v1)){
+			cout<<-1<<endl;
+			continue;
+		}
+		if(step>50){
+			cout<<-1<<endl;
+			continue;
+		}
+		ll sum=a;
+		while(v1.size()<(int)step-1){
+			ll ans=0;
+			for(ll i=1LL<<51;i;i>>=1){
+				if(m-ans-i<=0)continue;
+				ll now=m-ans-i;
+				v1.pb(sum+now);
+				if(teststep(v1,v1)){
+					ans += i;
+				}
+				v1.pop_back();
+			}
+			v1.pb(sum + (m-ans));
+			sum = sum + v1.back();
+		}
+		if(v1.back()!=b){
+			v1.pb(b);
+		}
+		cout<<v1.size()<<' ';
+		for(auto i:v1){
+			cout << i << ' ';
+		}
+		cout << endl;
+	}
+}

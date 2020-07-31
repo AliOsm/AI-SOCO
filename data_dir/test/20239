@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct edge{
+	int to, val;
+	edge(int _t, int _v) : to(_t), val(_v){}
+};
+
+const int N = 1e6 + 10;
+const long long INF = 5e18;
+
+vector <edge> G[N];
+vector <edge> G2[N];
+vector <edge> G3[N];
+vector <int> vs;
+int used[N], cmp[N], rec[N];
+long long sum[N], cmpval[N], dp[N];
+
+void dfs1(int x){
+	used[x] = 1;
+	for (auto it : G[x]){
+		if (!used[it.to]) dfs1(it.to); 
+	}
+	vs.push_back(x);
+}
+
+void dfs2(int x, int k){
+	used[x] = 1; cmp[x] = k;
+	for (auto it : G2[x]){
+		if (!used[it.to]) dfs2(it.to, k);
+	}
+}
+
+int scc(int n){
+	memset(used, 0, sizeof(used));
+	vs.clear();
+	for (int i = 1; i <= n; i++){
+		if (!used[i]) dfs1(i);
+	}
+	memset(used, 0, sizeof(used));
+	int k = 0;
+	reverse(vs.begin(), vs.end());
+	for (auto it : vs){
+		if (!used[it]) dfs2(it, ++k);
+	}
+	return k;
+}
+
+long long calc(int x){
+	int d = upper_bound(rec + 1, rec + 20001, x) - rec - 1;
+	return 1LL * x * (d + 1) - sum[d];
+}
+
+long long DP(int x){
+	if (~dp[x]) return dp[x];
+	long long ans = 0;
+	for (auto it : G3[x]) ans = max(ans, DP(it.to) + it.val);
+	return dp[x] = ans + cmpval[x];
+}
+
+int main(){
+	for (int i = 1; i <= 20000; i++){
+		rec[i] = i * (i + 1) / 2;
+		sum[i] = sum[i - 1] + rec[i];
+	}
+	int n, m, tot, s;
+	scanf("%d %d",&n,&m);
+	for (int i = 1, u, v, w; i <= m; i++){
+		scanf("%d %d %d",&u,&v,&w);
+		G[u].push_back(edge(v, w));
+		G2[v].push_back(edge(u, w));
+	}
+	tot = scc(n);
+	for (int i = 1; i <= n; i++){
+		for (auto it : G[i]){
+			if (cmp[i] != cmp[it.to])
+				G3[cmp[i]].push_back(edge(cmp[it.to], it.val));
+			else
+				cmpval[cmp[i]] += calc(it.val);
+		}
+	}
+	scanf("%d",&s);
+	memset(dp, -1, sizeof(dp));
+	printf("%I64d\n", DP(cmp[s]));
+	return 0;
+}

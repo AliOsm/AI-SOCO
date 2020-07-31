@@ -1,0 +1,191 @@
+/**
+*
+* Author: MARS
+* Lang: GNU C++14
+*
+**/
+
+#include<bits/stdc++.h>
+using namespace std;
+
+#define F first
+#define S second
+#define ii pair<int,int>
+
+typedef long double ldbl;
+typedef long long ll;
+typedef double dbl;
+
+const ldbl pi = acos(-1);
+const ll inf = 1LL<<30;
+const dbl eps = 1e-9;
+const ll mod = 1e9+7;
+
+/** /////////// ** Code ** /////////// **/
+
+const int N=1000010;
+int col;
+
+const int Alpha=28;
+const int MAXLEN=1e6+6;
+class SuffixAutomata{
+    public:
+    struct state {
+        int len, link;
+        int next[Alpha];
+        state(){
+            len = link = 0;
+            memset(next , -1 , sizeof(next));
+        }
+    };
+
+    int vis[2*MAXLEN];
+    int mem[2*MAXLEN];
+    int sz=1, last=0;
+    vector<state> st;
+    vector<int> terminal;
+
+    void Init(int len) {
+        st.clear();
+        terminal.clear();
+        st.resize(2*len);
+        terminal.resize(2*len);
+        sz = 1;
+        last=0;
+        st[0].len = 0;
+        st[0].link = -1;
+        memset(mem, -1, sizeof mem);
+        memset(vis, 0, sizeof vis);
+    }
+    void extend(char ccc) {
+        int c = ccc - 'a';
+        int cur = sz++;
+        st[cur].len = st[last].len + 1;
+        int p = last;
+        while (p != -1 && st[p].next[c] == -1) {
+            st[p].next[c] = cur;
+            p = st[p].link;
+        }
+        if (p == -1) {
+            st[cur].link = 0;
+        }
+        else {
+            int q = st[p].next[c];
+            if (st[p].len + 1 == st[q].len) {
+                st[cur].link = q;
+            } else {
+                int clone = sz++;
+                st[clone].len = st[p].len + 1;
+                for(int j = 0 ; j < Alpha ; j++)
+                    st[clone].next[j] = st[q].next[j];
+                st[clone].link = st[q].link;
+                while (p != -1 && st[p].next[c] == q) {
+                    st[p].next[c] = clone;
+                    p = st[p].link;
+                }
+                st[q].link = st[cur].link = clone;
+            }
+        }
+        last = cur;
+    }
+    void getTerminal()
+    {
+        int p=last;
+        while(p>0)terminal[p]=1,p=st[p].link;
+    }
+
+    int dp(int x){
+        int &ret=mem[x];
+        if(ret != -1)
+            return ret;
+
+        ret = terminal[x];
+        for(int i=0 ; i<Alpha ; i++){
+            if(st[x].next[i] == -1) continue;
+            ret += dp(st[x].next[i]);
+        }
+
+        return ret;
+    }
+
+
+    void build(string s)
+    {
+        Init(s.size());
+        for (auto x:s)extend(x);
+        getTerminal();
+    }
+
+    void solve(string s){
+        int n=s.length();
+        col++;
+        s=s+s;
+
+        int cur=0;
+        int ans=0;
+        int cur_len=0;
+
+        for(int pos=0 ; pos<2*n ; pos++){
+            if(cur_len == n){
+                cur_len--;
+                if(st[ st[cur].link ].len >= cur_len)
+                    cur = st[cur].link;
+            }
+
+            while(st[cur].next[s[pos]-'a'] == -1){
+                if(!cur || !cur_len) break;
+                cur_len--;
+                if(st[ st[cur].link ].len >= cur_len)
+                    cur = st[cur].link;
+            }
+
+            cur = st[cur].next[s[pos]-'a'];
+            if(cur == -1) break;
+            cur_len++;
+
+            if(vis[cur] == col || cur_len < n) continue;
+            ans += dp(cur);
+            vis[cur]=col;
+        }
+
+        printf("%d\n",ans);
+    }
+
+    void print()
+    {
+        cout<<"Number of States: "<<sz<<endl;
+        cout<<"Terminal States: ";
+        for (int i=0;i<sz;i++)if (terminal[i])cout<<i<<" ";
+        cout<<endl;
+        cout<<"Edges:"<<endl;
+        for (int i=0;i<sz;i++)
+        {
+            for (int j=0;j<Alpha;j++)
+            {
+                if (st[i].next[j]!=-1)
+                    cout<<i<<' '<<st[i].next[j]<<' '<<char('a'+j)<<endl;
+            }
+        }
+
+        for(int i=1 ; i<sz ; i++){
+            cout<<i<<" * "<<st[i].len<<" link "<<st[i].link<<" * "<<st[ st[i].link ].len<<endl;
+        }
+
+    }
+
+}SA;
+
+char a[N];
+
+int main(){
+    scanf("%s",&a);
+    SA.build(a);
+    //SA.print();
+
+    int q;
+    scanf("%d",&q);
+    while(q--){
+        scanf("%s",&a);
+        SA.solve(a);
+    }
+}

@@ -1,0 +1,172 @@
+/*
+ * A1.cpp
+ *
+ *  Created on: 2016/02/29
+ *      Author: joi
+ */
+#include<bits/stdc++.h>
+using namespace std;
+
+#define MAX 100000
+int n;
+vector<int> v[MAX];
+int m;
+
+vector<long double> dp[MAX];
+vector<long long int> cnt[MAX];
+vector<bool> use[MAX];
+
+int dep[MAX];
+#define MAX_LOG 22
+int lcc[MAX_LOG][MAX];
+
+inline void dfs(int b,int pr,int h=0){
+	for(int i=0;i<v[b].size();i++){
+		int go=v[b][i];
+		if(go==pr){
+			continue;
+		}
+		dfs(go,b,h+1);
+	}
+	lcc[0][b]=pr;
+	dep[b]=h;
+}
+
+bool vis[MAX];
+int used[MAX];
+inline int df(int b,int pr){
+	pr=lower_bound(v[b].begin(),v[b].end(),pr)-v[b].begin();
+	if(use[b][pr]){
+		return pr;
+	}
+	if(vis[b]==false){
+		
+		for(int i=0;i<v[b].size();i++){
+			if(i==pr){
+				continue;
+			}
+			int ind=df(v[b][i],b);
+			dp[b][pr]+=dp[v[b][i]][ind];
+			dp[b][pr]+=cnt[v[b][i]][ind];
+			cnt[b][pr]+=cnt[v[b][i]][ind];
+
+		}
+		cnt[b][pr]++;
+		use[b][pr]=true;
+		vis[b]=true;
+		used[b]=pr;
+		return pr;
+	}
+	use[b][pr]=true;
+	cnt[b][pr]=n;
+	int id=df(v[b][pr],b);
+	cnt[b][pr]-=cnt[v[b][pr]][id];
+	dp[b][pr]=dp[b][used[b]];
+	int id2=df(v[b][used[b]],b);
+	dp[b][pr]+=dp[v[b][used[b]]][id2]+cnt[v[b][used[b]]][id2];
+	dp[b][pr]-=dp[v[b][pr]][id]+cnt[v[b][pr]][id];
+	return pr;
+}
+
+void init(){
+	for(int i=0;i+1<MAX_LOG;i++){
+		for(int j=0;j<n;j++){
+			if(lcc[i][j]==-1){
+				lcc[i+1][j]=-1;
+				continue;
+			}
+			lcc[i+1][j]=lcc[i][lcc[i][j]];
+		}
+	}
+}
+int lca(int a,int b){
+	if(dep[a]>dep[b]){
+
+	}
+	else{
+		swap(a,b);
+	}
+	for(int i=0;i<MAX_LOG;i++){
+		if(((dep[a]-dep[b])>>i)&1){
+			a=lcc[i][a];
+		}
+
+	}
+	if(a==b){
+		return a;
+	}
+	for(int i=MAX_LOG-1;i>=0;i--){
+		if(lcc[i][a]!=lcc[i][b]){
+			a=lcc[i][a];
+			b=lcc[i][b];
+		}
+	}
+	return lcc[0][a];
+}
+int go(int a,int f){
+	for(int i=0;i<MAX_LOG;i++){
+		if((f>>i)&1){
+			a=lcc[i][a];
+		}
+	}
+	return a;
+}
+int main(){
+	cin>>n>>m;
+	for(int i=1;i<n;i++){
+		int a,b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		v[a].push_back(b);
+		v[b].push_back(a);
+	}
+	for(int i=0;i<n;i++){
+		sort(v[i].begin(),v[i].end());
+		dp[i].assign(v[i].size()+1,0);
+		cnt[i].assign(v[i].size()+1,0);
+		use[i].assign(v[i].size()+1,false);
+	}
+	dfs(0,-1,0);
+	//df(0,-1);
+	int q=m;
+	init();
+	while(q--){
+		int a,b;
+		scanf("%d%d",&a,&b);
+		a--;
+		b--;
+		int A=a;
+		int B=b;
+		int lc=lca(a,b);
+
+		if(dep[a]>dep[b]){
+
+		}
+		else{
+			swap(a,b);
+			swap(A,B);
+		}
+		double k=-dep[lc]-dep[lc]+dep[a]+dep[b];
+		if(b==lc){
+			b=go(a,dep[a]-dep[b]-1);
+			a=go(A,1);
+		}
+		else{
+			a=go(a,1);
+			b=go(b,1);
+		}
+		//cout<<A<<" "<<B<<endl;
+		int id1=df(A,a);
+		int id2=df(B,b);
+		long double sum=0;
+		sum+=dp[A][id1]*cnt[B][id2];
+		sum+=dp[B][id2]*cnt[A][id1];
+		long double way=cnt[A][id1]*cnt[B][id2];
+		sum+=way*(1.0+k);
+		sum/=way;
+		double outt=sum;
+		printf("%.16f\n",outt);
+	}
+	return 0;
+}

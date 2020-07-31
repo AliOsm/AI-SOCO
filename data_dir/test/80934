@@ -1,0 +1,45 @@
+#include <bits/stdc++.h>
+#define fi first
+#define se second
+#define pb push_back
+using namespace std;
+
+typedef long long ll;
+
+int n, m;
+ll ans, tmp;
+vector<int> arr[55];
+bool visited[55];
+
+void dfs(int node){
+	visited[node] = true;
+	tmp++;
+	for (int i = 0 ; i < arr[node].size(); i++) 
+		if (!visited[arr[node][i]]) {
+			tmp++;
+			dfs(arr[node][i]);
+			tmp--;
+		}
+}
+
+int main(){
+	ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+	cin >> n >> m;
+	for (int i = 0 ; i < m ; i++) {
+		int x, y;
+		cin >> x >> y;
+		arr[x].pb(y);
+		arr[y].pb(x);
+	}
+	ans = 1;
+	for (int i = 1; i <= n ; i++) {
+		if (!visited[i]) {
+			tmp = 0;
+			dfs(i);
+			for (int j = 0; j < tmp-1; j++)
+				ans *= 2;
+		}
+	}
+	cout << ans << '\n';
+	return 0;
+}

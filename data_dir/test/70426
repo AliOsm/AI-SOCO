@@ -1,0 +1,83 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long LL;
+
+vector<int> l, r;
+map<int, int> id;
+long long ord[1<<18];
+
+const int SQRT = 600;
+
+vector<int> block[SQRT];
+
+int main() {
+  ios_base::sync_with_stdio(0); cin.tie(0);
+  int N, n, m; cin >> N >> n;
+  l.resize(n);
+  r.resize(n);
+  vector<int> init;
+  {
+    set<int> S;
+    for (int i = 0; i < N; ++i) S.insert(i);
+    for (int i = 0; i < n; ++i) {
+      cin >> l[i] >> r[i], S.insert(l[i]), S.insert(r[i]);
+      if (l[i] > r[i]) swap(l[i], r[i]);
+    }
+    for (int c : S) {
+      int sz = id.size();
+      id[c] = sz;
+      ord[sz] = c;
+    }
+    m = id.size();
+    init.resize(m);
+    iota(init.begin(), init.end(), 0);
+    for (int i = 0; i < m; ++i) block[i / SQRT].push_back(i);
+  }
+  long long ans = 0;
+  auto cross = [&](int li, int ri) {
+    return (ord[ri] - ord[li] - 1) - (ri - li - 1);
+  };
+  auto rank = [&](int i, int a) {
+    return lower_bound(block[i].begin(), block[i].end(), a) - block[i].begin();
+  };
+  for (int i = 0; i < n; ++i) {
+    int li = id[l[i]], ri = id[r[i]];
+    ans += cross(li, init[ri]) - cross(init[ri], ri);
+    ans += cross(init[li], ri) - cross(li, init[li]);
+    ans += (init[li] < init[ri]) - (init[li] > init[ri]);
+    if (li / SQRT == ri / SQRT) {
+      for (int j = li + 1; j < ri; ++j) {
+        ans += (init[li] < init[j]) - (init[li] > init[j]);
+        ans += (init[j] < init[ri]) - (init[j] > init[ri]);
+      }
+    }
+    else {
+
+      for (int j = li / SQRT + 1; j < ri / SQRT; ++j) {
+        ans -= 2 * rank(j, init[li]) - SQRT;
+        ans += 2 * rank(j, init[ri]) - SQRT;
+      }
+      for (int j = ri / SQRT * SQRT; j < ri; ++j) {
+        ans += (init[li] < init[j]) - (init[li] > init[j]);
+        ans += (init[j] < init[ri]) - (init[j] > init[ri]);
+      }
+      for (int j = li + 1; j < li / SQRT * SQRT + SQRT; ++j) {
+        ans += (init[li] < init[j]) - (init[li] > init[j]);
+        ans += (init[j] < init[ri]) - (init[j] > init[ri]);
+      }
+
+      block[li / SQRT].erase(lower_bound(block[li / SQRT].begin(), 
+                                         block[li / SQRT].end(), init[li]));
+      block[ri / SQRT].erase(lower_bound(block[ri / SQRT].begin(), 
+                                         block[ri / SQRT].end(), init[ri]));
+      block[li / SQRT].insert(lower_bound(block[li / SQRT].begin(), 
+                                          block[li / SQRT].end(), init[ri]),
+                              init[ri]);
+      block[ri / SQRT].insert(lower_bound(block[ri / SQRT].begin(), 
+                                          block[ri / SQRT].end(), init[li]), 
+                              init[li]);
+    }
+    cout << ans << '\n';
+    swap(init[li], init[ri]);
+  }
+}

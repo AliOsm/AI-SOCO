@@ -1,0 +1,154 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+
+#define MAX ((ll)(1e18 + 5))
+#define pi (2*acos(0))
+#define mp make_pair
+#define M ((int)(998244353))
+#define xx first
+#define yy second
+#define NN ((ll)(1e6+2))
+#define N ((int)(2e3+2))
+#define eps 0
+#define log 20
+#define pb push_back
+#define MOD 998244353
+
+
+using namespace std;
+using namespace __gnu_pbds;
+
+typedef long long ll;
+typedef unsigned long long lu;
+
+typedef tree < ll,  null_type,  less < ll >,  rb_tree_tag,  tree_order_statistics_node_update > o_set;
+
+
+struct info{
+    int val, id;
+}ar[N];
+
+bool cmp(info a, info b)
+{
+    return a.val<b.val;
+}
+
+
+int tr[2][4*N], car[2][4*N], dp[N][N], pos[2][N], pre[N], choto[N], Pair[N], f[N], pw[N];
+
+void init(int n, int b, int e)
+{
+    tr[0][n] = tr[1][n] = car[0][n] = car[1][n] = 0;
+    if(b==e) return;
+    int l, r, m;
+    m = (b+e)>>1;
+    l = n<<1;
+    r = l+1;
+    init(l,b,m);
+    init(r,m+1,e);
+}
+
+int get(bool flag , int n , int b , int e, int i, int j , int carry)
+{
+    if(i>j || j<b || e<i) return 0;
+    if(i<=b && j>=e) return tr[flag][n] + carry*(e-b+1);
+    int l, r, m;
+    m = (b+e)>>1;
+    l = n<<1;
+    r = l+1;
+    carry += car[flag][n];
+    return get(flag,l,b,m,i,j,carry) + get(flag, r, m+1, e, i , j , carry);
+}
+
+void update(bool flag , int n , int b , int e , int i , int j)
+{
+    if(i>j || j<b || e<i) return;
+    if(i<=b && j>=e){
+        car[flag][n]++;
+        tr[flag][n] += (e-b+1);
+        return;
+    }
+
+    int l, r, m;
+    m = (b+e)>>1;
+    l = n<<1;
+    r = l+1;
+    update(flag,l,b,m,i,j);
+    update(flag,r,m+1,e,i,j);
+    tr[flag][n] = tr[flag][l]+tr[flag][r]+car[flag][n]*(e-b+1);
+}
+
+
+int main()
+{
+    int n, sum = 0;
+    memset(pos,0,sizeof pos);
+    memset(pre,0,sizeof pre);
+    ///memset(dp,-1,sizeof dp);
+    ///memset(pw,-1,sizeof pw);
+    ///memset(f,-1,sizeof f);
+
+    ///cout<<call(2,1);
+    scanf("%d",&n);
+    f[0] = 1;
+    for(int i = 1; i<=n; i++) f[i] = ((ll)i*f[i-1])%M;
+    for(int i = 0; i<=n; i++){
+        dp[i][0] = f[i];
+        for(int j = 1; j<=n; j++){
+            if(j>i) dp[i][j] = 0;
+            else{
+                dp[i][j] = dp[i][j-1] - dp[i-1][j-1];
+                if(dp[i][j]<0) dp[i][j] += M;
+            }
+        }
+    }
+    if(dp[n][n]==0) pw[0] = 0;
+    else pw[0] = 1;
+    for(int i = 1; i<=n; i++) pw[i] = ((ll)dp[n][n]*pw[i-1])%M;
+    ///cout<<call(n,n)<<endl;
+    bool cur = 1;
+    for(int i = 1; i<=n; i++){
+        ///cout<<call(n,n)<<endl;
+        cur = !cur;
+        for(int j = 1; j<=n; j++){
+            scanf("%d",&ar[j].val);
+            ar[j].id = j;
+            pos[cur][ar[j].val] = j;
+        }
+        sort(ar+1,ar+n+1,cmp);
+        ///memset(tr,0,sizeof tr);
+        ///memset(car,0,sizeof car);
+        init(1,1,n);
+        for(int j = 1; j<=n; j++){
+            choto[j] = get(1,1,1,n,ar[j].id,n,0);
+            Pair[j] = get(0,1,1,n,ar[j].id,ar[j].id,0);
+            update(0,1,1,n,1,min(ar[j].id,pos[!cur][ar[j].val])-1);
+            update(1,1,1,n,ar[j].id,ar[j].id);
+        }
+        for(int j = 1; j<=n; j++){
+            ///if(i==n) cout<<ar[j].id<<" "<<ar[j].val<<" "<<pre[ar[j].id]<<" "<<pos[cur][pre[ar[j].id]]<<" ";
+            int b = get(0,1,1,n,ar[j].id,ar[j].id,0);
+            if(pos[!cur][ar[j].val]>ar[j].id) b++;
+            int a = n-ar[j].id;
+            ///if(i==n) cout<<a<<" "<<b<<" ";
+            int ans = ((ll)dp[a][b]*(choto[j]-Pair[j]) + (ll)dp[a][max(0,b-1)]*Pair[j])%M;
+            ///if(i==n) cout<<ans<<" ";
+
+            if(pre[ar[j].id]<ar[j].val && pos[cur][pre[ar[j].id]]>ar[j].id){
+                ans -= dp[a][b];
+                if(ans<0) ans += M;
+                ///if(i==n) cout<<"asd "<<ans<<" ";
+            }
+            ///if(i==n) cout<<ans<<" "<<call(n,n)<<" "<<n-i<<" "<<power(call(n,n),n-i)<<endl;
+            sum += ((ll)ans*pw[n-i])%M;
+            if(sum>=M) sum -= M;
+        }
+
+        for(int j = 1; j<=n; j++) pre[ar[j].id] = ar[j].val;
+        ///cout<<sum<<endl;
+    }
+
+    printf("%d\n",sum);
+    return 0;
+}

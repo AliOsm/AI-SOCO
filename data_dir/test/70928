@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define all(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+#define dbl(k, x) fixed << setprecision(k) << x
+
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define _upgrade ios_base::sync_with_stdio(0);
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+#define int long long
+
+const int N = 2e5 + 7;
+const int M = 998244353;
+
+LL fast(LL a, LL n)
+{
+    if(n == 0) return 1;
+    if(n & 1) return fast(a, n - 1) * a % M;
+    return fast(a * a % M, n / 2);
+}
+
+LL inv(LL x)
+{
+    return fast(x, M - 2);
+}
+
+int n;
+LL dp[N][3];
+vector < int > G[N];
+
+void dfs(int v)
+{
+    LL x = 0, y = 0, z = 1;
+
+    if(sz(G[v]) == 0)
+    {
+        dp[v][0] = 0;
+        dp[v][1] = 0;
+        dp[v][2] = 1;
+    }
+    else
+    {
+        for(auto u: G[v])
+            dfs(u);
+
+        vector < LL > pref, suf;
+        
+        dp[v][0] = 1;
+        
+        pref.push_back(1);
+        for(int i = 0; i < sz(G[v]); i++)
+        {
+            int u = G[v][i];
+            dp[v][0] = dp[v][0] * (dp[u][0] + dp[u][2]) % M;
+            pref.push_back(dp[v][0]);
+        }
+        pref.push_back(1);
+        
+        suf.push_back(1);
+        for(int i = sz(G[v]) - 1; i >= 0; i--)
+        {
+            int u = G[v][i];
+            suf.push_back(suf.back() * (dp[u][0] + dp[u][2]) % M);
+        }
+        suf.push_back(1);
+        reverse(all(suf));
+        
+        dp[v][1] = 0;
+        for(int i = 0; i < sz(G[v]); i++)
+        {
+            int u = G[v][i];
+            dp[v][1] = (dp[v][1] + (dp[u][1] + dp[u][2]) * pref[i] % M * suf[i + 2]) % M;
+        }
+
+        for(int i = 0; i < sz(G[v]); i++)
+        {
+            int u = G[v][i];
+            x = (x * (dp[u][0] + dp[u][1] + dp[u][2] + dp[u][2])
+                + y * (dp[u][1] + dp[u][2])) % M;
+            y = (y * (dp[u][0] + dp[u][2]) + (dp[u][1] + dp[u][2]) * z) % M;
+            z = z * (dp[u][0] + dp[u][2]) % M;
+        }
+
+        dp[v][1] = dp[v][1] % M;
+        //assert(y == dp[v][1]);
+
+        dp[v][2] = x;
+    }
+    
+    //printf("%d %lld: dp[%d][0] = %lld, dp[%d][1] = %lld, dp[%d][2] = %lld\n", v, y, v, dp[v][0], v, dp[v][1], v, dp[v][2]);
+}
+
+int32_t main()
+{
+    _upgrade
+    cin >> n;
+    for(int i = 2; i <= n; i++)
+    {
+        int p; cin >> p;
+        G[p].push_back(i);
+    }
+    dfs(1);
+    cout << (dp[1][0] + dp[1][2]) % M << "\n";
+	return 0;
+}

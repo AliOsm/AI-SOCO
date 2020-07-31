@@ -1,0 +1,95 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define MOD 998244353
+
+int n, m, x[1000005], par[1000005];
+long long ans;
+vector<int> v[505];
+vector<long long> dp[505];
+
+void add(long long& a, long long b) {
+	a += b;
+	if (a >= MOD)
+		a -= MOD;
+}
+
+int find(int a) {
+	return par[a] == a ? a : par[a] = find(par[a]);
+}
+
+int main() {
+	scanf("%d%d", &n, &m);
+	for (int i = 1; i <= m; i++) {
+		scanf("%d", x + i);
+		v[x[i]].push_back(i);
+	}
+	for (int i = n; i; i--) {
+		auto& w = v[i];
+		par[w[0]] = w[0];
+		long long mul = 1;
+		for (int j = 1; j < w.size(); j++) {
+			int at = w[j];
+			if (par[at - 1] == 0) {
+				puts("0");
+				return 0;
+			}
+			int tmp = find(at - 1);
+			if (tmp != w[0]) {
+				if (par[tmp - 1] == 0 || find(tmp - 1) != w[0]) {
+					puts("0");
+					return 0;
+				}
+				par[tmp] = w[0];
+				long long sum = 0;
+				for (auto k : dp[x[tmp]]) sum += k;
+				mul = sum % MOD * mul % MOD;
+			}
+			par[at] = w[0];
+		}
+		int cur = w[0];
+		if (par[w[0] - 1]) {
+			cur = find(w[0] - 1);
+			par[w[0]] = cur;
+			auto& ww = dp[x[cur]];
+			vector<long long> tdp(ww.size() + 1);
+			for (int j = 0; j < ww.size(); j++) {
+				tdp[j + 1] = tdp[j];
+				add(tdp[j + 1], ww[j]);
+			}
+			ww.push_back(0);
+			for (int j = 0; j < ww.size(); j++) {
+				ww[j] = tdp.back();
+				add(ww[j], MOD - tdp[max(0, j - 1)]);
+			}
+		} else
+			dp[x[cur]] = {1};
+		if (par[w.back() + 1]) {
+			int tmp = w.back() + 1;
+			par[tmp] = cur;
+			auto& ww = dp[x[tmp]];
+			vector<long long> tdp(ww.size() + 1);
+			for (int j = 0; j < ww.size(); j++) {
+				tdp[j + 1] = tdp[j];
+				add(tdp[j + 1], ww[j]);
+			}
+			ww.push_back(0);
+			for (int j = 0; j < ww.size(); j++) {
+				ww[j] = tdp.back();
+				add(ww[j], MOD - tdp[max(0, j - 1)]);
+			}
+			auto& www = dp[x[cur]];
+			auto ndp = vector<long long>(ww.size() - 1 + www.size());
+			for (int k = 0; k < ww.size(); k++)
+				for (int j = 0; j < www.size(); j++)
+					ndp[k + j] = (ndp[k + j] + ww[k] * www[j]) % MOD;
+			www.swap(ndp);
+		}
+		for (auto& j : dp[x[cur]])
+			j = j * mul % MOD;
+	}
+	long long sum = 0;
+	for (auto i : dp[x[1]]) sum += i;
+	printf("%lld\n", sum % MOD);
+}

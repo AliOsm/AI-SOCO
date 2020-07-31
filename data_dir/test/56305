@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#define LL long long
+#define ULL unsigned long long
+#define VI vector<int>
+#define pb push_back
+#define mp make_pair
+#define pii pair<int,int>
+#define INF 0x3f3f3f3f
+
+using namespace std;
+using namespace __gnu_pbds;
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+int NODE[200010];
+ordered_set<int> ST[1000010];
+int n, q;
+void init(int node, int li, int ls){
+	if(li == ls){
+		ST[node].insert(li);
+		NODE[li] = node;
+	}else{
+		int mid = (li + ls)/2;
+		init(2*node, li, mid);
+		init(2*node+1, mid+1, ls);
+		for(int i = li; i <= ls; i++) ST[node].insert(i);
+	}
+}
+void update(int node, int a, int b){
+	while(true){
+		if(ST[node].find(b) != ST[node].end()) return;
+		ST[node].erase(a); ST[node].insert(b);
+		node /= 2;
+	}
+}
+int query(int node, int li, int ls, int i, int j, int x){
+	if(i > ls || j < li) return 0;
+	if(li >= i && ls <= j) return ST[node].order_of_key(x);
+	int mid = (li + ls)/2;
+	int left = query(2*node, li, mid, i, j, x),
+		right = query(2*node+1, mid+1,ls, i,j, x);
+	return left + right;
+}
+int A[200010];
+int main(){
+	scanf("%d %d", &n, &q);
+	init(1, 1, n);
+	LL ans = 0;
+	for(int i = 1; i <= n; i++) A[i] = i;
+	for(int i = 0; i < q; i++){
+		int l, r;
+		scanf("%d %d", &l, &r);
+		if(l > r) swap(l, r);
+		if(l == r){
+			printf("%lld\n", ans);
+			continue;
+		}
+		if(l + 1 == r){
+			update(NODE[l], A[l], A[r]);
+			update(NODE[r], A[r], A[l]);
+			if(A[l] < A[r]) ans++;
+			else ans--;
+			printf("%lld\n", ans);
+			swap(A[l], A[r]);
+			continue;
+		}
+		ans -= (r-l+1-query(1, 1, n, l+1, r-1, A[r]));
+		ans -= query(1, 1, n, l+1, r-1, A[l]);
+		if(A[l] < A[r]) ans++;
+		else ans--;
+		update(NODE[l], A[l], A[r]);
+		update(NODE[r], A[r], A[l]);
+		swap(A[l], A[r]);
+		ans += (r-l+1-query(1, 1, n, l+1, r-1, A[r]));
+		ans += query(1, 1, n, l+1, r-1, A[l]);
+		printf("%lld\n", ans);
+	}
+	return 0;
+}

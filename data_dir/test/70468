@@ -1,0 +1,104 @@
+#include <bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+#include<ext/pb_ds/tree_policy.hpp>
+#include<ext/pb_ds/tag_and_trait.hpp>
+using namespace std;
+using namespace __gnu_pbds;
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+/***********************************************/
+/* Dear online judge:
+ * I've read the problem, and tried to solve it.
+ * Even if you don't accept my solution, you should respect my effort.
+ * I hope my code compiles and gets accepted.
+ *  ___  __     _______    _______      
+ * |\  \|\  \  |\  ___ \  |\  ___ \     
+ * \ \  \/  /|_\ \   __/| \ \   __/|    
+ *  \ \   ___  \\ \  \_|/__\ \  \_|/__  
+ *   \ \  \\ \  \\ \  \_|\ \\ \  \_|\ \ 
+ *    \ \__\\ \__\\ \_______\\ \_______\
+ *     \|__| \|__| \|_______| \|_______|
+ */
+const long long mod = 1000000007;
+
+struct PT { 
+	long long x, y;
+	PT() {}
+	PT(long long x, long long y) : x(x), y(y) {}
+	PT(const PT &p) : x(p.x), y(p.y)    {}
+	bool operator<(const PT &p)  const { return make_pair(x,y)<make_pair(p.x,p.y); }
+};
+istream &operator>>(istream &is, PT &p) {return is >> p.x >> p.y; }
+ostream &operator<<(ostream &os, const PT &p) {return os << "(" << p.x << "," << p.y << ")";}
+
+struct line {
+	PT a,b;
+	bool operator<(const line o) const {
+		return make_pair(a,b) < make_pair(o.a,o.b);
+	}
+};
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	
+	int N;
+	line L;
+	cin>>N;
+	vector<line> ver;
+	vector<long long> xs;
+	vector<PT> rmH,inH;  
+	for(int i = 0;i < N;i++) {
+		cin>>L.a>>L.b;
+		if(L.a.x == L.b.x) {
+			if(L.a.y > L.b.y) swap(L.a,L.b);
+			ver.push_back(L);
+		} else {
+			if(L.a.x > L.b.x) swap(L.a,L.b);
+			inH.push_back(L.a);
+			L.b.x++;
+			rmH.push_back(L.b);
+		}
+		xs.push_back(L.a.x);
+		xs.push_back(L.b.x);
+	}
+	{
+		sort(xs.begin(),xs.end());
+		auto it = unique(xs.begin(),xs.end());
+		xs.erase(it,xs.end());
+	}
+	sort(ver.begin(),ver.end());
+	sort(inH.begin(),inH.end());
+	sort(rmH.begin(),rmH.end());
+	map<long long,int> cnt;
+	ordered_set<long long> xhor;
+	long long res = 0;
+	for(int i = 0,inp = 0,rmp = 0,vrp = 0;i < (int)xs.size();i++) {
+		if(i)
+			res += (xs[i] - xs[i-1] - 1ll) * cnt.size();
+		while(inp < (int)inH.size() && inH[inp].x == xs[i]) {
+			cnt[inH[inp].y]++;
+			xhor.insert(inH[inp].y);
+			inp++;
+		}
+		while(rmp < (int)rmH.size() && rmH[rmp].x == xs[i]) {
+			cnt[rmH[rmp].y]--;
+			if(!cnt[rmH[rmp].y]) cnt.erase(rmH[rmp].y), xhor.erase(rmH[rmp].y);
+			rmp++;
+		}
+		res += cnt.size();
+		vector<pair<long long,long long> > ys;
+		while(vrp < (int)ver.size() && ver[vrp].a.x == xs[i]) {
+			if(!ys.empty() && ys.back().second >= ver[vrp].a.y) ys.back().second = max(ys.back().second,ver[vrp].b.y);
+			else ys.push_back({ver[vrp].a.y,ver[vrp].b.y});
+			vrp++;
+		}
+		for(int k = 0;k < (int)ys.size();k++) {
+			res += ys[k].second - ys[k].first + 1;
+			res -= xhor.order_of_key(ys[k].second+1) - xhor.order_of_key(ys[k].first);
+		}
+	}
+	cout<<res<<'\n';
+	return 0;
+}

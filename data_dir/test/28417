@@ -1,0 +1,203 @@
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <limits>
+#include <iostream>
+#include <vector>
+#include <cassert>
+#include <complex>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <cmath>
+#include <set>
+#include <algorithm>
+
+#include <queue>
+using namespace std;
+typedef long long Long;
+
+struct SegmentNode{
+	double carry;
+	int sz;
+	bool HasCarry;
+	SegmentNode(){
+		this->carry = 0;
+		this->sz = 1;
+		HasCarry = 0;
+	}
+	void join(const SegmentNode &l, const SegmentNode &r){
+		sz = l.sz + r.sz;
+	}
+	void update(){
+		HasCarry = 1;
+	}
+	void clear(){
+		HasCarry = 0;
+	}
+};
+template<class T>
+struct SegmentTree
+{
+	vector<T> V;
+	int N;
+	SegmentTree(int N)
+	{
+		this->V = vector<T>(4*N);
+		this->N = N;
+	}
+	void create(vector<typename T::Init> &VEC,int n = 1,int b = 0,int e = -1)
+	{
+		if(e == -1)e = N - 1;
+		if(b == e){
+			V[n] = T(VEC[b]);
+		}
+		else
+		{
+			create(VEC,2*n,b,(e+b)/2);
+			create(VEC,2*n+1,(e+b)/2+1,e);
+			V[n] = V[2*n] + V[2*n+1];
+		}
+	}
+	T query(int i,int j, int n = 1,int b = 0,int e = -1)
+	{
+		if(e == -1)e = N - 1;
+		if(i <= b && e <= j)return V[n];
+		else
+		{
+			if(V[n].HasCarry)
+			{
+				V[2*n  ].update(V[n].carry);
+				V[2*n+1].update(V[n].carry);
+				V[n].clear();
+			}
+			int mid = (b+e)/2;
+			if(i > mid)return query(i,j,2*n+1,mid+1,e);
+			if(j <=mid)return query(i,j,2*n,b,mid);
+			return query(i,j,2*n,b,mid) + query(i,j,2*n+1,mid+1,e);
+		}
+	}
+	void update(int i,int j,long double v,int n = 1,int b=0,int e=-1)
+	{
+		if(e == -1)e = N - 1;
+		if(i <= b && e <= j)
+		{
+			V[n].update(v);
+		}
+		else if(i > e || j < b)
+			return;
+		else
+		{
+			if(V[n].HasCarry)
+			{
+				V[2*n  ].update(V[n].carry);
+				V[2*n+1].update(V[n].carry);
+				V[n].clear();
+			}
+			int mid = (b+e)/2;
+			update(i,j,v,2*n,b,mid);
+			update(i,j,v,2*n+1,mid+1,e);
+			V[n] = V[2*n] + V[2*n+1];
+		}
+
+	}
+};
+
+struct MinVal : SegmentNode 
+{
+	struct Init {
+		int val;
+		Init(int val=0):val(val){ }
+	};
+	long double  alive;
+	MinVal() : SegmentNode(){
+		alive = 1;
+	}
+	MinVal(const Init in):SegmentNode(){
+		alive = in.val;
+	}
+	MinVal operator+(const MinVal &N)const {
+		MinVal ret; ret.join( *this , N );
+		
+		ret.alive = alive + N.alive; 
+		
+		return ret;
+	}
+	void update(long double  val)
+	{	
+		SegmentNode::update();
+		if(carry == 1)return;
+		carry += (1-carry)*val;
+		alive *= (1-val);
+	}
+};
+struct Tree {
+	int x,h;
+	double l,r;
+};
+struct Mushroom{
+	int x,z;
+	Mushroom(int x=0):x(x),z(0){}
+	bool operator<(const Mushroom &m)const{
+		return x < m.x;
+	}
+};
+int main(){
+	
+	int N, M;
+	cin >> N >> M;
+	vector<Tree> V(N);
+	for(int i = 0; i < N; ++i){
+		Tree &t = V[i];
+		scanf("%d%d%lf%lf",&t.x,&t.h,&t.l,&t.r);
+		t.l /= 100;
+		t.r /= 100;
+	}
+	vector<Mushroom> MM(M);
+	for(Mushroom &m : MM)
+		scanf("%d%d",&m.x,&m.z);
+	sort(MM.begin(),MM.end());
+	SegmentTree<MinVal> ST(M);
+	vector<MinVal::Init> IN(M);
+	for(int i = 0; i < M; ++i)
+		IN[i].val = MM[i].z;
+	ST.create(IN);
+	for(Tree &t : V){
+		// left
+		{
+			int st = t.x - t.h, en = t.x-1;
+			st = lower_bound(MM.begin(),MM.end(),Mushroom(st))-MM.begin();
+			en = upper_bound(MM.begin(),MM.end(),Mushroom(en))-MM.begin();
+			en--;
+			if(st <= en)
+				ST.update(st,en,t.l);
+		}
+		// right
+		{
+			int st = t.x+1, en = t.x+t.h;
+			st = lower_bound(MM.begin(),MM.end(),Mushroom(st))-MM.begin();
+			en = upper_bound(MM.begin(),MM.end(),Mushroom(en))-MM.begin();
+			en--;
+			if(st <= en)
+				ST.update(st,en,t.r);
+		}
+	}
+	printf("%0.15lf\n", (double)ST.query(0,M-1).alive);
+	
+	
+	
+}
+
+
+/*
+
+
+5 10
+..#..
+..#..
+#####
+..#..
+..#..
+
+
+ */

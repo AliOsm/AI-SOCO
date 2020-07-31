@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAX = 1e5 + 5;
+int n, m, q, c, diam[MAX], cc[MAX], sz[MAX], mk[MAX], dist[MAX], d[MAX], d1[MAX], d2[MAX];
+vector <long long> sum[MAX];
+vector <int> nodes, dt[MAX], g[MAX];
+map <pair <int, int>, double> mp;
+
+void dfs(int u) {
+	mk[u] = 1;
+	sz[c]++;
+	cc[u] = c;
+	nodes.push_back(u);
+	
+	for(int v : g[u])
+		if(!mk[v])
+			dfs(v);
+}
+
+int bfs(int u, int *d) {
+	queue <int> q;
+	q.push(u);
+	d[u] = 0;
+	
+	while(!q.empty()) {
+		u = q.front();
+		q.pop();
+		
+		for(int v : g[u]) {
+			if(cc[u] != cc[v])
+				continue;
+	
+			if(d[v] == -1) {
+				d[v] = d[u] + 1;
+				q.push(v);
+			}
+		}
+	}
+	
+	int f = -1;
+	for(int i : nodes) {
+		if(d[i] == -1)
+			continue;
+
+		if(f == -1 || d[i] > d[f])
+			f = i;
+	}
+			
+	return f;
+}
+
+int main() {
+	scanf("%d%d%d", &n, &m, &q);
+	
+	for(int i = 1; i <= m; i++) {
+		int a, b; scanf("%d%d", &a, &b);
+		g[a].push_back(b);
+		g[b].push_back(a);
+	}
+	
+	for(int i = 1; i <= n; i++)
+		dist[i] = d[i] = d1[i] = d2[i] = -1;
+	
+	for(int i = 1; i <= n; i++) {
+		if(!mk[i]) {
+			c++;
+			nodes.clear();
+			
+			dfs(i);
+			
+			int u = bfs(i, dist);
+			
+			for(int o : nodes)
+				dist[o] = -1;
+			
+			int v = bfs(u, dist);
+			
+			bfs(u, d1);
+			bfs(v, d2);
+			
+			diam[c] = d2[u];
+			
+			for(int o : nodes) {
+				d[o] = max(d1[o], d2[o]);
+				d1[o] = d2[o] = dist[o] = -1;
+				dt[c].push_back(d[o]);
+			}
+		}
+	}
+	
+	for(int i = 1; i <= c; i++) {
+		sort(dt[i].begin(), dt[i].end());
+		
+		sum[i].assign((int) dt[i].size(), 0);
+		sum[i][0] = dt[i][0];
+		
+		for(int k = 1; k < (int) dt[i].size(); k++)
+			sum[i][k] = sum[i][k - 1] + dt[i][k];
+	}
+	
+	while(q--) {
+		int a, b; scanf("%d%d", &a, &b);
+		
+		if(cc[a] == cc[b]) {
+			printf("-1\n");
+			continue;
+		}
+		
+		a = cc[a], b = cc[b];
+		
+		if(sz[a] > sz[b])
+			swap(a, b);
+			
+		if(mp.count({a, b})) {
+			printf("%.10lf\n", mp[{a, b}]);
+			continue;
+		}
+		
+		int d = max(diam[a], diam[b]);
+		long long ans = 0;
+		
+		for(int u : dt[a]) {
+			int p = lower_bound(dt[b].begin(), dt[b].end(), d - u) - dt[b].begin();
+			int cnt = (int) dt[b].size() - p;
+			long long s = sum[b].back();
+			
+			if(p > 0)
+				s -= sum[b][p - 1];
+				
+			s += 1LL * (u + 1) * cnt;
+			
+			ans += 1LL * s;
+			ans += 1LL * p * d;
+		}
+		
+		double res = 1.0 * ans / sz[a] / sz[b];
+		printf("%.10lf\n", res);
+		mp[{a, b}] = mp[{b, a}] = res;
+	}
+	
+	return 0;
+}

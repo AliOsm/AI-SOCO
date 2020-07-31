@@ -1,0 +1,53 @@
+#pragma GCC optimize("Ofast")
+
+#include <bits/stdc++.h>
+using namespace std;
+
+#define y0 holdtheflower
+#define y1 enjoythecolorandscent
+#define yn walkthroughthesoulgarden
+#define j1 feelthewarmbreathofkindnessandsalvation
+
+#define endl '\n'
+mt19937 rng32(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng64(chrono::steady_clock::now().time_since_epoch().count());
+
+int n; vector<int> a;
+
+void Input() {
+	cin >> n; a.resize(n);
+	for (auto &z: a) cin >> z;
+}
+
+void Solve() {
+	map<int, int> Map;
+	for (auto z: a) {
+		Map[z]++;
+		if (Map[z] > 2) {
+			cout << "NO\n"; return;
+		}
+	}
+	sort(a.begin(), a.end());
+	vector<int> A1, A2; Map.clear();
+	for (int i=0; i<n; i++) {
+		Map[a[i]]++;
+		if (Map[a[i]] == 1) A1.push_back(a[i]);
+		else A2.push_back(a[i]);
+	}
+	reverse(A2.begin(), A2.end());
+	cout << "YES\n";
+	cout << A1.size() << endl;
+	for (auto z: A1) cout << z << " "; cout << endl;
+	cout << A2.size() << endl;
+	for (auto z: A2) cout << z << " "; cout << endl;
+}
+
+int main(int argc, char* argv[]) {
+	ios_base::sync_with_stdio(0); cin.tie(NULL);
+	Input(); Solve(); return 0;
+}
+
+/******************************************\
+ *  Thuy-Trang Tran, #Team4T's Leader     *
+ *  #Team4T Primary Flagship - Salvation  *
+\******************************************/

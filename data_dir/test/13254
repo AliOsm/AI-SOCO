@@ -1,0 +1,104 @@
+#include <iostream>
+using namespace std;
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+
+typedef tree<int, null_type,less<int>, rb_tree_tag,tree_order_statistics_node_update> ordered_set;
+
+
+const int N = 2e5+7;
+
+int pos[N], a[N];
+
+ordered_set tr[4*N];
+vector<int> lz[4*N];
+
+void apply(int u) {
+    for (int x: lz[u])
+        if (x>0)    tr[u].insert(x);
+        else        tr[u].erase(-x);
+    lz[u].clear();
+}
+
+void build(int u, int st, int en) {
+    int mid = (st+en)/2;
+
+    for (int i=st; i<=en; i++)
+        lz[u].push_back(a[i]);
+    if (st==en)     return;
+
+    build(2*u, st, mid);
+    build(2*u+1, mid+1, en);
+}
+
+
+void update(int u, int st, int en, int x, int y, int a, int b) {
+    if (y < st || en < x || (x<st && en<y))   return;
+    if (st<=x && en<y)      lz[u].push_back(-a), lz[u].push_back(b);
+    if (x<st && y<=en)      lz[u].push_back(-b), lz[u].push_back(a);
+    if (st==en) return;
+
+    int mid = (st+en)/2;
+    update(2*u, st, mid, x, y, a, b);
+    update(2*u+1, mid+1, en, x, y, a, b);
+}
+
+int count(int u, int st, int en, int l, int r, int x) {
+    if (r < st || en < l)   return 0;
+    if (l<= st && en<=r)    return apply(u), tr[u].order_of_key(x);
+    int mid = (st+en)/2;
+    return count(2*u, st, mid, l, r, x) + count(2*u+1, mid+1,en,l,r,x);
+}
+
+void print(int u, int st, int en) {
+    cout<<"-->"<<u<<" "<<st<<" "<<en<< " ->  ";
+    for (int x: tr[u])  cout<<x<<" ";
+    cout<<endl;
+
+    if (st==en) return;
+    int mid = (st+en)/2;
+    print(2*u, st, mid);
+    print(2*u+1, mid+1, en);
+}
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+
+    int n, m;
+    cin>>n>>m;
+
+    for (int i=1; i<=n; i++) {
+        int x;
+        cin>>x;
+        pos[x] = i;
+    }
+
+    for (int i=1; i<=n; i++) {
+        cin>>a[i];
+        a[i] = pos[a[i]];
+
+    }
+
+    build(1,1,n);
+    while (m--) {
+        int t;
+        cin>>t;
+
+        if (t==2) {
+            int x, y;
+            cin>>x>>y;
+            if (x==y)   continue;
+            if (x>y)    swap(x, y);
+            update(1,1,n,x,y,a[x],a[y]);
+            swap(a[x], a[y]);
+
+        }
+        else {
+            int l, r, hi, lo;
+            cin>>l>>r>>lo>>hi;
+            cout<<count(1,1,n,lo,hi,r+1)-count(1,1,n,lo,hi,l)<<"\n";
+        }
+    }
+}

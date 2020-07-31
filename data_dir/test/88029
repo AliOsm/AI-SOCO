@@ -1,0 +1,192 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+#define all(x) x.begin(), x.end()
+#define rall(x) x.rbegin(), x.rend()
+#define size(x) (int) x.size()
+#define sqr(x) ((x) * (x))
+
+const int maxn = 505;
+const int logn = 18;
+const int inf = (int) 1e9 + 5;
+const long long mod = (long long) 1e6 + 3;
+const long long base = 2204234849;
+const long long l_inf = (long long) 4e18;
+const long double pi = acos(-1.0);
+const long double eps = 1e-12;
+
+int n, k;
+int field[maxn][maxn];
+int id = 1, sz[maxn * maxn];
+int cnt1[maxn * maxn], cnt2[maxn * maxn];
+int sum = 0, best = 0;
+
+int dx[4] = {-1, 0, 1, 0};
+int dy[4] = {0, -1, 0, 1};
+
+inline bool good(int i, int j) {
+    return i >= 0 && i < n && j >= 0 && j < n;
+}
+
+void dfs(int x, int y) {
+    field[x][y] = id;
+    sz[id]++;
+    for (int i = 0; i < 4; i++)
+        if (good(x + dx[i], y + dy[i]) && field[x + dx[i]][y + dy[i]] == 0)
+            dfs(x + dx[i], y + dy[i]);
+}
+
+inline void add(int i, int j, int y) {
+    if (good(i, j) && field[i][j] != -1) {
+        int x = field[i][j];
+        if (cnt2[x] == 0)
+            sum += sz[x];
+        cnt2[x] += y;
+        if (cnt2[x] == 0)
+            sum -= sz[x];
+    }
+}
+
+void preprocess() {
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < k; j++) {
+            if (field[i][j] != -1) {
+                cnt1[field[i][j]]++;
+                cnt2[field[i][j]]++;
+            }
+        }
+    }
+    for (int i = 0; i < k; i++) {
+        if (good(i, k) && field[i][k] != -1)
+            cnt2[field[i][k]]++;
+        if (good(k, i) && field[k][i] != -1)
+            cnt2[field[k][i]]++;
+    }
+    sum = k * k;
+    for (int i = 0; i < id; i++)
+        if (cnt2[i] != 0)
+            sum += sz[i] - cnt1[i];
+    best = max(best, sum);
+}
+
+void stepRight(int i1, int j1, int i2, int j2) { //j1 -> j1 + 1, j2 -> j2 + 1
+    for (int i = 0; i < k; i++) {
+        if (field[i1 + i][j1] != -1) {
+            cnt1[field[i1 + i][j1]]--;
+            sum++;
+        }
+        if (field[i1 + i][j2 + 1] != -1) {
+            cnt1[field[i1 + i][j2 + 1]]++;
+            sum--;
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        add(i1 + i, j1 - 1, -1);
+        add(i1 + i, j2 + 2, 1);
+    }
+    add(i1 - 1, j1, -1);
+    add(i1 - 1, j2 + 1, 1);
+    add(i2 + 1, j1, -1);
+    add(i2 + 1, j2 + 1, 1);
+}
+
+void stepLeft(int i1, int j1, int i2, int j2) {
+    for (int i = 0; i < k; i++) {
+        if (field[i1 + i][j2] != -1) {
+            cnt1[field[i1 + i][j2]]--;
+            sum++;
+        }
+        if (field[i1 + i][j1 - 1] != -1) {
+            cnt1[field[i1 + i][j1 - 1]]++;
+            sum--;
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        add(i1 + i, j2 + 1, -1);
+        add(i1 + i, j1 - 2, 1);
+    }
+    add(i1 - 1, j2, -1);
+    add(i1 - 1, j1 - 1, 1);
+    add(i2 + 1, j2, -1);
+    add(i2 + 1, j1 - 1, 1);
+}
+
+void stepDown(int i1, int j1, int i2, int j2) {
+    for (int i = 0; i < k; i++) {
+        if (field[i1][j1 + i] != -1) {
+            cnt1[field[i1][j1 + i]]--;
+            sum++;
+        }
+        if (field[i2 + 1][j1 + i] != -1) {
+            cnt1[field[i2 + 1][j1 + i]]++;
+            sum--;
+        }
+    }
+
+    for (int i = 0; i < k; i++) {
+        add(i1 - 1, j1 + i, -1);
+        add(i2 + 2, j1 + i, 1);
+    }
+    add(i1, j1 - 1, -1);
+    add(i2 + 1, j1 - 1, 1);
+    add(i1, j2 + 1, -1);
+    add(i2 + 1, j2 + 1, 1);
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.precision(20);
+	cout << fixed;
+	srand(566);
+
+#ifdef LOCAL
+    freopen("input.in", "r", stdin);
+#endif
+
+    cin >> n >> k;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            char value;
+            cin >> value;
+            field[i][j] = value == '.' ? 0 : -1;
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (field[i][j] == 0) {
+                dfs(i, j);
+                id++;
+            }
+        }
+    }
+
+    preprocess();
+    //cout << sum << '\n';
+    for (int i = 0; i <= n - k; i++) {
+        for (int j = 0; j < n - k; j++) {
+            i & 1 ? stepLeft(i, n - k - j, i + k - 1, n - j - 1) : stepRight(i, j, i + k - 1, j + k - 1);
+            best = max(best, sum);
+            //cout << sum << '\n';
+        }
+        if (i != n - k) {
+            i & 1 ? stepDown(i, 0, i + k - 1, k - 1) : stepDown(i, n - k, i + k - 1, n - 1);
+            best = max(best, sum);
+            //cout << sum << '\n';
+        }
+    }
+
+    cout << best;
+
+#ifdef LOCAL
+    cout << "\nTime elapsed: " << 1.0 * clock() / CLOCKS_PER_SEC << " s.\n";
+#endif
+
+	return 0;
+}

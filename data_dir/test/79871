@@ -1,0 +1,206 @@
+#include "bits/stdc++.h"
+#include "ext/pb_ds/assoc_container.hpp"
+#include "ext/pb_ds/tree_policy.hpp"
+using namespace __gnu_pbds;
+using namespace std;
+typedef long long ll;
+#define int long long
+#define pb push_back
+#define fi first
+#define se second
+#define fr(i, a, b) for(int i = a; i <= b; i++)
+#define all(x) x.begin(), x.end()
+#define IO ios :: sync_with_stdio(0), cin.tie(0), cout.tie(0)
+#define pii pair<int,int>
+#define sz(x) (int)x.size()
+// const int mod = 1e9 + 7;
+// const int mod1 = 998244353;
+typedef long double f80;
+
+#ifndef LOCAL
+#pragma GCC optimize ("O2")
+#define endl '\n'
+#endif
+
+template<typename T>
+using ordered_set = tree<T,null_type,less<T>,rb_tree_tag,tree_order_statistics_node_update>;
+
+mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
+int rand(int l, int r){
+    uniform_int_distribution<int> uid(l, r);
+    return uid(rng);
+}
+
+ll pwr(ll a,ll b, ll mod){
+    a %= mod;
+    int ans = 1;
+    while(b){
+        if(b & 1) ans = (ans * a) % mod;
+        a = (a * a) % mod;
+        b >>= 1;
+    }
+    return ans;
+}
+
+string to_string(string s) {
+  return '"' + s + '"';
+}
+
+string to_string(const char* s) {
+  return to_string((string) s);
+}
+
+string to_string(bool b) {
+  return (b ? "true" : "false");
+}
+
+template <typename A, typename B>
+string to_string(pair<A, B> p) {
+  return "(" + to_string(p.first) + ", " + to_string(p.second) + ")";
+}
+
+template <typename A>
+string to_string(A v) {
+  bool first = true;
+  string res = "{";
+  for (const auto &x : v) {
+    if (!first) {
+      res += ", ";
+    }
+    first = false;
+    res += to_string(x);
+  }
+  res += "}";
+  return res;
+}
+
+void debug_out() { cerr << endl; }
+
+template <typename Head, typename... Tail>
+void debug_out(Head H, Tail... T) {
+  cerr << " " << to_string(H);
+  debug_out(T...);
+}
+
+#ifdef LOCAL
+#define debug(...) cerr << "[" << #__VA_ARGS__ << "]:", debug_out(__VA_ARGS__)
+#else
+#define debug(...) 42
+#endif
+
+const int N = 1e5 + 5;
+int a[N], dp[N];
+int tr[4 * N], tr2[4 * N], tr3[4 * N];
+int n, s, l;
+void build(int nd,int s,int e){
+	if(s == e){
+		tr[nd] = a[s];
+		tr2[nd] = a[s];
+		return;
+	}
+	int m = (s + e) >> 1;
+	build(nd << 1, s, m);
+	build(nd << 1 | 1, m + 1, e);
+	tr[nd] = max(tr[nd << 1], tr[nd << 1 | 1]);
+	tr2[nd] = min(tr2[nd << 1], tr2[nd << 1 | 1]);
+}
+pii query(int nd,int s,int e,int l,int r){
+	if(s > r || e < l) return {1e9, -1e9};
+	if(l <= s && e <= r){
+		return {tr2[nd], tr[nd]};
+	}
+	int m = (s + e) >> 1;
+	pii x1 = query(nd << 1, s, m, l, r);
+	pii x2 = query(nd << 1 | 1, m + 1, e, l, r);
+	return {min(x1.fi, x2.fi), max(x1.se, x2.se)};
+}
+void upd(int nd,int s,int e,int idx, int val){
+	if(s == e){
+		tr3[nd] = val;
+		return;
+	}
+	int m = (s + e) >> 1;
+	if(idx <= m){
+		upd(nd << 1, s, m, idx, val);
+	}
+	else{
+		upd(nd << 1 | 1, m + 1, e, idx, val);
+	}
+	tr3[nd] = min(tr3[nd << 1], tr3[nd << 1 | 1]);
+}
+int query1(int nd,int s,int e,int l,int r){
+	if(s > r || e < l) return 1e9;
+	if(l <= s && e <= r){
+		return tr3[nd];
+	}
+	int m = (s + e) >> 1;
+	int x1 = query1(nd << 1, s, m, l, r);
+	int x2 = query1(nd << 1 | 1, m + 1, e, l, r);
+	return min(x1, x2);
+}
+bool good(int l, int r){
+	pii x = query(1, 1, n, l, r);
+	// cout << l << " " << r << " " << x.fi << " " << x.se << endl;
+	return x.se - x.fi <= s;
+}
+void solve(){
+	cin >> n >> s >> l;
+	fr(i, 1, n){
+		cin >> a[i];
+	}
+	build(1, 1, n);
+	dp[0] = 0;
+	upd(1, 0, n, 0, 0);
+	fr(i, 1, n){
+		if(i < l){
+			dp[i] = 1e9;
+			upd(1, 0, n, i, 1e9);
+			continue;
+		}
+		int q = i - l;
+		int p;
+		int se = 0, ee = q;
+		if(!good(ee + 1, i)){
+			dp[i] = 1e9;
+			upd(1, 0, n, i, 1e9);
+			continue;
+		}
+		if(good(se + 1, i)){
+			p = 0;
+		}
+		else
+		{
+			while(ee - se > 1){
+				int m = (se + ee) >> 1;
+				if(good(m + 1, i))
+					ee = m;
+				else
+					se = m;
+			}
+			p = ee;
+		}
+		// cout << i << " " << p << " " << q << endl;
+		dp[i] = query1(1, 0, n, p, q) + 1;
+		upd(1, 0, n, i, dp[i]);
+	}
+	// fr(i, 0, n){
+	// 	cout << dp[i] << " ";
+	// }
+	// cout << endl;
+	if(dp[n] > n) dp[n] = -1;
+	cout << dp[n];
+}
+signed main(){
+    IO;
+    #ifdef LOCAL
+        freopen("inp.txt","r", stdin);
+        freopen("out.txt", "w", stdout);
+    #endif
+    cout << setprecision(10) << fixed;
+    int t = 1;
+    // cin >> t;
+    fr(tt, 1, t){
+        solve();
+    }
+    return 0;
+}

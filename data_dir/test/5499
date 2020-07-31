@@ -1,0 +1,125 @@
+#include<bits/stdc++.h>
+#define rep(i,start,lim) for(lld i=start;i<lim;i++)
+#define repd(i,start,lim) for(lld i=start;i>=lim;i--)
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define sz(a) lld((a).size())
+#define all(c) (c).begin(),(c).end()
+#define INF         1011111111
+#define LLINF       1000111000111000111LL
+#define EPS         (double)1e-10
+#define MOD         1000000007
+#define PI          3.14159265358979323
+using namespace std;
+typedef long double ldb;
+typedef long long lld;
+lld powm(lld base,lld exp,lld mod=MOD) {lld ans=1;while(exp){if(exp&1) ans=(ans*base)%mod;exp>>=1,base=(base*base)%mod;}return ans;}
+lld ctl(char x,char an='a') {return (lld)(x-an);}
+char ltc(lld x,char an='a') {return (char)(x+an);}
+typedef vector<lld> vlld;
+typedef pair<lld,lld> plld;
+typedef map<lld,lld> mlld;
+typedef set<lld> slld;
+#define sync ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0)
+#define endl '\n'
+#define fre freopen("1.in","r",stdin); freopen("1.out","w",stdout);
+#define die(x) return cout<<x,0
+#define N 100005
+#define LOGN 20
+lld level[N],pref[N];
+vector<plld> adj[N];
+struct LCA{
+    lld p[N][LOGN];
+    void dfs(lld x) {
+        rep(i,1,LOGN) p[x][i]=p[p[x][i-1]][i-1];
+        for(auto i:adj[x]) if(!level[i.f]) {
+            p[i.f][0] = x;
+            level[i.f] = level[x]+1;
+            pref[i.f] = pref[x] + i.s;
+            dfs(i.f);
+        }
+    }
+    lld lca(lld u,lld v) {
+        if(level[u]<level[v]) swap(u,v);
+        repd(i,LOGN-1,0) if(level[p[u][i]]>=level[v]) u=p[u][i];
+        if(u==v) return u;
+        repd(i,LOGN-1,0) if(p[u][i]!=p[v][i]) u=p[u][i],v=p[v][i];
+        return p[u][0];
+    }
+    lld dist(lld u,lld v) {
+        lld temp=lca(u,v);
+        return pref[u]-pref[temp]+pref[v]-pref[temp];
+    }
+} lc;
+//Disjoint Set Union
+struct DSU{
+  lld sze[N],arr[N];
+  void init() {
+    rep(i,1,N) arr[i]=i,sze[i]=1;
+  }
+  void get_union(lld a,lld b) {
+    lld root_a=root(a),root_b=root(b);
+    if(sze[root_a]<sze[root_b]) arr[root_a]=arr[root_b],sze[root_b]+=sze[root_a];
+    else arr[root_b]=arr[root_a],sze[root_a]+=sze[root_b];
+  }
+  lld root(lld x) {
+    while(arr[x]!=x) arr[x]=arr[arr[x]],x=arr[x];
+    return x;
+  } 
+} dsu;
+vector<pair<lld,plld> > edges,extra;
+slld tmpspec;
+vlld special;
+lld pairs[50][50],idx[N];
+int main() {
+    sync; 
+    lld n,m,u,v,w,q;  
+    cin>>n>>m;
+    dsu.init();
+    rep(i,1,m+1) {
+        cin>>u>>v>>w;
+        edges.pb(mp(w,mp(u,v)));
+    }
+    sort(all(edges));
+    lld root;
+    for(auto i:edges) {
+        lld u = i.s.f, v = i.s.s;
+        if(dsu.root(u) != dsu.root(v)) {
+            dsu.get_union(u,v);
+            root = u;
+            adj[u].pb(mp(v,i.f));
+            adj[v].pb(mp(u,i.f));
+        }
+        else {
+            tmpspec.insert(u);
+            tmpspec.insert(v);
+            extra.pb(i);
+        }
+    }
+    for(auto i:tmpspec) special.pb(i);
+    level[root] = 1;
+    lc.dfs(root);
+    lld k = sz(special);
+    rep(i,0,k) idx[special[i]] = i;
+    rep(i,0,k) rep(j,0,k) pairs[i][j] = lc.dist(special[i],special[j]);
+    for(auto i:extra) {
+        lld u = i.s.f, v = i.s.s;
+        pairs[idx[u]][idx[v]] = pairs[idx[v]][idx[u]] = min(pairs[idx[u]][idx[v]], i.f);
+    }
+    rep(vert,0,k) rep(i,0,k) rep(j,0,k) pairs[i][j] = min(pairs[i][j], pairs[i][vert] + pairs[vert][j]);
+    cin>>q;
+    while(q--) {
+        cin>>u>>v;
+        lld ans = lc.dist(u,v);
+        vlld sdu,sdv;
+        rep(i,0,k) {
+            sdu.pb(lc.dist(u,special[i]));
+            sdv.pb(lc.dist(v,special[i]));
+        }
+        rep(i,0,k) rep(j,0,k) ans = min(ans, sdu[i] + pairs[i][j] + sdv[j]);
+        cout<<ans<<endl;
+    }
+    return 0;
+}

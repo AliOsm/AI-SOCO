@@ -1,0 +1,56 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 2e5 + 5;
+
+int n;
+char s[N], t[N];
+
+bool check()
+{
+  int a = 0, b = 0;
+  for(int i = 0 ; i < n ; i++)
+    if(s[i] == 'a') a++;
+    else b++;
+  for(int i = 0 ; i < n ; i++)
+    if(t[i] == 'a') a--;
+    else b--;
+  return a == 0 && b == 0;
+}
+
+int main()
+{
+  scanf("%d", &n);
+  scanf("%s%s", s, t);
+  vector<int> va, vb;
+  for(int i = 0 ; i < n ; i++){
+    if(s[i] == 'a' && t[i] == 'b')
+      va.pb(i);
+    if(s[i] == 'b' && t[i] == 'a')
+      vb.pb(i);
+  }
+  vector<pair<int, int>> sol;
+  while(sz(va) >= 2){
+    int i = va.back(); va.pop_back();
+    int j = va.back(); va.pop_back();
+    sol.pb({i + 1, j + 1});
+  }
+  while(sz(vb) >= 2){
+    int i = vb.back(); vb.pop_back();
+    int j = vb.back(); vb.pop_back();
+    sol.pb({i + 1, j + 1});
+  }
+  if(sz(va) != sz(vb))
+    return cout << -1 << endl, 0;
+  if(sz(va)){
+    sol.pb({va.back() + 1, va.back() + 1});
+    sol.pb({va.back() + 1, vb.back() + 1});
+  }
+  printf("%d\n", sz(sol));
+  for(int i = 0 ; i < sz(sol) ; i++)
+    printf("%d %d\n", sol[i].first, sol[i].second);
+  return 0;
+}

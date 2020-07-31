@@ -1,0 +1,29 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+const int N = 1e3 + 3;
+int n, a[N];
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.in", "r", stdin);
+#endif
+	int t;
+	scanf("%d", &t);
+	while (t--) {
+		scanf("%d", &n);
+		for (int i = 1; i <= n; ++i)
+			scanf("%d", a + i);
+		sort(a + 1, a + n + 1);
+		reverse(a + 1, a + n + 1);
+		int res = 1, mini = 1e9;
+		for (int i = 1; i <= n; ++i) {
+			mini = min(mini, a[i]);
+			if (mini >= i)
+				res = i;
+			else
+				break;
+		}
+		printf("%d\n", res);
+	}
+	return 0;
+}

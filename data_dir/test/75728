@@ -1,0 +1,50 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int M = 1e9+7;
+void madd(int& a, int b) {
+    a += b;
+    if (a >= M) a -= M;
+}
+int mult(int a, int b) {
+    return (1LL*a*b) % M;
+}
+int modexp(int a, int b) {
+    int res = 1;
+    while (b > 0) {
+        if (b&1) res = mult(res,a);
+        a = mult(a,a);
+        b >>= 1;
+    }
+    return res;
+}
+int inverse(int x) {
+    return modexp(x,M-2);
+}
+const int maxn = 1e5+5;
+int n, a[maxn];
+int cnt[maxn];
+int mu[maxn];
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+        cnt[a[i]]++;
+    }
+    mu[1] = 1;
+    for (int i = 1; i < maxn; i++) {
+        for (int j = 2*i; j < maxn; j += i) {
+            mu[j] -= mu[i];
+            cnt[i] += cnt[j];
+        }
+    }
+    int ans = 0;
+    for (int d = 1; d <= 100000; d++) {
+        madd(ans,mult((mu[d]+M)%M,modexp(2,cnt[d])-1));
+    }
+    cout << ans << '\n';
+}
+

@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define pb push_back
+#define mk make_pair
+#define all(c) (c).begin(), (c).end()
+#define fi first
+#define se second
+
+typedef long long ll;
+
+const int Z = (int)2e5 + 111;
+
+struct edge {
+    int x, y, w, ind;
+};
+
+int n, m, par[Z], l, tin[Z], tout[Z], timer;
+pair<int, int> up[Z][30];
+vector <pair<int, int> > g[Z];
+
+void initDsu() {
+    for (int i = 1; i <= n; ++i) {
+        par[i] = i;
+    }
+}
+
+int getDsu(int a) {
+    if (a == par[a]) return a;
+    return par[a] = getDsu(par[a]);
+}
+
+void uniteDsu(int a, int b) {
+    a = getDsu(a);
+    b = getDsu(b);
+    if (rand() & 1) {
+        swap(a, b);
+    }
+    par[a] = b;
+}
+
+void dfs(int v, int p, int len) {
+    tin[v] = ++timer;
+    up[v][0] = mk(p, len);
+    for (int i = 1; i <= l; ++i) {
+        up[v][i].fi = up[up[v][i-1].fi][i-1].fi;
+        up[v][i].se = max(up[v][i-1].se, up[up[v][i-1].fi][i-1].se);
+    }
+    for (auto x : g[v]) {
+        int to = x.fi;
+        int w = x.se;
+        if (to == p) continue;
+        dfs(to, v, w);
+    }
+    tout[v] = timer;
+}
+
+bool isParent(int a, int b) {
+    return tin[a] <= tin[b] && tout[a] >= tout[b];
+}
+
+int lca(int a, int b) {
+    int res = 0;
+    if (isParent(a, b)) return res;
+    for (int i = l; i >= 0; --i) {
+        if (!isParent(up[a][i].fi, b)) {
+            res = max(res, up[a][i].se);
+            a = up[a][i].fi;
+        }
+    }
+    res = max(res, up[a][0].se);
+    return res;
+}
+
+bool comp(edge a, edge b) {
+    return a.w < b.w;
+}
+
+bool comp2(edge a, edge b) {
+    return a.ind < b.ind;
+}
+
+int main() {
+    srand(time(0));
+    ios_base::sync_with_stdio(false);
+
+    vector <edge> edges;
+    cin >> n >> m;
+    while ((1 << l) <= n) l++;
+    for (int i = 1; i <= m; ++i) {
+        int x, y, z;
+        cin >> x >> y >> z;
+        edges.pb({x, y, z, i});
+    }
+    sort(all(edges), comp);
+    initDsu();
+    ll mstW = 0;
+    for (int i = 0; i < m; ++i) {
+        int x = edges[i].x;
+        int y = edges[i].y;
+        int z = edges[i].w;
+        if (getDsu(x) != getDsu(y)) {
+            uniteDsu(x, y);
+            mstW += z;
+            g[x].pb(mk(y, z));
+            g[y].pb(mk(x, z));
+        }
+    }
+    dfs(1, 1, 0);
+    sort(all(edges), comp2);
+    for (int i = 0; i < m; ++i) {
+        int x = edges[i].x;
+        int y = edges[i].y;
+        int z = edges[i].w;
+        ll res = mstW + z - max(lca(x, y), lca(y, x));
+        cout << res << '\n';
+    }
+    return 0;
+}

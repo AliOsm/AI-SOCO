@@ -1,0 +1,413 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<int, ii> iii;
+
+ll pwr(ll base, ll p, ll mod = MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+
+
+struct edge{
+    int a, b, cap, flow;
+    edge(){}
+    edge(int a, int b, int cap, int flow){
+        this->a = a;
+        this->b = b;
+        this->cap = cap;
+        this->flow = flow;
+    }
+};
+
+const int N = 500;
+int src, sink, dist[N], ptr[N];
+vector<edge> edge_list;
+vector<int> adj_list[N];
+
+void add_edge(int a, int b, int cap){
+
+// cout<<"added edge "<<a<<" "<<b<<" "<<cap<<endl;
+
+    adj_list[a].pb((int)edge_list.size());
+    edge_list.pb(edge(a, b, cap, 0));
+    // adj_list[b].pb((int)edge_list.size());
+    // edge_list.pb(edge(b, a, 0, 0));
+
+    adj_list[b].pb((int)edge_list.size());
+    edge_list.pb(edge(b, a, cap, 0));
+    // adj_list[a].pb((int)edge_list.size());
+    // edge_list.pb(edge(a, b, 0, 0));
+}
+
+
+bool bfs(){
+    memset(dist, -1, sizeof(dist));
+    queue<int> qq;
+    dist[src] = 0;
+    qq.push(src);
+    while(!qq.empty()){
+        int v = qq.front();
+        qq.pop();
+        for(auto id : adj_list[v]){
+            int vv = edge_list[id].b;
+            if(dist[vv] == -1 && edge_list[id].flow < edge_list[id].cap){
+                qq.push(vv);
+                dist[vv] = dist[v]+1;
+            }
+        }
+    }
+    return (dist[sink] != -1);
+}
+
+
+int dfs(int v, int flow){
+    if(v == sink || flow == 0)  return flow;
+    for(;ptr[v]<(int)adj_list[v].size();ptr[v]++){
+        int id = adj_list[v][ptr[v]];
+        int to = edge_list[id].b;
+        if(dist[to] != dist[v]+1)   continue;
+        int pushed = dfs(to, min(flow, edge_list[id].cap - edge_list[id].flow));
+        if(pushed){
+            edge_list[id].flow += pushed;
+            edge_list[1^id].flow -= pushed;
+            return pushed;
+        }
+    }
+    return 0;
+}
+
+
+
+int n, e, compcnt, comp_idx[N], adj_mat[N][N], cnt[N], temp_comp[N];
+vector<iii> edges;
+vector<int> original_adj[N];
+
+
+int dinitz(){
+
+    edge_list.clear();
+    for(int i=0;i<=2*n;i++)
+        adj_list[i].clear();
+
+    for(int i=1;i<=2*n;i++)
+        for(int j=i+1;j<=2*n;j++)
+            if(adj_mat[i][j] > 0){
+                add_edge(i, j, adj_mat[i][j]);
+            }
+
+    int ans = 0;
+    while(1){
+        if(!bfs())  break;
+        memset(ptr, 0, sizeof(ptr));
+        while(int pushed = dfs(src, MOD))
+            ans += pushed;
+    }
+
+    return ans;
+}
+
+int validate_dinitz(){
+
+    edge_list.clear();
+    for(int i=0;i<=2*n;i++)
+        adj_list[i].clear();
+
+    for(auto e : edges)
+        add_edge(e.ss.ff, e.ss.ss, e.ff);
+
+    int ans = 0;
+    while(1){
+        if(!bfs())  break;
+        memset(ptr, 0, sizeof(ptr));
+        while(int pushed = dfs(src, MOD))
+            ans += pushed;
+    }
+    return ans;
+}
+
+
+
+
+
+
+set<ii> gomory_hu_adj[N];
+bool present[N];
+int reverse_comp_idx[N];
+vector<int> members[N];
+
+void create_component(int v, int cidx, int banned, bool debug){
+    temp_comp[v] = cidx;
+// if(debug)   cout<<"fuck this, assigned "<<cidx<<" to "<<v<<endl;
+    for(auto vv : gomory_hu_adj[v]){
+        if(vv.ff != banned && temp_comp[vv.ff] == -1)
+            create_component(vv.ff, cidx, banned, debug);
+    }
+}
+
+
+
+void gomory_hu_algo(){
+
+    if(compcnt == n)    return;
+
+    memset(cnt, 0, sizeof(cnt));
+    memset(adj_mat, 0, sizeof(adj_mat));
+    memset(present, 0, sizeof(present));
+
+    src = sink = -1;
+    int selected_comp = -1;
+    for(int i=1;i<=n;i++){
+        cnt[comp_idx[i]]++;
+        if(cnt[comp_idx[i]] > 1)
+            selected_comp = comp_idx[i];
+    }
+
+    for(int i=1;i<=n;i++)
+        members[i].clear();
+
+    for(int i=1;i<=n;i++){
+        if(comp_idx[i] == selected_comp){
+            if(src == -1)   src = i;
+            else    sink = i;
+            present[i] = true;
+        }
+        else{
+            present[n+comp_idx[i]] = true;
+        }
+        members[comp_idx[i]].pb(i);
+    }
+
+    assert(selected_comp != -1);
+
+    memset(temp_comp, -1, sizeof(temp_comp));
+    int z = 0;
+    for(int i=1;i<=compcnt;i++)
+        if(temp_comp[i] == -1 && i != selected_comp)
+            create_component(i, ++z, selected_comp, (compcnt == 3));
+
+
+    for(auto e : edges){
+        int a = e.ss.ff, b = e.ss.ss, c = e.ff;
+        if(comp_idx[a] == comp_idx[b]){
+            if(comp_idx[a] == selected_comp){
+                adj_mat[a][b] = adj_mat[b][a] = c;
+            }
+            continue;
+        }
+        if(comp_idx[a] != selected_comp && comp_idx[b] != selected_comp){
+            adj_mat[n+temp_comp[comp_idx[a]]][n+temp_comp[comp_idx[b]]] += c;
+            adj_mat[n+temp_comp[comp_idx[b]]][n+temp_comp[comp_idx[a]]] += c;
+            continue;
+        }
+        if(comp_idx[b] == selected_comp)    swap(a, b);
+        adj_mat[a][n+temp_comp[comp_idx[b]]] += c;
+        adj_mat[n+temp_comp[comp_idx[b]]][a] += c;
+    }
+
+    int flow = dinitz();
+
+// for(int i=0;i<(int)edge_list.size();i++) cout<<edge_list[i].a<<":"<<edge_list[i].b<<":"<<edge_list[i].cap<<":"<<edge_list[i].flow<<" ";cout<<endl;
+// cout<<"adj_list:\n";
+// for(int i=1;i<=n;i++){
+//  cout<<i<<": ";for(auto it : adj_list[i])    cout<<it<<" ";cout<<endl;
+// }cout<<endl;
+
+// cout<<flow<<endl;
+
+    bfs();
+
+// if(src == 1 && sink == 3){
+// cout<<"shit"<<endl;
+// for(int i=0;i<(int)edge_list.size();i++) cout<<edge_list[i].a<<":"<<edge_list[i].b<<":"<<edge_list[i].cap<<":"<<edge_list[i].flow<<" ";cout<<endl;
+// cout<<"adj_list:\n";
+// for(int i=1;i<=n;i++){
+//  cout<<i<<": ";for(auto it : adj_list[i])    cout<<it<<" ";cout<<endl;
+// }cout<<"shit "<<flow<<endl;
+// cout<<"dist: ";for(int i=1;i<=n+z;i++) cout<<dist[i]<<" ";cout<<endl;
+// }
+// cout<<"dist: ";for(int i=1;i<=n+z;i++) cout<<dist[i]<<" ";cout<<endl;
+
+    compcnt++;
+    for(int i=1;i<=n;i++)
+        if(comp_idx[i] == selected_comp && dist[i] == -1)
+            comp_idx[i] = compcnt;
+
+    set<ii>::iterator it = gomory_hu_adj[selected_comp].begin();
+    while(it != gomory_hu_adj[selected_comp].end()){
+        int other = (*it).ff, val = (*it).ss;
+        if(dist[n+temp_comp[other]] == -1){
+            it = gomory_hu_adj[selected_comp].erase(it);
+            gomory_hu_adj[other].erase({selected_comp, val});
+            gomory_hu_adj[compcnt].insert({other, val});
+            gomory_hu_adj[other].insert({compcnt, val});
+            continue;
+        }
+        it++;
+    }
+    gomory_hu_adj[selected_comp].insert({compcnt, flow});
+    gomory_hu_adj[compcnt].insert({selected_comp, flow});
+
+// cout<<"after selecting src/sink as "<<src<<" "<<sink<<" "<<compcnt<<" due to "<<selected_comp<<endl;
+// cout<<"comp_idx: ";for(int i=1;i<=n;i++) cout<<comp_idx[i]<<" ";cout<<endl;
+// cout<<"temp_comp: ";for(int i=1;i<=n;i++)    cout<<temp_comp[i]<<" ";cout<<endl;
+// cout<<"gomory_hu_adj:\n";
+// for(int i=1;i<=n;i++){
+//  cout<<i<<": ";for(auto it : gomory_hu_adj[i])   cout<<it.ff<<":"<<it.ss<<" ";cout<<endl;
+// }cout<<endl;
+
+
+    gomory_hu_algo();
+}
+
+
+bool involved[N], marked[N];
+
+void mark(int v, int last){
+    marked[v] = true;
+// cout<<"now at "<<v<<" "<<last<<endl;
+    for(auto it : gomory_hu_adj[v]){
+// cout<<"lol "<<it.ff<<":"<<it.ss<<" "<<involved[it.ff]<<endl;
+        if(involved[it.ff] && it.ff != last)
+            mark(it.ff, v);
+    }
+}
+
+
+void print(vector<int> &arr){
+    for(auto it : arr)
+        cout<<it<<" ";
+}
+
+vector<int> generate_permutation(vector<int> vertices){
+
+    if((int)vertices.size() == 1)
+        return vertices;
+
+    memset(involved, 0, sizeof(involved));
+    memset(marked, 0, sizeof(marked));
+
+    for(auto v : vertices){
+        involved[v] = true;
+        marked[v] = false;
+    }
+
+    int minedge = MOD, v1=-1,v2=-1;
+    for(auto v : vertices){
+        if(!involved[v])    continue;
+        for(auto it : gomory_hu_adj[v])
+            if(involved[it.ff] && it.ss < minedge){
+                minedge = it.ss;
+                v1 = v; v2 = it.ff;
+            }
+    }
+
+// for(int i=1;i<=n;i++)   cout<<involved[i]<<" ";cout<<endl;
+// cout<<v1<<" "<<v2<<" "<<minedge<<endl;
+
+    mark(v1, v2);
+    vector<int> A, B;
+    for(auto v : vertices)
+        if(marked[v])
+            A.pb(v);
+        else
+            B.pb(v);
+
+// cout<<reverse_comp_idx[v1]<<" "<<reverse_comp_idx[v2]<<endl;
+// cout<<"vertices: ";print(vertices);cout<<endl;
+// cout<<"A: ";print(A);cout<<endl;
+// cout<<"B: ";print(B);cout<<endl;
+
+    vector<int> ans_A = generate_permutation(A);
+    vector<int> ans_B = generate_permutation(B);
+    ans_A.insert(ans_A.end(), ans_B.begin(), ans_B.end());
+
+// cout<<"generate_permutation ";print(vertices);cout<<" returns ";print(ans_A);cout<<endl;
+    return ans_A;
+// return vertices;
+}
+
+
+
+int main(){
+
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin>>n>>e;
+    for(int i=0;i<e;i++){
+        int a, b, c;
+        cin>>a>>b>>c;
+        edges.pb({c, {a, b}});
+        original_adj[a].pb(b);
+        original_adj[b].pb(a);
+    }
+
+    compcnt = 1;
+    for(int i=1;i<=n;i++)
+        comp_idx[i] = 1;
+
+    gomory_hu_algo();
+    for(int i=1;i<=n;i++)
+        reverse_comp_idx[comp_idx[i]] = i;
+
+// cout<<"comp_idx: ";for(int i=1;i<=n;i++) cout<<comp_idx[i]<<" ";cout<<endl;
+// cout<<"reverse_comp_idx: ";for(int i=1;i<=n;i++) cout<<reverse_comp_idx[i]<<" ";cout<<endl;
+
+// cout<<"original gomory_hu_adj:\n";
+// for(int i=1;i<=n;i++){
+//  cout<<i<<": ";for(auto it : gomory_hu_adj[i])   cout<<it.ff<<":"<<it.ss<<" ";cout<<endl;
+// }cout<<endl;
+// cout<<"modified gomory_hu_adj:\n";
+// for(int i=1;i<=n;i++){
+//  cout<<reverse_comp_idx[i]<<": ";for(auto it : gomory_hu_adj[i]) cout<<reverse_comp_idx[it.ff]<<":"<<it.ss<<" ";cout<<endl;
+// }cout<<endl;
+
+// cout<<"validated gomory_hu_adj:\n";
+// for(int i=1;i<=n;i++){
+//  cout<<reverse_comp_idx[i]<<": ";for(auto it : gomory_hu_adj[i]){
+//     src = reverse_comp_idx[i], sink = reverse_comp_idx[it.ff];
+//     cout<<reverse_comp_idx[it.ff]<<":"<<validate_dinitz()<<" ";
+// }cout<<endl;
+// }cout<<endl;
+
+    int ans = 0;
+    for(int i=1;i<=n;i++)
+        for(auto it : gomory_hu_adj[i])
+            ans += it.ss;
+    ans /= 2;
+
+    cout<<ans<<endl;
+
+    vector<int> vertices;
+    for(int i=1;i<=n;i++)
+        vertices.pb(i);
+    vector<int> permutation = generate_permutation(vertices);
+// for(auto it : permutation)cout<<it<<" ";cout<<endl;
+    for(auto it : permutation)
+        cout<<reverse_comp_idx[it]<<" ";
+
+// cout<<endl;
+// int z = 0;
+// for(int i=1;i<n;i++){
+//     src = reverse_comp_idx[permutation[i-1]];
+//     sink = reverse_comp_idx[permutation[i]];
+//     int x = validate_dinitz();
+//     z+=x;
+// cout<<x<<endl;
+// }
+
+    return 0;
+}
+
+
+
+

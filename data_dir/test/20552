@@ -1,0 +1,115 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define M 500005
+
+struct edge
+{
+    int u, v, c, idx;
+
+    edge() {}
+    edge(int u, int v, int c, int idx): u(u), v(v), c(c), idx(idx) {}
+    bool operator<(const edge& rhs) const { return c < rhs.c; }
+};
+
+struct DSU
+{
+    int n;
+    vector<int> par;
+
+    DSU(int n): n(n), par(n+1) {}
+
+    void init() { for(int i = 1; i <= n; i++) par[i] = i; }
+    int rep(int x) { return (par[x] == x)? x: par[x] = rep(par[x]); }
+    void mf(int u, int v) { par[rep(u)] = rep(v); }
+    void rollBack(int u, int v) { par[u] = u, par[v] = v; }
+};
+
+vector<int> qrs[M];
+vector<edge> cutu[M];
+
+int main()
+{
+    int n, m;
+    scanf("%d %d", &n, &m);
+
+    vector<edge> edges;
+    for(int i = 1; i <= m; i++)
+    {
+        int u, v, c;
+        scanf("%d %d %d", &u, &v, &c);
+
+        edges.push_back(edge(u, v, c, i));
+    }
+
+    int q;
+    scanf("%d", &q);
+
+    for(int i = 1; i <= q; i++)
+    {
+        int k;
+        scanf("%d", &k);
+
+        for(int j = 1; j <= k; j++)
+        {
+            int idx;
+            scanf("%d", &idx);
+
+            qrs[idx].push_back(i);
+        }
+    }
+
+    DSU dsu(n);
+    dsu.init();
+    sort(edges.begin(), edges.end());
+
+    int cur = 0;
+    while(cur < m)
+    {
+        int c = edges[cur].c;
+
+        for(int i = cur; i < m && edges[i].c == c; i++)
+        {
+            edge e = edges[i];
+            for(int j: qrs[e.idx]) cutu[j].push_back(edge(dsu.rep(e.u), dsu.rep(e.v), c, e.idx));
+        }
+        for(int i = cur; i < m && edges[i].c == c; i++)
+        {
+            edge e = edges[i];
+            dsu.mf(e.u, e.v);
+        }
+
+        while(cur < m && edges[cur].c == c) cur++;
+    }
+
+    dsu.init();
+    for(int i = 1; i <= q; i++)
+    {
+        bool flag = true;
+        sort(cutu[i].begin(), cutu[i].end());
+
+        cur = 0;
+        while(cur < cutu[i].size())
+        {
+            int c = cutu[i][cur].c;
+
+            for(int j = cur; j < cutu[i].size() && cutu[i][j].c == c; j++)
+            {
+                edge e = cutu[i][j];
+
+                if(dsu.rep(e.u) == dsu.rep(e.v)) flag = false;
+                dsu.mf(e.u, e.v);
+            }
+            for(int j = cur; j < cutu[i].size() && cutu[i][j].c == c; j++)
+            {
+                edge e = cutu[i][j];
+                dsu.rollBack(e.u, e.v);
+            }
+
+            while(cur < cutu[i].size() && cutu[i][cur].c == c) cur++;
+        }
+
+        printf("%s\n", flag? "YES": "NO");
+    }
+
+    return 0;
+}

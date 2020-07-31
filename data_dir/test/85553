@@ -1,0 +1,193 @@
+
+// In the name of God
+// Code by: mrMaster
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+inline int in() {int x; scanf("%d",&x); return x;}
+#define debug(x) cerr << #x << '=' << (x) << endl
+#define FOR(i,j,k) for(int i=j;i<k;++i)
+#define bpc __builtin_popcount
+#define blz __builtin_clz
+#define btz __builtin_ctz
+#define Size(x) ((int)(x).size())
+//#define endl '\n'
+#define boost ios_base :: sync_with_stdio(false) , cin.tie(0) , cout.tie(0)
+#define pb push_back
+#define X first
+#define Y second
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int,int>pii;
+
+const int INF = 1e9 + 10;
+const ll LINF = 1000ll*1000*1000*1000*1000*1000 + 100;
+const int MN = 1e5 + 10;
+const int LG = 20;
+
+int n,k;
+vector<int>adj[MN];
+int Time;
+int st[MN] , ft[MN] , h[MN] , par[LG][MN];
+int cur;
+set<pii>S;
+
+void input()
+{
+	cin >> n >> k;
+	for(int i=0;i<n-1;++i){
+		int a,b;
+		cin >> a >> b;
+		--a,--b;
+		adj[a].pb(b) , adj[b].pb(a);
+	}
+}
+
+void dfs(int s,int pr)
+{
+	st[s] = Time++;
+	for(int i=0;i<Size(adj[s]);++i){
+		int v = adj[s][i];
+		if(v == pr) continue;
+		par[0][v] = s;
+		h[v] = h[s] + 1;
+		dfs(v , s);
+	}
+	ft[s] = Time;
+}
+
+void prep()
+{
+	par[0][0] = -1;
+	dfs(0 , -1);
+	for(int i=1;i<LG;++i)
+		for(int j=0;j<n;++j){
+			if(par[i-1][j] == -1) par[i][j] = -1;
+			else par[i][j] = par[i-1][par[i-1][j]];
+		}
+}
+
+int lca(int u,int v)
+{
+	if(h[u] > h[v]) swap(u,v);
+	int t = h[v]-h[u];
+	for(int i=0;i<LG;++i)
+		if((1<<i)&t) v = par[i][v];
+	if(v == u) return u;
+	for(int i=LG-1;i>=0;--i){
+		if(par[i][u] == -1) continue;
+		if(par[i][u] != par[i][v])
+			v = par[i][v] , u = par[i][u];
+	}
+	return par[0][v];
+}
+
+int dist(int u, int v)
+{
+	return h[u] + h[v] - 2*h[lca(u,v)];
+}
+
+/*void add(int v)
+{
+	if(S.empty()){
+		S.insert(pii(st[v] , v));
+		return;
+	}
+	int val1 = INF, val2 = INF;
+	if(st[v] >= S.begin()->X){
+		int t = (--S.upper_bound(pii(st[v] , 0)))->Y;
+		t = lca(t , v);
+		val1 = h[v] - h[t] + (st[v] > S.rbegin()->X) * (h[S.rbegin()->Y] - h[t]);
+	}
+	if(st[v] <= S.rbegin()->X){
+		int t = S.lower_bound(pii(st[v] , 0))->Y;
+		t = lca(t , v);
+		val2 = h[v] - h[t] + (st[v] < S.begin()->X) * (h[S.begin()->Y] - h[t]);
+	}
+	S.insert(pii(st[v] , v));
+	cur += min(val1 , val2);
+}
+
+void erase(int v)
+{
+	S.erase(pii(st[v] , v));
+	if(S.empty()) return;
+	int val1 = INF, val2 = INF;
+	if(st[v] >= S.begin()->X){
+		int t = (--S.upper_bound(pii(st[v] , 0)))->Y;
+		t = lca(t , v);
+		val1 = h[v] - h[t] + (st[v] > S.rbegin()->X) * (h[S.rbegin()->Y] - h[t]);
+	}
+	if(st[v] <= S.rbegin()->X){
+		int t = S.lower_bound(pii(st[v] , 0))->Y;
+		t = lca(t , v);
+		val2 = h[v] - h[t] + (st[v] < S.begin()->X) * (h[S.begin()->Y] - h[t]);
+	}
+	cur -= min(val1 , val2);
+}
+*/
+void add (int x) {
+     S.insert(pii(st[x], x));
+
+     set <pii> :: iterator it = S.find(pii(st[x], x));
+     set <pii> :: iterator nxt = it, prv = it;
+     nxt ++;
+     if (nxt == S.end()) nxt = S.begin();
+     if (prv == S.begin()) prv = S.end();
+     prv --;
+
+     int a = prv -> second, b = nxt -> second;
+     
+     cur += dist(x, a);
+     cur += dist(x, b);
+     cur -= dist(a, b);
+
+     return ;
+}
+
+void erase (int x){
+     set <pii> :: iterator it = S.find(pii(st[x], x));
+     set <pii> :: iterator nxt = it, prv = it;
+     nxt ++;
+     if (nxt == S.end()) nxt = S.begin();
+     if (prv == S.begin()) prv = S.end();
+     prv --;
+
+     int a = prv -> second, b = nxt -> second;
+     cur -= dist(x, a);
+     cur -= dist(x, b);
+     cur += dist(a, b);
+
+     S.erase(it);
+
+     return ;
+}
+
+
+void solve()
+{
+	int p = 0;
+	int ans = 0;
+	for(int i=0;i<n;++i){
+		while(cur/2 <= k-1 && p < n) add(p++);
+		if(cur/2 >= k) erase(--p);
+	//	cout << i << ' ' << p-1 << ' ' << cur/2 << endl;
+		ans = max(ans , p-i);
+		erase(i);
+	}
+	cout << ans << endl;
+}
+
+int main()
+{
+	boost;
+	input();
+	prep();
+	solve();
+	return 0;
+}
+
+

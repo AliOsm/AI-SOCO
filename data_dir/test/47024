@@ -1,0 +1,32 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+int main() {
+	int n, m;
+	cin >> n >> m;
+	string s, t;
+	cin >> s >> t;
+	int cur = 1001;
+	int ans = cur;
+	vector<int> A;
+	vector<int> C;
+	for (int i = 0; i <= m - n; ++i) {
+	    C.clear();
+		cur = 0;
+ 		for (int j = 0; j < n; ++j) {
+			if (s[j] != t[i + j]) {
+				++cur;
+				C.push_back(j + 1);
+			}
+ 		}
+		if (cur < ans) {
+		    ans = cur;
+		    A = C;
+		}
+	}
+	cout << ans << "\n";
+	for (int i = 0; i < A.size(); ++i) {
+	    cout << A[i] << " ";
+	}
+	return 0;
+}

@@ -1,0 +1,140 @@
+#include<bits/stdc++.h>
+using namespace std;
+#include<ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+#define ll long long
+
+ll mxm(){return LLONG_MIN;}
+ll mnm(){return LLONG_MAX;}
+template<typename... Args>
+ll mxm(ll a,Args... args){return max(a,mxm(args...));}
+template<typename... Args>
+ll mnm(ll a,Args... args){return min(a,mnm(args...));}
+
+template<class T> ostream& operator<<(ostream &os,vector<T> V){
+	os<<"[ ";for(auto v:V)os<<v<<" ";return os<<" ]";
+}
+template<class L,class R> ostream& operator<<(ostream &os,pair<L,R> P){
+	return os<<"("<<P.first<<","<<P.second<<")";
+}
+
+#define TRACE
+#ifdef TRACE
+#define trace(...) __f(#__VA_ARGS__,__VA_ARGS__)
+template<typename Arg1>
+void __f(const char* name,Arg1&& arg1){
+	cout<<name<<" : "<<arg1<<endl;
+}
+template<typename Arg1,typename... Args>
+void __f(const char* names,Arg1&& arg1,Args&&... args){
+	const char* comma=strchr(names+1,',');cout.write(names,comma-names)<<" : "<<arg1<<" | ";__f(comma+1,args...);
+}
+#else
+#define trace(...) 1
+#endif
+
+#define ld long double
+#define pll pair<ll,ll>
+#define ii pair<int,int>
+#define vi vector<int>
+#define vll vector<ll>
+#define vpll vector<pll>
+#define vld vector<ld>
+#define vvll vector<vll>
+#define vvi vector<vi>
+#define vvld vector<vld>
+#define vvii vector<vii>
+#define vvpll vector<vpll>
+#define I insert
+#define F first
+#define S second
+#define all(x) x.begin(),x.end()
+#define pb push_back
+#define sz(a)	((a).size())
+#define endl "\n"
+
+int mod=1e9+7;
+inline int add(int a,int b){a+=b;if(a>=mod)a-=mod;return a;}
+inline int sub(int a,int b){a-=b;if(a<0)a+=mod;return a;}
+inline int mul(int a,int b){return (a*1ll*b)%mod;}
+inline int power(int a,int b){int rt=1;while(b>0){if(b&1)rt=mul(rt,a);a=mul(a,a);b>>=1;}return rt;}
+inline int inv(int a){return power(a,mod-2);}
+inline void modadd(int &a,int b){a+=b;if(a>=mod)a-=mod;}
+
+const int N=2e5+5;
+
+vi arr[N];
+int stmin[N<<1][32],stmax[N<<1][32];
+int lft[N<<2],rgh[N<<2];
+int c=0,k;
+int gval(vi& id1,int msk)
+{
+	int ans=0;
+	for(int i=0;i<k;i++)
+		if(msk&(1<<i))
+			ans+=id1[i];
+		else ans-=id1[i];
+	return ans;
+}
+void build(int l,int r,int msk)
+{
+	int cur=c++;
+	if(l==r) { stmin[cur][msk]=gval(arr[l],msk);stmax[cur][msk]=gval(arr[l],msk); return;}
+	lft[cur]=c;
+	build ( l, l+r >>1 , msk);
+	rgh[cur]=c; 
+	build( (l + r >> 1) + 1, r , msk);
+	stmin[cur][msk] = min(stmin[lft[cur]][msk],stmin[rgh[cur]][msk]);
+	stmax[cur][msk] = max(stmax[lft[cur]][msk],stmax[rgh[cur]][msk]);
+}
+void upd(int l,int r,int id,int x,vi& val,int msk)
+{
+	if (l > x || r < x ) return;
+	if (l >= x && r <= x ) { stmin[id][msk]=gval(val,msk);stmax[id][msk]=gval(val,msk); return;}
+	upd(l,l + r >> 1,lft[id], x, val, msk);upd((l + r >> 1) + 1,r ,rgh[id],x, val, msk);
+	stmin[id][msk] = min(stmin[lft[id]][msk],stmin[rgh[id]][msk]);
+	stmax[id][msk] = max(stmax[lft[id]][msk],stmax[rgh[id]][msk]);
+}
+int getmin(int l,int r,int id,int x,int y,int msk)
+{
+	if (l > y || r < x ) return 1e9;
+	if (l >= x && r <= y ) return stmin[id][msk];
+	return min(getmin(l, l + r >> 1,lft[id], x, y,msk),getmin((l + r >> 1 ) + 1,r ,rgh[id],x, y,msk));
+}
+int getmax(int l,int r,int id,int x,int y,int msk)
+{
+	if (l > y || r < x ) return -1e9;
+	if (l >= x && r <= y ) return stmax[id][msk];
+	return max(getmax(l, l + r >> 1,lft[id], x, y,msk),getmax((l + r >> 1 ) + 1,r ,rgh[id],x, y,msk));
+}
+int main()
+{
+	ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);cout<<setprecision(25);
+	int n;cin>>n>>k;
+	for(int i=0;i<n;i++)
+	{
+		arr[i].resize(k);
+		for(int j=0;j<k;j++)cin>>arr[i][j];
+	}
+	int mx=1<<k;
+	for(int i=0;i<mx;i++)c=0,build(0,n-1,i);
+	int q;cin>>q;
+	while(q--)
+	{
+		int t;cin>>t;
+		if(t==1)
+		{
+			vi up(k);int id;cin>>id;for(int j=0;j<k;j++)cin>>up[j];
+			for(int msk=0;msk<mx;msk++)
+				upd(0,n-1,0,id-1,up,msk);
+		}
+		else
+		{
+			int l,r;cin>>l>>r;
+			--l;--r;
+			int ans=0;
+			for(int msk=0;msk<mx;++msk){ans=max(ans,getmax(0,n-1,0,l,r,msk)-getmin(0,n-1,0,l,r,msk));}
+			cout<<ans<<endl;
+		}
+	}
+}

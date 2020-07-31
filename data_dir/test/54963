@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+
+#define x first
+#define y second
+#define pb push_back
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int MOD = 1000000007;
+const int MOD2 = 1000000009;
+const int N = 200010;
+const int BASE = 2;
+
+struct segment {
+	int lazy[4 * N], MOD, val[N];
+	segment(int _M) {
+		MOD = _M;
+	}
+	void push(int n , int s , int e) {
+		if (s == e)return;
+		if (lazy[n]) {
+			lazy[2 * n] = (lazy[n] + 1ll * lazy[2 * n]) % MOD;
+			lazy[2 * n + 1] = (lazy[n] + 1ll * lazy[2 * n + 1]) % MOD;
+			lazy[n] = 0;
+		}
+	}
+	void update(int n , int s , int e , int l , int r , ll val) {
+		push(n, s, e);
+		if (s > r || e < l)return;
+		if (s >= l && e <= r) {
+			lazy[n] = (1ll*val+lazy[n])%MOD;
+			push(n, s, e);
+			return;
+		}
+		update(2 * n, s, (s + e) / 2, l, r, val);
+		update(2 * n + 1, (s + e) / 2 + 1, e, l, r, val);
+	}
+	void sh(int n , int s , int e) {
+		push(n, s, e);
+		if (s == e) {
+			val[s] = lazy[n];
+			return;
+		}
+		sh(2 * n, s, (s + e) / 2);
+		sh(2 * n + 1, (s + e) / 2 + 1, e);
+	}
+};
+
+segment seg[2][2] = { {segment(MOD), segment(MOD2)}, {segment(MOD), segment(MOD2)}};
+int n , m, sum[N];
+pii hsh[N];
+
+map< pii , ll> totalSum;
+map< pii , ll> cnt;
+
+vector< pair < int , pii>  > updates;
+
+int main() {
+	scanf("%d%d", &n, &m);
+	ll g1 = 1, g2 = 1;
+	for (int i = 0; i < n; ++i) {
+		int l , r;
+		scanf("%d%d", &l, &r);
+		sum[l]++, sum[r + 1]--;
+		for (int j = 0 ; j < 2 ; ++j) {
+			seg[j][0].update(1, 1, m, 1, l - 1, g1);
+			seg[j][1].update(1, 1, m, 1, l - 1, g2);
+			int len = r - l + 1;
+			if (len & 1) {
+				seg[j][0].update(1, 1, m, r + 1, m, g1);
+				seg[j][1].update(1, 1, m, r + 1, m, g2);
+			}
+		}
+		seg[l & 1][0].update(1, 1, m, l, r, g1);
+		seg[l & 1][1].update(1, 1, m, l, r, g2);
+		g1 = (g1 * BASE) % MOD;
+		g2 = (g2 * BASE) % MOD2;
+	}
+	for (int i = 1 ; i <= m ; ++i)
+		sum[i] += sum[i - 1];
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0 ; j < 2 ; ++j) {
+			seg[i][j].sh(1, 1, m);
+		}
+	}
+	int last = -1;
+	ll all = 0;
+	for (int i = m ; i >= 1 ; --i) {
+		hsh[i] = make_pair(seg[i & 1][0].val[i], seg[i & 1][1].val[i]);
+
+		updates.push_back(make_pair(i, hsh[i]));
+		if (sum[i]) {
+			while (updates.size()) {
+				totalSum[updates.back().second] += updates.back().first;
+				cnt[updates.back().second]++;
+				updates.pop_back();
+			}
+			last = i;
+		}
+
+		if (last != -1 ) {
+			pair<ll , ll > res = make_pair(totalSum[hsh[i]], cnt[hsh[i]]);
+			ll f = res.first - res.second * (i - 1);
+			all += f;
+		}
+	}
+
+	cout << all << endl;
+
+	return 0;
+}

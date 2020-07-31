@@ -1,0 +1,136 @@
+//#pragma GCC optimize("Ofast,unroll-loops,no-stack-protector,fast-math")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+//#pragma comment(linker, "/STACK:16777216")
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+using matrix = vector<vector<long long>>;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ld, ld> pld;
+
+template<typename T>
+using kawaii_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+#define all(x) (x).begin(), (x).end()
+//#define int ll
+
+void FAST_IO() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    #ifdef _offline
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+    #endif // _offline
+}
+
+struct edge {
+    int to, cap, flow;
+
+    edge() : to(-1), cap(0), flow(0) {};
+    edge(int _to, int _cap, int _flow) : to(_to), cap(_cap), flow(_flow) {};
+};
+
+const int INF = 1e9 + 7;
+const int MAXN = 2050;
+vector<int> g[MAXN];
+int d[MAXN], ptr[MAXN];
+vector<edge> ed;
+int s, t;
+
+void add_edge(int u, int v, int cap, int flow) {
+    g[u].push_back(ed.size());
+    ed.push_back(edge(v, cap, flow));
+    g[v].push_back(ed.size());
+    ed.push_back(edge(u, 0, 0));
+}
+
+bool bfs() {
+    fill(d, d + MAXN, INF);
+    fill(ptr, ptr + MAXN, 0);
+    d[s] = 0;
+    queue<int> q;
+    q.push(s);
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        for (int id : g[u]) {
+            if (d[ed[id].to] == INF && ed[id].cap - ed[id].flow > 0) {
+                d[ed[id].to] = d[u] + 1;
+                q.push(ed[id].to);
+            }
+        }
+    }
+    return (d[t] != INF);
+}
+
+int dfs(int u, int flow) {
+    if (u == t || flow == 0) {
+        return flow;
+    }
+    for (int i = ptr[u]; i < g[u].size(); ++i) {
+        int id = g[u][i];
+        if (d[ed[id].to] == d[u] + 1) {
+            int pushed = dfs(ed[id].to, min(flow, ed[id].cap - ed[id].flow));
+            if (pushed != 0) {
+                ed[id].flow += pushed;
+                ed[id ^ 1].flow -= pushed;
+                return pushed;
+            }
+            ptr[u]++;
+        }
+        else {
+            ptr[u]++;
+        }
+    }
+    return 0;
+}
+
+ll max_flow() {
+    while (bfs()) {
+        int pushed = dfs(s, INF);
+        while (pushed != 0) {
+            pushed = dfs(s, INF);
+        }
+    }
+    ll flow = 0;
+    for (int id : g[s]) {
+        flow += ed[id].flow;
+    }
+    return flow;
+}
+
+signed main() {
+    FAST_IO();
+    int n, m;
+    cin >> n >> m;
+    s = m + 1;
+    t = m + 2;
+    for (int i = 0; i < n; ++i) {
+        int w;
+        cin >> w;
+        add_edge(i + m + 3, t, w, 0);
+    }
+    ll sum = 0;
+    for (int i = 0; i < m; ++i) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        sum += w;
+        u--;
+        v--;
+        add_edge(i, u + m + 3, INF, 0);
+        add_edge(i, v + m + 3, INF, 0);
+        add_edge(s, i, w, 0);
+    }
+    cout << sum - max_flow();
+}

@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<ll, ll> ii;
+
+const int MAX = 5e5 + 5;
+int m, n;
+char pool[MAX], str1[MAX], str2[MAX];
+ii stats[MAX];
+vector<int> adj[MAX], rvr[MAX];
+set<int> sg[MAX];
+int CUR_ID = 1, comp_id = 1;
+ii best[MAX], memo[MAX];
+bool visited[MAX];
+int comp[MAX];
+unordered_map<string, int> ID;
+
+ii roll(int idx) {
+	ii &ans = memo[idx];
+	if(visited[idx]) {
+		return ans;
+	}
+	visited[idx] = true; // fk
+	ans = best[idx];
+	for(auto &each : sg[idx]) {
+		ans = min(ans, roll(each));
+	}
+	return ans;
+}
+
+void dfs(int source, vector<int> graph[MAX], vector<int> &cont) {
+	visited[source] = true;
+	for(auto &each : graph[source]) {
+		if(!visited[each]) {
+			dfs(each, graph, cont);
+		}
+	}
+	cont.push_back(source);
+}
+
+void kosaraju() {
+	memset(visited, false, sizeof visited);
+	vector<int> order;
+	fori(i, 1, CUR_ID) {
+		if(!visited[i]) {
+			dfs(i, adj, order);
+		}
+	}
+	memset(visited, false, sizeof visited);
+	while(!order.empty()) {
+		int back = order.back();
+		order.pop_back();
+		if(!visited[back]) {
+			vector<int> cur;
+			dfs(back, rvr, cur);
+			ii b = make_pair(1 << 30, 1 << 30);
+			for(auto &each : cur) {
+				b = min(b, stats[each]);
+				comp[each] = comp_id;
+			}
+			best[comp_id] = b;
+			comp_id++;
+		}
+	}
+}
+
+void fodase(int source) {
+	visited[source] = true;
+	for(auto &each : adj[source]) {
+		if(comp[each] != comp[source]) {
+			sg[comp[source]].insert(comp[each]);
+		}
+		if(!visited[each]) {
+			fodase(each);
+		}
+	}
+}
+
+int main() {
+	scanf("%d", &m);
+	vector<char *> v;
+	char *ptr = pool;
+	fori(i, 0, m) {
+		scanf("%s", ptr);
+		for(char *p = ptr; *p; p++) {
+			*p = tolower(*p);
+		}
+		v.push_back(ptr);
+		ptr += strlen(ptr) + 1;
+	}
+	scanf("%d", &n);
+	fori(i, 0, n) {
+		scanf("%s %s", str1, str2);
+		for(char *p = str1; *p; p++) {
+			*p = tolower(*p);
+		}
+		for(char *p = str2; *p; p++) {
+			*p = tolower(*p);
+		}
+		if(!ID.count(str1)) {
+			ID[str1] = CUR_ID++;
+		}
+		if(!ID.count(str2)) {
+			ID[str2] = CUR_ID++;
+		}
+		int id1 = ID[str1];
+		int id2 = ID[str2];
+		int rs = 0, sz = strlen(str1);
+		fori(j, 0, sz) {
+			rs += str1[j] == 'r';
+		}
+		stats[id1] = make_pair(rs, sz);
+		rs = 0, sz = strlen(str2);
+		fori(j, 0, sz) {
+			rs += str2[j] == 'r';
+		}
+		stats[id2] = make_pair(rs, sz); 
+		adj[id1].push_back(id2);
+		rvr[id2].push_back(id1);
+	}
+
+	kosaraju();
+	memset(visited, false, sizeof visited);
+	fori(i, 1, CUR_ID) {
+		if(!visited[i]) {
+			fodase(i);
+		}
+	}
+	memset(visited, false, sizeof visited);
+
+	ii ans = make_pair(0, 0);
+	for(auto &each : v) {
+		if(!ID.count(each)) {
+			int rs = 0, sz = 0;
+			for(char *p = each; *p; p++, sz++) {
+				rs += *p == 'r';
+			}
+			ans.first += rs, ans.second += sz;
+		}
+		else {
+			int id = ID[each];
+			ii cur = roll(comp[id]);
+			ans.first += cur.first;
+			ans.second += cur.second;
+		}
+	}
+
+	printf("%lld %lld\n", ans.first, ans.second);
+
+	return 0;
+}

@@ -1,0 +1,47 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int cnt_rest_x(int l, int r, int x) {
+
+    int cnt = 0;
+    while (l % 3 != 0 && l <= r) {
+        cnt += (l % 3 == x);
+        ++l;
+    }
+    while (r % 3 != 2 && r >= l) {
+        cnt += (r % 3 == x);
+        --r;
+    }
+    if (l > r) {
+        return cnt;
+    }
+    cnt += (r - l + 1) / 3;
+
+    return cnt;
+
+}
+
+int main() {
+    std::ios::sync_with_stdio(false); 
+    cin.tie(nullptr);
+    
+    int n, l, r;
+    cin >> n >> l >> r;
+    constexpr int MOD = 1'000'000'007;
+
+    vector<vector<int>> dp(n + 1, vector<int>(3, 0));
+    dp[0][0] = 1;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            for (int k = 0; k < 3; ++k) {
+                dp[i + 1][(j + k) % 3] = (dp[i + 1][(j + k) % 3] 
+                        + 1LL * dp[i][j] * cnt_rest_x(l, r, k)) % MOD;
+            }
+        }
+    }
+
+    cout << dp[n][0] << "\n";
+
+    return 0;
+}

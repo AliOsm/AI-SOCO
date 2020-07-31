@@ -1,0 +1,98 @@
+#include <bits/stdc++.h>
+#ifdef DBP
+#define deb(...) fprintf(stderr,__VA_ARGS__)
+#else
+#define deb(...) 0
+#endif
+#define fst first
+#define snd second
+#define fore(x,a,b) for(int x=(a), qwerty=(b); x<qwerty; x++)
+#define pb push_back
+#define mset(a,v) memset((a),(v),sizeof(a))
+#define ALL(a) (a).begin(), (a).end()
+#define SZ(a) int((a).size())
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+typedef pair<ii,ii> iii;
+
+const int MAXN=2e5+5;
+vector<int> g[MAXN];int n;
+bool tk[MAXN];
+int fat[MAXN]; // father in centroid decomposition
+int szt[MAXN]; // size of subtree
+int dep[MAXN];
+vector<ii> deps[MAXN];
+pair<ii,ii> jaja1;
+priority_queue<iii,vector<iii>,greater<iii> > pq;
+pair<ii,iii> ans;
+
+int calcsz(int x, int f){
+	szt[x]=1;
+	for(auto y:g[x])if(y!=f&&!tk[y])szt[x]+=calcsz(y,x);
+	return szt[x];
+}
+pair<int,int> dfs1(int x, int f, int lvl){
+    deps[x].clear();
+    for(int y:g[x])if(!tk[y]&&y!=f){
+        deps[x].pb(dfs1(y,x,lvl+1));
+    }
+    sort(ALL(deps[x]));reverse(ALL(deps[x]));
+    if(SZ(deps[x])>=2){
+        ii idxs={deps[x][0].snd,deps[x][1].snd};
+        jaja1=max(jaja1, {{lvl,deps[x][0].fst+deps[x][1].fst},idxs});
+    }else if(SZ(deps[x])==0)return {lvl,x};
+    ii me={lvl,x};
+    return max(me,deps[x][0]);
+}
+void cdfs(int x=0, int f=-1, int sz=-1){ // O(nlogn)
+	if(sz<0)sz=calcsz(x,-1);
+	for(auto y:g[x])if(!tk[y]&&szt[y]*2>=sz){
+		szt[x]=0;cdfs(y,f,sz);return;
+	}
+	tk[x]=true;fat[x]=f;
+    vector<pair<ii,int> > depsme;
+    int idxpush=-1;
+    for(auto y:g[x])if(!tk[y]){
+        jaja1={{-1e9,-1e9},{-1e9,-1e9}};
+        depsme.pb({dfs1(y,x,1),y});
+        if(jaja1.fst.fst>0)pq.push(jaja1),idxpush=y;
+    }
+    while(SZ(pq)>2)pq.pop();
+    if(SZ(pq)==2){
+        iii i1=pq.top();pq.pop();
+        iii i2=pq.top();pq.pop(); 
+        pair<ii,iii> tmp;
+        tmp.fst={i1.fst.fst+i2.fst.fst,i1.fst.snd+i2.fst.snd};
+        tmp.snd={{i1.snd.fst,i2.snd.fst},{i1.snd.snd,i2.snd.snd}};
+        ans=max(ans,tmp);
+    }else if(SZ(pq)==1){
+        iii i1=pq.top();pq.pop();
+        int idxswap=-1;
+        fore(i,0,SZ(depsme))if(depsme[i].snd==idxpush)idxswap=i;
+        swap(depsme[idxswap],depsme.back());depsme.pop_back(); 
+        sort(ALL(depsme));
+        if(SZ(depsme)>=2){
+            pair<ii,iii> tmp;
+            tmp.fst={i1.fst.fst,i1.fst.snd+depsme[0].fst.fst+depsme[1].fst.fst};
+            tmp.snd={{i1.snd.fst,depsme[0].fst.snd},{i1.snd.snd,depsme[1].fst.snd}};
+            ans=max(ans,tmp);
+        }
+    }
+    while(SZ(pq))pq.pop();
+
+	for(auto y:g[x])if(!tk[y])cdfs(y,x);
+}
+void centroid(){memset(tk,false,sizeof(tk));cdfs();}
+
+int main(){FIN;
+    cin>>n;
+    fore(x,0,n-1){
+        int u,v;cin>>u>>v;u--;v--;g[u].pb(v);g[v].pb(u);
+    }
+    ans.fst={-1e9,-1e9};centroid();
+    cerr<<ans.fst.fst<<" "<<ans.fst.snd<<"\n";
+    cout<<ans.snd.fst.fst+1<<" "<<ans.snd.fst.snd+1<<"\n";
+    cout<<ans.snd.snd.fst+1<<" "<<ans.snd.snd.snd+1<<"\n";
+}

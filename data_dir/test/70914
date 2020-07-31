@@ -1,0 +1,120 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define mp make_pair
+#define pb push_back
+
+typedef long long ll;
+
+int m, n;
+string dict[100000];
+vector<int> g[300100], gt[300100];
+vector<int> G[300100];
+string from, to;
+ll rcnt, len;
+map<string, int> num;
+vector<int> topsort;
+bool was[300100];
+int d[100000];
+string mun[300100];
+int comp[300100], compCnt;
+pair<int, int> bestInSCC[300100], best[300100];
+
+int r(string &s) {
+  int res = 0;
+  for (int i = 0; i < (int)s.length(); ++i)
+    res += s[i] == 'r';
+  return res;
+}
+
+int insert(string &t) {
+  int &x = num[t];
+  if (!x) {
+    mun[num.size()] = t;
+    return x = num.size();
+  }
+  return x;
+}
+
+int lc(string &s) {
+  for (int i = 0; i < (int)s.length(); ++i)
+    s[i] = tolower(s[i]);
+  return insert(s);
+}
+
+void dfs1(int v) {
+  was[v] = true;
+  for (int i = 0; i < (int)g[v].size(); ++i)
+    if (!was[g[v][i]])
+      dfs1(g[v][i]);
+  topsort.push_back(v);
+}
+
+void dfs2(int v) {
+  was[v] = true;
+  comp[v] = compCnt;
+  int R = r(mun[v]);
+  int L = mun[v].length();
+  if (!bestInSCC[compCnt].second)
+    bestInSCC[compCnt] = mp(R, L);
+  else if (bestInSCC[compCnt] > mp(R, L))
+    bestInSCC[compCnt] = mp(R, L);
+  for (int i = 0; i < (int)gt[v].size(); ++i)
+    if (!was[gt[v][i]])
+      dfs2(gt[v][i]);
+}
+
+pair<int, int> dfs(int v) {
+  pair<int, int> &tmp = best[v];
+  if (tmp.second) return tmp;
+  tmp = bestInSCC[v];
+  pair<int, int> nxt;
+  for (int i = 0; i < (int)G[v].size(); ++i) {
+    nxt = dfs(G[v][i]);
+    if (tmp > nxt)
+      tmp = nxt;
+  }
+  return tmp;
+}
+
+int main() {
+  //freopen("input.txt", "r", stdin);
+  ios_base::sync_with_stdio(false);
+  cin >> m;
+  for (int i = 0; i < m; ++i) {
+    cin >> dict[i];
+    lc(dict[i]);
+    d[i] = insert(dict[i]);
+  }
+  cin >> n;
+  memset(was, true, sizeof was);
+  for (int i = 0; i < n; ++i) {
+    cin >> from >> to;
+    int From = lc(from);
+    int To = lc(to);    
+    g[From].push_back(To);
+    gt[To].push_back(From);
+    was[From] = false;
+    was[To] = false;
+  }
+  for (int i = num.size(); i; --i)
+    if (!was[i])
+      dfs1(i);
+  memset(was, 0, sizeof was);
+  for (int i = (int)topsort.size() - 1; i > -1; --i)
+    if (!was[topsort[i]])
+      ++compCnt, dfs2(topsort[i]);
+  for (int i = num.size(); i; --i)
+    for (int j = 0; j < (int)g[i].size(); ++j)
+      if (comp[i] != comp[g[i][j]])
+	G[comp[i]].push_back(comp[g[i][j]]);
+  pair<int, int> tmp;
+  for (int i = 0; i < m; ++i) {
+    if (!comp[d[i]]) tmp = mp(r(dict[i]), dict[i].length());
+    else tmp = dfs(comp[d[i]]);
+    rcnt += tmp.first;
+    len += tmp.second;
+  }
+  cout << rcnt << ' ' << len << '\n';
+  return 0;
+}

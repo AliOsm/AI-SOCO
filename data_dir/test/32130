@@ -1,0 +1,119 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+
+const int N = 1e5+5,M = 19;
+int in[N];
+
+int mul(int a,int b) {
+   return min( (ll)a*b, (ll)N-1);
+}
+int F[N][M],S[N][M];
+
+void get(int st,int len,int x ,int y,int cc,int bit) {
+   if(len==0 || (x>=1e5 && y>=1e5)) {
+      if(bit==0) {
+         F[x][cc] = max(F[x][cc],y);
+      } else {
+         S[x][cc] = max(S[x][cc],y);
+      }
+      return;
+   }
+   get(st+1,len-1,mul(x,in[st]),y,cc+1,bit);
+   get(st+1,len-1,x,mul(y,in[st]),cc+1,bit);
+}
+
+int seg[N*4];
+
+void update(int pos,int l,int r,int ind,int val){
+   if(l==r){
+      seg[pos] = min(seg[pos],val);
+      return;
+   }
+   int mid = (l+r)/2;
+   if(ind<=mid){
+      update(pos*2,l,mid,ind,val);
+   } else {
+      update(pos*2+1,mid+1,r,ind,val);
+   }
+   seg[pos] = min(seg[pos*2],seg[pos*2+1]);
+}
+int query(int pos,int l,int r,int ql,int qr){
+   if(r<ql || qr<l){
+      return 1e9;
+   }
+   if(ql<=l && r<=qr){
+      return seg[pos];
+   }
+   int mid = (l+r)/2;
+   return min(query(pos*2,l,mid,ql,qr),query(pos*2+1,mid+1,r,ql,qr));
+}
+ll getSolve(int a,int b,int w,int h){
+   int ret = 1e9;
+   int x,y,cc;
+   int pos = N-1;
+   int lim = N-1;
+
+
+   for(int i =0;i<N*4;++i){
+      seg[i] = 1e9;
+   }
+   for(x = 1;x<N;++x) {
+      while(pos>=1) {
+         int u = pos;
+         if(mul(w,mul(x,u))>=a){
+            for(int j = 0;j<M;++j){
+               if(S[pos][j] != 0){
+                  int y = S[pos][j];
+                  update(1,1,lim,y,j);
+               }
+            }
+            --pos;
+         } else {
+            break;
+         }
+      }
+      for(int j = 0;j<M;++j) {
+         y = F[x][j],cc = j;
+         if(y==0) {
+            continue;
+         }
+         y = mul(y,h);
+         int g = (b+y-1)/y;
+         assert( (ll)g*y>=b);
+         int nc = query(1,1,lim,g,lim);
+         ret = min(ret, cc + nc);
+      }
+   }
+   return ret;
+}
+
+void solve() {
+   
+   int a,b,w,h,n;
+   scanf("%d%d%d%d%d",&a,&b,&w,&h,&n);
+
+   for(int i=0;i<n;++i){
+      scanf("%d",&in[i]);
+   }
+   sort(in,in+n,greater<int>());
+   n = min(n,34);
+   int len = n/2;
+   int nextLen = n - len;
+   for(int i = 0;i<=len;++i){
+      get(0,i,1,1,0,0);   
+   }
+   for(int i = 0;i<=nextLen;++i){
+      get(len,i,1,1,0,1);   
+   }
+   ll ret = getSolve(a,b,w,h);
+   ret = min(ret, getSolve(a,b,h,w));
+   if(ret>=1e9){
+      ret = -1;
+   }
+   printf("%lld\n", ret);
+}
+int main() {
+   //freopen("input.txt","r",stdin);
+   solve();
+}

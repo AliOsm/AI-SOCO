@@ -1,0 +1,119 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+
+#define FOR(i,j,k) for(int i=j;i<=k;i++)
+#define MAX 500010
+
+int cnt[1<<22], lf[MAX], rg[MAX], lev[MAX], ti, bigChild[MAX], sz[MAX], dfa[MAX];
+vector<int> mat[MAX], co[MAX];
+int mask[MAX], ch[MAX], prin[MAX];
+
+void dfs(int p,int pa)
+{
+    sz[p] = 1; lf[p] = ++ti; dfa[ti] = p;
+
+    int i = 0, mx = -1; bigChild[p] = -1;
+
+    for(auto x : mat[p])
+    {
+        if(x == pa) continue;
+
+        ch[x] = co[p][i];
+        mask[x] = mask[p] ^ (1<<co[p][i]); i++;
+        lev[x] = lev[p] + 1;
+
+        dfs(x, p);
+        prin[p] = max(prin[p], prin[x]);
+        sz[p] += sz[x];
+        if(mx < sz[x]) mx = sz[x], bigChild[p] = x;
+    }
+
+    rg[p] = ti;
+}
+
+void doIt(int v,int p)
+{
+    int val = 0;
+    FOR(i,0,22)
+    {
+        int newMask = mask[v];
+        if(i) newMask ^= (1<<(i - 1));
+
+        if(cnt[newMask])
+        {
+            ///if(p == 2) cout << lev[v] << ' ' << cnt[newMask] << endl;
+            val = abs(lev[v] - lev[p]) + abs(lev[p] - cnt[newMask]);
+            //if(p == 2) cout <<
+        }
+
+        prin[p] = max(prin[p], val);
+    }
+}
+void up(int x,int p)
+{
+    FOR(i,lf[x],rg[x]) doIt(dfa[i], p);
+}
+void dfs(int p,int pa,int keep)
+{
+    for(x : mat[p])
+    {
+        if(x != pa && x != bigChild[p])
+            dfs(x, p, 0);
+    }
+    if(bigChild[p] != -1) dfs(bigChild[p], p, 1);
+
+    cnt[ mask[p] ] = max(cnt[ mask[p] ], lev[p]);
+    for(x : mat[p])
+    {
+        if(x != pa && x != bigChild[p])
+        {
+            up(x, p);
+            FOR(i,lf[x],rg[x])
+            {
+                int v = dfa[i];
+                cnt[ mask[v] ] = max(cnt[ mask[v] ], lev[v]);
+            }
+        }
+    }
+    doIt(p, p);
+    ///cout << p << ' ' << prin[p] << endl;
+
+    if(!keep)
+    {
+        FOR(i,lf[p],rg[p])
+        {
+            int v = dfa[i];
+            cnt[ mask[v] ] = 0;
+        }
+    }
+
+}
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    //freopen("in.txt", "r", stdin);
+    int n, v, x;
+    char ch;
+
+    cin >> n;
+    FOR(i,2,n)
+    {
+        cin >> x >> ch;
+        v = ch - 'a';
+
+        mat[x].push_back( i );
+        co[x].push_back( v );
+    }
+
+    lev[1] = 1;
+    dfs(1, 1);
+    ///FOR(i,1,n) cout << i << ' ' << lev[i] << ' ' << lf[i] << ' ' << rg[i] << endl;
+    dfs(1, 1, 0);
+    dfs(1, 1);
+
+    FOR(i,1,n) cout << prin[i] << ' ';
+
+    return 0;
+}

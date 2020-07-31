@@ -1,0 +1,165 @@
+#pragma GCC optimize("Ofast,unroll-loops,no-stack-protector,fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+ 
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+ 
+using namespace std;
+using namespace __gnu_pbds;
+using matrix = vector<vector<long long>>;
+ 
+typedef long long ll;
+typedef long double ld;    
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef pair<ld, ld> pld;
+ 
+template<typename T>
+using kawaii_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+ 
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+//#define int ll
+ 
+void FAST_IO() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    #ifndef _offline
+    //freopen("volunteers.in", "r", stdin);
+    //freopen("volunteers.out", "w", stdout);
+    #endif
+}
+
+const int INF = 1e9 + 7;
+
+struct item {
+    int x, l, r;
+
+    item() : x(0), l(0), r(0) {};
+    item(int _x, int _l, int _r) : x(_x), l(_l), r(_r) {};
+
+    bool operator <(const item &other) const {
+        if (x != other.x) {
+            return x < other.x;
+        }
+        return l < other.l || l == other.l && r < other.r;
+    }
+};
+
+struct state {
+    int x, l, r, t;
+
+    state() : x(0), l(0), r(0), t(0) {};
+    state(int _x, int _l, int _r, int _t) : x(_x), l(_l), r(_r), t(_t) {};
+
+    bool operator <(const state &other) const {
+        return x < other.x || x == other.x && t < other.t;
+    }
+};
+
+signed main() {
+    FAST_IO();
+    int n;
+    cin >> n;
+    vector<item> hor, ver;
+    for (int i = 0; i < n; ++i) {
+        int x1, y1, x2, y2;
+        cin >> x1 >> y1 >> x2 >> y2;
+        if (x1 == x2) {
+            ver.push_back(item(x1, min(y1, y2), max(y1, y2)));
+        }
+        else {
+            assert(y1 == y2);
+            hor.push_back(item(y1, min(x1, x2), max(x1, x2)));
+        }
+    }
+    ll ans = 0;
+    vector<state> evs;
+    sort(all(hor));
+    int lf = -INF, rg = -INF, x = -INF;
+    for (item i : hor) {
+        if (i.x != x) {
+            if (lf != -INF) {
+                evs.push_back(state(lf, x, x, 1));
+                evs.push_back(state(rg, x, x, 3));
+                ans += rg - lf + 1;
+            }
+            lf = rg = -INF;
+        }
+        if (lf == -INF) {
+            lf = i.l;
+            rg = i.r;
+            x = i.x;
+        }
+        else {
+            if (rg < i.l) {
+                evs.push_back(state(lf, x, x, 1));
+                evs.push_back(state(rg, x, x, 3));
+                ans += rg - lf + 1;
+                lf = i.l;
+                rg = i.r;
+            }
+            else {
+                rg = max(rg, i.r);
+            }
+        }
+    }
+    if (lf != -INF) {
+        evs.push_back(state(lf, x, x, 1));
+        evs.push_back(state(rg, x, x, 3));
+        ans += rg - lf + 1;
+    }
+    sort(all(ver));
+    lf = -INF, rg = -INF, x = -INF;
+    for (item i : ver) {
+        if (i.x != x) {
+            if (lf != -INF) {
+                evs.push_back(state(x, lf, rg, 2));
+                ans += rg - lf + 1;
+            }
+            lf = rg = -INF;
+        }
+        if (lf == -INF) {
+            lf = i.l;
+            rg = i.r;
+            x = i.x;
+        }
+        else {
+            if (rg < i.l) {
+                evs.push_back(state(x, lf, rg, 2));
+                ans += rg - lf + 1;
+                lf = i.l;
+                rg = i.r;
+            }
+            else {
+                rg = max(rg, i.r);
+            }
+        }
+    }
+    if (lf != -INF) {
+        evs.push_back(state(x, lf, rg, 2));
+        ans += rg - lf + 1;
+    }
+    sort(all(evs));
+    kawaii_set<int> setik;
+    for (state i : evs) {
+        if (i.t == 2) {
+            int cnt = setik.order_of_key(i.l);
+            cnt += setik.size() - setik.order_of_key(i.r + 1);
+            cnt = setik.size() - cnt;
+            ans -= cnt;
+        }
+        else if (i.t == 1) {
+            setik.insert(i.l);
+        }
+        else {
+            setik.erase(i.l);
+        }
+    }
+    cout << ans << '\n';
+    return 0;
+}

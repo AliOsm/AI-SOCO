@@ -1,0 +1,127 @@
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <set>
+#include <map>
+#include <queue>
+#include <iostream>
+#include <sstream>
+#include <cstdio>
+#include <cmath>
+#include <ctime>
+#include <cstring>
+#include <cctype>
+#include <cassert>
+#include <limits>
+#include <functional>
+#include <unordered_map>
+#define rep(i,n) for(int (i)=0;(i)<(int)(n);++(i))
+#define rer(i,l,u) for(int (i)=(int)(l);(i)<=(int)(u);++(i))
+#define reu(i,l,u) for(int (i)=(int)(l);(i)<(int)(u);++(i))
+#if defined(_MSC_VER) || __cplusplus > 199711L
+#define aut(r,v) auto r = (v)
+#else
+#define aut(r,v) __typeof(v) r = (v)
+#endif
+#define each(it,o) for(aut(it, (o).begin()); it != (o).end(); ++ it)
+#define all(o) (o).begin(), (o).end()
+#define pb(x) push_back(x)
+#define mp(x,y) make_pair((x),(y))
+#define mset(m,v) memset(m,v,sizeof(m))
+#define INF 0x3f3f3f3f
+#define INFL 0x3f3f3f3f3f3f3f3fLL
+using namespace std;
+typedef vector<int> vi; typedef pair<int,int> pii; typedef vector<pair<int,int> > vpii; typedef long long ll;
+template<typename T, typename U> inline void amin(T &x, U y) { if(y < x) x = y; }
+template<typename T, typename U> inline void amax(T &x, U y) { if(x < y) x = y; }
+
+struct UnionFind {
+	vector<int> data;
+	void init(int n) { data.assign(n, -1); }
+	bool unionSet(int x, int y) {
+		x = root(x); y = root(y);
+		if(x != y) {
+			if(data[y] < data[x]) swap(x, y);
+			data[x] += data[y]; data[y] = x;
+		}
+		return x != y;
+	}
+	bool findSet(int x, int y) { return root(x) == root(y); }
+	int root(int x) { return data[x] < 0 ? x : data[x] = root(data[x]); }
+	int size(int x) { return -data[root(x)]; }
+};
+
+int main() {
+	int n, m;
+	scanf("%d%d", &n, &m);
+	const int C = m;
+	vector<vi> vertices(C);
+	vector<vpii> edges(C);
+	const int S = 300;
+	rep(i, m) {
+		int a, b, c;
+		scanf("%d%d%d", &a, &b, &c), -- a, -- b, -- c;
+//c = i / (S+1), a = i % (S+1), b = (i+1) % (S+1);
+//c = i / (S), a = c * S + (i) % S, b = c * S + (i+1) % S;
+		vertices[c].push_back(a);
+		vertices[c].push_back(b);
+		edges[c].push_back(mp(a, b));
+	}
+	vector<UnionFind> ufs(C);
+	vector<vector<vi> > components(C);
+	vector<ll> smallans;
+	vi bigcolors;
+	vector<vi> bigmaps(C);
+	rep(i, C) {
+		vi &v = vertices[i];
+		sort(all(v));
+		v.erase(unique(all(v)), v.end());
+		int V = v.size();
+		ufs[i].init(V);
+		each(j, edges[i]) {
+			int a = lower_bound(all(v), j->first) - v.begin();
+			int b = lower_bound(all(v), j->second) - v.begin();
+			ufs[i].unionSet(a, b);
+		}
+		if(V <= S) {
+			components[i].assign(V, vi());
+			rep(j, V)
+				components[i][ufs[i].root(j)].push_back(j);
+			rep(j, V) {
+				const vi &cc = components[i][j];
+				rep(k, cc.size()) rep(l, cc.size()) {
+					int a = v[cc[k]], b = v[cc[l]];
+					if(a < b) smallans.push_back((ll)a << 20 | b);
+				}
+			}
+		}else {
+//cout<<"c: " << i<<endl;
+			bigcolors.push_back(i);
+			bigmaps[i].assign(n, -1);
+			rep(j, v.size())
+				bigmaps[i][v[j]] = j;
+		}
+	}
+	sort(all(smallans));
+//cout << "bigs: " << bigcolors.size() << endl;
+//cout<< "smallans: " << smallans.size() << endl;
+	int q;
+	scanf("%d", &q);
+	rep(ii, q) {
+		int u, v;
+		scanf("%d%d", &u, &v), -- u, -- v;
+//u=rand()%S,v=rand()%S;
+		if(u > v) swap(u, v);
+		int ans = 0;
+		auto er = equal_range(all(smallans), (ll)u << 20 | v);
+		ans += er.second - er.first;
+		each(i, bigcolors) {
+			int a = bigmaps[*i][u], b = bigmaps[*i][v];
+			if(a != -1 && b != -1)
+				ans += ufs[*i].findSet(a, b);
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}

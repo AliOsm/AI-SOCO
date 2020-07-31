@@ -1,0 +1,38 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int N,col[200010];
+vector<int>e[200010];
+int K;
+
+void dfs(int x,int f)
+{
+	int now = 1;
+	for (int i=0;i<e[x].size();i++)
+	if (e[x][i]!=f)
+	{
+		while(now==col[x] || now==col[f]) now++;
+		col[e[x][i]] = now;
+		K = max(K,now);
+		now++;
+		dfs(e[x][i],x);
+	}
+}
+
+int main()
+{
+	scanf("%d",&N);
+	for (int i=1;i<N;i++)
+	{
+		int x,y;
+		scanf("%d%d",&x,&y);
+		e[x].push_back(y);
+		e[y].push_back(x);
+	}
+	K = 0;
+	col[1] = 1;
+	dfs(1,0);
+	printf("%d\n",K);
+	for (int i=1;i<=N;i++)printf("%d ",col[i]);
+}

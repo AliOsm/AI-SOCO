@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define all(aaa) aaa.begin(), aaa.end()
+using namespace std;
+
+const int N = 1e5 + 5;
+int vip[N], q[N], mx[N], ans[N], t[N];
+vector<pair<int, int>> v[N];
+bool imp[N];
+int n, m, k;
+
+int findSet(int x) {
+    return q[x] < 0 ? x : q[x] = findSet(q[x]);
+}
+
+bool un(int x, int y) {
+    x = findSet(x);
+    y = findSet(y);
+    if (x == y)
+        return false;
+
+    if (q[x] > q[y])
+        swap(x, y);
+    q[x] += q[y];
+    q[y] = x;
+    return true;
+}
+
+void dfs(int node, int anc = -1)  {
+    if (imp[node]) {
+        t[node] = 1;
+    }
+    for (auto e : v[node]) {
+        int to =e.first;
+        if (to != anc) {
+            dfs(to, node);
+            if (t[to]) {
+                if (t[to] != k)
+                    mx[to] = max(mx[to], e.second);
+                t[node] += t[to];
+                mx[node] = max(mx[node], mx[to]);
+            }
+        }
+    }
+}
+
+void deep(int node, int x, int anc = -1) {
+    multiset<int> st;
+    for (auto e : v[node]) {
+        if (e.first != anc)
+            st.insert(mx[e.first]);
+    }
+    ans[node] = max(x, mx[node]);
+    for (auto e : v[node]) {
+        int to = e.first;
+        if (to != anc) {
+            st.erase(st.find(mx[to]));
+            int nx = x;
+            if (!st.empty())
+                nx = max(nx, *st.rbegin());
+            if (t[to] != k)
+                nx = max(nx, e.second);
+            deep(to, nx, node);
+            st.insert(mx[to]);
+        }
+    }
+}
+
+signed main()
+{
+#ifdef HOME
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin >> n >> m >> k;
+
+    fill(q, q + n, -1);
+
+    for (int i = 0; i < k; i++) {
+        cin >> vip[i];
+        vip[i]--;
+        imp[vip[i]] = 1;
+    }
+
+    vector<vector<int>> ed;
+
+    for (int i = 0; i < m; i++) {
+        int x, y, z;
+        cin >> x >> y >> z;
+        ed.push_back({z, x - 1, y - 1});
+    }
+
+    sort(ed.begin(), ed.end());
+
+    for (auto e : ed) {
+        if (un(e[1], e[2])) {
+            v[e[1]].push_back({e[2], e[0]});
+            v[e[2]].push_back({e[1], e[0]});
+        }
+    }
+
+    dfs(0);
+    deep(0, 0);
+
+    for (int i = 0; i < k; i++)
+        cout << ans[vip[i]] << " ";
+
+    return 0;
+}

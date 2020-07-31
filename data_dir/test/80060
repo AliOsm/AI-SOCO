@@ -1,0 +1,133 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long Long;
+
+const Long LEN = 1e6 + 10;
+const Long ALPHA = 26;
+
+map<string,Long> id_word;
+Long end_word[LEN];
+Long trie[LEN][ALPHA];
+Long fail_out[LEN];
+Long fail[LEN];
+Long nodes;
+
+Long conv(char c){
+	if('a' <= c && c <= 'z') return c - 'a';
+	return c-'A'+26;
+}
+
+void addString(string &s, Long id){
+	Long cur = 0;
+	for(char c : s){
+		Long x = conv(c);
+		if(!trie[cur][x]){
+			nodes++;
+			trie[cur][x] = nodes;
+		}
+		cur = trie[cur][x];
+	}
+	end_word[cur] = id;
+}
+
+void build_ahoCorasick(){
+	queue<Long> q;
+	q.push(0);
+	while(!q.empty()){
+		Long u = q.front();
+		q.pop();
+		for(Long i = 0; i < ALPHA; i++){
+			Long v = trie[u][i];
+			if(v == 0) continue;
+			q.push(v);
+			if(u == 0) continue;
+			fail[v] = fail[u];
+			while(fail[v] != 0 && trie[fail[v]][i] == 0){
+				fail[v] = fail[fail[v]];
+			}
+			fail[v] = trie[fail[v]][i];
+			fail_out[v] = (end_word[fail[v]] != 0 ? fail[v] : fail_out[fail[v]]);
+		}
+	}
+}
+
+Long go(Long cur, char c){
+	while(cur != 0 && trie[cur][conv(c)] == 0){
+		cur = fail[cur];
+	}
+	cur = trie[cur][conv(c)];
+	return cur;
+}
+
+
+
+const Long MX = 100001;
+const Long MX2 = 10001;
+
+string original[MX];
+bool memo[MX2];
+pair<Long,Long> parent[MX2];
+
+string minuscula(string &s){
+	string ans = "";
+	for(char c : s){
+		if('a' <= c && c <= 'z'){
+			ans += c;
+		}else{
+			ans += char(c - 'A' + 'a');
+		}
+	}
+	return ans;
+}
+
+void salida(Long pos){
+	if(pos == -1) return;
+	salida(parent[pos].first);
+	cout << original[parent[pos].second] << " ";
+	return;
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	cout.tie(NULL);
+	
+	string texto, palabra;
+	Long n;
+	cin >> n;
+	cin >> texto;
+	
+	Long m;
+	cin >> m;
+	for(Long i = 1; i <= m; i++){
+		cin >> palabra;
+		original[i] = palabra;
+		palabra = minuscula(palabra);
+		reverse(palabra.begin(),palabra.end());
+		if(id_word.find(palabra) == id_word.end()){
+			id_word[palabra] = i;
+			addString(palabra,i);
+		}
+	}
+	
+	build_ahoCorasick();
+	
+	Long cur = 0;
+	for(Long i = 0; i < n; i++){
+		cur = go(cur,texto[i]);
+		Long auxi = cur;
+		while(end_word[auxi] != 0){
+			Long szz = original[end_word[auxi]].size();
+			Long l = i- szz + 1;
+			if(l-1 == -1 || memo[l-1]){
+				memo[i] = true;
+				parent[i] = {l-1,end_word[auxi]};
+			}
+			auxi = fail_out[auxi];
+		}
+	}
+	
+	salida(n-1);
+	return 0;
+}

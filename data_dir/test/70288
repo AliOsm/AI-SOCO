@@ -1,0 +1,153 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using namespace placeholders;
+
+template <class T> void mini(T &l, T r) {l = min(l, r);}
+template <class T> void maxi(T &l, T r) {l = max(l, r);}
+
+template <class TH> void _dbg(const char *sdbg, TH h) {
+  cerr << sdbg << "=" << h << "\n";
+}
+template <class TH, class ...TA> void _dbg(const char *sdbg, TH h, TA ...a) {
+  while (*sdbg != ',') cerr << *sdbg++; cerr << "=" << h << ","; _dbg(sdbg + 1, a...);
+}
+template <class T> ostream &operator<<(ostream &os, vector <T> v) {
+  os << "[";
+  for (auto vv : v) os << vv << ",";
+  return os << "]";
+}
+template <class L, class R> ostream &operator<<(ostream &os, pair <L, R> p) {
+  return os << "(" << p.first << "," << p.second << ")";
+}
+
+#define eput(...) _dbg(#__VA_ARGS__, __VA_ARGS__)
+
+using llint = long long;
+
+#define mid ((l + r) >> 1)
+#define lson (p << 1)
+#define rson (p << 1 | 1)
+
+const int N = 1e5 + 10;
+const llint inf = 1ll << 62;
+int n, m, q;
+int a[N], b[N];
+llint bb[N];
+
+/*llint abs(llint a) {
+  return a > 0 ? a : -a;
+}*/
+
+struct Seg {
+  struct Node {
+    llint s[2];
+    llint lz;
+  } tr[N * 4];
+
+  Node mrg(Node a, Node b) {
+    Node ret;
+    ret.s[0] = a.s[0] + b.s[0];
+    ret.s[1] = a.s[1] + b.s[1];
+    ret.lz = 0;
+    return ret;
+  }
+
+  int get(int l, int i) {
+    return (l + i) / 2;
+  }
+
+  int get(int l, int r, int i) {
+    return get(r, i) - get(l - 1, i);
+  }
+
+  void add(Node &nd, int l, int r, llint x) {
+    nd.lz += x;
+    for (int i = 0; i < 2; ++i) nd.s[i] += get(l, r, i) * x;
+  }
+    
+  void push_down(int p, int l, int r) {
+    if (tr[p].lz) {
+      add(tr[lson], l, mid, tr[p].lz);
+      add(tr[rson], mid + 1, r, tr[p].lz);
+      tr[p].lz = 0;
+    }
+  }
+  
+  void update(int p, int l, int r, int ll, int rr, int x) {
+    if (ll <= l && rr >= r) {
+      add(tr[p], l, r, x);
+      return;
+    }
+    push_down(p, l, r);
+    if (ll <= mid)
+      update(lson, l, mid, ll, rr, x);
+    else
+      update(rson, mid + 1, r, ll, rr, x);
+    tr[p] = mrg(tr[lson], tr[rson]);
+  }
+
+  Node query(int p, int l, int r, int ll, int rr) {
+    if (ll <= l && rr >= r) return tr[p];
+    push_down(p, l, r);
+    if (rr <= mid) return query(lson, l, mid, ll, rr);
+    if (ll >= mid + 1) return query(rson, mid + 1, r, ll, rr);
+    return mrg(query(lson, l, mid, ll, rr), query(rson, mid + 1, r, ll, rr));
+  }
+
+} sega, segb;
+
+llint get(llint x, llint bb[]) {
+  int p = lower_bound(bb, bb + m - n + 1, x) - bb;
+  llint ret = inf;
+  if (p >= 0 && p <= m - n) ret = min(ret, abs(x - bb[p]));
+  p--;
+  if (p >= 0 && p <= m - n) ret = min(ret, abs(x - bb[p]));
+  return ret;
+}
+
+void run() {
+  scanf("%d%d%d", &n, &m, &q);
+  for (int i = 1; i <= n; ++i) {
+    scanf("%d", a + i);
+  }
+  for (int i = 1; i <= m; ++i) {
+    scanf("%d", b + i);
+  }
+
+  for (int i = 1; i <= n; ++i) {
+    sega.update(1, 1, n, i, i, a[i]);
+  }
+  for (int i = 1; i <= m; ++i) {
+    segb.update(1, 1, m, i, i, b[i]);
+  }
+
+  for (int j = 0; j <= m - n; ++j) {
+    auto p = segb.query(1, 1, m, 1 + j, n + j);
+    bb[j] = p.s[1 - (j & 1)] - p.s[j & 1];
+  }
+  sort(bb, bb + m - n + 1);
+
+  auto p = sega.query(1, 1, n, 1, n);
+  llint nw = p.s[1] - p.s[0];
+  printf("%lld\n", get(nw, bb));
+
+  for (int i = 1; i <= q; ++i) {
+    int l, r, x;
+    scanf("%d%d%d", &l, &r, &x);
+    int t0 = sega.get(l, r, 0);
+    int t1 = sega.get(l, r, 1);
+    nw += 1ll * (t1 - t0) * x;
+    
+
+    //sega.update(1, 1, n, l, r, x);
+    //auto p = sega.query(1, 1, n, 1, n);
+    //llint t1 = p.s[1] - p.s[0];
+    printf("%lld\n", get(nw, bb));
+  }
+}
+
+int main() {
+  run();
+  return 0;
+}

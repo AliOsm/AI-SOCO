@@ -1,0 +1,141 @@
+#include <iostream>
+#include <cstdio>
+#include <map>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <iomanip>
+#include <vector>
+#include <queue>
+#include <set>
+
+using namespace std;
+
+int L[1000000];
+int Left[1000000];
+int R[1000000];
+int Next[1000000];
+int Pr[1000000];
+int Ans[1000000];
+pair<int, pair<int, pair<int, int> > > a[1000000];
+
+const int SZ = 3000;
+
+set<pair<int, int> > S;
+set<pair<int, int> >::iterator it;
+
+void clean() {
+    S.clear();
+}
+
+void add(int v) {
+    int l = L[v], r = R[v];
+    while (1) {
+        if (S.size() == 0) {
+            break;
+        }
+        it = S.lower_bound(make_pair(l, r));
+        if (it == S.end()) {
+            break;
+        }        
+        int ll = it->first;
+        int rr = it->second;
+        //cout << "    " << ll << " " << rr << endl;
+        if (r < ll || rr < l) {
+            break;
+        }
+        l = min(l, ll);
+        r = max(r, rr);        
+        S.erase(it);
+    }
+    while (1) {
+        if (S.size() == 0) {
+            break;
+        }
+        it = S.lower_bound(make_pair(l, r));        
+        if (it == S.begin()) {
+            break;
+        }
+        it--;
+        int ll = it->first;
+        int rr = it->second;
+        if (r < ll || rr < l) {
+            break;
+        }
+        l = min(l, ll);
+        r = max(r, rr);
+        S.erase(it);
+    }
+    S.insert(make_pair(l, r));
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cout << fixed << setprecision(15);
+	//freopen("input.txt", "r", stdin);
+	//freopen("output.txt", "w", stdout);
+    int n, m;
+    cin >> n >> m;
+    for (int i = 1; i <= m; i++) {        
+        cin >> L[i] >> R[i];
+        Left[R[i]] = i;
+        Next[i] = Pr[L[i]];
+        Pr[L[i]] = i;
+    }
+    int q;
+    cin >> q;
+    for (int i = 1; i <= q; i++) {
+        int l, r;
+        cin >> l >> r;
+        a[i].first = - r / SZ;
+        a[i].second.first = - l;
+        a[i].second.second.first = r;
+        a[i].second.second.second = i;
+    }
+    sort(a + 1, a + q + 1);
+    int pl = -1, pr = -1;
+    for (int i = 1; i <= q; i++) {
+        int l = - a[i].second.first;
+        int r = a[i].second.second.first;
+        int num = a[i].second.second.second;
+        //cout << l << " " << r << " " << num << endl;
+        if (i == 1 || pr / SZ != r / SZ) {
+           // cout << "!" << endl;
+            clean();
+            for (int i = l; i <= (r / SZ) * SZ - 1; i++) {
+                if (Left[i] > 0 && L[Left[i]] >= l) {
+                    //cout << Left[i] << " " << i << endl;
+                    add(Left[i]);
+                }
+            }
+        } else {
+            for (int i = pl - 1; i >= l; i--) {
+                for (int j = Pr[i]; j; j = Next[j]) {
+                    if (R[j] <= (r / SZ) * SZ - 1) {
+                        //cout << " " << i << " " << R[j] << endl;
+                        add(j);
+                    }
+                }
+            }
+        }
+        pl = l, pr = r;
+        int lo = l, hi = l;
+        if (S.size() > 0) {
+            if (S.begin()->first == lo) {
+                hi = S.begin()->second;
+            }
+        }
+        for (int i = (r / SZ) * SZ; i <= r; i++) {
+            if (Left[i] > 0 && L[Left[i]] >= l) {
+                if (L[Left[i]] <= hi) {
+                    hi = max(hi, i);
+                }
+            }
+        }
+        Ans[num] = hi;
+    }
+    for (int i = 1; i <= q; i++) {
+        cout << Ans[i] << endl;
+    }
+	return 0;
+}

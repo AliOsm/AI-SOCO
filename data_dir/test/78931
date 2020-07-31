@@ -1,0 +1,139 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse2")
+#include<bits/stdc++.h>
+using namespace std;
+#define IOS ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define endl "\n"
+#define mod 1000000007
+#define inf (1LL<<61)
+#define int long long
+typedef long long ll;
+#define ld long double
+#define N 100001
+
+struct Trees{
+    int a,h;
+    double l,r;
+};
+Trees trees[N];
+bool comp(Trees t1,Trees t2)
+{
+    return t1.a < t2.a;
+}
+double lazy[N];
+double s[N];
+void build(int id,int lo,int hi)
+{
+    if(lo == hi)
+    {
+        s[id] = 1;
+        lazy[id] = 1;
+        return ;
+    }
+    lazy[id] = 1;
+    s[id] = 1;
+    int mid = (lo + hi) >> 1;
+    build(2*id,lo,mid);
+    build(2*id+1,mid+1,hi);
+}
+void propogate(int id)
+{
+    if(lazy[id] != 1)
+    {
+        s[id] *= lazy[id];
+        lazy[2*id] *= lazy[id];
+        lazy[2*id + 1] *= lazy[id];
+        lazy[id] = 1;
+    }
+}
+void update(int id,int lo,int hi,int l,int r,double val)
+{
+    if(l > r)
+        return;
+    propogate(id);
+    
+    if(lo > r or hi < l)
+        return;
+    ////cerr << lo << " " << hi << " " << l << " " << r << " " << val << endl;
+    if(lo >= l and  hi <= r)
+    {
+        s[id] *= val;
+        lazy[2*id] *= val;
+        lazy[2*id+1] *= val;
+        return;
+    }
+    int mid = (lo + hi)>>1;
+    update(2*id,lo,mid,l,r,val);
+    update(2*id + 1,mid + 1,hi,l,r,val);
+}
+double query(int id,int lo,int hi,int pos)
+{
+    propogate(id);
+    if(lo == hi)
+    {
+        return s[id];
+    }
+    int mid = (lo + hi) >> 1;
+    if(pos <= mid)
+        return query(2*id,lo,mid,pos);
+    else
+        return query(2*id + 1,mid + 1,hi,pos);
+}
+int32_t main()
+{
+    IOS;
+    #ifndef ONLINE_JUDGE
+    freopen("int.txt","r",stdin);
+    freopen("out.txt","w",stdout);
+    #endif
+    int n,m;
+    cin >> n >> m;
+    for(int i = 0;i < n;i++)
+    {
+        cin >> trees[i].a >> trees[i].h >> trees[i].l >> trees[i].r ;
+        trees[i].l /= (double)100;
+        trees[i].r /= (double)100;
+    }
+    vector<pair<int,int>> mushrooms(m);
+
+    for(int i = 0;i < m;i++)
+    {
+        cin >> mushrooms[i].first >> mushrooms[i].second;
+    }
+    
+    sort(mushrooms.begin(),mushrooms.end());
+    sort(trees,trees + n,comp);
+    build(1,1,m);
+
+    for(int i = 0;i < n;i++)
+    {
+        int xmax = trees[i].a + trees[i].h;
+        int xmin = trees[i].a + 1;
+        int posr = upper_bound(mushrooms.begin(),mushrooms.end(),make_pair(xmax + 1,(ll)0)) - mushrooms.begin();
+
+        posr--;
+        int posl = upper_bound(mushrooms.begin(),mushrooms.end(),make_pair(xmin,(ll)0)) - mushrooms.begin();
+        //cerr << posl << " " << posr << " " << (1 - trees[i].r) <<  endl;
+
+        update(1,1,m,posl + 1,posr + 1,(1-trees[i].r));
+        //cerr << query(1,1,m,1) << endl;
+
+        posr = upper_bound(mushrooms.begin(),mushrooms.end(),make_pair(trees[i].a,(ll)0)) - mushrooms.begin();
+        posr-- ;
+        posl = upper_bound(mushrooms.begin(),mushrooms.end(),make_pair(trees[i].a - trees[i].h,(ll)0)) - mushrooms.begin();
+        update(1,1,m,posl + 1,posr + 1,(1-trees[i].l));
+        //cerr << posl << " " << posr << " " << (1-trees[i].l) <<  endl;
+    }
+
+    double ans = 0;
+    for(int i = 1;i <= m;i++)
+    {
+        //cerr << query(1,1,m,i) << " " << mushrooms[i - 1].first << endl;
+        ans += query(1,1,m,i) * mushrooms[i - 1].second;
+    }
+    cout << fixed << setprecision(7);
+    cout << ans;
+
+
+}

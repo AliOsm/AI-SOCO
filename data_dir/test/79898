@@ -1,0 +1,247 @@
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <deque>
+#include <map>
+#include <set>
+#include <ctime>
+#include <memory.h>
+#include <assert.h>
+#include <complex>
+#include <ctime>  
+#include <cstdlib>
+using namespace std;
+
+#pragma comment(linker, "/STACK:100000000")
+
+#define mp make_pair
+#define pb push_back
+#define sz(x) (int)(x).size()
+#define ll long long
+#define ull unsigned long long
+
+ll mod1 = 1000000007LL;
+ll mod2 = 1000000009LL;
+
+ll curhash1[26];
+ll curhash2[26];
+
+int linkT[26];
+
+ll bpow1[30];
+ll bpow2[30];
+
+vector<int> ans;
+ll hashT1 = 0;
+ll hashT2 = 0;
+string s, t;
+
+int napr[26];
+
+ll binpow1(ll a, ll b) {
+	if(bpow1[a] != -1) return bpow1[a];
+	int start = a;
+	ll res = 1;
+	while(b) {
+		if(b & 1) res *= a, res %= mod1;
+		b >>= 1;
+		a *= a;
+		a %= mod1;
+	}
+	return bpow1[start] = res;
+}
+
+ll binpow2(ll a, ll b) {
+	if(bpow2[a] != -1) return bpow2[a];
+	int start = a;
+	ll res = 1;
+	while(b) {
+		if(b & 1) res *= a, res %= mod2;
+		b >>= 1;
+		a *= a;
+		a %= mod2;
+	}
+	return bpow2[start] = res;
+}
+
+
+void check(int pos) { // переставляет и сравнивает хэши
+	memset(napr, -1, sizeof(napr));
+	ll oldHash1 = 0;
+	for(int i = 0; i < 26; i++) {
+		oldHash1 += curhash1[i];
+		if(oldHash1 <= mod1) oldHash1 %= mod1;
+	}
+	ll oldHash2 = 0;
+	for(int i = 0; i < 26; i++) {
+		oldHash2 += curhash2[i];
+		if(oldHash2 <= mod2) oldHash2 %= mod2;
+	}
+	
+	for(int i = 0; i < 26; i++) {
+		if(linkT[i] == -1) continue;
+		int cur = i;
+		int nxt = s[linkT[i]+pos] - 'a';
+		if(napr[nxt] != -1 && napr[nxt] != cur) return;
+		if(napr[cur] != -1 && napr[cur] != nxt) return;
+		if(napr[nxt] != -1) continue;
+		if(napr[cur] != -1) continue;
+		napr[nxt] = cur;
+		napr[cur] = nxt;
+		// значит все символы nxt надо переобозначить в cur, а все cur в nxt
+		// переобозначим хэши
+		ll ttt = curhash1[nxt];
+		oldHash1 -= ttt;
+		oldHash1 += mod1;
+		oldHash1 %= mod1;
+		ttt *= binpow1(nxt + 1, mod1 - 2);
+		ttt %= mod1;
+		ttt *= (cur + 1);
+		ttt %= mod1;
+		oldHash1 += ttt;
+		oldHash1 %= mod1;
+		
+		ttt = curhash2[nxt];
+		oldHash2 -= ttt;
+		oldHash2 += mod2;
+		oldHash2 %= mod2;
+		ttt *= binpow2(nxt + 1, mod2 - 2);
+		ttt %= mod2;
+		ttt *= (cur + 1);
+		ttt %= mod2;
+		oldHash2 += ttt;
+		oldHash2 %= mod2;
+
+
+		ttt = curhash1[cur];
+		oldHash1 -= ttt;
+		oldHash1 += mod1;
+		oldHash1 %= mod1;
+		ttt *= binpow1(cur + 1, mod1 - 2);
+		ttt %= mod1;
+		ttt *= (nxt + 1);
+		ttt %= mod1;
+		oldHash1 += ttt;
+		oldHash1 %= mod1;
+		
+		ttt = curhash2[cur];
+		oldHash2 -= ttt;
+		oldHash2 += mod2;
+		oldHash2 %= mod2;
+		ttt *= binpow2(cur + 1, mod2 - 2);
+		ttt %= mod2;
+		ttt *= (nxt + 1);
+		ttt %= mod2;
+		oldHash2 += ttt;
+		oldHash2 %= mod2;
+	}
+
+
+
+	if(hashT1 == oldHash1 && hashT2 == oldHash2) {
+		ans.pb(pos);
+	}
+
+}
+
+ll pow1[200200];
+ll pow2[200200];
+
+int main() {
+	//freopen("output.txt", "wt", stdout);
+    //freopen("tictactoe.in", "rt", stdin);
+	//freopen("tictactoe.out", "wt", stdout);
+	
+	for(int i = 0; i < 30; i++) bpow1[i] = -1;
+	for(int i = 0; i < 30; i++) bpow2[i] = -1;
+	
+	pow1[0] = 1;
+	pow2[0] = 1;
+	for(int i = 1; i < 200200; i++) {
+		pow1[i] = pow1[i-1] * 31LL;
+		if(pow1[i] >= mod1) pow1[i] %= mod1;
+	}
+	for(int i = 1; i < 200200; i++) {
+		pow2[i] = pow2[i-1] * 31LL;
+		if(pow2[i] >= mod2) pow2[i] %= mod2;
+	}
+
+	int lenS, lenT;
+	scanf("%d %d", &lenS, &lenT);
+
+	cin >> s >> t;
+	memset(linkT, -1, sizeof(linkT));
+	for(int i = 0; i < lenT; i++) {
+		if(linkT[t[i] - 'a'] == -1) linkT[t[i]-'a'] = i;
+	}
+
+	for(int i = 0; i < lenT; i++) {
+		for(int j = 0; j < 26; j++) {
+			curhash1[j] *= 31LL;
+			curhash2[j] *= 31LL;
+			if(curhash1[j] >= mod1) curhash1[j] %= mod1;
+			if(curhash2[j] >= mod2) curhash2[j] %= mod2;
+		}
+		curhash1[s[i]-'a'] += s[i] - 'a' + 1;
+		curhash2[s[i]-'a'] += s[i] - 'a' + 1;
+		if(curhash1[s[i]-'a'] >= mod1) curhash1[s[i]-'a'] %= mod1;
+		if(curhash2[s[i]-'a'] >= mod2) curhash2[s[i]-'a'] %= mod2;
+	}
+	
+	for(int i = 0; i < lenT; i++) {
+		hashT1 *= 31LL;
+		hashT2 *= 31LL;
+		if(hashT1 >= mod1) hashT1 %= mod1;
+		if(hashT2 >= mod2) hashT2 %= mod2;
+		hashT1 += t[i] - 'a' + 1;
+		hashT2 += t[i] - 'a' + 1;
+		if(hashT1 >= mod1) hashT1 %= mod1;
+		if(hashT2 >= mod2) hashT2 %= mod2;
+	}
+	
+	check(0); 
+
+	for(int i = lenT; i < lenS; i++) {
+		// убираем последний символ
+		int prev = i - lenT;
+
+		curhash1[s[prev]-'a'] -= (ll)(s[prev] - 'a' + 1) * pow1[lenT-1];
+		if(curhash1[s[prev]-'a'] < 0) {
+			ll tmp = abs(curhash1[s[prev]-'a']);
+			tmp %= mod1;
+			curhash1[s[prev]-'a'] = -tmp + mod1;
+			curhash1[s[prev]-'a'] %= mod1;
+		}
+		curhash2[s[prev]-'a'] -= (ll)(s[prev] - 'a' + 1) * pow2[lenT-1];
+		if(curhash2[s[prev]-'a'] < 0) {
+			ll tmp = abs(curhash2[s[prev]-'a']);
+			tmp %= mod2;
+			curhash2[s[prev]-'a'] = -tmp + mod2;
+			curhash2[s[prev]-'a'] %= mod2;
+		}
+
+		// добавляем новый
+		
+		for(int j = 0; j < 26; j++) {
+			curhash1[j] *= 31LL;
+			curhash2[j] *= 31LL;
+			if(curhash1[j] >= mod1) curhash1[j] %= mod1;
+			if(curhash2[j] >= mod2) curhash2[j] %= mod2;
+		}
+		curhash1[s[i]-'a'] += s[i] - 'a' + 1;
+		curhash2[s[i]-'a'] += s[i] - 'a' + 1;
+		if(curhash1[s[i]-'a'] >= mod1) curhash1[s[i]-'a'] %= mod1;
+		if(curhash2[s[i]-'a'] >= mod2) curhash2[s[i]-'a'] %= mod2;
+
+		check(prev + 1);
+	}
+
+	printf("%d\n", sz(ans));
+	for(int i = 0, maxi = sz(ans); i < maxi; i++) printf("%d ", ans[i] + 1);
+
+    return 0;
+}

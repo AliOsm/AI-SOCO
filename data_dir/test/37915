@@ -1,0 +1,289 @@
+#pragma comment(linker, "/STACK:256000000")
+
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+#include <memory.h>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <utility>
+#include <algorithm>
+#include <random>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long int64;
+typedef unsigned long long uint64;
+typedef pair<int, int> pii;
+typedef pair<int64, int64> pll;
+const int INF = (int)(1e9 + 1337);
+const int64 LINF = (int64)(4e18);
+const double EPS = 1e-11;
+#define sq(x) ((x)*(x))
+#define FAIL() ((*(int*)(0))++)
+const int HMOD = 1000000009;
+const int HBASE = 1003;
+
+const int MAXN = 100500;
+
+inline int add(int a, int b)
+{
+	a += b;
+	if (a >= HMOD)
+	{
+		a -= HMOD;
+	}
+	return a;
+}
+
+inline int sub(int a, int b)
+{
+	a -= b;
+	if (a  < 0)
+	{
+		a += HMOD;
+	}
+	return a;
+}
+
+inline int mul(int a, int b)
+{
+	return int64(a) * b % HMOD;
+}
+
+int pw[MAXN];
+char str[32][MAXN];
+char s[MAXN];
+int n;
+int l[32];
+int p1[32], p2[32];
+int hsh[MAXN];
+int sum;
+int num[MAXN];
+int last[MAXN];
+
+void init()
+{
+	scanf ("%d", &n);
+	for (int i = 1; i <= n; i++)
+	{
+		scanf ("%s", &str[i][1]);
+		l[i] = strlen(str[i] + 1);
+	}
+}
+
+void build_hash()
+{
+	for (int i = 1; i <= sum; i++)
+	{
+		hsh[i] = add(mul(hsh[i - 1], HBASE), s[i]);
+	}
+}
+
+inline int get_hash(int num, int l, int r)
+{
+	l += p1[num] - 1;
+	r += p1[num] - 1;
+	return sub(hsh[r], mul(hsh[l - 1], pw[r - l + 1]));
+}
+
+inline int get_hash(int l, int r)
+{
+	return sub(hsh[r], mul(hsh[l - 1], pw[r - l + 1]));
+}
+
+vector <vector <int> > g;
+int used[MAXN];
+bool fail;
+
+void dfs(int v)
+{
+	used[v] = 1;
+	for (int i = 0; i < (int)g[v].size() && !fail; i++)
+	{
+		int to = g[v][i];
+		if (used[to] == 1)
+		{
+			fail = true;
+			break;
+		}
+		if (!used[to])
+		{
+			dfs(to);
+		}
+	}
+	used[v] = 2;
+}
+
+bool check_cycle()
+{
+	memset(used, 0, sizeof(used));
+	fail = false;
+	for (int i = 0; i <= sum && !fail; i++)
+	{
+		if (!used[i])
+		{
+			dfs(i);
+		}
+	}
+	return fail;
+}
+
+int get_pos(int pos, int num2)
+{
+	int num1 = num[pos];
+	int len = min(p2[num1] - pos + 1, p2[num2] - p1[num2] + 1);
+	if (get_hash(pos, pos + len - 1) == get_hash(num2, 1, len))
+	{
+		if (p2[num1] - pos + 1 != p2[num2] - p1[num2] + 1)
+		{
+			if (p2[num1] - pos + 1 < p2[num2] - p1[num2] + 1)
+			{
+				return p1[num2] + len;
+			}
+			else
+			{
+				return pos + len;
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+void print_graph()
+{
+	for (int i = 0; i <= sum; i++)
+	{
+		printf("i %d   %d: ", i, g[i].size());
+		for (int j = 0; j < (int)g[i].size(); j++)
+		{
+			printf("%d ", g[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+bool add_pos(int i, int j)
+{
+	g[0].push_back(p1[j]);
+	for (int h = i; h < j; h++)
+	{
+		for (int p = p1[j]; p <= p2[j]; p++)
+		{
+			int p2 = get_pos(p, h);
+			if (p2 != -1)
+			{
+				g[p].push_back(p2);
+			}
+		}
+	}
+	for (int p = p1[i]; p <= p2[j]; p++)
+	{
+		if (p == p1[j])
+		{
+			continue;
+		}
+		int p2 = get_pos(p, j);
+		if (p2 != -1)
+		{
+			g[p].push_back(p2);
+		}
+	}
+			//print_graph();
+	return !check_cycle();
+}
+
+void solve()
+{
+	pw[0] = 1;
+	for (int i = 1; i  < MAXN; i++)
+	{
+		pw[i] = mul(pw[i - 1], HBASE);
+	}
+	init();
+	for (int i = 1; i <= n; i++)
+	{
+		p1[i] = sum + 1;
+		sum += l[i];
+		p2[i] = sum;
+		for (int j = 1; j <= l[i]; j++)
+		{
+			s[j + p1[i] - 1] = str[i][j];
+			num[j + p1[i] - 1] = i;
+		}
+	}
+	build_hash();
+	for (int i = 1; i <= n; i++)
+	{
+		for (int j = 1; j < i; j++)
+		{
+			if (get_hash(p1[j], p2[j]) == get_hash(p1[i], p2[i]))
+			{
+				last[i] = j;
+			}
+		}
+	}
+	int ans = 0;
+	for (int i = 1; i <= n; i++)
+	{
+		g.clear();
+		g.resize(sum + 1);
+		for (int j = i; j <= n; j++)
+		{
+			if (last[j] >= i)
+			{
+				ans++;
+				continue;
+			}
+			if (add_pos(i, j))
+			{
+				//printf("i %d j %d\n", i, j);
+				ans++;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+	printf("%d\n", ans);
+}
+
+int main()
+{
+#ifdef _MY_DEBUG
+	freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+	
+#endif
+	srand(88);
+
+	double st = clock();
+
+	solve();
+
+	//fprintf(stderr, "%.3lf\n", (clock() - st) / CLOCKS_PER_SEC);
+
+	return 0;
+}

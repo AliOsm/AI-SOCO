@@ -1,0 +1,12 @@
+#include<iostream>
+#include<cmath>
+#include<math.h>
+#include<utility>
+using namespace std;
+int main()
+{
+    double long r, x1, y1, x2, y2;
+    while(cin >> r >> x1 >> y1 >> x2 >> y2)
+    cout << ceil((sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2))) / (2 * r)) << endl;
+    return 0;
+}

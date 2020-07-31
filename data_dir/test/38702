@@ -1,0 +1,176 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC target("sse4")
+
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <cstring>
+#include <cstdlib>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <queue>
+#include <ctime>
+
+using namespace std;
+
+#define REP(i, n) for(int (i) = 0; (i) < (n); (i)++)
+#define SZ(a) (int)(a).size()
+#define ALL(a) (a).begin(), (a).end()
+
+const int N = 3030;
+string s[N], t[N];
+int pi[2 * N];
+
+void prefix_function(const string& str) {
+	int n = str.size();
+	REP(i, n) pi[i] = 0;
+	for (int i = 1; i < n; ++i) {
+		int j = pi[i - 1];
+		while (j > 0 && str[i] != str[j]) {
+			j = pi[j - 1];
+        }
+		if (str[i] == str[j]) ++j;
+		pi[i] = j;
+	}
+}
+
+int KMP(const string& text, const string& pattern) {
+	string tmp = pattern + "#" + text;
+	prefix_function(tmp);
+	for (int j = SZ(pattern) + 1; j < SZ(tmp); j++) {
+		if (pi[j] == SZ(pattern)) {
+			return j - 2 * SZ(pattern);
+		}
+	}
+	return -1;
+}
+
+pair<int, int> find_kernel(const string& ss, const string& tt) {
+    int beg = -1, end = -1;
+    REP(i, SZ(ss)) {
+        if (ss[i] != tt[i]) {
+            beg = i;
+            break;
+        }
+    }
+    if (beg != -1) {
+        for (int i = SZ(ss) - 1; i >= 0; i--) {
+            if (ss[i] != tt[i]) {
+                end = i;
+                break;
+            }
+        }
+    }
+    return make_pair(beg, end);
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    int n;
+    scanf("%d\n", &n);
+    char buf[N];
+    REP(i, n) {
+    	gets(buf);
+    	s[i] = string(buf);
+    }
+    REP(i, n) {
+    	gets(buf);
+    	t[i] = string(buf);
+    }
+    vector<int> beg(n), end(n);
+    string s_kernel, t_kernel;
+    REP(i, n) {
+        pair<int, int> tmp = find_kernel(s[i], t[i]);
+        beg[i] = tmp.first;
+        end[i] = tmp.second;
+        if (beg[i] != -1) {
+            string s_cur(s[i].begin() + beg[i], s[i].begin() + end[i] + 1);
+            string t_cur(t[i].begin() + beg[i], t[i].begin() + end[i] + 1);
+            if (s_kernel.empty()) {
+                s_kernel = s_cur;
+                t_kernel = t_cur;
+            } else if (s_kernel != s_cur || t_kernel != t_cur) {
+                cout << "NO" << endl;
+                return 0;
+            }
+        }
+    }
+    int add_front = 0;
+    while (true) {
+        ++add_front;
+        char c = 0;
+        bool good = true;
+        REP(i, n) {
+            if (beg[i] == -1) continue;
+            if (beg[i] - add_front < 0) {
+                good = false;
+                break;
+            }
+            char cc = s[i][beg[i] - add_front];
+            if (c == 0) {
+                c = cc;
+            } else if (c != cc) {
+                good = false;
+                break;
+            }
+        }
+        if (!good) {
+            --add_front;
+            break;
+        }
+    }
+    int add_back = 0;
+    while (true) {
+        ++add_back;
+        char c = 0;
+        bool good = true;
+        REP(i, n) {
+            if (end[i] == -1) continue;
+            if (end[i] + add_back >= SZ(s[i])) {
+                good = false;
+                break;
+            }
+            char cc = s[i][end[i] + add_back];
+            if (c == 0) {
+                c = cc;
+            } else if (c != cc) {
+                good = false;
+                break;
+            }
+        }
+        if (!good) {
+            --add_back;
+            break;
+        }
+    }
+    string s_pattern, t_pattern;
+    REP(i, n) {
+        if (s[i] != t[i]) {
+            s_pattern = s[i].substr(beg[i] - add_front, (end[i] + add_back) - (beg[i] - add_front) + 1);
+            t_pattern = t[i].substr(beg[i] - add_front, (end[i] + add_back) - (beg[i] - add_front) + 1);
+            break;
+        }
+    }
+    REP(i, n) {
+        int pos = KMP(s[i], s_pattern);
+        string new_string;
+        if (pos != -1) {
+            new_string = s[i].substr(0, pos) + t_pattern + s[i].substr(pos + SZ(t_pattern));
+        } else {
+            new_string = s[i];
+        }
+        if (new_string != t[i]) {
+            cout << "NO" << endl;
+            return 0;
+        }
+    }
+    cout << "YES" << endl;
+    cout << s_pattern << endl;
+    cout << t_pattern << endl;
+    return 0;
+}

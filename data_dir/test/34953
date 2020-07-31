@@ -1,0 +1,126 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+
+typedef long long ll;
+typedef pair<int, int> pii;
+
+const int MAXN = 1 << 18;
+
+int n, k, q;
+vector<int> pos;
+struct Query {
+	int l, r, x, id;
+	Query(int l = 0, int r = 0, int x = 0, int id = 0) :
+		l(l), r(r), x(x), id(id) {}
+};
+int b[MAXN];
+Query query[MAXN];
+int t[2 * MAXN];
+int lazy[2 * MAXN];
+int tt[2 * MAXN];
+
+int get_min_tt(int l, int r) {
+	int res = INT_MAX;
+	for (l += MAXN, r += MAXN; l < r; l >>= 1, r >>= 1) {
+		if (l & 1) res = min(res, tt[l++]);
+		if (r & 1) res = min(res, tt[--r]);
+	}
+	return res;
+}
+
+int get_init(int l, int r) {
+	if (r - l >= n) return get_min_tt(0, n);
+	if (l % n < r % n) return get_min_tt(l % n, r % n);
+	return min(get_min_tt(l % n, n), get_min_tt(0, r % n));
+}
+
+void push(int v, int tl, int tr) {
+	if (lazy[v]) {
+		t[v] = lazy[v];
+		if (tr - tl > 1) {
+			lazy[v << 1] = lazy[v << 1 | 1] = lazy[v];
+		}
+		lazy[v] = 0;
+	}
+}
+
+void assign(int, int, int, int, int, int);
+void assign(int l, int r, int val) {
+	assign(1, 0, MAXN, l, r, val);
+}
+
+int get_min(int, int, int, int, int);
+int get_min(int l, int r) {
+	return get_min(1, 0, MAXN, l, r);
+}
+
+int main() {
+	ios_base::sync_with_stdio(false);
+	cin.tie(0);
+	cin >> n >> k;
+	for (int i = 0; i < n; ++i) {
+		cin >> b[i];
+		tt[MAXN + i] = b[i];
+	}
+	for (int i = MAXN - 1; i > 0; --i) {
+		tt[i] = min(tt[i << 1], tt[i << 1 | 1]);
+	}
+	cin >> q;
+	for (int i = 0; i < q; ++i) {
+		int cmd;
+		cin >> cmd;
+		cin >> query[i].l >> query[i].r;
+		if (cmd == 1) {
+			cin >> query[i].x;
+		}
+		--query[i].l;
+		pos.pb(query[i].l);
+		pos.pb(query[i].r);
+	}
+	pos.pb(0);
+	pos.pb(n * k);
+	sort(pos.begin(), pos.end());
+	pos.erase(unique(pos.begin(), pos.end()), pos.end());
+	for (int i = 0; i + 1 < (int)pos.size(); ++i) {
+		t[MAXN + i] = get_init(pos[i], pos[i + 1]);
+	}
+	for (int i = MAXN - 1; i > 0; --i) {
+		t[i] = min(t[i << 1], t[i << 1 | 1]);
+	}
+	for (int i = 0; i < q; ++i) {
+		int l = lower_bound(pos.begin(), pos.end(), query[i].l) - pos.begin();
+		int r = lower_bound(pos.begin(), pos.end(), query[i].r) - pos.begin();
+		if (query[i].x) {
+			assign(l, r, query[i].x);
+		} else {
+			cout << get_min(l, r) << '\n';
+		}
+	}
+	return 0;
+}
+
+void assign(int v, int tl, int tr, int l, int r, int val) {
+	push(v, tl, tr);
+	if (l >= r) return;
+	if (tl == l && tr == r) {
+		lazy[v] = val;
+		push(v, tl, tr);
+		return;
+	}
+	int tm = (tl + tr) >> 1;
+	assign(v << 1, tl, tm, l, min(r, tm), val);
+	assign(v << 1 | 1, tm, tr, max(l, tm), r, val);
+	t[v] = min(t[v << 1], t[v << 1 | 1]);
+}
+
+int get_min(int v, int tl, int tr, int l, int r) {
+	push(v, tl, tr);
+	if (l >= r) return INT_MAX;
+	if (tl == l && tr == r) return t[v];
+	int tm = (tl + tr) >> 1;
+	return min(get_min(v << 1, tl, tm, l, min(r, tm)),
+		get_min(v << 1 | 1, tm, tr, max(l, tm), r));
+}

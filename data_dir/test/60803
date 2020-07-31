@@ -1,0 +1,159 @@
+#include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <cstring>
+#include <complex>
+#include <cassert>
+#include <cstdlib>
+#include <cstdio>
+#include <bitset>
+#include <vector>
+#include <string>
+#include <cmath>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <list>
+#include <map>
+#include <set>
+
+#define all(x) (x).begin(), (x).end()
+#define type(x) __typeof((x).begin())
+#define foreach(it, x) for(type(x) it = (x).begin(); it != (x).end(); it++)
+
+#ifdef KAZAR
+    #define eprintf(...) fprintf(stderr,__VA_ARGS__)
+#else
+    #define eprintf(...) 0
+#endif
+
+using namespace std;
+
+template<class T> inline void umax(T &a,T b){if(a<b) a = b ; }
+template<class T> inline void umin(T &a,T b){if(a>b) a = b ; }
+template<class T> inline T abs(T a){return a>0 ? a : -a;}
+template<class T> inline T gcd(T a,T b){return __gcd(a, b);}
+template<class T> inline T lcm(T a,T b){return a/gcd(a,b)*b;}
+
+typedef long long ll;
+typedef pair<int, int> ii;
+
+const int inf = 1e9 + 143;
+const ll longinf = 1e18 + 143;
+
+inline int read(){int x;scanf(" %d",&x);return x;}
+
+const int N = 1 << 12;
+const int M = 20202;
+
+struct info{
+    int c, h, t;
+    bool operator < (const info &other) const{
+        return t < other.t;
+    }
+};
+
+info a[N];
+
+int q;
+int qt[M], qb[M], ql[M], qr[M];
+int f[N][N], ans[M];
+
+vector<int> qids[N * 4];
+
+void add(int x,int l,int r,int x1,int x2,int id){
+    int m = (l + r) >> 1;
+    if(x1 <= m && x2 > m){
+        qids[x].push_back(id);
+        return;
+    }
+    if(x2 <= m) add(x + x, l, m, x1, x2, id);
+    else if(x1 > m) add(x + x + 1, m + 1, r, x1, x2, id);
+    else assert(0);
+}
+
+void solve(int x,int l,int r){
+    int m = (l + r) >> 1;
+    for(int i = l; i <= r; i++)
+        for(int v = 0; v < N; v++)
+            f[i][v] = 0;
+    for(int i = m + 1; i <= r; i++){
+        if(i != m + 1)
+            for(int v = 0; v < a[i].c; v++)
+                f[i][v] = f[i - 1][v];
+        for(int v = a[i].c; v < N; v++){
+            if(i != m + 1) umax(f[i][v], max(f[i - 1][v], f[i - 1][v - a[i].c] + a[i].h)); else{
+                f[i][v] = a[i].h;
+            }
+        }
+    }
+    for(int i = m; i >= l; i--){
+        if(i != m){
+            for(int v = 0; v < a[i].c; v++)
+                f[i][v] = f[i + 1][v];
+        }
+        for(int v = a[i].c; v < N; v++){
+            if(i != m) umax(f[i][v], max(f[i + 1][v], f[i + 1][v - a[i].c] + a[i].h)); else{
+                f[i][v] = a[i].h;
+            }
+        }
+    }
+    foreach(it, qids[x]){
+        int i = *it;
+        eprintf("id = %d, l = %d, m = %d, r = %d\n", i, l, m, r);
+        if(ql[i] <= m && qr[i] > m){
+            for(int x = 0; x <= qb[i]; x++){
+                umax(ans[i], f[ql[i]][x] + f[qr[i]][qb[i] - x]);
+            }
+        }else{
+            assert(0);
+        }
+    }
+    if(l < r){
+        solve(x + x, l, m);
+        solve(x + x + 1, m + 1, r);
+    }
+}
+
+int main(){
+
+#ifdef KAZAR
+    freopen("f.input","r",stdin);
+    freopen("f.output","w",stdout);
+    freopen("error","w",stderr);
+#endif
+
+    int n = read();
+    int p = read();
+
+    for(int i = 0; i < n; i++){
+        a[i].c = read();
+        a[i].h = read();
+        a[i].t = read();
+    }
+
+    sort(a, a + n);
+
+    q = read();
+    for(int i = 0; i < q; i++){
+        qt[i] = read();
+        qb[i] = read();
+        ql[i] = -1; qr[i] = -2;
+        ql[i] = lower_bound(a, a + n, (info){0, 0, qt[i] - p + 1}) - a;
+        qr[i] = upper_bound(a, a + n, (info){0, 0, qt[i]}) - a - 1;
+        eprintf("%d %d\n", ql[i], qr[i]);
+        if(ql[i] > qr[i]){
+            //pff
+        }else if(ql[i] == qr[i])
+            ans[i] = (a[ql[i]].c <= qb[i])? a[ql[i]].h : 0;
+        else
+            add(1, 0, n - 1, ql[i], qr[i], i);
+    }
+
+    solve(1, 0, n - 1);
+
+    for(int i = 0; i < q; i++)
+        printf("%d\n", ans[i]);
+
+    return 0;
+}

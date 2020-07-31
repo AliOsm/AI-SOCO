@@ -1,0 +1,160 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+#define REP(i,n) for(int i=0;i<n;++i)
+#define REP1(i,n) for(int i=1;i<=n;++i)
+#define SZ(i) int(i.size())
+#define eb emplace_back
+#define ALL(i) i.begin(),i.end()
+#define X first
+#define Y second
+#ifdef tmd
+#define IOS()
+#define debug(...) fprintf(stderr,"#%d: %s = ",__LINE__,#__VA_ARGS__),_do(__VA_ARGS__);
+template<typename T> void _do(T &&x){cerr<<x<<endl;}
+template<typename T, typename ...S> void _do(T &&x, S &&...y){cerr<<x<<", ";_do(y...);}
+template<typename It> ostream& _printRng(ostream &os,It bg,It ed)
+{
+    os<<"{";
+    for(It it=bg;it!=ed;it++) {
+        os<<(it==bg?"":",")<<*it;
+    }
+    os<<"}";
+    return os;
+}
+template<typename T> ostream &operator << (ostream &os,vector<T> &v){return _printRng(os,v.begin(), v.end());}
+template<typename T> void pary(T bg, T ed){_printRng(cerr,bg,ed);cerr<<endl;}
+#else
+#define IOS() ios_base::sync_with_stdio(0);cin.tie(0);
+#define endl '\n'
+#define debug(...)
+#define pary(...)
+#endif
+
+const int MAXN = 1003;
+const ll MOD = 1000000007;
+const int M = 2*2*2*3*3*5*7;
+
+int getID (int nd, int rem) {
+    return nd * M + rem;
+}
+
+int n, k[MAXN];
+int edge[MAXN*M];
+int to[11];
+
+bool vis[MAXN*M];
+int dp[MAXN*M];
+
+void mark (int nd) {
+    vis[nd] = true;
+    if (!vis[edge[nd]]) {
+        mark(edge[nd]);
+    }
+}
+
+int FindHead (int nd) {
+    int x = nd, y = nd;
+
+    bool used = false;
+    while (true) {
+        if (vis[y]) {
+            used = true;
+            break;
+        }
+        x = edge[edge[x]];
+        y = edge[y];
+        if (x == y) {
+            break;
+        }
+    }
+
+    mark(nd);
+    if (used) {
+        return -1;
+    }
+    return x;
+}
+
+void BuildCycle (int st) {
+    vector<int> id;
+    vector<int> v;
+
+    int nd = st;
+    while (true) {
+        id.eb(nd);
+        v.eb(nd / M);
+        nd = edge[nd];
+        if (nd == st) {
+            break;
+        }
+    }
+
+    sort(ALL(v));
+    int sz = unique(ALL(v))-v.begin();
+
+    for (auto u : id) {
+        dp[u] = sz;
+    }
+}
+
+void solve (int nd) {
+    if (dp[edge[nd]] == 0) {
+        solve(edge[nd]);
+    }
+    dp[nd] = dp[edge[nd]];
+    return;
+}
+/*********************GoodLuck***********************/
+int main () {
+    IOS();
+
+    cin >> n;
+    REP (i, n) {
+        cin >> k[i];
+    }
+
+    REP (i, n) {
+        int d;
+        cin >> d;
+        REP (j, d) {
+            cin >> to[j];
+            to[j]--;
+        }
+
+        REP (r, M) {
+            int nx = (r + k[i]) % M;
+            nx = nx < 0 ? nx + M : nx;
+            edge[getID(i,r)] = getID(to[nx%d], nx);
+        }
+    }
+
+    REP (i, n*M) {
+        if (vis[i] == 0) {
+            int st = FindHead(i);
+            if (st != -1) {
+                BuildCycle(st);
+            }
+        }
+    }
+
+    REP (i, n*M) {
+        if (dp[i] == 0) {
+            solve(i);
+        }
+    }
+    debug(M);
+    int q;
+    cin >> q;
+    while (q--) {
+        int x, y;
+        cin >> x >> y;
+        x--;
+        int rem = y % M;
+        rem = rem < 0 ? rem + M : rem;
+        cout << dp[getID(x,rem)] << endl;
+    }
+
+}

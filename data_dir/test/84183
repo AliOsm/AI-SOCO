@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+#define ll long long int
+#define pb push_back
+#define mp make_pair
+#define mod 1000000007
+#define pi 3.141592653589793
+using namespace std;
+
+
+ll b[5000000], lazy[5000000];
+void build(int ind, int l, int r, int a[]) {
+    if (l == r) {
+        b[ind] = a[r];
+        return;
+    }
+
+    int mid = (l + r) / 2;
+    build(2 * ind + 1, l, mid, a);
+    build(2 * ind + 2, mid + 1, r, a);
+    b[ind] = b[2 * ind + 1] + b[2 * ind + 2];
+}
+
+void upd(int ql, int qr, int ind, int l, int r, ll val) {
+    if (lazy[ind]) {
+        b[ind] += lazy[ind] * (r - l + 1);
+        if (l != r) {
+            lazy[2 * ind + 1] += lazy[ind];
+            lazy[2 * ind + 2] += lazy[ind];
+        }
+        lazy[ind] = 0;
+    }
+
+    if (ql > r || l > qr) return;
+
+    if (ql <= l && r <= qr) {
+        b[ind] += val * (r - l + 1);
+        if (l != r) {
+            lazy[2 * ind + 1] += val;
+            lazy[2 * ind + 2] += val;
+        }
+        return;
+    }
+
+    int mid = (l + r) / 2;
+    upd(ql, qr, 2 * ind + 1, l, mid, val);
+    upd(ql, qr, 2 * ind + 2, mid + 1, r, val);
+    b[ind] = max(b[2 * ind + 1], b[2 * ind + 2]);
+}
+
+
+ll query(int ql, int qr, int ind, int l, int r) {
+    if (lazy[ind]) {
+        b[ind] += lazy[ind] * (r - l + 1);
+        if (l != r) {
+            lazy[2 * ind + 1] += lazy[ind];
+            lazy[2 * ind + 2] += lazy[ind];
+        }
+        lazy[ind] = 0;
+    }
+
+    if (ql > r || l > qr) return 0;
+
+    if (ql <= l && r <= qr) {
+        return b[ind];
+    }
+
+    int mid = (l + r) / 2;
+    return max(query(ql, qr, 2 * ind + 1, l, mid), query(ql, qr, 2 * ind + 2, mid + 1, r));
+
+}
+
+
+
+int main() {
+    cout << fixed << setprecision(10);
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cout.tie(NULL);
+
+
+
+    int n;
+    cin >> n;
+    map<ll, vector<int>> d;
+    for (int i = 0; i < n; i++) {
+        ll r, h;
+        cin >> r >> h;
+        d[r * r * h].pb(i);
+    }
+
+    memset(lazy, 0, sizeof lazy);
+    memset(b, 0, sizeof b);
+
+    ll dp[n];
+    memset(dp, 0, sizeof dp);
+    for (auto &e : d) {
+        for (int i : e.second) {
+            dp[i] = e.first;
+            if (i) {
+                dp[i] += query(0, i - 1, 0, 0, n - 1);
+            }
+        }
+        for (int i : e.second) {
+            upd(i, i, 0, 0, n - 1, dp[i]);
+        }
+    }
+
+    cout << *max_element(dp, dp + n) * pi;
+
+}

@@ -1,0 +1,173 @@
+/*input
+4
+1 3
+2 3
+4 3
+1
+2 2 4
+3 1 2 4
+4 1 2 3 4
+3 2 3 4
+2 1 2
+*/
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <functional>
+#include <math.h>
+#include <string.h>
+#include <utility>
+#include <algorithm>
+#include <iomanip>
+#include <stack>
+#include <queue>
+#include <set>
+#include <map>
+#include <stdlib.h>
+#include <list>
+#include <assert.h>
+#include <time.h>
+#include <fstream>
+using namespace std;
+#define sp ' '
+#define endl '\n'
+#define fi first
+#define se second
+#define mp make_pair
+#define ll long long
+#define N 100005
+template<class T>
+void maximize(T &x, T y) {
+    if (x < y) x = y;
+}
+template<class T>
+void minimize(T &x, T y) {
+    if (x > y) x = y;
+}
+#define write(...) cout << __VA_ARGS__ , endl
+template<typename t> ostream& operator, (ostream& os, const t& x) {
+    return os << ' ' << x;
+}
+
+int n, q, k, u, v, times, res;
+int sta[N], en[N];
+int par[N][20];
+int dis[N];
+bool important[N], mark[N];
+vector<int> a[N];
+vector<int> b[N];
+
+void predfs(int u, int p) {
+    sta[u] = ++times;
+    for (int i = 0; i < a[u].size(); ++i) {
+        int v = a[u][i];
+        if (v != p) {
+            dis[v] = dis[u] + 1;
+            par[v][0] = u;
+            predfs(v, u);
+        }
+    }
+    en[u] = ++times;
+}
+
+int lca(int p, int q) {
+    if (dis[p] > dis[q]) swap(p, q);
+    for (int i = 17; i >= 0; --i) {
+        if (dis[par[q][i]] >= dis[p]) {
+            q = par[q][i];
+        }
+    }
+    if (p == q) return p;
+    for (int i = 17; i >= 0; --i) {
+        if (par[p][i] != par[q][i]) {
+            p = par[p][i];
+            q = par[q][i];
+        }
+    }
+    return par[p][0];
+}
+
+void dfs(int u) {
+    int cnt = 0;
+    for (int i = 0; i < b[u].size(); ++i) {
+        int v = b[u][i];
+        dfs(v);
+        if (mark[v]) cnt++;
+    }
+    if (important[u]) {
+        mark[u] = 1;
+        res += cnt;
+    }
+    else {
+        if (cnt >= 2) res++;
+        else if (cnt >= 1) mark[u] = 1;
+    }
+}
+
+void loadtree() {
+    for (int i = 1; i < n; ++i) {
+        cin >> u >> v;
+        a[u].push_back(v);
+        a[v].push_back(u);
+    }
+}
+
+void make_lca() {
+    par[1][0] = dis[1] = 1;
+    predfs(1, 1);
+    for (int i = 1; i <= 17; ++i)
+        for (int j = 1; j <= n; ++j) {
+            par[j][i] = par[par[j][i - 1]][i - 1];
+        }
+}
+
+bool cmp(int u, int v) {
+    return sta[u] < sta[v];
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin >> n;
+    loadtree();
+    make_lca();
+    cin >> q;
+    while (q--) {
+        res = 0;
+        cin >> k;
+        vector<int> tmp;
+        bool flag = false;
+        for (int i = 1; i <= k; ++i) {
+            int x;
+            cin >> x;
+            important[x] = 1;
+            tmp.push_back(x);
+        }
+        sort(tmp.begin(), tmp.end(), cmp);
+        for (int i = 1; i < k; ++i) {
+            int v = lca(tmp[i], tmp[i - 1]);
+            tmp.push_back(v);
+            if (important[par[tmp[i]][0]] && par[tmp[i]][0] != tmp[i])
+                flag = true;
+        }
+        if (flag == true) {
+            cout << -1 << endl;
+            for (int i = 0; i < tmp.size(); ++i)
+                important[tmp[i]] = 0;
+            continue;
+        }
+        sort(tmp.begin(), tmp.end());
+        tmp.resize(distance(tmp.begin(), unique(tmp.begin(), tmp.end())));
+        sort(tmp.begin(), tmp.end(), cmp);
+        for (int i = 1; i < tmp.size(); ++i) {
+            int p = lca(tmp[i], tmp[i - 1]);
+            b[p].push_back(tmp[i]);
+        }
+        dfs(tmp[0]);
+        cout << res << endl;
+        memset(important, 0, sizeof(important));
+        memset(mark, 0, sizeof(mark));
+        for (int i = 0; i < tmp.size(); ++i) {
+            b[tmp[i]].clear();
+        }
+    }
+}

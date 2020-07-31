@@ -1,0 +1,75 @@
+#include <bits/stdc++.h>
+#define err(args...) {}
+#ifdef DEBUG
+#include "_debug.cpp"
+#include "callable.hpp/callable.hpp"
+#endif
+#define endl '\n'
+using namespace std;
+using ll = long long;
+const int N = 500'000;
+struct query { int h, i; };
+vector<int> adj[N+1];
+vector<query> queries[N+1];
+int sz[N+1];
+int level[N+1];
+map<int, int> level_occ[N+1];
+bool ans[N+1];
+bool zero_or_pow2(int x) {
+    return (x & -x) == x;
+}
+void dfs(int u, int from = 0) {
+    sz[u] = 1;
+    int maxchild = 0;
+    for(int v : adj[u]) {
+        if(v != from) {
+            dfs(v, u);
+            sz[u] += sz[v];
+            if(not maxchild or sz[v] > sz[maxchild]) {
+                maxchild = v;
+            }
+        }
+    }
+    if(maxchild) {
+        swap(level_occ[u], level_occ[maxchild]);
+        for(int v : adj[u]) {
+            if(v != from) {
+                for(auto p : level_occ[v]) {
+                    level_occ[u][p.first] ^= p.second;
+                }
+            }
+        }
+    }
+    for(query& q : queries[u]) {
+        ans[q.i] = not level_occ[u].count(q.h) or zero_or_pow2(level_occ[u][q.h]);
+    }
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    int n, m;
+    cin >> n >> m;
+    level[1] = 1;
+    for(int u = 2; u <= n; u++) {
+        int v;
+        cin >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+        level[u] = level[v] + 1;
+    }
+    string s;
+    cin >> s;
+    for(int u = 1; u <= n; u++) {
+        level_occ[u][level[u]] |= 1 << (s[u - 1] - 'a');
+    }
+    for(int i = 1; i <= m; i++) {
+        int v, h;
+        cin >> v >> h;
+        queries[v].push_back({h, i});
+    }
+    dfs(1);
+    for(int i = 1; i <= m; i++) {
+        cout << (ans[i] ? "Yes" : "No") << endl;
+    }
+    return 0;
+}

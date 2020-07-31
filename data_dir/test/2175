@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const ll mod = 1000000007;
+const int maxn = 100009;
+
+struct M {
+    ll a11, a12, a21, a22;
+};
+
+M mult(M a, M b) {
+    M c;
+    c.a11 = (a.a11 * b.a11)%mod + (a.a12 * b.a21)%mod;
+    c.a12 = (a.a11 * b.a12)%mod + (a.a12 * b.a22)%mod;
+    c.a21 = (a.a21 * b.a11)%mod + (a.a22 * b.a21)%mod;
+    c.a22 = (a.a21 * b.a12)%mod + (a.a22 * b.a22)%mod;
+    c.a11 %= mod;
+    c.a12 %= mod;
+    c.a21 %= mod;
+    c.a22 %= mod;
+    return c;
+}
+
+M pow(M a, int x) {
+    M b = {1, 0, 0, 1};
+    while (x) {
+        if (x % 2) {
+            b = mult(b, a);
+        }
+        a = mult(a, a);
+        x /= 2;
+    }
+    return b;
+}
+
+int init_arr[maxn];
+
+struct {
+    int L, R;
+    int pl, pr;
+    ll x, y;
+    M debt;
+} T[2 * maxn];
+
+int buildTree(int L, int R)
+{
+    static int sz = 0;
+    int cur = sz++;
+
+    T[cur].L = L;
+    T[cur].R = R;
+    T[cur].debt = {1, 0, 0, 1};
+
+    if (L < R) {
+        T[cur].pl = buildTree(L, (L+R)/2);
+        T[cur].pr = buildTree((L+R)/2+1, R);
+        T[cur].x = (T[T[cur].pl].x + T[T[cur].pr].x) % mod;
+        T[cur].y = (T[T[cur].pl].y + T[T[cur].pr].y) % mod;
+    }
+    else {
+        M tmp = {1, 1, 1, 0};
+        tmp = pow(tmp, init_arr[L]);
+        T[cur].x = tmp.a12;
+        T[cur].y = tmp.a22;
+    }
+    return cur;
+}
+
+void upd(int L, int R, M matr, int cur);
+
+void calcDebt(int cur)
+{
+    upd(T[cur].L, T[cur].R, T[cur].debt, T[cur].pl);
+    upd(T[cur].L, T[cur].R, T[cur].debt, T[cur].pr);
+    T[cur].debt = {1, 0, 0, 1};
+}
+
+void upd(int L, int R, M matr, int cur)
+{
+    if (L <= T[cur].L && R >= T[cur].R) {
+        T[cur].debt = mult(T[cur].debt, matr);
+        ll tmpx = (matr.a11 * T[cur].x) % mod + (matr.a12 * T[cur].y) % mod;
+        ll tmpy = (matr.a21 * T[cur].x) % mod + (matr.a22 * T[cur].y) % mod;
+        T[cur].x = tmpx % mod;
+        T[cur].y = tmpy % mod;
+        return;
+    }
+
+    calcDebt(cur);
+
+    if (L <= T[ T[cur].pl ].R && T[ T[cur].pl ].L <= R) {
+        upd(L, R, matr, T[cur].pl);
+    }
+    if (L <= T[ T[cur].pr ].R && T[ T[cur].pr ].L <= R) {
+        upd(L, R, matr, T[cur].pr);
+    }
+
+    T[cur].x = (T[ T[cur].pl ].x + T[ T[cur].pr ].x) % mod;
+    T[cur].y = (T[ T[cur].pl ].y + T[ T[cur].pr ].y) % mod;
+}
+
+ll get(int L, int R, int cur)
+{
+    if (L <= T[cur].L && R >= T[cur].R) {
+        return T[cur].x;
+    }
+
+    calcDebt(cur);
+
+    ll ret = 0;
+    if (L <= T[ T[cur].pl ].R && T[ T[cur].pl ].L <= R) {
+        ret += get(L, R, T[cur].pl);
+    }
+    if (L <= T[ T[cur].pr ].R && T[ T[cur].pr ].L <= R) {
+        ret += get(L, R, T[cur].pr);
+    }
+    return ret % mod;
+}
+
+int main()
+{
+    int n, m;
+    scanf("%d %d", &n, &m);
+    for (int i = 1; i <= n; i++) scanf("%d", init_arr + i);
+    buildTree(1, n);
+
+    while (m--) {
+        int t, l, r;
+        scanf("%d %d %d", &t, &l, &r);
+
+        if (t == 1) {
+            int x; scanf("%d", &x);
+            M matr = {1, 1, 1, 0};
+            matr = pow(matr, x);
+            upd(l, r, matr, 0);
+        }
+        else {
+            printf("%d\n", int(get(l, r, 0)));
+        }
+    }
+}

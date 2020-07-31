@@ -1,0 +1,94 @@
+/*
+ ____________________________________________________________
+|                                                            |
+|                   Author: ay2306                           |
+|____________________________________________________________|
+
+*/
+#include <bits/stdc++.h>
+#define MOD 1000000007
+#define test int t; cin>>t; while(t--)
+#define init(arr,val) memset(arr,val,sizeof(arr))
+#define loop(i,a,b) for(int i=a;i<b;i++)
+#define loopr(i,a,b) for(int i=a;i>=b;i--)
+#define loops(i,a,b,step) for(int i=a;i<b;i+=step)
+#define looprs(i,a,b,step) for(int i=a;i>=b;i-=step)
+#define ull unsigned long long int
+#define ll long long int
+#define P pair
+#define PLL pair<long long, long long>
+#define PII pair<int, int>
+#define PUU pair<unsigned long long int, unsigned long long int>
+#define L list
+#define V vector
+#define D deque
+#define ST set
+#define MS multiset
+#define M map
+#define UM unordered_map
+#define mp make_pair
+#define pb push_back
+#define pf push_front
+#define MM multimap
+#define F first
+#define S second
+#define IT iterator
+#define RIT reverse_iterator
+#define FAST ios_base::sync_with_stdio(false);cin.tie();cout.tie();
+#define FILE_READ_IN freopen("input.txt","r",stdin);
+#define FILE_READ_OUT freopen("output.txt","w",stdout);
+using namespace std;
+
+const ll maxn = 1e5;
+
+bool pal[5010][5010];
+int dp[5010][5010];
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    string a;
+    cin >> a;
+    int n = a.size();
+    a = ' ' + a;
+    for(int i = 1; i <= n; ++i)pal[i][i] = true;
+    for(int i = 1; i+1 <= n; ++i)if(a[i] == a[i+1])pal[i][i+1] = true;
+    //For odd
+    for(int l = 1; l <=n; ++l){
+        for(int k = 1; k <= n; ++k){
+            int i = k-l+1;
+            int j = k+l-1;
+            if(j > n)break;
+            if(i < 1 || i > n)continue;
+            if(j < 1 || j > n)continue;
+            if(i > j)continue;
+            if(a[i] == a[j] && pal[i+1][j-1])pal[i][j] = true;
+        } 
+    }
+    //For even
+    for(int l = 1; l <= n; ++l){
+        for(int k = 1; k <= n; ++k){
+            int i = k-l+1;
+            int j = k+l;
+            if(j > n)break;
+            if(i < 1 || i > n)continue;
+            if(j < 1 || j > n)continue;
+            if(i > j)continue;
+            if(a[i] == a[j] && pal[i+1][j-1])pal[i][j] = true;
+        } 
+    }
+
+    for(int i = 1; i <= n; ++i){
+        for(int j = 1; j <= n; ++j){
+            dp[i][j] = pal[i][j] + dp[i-1][j] + dp[i][j-1] - dp[i-1][j-1];
+        }
+    }
+    int q;
+    cin >> q;
+    while(q--){
+        int a,b;
+        cin >> a >> b;
+        printf("%d\n", dp[b][b] - dp[a-1][b] - dp[b][a-1] + dp[a-1][a-1]);
+    }
+    return 0;
+}

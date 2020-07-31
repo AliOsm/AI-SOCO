@@ -1,0 +1,57 @@
+// In the name of Allah the Most Merciful.
+
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int MAX = 1e3+9;
+priority_queue<ll>row , col;
+ll r = 0 , c = 0 , ar[MAX][MAX];
+vector<ll>v1 , v2;
+
+int main(void)
+{
+    ll n , m , k , p;
+    scanf("%lld %lld %lld %lld",&n , &m , &k , &p);
+    for(int i=0;i<n;i++){
+        for(int j=0;j<m;j++)scanf("%lld",&ar[i][j]);
+    }
+    for(int i=0;i<n;i++){
+        ll sum = 0;
+        for(int j=0;j<m;j++){
+            sum+=ar[i][j];
+        }
+        row.push(sum);
+    }
+    for(int j=0;j<m;j++){
+        ll sum = 0;
+        for(int i=0;i<n;i++){
+            sum+=ar[i][j];
+        }
+        col.push(sum);
+    }
+    v1.push_back(0);
+    v2.push_back(0);
+    for(int i=0;i<k;i++){
+        ll temp = row.top();
+        v1.push_back(temp);
+        row.pop();
+        temp-=m*p;
+        row.push(temp);
+        temp = col.top();
+        col.pop();
+        v2.push_back(temp);
+        temp-=n*p;
+        col.push(temp);
+    }
+    for(int i=1;i<=k;i++){
+        v1[i]+=v1[i-1];
+        v2[i]+=v2[i-1];
+    }
+    ll tot = -1e18;
+    for(int i=0;i<=k;i++){
+        tot = max(tot , v1[i]+v2[k-i]-(ll)i*(ll)(k-i)*p);
+    }
+    printf("%lld\n",tot);
+    return 0;
+}

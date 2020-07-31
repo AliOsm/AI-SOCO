@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 5e5 + 10;
+int n, a[N], seg[N << 2], dp[N], par[N], val, b[N];
+vector<int> vec, v[N];
+void compress() {
+	for (int i = 0; i < n; i++)
+		vec.push_back(a[i]);
+	sort(vec.begin(), vec.end());
+	for (int i = 0; i < n; i++)
+		a[i] = lower_bound(vec.begin(), vec.end(), a[i]) - vec.begin();
+}
+void upd(int l, int r, int id = 1, int s = 0, int e = n) {
+	if (r <= s || e <= l)
+		return;
+	if (l <= s && e <= r) {
+		seg[id] = max(seg[id], val);
+		return;
+	}
+	int mid = (s + e) / 2, lc = id * 2, rc = lc + 1;
+	upd(l, r, lc, s, mid);
+	upd(l, r, rc, mid, e);
+}
+int get(int p, int id = 1, int s = 0, int e = n) {
+	if (e - s == 1)
+		return seg[id];
+	int mid = (s + e) / 2, lc = id * 2, rc = lc + 1;
+	if (p < mid)
+		return max(get(p, lc, s, mid), seg[id]);
+	return max(get(p, rc, mid, e), seg[id]);
+}
+int main() {
+	ios_base::sync_with_stdio (false), cin.tie(0), cout.tie(0);
+	cin >> n;
+	for (int i = 0; i < n; i++)
+		cin >> a[i], b[i] = a[i];
+	compress();
+	memset(seg, -1, sizeof(seg));
+	par[0] = -1;
+	for (int i = 0; i < n; i++) {
+		int mx = -1, x = a[i];
+		if (v[x].size() >= 3)
+			mx = v[x][v[x].size() - 3];
+		if (v[x].size() >= 2) 
+			mx = max(mx, get(v[x][v[x].size() - 2]));
+		if (v[x].size() >= 1)
+			mx = max(mx, get(v[x].back())), val = v[x].back(), upd(v[x].back() + 1, i);
+		if (mx >= 0)
+			dp[i]++;
+		if (mx > 0)
+			dp[i] += dp[mx - 1];
+		if (i > 0) {
+			if (dp[i - 1] >= dp[i])
+				par[i] = i - 1, dp[i] = dp[i - 1];
+			else
+				par[i] = mx - 1;
+		}
+		v[x].push_back(i);
+	}
+//	for (int i = 0; i < n; i++) {
+//		cout << par[i] << " ";
+//	}
+	cout << dp[n - 1] * 4 << "\n";
+	vector<int> rtr;
+	if (dp[n - 1] > 0) {
+		int rn = n - 1;
+		while (rn >= 0) {
+			if (par[rn] == rn - 1) {
+				rn = rn - 1;
+				continue;
+			}
+			rtr.push_back(b[rn]), rtr.push_back(b[par[rn] + 1]);
+			rtr.push_back(b[rn]), rtr.push_back(b[par[rn] + 1]);
+			rn = par[rn];
+		}
+	}
+	reverse(rtr.begin(), rtr.end());
+	for (int i = 0; i < rtr.size(); i++)
+		cout << rtr[i] << " ";
+	return 0;
+}

@@ -1,0 +1,131 @@
+// KALAM
+# include<bits/stdc++.h>
+
+using namespace std;
+
+const int N = 200000 + 77;
+long long A;
+int n , Gx , a[N] , b[N] , c[N] , T[N] , L[N] , R[N];
+int Mn1[N << 2] , Mn2[N << 2] , C[N << 2] , lz[N << 2];
+long long S[N << 2];
+vector < int > D[N];
+inline void Add(int id) {
+   int x = a[id];
+   for(int & y : D[x])
+      if(++ T[y] > 1)
+         Gx = max(Gx , y);
+}
+inline void Merge(int l , int r , int id) {
+   S[id] = S[id << 1] + S[id << 1 ^ 1];
+   Mn1[id] = min(Mn1[id << 1] , Mn1[id << 1 ^ 1]);
+   C[id] = (Mn1[id << 1] == Mn1[id] ? C[id << 1] : 0) + (Mn1[id << 1 ^ 1] == Mn1[id] ? C[id << 1 ^ 1] : 0);
+   if(Mn1[id << 1] == Mn1[id << 1 ^ 1]) {
+      if(Mn2[id << 1] == Mn1[id << 1] || Mn2[id << 1 ^ 1] == Mn1[id << 1 ^ 1]) Mn2[id] = max(Mn2[id << 1] , Mn2[id << 1 ^ 1]);
+      else Mn2[id] = min(Mn2[id << 1] , Mn2[id << 1 ^ 1]);
+   } else {
+      Mn2[id] = max(Mn1[id << 1] , Mn1[id << 1 ^ 1]);
+      if(Mn2[id << 1] > Mn1[id << 1] && Mn2[id << 1] < Mn2[id])
+         Mn2[id] = Mn2[id << 1];
+      if(Mn2[id << 1 ^ 1] > Mn1[id << 1 ^ 1] && Mn2[id << 1 ^ 1] < Mn2[id])
+         Mn2[id] = Mn2[id << 1 ^ 1];
+   }
+}
+inline void Shift(int l , int r , int id) {
+   int x = lz[id];
+   lz[id] = 0;
+   if(x <= Mn1[id])
+      return ;
+
+   int mid = ((l + r) >> 1);
+   if(Mn1[id] == Mn2[id]) {
+      C[id] = r - l;
+      S[id] += (x - Mn1[id]) * 1ll * C[id];
+      Mn1[id] = Mn2[id] = x;
+      if(r - l > 1)
+         lz[id << 1] = max(lz[id << 1] , x) , lz[id << 1 ^ 1] = max(lz[id << 1 ^ 1] , x);
+      return ;
+   }
+   if(x >= Mn2[id]) {
+      if(r - l > 1)
+         lz[id << 1] = max(lz[id << 1] , x) , lz[id << 1 ^ 1] = max(lz[id << 1 ^ 1] , x);
+      if(r - l < 2)
+         assert(0);
+      Shift(l , mid , id << 1);
+      Shift(mid , r , id << 1 ^ 1);
+      Merge(l , r , id);
+      return ;
+   }
+
+   S[id] += (x - Mn1[id]) * 1ll * C[id];
+   Mn1[id] = x;
+   if(r - l > 1)
+      lz[id << 1] = max(lz[id << 1] , x) , lz[id << 1 ^ 1] = max(lz[id << 1 ^ 1] , x);
+}
+void Build(int l = 1 , int r = n + 1 , int id = 1) {
+   if(r - l < 2) {
+      Mn1[id] = Mn2[id] = S[id] = b[l];
+      C[id] = 1;
+      return ;
+   }
+   int mid = ((l + r) >> 1);
+   Build(l , mid , id << 1);
+   Build(mid , r , id << 1 ^ 1);
+   Merge(l , r , id);
+}
+void Update(int ql , int qr , int x , int l = 1 , int r = n + 1 , int id = 1) {
+   Shift(l , r , id);
+   if(qr <= l || r <= ql || x <= Mn1[id])
+      return ;
+   if(ql <= l && r <= qr) {
+      lz[id] = x;
+      Shift(l , r , id);
+      return ;
+   }
+   int mid = ((l + r) >> 1);
+   Update(ql , qr , x , l , mid , id << 1);
+   Update(ql , qr , x , mid , r , id << 1 ^ 1);
+   Merge(l , r , id);
+}
+long long Get(int ql , int qr , int l = 1 , int r = n + 1 , int id = 1) {
+   Shift(l , r , id);
+   if(qr <= l || r <= ql)
+      return 0;
+   if(ql <= l && r <= qr)
+      return S[id];
+   int mid = ((l + r) >> 1);
+   return Get(ql , qr , l , mid , id << 1) + Get(ql , qr , mid , r , id << 1 ^ 1);
+}
+int main() {
+   for(int i = 1;i < N;++ i)
+      for(int j = i;j < N;j += i)
+         D[j].push_back(i);
+   scanf("%d" , & n);
+   for(int i = 1;i <= n;++ i) {
+      scanf("%d" , a + i) , Add(i) , b[i] = Gx;
+      for(int & x : D[a[i]])
+         if(T[x] == 1)
+            L[x] = i;
+      A += b[i];
+   }
+   A -= b[n];
+   Gx = 0;
+   memset(T , 0 , sizeof T);
+   for(int i = n;i > 0;-- i) {
+      Add(i) , c[i] = Gx;
+      for(int & x : D[a[i]])
+         if(T[x] == 1)
+            R[x] = i;
+   }
+   Build();
+
+   for(int i = n;i > 0;-- i) {
+      for(int & x : D[a[i]])
+         if(R[x] == i)
+            Update(L[x] , i , x);
+      Update(1 , i , c[i]);
+      A += Get(1 , i - 1) + c[i];
+   }
+   A -= c[1];
+   printf("%lld\n" , A);
+   return 0;
+}

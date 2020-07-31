@@ -1,0 +1,170 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <memory.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <map>
+#include <assert.h>
+#include <queue>
+#include <sstream>
+
+using namespace std;
+
+const int inf = 1000000000;
+const int SQ = 150;
+const int MAXN = 200000;
+
+vector<int> aM[MAXN/SQ];
+vector<int> aS[MAXN/SQ];
+vector<long long> pr[MAXN/SQ];
+vector<long long> ans[MAXN/SQ];
+long long addToAll[MAXN], allSumOf[MAXN], allSum[MAXN];
+int p[MAXN], f[MAXN];
+int a[MAXN];
+int l, r, n, x, m;
+
+void buildSqrt(){
+    int sz = 0;
+    for (int i = 0; i < n; ++i) {
+        int id = i / SQ;
+        aM[id].push_back(a[i]);
+        aS[id].push_back(a[i]);
+        pr[id].push_back(0);
+        ans[id].push_back(0);
+        allSum[id] += a[i];
+        allSumOf[id] = 0;
+        addToAll[id] = 0;
+        p[id] = -1;
+        f[id] = -1;
+        sz = max(sz, id + 1);
+    }
+    for (int i = 0; i < sz; ++i) {
+        sort(aS[i].begin(),aS[i].end());
+        pr[i][0] = aS[i][0];
+        for (int j = 1; j < aS[i].size(); ++j) {
+            pr[i][j] = pr[i][j - 1] + aS[i][j];
+        }
+    }
+}
+
+void relax(int id) {
+    allSum[id] = 0;
+    allSumOf[id] = 0;
+    for (int i = 0; i < aS[id].size(); ++i) {
+        if (p[id] != -1) {
+            aS[id][i] = p[id];
+            allSum[id] += p[id];
+            ans[id][i] += addToAll[id] + abs(f[id] - aM[id][i]);
+            allSumOf[id] += ans[id][i];
+            aM[id][i] = p[id];
+        }
+        else {
+            aS[id][i] = aM[id][i];
+            allSum[id] += aM[id][i];
+            allSumOf[id] += addToAll[id] + ans[id][i];
+        }
+    }
+    sort(aS[id].begin(),aS[id].end());
+    pr[id][0] = aS[id][0];
+    for (int j = 1; j < aS[id].size(); ++j) {
+        pr[id][j] = pr[id][j - 1] + aS[id][j];
+    }
+    p[id] = -1;
+    f[id] = -1;
+    addToAll[id] = 0;
+}
+
+void update(int l, int r, int x) {
+    relax(l / SQ);
+    if (l / SQ != r / SQ) relax(r / SQ);
+    int lq = l, rq = r;
+    while (l <= r) {
+        if (l % SQ == 0 && l + SQ - 1 <= r) {
+            int id = l / SQ;
+            if (p[id] == -1) {
+                f[id] = x;
+                p[id] = x;
+                if (x <= aS[id][0]) {
+                    allSumOf[id] += abs(allSum[id] - 1LL * x * (long long)SQ);
+                }
+                else {
+                    int le = 0;
+                    int re = aM[id].size();
+                    while (le + 1 < re) {
+                        int c = (le + re) / 2;
+                        if (aS[id][c] > x) re = c; else le = c;
+                    }
+                    long long tmp = pr[id][le];
+                    allSumOf[id] += abs(tmp - 1LL * x * (le + 1));
+                    allSumOf[id] += abs(allSum[id] - tmp - 1LL * x * (SQ - le - 1));
+                }
+                allSum[id] = 1LL * p[id] * SQ;
+            }
+            else {
+                addToAll[id] += abs(1LL * p[id]  - 1LL * x );
+                allSumOf[id] += abs(1LL * p[id] * (long long)aM[id].size() - 1LL * x * (long long)aM[id].size());
+                p[id] = x;
+
+                allSum[id] = 1LL * p[id] * SQ;
+            }
+            l += SQ;
+        }
+        else {
+            int id = l / SQ;
+            int v = l % SQ;
+            ans[id][v] += abs(aM[id][v] - x);
+            aM[id][v] = x;
+            l++;
+        }
+    }
+    relax(lq / SQ);
+    if (lq / SQ != rq / SQ) relax(rq / SQ);
+}
+
+long long calcSqrt(int l, int r) {
+    relax(l / SQ);
+    if (l / SQ != r / SQ) relax(r / SQ);
+    long long ret = 0;
+    while (l <= r) {
+        if (l % SQ == 0 && l + SQ - 1 <= r) {
+            ret += allSumOf[l / SQ];
+            l += SQ;
+        }
+        else {
+            int id = l / SQ;
+            ret += ans[id][l % SQ];
+            l++;
+        }
+    }
+
+    return ret;
+}
+
+int main(){
+    scanf("%d%d",&n,&m);
+    for (int i = 0; i < n; ++i) {
+        a[i] = i + 1;
+    }
+    buildSqrt();
+    for (int i = 0; i < m; ++i) {
+        int tp;
+        scanf("%d", &tp);
+        if (tp == 1) {
+            scanf("%d%d%d",&l,&r,&x);
+            l--; r--;
+            update(l, r, x);
+         //   long long ret = calcSqrt(0, n - 1);
+           // printf("%I64d\n", ret);
+          //  system("pause");
+        }
+        else {
+            scanf("%d%d",&l,&r);
+            l--; r--;
+            long long ret = calcSqrt(l, r);
+            printf("%I64d\n", ret);
+        }
+    }
+    return 0;
+}

@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+
+typedef long long ll;
+using namespace std;
+
+#define all(x) x.begin(), x.end()
+#define f(i,a,b) for(int i = (a); i <= (b); i++)
+#define fd(i,a,b) for(int i = (a); i >= (b); i--)
+#define mp make_pair
+#define faster_io() ios_base::sync_with_stdio(false)
+#define pb push_back
+#define pii pair<int,int>
+#define SZ(x) ((int)x.size())
+#define vii vector<pair<int,int>>
+
+const int INF = 1000000002;
+const ll INFLL = 100000000000000000ll;
+const ll MOD = 1000000007;
+
+// ----------------------------------------------------------------------------------------------------------
+
+struct comp
+{
+    bool operator () (const pii s1, const pii s2) const
+    {
+        int sz1 = s1.second - s1.first;
+        int sz2 = s2.second - s2.first;
+        if(sz1 != sz2) return sz1 > sz2;
+        else return s1.first > s2.first;
+    }
+};
+
+const int MAX = 200005;
+int N, Q, T[MAX];
+set<int> Coats;
+set<pii,comp> Segs;
+unordered_map<int,int> Coat, Comp, Left, Right;
+unordered_set<int> In;
+vector<pair<int,pii>> V;
+
+void add_seg(int l, int r)
+{
+    Left[r] = l;
+    Right[l] = r;
+    Segs.insert({l,r});
+}
+
+void put_in(int id)
+{
+    pii s = *Segs.begin();
+    Segs.erase(Segs.begin());
+
+    int l = s.first, r = s.second;
+
+    int mid = (r + l) / 2;
+    if((r - l) % 2) mid++;
+    Coat[id] = mid;
+    In.insert(id);
+    V.pb({1,{mid,mid}});
+    Left[mid] = Right[mid] = -1;
+
+    int l1 = l, r1 = mid-1;
+    int l2 = mid+1, r2 = r;
+
+    if(l1 <= r1) add_seg(l1,r1);
+    if(l2 <= r2) add_seg(l2,r2);
+}
+
+void take_out(int id)
+{
+    int pos = Coat[id];
+    In.erase(id);
+
+    V.pb({-1,{pos,pos}});
+
+    int l = pos, r = pos;
+    if(Left[pos-1] > 0)
+    {
+        Segs.erase({Left[pos-1],pos-1});
+        l = Left[pos-1];
+    }
+    if(Right[pos+1] > 0)
+    {
+        Segs.erase({pos+1,Right[pos+1]});
+        r = Right[pos+1];
+    }
+
+    add_seg(l,r);
+}
+
+int query(int x)
+{
+    int ret = 0;
+    while(x>0)
+    {
+        ret += T[x];
+        x -= x&-x;
+    }
+    return ret;
+}
+
+void update(int x, int v)
+{
+    while(x < MAX)
+    {
+        T[x] += v;
+        x += x&-x;
+    }
+}
+
+int query(int l, int r)
+{
+    return query(r) - query(l-1);
+}
+
+int main()
+{
+    cin >> N >> Q;
+    Segs.insert({1,N});
+    while(Q--)
+    {
+        int t;
+        scanf("%d", &t);
+        if(t == 0)
+        {
+            int l,r;
+            scanf("%d %d", &l, &r);
+            V.pb({0,{l,r}});
+        }
+        else
+        {
+            if(In.find(t) != In.end()) take_out(t);
+            else put_in(t);
+        }
+    }
+
+    set<int> s;
+    for(pair<int,pii> p : V) s.insert(p.second.first), s.insert(p.second.second);
+    int c = 0;
+    for(int k : s) Comp[k] = ++c;
+    for(pair<int,pii> p : V)
+    {
+        if(p.first == 0) printf("%d\n", query(Comp[p.second.first],Comp[p.second.second]));
+        else update(Comp[p.second.first], p.first);
+    }
+}

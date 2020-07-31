@@ -1,0 +1,152 @@
+#include <cstdio>
+#include <complex>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <vector>
+#include <cstring>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(n);i++)
+#define FOR(i,a,b) for(int i=(a);i<=(b);i++)
+#define FORD(i,a,b) for(int i=(a);i>=(b);i--)
+
+int nextint()
+{
+	int t;
+	scanf("%d",&t);
+	return t;
+}
+
+typedef long long ll;
+
+char formula[2000001];
+int dp[2000001][2][2];
+int oppos[2000001];
+int top;
+
+/*char eval()
+{
+	if(formula[top]=='(')
+	{
+		top++;
+		char resv1=eval();
+		char op=formula[top++];
+		char resv2=eval();
+		if(op=='|')
+		{
+			if(resv1=='1'||resv2=='1') return '1';
+			return '?';
+		}
+		else if(op=='&')
+		{
+			if(resv1=='0'||resv2=='0') return '0';
+			return '?';
+		}
+		else
+		{
+			if(resv1=='?'&&resv2=='?') return '?';
+			else if(resv1==resv2) return '0';
+			else return '1';
+		}
+	}
+	else
+		return formula[top++];
+}*/
+int retval;
+
+int apply(int res1, int res2, char op)
+{
+	if(op=='&')
+		return (res1&res2);
+	else if(op=='|')
+		return (res1|res2);
+	else
+		return (res1^res2);
+}
+
+int calc()
+{
+	if(formula[top]=='(')
+	{
+		int curpos=top;
+		top++;
+		int res1=calc();
+		oppos[curpos]=top;
+		char op=formula[top++];
+		int res2=calc();
+		top++;
+		return apply(res1,res2,op);
+	}
+	else if(formula[top]=='?')
+	{
+		top++;
+		return retval;
+	}
+	else return formula[top++]-'0';
+}
+
+int testbit(int cur,int bit)
+{
+	return (cur>>bit)&1;
+}
+
+int solve(int cur,int reqvnorm, int reqvinv)
+{
+	if(formula[cur]=='0')
+		return reqvnorm==0&&reqvinv==0;
+	if(formula[cur]=='1')
+		return reqvnorm==1&&reqvinv==1;
+	if(formula[cur]=='?')
+		return reqvnorm!=reqvinv;
+	if(dp[cur][reqvnorm][reqvinv]==-1)
+	{
+		dp[cur][reqvnorm][reqvinv]=0;
+		char curop=formula[oppos[cur]];
+		int s1=cur+1;
+		int s2=oppos[cur]+1;
+		REP(i,16)
+		{
+			int reqvnorml, reqvinvl;
+			int reqvnormr, reqvinvr;
+			reqvnorml=testbit(i,0);
+			reqvinvl=testbit(i,1);
+			reqvnormr=testbit(i,2);
+			reqvinvr=testbit(i,3);
+			if(apply(reqvnorml,reqvnormr,curop)==reqvnorm
+				&&
+				apply(reqvinvl, reqvinvr, curop)==reqvinv)
+				{
+					if(solve(s1,reqvnorml, reqvinvl)&&solve(s2,reqvnormr,reqvinvr))
+					{
+						dp[cur][reqvnorm][reqvinv]=1;
+						break;
+					}
+				}
+		}
+	}
+	return dp[cur][reqvnorm][reqvinv];
+}
+
+int main()
+{
+	int n=nextint();
+	int v1,v2;
+	scanf("%s",formula);
+	retval=0;
+	top=0;
+	calc();
+
+		memset(dp,-1,sizeof(dp));
+		if(solve(0,1,0))
+		{
+			printf("YES\n");
+		}
+		else if(solve(0,0,1))
+		{
+			printf("YES\n");
+		}
+		else
+			printf("NO\n");
+
+	return 0;
+}

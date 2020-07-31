@@ -1,0 +1,135 @@
+#include <cstring>
+#include <cassert>
+#include <cstdio>
+#include <string>
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <queue>
+#include <sstream>
+using namespace std;
+#define REP(i,n) for(int i=0;i<(int)(n);i++)
+
+typedef long long ll;
+
+enum Operation
+{
+	EQ,
+	LT,
+	GT,
+	LE,
+	GE
+};
+
+bool check(int a, Operation op, int c)
+{
+	switch(op)
+	{
+	case EQ:
+		return a==c;
+	case LT:
+		return a<c;
+	case GT:
+		return a>c;
+	case LE:
+		return a<=c;
+	case GE:
+		return a>=c;
+	default:
+		throw;
+	}
+}
+const int MAXN=71;
+
+int arr[MAXN];
+ll dp[MAXN][MAXN];
+
+struct Req
+{
+	int x, y;
+	Operation op;
+	Req(int x, Operation op, int y):x(x), y(y), op(op){}
+	bool check()
+	{
+		return ::check(arr[x],op,arr[y]);
+	}
+};
+
+vector<vector<Req> > req;
+
+bool between(int l, int x, int r)
+{
+	return l<=x && x<=r;
+}
+
+bool checkReq(int x, int l, int r)
+{
+	for(int i=0;i<req[x].size();i++)
+		if(!between(l,req[x][i].x,r)&& !between(l,req[x][i].y,r))
+			if(!req[x][i].check())
+				return false;
+	return true;
+}
+
+ll solve(int l, int r, int val)
+{
+	if(l>r) return 1;
+	if(dp[l][r]==-1)
+	{
+		dp[l][r]=0;
+
+		arr[l]=val;
+		arr[l+1]=val;
+		if(checkReq(l,l+2,r) && checkReq(l+1,l+2,r))
+			dp[l][r]+=solve(l+2,r,val+1);
+		if(l+1!=r)
+		{
+			arr[l]=val;
+			arr[r]=val;
+			if(checkReq(l,l+1,r-1) && checkReq(r,l+1,r-1))
+				dp[l][r]+=solve(l+1,r-1,val+1);
+
+			arr[r]=val;
+			arr[r-1]=val;
+			if(checkReq(r,l,r-2) && checkReq(r-1,l,r-2))
+				dp[l][r]+=solve(l,r-2,val+1);
+		}
+	}
+	return dp[l][r];
+}
+
+int main()
+{
+	int n,k;
+	scanf("%d%d",&n,&k);
+	req.resize(2*n);
+	REP(i,k)
+	{
+		int x, y;
+		char buf[10];
+		scanf("%d%s%d",&x,buf,&y);
+		Operation op;
+		if(!strcmp(buf,"="))
+			op=EQ;
+		else if(!strcmp(buf,"<"))
+			op=LT;
+		else if(!strcmp(buf,">"))
+			op=GT;
+		else if(!strcmp(buf,"<="))
+			op=LE;
+		else if(!strcmp(buf,">="))
+			op=GE;
+		else
+			throw;
+		x--;
+		y--;
+		req[x].push_back(Req(x,op,y));
+		req[y].push_back(Req(x,op,y));
+	}
+	memset(dp,-1,sizeof(dp));
+	cout<<solve(0,2*n-1,1)<<endl;
+	return 0;
+}

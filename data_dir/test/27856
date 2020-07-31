@@ -1,0 +1,307 @@
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <map>
+#include <functional>
+#include <algorithm>
+#include <locale>
+#include <cmath>
+
+typedef signed char int8_t;
+typedef unsigned char uint8_t;
+typedef signed short int16_t;
+typedef unsigned short uint16_t;
+typedef signed long int32_t;
+typedef unsigned long uint32_t;
+typedef signed long long int64_t;
+typedef unsigned long long uint64_t;
+
+typedef long double double_t;
+
+typedef std::string string8_t;
+
+typedef std::vector<uint32_t> UInt32Vector;
+
+typedef std::vector<uint8_t> UInt8Vector;
+typedef std::vector<UInt8Vector> UInt8Vector2d;
+
+#if !defined(ONLINE_JUDGE)
+#include "auxiliary.h"
+#else // !defined(ONLINE_JUDGE)
+#define STOPWATCH(a)
+#endif // !defined(ONLINE_JUDGE)
+
+
+template<typename T>
+inline T Min(const T& a, const T& b) { return a < b ? a : b; }
+template<typename T>
+inline T Max(const T& a, const T& b) { return a < b ? b : a; }
+template<typename T>
+inline T Abs(const T& a) { return a > 0 ? a : (-a); }
+
+template<typename T>
+inline string8_t ToString(const T& val)
+{
+    std::ostringstream ostr;
+    ostr << val;
+    return ostr.str();
+}
+
+const double_t Eps = 1.0e-8;
+inline bool IsEqual(const double_t n1, const double_t n2) { return Abs(n1 - n2) < Eps; }
+inline bool IsLess(const double_t n1, const double_t n2) { return n1 + Eps < n2; }
+inline bool IsGreater(const double_t n1, const double_t n2) { return n1 > n2 + Eps; }
+
+struct Point
+{
+    int16_t x;
+    int16_t y;
+
+    Point() {}
+    Point(int16_t x_, int16_t y_): x(x_), y(y_) {}
+};
+
+typedef std::vector<Point> PointVector;
+
+enum Figure
+{
+    FigureSquare,
+    FigureRound,
+    FigureOther
+};
+
+void ExtractFigurePoints(
+    UInt8Vector2d& workingData,
+    UInt8Vector2d& wasHere,
+    int16_t i0, 
+    int16_t j0, 
+    uint16_t currentDistanceFromBlack, 
+    uint16_t maxDistanceFromBlack, 
+    PointVector& foundPoints)
+{
+    static const int16_t dx[] = { 0,  0, +1, -1};
+    static const int16_t dy[] = {-1, +1,  0,  0};
+
+    uint8_t& wasInPoint = wasHere[i0][j0];
+    if (wasInPoint != 0)
+    {
+        return;
+    }
+
+    wasInPoint = 1;
+
+    uint8_t& currentPoint = workingData[i0][j0];
+        
+    const bool isBlack = (currentPoint != 0);
+    if (isBlack)
+    {
+        foundPoints.push_back(Point(i0, j0));
+        currentPoint = 0;
+        currentDistanceFromBlack = 0;
+    }
+    else
+    {
+        if (currentDistanceFromBlack >= maxDistanceFromBlack)
+        {
+            return;
+        }
+        else
+        {
+            currentDistanceFromBlack++;
+        }
+    }
+
+    const int16_t n = (int16_t)workingData.size();
+    for (size_t i = 0; i < 4; i++)
+    {
+        const int16_t iNext = i0 + dx[i];
+        const int16_t jNext = j0 + dy[i];
+
+        if (iNext >= 0 && jNext >= 0 && iNext < n && jNext < n)
+        {
+            ExtractFigurePoints(workingData, wasHere, iNext, jNext, currentDistanceFromBlack, maxDistanceFromBlack, foundPoints);
+        }
+    }
+}
+
+Figure GetFigureType(const PointVector& figurePoints)
+{
+    const size_t pointsCount = figurePoints.size();
+
+    if (pointsCount < 50)
+    {
+        //std::cout << "point count = " << pointsCount << ", exit" << std::endl;
+        return FigureOther;
+    }
+
+    uint64_t xSumInt = 0;
+    uint64_t ySumInt = 0;
+
+    for (PointVector::const_iterator pi = figurePoints.begin(); pi != figurePoints.end(); ++pi)
+    {
+        xSumInt += (uint32_t)pi->x;
+        ySumInt += (uint32_t)pi->y;
+    }
+
+    const double_t xMid = (double_t)xSumInt / pointsCount;
+    const double_t yMid = (double_t)ySumInt / pointsCount;
+
+    double_t maxRange = 0;
+    double_t avgRange = 0;
+
+    for (PointVector::const_iterator pi = figurePoints.begin(); pi != figurePoints.end(); ++pi)
+    {
+        const double_t dx = ((double_t)pi->x - xMid);
+        const double_t dy = ((double_t)pi->y - yMid);
+        const double_t d = dx * dx + dy * dy;
+        maxRange = Max(maxRange, d);
+        avgRange += d;
+    }
+
+    avgRange /= pointsCount;
+
+    const double_t rangeRatio = avgRange / maxRange;
+
+    //std::cout << "Figure ratio = " << std::setprecision(6) << std::fixed << rangeRatio << ", points count = " << pointsCount << std::endl;
+
+    if (rangeRatio < 0.420)
+    {
+        return FigureSquare;
+    }
+    else
+    {
+        return FigureRound;
+    }
+}
+
+void ApplyMedianFilter(int16_t filterDepth, const UInt8Vector2d& imgData, UInt8Vector2d& resultData)
+{
+    const int16_t n = (int16_t)imgData.size();
+
+    UInt8Vector2d(n, UInt8Vector(n)).swap(resultData);
+
+    for (int16_t i = 0; i < n; i++)
+    {
+        for (int16_t j = 0; j < n; j++)
+        {
+            int16_t blackCount = 0;
+            int16_t whiteCount = 0;
+
+            for (int16_t dx = -filterDepth; dx <= filterDepth; dx++)
+            {
+                for (int16_t dy = -filterDepth; dy <= filterDepth; dy++)
+                {
+                    const int16_t iNext = i + dx;
+                    const int16_t jNext = j + dy;
+
+                    if (iNext >= 0 && jNext >= 0 && iNext < n && jNext < n)
+                    {
+                        bool isBlack = imgData[iNext][jNext] != 0;
+                        if (isBlack) 
+                        {
+                            blackCount++;
+                        }
+                        else 
+                        {
+                            whiteCount++;
+                        }
+                    }
+                }
+            }
+
+            resultData[i][j] = (blackCount >= whiteCount) ? 1 : 0;
+        }
+    }
+}
+
+void CalculateFigureCount(const UInt8Vector2d& imgData, uint32_t& squaresCount, uint32_t& roundsCount)
+{
+    UInt8Vector2d filteredData;
+    ApplyMedianFilter(2, imgData, filteredData);
+
+    UInt8Vector2d workingData(filteredData);
+    
+    squaresCount = 0;
+    roundsCount = 0;
+
+    const int16_t n = (int16_t)workingData.size();
+
+    UInt8Vector2d wasHere(n, UInt8Vector(n));
+
+    for (int16_t i = 0; i < n; i++)
+    {
+        for (int16_t j = 0; j < n; j++)
+        {
+            if (workingData[i][j] != 0)
+            {
+                PointVector figurePoints;
+                ExtractFigurePoints(workingData, wasHere, i, j, 0, 1, figurePoints);
+
+                const Figure figureType = GetFigureType(figurePoints);
+
+                if (figureType == FigureRound)
+                {
+                    roundsCount++;
+                }
+                else if (figureType == FigureSquare)
+                {
+                    squaresCount++;
+                }
+            }
+        }
+    }
+}
+
+
+bool Solve(std::istream& ist, std::ostream& ost)
+{
+    ///////////////////////////////////////
+    // attempt to input:
+    ///////////////////////////////////////
+    size_t n;
+    ist >> n;
+    if (!ist) { return false; }
+
+    ///////////////////////////////////////
+    // solve:
+    UInt8Vector2d imgData(n, UInt8Vector(n));
+
+    for (size_t i = 0; i < n; i++)
+    {
+        UInt8Vector& imgLine = imgData[i];
+        for (size_t j = 0; j < n; j++)
+        {
+            uint16_t val;
+            ist >> val;
+            imgLine[j] = (uint8_t)val;
+        }
+    }
+
+    uint32_t squaresCount = 0;
+    uint32_t roundsCount = 0;
+    CalculateFigureCount(imgData, squaresCount, roundsCount);
+
+    ost << roundsCount << ' ' << squaresCount << std::endl;
+
+    return true;
+}
+
+int main()
+{
+    std::istream& ist = std::cin;
+    std::ostream& ost = std::cout;
+
+#if !defined(ONLINE_JUDGE)
+    bool isOk = true;
+    while (isOk)
+    {
+        STOPWATCH("Solve");
+        isOk = Solve(ist, ost);
+    }
+#else //!defined(ONLINE_JUDGE)
+    Solve(ist, ost);
+#endif
+}

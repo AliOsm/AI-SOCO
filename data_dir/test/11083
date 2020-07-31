@@ -1,0 +1,198 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+#define INF (1<<29)
+
+#define MAXN 200000
+
+int N;
+int s[MAXN+10];
+int sa[MAXN+10], sainv[MAXN+10], lcp[MAXN+10];
+pair <pair <int, int>, int> p[MAXN+10], q[MAXN+10];
+int freq[MAXN+10];
+
+void radix_sort(void){
+    int i;
+    
+    REP(i,N+5) freq[i] = 0;
+    REP(i,N) freq[p[i].first.second+2]++;
+    for(i=1;i<N+5;i++) freq[i] += freq[i-1];
+    REP(i,N){
+        q[freq[p[i].first.second+1]] = p[i];
+        freq[p[i].first.second+1]++;
+    }
+    
+    REP(i,N+5) freq[i] = 0;
+    REP(i,N) freq[q[i].first.first+2]++;
+    for(i=1;i<N+5;i++) freq[i] += freq[i-1];
+    REP(i,N){
+        p[freq[q[i].first.first+1]] = q[i];
+        freq[q[i].first.first+1]++;
+    }
+}
+
+void suffix_array(void){
+    int i,j,tmp=0;
+    
+    REP(i,N) sainv[i] = s[i];
+    
+    for(int t=1;t<N;t*=2){
+        REP(i,N) p[i] = make_pair(make_pair(sainv[i], ((i+t >= N) ? -1 : sainv[i+t])), i);
+        radix_sort();
+        int sz = 0;
+        REP(i,N){
+            if(i > 0 && p[i].first != p[i-1].first) sz++;
+            sainv[p[i].second] = sz;
+        }
+    }
+    
+    REP(i,N) sa[sainv[i]] = i;
+    
+    REP(i,N) if(sainv[i] != N-1){
+        j = sa[sainv[i] + 1];
+        while(i+tmp < N && j+tmp < N && s[i+tmp] == s[j+tmp]) tmp++;
+        lcp[sainv[i]] = tmp;
+        if(tmp > 0) tmp--;
+    }
+}
+
+int lcpmin[20][200010];
+
+void rmq(void){
+    int i,j;
+    
+    REP(i,N-1) lcpmin[0][i] = lcp[i];
+    REP(i,17){
+        int t = (1<<i);
+        REP(j,N-1) lcpmin[i+1][j] = min(lcpmin[i][j], ((j+t >= N-1) ? 0 : lcpmin[i][j+t]));
+    }
+}
+
+int tree[(1<<18)];
+
+void add(int x, int val){
+    for(int i=x;i<(1<<18);i=((i)|(i+1))) tree[i] += val;
+}
+
+int sum(int x){
+    int ans = 0;
+    for(int i=x;i>0;i=((i)&(i-1))) ans += tree[i-1];
+    return ans;
+}
+
+vector <pair <pair <int, int>, pair <int, int> > > events;
+int ans[100010];
+
+void func(void){
+    int i;
+    
+    sort(events.begin(), events.end());
+    
+    int cur = 0;
+    REP(i,events.size()){
+        int x = events[i].first.first, y = events[i].first.second, id = events[i].second.first, coef = events[i].second.second;
+        while(cur < x){
+            add(sa[cur], 1);
+            cur++;
+        }
+        ans[id] += coef * sum(y);
+    }
+}
+
+void query(int id, int x, int y, int coef){
+    events.push_back(make_pair(make_pair(x, y), make_pair(id, coef)));
+}
+
+void query(int id, int L, int R){
+    int i;
+    
+    int pos = sainv[L];
+    int d = R - L;
+    
+    int low = pos; // min(lcp[low], ..., lcp[pos-1]) >= d
+    for(i=17;i>=0;i--){
+        int t = (1<<i);
+        if(low-t >= 0 && lcpmin[i][low-t] >= d) low -= t;
+    }
+    
+    int high = pos; // min(lcp[pos], ..., lcp[high-1]) >= d
+    for(i=17;i>=0;i--){
+        int t = (1<<i);
+        if(lcpmin[i][high] >= d) high += t;
+    }
+    high++;
+    
+    if(N/2 < N/2+L-d){
+        query(id, low, N/2, 1);
+        query(id, low, N/2+L-d, -1);
+        query(id, high, N/2, -1);
+        query(id, high, N/2+L-d, 1);
+    }
+    
+    if(N/2+R+1 < N-d+1){
+        query(id, low, N/2+R+1, 1);
+        query(id, low, N-d+1, -1);
+        query(id, high, N/2+R+1, -1);
+        query(id, high, N-d+1, 1);
+    }
+}
+
+int h[200010];
+pair <int, int> r[200010];
+
+int main(void){
+    int M,Q,L,R,i;
+    
+    scanf("%d", &M);
+    REP(i,M) scanf("%d", &h[i]);
+    
+    M--;
+    REP(i,M) h[i] -= h[i+1];
+    REP(i,M) h[M+i] = -h[i];
+    N = 2*M;
+    REP(i,N) r[i] = make_pair(h[i], i);
+    sort(r, r+N);
+    int tmp = 0;
+    REP(i,N){
+        if(i > 0 && r[i].first != r[i-1].first) tmp++;
+        s[r[i].second] = tmp;
+    }
+    
+    suffix_array();
+    rmq();
+    
+    scanf("%d", &Q);
+    REP(i,Q){
+        scanf("%d%d", &L, &R);
+        L--; R--;
+        if(L == R){
+            ans[i] = M;
+        } else {
+            query(i, L, R);
+        }
+    }
+    
+    func();
+    
+    REP(i,Q) printf("%d\n", ans[i]);
+    
+    return 0;
+}

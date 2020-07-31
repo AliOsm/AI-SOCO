@@ -1,0 +1,109 @@
+// KALAM
+# include<bits/stdc++.h>
+
+using namespace std;
+
+const int N = 200000 + 77 , L = 18;
+int n , m , S;
+int d[N] , Qw[N] , Qc[N] , Qv[N] , Qu[N] , Perm[N] , Par[N][L] , P[N];
+bool M[N];
+pair < long long , int > W[N][L];
+long long A , tot;
+int Aid = 0;
+vector < int > a[N];
+bool CMP(int x , int y){
+   return Qw[x] < Qw[y];
+}
+int Find(int x){
+   return P[x] == 0 ? x : (P[x] = Find(P[x]));
+}
+inline void Merge(int id){
+   int nv = Find(Qv[id]);
+   int nu = Find(Qu[id]);
+   if(nv == nu)
+      return ;
+   tot += Qw[id];
+   M[id] = 1;
+   if(Aid == 0 || Qc[Aid] > Qc[id])
+      Aid = id;
+   P[nu] = nv;
+   a[Qv[id]].push_back(id);
+   a[Qu[id]].push_back(id);
+}
+void dfs(int v = 1){
+   for(int i = 1;i < L;++ i)
+      Par[v][i] = Par[Par[v][i - 1]][i - 1] , W[v][i] = max(W[v][i - 1] , W[Par[v][i - 1]][i - 1]);
+   for(int id : a[v]){
+      int u = Qv[id] ^ Qu[id] ^ v , w = Qw[id];
+      if(u == Par[v][0])
+         continue ;
+      W[u][0] = make_pair(w , id);
+      Par[u][0] = v;
+      d[u] = d[v] + 1;
+      dfs(u);
+   }
+}
+inline int GetPar(int v , int k){
+   for(int i = 0;i < L;++ i)
+      if((1 << i) & k)
+         v = Par[v][i];
+   return v;
+}
+inline int GetLca(int v , int u){
+   if(d[v] < d[u])
+      swap(v , u);
+   v = GetPar(v , d[v] - d[u]);
+   if(v == u)
+      return v;
+   for(int i = L - 1;i >= 0;-- i)
+      if(Par[v][i] != Par[u][i])
+         v = Par[v][i] , u = Par[u][i];
+   return Par[v][0];
+}
+pair < long long , int > GetCost(int v , int k){
+   pair < long long , int > r = make_pair(0 , 0);
+   for(int i = 0;i < L;++ i)
+      if((1 << i) & k)
+         r = max(r , W[v][i]) , v = Par[v][i];
+   return r;
+}
+int main(){
+   scanf("%d %d" , & n , & m);
+   for(int i = 1;i <= m;++ i)
+      Perm[i] = i , scanf("%d" , Qw + i);
+	for(int i = 1;i <= m;++ i)
+      scanf("%d" , Qc + i);
+   for(int i = 1;i <= m;++ i)
+      scanf("%d %d" , Qv + i , Qu + i);
+   scanf("%d" , & S);
+   sort(Perm + 1 , Perm + 1 + m , CMP);
+   for(int i = 1;i <= m;++ i)
+      Merge(Perm[i]);
+   dfs();
+   A = tot - (S / Qc[Aid]);
+   int nt = 0;
+   for(int i = 1;i <= m;++ i){
+      if(M[i])
+         continue ;
+      int v = Qv[i] , u = Qu[i];
+      int t = GetLca(v , u);
+      auto x = GetCost(v , d[v] - d[t]) , y = GetCost(u , d[u] - d[t]);
+      auto z = max(x , y);
+      long long now = tot - z.first + Qw[i] - (S / Qc[i]);
+      if(now < A){
+         A = now , Aid = i;
+         nt = z.second;
+      }
+   }
+   printf("%lld\n" , A);
+   for(int i = 1;i <= m;++ i){
+      if((M[i] && i != nt) || Aid == i){
+         printf("%d " , i);
+         if(Aid == i)
+            printf("%d\n" , Qw[i] - (S / Qc[i]));
+         else
+            printf("%d\n" , Qw[i]);
+      }
+   }
+	return 0;
+}

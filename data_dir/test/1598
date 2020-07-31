@@ -1,0 +1,175 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define REP(i, n) for (int i = 0; i < (n); ++i)
+#define SIZE(a) ((int)(a).size())
+#define ALL(a) (a).begin(), (a).end()
+
+using K = long double;
+using ll = long long;
+
+const int N = 300005;
+
+const int inf = 1000*1000*1000 + 7;
+
+int n, m;
+vector<int> g[N];
+vector<int> result;
+
+void update(vector<int> now) {
+	if (now.empty()) return;
+	if (result.empty() || SIZE(result) > SIZE(now)) {
+		result = now;
+	}
+}
+
+void output() {
+	if (result.empty()) {
+		cout << -1 << '\n';
+		exit(0);
+	}
+
+	cout << SIZE(result)-1 << '\n';
+	for (auto& v : result) cout << v+1 << ' ';
+	cout << '\n';
+
+	exit(0);
+}
+
+int dist[N], par[N];
+
+void bfs(int v) {
+	queue<int> q;
+	REP(i, n) dist[i] = inf;
+	q.push(v);
+	par[v] = -1;
+	dist[v] = 0;
+	while (!q.empty()) {
+		v = q.front();
+		q.pop();
+		for (auto& to : g[v]) {
+			if (dist[to] > dist[v] + 1) {
+				dist[to] = dist[v] + 1;
+				par[to] = v;
+				q.push(to);
+			}
+		}
+	}
+}
+
+vector<pair<int,int>> ntree;
+
+int was[N], depth[N];
+unordered_set<ll> s;
+
+const int M = 2000;
+
+bool is[M][M];
+
+vector<int> gr[N];
+
+int main() {
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	cin >> n >> m;
+
+	s.max_load_factor(0.25);
+	s.reserve(4096);
+
+	REP(i, m) {
+		int x, y;
+		cin >> x >> y;
+		--x; --y;
+		g[x].push_back(y);
+		g[y].push_back(x);
+		if (x > y) swap(x, y);
+		s.insert(x * 1000000LL + y);
+	}
+
+	bfs(0);
+
+	if (dist[n-1] <= 4) {
+		int v = n-1;
+		vector<int> now;
+		while (v >= 0) {
+			now.push_back(v);
+			v = par[v];
+		}
+		reverse(ALL(now));
+		update(now);
+		output();
+	}
+
+	for (int i = 1; i < n; ++i) {
+		if (dist[i] == 2) {
+			vector<int> rs;
+			rs.push_back(0);
+			rs.push_back(par[i]);
+			rs.push_back(i);
+			rs.push_back(0);
+			rs.push_back(n-1);
+			update(rs);
+			output();
+		}
+	}
+
+	vector<int> nei;
+
+	REP(i, n) if (dist[i] == 1) nei.push_back(i);
+
+	sort(nei.begin(), nei.end(), [&](int x, int y) {
+		return SIZE(g[x]) > SIZE(g[y]);
+	});
+
+	vector<int> here = nei;
+	sort(here.begin(), here.end());
+
+	for (auto& v : nei) {
+		REP(i, SIZE(g[v])) {
+			gr[v].push_back(lower_bound(ALL(here), g[v][i])-here.begin());
+		}
+	}
+
+	for (auto& v : nei) {
+		if (SIZE(nei) >= M) {
+			for (auto& x : g[v]) if (x)
+			for (auto& y : g[v]) if (y) {
+				if (x == y) break;
+				if (!s.count(min(x, y) * 1000000LL + max(x, y))) {
+					vector<int> rs;
+					rs.push_back(0);
+					rs.push_back(x);
+					rs.push_back(v);
+					rs.push_back(y);
+					rs.push_back(x);
+					rs.push_back(n-1);
+					update(rs);
+					output();
+				} 
+			}
+		} else {
+			int x, y;
+			REP(i, SIZE(g[v])) if (g[v][i]) REP(j, i) if (g[v][j]) {
+				x = g[v][i]; y = g[v][j];
+				if (is[gr[v][i]][gr[v][j]]) continue;
+				is[gr[v][i]][gr[v][j]] = 1;
+				if (!s.count(min(x, y) * 1000000LL + max(x, y))) {
+					vector<int> rs;
+					rs.push_back(0);
+					rs.push_back(x);
+					rs.push_back(v);
+					rs.push_back(y);
+					rs.push_back(x);
+					rs.push_back(n-1);
+					update(rs);
+					output();
+				} 
+			}
+		}
+	}
+
+	output();
+	
+	return 0;
+}

@@ -1,0 +1,26 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+int main() {
+    std::ios::sync_with_stdio(false); 
+    cin.tie(nullptr);
+
+    int n, x, y;
+    cin >> n >> x >> y;
+    vector<int> a(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i];
+    }
+    for (int i = 0; i < n; ++i) {
+        int mn = a[i];
+        for (int j = max(i - x, 0); j < i; ++j) mn = min(mn, a[j]);
+        for (int j = i + 1; j <= i + y && j < n; ++j) mn = min(mn, a[j]);
+        if (mn == a[i]) {
+            cout << i + 1 << "\n";
+            return 0;
+        }
+    }
+
+    return 0;
+}

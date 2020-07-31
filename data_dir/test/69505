@@ -1,0 +1,199 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define all(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+#define dbl(k, x) fixed << setprecision(k) << (x)
+
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define _upgrade ios_base::sync_with_stdio(0);
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+const int N = 2e5 + 7;
+const int MAX = 1 << 18;
+
+int n, q, ans[N], was[N];
+map < PII, PII > MP;
+map < PII, int > is;
+vector < pair < int, PII > > tree[2 * MAX];
+PII Q[N][2];
+
+int p[N], sz[N];
+vector < PII > st;
+
+int Find(int x)
+{
+    if(p[x] == x) return x;
+    return Find(p[x]);
+}
+
+void Union(int a, int b)
+{
+    DBG("dodaje", a, b);
+    a = Find(a); b = Find(b);
+    if(a == b)
+    {
+        st.push_back({-1, -1});
+    }
+    else
+    {
+        if(sz[a] < sz[b])
+            swap(a, b);
+        p[b] = a;
+        sz[a] += sz[b];
+        st.push_back({a, b});   
+    }
+}
+
+void Undo()
+{
+    DBG("usuwam");
+    if(st.back().first != -1)
+    {
+        auto [a, b] = st.back();
+        sz[a] -= sz[b];
+        p[b] = b;
+    }
+    st.pop_back();
+}
+
+void update(int a, int b, int c, PII e)
+{
+    pair < int, PII > x = {c, e};
+    a += MAX, b += MAX;
+    tree[a].push_back({c + 2, e});
+    if(a != b) tree[b].push_back(x);
+    while(a / 2 != b / 2)
+    {
+        if(a % 2 == 0) tree[a + 1].push_back(x);
+        if(b % 2 == 1) tree[b - 1].push_back(x);
+        a /= 2, b /= 2;
+    }
+}
+
+int solve(int node = 1, int a = 0, int b = MAX - 1, int last = 0)
+{
+    int cnt = 0;
+    for(auto [c, e]: tree[node])
+    {
+        if(last == c % 2) 
+        {
+            int change = c / 2;
+            if(change)
+                is[e] ^= 1;
+            
+            if(is[e])
+            {
+                cnt++;
+                DBG(node, a, b, last);
+                Union(e.first, e.second);
+            }
+        }
+        else
+        {
+            if(is[e])
+            {
+                cnt++;
+                DBG(node, a, b, last);
+                Union(e.first, e.second);
+            }
+        }
+        
+    }
+
+    int y = last;
+
+    if(a == b)
+    {
+        if(1 <= a && a <= q && was[a])
+        {
+            DBG("pytam", last, Q[a][last].first, Q[a][last].second);
+            ans[a] = (Find(Q[a][last].first) == Find(Q[a][last].second));
+            DBG("odp", ans[a]);
+            y = ans[a];
+        }
+    }
+    else
+    {
+        int x = solve(2 * node, a, (a + b) / 2, last);
+        y = solve(2 * node + 1, (a + b) / 2 + 1, b, x);   
+    }
+
+    while(cnt--)
+        Undo();
+
+    return y;
+}
+
+int main()
+{
+    _upgrade
+    
+    cin >> n >> q;
+    for(int i = 1; i <= n; i++)
+        p[i] = i, sz[i] = 1;
+    
+    for(int i = 1; i <= q; i++)
+    {
+        int t, a, b;
+        cin >> t >> a >> b;
+        if(a > b) swap(a, b);
+
+        if(t == 1)
+        {
+            if(MP[{a, b}].first)
+                update(MP[{a, b}].first, i - 1, MP[{a, b}].second, {a, b});
+            MP[{a, b}] = {i, 0};
+
+            a = a % n + 1, b = b % n + 1;
+            if(a > b)
+                swap(a, b);
+            if(MP[{a, b}].first)
+                update(MP[{a, b}].first, i - 1, MP[{a, b}].second, {a, b});
+            MP[{a, b}] = {i, 1};
+        }
+        else
+        {
+            was[i] = true;
+            Q[i][0] = {a, b};
+            a = a % n + 1;
+            b = b % n + 1;
+            if(a > b)
+                swap(a, b);
+            Q[i][1] = {a, b};
+        }
+    }
+
+    for(auto el: MP)
+    {
+        PII e = el.first;
+        auto [x, y] = el.second;
+        update(x, q, y, e);
+    }
+
+    MP.clear();
+
+    solve();
+
+    for(int i = 1; i <= q; i++)
+        if(was[i]) cout << ans[i];
+    cout << "\n";
+
+	return 0;
+}

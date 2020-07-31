@@ -1,0 +1,159 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define long long long
+#define ve vector
+#define xx first
+#define yy second
+#define bb begin()
+#define ee end()
+#define rbb rbegin()
+#define ree rend()
+#define sz(v) ((int) v.size())
+#define inf(type) (numeric_limits<type>::max() - 10)
+typedef ve<int> vi;
+typedef pair<int, int> ii;
+
+int n, m;
+ve<vi> gr;
+void read() {
+    cin >> n >> m;
+    gr.resize(n);
+    for (int i = 0; i < n - 1; ++i) {
+        int u, v; cin >> u >> v; --u, --v;
+        gr[u].push_back(v);
+        gr[v].push_back(u);
+    }
+}
+
+vi dad, dst;
+void dfs0(int u) {
+    for (int i = 0; i < sz(gr[u]); ++i) {
+        int v = gr[u][i];
+        if (dad[v] != -1) continue;
+        dad[v] = u;
+        dst[v] = dst[u] + 1;
+        dfs0(v);
+    }
+}
+
+vi cnt, cendad;
+ve<bool> vis;
+bool ON = false;;
+void dfs1(int u) {
+    cnt[u] = 1;
+    vis[u] = ON;
+    for (int i = 0; i < sz(gr[u]); ++i) {
+        int v = gr[u][i];
+        if (cendad[v] != -1 or vis[v] == ON) continue;
+        dfs1(v);
+        cnt[u] += cnt[v];
+    }
+}
+
+void dfs2(int u, int p = -1) {
+    ON = !ON;
+    dfs1(u);
+    int cen = u;
+    bool found = false;
+    while (!found) {
+        found = true;
+        for (int i = 0; i < sz(gr[cen]); ++i) {
+            int v =gr[cen][i];
+            if (cendad[v] != -1 or cnt[v] <= cnt[cen] / 2) continue;
+            swap(cnt[cen], cnt[v]);
+            cnt[cen] = cnt[v] - cnt[cen];
+            cen = v;
+            found = false;
+            break;
+        }
+    }
+
+    if (p == -1) p = cen;
+    cendad[cen] = p;
+    for (int i = 0; i < sz(gr[cen]); ++i) {
+        int v = gr[cen][i];
+        if (cendad[v] != -1) continue;
+        dfs2(v, cen);
+    }
+    ON = !ON;
+}
+
+ve<vi> spt;
+void preprocess() {
+    int lgn = log(n) / log(2) + 2;
+    spt.resize(lgn, vi(n));
+    dad.assign(n, -1); dst.resize(n, 0);
+    dad[0] = 0;
+    dfs0(0);
+    copy(dad.bb, dad.ee, spt[0].bb);
+    for (int i = 1; i < lgn; ++i) {
+        for (int f = 0; f < n; ++f)
+            spt[i][f] = spt[i - 1][spt[i - 1][f]];
+    }
+
+    cnt.assign(n, 0);
+    cendad.resize(n, -1);
+    vis.resize(n, 0);
+    dfs2(0);
+}
+
+int dist(int u, int v) {
+    int ans = 0;
+    if (dst[u] < dst[v]) swap(u, v);
+    for (int i = sz(spt) - 1; i >= 0; --i) {
+        if (dst[spt[i][u]] > dst[v]) {
+            ans += 1 << i;
+            u = spt[i][u];
+        }
+    }
+    if (dst[u] > dst[v]) u = spt[0][u], ans ++;
+    for (int i = sz(spt) - 1; i >= 0; --i) {
+        if (spt[i][u] != spt[i][v]) {
+            ans += 1 << (i + 1);
+            u = spt[i][u], v = spt[i][v];
+        }
+    }
+    if (u != v) ans += 2;
+    return ans;
+}
+
+vi ans;
+void update(int u) {
+    for (int v = u; ; v = cendad[v]) {
+        ans[v] = min(ans[v], dist(u, v));
+        if (cendad[v] == v) break;
+    }
+}
+
+int query(int u) {
+    int tans = inf(int);
+    for (int v = u; ; v = cendad[v]) {
+        if (ans[v] == inf(int)) continue;
+        tans = min(tans, ans[v] + dist(u, v));
+        if (cendad[v] == v) break;
+    }
+    return tans;
+}
+
+int main() {
+    #ifndef ONLINE_JUDGE
+    #define fn "file"
+    freopen(fn".inp", "r", stdin);
+    freopen(fn".out", "w", stdout);
+    #undef fn
+    #endif // ONLINE_JUDGE
+    ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+    read();
+    preprocess();
+    ans.resize(n, inf(int));
+    update(0);
+    while (m--) {
+        int t, u; cin >> t >> u; --u;
+        if (t == 1) update(u);
+        else cout << query(u) << '\n';
+    }
+
+    return 0;
+}

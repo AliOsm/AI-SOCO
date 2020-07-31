@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 80 * 80 + 10;
+const int INF = 1e9;
+
+struct Edge {
+  int to, cap, cost;
+  Edge(int to, int cap, int cost) : to(to), cap(cap), cost(cost) {}
+};
+vector<int> g[MAXN];
+vector<Edge> e;
+int N, S, T;
+int d[MAXN], phi[MAXN];
+int p[MAXN];
+int n, m;
+int a[80][80];
+struct cmp {
+  bool operator()(int a, int b) {
+    if (d[a] != d[b])
+      return d[a] < d[b];
+    return a < b;
+  }
+};
+set<int, cmp> q;
+int dx[] = {1,0,-1,0};
+int dy[] = {0,1,0,-1};
+
+void addEdge(int a, int b, int cap, int cost) {
+  g[a].push_back(e.size());
+  e.push_back(Edge(b, cap, cost));
+  g[b].push_back(e.size());
+  e.push_back(Edge(a, 0, -cost));
+}
+
+bool Dijkstra() {
+  for (int i = 0; i < N; ++i)
+    d[i] = INF;
+  d[S] = 0;
+  q.insert(S);
+  while (!q.empty()) {
+    int v = *q.begin();
+    q.erase(q.begin());
+    for (int i = 0, id; i < (int)g[v].size(); ++i) {
+      id = g[v][i];
+      if (e[id].cap > 0 && d[e[id].to] > d[v] + e[id].cost - phi[e[id].to] + phi[v]) {
+	q.erase(e[id].to);
+	d[e[id].to] = d[v] + e[id].cost + phi[v] - phi[e[id].to];
+	p[e[id].to] = id;
+	q.insert(e[id].to);
+      }
+    }
+  }
+  for (int i = 0; i < N; ++i)
+    if (d[i] != INF)
+      phi[i] += d[i];
+  return d[T] != INF;
+}
+
+int mcmf() {
+  int res = 0;
+  while (Dijkstra()) {
+    int cost = 0;
+    for (int y = T; y != S; y = e[p[y] ^ 1].to) {
+      --e[p[y]].cap;
+      ++e[p[y] ^ 1].cap;
+      cost += e[p[y]].cost;
+    }
+    res += cost;
+  }
+  return res;
+}
+
+bool ok(int x, int y) {
+  return x > -1 && x < n && y > -1 && y < m;
+}
+
+int main() {
+  cin >> n >> m;
+  S = 0; N = n * m + 2; T = N - 1;
+  for (int i = 0; i < n; ++i)
+    for (int j = 0; j < m; ++j)
+      cin >> a[i][j];
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      if ((i + j) & 1)
+	addEdge(i * m + j + 1, T, 1, 0);
+      else {
+	addEdge(S, i * m + j + 1, 1, 0);
+	for (int k = 0; k < 4; ++k) {
+	  int ni = i + dx[k];
+	  int nj = j + dy[k];
+	  if (ok(ni, nj)) {
+	    addEdge(i * m + j + 1, ni * m + nj + 1, 1, a[i][j] != a[ni][nj]);
+	  }
+	}
+      }
+    }
+  }
+  cout << mcmf() << endl;
+  return 0;
+}

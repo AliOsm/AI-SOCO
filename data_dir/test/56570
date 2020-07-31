@@ -1,0 +1,188 @@
+// Solution to http://codeforces.com/contest/293/problem/E
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+struct edge {
+    int node, rev, weight;
+
+    edge(int _node = -1, int _rev = -1, int _weight = 0) : node(_node), rev(_rev), weight(_weight) {}
+
+    void erase() {
+        node = -1;
+    }
+
+    bool is_valid() {
+        return node >= 0;
+    }
+};
+
+int N, D, W;
+vector<vector<edge>> adj;
+vector<int> dist;
+vector<int> path_weight;
+vector<int> parent;
+vector<int> tree_size;
+vector<int> visited;
+int visit_count = 0;
+vector<pair<int, int>> weight_dist;
+
+void add_edge(int a, int b, int w) {
+    assert(a != b);
+    edge ab_edge(b, adj[b].size(), w);
+    edge ba_edge(a, adj[a].size(), w);
+    adj[a].push_back(ab_edge);
+    adj[b].push_back(ba_edge);
+}
+
+vector<int> queue;
+int q_front, q_back;
+
+void bfs_check(int node, int prev, int current_dist, int current_weight) {
+    if (visited[node] != visit_count) {
+        visited[node] = visit_count;
+        parent[node] = prev;
+        dist[node] = current_dist;
+        path_weight[node] = current_weight;
+        queue[q_back++] = node;
+    }
+}
+
+int bfs(int root, bool prepare_list = false) {
+    queue.resize(N);
+    q_front = q_back = 0;
+    visit_count++;
+    bfs_check(root, -1, 0, 0);
+
+    while (q_front < q_back) {
+        int node = queue[q_front++];
+
+        for (edge &e : adj[node])
+            if (e.is_valid())
+                bfs_check(e.node, node, dist[node] + 1, path_weight[node] + e.weight);
+    }
+
+    int n = q_back;
+
+    for (int i = 0; i < n; i++)
+        tree_size[queue[i]] = 1;
+
+    for (int i = n - 1; i >= 0; i--)
+        if (parent[queue[i]] != -1)
+            tree_size[parent[queue[i]]] += tree_size[queue[i]];
+
+    if (prepare_list) {
+        for (int i = 0; i < n; i++)
+            weight_dist[i] = {path_weight[queue[i]], dist[queue[i]]};
+
+        sort(weight_dist.begin(), weight_dist.begin() + n);
+    }
+
+    return n;
+}
+
+int centroid(int root) {
+    int n = bfs(root);
+    bool found;
+
+    // Repeatedly move to the subtree larger than half of the tree, if such a subtree exists.
+    do {
+        found = false;
+
+        for (edge &e : adj[root])
+            if (e.is_valid() && parent[e.node] == root && 2 * tree_size[e.node] >= n) {
+                root = e.node;
+                found = true;
+                break;
+            }
+    } while (found);
+
+    return root;
+}
+
+int tree_n;
+vector<int> tree;
+
+void tree_update(int num, int change) {
+    for (int i = num + 1; i <= tree_n; i += i & -i)
+        tree[i] += change;
+}
+
+int tree_query(int num) {
+    int sum = 0;
+
+    for (int i = min(num + 1, tree_n); i > 0; i -= i & -i)
+        sum += tree[i];
+
+    return sum;
+}
+
+long long count_pairs(int root, int dist_max, int weight_max) {
+    int n = bfs(root, true);
+    tree_n = n;
+
+    for (int i = 0; i <= tree_n; i++)
+        tree[i] = 0;
+
+    long long pairs = 0;
+
+    for (int i = n - 1, j = 0; i >= 0; i--) {
+        while (j < n && weight_dist[i].first + weight_dist[j].first <= weight_max)
+            tree_update(weight_dist[j++].second, +1);
+
+        pairs += tree_query(dist_max - weight_dist[i].second);
+
+        // Don't count i paired with itself.
+        if (2 * weight_dist[i].first <= weight_max && 2 * weight_dist[i].second <= dist_max)
+            pairs--;
+    }
+
+    return pairs;
+}
+
+long long solve(int root) {
+    root = centroid(root);
+
+    // We will compute the crossing pairs by counting all pairs and subtracting pairs within the same subtree.
+    long long pairs = count_pairs(root, D, W);
+
+    for (edge &e : adj[root])
+        if (e.is_valid()) {
+            // Erase the edge from e.node back to root.
+            adj[e.node][e.rev].erase();
+            pairs -= count_pairs(e.node, D - 2, W - 2 * e.weight);
+        }
+
+    // Recurse after solving root, so that edge erasures don't cause incorrect results.
+    for (edge &e : adj[root])
+        if (e.is_valid())
+            pairs += solve(e.node);
+
+    return pairs;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    cin >> N >> D >> W;
+    adj.resize(N);
+    dist.resize(N);
+    path_weight.resize(N);
+    visited.assign(N, -1);
+    parent.resize(N);
+    tree_size.resize(N);
+    weight_dist.resize(N);
+    tree.resize(N + 1);
+
+    for (int i = 1; i < N; i++) {
+        int p, w;
+        cin >> p >> w;
+        p--;
+        add_edge(p, i, w);
+    }
+
+    cout << solve(0) / 2 << '\n';
+}

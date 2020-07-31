@@ -1,0 +1,81 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long int ll;
+typedef pair<int, int> pii;
+
+const int step = 22;
+int n;
+vector<int> as;
+vector< vector<int> > parent;
+vector< vector<ll> > sums;
+vector< vector<int> > neig;
+vector<int> cnt;
+vector<int> ans;
+
+void dfs(int v) {
+    for (int i = 1; i < step; i++) {
+        parent[i][v] = parent[i - 1][ parent[i - 1][v] ];
+        sums[i][v] = sums[i - 1][ parent[i - 1][v] ] + sums[i - 1][v];
+    }
+
+    for (auto it : neig[v]) {
+        if (it == parent[0][v])
+            continue;
+        dfs(it);
+    }
+}
+
+int calc_ans(int v) {
+    int cur = cnt[v];
+    for (auto it : neig[v]) {
+        if (it == parent[0][v])
+            continue;
+        cur += calc_ans(it);
+    }
+    ans[v] = cur;
+    return cur;
+}
+
+int main() {
+    scanf("%d", &n);
+    as.resize(n);
+    for (int i = 0; i < n; i++)
+        scanf("%d", &as[i]);
+    neig.resize(n);
+    parent.resize(step, vector<int>(n));
+    sums.resize(step, vector<ll>(n));
+    cnt.resize(n);
+    ans.resize(n);
+
+    for (int i = 0; i < n - 1; i++) {
+        int a, b;
+        scanf("%d%d", &a, &b);
+        a--;
+        parent[0][i + 1] = a;
+        sums[0][i + 1] = b;
+        neig[i + 1].push_back(a);
+        neig[a].push_back(i + 1);
+    }
+
+    dfs(0);
+
+    for (int i = 0; i < n; i++) {
+        int par = i;
+        ll val = as[i];
+        for (int z = step - 1; z >= 0; z--) {
+            if (val - sums[z][par] >= 0) {
+                val -= sums[z][par];
+                par = parent[z][par];
+            }
+        }
+        if (par != i) {
+            cnt[parent[0][i]]++;
+            if (par != 0)
+                cnt[parent[0][par]]--;
+        }
+    }
+
+    calc_ans(0);
+    for (auto it : ans)
+        printf("%d ", it);
+}

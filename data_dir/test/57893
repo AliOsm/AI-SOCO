@@ -1,0 +1,107 @@
+#include <iostream>
+#include <fstream>
+#include <cstdio>
+#include <climits>
+#include <vector>
+#include <map>
+#include <list>
+#include <deque>
+#include <stack>
+#include <set>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <bitset>
+#include <cmath>
+
+using namespace std;
+
+#define ll long long
+#define vt vector
+
+int comps;
+
+void updNo(pair<int,int>& x, int& nodeno)
+{
+	x.first	= nodeno;
+	x.second = nodeno;
+	nodeno++;
+}
+
+void tarjan(vt< vt<int> >& adj, vt< pair<int,int> >& nodes, int n, int& nodeno, stack<int>& stackme, vt<bool>& instack, vt<int>& sccs)
+{
+	updNo(nodes[n], nodeno);
+	instack[n] = true;
+	stackme.push(n);
+	for(int i = 0; i < adj[n].size(); i++)
+		if (nodes[adj[n][i]].first == -1)
+		{
+			tarjan(adj, nodes, adj[n][i], nodeno, stackme, instack, sccs);
+			nodes[n].second = min(nodes[n].second, nodes[adj[n][i]].second);
+		}
+		else if (instack[adj[n][i]])
+		{
+			nodes[n].second = min(nodes[n].second, nodes[adj[n][i]].second);
+		}
+	if (nodes[n].first == nodes[n].second)
+	{
+		comps++;
+		int v = -1;
+		while(nodes[n].first != v)
+		{
+			v = stackme.top();
+			int v1 = nodes[stackme.top()].first;
+			stackme.pop();
+			instack[v] = false;
+			sccs[v] = comps;
+			v = v1;
+		}
+	}
+}
+
+void scc(vt< vt<int> >& adj, vt< pair<int,int> >& nodes, int n, vt<int>& sccs)
+{
+	vt<bool> instack(n+1, false);
+	stack<int> stackme;
+	int nodeno = 1;
+	for(int i = 1; i <= n; i++)
+		if (nodes[i].second == -1)
+			tarjan(adj, nodes, i, nodeno, stackme, instack, sccs);
+}
+
+
+int main()
+{
+	int n, m;
+	cin >> n;
+	vt< vt<int> > adj(n+1);
+	vt< int > costs(n+1, 0);
+	for(int i = 1; i <= n; i++)
+		cin >> costs[i];
+	cin >> m;
+	for(int i = 0; i < m; i++)
+	{
+		int x, y;
+		cin >> x >> y;
+		adj[x].push_back(y);
+	}
+	vt< pair<int, int> > nodes(n+1, make_pair(-1,-1));
+	vt< int > sccs(n+1, 0);
+	scc(adj, nodes, n, sccs);
+	vt< vt<int> > sccCost(comps+1);
+	for(int i = 1; i <= n; i++)
+		sccCost[sccs[i]].push_back(costs[i]);
+	ll totCost = 0, ans = 1;
+	for(int i = 1; i <= comps; i++)
+	{
+		int ways = 1;
+		sort(sccCost[i].begin(), sccCost[i].end());
+		for(int j = 1; j < sccCost[i].size(); j++)
+			if (sccCost[i][j] == sccCost[i][0])
+				ways++;
+		ans = (ans * ways)%1000000007ll;
+		totCost += sccCost[i][0];
+	}
+	cout << totCost << " " << ans << endl;
+	return 0;
+}

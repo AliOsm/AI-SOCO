@@ -1,0 +1,93 @@
+ #include <bits/stdc++.h>
+ #define f first
+ #define s second
+ #define endl '\n'
+ #define LL long long
+ #define pb push_back
+ #define sz(a) (int)a.size()
+ #define all(a) a.begin(),a.end()
+ #define rall(a) a.rbegin(),a.rend()
+ #define debug(x) cerr << #x << " is " << x << endl;
+ using namespace std;
+ int const MAXN = 2003;
+ // R L U D
+ string s = "><v^";
+ string ch ="<>^v";
+ int dx[] = {0,0,1,-1};
+ int dy[] = {1,-1,0,0};
+ int n, m;
+ char a[MAXN][MAXN];
+ int vis[MAXN][MAXN];
+ bool valid (int x, int y){
+    return x >= 0 && y >= 0 && x < n && y < m;
+ }
+ bool good (int x, int y){
+    return valid(x,y) && a[x][y] == '.';
+ }
+ bool cycle = false;
+ int sz;
+ void dfs (int x, int y, int px, int py){
+    vis[x][y] = 1;
+    sz++;
+    for (int k = 0; k < 4; k++){
+        int xx = x + dx[k];
+        int yy = y + dy[k];
+        if (!valid(xx,yy) or a[xx][yy] != '.') continue;
+        if (!vis[xx][yy]) dfs(xx,yy,x,y);
+        else if (xx != px or yy != py) cycle = true;
+    }
+ }
+
+ void go (int i, int j){
+    int cnt = 0;
+    int p = 0;
+    for (int k = 0; k < 4; k++){
+        int x = i + dx[k];
+        int y = j + dy[k];
+        if (good(x,y)){
+            p = k;
+            cnt++;
+        }
+    }
+    if (cnt == 1 && a[i][j] == '.'){
+        a[i+dx[p]][j+dy[p]] = s[p];
+        a[i][j] = ch[p];
+        for (int k = 0; k < 4; k++){
+            int x = i + dx[k];
+            int y = j + dy[k];
+            go(x,y);
+        }
+        for (int k = 0; k < 4; k++){
+            int x = i+dx[p] + dx[k];
+            int y = j+dy[p] + dy[k];
+            go(x,y);
+        }
+    }
+ }
+ int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    cin >> n >> m;
+    for (int i  = 0; i < n; i++)
+         for (int j = 0; j < m; j++)
+            cin >> a[i][j];
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++){
+            go(i,j);
+        }
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            if (!vis[i][j] && a[i][j] == '.'){
+                sz = 0;
+                dfs(i,j,i,j);
+                if (sz%2) cycle = true;
+            }
+
+    if (cycle) return cout << "Not unique" << endl,0;
+
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++)
+            cout << a[i][j];
+        cout << endl;
+    }
+ }
+

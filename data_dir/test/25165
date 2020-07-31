@@ -1,0 +1,106 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int n;
+int a[200005];
+
+vector<int>comps[200005];
+int p[200005] ;
+int fpar(int u){
+    return u == p[u] ? u : p[u] = fpar(p[u]) ;
+}
+
+struct Trie{
+    int cnt ;
+    int nxt[2] ;
+    set<int> ids ;
+    Trie(){
+        cnt = 0 ;
+        nxt[0] = -1 ;
+        nxt[1] = -1 ;
+    }
+};
+Trie tree[6000006] ;
+int treeCnt ;
+void Insert(int x,int id){
+    int cur = 0 ;
+    for(int i = 29 ; i >= 0 ; i--){
+        int idx = (x>>i) & 1 ;
+        if(tree[cur].nxt[idx] == -1 ) tree[cur].nxt[idx] = ++treeCnt ;
+        tree[cur].cnt++ ;
+        cur = tree[cur].nxt[idx] ;
+    }
+    tree[cur].cnt++ ;
+    tree[cur].ids.insert(id) ;
+}
+
+void Delete(int x,int id){
+    int cur = 0 ;
+    for(int i = 29 ; i >= 0 ; i--){
+        int idx = (x>>i) & 1 ;
+        if(tree[cur].nxt[idx] == -1 ) tree[cur].nxt[idx] = ++treeCnt ;
+        tree[cur].cnt-- ;
+        cur = tree[cur].nxt[idx] ;
+    }
+    tree[cur].cnt-- ;
+    auto it = tree[cur].ids.find(id) ;
+    tree[cur].ids.erase(it) ;   
+}
+
+int Query(int x){
+    int cur = 0 ;
+    for(int i = 29 ; i >= 0 ; i--){
+        int idx = (x>>i) & 1 ;
+        if(tree[cur].nxt[idx] == -1  || tree[ tree[cur].nxt[idx] ].cnt == 0 ) idx = 1 - idx ;
+        cur = tree[cur].nxt[idx] ;
+    }
+    if(tree[cur].ids.empty()) return 1 ;
+    return *tree[cur].ids.begin();
+}
+
+int main(){
+    cin>>n;
+    for(int i = 1; i <= n ; i++ ) scanf("%d", &a[i]);
+    for(int i = 1; i <= n ; i++ ) {
+        p[i] = i ;
+        comps[i].push_back(i);
+        Insert(a[i],i);
+    }
+    int compCnt = n ;
+    long long ans = 0;
+    while(compCnt > 1){
+        for(int i=1; i<= n; i++ ){
+            if(p[i] - i ) continue ;
+            for(int u : comps[i]) Delete(a[u], u );
+            int v = -1 ;
+            int xo = 1<<30 ;
+            for(int u : comps[i]) {
+                int vv = Query(a[u]) ;
+                if( (a[u]^(a[vv])) < xo ){
+                    v = vv ; 
+                    xo = a[u] ^ a[v] ;
+                }
+            }
+            for(int u: comps[i] ) Insert(a[u], u) ;
+            
+            ans += 1LL * xo ;
+            v = fpar(v);
+            
+            int pi = fpar(i) ;
+            int pv = fpar(v) ;
+
+            if(pi == pv ) continue ;
+
+            compCnt-- ;
+            
+            if(comps[pv].size() > comps[pi].size() ) swap(pi,pv) ;
+            p[pv] = pi ;
+
+            for(auto u: comps[pv] ) comps[pi].push_back( u ) ;
+            comps[pv].clear() ;
+        }
+    }
+
+    cout << ans << endl;   
+    return 0;
+}

@@ -1,0 +1,181 @@
+#pragma comment(linker, "/STACK:64000000")
+  
+#define _USE_MATH_DEFINES
+#define _CRT_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <cstdio>
+#include <fstream>
+#include <iomanip>
+#include <cstdlib>
+#include <cmath>
+#include <cstring>
+#include <ctime>
+#include <memory.h>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+#include <utility>
+#include <algorithm>
+#include <functional>
+#include <complex>
+#include <cassert>
+  
+using namespace std;
+typedef long long int64;
+typedef pair<int, int> pii;
+  
+#define sq(x) ((x)*(x))
+#define INF ((int)(1e9 + 7))
+#define EPS ((double)(1e-7))
+  
+const int MAXN = 2000005;
+const int MOD = 51123987;
+
+#define pci pair<char, int>
+
+char s[MAXN];
+
+struct tnode
+{
+	vector <pci> to;
+	int chain;
+	int len;
+	int link;
+
+	tnode (int len, int chain, int link) : len(len), chain(chain), link(link)
+	{
+	}
+};
+
+struct palindromic_tree
+{
+	vector <tnode> t;
+	int n;
+	int last;
+
+	int get_link(int v)
+	{
+		while (n - t[v].len - 2 < 0 || s[n - t[v].len - 2] != s[n - 1])
+		{
+			v = t[v].link;
+		}
+		return v;
+	}
+
+	palindromic_tree(int n) 
+	{
+		clear(n);
+	}
+
+	int to (int v, char c)
+	{
+		for (int i = 0; i < t[v].to.size(); i++)
+		{
+			if (t[v].to[i].first == c)
+			{
+				return t[v].to[i].second;
+			}
+		}
+		return 0;
+	}
+
+	int add_letter(char let)
+	{
+		++n;
+		int v = get_link(last);
+		if (!to(v, let))
+		{
+			int u = get_link(t[v].link);
+			int lnk = to(u, let);
+			t.push_back(tnode(t[v].len + 2, t[lnk].chain + 1, lnk));
+			//t.shrink_to_fit();
+			//fprintf(stderr, "len %d chain %d link %d\n", t[v].len + 2, t[lnk].chain + 1, lnk);
+			t[v].to.push_back(pci(let, t.size() - 1));
+			t[v].to.shrink_to_fit();
+		}
+		last = to(v, let);
+		//fprintf(stderr, "let %c last %d\n", let, last);
+		return t[last].chain;
+	}
+
+	void clear(int nn)
+	{
+		t.clear();
+		t.reserve(nn + 2);
+		n = 0;
+		last = 1;
+		t.push_back(tnode(0, 0, 1));
+		t.push_back(tnode(-1, 0, 1));
+	}
+};
+
+int add(int a, int b)
+{
+	int res = a + b;
+	if (res >= MOD)
+	{
+		res -= MOD;
+	}
+	return res;
+}
+
+int mul(int a, int b)
+{
+	return (int64)a * b % MOD;
+}
+
+int sub(int a, int b)
+{
+	int res = a - b;
+	if (res < 0)
+	{
+		res += MOD;
+	}
+	return res;
+}
+
+int n;
+int c1[MAXN];
+int64 ans;
+
+void solve()
+{
+    scanf ("%d\n%s", &n, &s);
+	palindromic_tree t(n);
+	for (int i = 0; i < n; i++)
+	{
+		c1[i + 1] = t.add_letter(s[i]);
+		c1[i + 1] = add(c1[i], c1[i + 1]);
+	}
+	t.clear(n);
+	reverse(s, s + n);
+	for (int i = 0; i < n; i++)
+	{
+		ans = sub(ans, mul(t.add_letter(s[i]), c1[n - i - 1]));
+	}
+	if (c1[n] & 1)
+	{
+		ans = add(ans, mul(c1[n], (c1[n] - 1) >> 1));
+	}
+	else
+	{
+		ans = add(ans, mul(c1[n] >> 1, c1[n] - 1));
+	}
+	printf ("%d\n", ans);
+}
+  
+#define TASK "insider"
+
+int main()
+{
+#ifdef _MY_DEBUG
+    freopen("input.txt", "rt", stdin); freopen("output.txt", "wt", stdout);
+#else
+#endif
+    srand(1337);
+    solve();
+    return 0;
+}

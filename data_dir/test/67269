@@ -1,0 +1,117 @@
+#include <iostream>
+#include <vector>
+#include <set>
+#include <string>
+#include <map>
+#include <queue>
+#include <stack>
+#include <assert.h>
+#include <cstring>
+#include <algorithm>
+#include <climits>
+#include <sstream>
+
+using namespace std;
+
+typedef long long LL;
+typedef vector<int> vi;
+typedef pair<int, int> pii;
+#define mp make_pair
+#define pb push_back
+#define loop(i,n) for(int i = 0; i < n; i++)
+#define itr iterator
+
+const int N = 510;
+const int INF = 1e4;
+
+class Ford_Fulkerson {
+  // Pass an adjacency matrix to this class
+  vector<vector<pii> > residual;
+  vector<vector<pii> > network;
+  vi path, vis;
+  map<pii, int> edges;
+  int get_path(int src, int sink, int min_cost = INT_MAX) {
+    path.push_back(src);
+    if (src == sink) {
+      return min_cost;
+    }
+    int res = 0;
+    vis[src] = 1;
+    for (int x = 0; x < residual[src].size(); x++) {
+      int j = residual[src][x].first;
+      if (vis[j] || residual[src][x].second <= 0) continue;
+      res = get_path(j, sink, min(min_cost, residual[src][x].second));
+      if (res) break;
+      else path.pop_back();
+    }
+    return res;
+  }
+public:
+  Ford_Fulkerson(vector<vector<pii> > network) {
+    this->network = network;
+  }
+  int get_max_flow(int src, int sink) {
+    residual = network;
+    int max_flow = 0, cur_flow;
+    vis = vector<int>(residual.size(), 0);
+    while ((cur_flow = get_path(src, sink))) {
+      max_flow += cur_flow;
+      for (int i = 0; i < path.size() - 1; i++) {
+        int u = path[i];
+        int v = path[i + 1];
+        loop(k, residual[u].size()) if (residual[u][k].first == v) { residual[u][k].second -= cur_flow; break; }
+        bool added = false;
+        loop(k, residual[v].size()) {
+          if (residual[v][k].first == u) { residual[v][k].second += cur_flow; added = true; break; }
+        }
+        if (!added) residual[v].push_back(make_pair(u, cur_flow));
+        edges[mp(u, v)] += cur_flow;
+        edges[mp(v, u)] -= cur_flow;
+      }
+      vis = vector<int>(residual.size(), 0);
+      path.clear();
+    }
+    return max_flow;
+  }
+  void print(int n) {
+    for (int i = 1; i <= n; i++) {
+      for (int j = 1; j <= n; j++) {
+        if (edges.count(mp(i, j + n))) cout << edges[mp(i, j + n)]; 
+        else cout << 0;
+        if (j < n) cout << " ";
+      }
+      cout << endl;
+    }
+  }
+};
+
+int main () {
+  int n, m, a[N], b[N], t1 = 0, t2 = 0;
+  cin >> n >> m;
+  int all = 2 * n + 2;
+  vector<vector<pii> > net(all);
+  loop(i, n) {
+    cin >> a[i];
+    t1 += a[i];
+    net[0].pb(mp(i + 1, a[i]));
+  }
+  loop(i, n) {
+    cin >> b[i];
+    t2 += b[i];
+    net[n + i + 1].pb(mp(all - 1, b[i]));
+  }
+  if (t1 != t2) { cout << "NO" << endl; return 0; }
+  loop(i, n) net[i + 1].pb(mp(n + i + 1, INF));
+  loop(i, m) {
+    int p, q;
+    cin >> p >> q;
+    net[p].pb(mp(q + n, INF));
+    net[q].pb(mp(p + n, INF));
+  }
+  Ford_Fulkerson ford(net);
+  int flow = ford.get_max_flow(0, all - 1);
+  if (flow != t1) { cout << "NO" << endl; return 0; }
+  cout << "YES" << endl;
+  ford.print(n);
+  return 0;
+}

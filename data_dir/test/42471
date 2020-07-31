@@ -1,0 +1,130 @@
+// Phoenix
+
+#include<bits/stdc++.h>
+
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+
+const int maxn=2e5+10,mod=1e9+7;
+const ll inf=1e18;
+
+vector<int>v[maxn];
+int mx[4*maxn],lz[4*maxn],cnt[4*maxn];
+int sp[20][maxn],h[maxn],C=1,n;
+pii seg[maxn];
+
+void get(int l,int r,int id){
+    mx[id]+=lz[id];
+    if(l!=r){
+	lz[2*id]+=lz[id];
+	lz[2*id+1]+=lz[id];
+    }
+    lz[id]=0;
+}
+
+void Merge(int id){
+    mx[id]=0;
+    mx[id]=max(mx[id],mx[2*id]);
+    mx[id]=max(mx[id],mx[2*id+1]);
+    cnt[id]=0;
+    if(mx[id]==mx[2*id]) cnt[id]+=cnt[2*id];
+    if(mx[id]==mx[2*id+1]) cnt[id]+=cnt[2*id+1];
+}
+
+void add(int f,int s,int x,int l=1,int r=n,int id=1){
+    if(l>r || f>s)return;
+    get(l,r,id);
+    if(s<l || r<f)return;
+    if(f<=l && r<=s){
+	lz[id]+=x;
+	get(l,r,id);
+	return;
+    }
+    int mid=(l+r)/2;
+    add(f,s,x,l,mid,2*id);
+    add(f,s,x,mid+1,r,2*id+1);
+    Merge(id);
+}
+
+void dfs(int u,int H=1,int par=0){
+    seg[u].F=C++;
+    h[u]=H;
+    sp[0][u]=par;
+    for(int i=1;i<20;i++)
+	sp[i][u]=sp[i-1][sp[i-1][u]];
+    for(int y:v[u])
+	if(y!=par)
+	    dfs(y,H+1,u);
+    seg[u].S=C-1;
+}
+
+int LCA(int a,int b){
+    if(h[a]<h[b])swap(a,b);
+    for(int i=19;i>=0;i--){
+	if(h[sp[i][a]]>h[b])
+	    a=sp[i][a];
+    }
+    return a;
+}
+
+void build(int l,int r,int id){
+    cnt[id]=r-l+1;
+    if(l==r) return;
+    int mid=(l+r)/2;
+    build(l,mid,2*id);
+    build(mid+1,r,2*id+1);
+}
+
+set<pii>s;
+
+int main(){
+    int q;scanf("%d%d",&n,&q);
+    for(int i=2;i<=n;i++){
+	int a,b;scanf("%d%d",&a,&b);
+	v[a].PB(b);
+	v[b].PB(a);
+    }
+    build(1,n,1);
+    dfs(1);
+    while(q--){
+	int a,b;scanf("%d%d",&a,&b);
+	if(h[a]<h[b]) swap(a,b);
+	if(h[a]==h[b] && a>b) swap(a,b);
+	if(s.count({a,b})){
+	    s.erase({a,b});
+	    add(seg[a].F,seg[a].S,-1);
+	    int u=LCA(a,b);
+	    if(sp[0][u]==b){
+		add(1,n,-1);
+		add(seg[u].F,seg[u].S,1);
+	    }
+	    else{
+		add(seg[b].F,seg[b].S,-1);
+	    }
+	}
+	else{
+	    s.insert({a,b});
+	    add(seg[a].F,seg[a].S,1);
+	    int u=LCA(a,b);
+	    if(sp[0][u]==b){
+		add(1,n,1);
+		add(seg[u].F,seg[u].S,-1);
+	    }
+	    else{
+		add(seg[b].F,seg[b].S,1);
+	    }
+	}
+	if(mx[1]==sz(s)) printf("%d\n",cnt[1]);
+	else printf("0\n");
+    }
+    return 0;
+}

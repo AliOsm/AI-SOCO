@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+//#include <ext/pb_ds/assoc_container.hpp>
+//#include <ext/pb_ds/tree_policy.hpp>
+//#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+// using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+typedef complex <double> comp;
+
+//template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+//template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+//template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int mod = 1009;
+const int N = 2e5 + 1;
+const double pi = acos(-1);
+int n, m, k;
+int cnt[N];
+
+void fft(vec <comp> &a, bool invert) {
+    int n = len(a);
+    for(int i = 1, j = 0; i < n; ++i) {
+        int bit = n >> 1;
+        for(; j & bit; bit >>= 1) {
+            j ^= bit;
+        }
+        j ^= bit;
+        if(i < j) {
+            swap(a[i], a[j]);
+        }
+    }
+    for(int cur = 2; cur <= n; cur <<= 1) {
+        double ang = 2 * pi / cur * (invert? -1: 1);
+        comp wcur(cos(ang), sin(ang));
+        for(int i = 0; i < n; i += cur) {
+            comp w(1);
+            for(int j = 0; j < cur / 2; ++j) {
+                int x = i + j;
+                int y = i + j + cur / 2;
+                comp u = a[x];
+                comp v = a[y] * w;
+                a[x] = u + v;
+                a[y] = u - v;
+                w *= wcur;
+            }
+        }
+    }
+    if(invert) {
+        for(auto &it: a) {
+            it /= n;
+        }
+    }
+}
+
+vec <comp> operator * (const vec <comp> &a, const vec <comp> &b) {
+    vec <comp> fa = a;
+    vec <comp> fb = b;
+    int n = 1;
+    while(n < len(a) + len(b)) n *= 2;
+    fa.resize(n);
+    fb.resize(n);
+    fft(fa, false);
+    fft(fb, false);
+    for(int i = 0; i < n; ++i) {
+        fa[i] *= fb[i];
+    }
+    fft(fa, true);
+    for(int i = 0; i < n; ++i) {
+        fa[i] = comp((ll) round(fa[i].real()) % mod, 0);
+    }
+    return fa;
+}
+
+void input() {
+    cin >> n >> m >> k;
+    for(int i = 1; i <= n; ++i) {
+        int x; cin >> x;
+        cnt[x]++;
+    }
+}
+
+void solve() {
+    auto cmp = [](vec <comp> &a, vec <comp> &b) {
+        return len(a) > len(b);
+    };
+    priority_queue <vec <comp>, vec <vec <comp>>, decltype(cmp)> pq(cmp);
+    for(int i = 1; i <= m; ++i) {
+        vec <comp> coef;
+        for(int j = 0; j <= cnt[i]; ++j) {
+            coef.pb(1);
+        }
+        pq.push(coef);
+    }
+    while(len(pq) > 1) {
+        vec <comp> a = pq.top(); pq.pop();
+        vec <comp> b = pq.top(); pq.pop();
+        pq.push(a * b);
+    }
+    vec <comp> res = pq.top();
+    cout << (int) round(res[k].real()) % mod << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

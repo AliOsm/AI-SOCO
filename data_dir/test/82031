@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 7e3 + 7;
+const int M = 1e6 + 7;
+const int INF = 2e5 + 7;
+
+int a[N];
+
+int from[M], to[M], cap[M], cost[M], prv[M], head[M];
+int ecnt = 0;
+
+void add_edge(int u, int v, int uvcap, int uvcost)
+{
+    from[ecnt] = u, to[ecnt] = v, cap[ecnt] = uvcap, cost[ecnt] = uvcost , prv[ecnt] = head[u], head[u] = ecnt, ecnt++;
+    from[ecnt] = v, to[ecnt] = u, cap[ecnt] = 0    , cost[ecnt] = -uvcost, prv[ecnt] = head[v], head[v] = ecnt, ecnt++;
+}
+
+int d[N], par[N], q[N * N];
+bool mark[N];
+pair<bool, int> SPFA(int source, int sink)
+{
+    memset(d, 63, sizeof d);
+    int h = 0, t = 1;
+    q[0] = source;
+    d[source] = 0;
+    mark[source] = true;
+    while (h < t)
+    {
+        int v = q[h++];
+        mark[v] = false;
+        for (int i = head[v]; i != -1; i = prv[i])
+            if (cap[i] && d[to[i]] > d[v] + cost[i])
+            {
+                d[to[i]] = d[v] + cost[i];
+                par[to[i]] = i;
+                if (!mark[to[i]])
+                    q[t++] = to[i], mark[to[i]] = true;
+            }
+    }
+    if (d[sink] >= 1e9)
+        return {false, 0};
+    int out = 0;
+    while (sink != source)
+    {
+        cap[par[sink]] -= 1;
+        cap[par[sink] ^ 1] += 1;
+        out += cost[par[sink]];
+        sink = from[par[sink]];
+    }
+    return {true, out};
+}
+
+int mcmf(int source, int sink)
+{
+    int cost = 0;
+    pair<bool, int> x = {false, 0};
+    do
+    {
+        cost += x.second;
+        x = SPFA(source, sink);
+    }while(x.first);
+    return cost;
+}
+
+int main()
+{
+    ios::sync_with_stdio(false);
+    memset(head, -1, sizeof head);
+    int n, m;
+    cin >> n >> m;
+    for (int i=0; i<n; i++)
+        for (int j=0; j<m; j++)
+            cin >> a[i*m+j];
+    for (int i=0; i<n; i++)
+        for (int j=0; j+1<m; j++)
+        {
+            int u = i*m+j;
+            int v = i*m+j+1;
+            if ((i+j) % 2 == 1)
+                swap(u, v);
+            add_edge(u, v, 1, a[u]==a[v] ? 0 : 1);
+        }
+    for (int i=0; i<m; i++)
+        for (int j=0; j+1<n; j++)
+        {
+            int u = j*m+i;
+            int v = (j+1)*m+i;
+            if ((i+j) % 2 == 1)
+                swap(u, v);
+            add_edge(u, v, 1, a[u]==a[v] ? 0 : 1);
+        }
+    int source = N-1, sink = N-2;
+    for (int i=0; i<n; i++)
+        for (int j=0; j<m; j++)
+            if ((i+j) % 2 == 0)
+                add_edge(source, i*m+j, 1, 0);
+            else
+                add_edge(i*m+j, sink, 1, 0);
+    cout << mcmf(source, sink) << "\n";
+    return 0;
+}

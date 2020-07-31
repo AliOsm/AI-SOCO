@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+#define y0    lol
+#define y1    lool
+#define yn    loool
+#define prev  looool
+#define next  loooool
+#define read  looooool
+#define tm    loooooool
+#define fi first
+#define se second
+#define pb push_back
+#define sz(x) (int)(x).size()
+#define pcnt __builtin_popcountll
+#define rep(i,a,b) for(int i = (a); i <= (b); i++)
+#define rrep(i,a,b) for(int i = (b); i >= (a); i--)
+#ifdef LOCAL
+#define rall(x,a) for(x : a)
+#define LL "%lld"
+#else
+#define rall(x,a) for(auto x : a)
+#define LL "%I64d"
+#endif
+#define rng(a) a.begin(), a.end()
+#define PI 3.14159265358979323846
+#define MOD 1000000007
+#define endl "\n"
+#define int long long
+typedef long long ll;
+using namespace std;
+
+const int N = 111111;
+int a[N], k[N], sum[N], b[N], stree[N << 2], lazy[N << 2], maxi[N << 2];
+int n, q;
+
+int build(int l, int r, int pos) {
+    lazy[pos] = -1e18;
+    if(l == r) {
+        stree[pos] = b[l];
+        maxi[pos] = b[l];
+        return stree[pos];
+    }
+    int m = l + r >> 1;
+    int x = build(l, m, pos * 2 + 1);
+    int y = build(m + 1, r, pos * 2 + 2);
+    stree[pos] = x + y;
+    maxi[pos] = max(maxi[pos * 2 + 1], maxi[pos * 2 + 2]);
+    return stree[pos];
+}
+
+void updateLazy(int cl, int cr, int pos) {
+    if(lazy[pos] != -1e18) {
+        stree[pos] = lazy[pos] * (cr - cl + 1);
+        maxi[pos] = lazy[pos];
+        if(cl < cr) {
+            lazy[pos * 2 + 1] = lazy[pos];
+            lazy[pos * 2 + 2] = lazy[pos];
+        }
+        lazy[pos] = -1e18;
+    }
+}
+
+void update(int l, int r, int cl, int cr, int v, int pos) {
+    updateLazy(cl, cr, pos);
+    if(cl > r || cr < l) {
+        return;
+    } else if(cl >= l && cr <= r) {
+        stree[pos] = (cr - cl + 1) * v;
+        maxi[pos] = v;
+        if(cl < cr) {
+            lazy[pos * 2 + 1] = v;
+            lazy[pos * 2 + 2] = v;
+        }
+        return;
+    }
+    int m = cl + cr >> 1;
+    update(l, r, cl, m, v, pos * 2 + 1);
+    update(l, r, m + 1, cr, v, pos * 2 + 2);
+    stree[pos] = stree[pos * 2 + 1] + stree[pos * 2 + 2];
+    maxi[pos] = max(maxi[pos * 2 + 1], maxi[pos * 2 + 2]);
+}
+
+int query(int l, int r, int cl, int cr, int pos) {
+    updateLazy(cl, cr, pos);
+    if(cl > r || cr < l) {
+        return 0;
+    } else if(cl >= l && cr <= r) {
+        return stree[pos];
+    }
+    int m = cl + cr >> 1;
+    int x = query(l, r, cl, m, pos * 2 + 1);
+    int y = query(l, r, m + 1, cr, pos * 2 + 2);
+    return x + y;
+}
+
+int findBound(int x, int cl, int cr, int pos) {
+    updateLazy(cl, cr, pos);
+    if(cl == cr) {
+        return cl;
+    }
+    int m = cl + cr >> 1;
+    updateLazy(cl, m, pos * 2 + 1);
+    updateLazy(m + 1, cr, pos * 2 + 2);
+    if(maxi[pos * 2 + 1] <= x) {
+        return findBound(x, m + 1, cr, pos * 2 + 2);
+    }
+    return findBound(x, cl, m, pos * 2 + 1);
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cin >> n;
+    rep(i, 1, n) {
+        cin >> a[i];
+    }
+    rep(i, 1, n - 1) {
+        cin >> k[i];
+        k[i] += k[i - 1];
+        b[i] = a[i] - k[i - 1];
+    }
+    rep(i, 1, n) {
+        sum[i] = sum[i - 1] + k[i - 1];
+    }
+    b[n] = a[n] - k[n - 1];
+    build(1, n, 0);
+    cin >> q;
+    while(q--) {
+        char c;
+        cin >> c;
+        if(c == '+') {
+            int i, x;
+            cin >> i >> x;
+            int cur = query(i, i, 1, n, 0) + x;
+            int j = i;
+            if(cur >= query(n, n, 1, n, 0)) {
+                j = n;
+            } else {
+                j = findBound(cur, 1, n, 0) - 1;
+            }
+            if(j >= i) {
+                update(i, j, 1, n, cur, 0);
+            }
+        } else {
+            int l, r;
+            cin >> l >> r;
+            int s = query(l, r, 1, n, 0);
+            int ans = s + (sum[r] - sum[l - 1]);
+            cout << ans << endl;
+        }
+    }
+    return 0;
+}

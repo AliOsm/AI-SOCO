@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef long double LD;
+typedef pair < int, int > PII;
+typedef pair < LL, LL > PLL;
+typedef pair < LD, LD > PDD;
+
+#define _upgrade ios_base::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define all(x) (x).begin(), (x).end()
+#define sz(x) (int)(x).size()
+template < typename _T > inline void _DBG(const char *s, _T x) { cerr << s << " = " << x << "\n"; }
+template < typename _T, typename... args > void _DBG(const char *s, _T x, args... a) { while(*s != ',') cerr << *s++; cerr << " = " << x << ','; _DBG(s + 1, a...); }
+
+#ifdef LOCAL
+#define DBG(...) _DBG(#__VA_ARGS__, __VA_ARGS__)
+#else
+#define DBG(...) (__VA_ARGS__)
+#define cerr if(0) cout
+#endif
+
+// ********************** CODE ********************** //
+
+const int N = 1e5 + 7;
+
+int n, post[N], whi[N];
+vector < int > G[N];
+PII dp[N];
+
+int cnt = 0;
+
+void dfs(int v, int f)
+{
+    for(auto u: G[v])
+        if(u != f) dfs(u, v);
+    post[v] = ++cnt;
+    whi[cnt] = v;
+}
+
+int memo[N];
+
+int count(int k)
+{
+    if(memo[k] != -1)
+        return memo[k];
+    for(int i = 1; i <= n; i++)
+    {
+        int v = whi[i];
+        dp[i] = {0, 0};
+        int mx1 = 0, mx2 = 0;
+        for(auto u: G[v])
+        {
+            int j = post[u];
+            if(i < j) continue;
+            dp[i].first += dp[j].first;
+            if(dp[j].second >= mx1) {
+                mx2 = mx1;
+                mx1 = dp[j].second;
+            } else if(dp[j].second > mx2) {
+                mx2 = dp[j].second;
+            }
+        }
+        if(mx1 + mx2 + 1 >= k)
+            dp[i].first++;
+        else
+            dp[i].second = mx1 + 1;
+    }
+    return memo[k] = dp[n].first;
+}
+
+int ans[N];
+
+int main()
+{
+    _upgrade
+    cin >> n;
+    for(int i = 1; i < n; i++)
+    {
+        int a, b; cin >> a >> b;
+        G[a].push_back(b);
+        G[b].push_back(a);
+    }
+    dfs(1, 0);
+    for(int i = 1; i <= n + 1; i++)
+        memo[i] = -1;
+    int sq = min(n, 300);
+    for(int i = 1; i <= n + 1; i++)
+        ans[i] = -1;
+
+    for(int i = 1; i <= sq; i++)
+        ans[i] = count(i);
+
+    int k = ans[sq], id = sq;
+
+    while(k > 0)
+    {
+        int l = id, r = n + 1;
+        while(l + 1 < r)
+        {
+            int m = (l + r) / 2;
+            int res = count(m);
+            if(res < k)
+                r = m;
+            else
+                l = m;
+        }
+        ans[r] = count(r);
+        assert(ans[r] < k);
+        k = ans[r], id = r;
+    }
+
+    for(int i = 1; i <= n; i++)
+    {
+        if(ans[i] == -1)
+            ans[i] = ans[i - 1];
+        cout << ans[i] << "\n";
+    }
+
+	return 0;
+}

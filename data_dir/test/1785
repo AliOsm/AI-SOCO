@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <iostream>
+#include <cmath>
+#include <string>
+#include <set>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+const int N = 1000000;
+
+int cnt = 0;
+
+string type[N];
+int x[N], y[N];
+vector<int> vv;
+
+
+multiset<int> g[N];
+int t[N * 4];
+
+void modify(int v, int l, int r, int i, int f, int d) {
+    if(l == r) {
+        if(d == +1) {
+            g[l].insert(f);
+        } else {
+            g[l].erase(g[l].find(f));
+        }
+        if(g[l].empty())
+            t[v] = (int)-2e9;
+        else
+            t[v] = *(g[l].rbegin());
+        return;
+    }
+
+    int c = (l + r) / 2;
+    if(i <= c)
+        modify(v << 1, l, c, i, f, d);
+    else
+        modify((v << 1) ^ 1, c + 1, r, i, f, d);
+    t[v] = max(t[(v << 1) ^ 1], t[v << 1]);
+}
+
+int get(int ll, int rr, int v, int l, int r, int y) {
+    if(rr < l || r < ll)
+        return (int) 2e9;
+
+    int c = (l + r) / 2;
+    if(ll <= l && r <= rr) {
+        if(t[v] <= y)
+            return int(2e9);
+        if(l == r) {
+            return l;
+        }
+        if(t[v << 1] > y)
+            return get(ll, rr, v << 1, l, c, y);
+        else
+            return get(ll, rr, (v << 1) ^ 1, c + 1, r, y);
+    }
+    return min(get(ll, rr, v << 1, l, c, y), get(ll, rr, (v << 1) ^ 1, c + 1, r, y));
+}
+
+
+int main() {
+    ios::sync_with_stdio(false);
+
+    int n;
+    cin >> n;
+    for(int i = 0; i < n; i++) {
+        cin >> type[i] >> x[i] >> y[i];
+
+        if(type[i] == "add") {
+            vv.push_back(x[i]);
+        }
+    }
+
+    sort(vv.begin(), vv.end());
+    vv.resize(unique(vv.begin(), vv.end()) - vv.begin());
+//    for(int i = 0; i < vv.size(); i++) {
+//        cout << vv[i] << " ";
+//    }
+//    cout << "\n";
+
+    for(int i = 0; i < n; i++) {
+        if(type[i] == "add") {
+
+            int pos = lower_bound(vv.begin(), vv.end(), x[i]) - vv.begin();
+            modify(1, 0, vv.size() - 1, pos, y[i], +1);
+
+        } else if(type[i] == "remove"){
+
+            int pos = lower_bound(vv.begin(), vv.end(), x[i]) - vv.begin();
+            modify(1, 0, vv.size() - 1, pos, y[i], -1);
+
+        } else {
+
+            int pos = upper_bound(vv.begin(), vv.end(), x[i]) - vv.begin();
+            if(pos == vv.size()) {
+                cout << "-1\n";
+                continue;
+            }
+
+            pair<int, int> ans;
+            ans.first = get(pos, vv.size() - 1, 1, 0, vv.size() - 1, y[i]);
+//            cout << ans.first << " ";
+
+            if(ans.first == (int)2e9)
+                cout << "-1\n";
+            else {
+                ans.second = *(g[ans.first].upper_bound(y[i]));
+                cout << vv[ans.first] << " " << ans.second << "\n";
+            }
+        }
+    }
+    return 0;
+}

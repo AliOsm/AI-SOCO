@@ -1,0 +1,97 @@
+#pragma GCC optimize ("O3")
+#pragma GCC target ("sse4")
+
+#include <bits/stdc++.h>
+
+using namespace std;
+using ll = long long ;
+
+const int N = 1e5 + 5;
+vector<pair<int,int>>adj[N];
+bool vis[N];
+int lvl[N];
+int tb[N][18];
+ll to[N];
+ll pre[N][44];
+vector<pair<int,pair<int,int>>>extra;
+void dfs(int u){
+  vis[u] = 1;
+  for(int i = 1; i < 18; i++)
+    tb[u][i] = tb[tb[u][i-1]][i-1];
+  for(auto v : adj[u])if(!vis[v.first]){
+    lvl[v.first] = lvl[u] + 1;
+    to[v.first] = to[u] + v.second;
+    tb[v.first][0] = u;
+    dfs(v.first);
+  } else{
+    if(v.first != tb[u][0])extra.push_back(make_pair(v.second,make_pair(u,v.first)));
+  }
+}
+int lca(int u, int v){
+  if(lvl[u] > lvl[v])swap(u,v);
+  int d = lvl[v] - lvl[u];
+  for(int i = 0; i < 18; i++)if(d >> i & 1)v = tb[v][i];
+  if(u == v)return u;
+  for(int i = 17; i >= 0; --i)
+    if(tb[u][i] != tb[v][i])
+      u = tb[u][i], v = tb[v][i];
+  return tb[u][0];
+}
+ll treeDist(int u, int v){
+  return to[u] + to[v] - 2 * to[lca(u,v)];
+}
+int n, m, q;
+ll dist[N];
+ll inf;
+ll flyd[55][55];
+ll dij(int src, int dst){
+  ll ret = treeDist(src,dst);
+  for(int i = 0; i < extra.size(); i++)
+    for(int j = 0; j < extra.size(); j++)
+      ret = min(ret, pre[src][i] + flyd[i][j] + pre[dst][j]);
+  return ret;
+}
+int go[N];
+int main(){
+
+  scanf("%d%d", &n, &m);
+
+  for(int i = 0; i < m; i++){
+    int u, v, w; scanf("%d%d%d", &u, &v, &w);
+    adj[u].push_back({v,w});
+    adj[v].push_back({u,w});
+  }
+  inf = n * 1ll * 1000000000;
+//  cout << inf << '\n';
+////  cout << dist[0] << '\n';
+  dfs(1);
+  for(int i = 0; i < extra.size(); i++){
+    for(int j = 0; j < extra.size(); j++)flyd[i][j] = inf;
+    flyd[i][i] = 0;
+  }
+  for(int i = 1; i <=n;i++)
+  for(int j = 0; j < extra.size(); j++){
+    pre[i][j] = treeDist(i,extra[j].second.first);
+    go[extra[j].second.first] = j;
+  }
+  for(auto x : extra){
+    flyd[go[x.second.first]][go[x.second.second]] = x.first;
+  }
+  for(int i = 0; i < extra.size(); i++)
+    for(int j = 0; j <extra.size(); j++)
+      flyd[i][j] = min(flyd[i][j], treeDist(extra[i].second.first, extra[j].second.first));
+  for(int k = 0; k < extra.size(); k++)
+    for(int i = 0; i < extra.size(); i++)
+      for(int j =0 ; j < extra.size(); j++)
+        flyd[i][j] = min(flyd[i][j], flyd[i][k] + flyd[k][j]);
+
+  scanf("%d", &q);
+//  cout << extra[0].second.first << ' ' << extra[0].second.second << '\n';
+////  cout << extra[1].second.first << ' ' << extra[1].second.second << '\n';
+  while(q--){
+    int u, v; scanf("%d%d", &u, &v);
+    printf("%lld\n", dij(u,v));
+  }
+
+  return 0;
+}

@@ -1,0 +1,229 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC target("avx2,fma")
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define M_PI 3.14159265358979323846
+#define sz(v) ((int) (v).size())
+
+typedef double ld;
+typedef vector<int> vi;
+
+const int maxn = 512 * 1024;
+struct FFT {
+  alignas(32) double aReal[maxn];
+  alignas(32) double aImag[maxn];
+  alignas(32) double bReal[maxn];
+  alignas(32) double bImag[maxn];
+  alignas(32) double rootReals[maxn / 2];
+  alignas(32) double rootImags[maxn / 2];
+  int rev[maxn];
+  void fft(double* __restrict real, double* __restrict imag, bool inv) {
+    real = (double*) __builtin_assume_aligned(real, 32);
+    imag = (double*) __builtin_assume_aligned(imag, 32);
+    int m = 0;
+    while (1 << m < maxn) m++;
+    rev[0] = 0;
+    for (int i = 1, j = 0; i < maxn; i++) {
+      if (i == (1 << (j + 1))) j++;
+      rev[i] = rev[i ^ (1 << j)] | (1 << (m - 1 - j));
+      if (i < rev[i]) {
+        swap(real[i], real[rev[i]]);
+        swap(imag[i], imag[rev[i]]);
+      }
+    }
+    for (int len = 1; len < maxn; len <<= 1) {
+      double w = M_PI / len;
+      if (inv) w = -w;
+      double wReal = cos(w);
+      double wImag = sin(w);
+      double lastRootReal = 1;
+      double lastRootImag = 0;
+      for (int i = 0; i < len; i++) {
+        rootReals[i] = lastRootReal;
+        rootImags[i] = lastRootImag;
+        double nextRootReal = lastRootReal * wReal - lastRootImag * wImag;
+        double nextRootImag = lastRootReal * wImag + lastRootImag * wReal;
+        lastRootReal = nextRootReal;
+        lastRootImag = nextRootImag;
+      }
+      for (int i = 0; i < maxn; i += len << 1) {
+        for (int j = 0; j < len; j++) {
+          double rootReal = rootReals[j];
+          double rootImag = rootImags[j];
+          double real1 = real[i + j];
+          double imag1 = imag[i + j];
+          double real2 = real[i + j + len];
+          double imag2 = imag[i + j + len];
+          double real3 = real2 * rootReal - imag2 * rootImag;
+          double imag3 = real2 * rootImag + imag2 * rootReal;
+          real[i + j] = real1 + real3;
+          imag[i + j] = imag1 + imag3;
+          real[i + j + len] = real1 - real3;
+          imag[i + j + len] = imag1 - imag3;
+        }
+      }
+    }
+
+    if (inv) {
+      for (int i = 0; i < maxn; i++) {
+        real[i] = real[i] / maxn;
+        imag[i] = imag[i] / maxn;
+      }
+    }
+  }
+
+  static int highestOneBit(int x) {
+    if (x == 0) return 0;
+    int j = 0;
+    while (1 << (j + 1) <= x) j++;
+    return 1 << j;
+  }
+
+  vector<int> multiply(const vector<int>& a, const vector<int>& b) {
+    for (int i = 0; i < maxn; i++) {
+      aReal[i] = 0;
+      aImag[i] = 0;
+      bReal[i] = 0;
+      bImag[i] = 0;
+    }
+    for (int i = 0; i < sz(a); i++) aReal[i] = a[i];
+    for (int i = 0; i < sz(b); i++) bReal[i] = b[i];
+    fft(aReal, aImag, false);
+    fft(bReal, bImag, false);
+    for (int i = 0; i < maxn; i++) {
+      double real = aReal[i] * bReal[i] - aImag[i] * bImag[i];
+      double imag = aReal[i] * bImag[i] + aImag[i] * bReal[i];
+      aReal[i] = real;
+      aImag[i] = imag;
+    }
+    fft(aReal, aImag, true);
+    int len = max(1, highestOneBit(max(sz(a), sz(b)) - 1)) << 2;
+    vector<int> res(len);
+    for (int i = 0; i < len; i++) res[i] = (int) (aReal[i] + 0.5);
+    return res;
+  }
+} fft;
+
+struct ComplexFFT {
+  struct Complex {
+    ld real, imag;
+    Complex(ld r = 0, ld i = 0) : real(r), imag(i) {}
+    Complex add(const Complex &other) { return {real + other.real, imag + other.imag}; }
+    Complex sub(const Complex &other) { return {real - other.real, imag - other.imag}; }
+    Complex mul(const Complex &other) { return {real * other.real - imag * other.imag, imag * other.real + real * other.imag}; }
+    Complex div(const ld x) { return {real / x, imag / x}; }
+    int toInt() { return (int) round(real); }
+  };
+
+  static void fft(int n, Complex* a, bool inv) {
+    int m = 0;
+    while (1u << m < n) m++;
+    int rev[n];
+    rev[0] = 0;
+    for (int i = 1, j = 0; i < n; i++) {
+      if (i == (1 << (j + 1))) j++;
+      rev[i] = rev[i ^ (1u << j)] | (1 << (m - 1 - j));
+      if (i < rev[i]) swap(a[i], a[rev[i]]);
+    }
+    for (int len = 1; len < n; len <<= 1) {
+      ld w = M_PI / len;
+      if (inv) w = -w;
+      ld wReal = cos(w);
+      ld wImag = sin(w);
+      Complex wc(wReal, wImag);
+      for (int i = 0; i < n; i += len << 1) {
+        Complex root(1, 0);
+        for (int j = 0; j < len; j++) {
+          Complex &c1 = a[i + j];
+          Complex &c2 = a[i + j + len];
+          Complex c3 = c2.mul(root);
+          a[i + j + len] = c1.sub(c3);
+          a[i + j] = c1.add(c3);
+          root = root.mul(wc);
+        }
+      }
+    }
+    if (inv) {
+      for (int i = 0; i < n; i++) {
+        a[i] = a[i].div(n);
+      }
+    }
+  }
+
+  static int highestOneBit(int x) {
+    int log = 0;
+    while (1u << (log + 1) <= x) log++;
+    return 1u << log;
+  }
+  static vi multiply(vi &a, vi &b) {
+    int len = max(1, highestOneBit(max(a.size(), b.size()) - 1)) << 2;
+    Complex ac[len];
+    Complex bc[len];
+    for (int i = 0; i < a.size(); i++) ac[i] = Complex(a[i]);
+    for (int i = 0; i < b.size(); i++) bc[i] = Complex(b[i]);
+    fft(len, ac, false);
+    fft(len, bc, false);
+    for (int i = 0; i < len; i++) ac[i] = ac[i].mul(bc[i]);
+    fft(len, ac, true);
+    vi res(len);
+    for (int i = 0; i < len; i++) res[i] = ac[i].toInt();
+    return res;
+  }
+};
+
+vi scalarWithComplexFFTMultiply(vi &a, vi &b) {
+  reverse(a.begin(), a.end());
+  vi c = ComplexFFT::multiply(a, b);
+  vi res(a.size() - b.size() + 1);
+  for (int i = 0; i < res.size(); i++) res[i] = c[a.size() - 1 - i];
+  return res;
+}
+
+vi scalarWithFFTMultiply(vi &a, vi &b) {
+  reverse(a.begin(), a.end());
+  vi c = fft.multiply(a, b);
+  vi res(a.size() - b.size() + 1);
+  for (int i = 0; i < res.size(); i++) res[i] = c[a.size() - 1 - i];
+  return res;
+}
+
+void widen(vi &a, int k) {
+  int n = a.size();
+  for (int i = 0; i < n; i++) {
+    if (a[i] == 0) continue;
+    int32_t j = i - 1;
+    while (j >= 0 && i - j <= k && a[j] == 0) a[j--] = 1;
+    j = i + 1;
+    while (j < n && j - i <= k && a[j] == 0) a[j++] = 1;
+    i = j - 1;
+  }
+}
+
+int32_t main() {
+  ios::sync_with_stdio(false);
+  cin.tie(nullptr);
+
+  int n, m, k;
+  cin >> n >> m >> k;
+  string s, t;
+  cin >> s >> t;
+
+  vi results(n - m + 1);
+  for (char c : "ATGC") {
+    vi a(n);
+    vi b(m);
+    for (int i = 0; i < n; i++) a[i] = s[i] == c ? 1 : 0;
+    for (int i = 0; i < m; i++) b[i] = t[i] == c ? 1 : 0;
+    widen(a, k);
+//    vi sc = scalarWithComplexFFTMultiply(a, b);
+    vi sc = scalarWithFFTMultiply(a, b);
+    for (int i = 0; i < sc.size(); i++) results[i] += sc[i];
+  }
+
+  int ans = 0;
+  for (int x : results) if (x == m) ans++;
+  cout << ans;
+}

@@ -1,0 +1,168 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// #pragma GCC optimize("Ofast")
+// #pragma GCC target("avx,avx2,fma")
+
+enum SegmentEndpointType {
+    kLeft = 0,
+    kRight = 1
+};
+
+struct Segment {
+    int left, right, id;
+};
+
+struct SegmentEndpoint {
+    int position;
+    Segment* segment;
+    SegmentEndpointType type;
+
+    inline bool operator<(const SegmentEndpoint& other) const {
+        if (position != other.position) {
+            return position < other.position;
+        } else {
+            if (type != other.type) {
+                if (type == kLeft) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }  else {
+                if (type == kLeft) {
+                    return segment->right > other.segment->right;
+                } else {
+                    return segment->left > other.segment->left;
+                }
+            }
+        }
+    }
+};
+
+void PrintAnswer(int l, int r, int n, const vector<vector<int>>& dp, 
+    const vector<SegmentEndpoint>& endpoints, const vector<Segment>& segments,
+    const vector<int>& left_for_right, const vector<int>& right_for_left) {
+    if (l > r)
+        return;
+
+    if (dp[l][r] == dp[l + 1][r]) {
+        PrintAnswer(l + 1, r, n, dp, endpoints, segments, left_for_right, right_for_left);
+        return;
+    }
+
+    if (dp[l][r] == dp[l][r - 1]) {
+        PrintAnswer(l, r - 1, n, dp, endpoints, segments, left_for_right, right_for_left);
+        return;
+    }
+
+    if (endpoints[l].segment->id == endpoints[r].segment->id) {
+        cout << endpoints[l].segment->id << " ";
+        PrintAnswer(l + 1, r - 1, n, dp, endpoints, segments, left_for_right, right_for_left);
+        return;
+    }
+
+    if (endpoints[l].type == kLeft) {
+        int i = right_for_left[l];
+        if (i < r) {
+            if (dp[l][r] == dp[l][i] + dp[i][r]) {
+                PrintAnswer(l, i, n, dp, endpoints, segments, left_for_right, right_for_left);
+                PrintAnswer(i, r, n, dp, endpoints, segments, left_for_right, right_for_left);
+                return;
+            }
+        }
+    }
+
+    if (endpoints[r].type == kRight) {
+        int j = left_for_right[r];
+        if (l < j) {
+            if (dp[l][r] == dp[l][j] + dp[j][r]) {
+                PrintAnswer(l, j, n, dp, endpoints, segments, left_for_right, right_for_left);
+                PrintAnswer(j, r, n, dp, endpoints, segments, left_for_right, right_for_left);
+                return;
+            }
+        }
+    }
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int n;
+    cin >> n;
+    vector<int> radius(n), center(n);
+    for (int i = 0; i < n; ++i)
+        cin >> center[i] >> radius[i];
+
+    vector<SegmentEndpoint> endpoints(n << 1);
+    vector<Segment> segments(n);
+    for (int i = 0; i < n; ++i) {
+        segments[i] = { center[i] - radius[i], center[i] + radius[i], i + 1 };
+        endpoints[i << 1] = { center[i] - radius[i], &segments[i], kLeft };
+        endpoints[(i << 1) | 1] = { center[i] + radius[i], &segments[i], kRight };
+    }
+
+    sort(endpoints.begin(), endpoints.end());
+
+    vector<vector<int>> dp(n << 1, vector<int>(n << 1, 0));
+    for (int i = 0; i < (n << 1); ++i)
+        dp[i][i] = 0;
+
+    // Right endpoint index for given left endpoint index
+    vector<int> right_for_left(n << 1, -1);
+    for (int i = 0; i < (n << 1); ++i)
+        if (endpoints[i].type == kLeft)
+            for (int j = i + 1; j < (n << 1); ++j)
+                if (endpoints[j].segment->id == endpoints[i].segment->id)
+                    right_for_left[i] = j;
+
+    // Left endpoint index for given right endpoint index
+    vector<int> left_for_right(n << 1, -1);
+    for (int i = 0; i < (n << 1); ++i)
+        if (endpoints[i].type == kRight)
+            for (int j = 0; j < i; ++j)
+                if (endpoints[j].segment->id == endpoints[i].segment->id)
+                    left_for_right[j] = i;
+
+    for (int k = 1; k < (n << 1); ++k) {
+        for (int l = 0; l + k < (n << 1); ++l) {
+            int r = l + k;
+            
+            // If we do not take segments with left endpoint l
+            dp[l][r] = max(dp[l + 1][r], dp[l][r - 1]);
+
+            // If there is a segment between l and r
+            if (endpoints[l].segment->id == endpoints[r].segment->id) {
+                ++dp[l][r];
+            } else {
+                // Try connecting left endpoint with some other point
+                if (endpoints[l].type == kLeft) {
+                    int i = right_for_left[l];
+                    if (i < r)
+                        dp[l][r] = max(dp[l][r], dp[l][i] + dp[i][r]);
+                }
+
+                // Try connecting right endpoint with some other point
+                if (endpoints[r].type == kRight) {
+                    int j = left_for_right[r];
+                    if (l < j)
+                        dp[l][r] = max(dp[l][r], dp[l][j] + dp[j][r]); 
+                }
+            }
+        }
+    }
+
+    // for (auto r: dp) {
+    //     for (auto c: r) {
+    //         cout << c << " ";
+    //     }
+    //     cout << "\n";
+    // }
+    
+    int l = 0, r = (n << 1) - 1;
+    cout << dp[l][r] << "\n";
+
+    PrintAnswer(l, r, n, dp, endpoints, segments, left_for_right, right_for_left);
+
+    return 0;
+}

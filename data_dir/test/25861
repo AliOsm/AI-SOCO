@@ -1,0 +1,274 @@
+#include <cstring>
+#include <cstdio>
+#include <vector>
+#include <algorithm>
+#include <cstdlib>
+using namespace std;
+
+const long long INF = 1e17;
+
+#define ft first
+#define sd second
+
+typedef pair<long long, pair<int, int> > P;
+
+int n, m, q;
+int subsize[100055];
+int head[100055], pos[100055], cur;
+int chain[100055];
+int death[100055];
+int t;
+int anc[17][100055];
+vector<int> g[100055];
+
+int depth[100055];
+
+void compute(int v, int par, int d) {
+	subsize[v] = 1;
+	depth[v] = d;
+
+	for (int i = 0; i < (int)g[v].size(); i++) {
+		int u = g[v][i];
+
+		if (u == par) continue;
+
+		compute(u, v, d + 1);
+		subsize[v] += subsize[u];
+	}
+}
+void hld(int v, int par) {
+	if (head[cur] == -1) head[cur] = v;
+	pos[v] = ++t;
+	chain[v] = cur;
+
+	anc[0][v] = par;
+
+	int sp = -1;
+
+	for (int i = 0; i < (int)g[v].size(); i++) {
+		if (g[v][i] == par) continue;
+
+		if (sp == -1 || subsize[g[v][i]] > subsize[sp]) {
+			sp = g[v][i];
+		}
+	}
+
+	if (sp != -1) hld(sp, v);
+
+	for (int i = 0; i < (int)g[v].size(); i++) {
+		int u = g[v][i];
+
+		if (u == par || u == sp) continue;
+
+		cur++;
+		hld(u, v);
+	}
+
+	death[v] = t;
+}
+
+P dat[400055];
+vector<P> girl[100055];
+
+long long lazy[400055];
+
+void update(int id, int x, int y, int l, int r, long long w) {
+	if (l > y || r < x) return;
+
+	if (x != y && lazy[id] > 0) {
+		dat[id + id].ft += lazy[id];
+		dat[id + id + 1].ft += lazy[id];
+
+		lazy[id + id] += lazy[id];
+		lazy[id + id + 1] += lazy[id];
+
+		lazy[id] = 0;
+	}
+
+	if (l <= x && y <= r) {
+		dat[id].ft += w;
+		lazy[id] += w;
+		return;
+	}
+
+	int mid = (x + y) >> 1;
+
+	update(id + id, x, mid, l, r, w);
+	update(id + id + 1, mid + 1, y, l, r, w);
+
+	dat[id] = min(dat[id + id], dat[id + id + 1]);
+}
+P query(int id, int x, int y, int l, int r) {
+	if (l > y || r < x) return P(INF, make_pair(0, 0));
+
+	if (x != y && lazy[id] > 0) {
+		dat[id + id].ft += lazy[id];
+		dat[id + id + 1].ft += lazy[id];
+
+		lazy[id + id] += lazy[id];
+		lazy[id + id + 1] += lazy[id];
+
+		lazy[id] = 0;
+	}
+
+	if (l <= x && y <= r) return dat[id];
+
+	int mid = (x + y) >> 1;
+
+	P p = query(id + id, x, mid, l, r);
+	p = min(p, query(id + id + 1, mid + 1, y, l, r));
+
+	dat[id] = min(dat[id + id], dat[id + id + 1]);
+
+	return p;
+}
+P query(int v, int u) {
+	int uchain = chain[u];
+	P res = P(INF, make_pair(0, 0));
+
+	while (true) {
+		int vchain = chain[v];
+
+		if (vchain == uchain) {
+			res = min(res, query(1, 1, n, pos[u], pos[v]));
+			return res;
+		}
+
+		res = min(res, query(1, 1, n, pos[head[vchain]], pos[v]));
+
+		v = head[vchain];
+		v = anc[0][v];
+	}
+}
+void modify(int id, int x, int y, int l, int r, P p) {
+	if (l > y || r < x) return;
+
+	if (x != y && lazy[id] > 0) {
+		dat[id + id].ft += lazy[id];
+		dat[id + id + 1].ft += lazy[id];
+
+		lazy[id + id] += lazy[id];
+		lazy[id + id + 1] += lazy[id];
+
+		lazy[id] = 0;
+	}
+
+	if (l <= x && y <= r) {
+		dat[id] = p;
+		return;
+	}
+
+	int mid = (x + y) >> 1;
+
+	modify(id + id, x, mid, l, r, p);
+	modify(id + id + 1, mid + 1, y, l, r, p);
+
+	dat[id] = min(dat[id + id], dat[id + id + 1]);
+}
+void erase(int id) {
+	P p = query(1, 1, n, pos[id], pos[id]);
+
+	long long diff = p.ft - (long long)(p.sd.sd);
+
+	girl[id].pop_back();
+	if ((int)girl[id].size() > 1) girl[id].back().ft += diff;
+	modify(1, 1, n, pos[id], pos[id], girl[id].back());
+}
+int get(int u, int v) {
+	if (depth[u] > depth[v]) swap(u, v);
+
+	for (int i = 0; i < 17; i++) {
+		if (((depth[v] - depth[u]) >> i) & 1) {
+			v = anc[i][v];
+		}
+	}
+
+	if (u == v) return u;
+
+	for (int i = 16; i >= 0; i--) {
+		if (anc[i][u] != anc[i][v]) {
+			u = anc[i][u];
+			v = anc[i][v];
+		}
+	}
+
+	return anc[0][u];
+}
+int main() {
+	scanf("%d %d %d", &n, &m, &q);
+
+	int x, y;
+
+	for (int i = 0; i < n - 1; i++) {
+		scanf("%d %d", &x, &y);
+		x--, y--;
+
+		g[x].push_back(y);
+		g[y].push_back(x);
+	}
+
+	memset(head, -1, sizeof(head));
+
+	compute(0, -1, 0);
+	hld(0, -1);
+
+	for (int i = 0; i < 16; i++) {
+		for (int v = 0; v < n; v++) {
+			if (anc[i][v] == -1) anc[i + 1][v] = -1;
+			else anc[i + 1][v] = anc[i][anc[i][v]];
+		}
+	}
+
+	for (int i = 0; i < m; i++) {
+		scanf("%d", &x);
+		x--;
+
+		girl[x].push_back(P(1LL * i + 1, make_pair(x, i + 1)));
+	}
+
+	for (int i = 0; i < n; i++) girl[i].push_back(P(INF, make_pair(i, 0)));
+	for (int i = 0; i < n; i++) {
+		sort(girl[i].begin(), girl[i].end());
+		reverse(girl[i].begin(), girl[i].end());
+		modify(1, 1, n, pos[i], pos[i], girl[i].back());
+	}
+
+	int ope;
+	int k;
+
+	while (q--) {
+		scanf("%d", &ope);
+
+		if (ope == 1) {
+			scanf("%d %d %d", &x, &y, &k);
+			x--, y--;
+
+			int lca = get(x, y);
+
+			vector<int> res;
+
+			while (k--) {
+				P a = min(query(x, lca), query(y, lca));
+
+				if (a.ft == INF) break;
+
+				res.push_back(a.sd.sd);
+				erase(a.sd.ft);
+			}
+
+			printf("%d", (int)res.size());
+			for (int i = 0; i < (int)res.size(); i++) printf(" %d", res[i]);
+
+			puts("");
+		} else {
+			long long w;
+
+			scanf("%d %lld", &x, &w);
+			x--;
+
+			update(1, 1, n, pos[x], death[x], w);
+		}
+	}
+
+	return 0;
+}

@@ -1,0 +1,88 @@
+#include<bits/stdc++.h>
+#define lc (id << 1)
+#define rc (lc ^ 1)
+#define md (l + r >> 1)
+using namespace std;
+typedef long long ll;
+const int N = 200005;
+int n, q;
+ll MN[N * 4][2], LZ[N * 4][2];
+void Set(int i, int val, int id = 1, int l = 0, int r = n + 1)
+{
+    if (r - l < 2)
+    {
+        MN[id][0] = val;
+        MN[id][1] = INT_MAX;
+        return ;
+    }
+    if (i < md)
+        Set(i, val, lc, l, md);
+    else
+        Set(i, val, rc, md, r);
+    bool w = (md - l) & 1;
+    MN[id][0] = min(MN[lc][0], MN[rc][w]);
+    MN[id][1] = min(MN[lc][1], MN[rc][!w]);
+}
+void Add(int le, int ri, int val, int id = 1, int l = 0, int r = n + 1)
+{
+    if (ri <= l || r <= le)
+        return ;
+    if (le <= l && r <= ri)
+    {
+        bool w = (l - le) & 1;
+        MN[id][w] += val;
+        LZ[id][w] += val;
+        return ;
+    }
+    Add(le, ri, val, lc, l, md);
+    Add(le, ri, val, rc, md, r);
+    bool w = (md - l) & 1;
+    MN[id][0] = min(MN[lc][0], MN[rc][w]) + LZ[id][0];
+    MN[id][1] = min(MN[lc][1], MN[rc][!w]) + LZ[id][1];
+}
+pair < ll , ll > Get(int le, int ri, int id = 1, int l = 0, int r = n + 1)
+{
+    if (ri <= l || r <= le)
+        return (make_pair(INT_MAX, INT_MAX));
+    bool w = (l - le) & 1;
+    if (le <= l && r <= ri)
+        return (make_pair(MN[id][w], MN[id][!w]));
+    pair < ll , ll > a = Get(le, ri, lc, l, md), b = Get(le, ri, rc, md, r);
+    return (make_pair(min(a.first, b.first) + LZ[id][w], min(a.second, b.second) + LZ[id][!w]));
+}
+int main()
+{
+    scanf("%d", &n);
+    for (int i = 1, p = 0; i <= n; i ++)
+    {
+        int a; scanf("%d", &a);
+        p = a - p; Set(i, p);
+    }
+    scanf("%d", &q);
+    for (; q; q --)
+    {
+        int tp, l, r, k;
+        scanf("%d%d%d", &tp, &l, &r);
+        l ++; r += 2;
+        if (tp == 1)
+        {
+            scanf("%d", &k);
+            Add(l, r, k);
+            if ((r - l) & 1)
+                Add(r, n + 1, - k), Add(r + 1, n + 1, k);
+        }
+        else
+        {
+            ll d = Get(l - 1, l).first;
+            ll g = Get(r - 1, r).first;
+            pair < ll , ll > Mn = Get(l, r);
+            int w = (Mn.first >= 1 - d && Mn.second >= d);
+            if ((r - l) & 1)
+                w &= (g + d == 1);
+            else
+                w &= (g - d == 0);
+            printf("%d\n", w);
+        }
+    }
+    return 0;
+}

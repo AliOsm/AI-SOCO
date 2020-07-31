@@ -1,0 +1,182 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+typedef long long ll;
+
+int N;
+int x[250010], y[250010], m[250010], r[250010], M[250010], R[250010];
+
+map <pair <int, int>, vector <int> > mp;
+
+struct node{
+    int child[4];
+    int parent;
+    int cnt;
+};
+
+#define TWO (1<<30)
+
+int T;
+node tree[8000000];
+
+queue <int> q;
+
+void add_node(int id, int mlow, int mhigh, int rlow, int rhigh, int m, int r){
+    int i;
+    
+    tree[id].cnt++;
+    
+    if(mhigh - mlow == 1 && rhigh - rlow == 1) return;
+    
+    int mmid = (mlow + mhigh) / 2, rmid = (rlow + rhigh) / 2;
+    int mlow2 = mlow, mhigh2 = mhigh, rlow2 = rlow, rhigh2 = rhigh, c = 0;
+    
+    if(m >= mlow && m < mmid){
+        mhigh2 = mmid;
+    } else {
+        mlow2 = mmid;
+        c += 2;
+    }
+    
+    if(r >= rlow && r < rmid){
+        rhigh2 = rmid;
+    } else {
+        rlow2 = rmid;
+        c++;
+    }
+    
+    if(tree[id].child[c] != -1){
+        add_node(tree[id].child[c], mlow2, mhigh2, rlow2, rhigh2, m, r);
+    } else {
+        tree[id].child[c] = T;
+        REP(i,4) tree[T].child[i] = -1;
+        tree[T].parent = id;
+        tree[T].cnt = 0;
+        T++;
+        add_node(T-1, mlow2, mhigh2, rlow2, rhigh2, m, r);
+    }
+}
+
+void search(int id, int mlow, int mhigh, int rlow, int rhigh, int M, int R){
+    int i;
+    
+//  cout << mlow << ' ' << mhigh << ' ' << rlow << ' ' << rhigh << ' ' << M << ' ' << R << endl;
+    
+    if(tree[id].cnt == 0 || mlow >= M || rlow >= R) return;
+    
+    if(mhigh - mlow == 1 && rhigh - rlow == 1){
+    //  cout << mlow << ' ' << mhigh << ' ' << rlow << ' ' << rhigh << endl;
+        
+        vector <int> ship = mp[make_pair(mlow, rlow)];
+        REP(i,ship.size()) q.push(ship[i]);
+        
+        int sz = ship.size();
+        
+        int x = id;
+        while(1){
+            tree[x].cnt -= sz;
+            if(x == 0) break;
+            x = tree[x].parent;
+        }
+        
+        return;
+    }
+    
+    int mmid = (mlow + mhigh) / 2, rmid = (rlow + rhigh) / 2;
+    if(tree[id].child[0] != -1) search(tree[id].child[0], mlow, mmid, rlow, rmid, M, R);
+    if(tree[id].child[1] != -1) search(tree[id].child[1], mlow, mmid, rmid, rhigh, M, R);
+    if(tree[id].child[2] != -1) search(tree[id].child[2], mmid, mhigh, rlow, rmid, M, R);
+    if(tree[id].child[3] != -1) search(tree[id].child[3], mmid, mhigh, rmid, rhigh, M, R);
+}
+
+int main(void){
+    int i;
+    
+    scanf("%d%d%d%d%d", &x[0], &y[0], &M[0], &R[0], &N);
+    REP(i,N) scanf("%d%d%d%d%d", &x[i+1], &y[i+1], &m[i+1], &M[i+1], &R[i+1]);
+    
+    N++;
+    for(i=1;i<N;i++){
+        ll D = (ll)(x[i] - x[0]) * (x[i] - x[0]) + (ll)(y[i] - y[0]) * (y[i] - y[0]);
+        ll d = (ll)sqrt(D) - 1;
+        while(d < 0 || d*d < D) d++;
+        if(d > TWO - 1) d = TWO - 1;
+        r[i] = (int)d;
+    }
+
+/*  int sr;
+    cin >> sr;
+    srand(sr);
+    N = 10000;
+    REP(i,N){
+        m[i] = rand() % 1000000 + 1;
+        r[i] = rand() % 1000000 + 1;
+        M[i] = rand() % 1000000 + 1;
+        R[i] = rand() % 1000000 + 1;
+    }
+//  REP(i,N) cout << m[i] << ' ' << r[i] << ' ' << M[i] << ' ' << R[i] << endl;
+    
+    bool used[10010], pick[10010];
+    REP(i,N) used[i] = pick[i] = false;
+    
+    queue <int> q2;
+    q2.push(0);
+    pick[0] = true;
+    
+    while(!q2.empty()){
+        int x = q2.front(); q2.pop();
+        if(used[x]) continue;
+        used[x] = true;
+        
+        REP(i,N) if(m[i] <= M[x] && r[i] <= R[x] && !pick[i]){
+            pick[i] = true;
+            q2.push(i);
+        }
+    }
+    
+    int ans2 = 0;
+    REP(i,N) if(i > 0 && pick[i]) ans2++;
+    cout << ans2 << endl;
+*/  
+    T = 1;
+    REP(i,4) tree[0].child[i] = -1;
+    tree[0].cnt = 0;
+    
+    for(i=1;i<N;i++){
+    //  cout << m[i] << ' ' << r[i] << endl;
+        add_node(0, 0, TWO, 0, TWO, m[i], r[i]);
+        mp[make_pair(m[i],r[i])].push_back(i);
+    }
+    
+    int ans = 0;
+    
+    q.push(0);
+    while(!q.empty()){
+        int ship = q.front(); q.pop();
+    //  cout << ship << endl;
+        if(ship != 0) ans++;
+        search(0, 0, TWO, 0, TWO, M[ship]+1, R[ship]+1);
+    }
+    
+    cout << ans << endl;
+    
+    return 0;
+}

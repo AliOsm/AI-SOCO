@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct AhoCorasick {
+	vector<vector<int>> succ;
+	vector<int> fail, accept;
+	char from, to;
+
+	AhoCorasick(char from = 'a', char to = 'z') :
+		from(from),
+		to(to),
+		succ(1, vector<int>(to - from + 1)),
+		accept(1) {
+	}
+
+	void add(string s) {
+		int curr = 0;
+		for (char c : s) {
+			c -= from;
+			if (succ[curr][c] == 0) {
+				succ[curr][c] = succ.size();
+				succ.push_back(vector<int>(to - from + 1));
+				accept.push_back(0);
+			}
+			curr = succ[curr][c];
+		}
+		accept[curr]++;
+	}
+
+	void build() {
+		queue<int> q;
+		for (int c = 0; c <= to - from; c++) {
+			if (succ[0][c] != 0) {
+				q.push(succ[0][c]);
+			}
+		}
+
+		fail.resize(succ.size());
+		while (!q.empty()) {
+			int curr = q.front(); q.pop();
+			for (int c = 0; c <= to - from; c++) {
+				int next = succ[curr][c];
+				if (next != 0) {
+					q.push(next);
+					fail[next] = succ[fail[curr]][c];
+				} else {
+					succ[curr][c] = succ[fail[curr]][c];
+				}
+			}
+			accept[curr] += accept[fail[curr]];
+		}
+	}
+};
+
+struct Set {
+	struct Item {
+		vector<string> vec;
+		int size;
+		AhoCorasick aho;
+
+		Item(vector<string> vec, int size) : vec(vec), size(size) {
+			for (string s : vec) {
+				aho.add(s);
+			}
+			aho.build();
+		}
+	};
+
+	vector<Item> a;
+
+	void add(string s) {
+		a.emplace_back(vector<string> {s}, 1);
+		
+		while (a.size() >= 2 && a[a.size() - 1].size == a[a.size() - 2].size) {
+			int size = a.back().size;
+			vector<string> u = a[a.size() - 1].vec;
+			vector<string> v = a[a.size() - 2].vec;
+			if (u.size() < v.size()) swap(u, v);
+			u.insert(u.begin(), v.begin(), v.end());
+			a.pop_back();
+			a.pop_back();
+			a.emplace_back(u, size * 2);
+		}
+	}
+
+	long long count(string s) {
+		long long res = 0;
+		for (int i = 0; i < a.size(); i++) {
+			int curr = 0;
+			for (char c : s) {
+				curr = a[i].aho.succ[curr][c - 'a'];
+				res += a[i].aho.accept[curr];
+			}
+		}
+		return res;
+	}
+};
+
+int main() {
+	int n;
+	cin >> n;
+
+	Set add, rem;
+
+	for (int ii = 0; ii < n; ii++) {
+		int t;
+		scanf("%d", &t);
+
+		static char buf[303030];
+		scanf("%s", buf);
+		string s(buf);
+
+		if (t == 1) {
+			add.add(s);
+		} else if (t == 2) {
+			rem.add(s);
+		} else {
+			printf("%lld\n", add.count(s) - rem.count(s));
+			fflush(stdout);
+		}
+	}
+}

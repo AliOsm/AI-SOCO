@@ -1,0 +1,115 @@
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <deque>
+#include <queue>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <functional>
+#include <utility>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <cstdio>
+
+using namespace std;
+
+#define REP(i,n) for((i)=0;(i)<(int)(n);(i)++)
+#define foreach(c,itr) for(__typeof((c).begin()) itr=(c).begin();itr!=(c).end();itr++)
+
+#define T (1<<18)
+int tree[2][2*T];
+
+void update_query(int type, int x, int val){
+    int id = T+x;
+    tree[type][id] = val;
+    while(id > 1){
+        id /= 2;
+        tree[type][id] = max(tree[type][2*id], tree[type][2*id+1]);
+    }
+}
+
+int max_query(int type, int x){
+    int id = T+x, ans = 0;
+    while(1){
+        ans = max(ans, tree[type][id]);
+        if((id & (id+1)) == 0) return ans;
+        id = (id + 1) / 2;
+    }
+}
+
+set <int> sx,sy;
+int xtoy[T], ytox[T];
+
+void add(int x, int y){ // y is small
+    int i;
+    
+    sx.insert(x); sy.insert(y);
+    xtoy[x] = y; ytox[y] = x;
+    
+    vector <pair <int, int> > v;
+    foreach(sy,itr){
+        int y2 = (*itr), x2 = ytox[y2];
+        update_query(0, x2, 0);
+        update_query(1, y2, 0);
+        v.push_back(make_pair(x2, y2));
+        if(y2 == y) break;
+    }
+    
+    for(i=v.size()-1;i>=0;i--){
+        int x2 = v[i].first, y2 = v[i].second;
+        int tmp = max_query(0, x2+1) + 1;
+        update_query(0, x2, tmp);
+        update_query(1, y2, tmp);
+    }
+}
+
+void remove(int c){ // x is small
+    int i;
+    
+    vector <pair <int, int> > v;
+    foreach(sx,itr){
+        int x2 = (*itr), y2 = xtoy[x2];
+        update_query(0, x2, 0);
+        update_query(1, y2, 0);
+        v.push_back(make_pair(x2, y2));
+        c--;
+        if(c == 0) break;
+    }
+    
+    for(i=v.size()-1;i>=0;i--){
+        int x2 = v[i].first, y2 = v[i].second;
+        int tmp = 0;
+        if(i == v.size()-1){
+            sx.erase(x2); sy.erase(y2);
+        } else {
+            tmp = max_query(1, y2+1) + 1;
+        }
+        update_query(0, x2, tmp);
+        update_query(1, y2, tmp);
+    }
+}
+
+int main(void){
+    int N,Q,i,type,p,h,x;
+    
+    cin >> N >> Q;
+    
+    REP(i,Q){
+        scanf("%d", &type);
+        if(type == 1){
+            scanf("%d%d", &p, &h); p--;
+            add(p, h-i+Q);
+        } else {
+            scanf("%d", &x);
+            remove(x);
+        }
+        
+        int ans = max_query(0, 0);
+        printf("%d\n", ans);
+    }
+    
+    return 0;
+}

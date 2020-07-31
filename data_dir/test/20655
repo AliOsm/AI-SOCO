@@ -1,0 +1,129 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+
+const int INF = 1000000000;
+const int MAX_N = 200005;
+
+int n, q;
+int a[MAX_N];
+int reqL[MAX_N], reqR[MAX_N];
+int t1[4 * MAX_N], t2[4 * MAX_N];
+
+void build(int i, int l, int r)
+{
+	if (l == r)
+		t1[i] = (a[l] == 0 ? INF : a[l]);
+	else
+	{
+		int mid = (l + r) / 2;
+		build(2 * i + 1, l, mid);
+		build(2 * i + 2, mid + 1, r);
+		t1[i] = min(t1[2 * i + 1], t1[2 * i + 2]);
+	}
+}
+
+int rmq(int i, int l, int r, int lx, int rx)
+{
+	if (l == lx && r == rx)
+		return t1[i];
+	else
+	{
+		int mid = (l + r) / 2;
+		int result = INF;
+		if (lx <= mid)
+			result = min(result, rmq(2 * i + 1, l, mid, lx, min(rx, mid)));
+		if (rx > mid)
+			result = min(result, rmq(2 * i + 2, mid + 1, r, max(lx, mid + 1), rx));
+		return result;
+	}
+}
+
+void setOnRange(int i, int l, int r, int lx, int rx, int val)
+{
+	if (l == lx && r == rx)
+		t2[i] = val;
+	else
+	{
+		int mid = (l + r) / 2;
+		if (lx <= mid)
+			setOnRange(2 * i + 1, l, mid, lx, min(rx, mid), val);
+		if (rx > mid)
+			setOnRange(2 * i + 2, mid + 1, r, max(lx, mid + 1), rx, val);
+	}
+}
+
+int get(int i, int l, int r, int pos)
+{
+	if (l == r)
+		return t2[i];
+	else
+	{
+		int mid = (l + r) / 2;
+		if (pos <= mid)
+			return max(t2[i], get(2 * i + 1, l, mid, pos));
+		else
+			return max(t2[i], get(2 * i + 2, mid + 1, r, pos));
+	}
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin >> n >> q;
+	for (int i = 0; i < n; i++)
+		cin >> a[i];
+
+	for (int i = 1; i <= q; i++)
+	{
+		reqL[i] = -1;
+		reqR[i] = -1;
+	}
+	for (int i = 0; i < n; i++)
+	{
+		if (reqL[a[i]] == -1)
+			reqL[a[i]] = i;
+		reqR[a[i]] = i;
+	}
+	build(0, 0, n - 1);
+
+	for (int i = 1; i <= q; i++)
+	{
+		if (reqL[i] == -1)
+			continue;
+		int minVal = rmq(0, 0, n - 1, reqL[i], reqR[i]);
+		if (minVal < i)
+		{
+			cout << "NO" << endl;
+			return 0;
+		}
+		setOnRange(0, 0, n - 1, reqL[i], reqR[i], i);
+	}
+
+	if (reqL[q] == -1)
+	{
+		bool setQ = false;
+		for (int i = 0; i < n; i++)
+			if (a[i] == 0)
+			{
+				a[i] = q;
+				setQ = true;
+				break;
+			}
+		if (!setQ)
+		{
+			cout << "NO" << endl;
+			return 0;
+		}
+	}
+	for (int i = 0; i < n; i++)
+		if (a[i] == 0)
+			a[i] = max(1, get(0, 0, n - 1, i));
+
+	cout << "YES" << endl;
+	for (int i = 0; i < n; i++)
+		cout << a[i] << " ";
+	cout << endl;
+}

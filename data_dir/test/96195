@@ -1,0 +1,209 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <assert.h>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <bitset>
+#include <string>
+#include <sstream>
+#include <memory.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <functional>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const int oo = 1e9 + 7;
+vector<int> mp;
+int v[200001], Z, n;
+set<int> buc[1024];
+struct bucket {
+	int s;
+	ll mn, out;
+	int first, last;
+	bucket() {
+		mn = out = 0;
+		s = oo;
+		first = last = -1;
+	}
+	void build(int idx) {
+		int e = min(n - 1, idx*Z + Z - 1);
+		s = oo; mn = 0;
+		ll cur = 0;
+		int prev = -1;
+		for (int i = idx*Z; i <= e; ++i) {
+			if (v[i] != oo) {
+				if (s != oo)
+					cur += (ll)(mp[i] - mp[prev])*s;
+				if (mn > cur)
+					mn = cur;
+				s = v[i];
+				prev = i;
+			}
+		}
+		out = cur;
+	}
+}E[1024];
+int q;
+set<int> e;
+int main()
+{
+	int q;
+	scanf("%d", &q);
+	vector<vector<int> > Q(q);
+	for (auto &x : Q) {
+		x.resize(4);
+		scanf("%d%d", &x[0], &x[1]);
+		if (x[0] != 2)
+			scanf("%d", &x[2]);
+		if (x[0] == 3)
+			scanf("%d", &x[3]);
+		mp.push_back(x[1]);
+		if (x[0] == 3)
+			mp.push_back(x[2]);
+	}
+	mp.push_back(1000000000);
+	sort(mp.begin(), mp.end());
+	mp.resize(unique(mp.begin(), mp.end()) - mp.begin());
+	n = mp.size();
+	Z = sqrt(n) + 1;
+	int B = (n + Z - 1) / Z;
+	for (int i = 0; i < n; ++i)
+		v[i] = oo;
+	for (auto &x : Q) {
+		if (x[0] == 1) {
+			e.insert(x[1]).first;
+			int idx = lower_bound(mp.begin(), mp.end(), x[1]) - mp.begin();
+			v[idx] = x[2];
+			E[idx / Z].build(idx / Z);
+			buc[idx / Z].insert(idx);
+			E[idx / Z].first = buc[idx / Z].empty() ? -1 : *buc[idx / Z].begin();
+			E[idx / Z].last = buc[idx / Z].empty() ? -1 : *--buc[idx / Z].end();
+		}
+		else if (x[0] == 2) {
+			e.erase(x[1]);
+			int idx = lower_bound(mp.begin(), mp.end(), x[1]) - mp.begin();
+			v[idx] = oo;
+			E[idx / Z].build(idx / Z);
+			buc[idx / Z].erase(idx);
+			E[idx / Z].first = buc[idx / Z].empty() ? -1 : *buc[idx / Z].begin();
+			E[idx / Z].last = buc[idx / Z].empty() ? -1 : *--buc[idx / Z].end();
+		}
+		else {
+			int l = lower_bound(mp.begin(), mp.end(), x[1]) - mp.begin();
+			int r = lower_bound(mp.begin(), mp.end(), x[2]) - mp.begin();
+			int s = oo;
+			ll val = x[3];
+			if (val == 0) {
+				printf("%d\n", x[1]);
+				continue;
+			}
+			double res = -1;
+			if (l / Z == r / Z) {
+				int prev = -1;
+				for (int i = l; i <= r; ++i) {
+					if (s != oo) {
+						if (val <= (ll)(mp[i] - mp[prev])*-s) {
+							res = mp[prev] + val / double(-s);
+							break;
+						}
+					}
+					if (v[i] != oo) {
+						if (s != oo)
+							val += (ll)(mp[i] - mp[prev])*s;
+						s = v[i];
+						prev = i;
+					}
+				}
+			}
+			else {
+				int e1 = l / Z*Z + Z - 1;
+				int prev = -1;
+				for (int i = l; i <= e1; ++i) {
+					if (s != oo) {
+						if (val <= (ll)(mp[i] - mp[prev])*-s) {
+							res = mp[prev] + val / double(-s);
+							break;
+						}
+					}
+					if (v[i] != oo) {
+						if (s != oo)
+							val += (ll)(mp[i] - mp[prev])*s;
+						s = v[i];
+						prev = i;
+					}
+				}
+				if (res < -0.1) {
+					e1 = r / Z;
+					for (int i = l / Z + 1; i < e1; ++i) {
+						if (E[i].first != -1) {
+							if (prev != -1 && val <= (mp[E[i].first] - mp[prev])*(ll)-s) {
+								res = mp[prev] + val / double(-s);
+								break;
+							}
+							if (s != oo)
+								val += (mp[E[i].first] - mp[prev])*(ll)s;
+							prev = E[i].first;
+							s = v[prev];
+						}
+						if (E[i].first == -1 && prev != -1 && val <= (mp[min(n - 1, (i + 1)*Z - 1)] - mp[prev])*(ll)-s) {
+							res = mp[prev] + val / double(-s);
+							break;
+						}
+						if (val + E[i].mn <= 0) {
+							if (val <= 0)
+								while (1);
+							int st = E[i].first;
+							for (int i = st + 1;; ++i) {
+								if (s != oo) {
+									if (val <= (ll)(mp[i] - mp[prev])*-s) {
+										res = mp[prev] + val / double(-s);
+										break;
+									}
+								}
+								if (v[i] != oo) {
+									if (s != oo)
+										val += (ll)(mp[i] - mp[prev])*s;
+									s = v[i];
+									prev = i;
+								}
+							}
+							break;
+						}
+						val += E[i].out;
+						if (E[i].s != oo) {
+							s = E[i].s;
+							prev = E[i].last;
+						}
+					}
+					if (res < -0.1) {
+						for (int i = r / Z*Z; i <= r; ++i) {
+							if (s != oo) {
+								if (val <= (ll)(mp[i] - mp[prev])*-s) {
+									res = mp[prev] + val / double(-s);
+									break;
+								}
+							}
+							if (v[i] != oo) {
+								if (s != oo)
+									val += (ll)(mp[i] - mp[prev])*s;
+								s = v[i];
+								prev = i;
+							}
+						}
+					}
+				}
+			}
+			if (res < -0.1)
+				puts("-1");
+			else
+				printf("%.9lf\n", res);
+		}
+	}
+	return 0;
+}

@@ -1,0 +1,16 @@
+#include <iostream>
+
+using namespace std;
+int n, a[1005];
+int main()
+{
+    cin>>n;
+    for (int i=1;i<=n;++i)
+        a[i] = i;
+    for (int i=n;i>1;--i)
+        swap(a[i],a[i-1]);
+    for (int i=1;i<=n;++i)
+        cout<<a[i]<<' ';
+    cout<<'\n';
+    return 0;
+}

@@ -1,0 +1,105 @@
+#include<bits/stdc++.h>
+#define ll long long
+#define ld long double
+#define pb push_back
+#define x first
+#define y second
+#define fastread ios_base::sync_with_stdio(false);cin.tie(NULL);cout.tie(NULL);
+using namespace std;
+
+
+const int maxn=2e5;
+vector<int> adjlist[maxn];
+//centroid decomposition
+//beware it modifies adjlist
+int centroidParent[maxn];
+int nn;//number of nodes in the current subtree
+int subSize[maxn];
+
+void calcSubTreeSize(int cur,int par)
+{
+    subSize[cur]=1;
+    nn++;
+    for(auto v:adjlist[cur])
+    {
+        if(v!=par)
+        {
+            calcSubTreeSize(v,cur);
+            subSize[cur]+=subSize[v];
+        }
+    }
+}
+
+int findCentroid(int cur,int par)
+{
+    for(auto v:adjlist[cur])
+    {
+        if(v!=par && subSize[v]>nn/2)
+            return findCentroid(v,cur);
+    }
+    return cur;
+}
+void decompose(int cur,int par)
+{
+    nn=0;
+    calcSubTreeSize(cur,par);
+    int centroid=findCentroid(cur,par);
+    centroidParent[centroid]=par;
+    for(auto v:adjlist[centroid])
+    {
+        for(int i=0;i<adjlist[v].size();i++)
+        {
+            if(adjlist[v][i]==centroid)
+            {
+                adjlist[v].erase(adjlist[v].begin()+i);
+                break;
+            }
+        }
+        decompose(v,centroid);
+    }
+}
+
+//end of centroid decomposition
+
+
+
+int depth[maxn];
+vector<int> centlist[maxn];
+void dfs(int cur,int par){
+    depth[cur]=depth[par]+1;
+    for(auto u:centlist[cur])
+        if(u!=par)
+            dfs(u,cur);
+}
+
+
+
+int main()
+{
+    fastread;
+    int n;
+    cin>>n;
+    for(int i=1;i<n;i++){
+        int u,v;
+        cin>>u>>v;
+        adjlist[u].pb(v);
+        adjlist[v].pb(u);
+    }
+    decompose(1,0);
+    for(int i=1;i<=n;i++){
+        centlist[centroidParent[i]].pb(i);
+    }
+    depth[0]=-1;
+    dfs(0,0);
+    int maxi=0;
+    for(int i=1;i<=n;i++){
+        maxi=max(maxi,depth[i]);
+    }
+    if(maxi>26)
+        cout<<"Impossible!";
+    else{
+        for(int i=1;i<=n;i++)
+            cout<<(char)('A'+depth[i]-1)<<" ";
+    }
+    return 0;
+}

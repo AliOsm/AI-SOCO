@@ -1,0 +1,219 @@
+#include<iostream>
+#include<cstdio>
+#include<vector>
+#include<algorithm>
+#include<queue>
+#include<string>
+#include<cstring>
+#include<map>
+#include<cmath>
+#include<bitset>
+#include<set>
+#include<cstdlib>
+#include<complex>
+#include<list>
+#include<sstream>
+#include<cassert>
+#include<iomanip>
+#include<limits>
+
+using namespace std;
+
+//#define double long double
+
+typedef pair<int,int> ii;
+typedef pair<int,long long> il;
+typedef pair<long long,long long> ll;
+typedef pair<ll,int> lli;
+typedef pair<long long,int> li;
+typedef pair<double,double> dd;
+typedef pair<ii,int> iii;
+typedef pair<double,int> di;
+typedef pair<int,ii> iii2;
+typedef pair<ii,ii> iiii;
+int mod = 1000000007LL;
+long long large = 2000000000000000000LL;
+
+
+vector<vector<int> > adj;
+vector<vector<int> > pa;
+vector<int> lv;
+int sz = 20;
+
+void dfs(int u,int parent,int lvl){
+	pa[u][0] = parent;
+	lv[u] = lvl;
+	for(int j=0;j<(int)adj[u].size();j++){
+		int v = adj[u][j];
+		if(v!=parent){
+			dfs(v,u,lvl+1);
+		}
+	}
+}
+
+int lca(int x,int y){
+	if(lv[x]<lv[y]) swap(x,y);
+	int g = lv[x]-lv[y];
+	for(int j=sz-1;j>=0;j--){
+		if(g&(1<<j)) x = pa[x][j];
+	}
+	if(x==y) return x;
+	for(int j=sz-1;j>=0;j--){
+		if(pa[x][j]!=pa[y][j]){
+			x = pa[x][j];
+			y = pa[y][j];
+		}
+	}
+	return pa[x][0];
+}
+
+set<int> g;
+map<int,int> tpa;
+map<int,int> comp;
+vector<vector<int> > adj1;
+
+void dfs1(int u,int parent){
+	comp[u] = 1;
+	tpa[u] = parent;
+	for(int j=0;j<(int)adj[u].size();j++){
+		int v = adj[u][j];
+		if(g.find(v)!=g.end()) continue;
+		if(v!=parent){
+			dfs1(v,u);
+			comp[u]+=comp[v];
+		}
+	}
+}
+int f(int st){
+	tpa.clear();
+	comp.clear();
+	dfs1(st,-1);
+	int n = comp.size();
+	int cen = -1;
+	for(map<int,int>::iterator it = comp.begin();it!=comp.end();it++){
+		int u = it->first;
+		int sz = 0;
+		for(int j=0;j<(int)adj[u].size();j++){
+			int v = adj[u][j];
+			if(g.find(v)!=g.end()) continue;
+			if(v!=tpa[u]){
+				sz = max(sz,comp[v]);
+			}
+		}
+		if(u!=st) sz = max(sz,n-comp[u]);
+
+		if(sz<=n/2){
+			cen = u;
+			break;
+		}
+	}
+	assert(cen!=-1);
+
+	g.insert(cen);
+
+	for(int j=0;j<(int)adj[cen].size();j++){
+		int v = adj[cen][j];
+		if(g.find(v)!=g.end()) continue;
+		int re = f(v);
+		adj1[cen].push_back(re);
+		adj1[re].push_back(cen);
+	}
+	return cen;
+}
+
+vector<int> ans;
+
+
+vector<int> pa2;
+void dfs2(int u,int parent){
+	pa2[u] = parent;
+	for(int j=0;j<(int)adj1[u].size();j++){
+		int v = adj1[u][j];
+		if(v!=parent){
+			dfs2(v,u);
+		}
+	}
+}
+
+int dis(int x,int y){
+	int r = lca(x,y);
+	return lv[x]+lv[y]-2*lv[r];
+}
+
+int main(){
+	int n,m;
+	cin>>n>>m;
+	adj.assign(n,vector<int>());
+	for(int i=0;i<n-1;i++){
+		int x,y;
+		scanf("%d%d",&x,&y);
+		x--;y--;
+		adj[x].push_back(y);
+		adj[y].push_back(x);
+	}
+	pa.assign(n,vector<int>(sz,-1));
+	lv.assign(n,0);
+	dfs(0,-1,0);
+	for(int j=1;j<sz;j++){
+		for(int i=0;i<n;i++){
+			if(pa[i][j-1]!=-1){
+				pa[i][j] = pa[pa[i][j-1]][j-1];
+			}
+		}
+	}
+
+	//cout<<"!"<<endl;
+
+	adj1.assign(n,vector<int>());
+	int rt = f(0);
+	pa2.assign(n,-1);
+	dfs2(rt,-1);
+	/*for(int i=0;i<n;i++){
+		cout<<i+1<<" ";
+		for(int j=0;j<(int)adj1[i].size();j++){
+			int v = adj1[i][j];
+			cout<<v+1<<" ";
+		}
+		cout<<endl;
+	}*/
+
+	ans.assign(n,1000000000);
+
+	int x = 0;
+	int u = x;
+	while(u!=-1){
+		ans[u] = min(ans[u],dis(u,x));
+		u = pa2[u];
+	}
+
+	while(m--){
+		int t;
+		scanf("%d",&t);
+		if(t==1){
+			int x;
+			scanf("%d",&x);
+			x--;
+			int u = x;
+			while(u!=-1){
+				ans[u] = min(ans[u],dis(u,x));
+				u = pa2[u];
+			}
+		}else{
+			int x;
+			scanf("%d",&x);
+			x--;
+			int re = 1000000000;
+			int u = x;
+			while(u!=-1){
+				re = min(re,ans[u]+dis(u,x));
+				u = pa2[u];
+			}
+			cout<<re<<endl;
+		}
+	}
+
+
+
+
+    return 0;
+}

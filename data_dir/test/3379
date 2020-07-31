@@ -1,0 +1,141 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int64_t MOD = 998244353;
+void add(int64_t& a, int64_t b){
+    a = (a+b) % MOD;
+}
+void mul(int64_t& a, int64_t b){
+    a = a*b % MOD;
+}
+
+int64_t power_mod(int64_t num, int64_t power){
+    int64_t prod = 1;
+    num %= MOD;
+    while(power > 0){
+        if(power&1) prod = prod * num % MOD;
+        num = num * num % MOD;
+        power >>= 1;
+    }
+    return prod;
+}
+
+int64_t extgcd(int64_t a, int64_t b, int64_t& x, int64_t& y){
+    int64_t d = a;
+    if(b != 0){
+        d = extgcd(b, a%b, y, x);
+        y -= (a/b) * x;
+    }else{
+        x = 1; y = 0;
+    }
+    return d;
+}
+
+int64_t inv_mod(int64_t a){
+    int64_t x, y;
+    extgcd(a, MOD, x, y);
+    return (MOD + x%MOD) % MOD;
+}
+
+template<typename T>
+struct BIT {
+    int n;
+    vector<T> dat;
+
+    BIT(int n=0){
+        initialize(n);
+    }
+
+    void initialize(int nin){
+        n = nin;
+        dat.resize(n, 0);
+    }
+
+    T sum(int i){
+        T s = 0;
+        while(i >= 0){
+            s += dat[i];
+            i = (i & (i+1)) - 1;
+        }
+        return s;
+    }
+
+    T sum_between(int i, int j){
+        return sum(j) - sum(i-1);
+    }
+
+    void plus(int i, T x){
+        while(i < n){
+            dat[i] += x;
+            i |= i+1;
+        }
+    }
+
+    // a[0]+...+a[ret] >= x
+    int lower_bound(T x){
+        int ret = -1;
+        int k = 1;
+        while(2*k <= n) k <<= 1;
+        for( ;k>0; k>>=1){
+            if(ret+k < n && dat[ret+k] < x){
+                x -= dat[ret+k];
+                ret += k;
+            }
+        }
+        return ret + 1;
+    }
+};
+
+int main(){
+    int N, Q;
+    cin >> N >> Q;
+    vector<int64_t> A(N+1, 1), M(N+1, 1), MI(N+1, 1), MS(N+2);
+    MS[1] = 1;
+    int64_t inv100 = inv_mod(100);
+    for(int i=1; i<=N; i++){
+        scanf("%lld", &A[i]);
+        mul(A[i], inv100);
+        M[i] = M[i-1] * A[i] % MOD;
+        MI[i] = inv_mod(M[i]);
+        MS[i+1] = (MS[i] + M[i]) % MOD;
+    }
+
+    auto calc = [&](int l, int r){
+        int64_t s = (MOD + MS[r] - MS[l]) % MOD;
+        mul(s, MI[r]);
+        return s;
+    };
+    int64_t ans = calc(0, N);
+
+    bitset<200002> cp;
+    cp[0] = cp[N] = 1;
+    BIT<int> bit(N+1);
+    bit.plus(0, 1);
+    bit.plus(N, 1);
+    while(Q--){
+        int u;
+        scanf("%d", &u);
+        u--;
+        if(cp[u]){
+            int s = bit.sum(u);
+            int l = bit.lower_bound(s-1);
+            int r = bit.lower_bound(s+1);
+            add(ans, MOD - calc(l, u));
+            add(ans, MOD - calc(u, r));
+            add(ans, calc(l, r));
+            cp[u] = 0;
+            bit.plus(u, -1);
+        }else{
+            int s = bit.sum(u);
+            int l = bit.lower_bound(s);
+            int r = bit.lower_bound(s+1);
+            add(ans, calc(l, u));
+            add(ans, calc(u, r));
+            add(ans, MOD - calc(l, r));
+            cp[u] = 1;
+            bit.plus(u, 1);
+        }
+        printf("%lld\n", ans);
+    }
+    return 0;
+}

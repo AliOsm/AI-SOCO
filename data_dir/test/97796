@@ -1,0 +1,195 @@
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
+#include <vector>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stack>
+#include <queue>
+#include <ctime>
+#include <cassert>
+#include <complex>
+#include <string>
+#include <cstring>
+#include <chrono>
+#include <random>
+#include <bitset>
+using namespace std;
+#define int long long
+#define endl '\n'
+typedef long long ll;
+
+
+struct Node {
+	vector<int> vals, prefixCost;
+};
+
+struct SegmentTree {
+	vector<Node> tree;
+	int n, size;
+	const ll inf = 1e18;
+
+	SegmentTree(const vector<int> &arr, const vector<int> &cost) : n((int)arr.size()) {
+		size = 1;
+		while(size < n) size<<=1;
+		size<<=1;
+		tree.resize(size);
+		build(arr, cost, 1, 0, n-1);
+	}
+	void build(const vector<ll> &arr, const vector<int> &cost, int node, int start, int end) {
+		if(start == end) {
+			tree[node].vals = {arr[start]};
+			tree[node].prefixCost = {cost[start]};
+		} else {
+			int mid = (start+end)/2;
+			build(arr, cost, 2*node, start, mid);
+			build(arr, cost, 2*node+1, mid+1, end);
+
+			int l = 0, r = 0;
+
+			while(l < tree[2*node].vals.size() && r < tree[2*node+1].vals.size()) {
+				if(tree[2*node].vals[l] < tree[2*node+1].vals[r]) {
+					tree[node].vals.push_back(tree[2*node].vals[l]);
+					tree[node].prefixCost.push_back(tree[2*node].prefixCost[l]);
+					if(l) {
+						tree[node].prefixCost.back() -= tree[2*node].prefixCost[l-1];
+					}
+					++l;
+				} else {
+					tree[node].vals.push_back(tree[2*node+1].vals[r]);
+					tree[node].prefixCost.push_back(tree[2*node+1].prefixCost[r]);
+					if(r) {
+						tree[node].prefixCost.back() -= tree[2*node+1].prefixCost[r-1];
+					}
+					++r;
+				}
+			}
+			while(l < tree[2*node].vals.size()) {
+				tree[node].vals.push_back(tree[2*node].vals[l]);
+				tree[node].prefixCost.push_back(tree[2*node].prefixCost[l]);
+				if(l) {
+					tree[node].prefixCost.back() -= tree[2*node].prefixCost[l-1];
+				}
+				++l;
+			}
+			while(r < tree[2*node+1].vals.size()) {
+				tree[node].vals.push_back(tree[2*node+1].vals[r]);
+				tree[node].prefixCost.push_back(tree[2*node+1].prefixCost[r]);
+				if(r) {
+					tree[node].prefixCost.back() -= tree[2*node+1].prefixCost[r-1];
+				}
+				++r;
+			}
+			for(int i = 1; i < tree[node].prefixCost.size(); ++i) {
+				tree[node].prefixCost[i] += tree[node].prefixCost[i-1];
+			}
+		}
+	}
+	int query(int l, int r, int val) {return query(1, 0, n-1, l, r, val);}
+	int query(int node, int start, int end, int l, int r, int val) {
+		if(r < start || end < l) return 0;
+		if(l <= start && end <= r) {
+			int pos = upper_bound(tree[node].vals.begin(), tree[node].vals.end(), val) - tree[node].vals.begin();
+			if(pos == tree[node].vals.size()) return 0;
+			int res = tree[node].prefixCost.back();
+			if(pos) res -= tree[node].prefixCost[pos-1];
+			return res;
+		}
+		int mid = (start+end)/2;
+		return query(2*node, start, mid, l, r, val) + query(2*node+1, mid+1, end, l, r, val);
+	}
+};
+
+signed main() {
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+	int n;
+	cin >> n;
+	vector<int> A(n);
+	for(int i = 0; i < n; ++i) {
+		cin >> A[i];
+	}
+	vector<int> cost(n);
+	vector<int> costPos(n);
+	for(int i = 0; i < n; ++i) {
+		cin >> cost[i];
+		costPos[i] = max(0LL,cost[i]);
+	}
+	int m;
+	cin >> m;
+	vector<int> B(m);
+	vector<int> indexB(n+1,-1);
+	for(int i = 0; i < m; ++i) {
+		cin >> B[i];
+		indexB[B[i]] = i;
+	}
+
+	SegmentTree st(A,costPos);
+
+	vector<int> suffix(n+1,0);
+	for(int i = n-1; i >= 0; --i) {
+		suffix[i] = suffix[i+1];
+		if(A[i] > B.back() || cost[i] < 0) {
+			suffix[i] += cost[i];
+		}
+	}
+
+	const int inf = 1e18;
+
+	int res = inf;
+	vector<int> dp(n,inf);
+	vector<int> prev(n+1,-1);
+	vector<int> prefixNeg(n+1,0);
+	int sumCost = 0;
+	for(int i = 0; i < n; ++i) {
+		if(cost[i] < 0) prefixNeg[i] = cost[i];
+		if(i) prefixNeg[i] += prefixNeg[i-1];
+
+		int posB = indexB[A[i]];
+		if(posB == -1) {
+			if(A[i] != B[0] || cost[i] < 0) {
+				sumCost += cost[i];
+			}
+			continue;
+		}
+
+		if(prev[A[i]] != -1) {
+			const int prevIndex = prev[A[i]];
+			dp[i] = min(dp[i], prefixNeg[i]-prefixNeg[prevIndex] + st.query(prevIndex+1, i, A[i]) + dp[prevIndex]);
+		}
+
+		if(posB == 0) {
+			dp[i] = min(dp[i],sumCost);
+		} else {
+			if(prev[B[posB-1]] != -1) {
+				const int prevIndex = prev[B[posB-1]];
+				dp[i] = min(dp[i], prefixNeg[i-1]-prefixNeg[prevIndex] + st.query(prevIndex+1, i-1, B[posB-1]) + dp[prevIndex]);
+			}
+		}
+
+		if(A[i] == B.back()) {
+			res = min(res, dp[i] + suffix[i+1]);
+		}
+
+		prev[A[i]] = i;
+		if(A[i] != B[0] || cost[i] < 0) {
+			sumCost += cost[i];
+		}
+	}
+	/*
+	cout << "dp:\n";
+	for(int i = 0; i < n; ++i) {
+		cout << dp[i] << " ";
+	}
+	cout << endl;
+	*/
+	if(res >= inf/10) {
+		cout << "NO";
+	} else {
+		cout << "YES\n" << res;
+	}
+}

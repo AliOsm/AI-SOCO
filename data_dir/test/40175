@@ -1,0 +1,55 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define ll long long
+#define maxn 300005
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+#define ms1(i) memset(i,-1,sizeof(i));
+#define bg begin()
+#define ed end()
+#define pii pair<int,int>
+const ll mod = 1e9+7;
+int main(){
+	ios_base::sync_with_stdio(0);
+	cin.tie(0);
+	int n;
+	while(cin >> n){
+		map<int,int>mp;
+		set<int>s[6];
+		mp[4]=0;
+		mp[8]=1;
+		mp[15]=2;
+		mp[16]=3;
+		mp[23]=4;
+		mp[42]=5;
+		f1(n){
+			int add;
+			cin >> add;
+			add=mp[add];
+			s[add].insert(i);
+		}
+		int cnt = 0;
+		while(1){
+			if(s[0].size()==0){
+				cout<<n-cnt*6<<endl;
+				exit(0);
+				break;
+			}
+			int now=*(s[0].begin());
+			s[0].erase(now);
+			for(int i=1;i<6;i++){
+				if(s[i].lower_bound(now)==s[i].end()){
+					cout<<n-cnt*6<<endl;
+					exit(0);
+				}
+				now = *(s[i].lower_bound(now));
+				s[i].erase(now);
+			}
+			cnt++;
+		}
+	}
+}

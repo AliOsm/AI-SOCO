@@ -1,0 +1,235 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+int n, mod;
+int TEN, INV_TEN;
+
+int add(int x, int y) {
+//	x%=mod;
+//	y%=mod;
+	x += y;
+	while (x >= mod)
+		x -= mod;
+	while (x < 0)
+		x += mod;
+	return x;
+}
+
+int mul(int x, int y) {
+	return (x * 1LL * y) % mod;
+}
+
+int gcdExtended(int a, int b, int *x, int *y) {
+	// Base Case
+	if (a == 0) {
+		*x = 0, *y = 1;
+		return b;
+	}
+	int x1, y1;
+	int gcd = gcdExtended(b % a, a, &x1, &y1);
+	*x = y1 - (b / a) * x1;
+	*y = x1;
+	return gcd;
+}
+
+int modInverse(int a, int m) {
+	int x, y;
+	int g = gcdExtended(a, m, &x, &y);
+	assert(g == 1);
+	int res = (x % m + m) % m;
+	return res;
+
+}
+
+int getInv(int x) {
+	return modInverse(x, mod);
+}
+
+class Map {
+public:
+	map<int, int> M;
+	int addOff, mulOff;
+
+	Map() {
+		addOff = 0;
+		mulOff = 1;
+	}
+
+	void convertToBaseValue(int &x) {
+		x = add(mul(x, getInv(mulOff)), -addOff);
+	}
+	void convertToRealValue(int &x) {
+		x = mul(add(x, addOff), mulOff);
+	}
+	virtual void move(int c) = 0;
+
+	int getOcc(int x) {
+		convertToBaseValue(x);
+		if (M.find(x) == M.end())
+			return 0;
+		return M[x];
+	}
+	void addItem(int x, int occs) {
+		convertToBaseValue(x);
+		M[x] += occs;
+	}
+	void eraseItem(int x) {
+		convertToBaseValue(x);
+		if (--M[x] <= 0)
+			M.erase(x);
+	}
+
+};
+
+class SuffixMap: public Map {
+public:
+
+	void move(int c) {
+		// real = (current + addOff1) * mulOff1
+		// (real + c) * inv(10) = (current + addOff2) * mulOff2
+		// ((current + addOff1) * mulOff1 + c) * inv(10) = (current + addOff2) * mulOff2
+		// current * mulOff1 * inv(10) + addOff1 * mulOff1 * inv(10) + c * inv(10)
+		//                                       = current * mulOff2 + addOff2 * mulOff2
+		// mulOff2 = mulOff1 * inv(10)
+		// addOff2 = (addOff1 * mulOff1 * inv(10) + c * inv(10)) / mulOff2
+
+		int mulOff2 = mul(mulOff, getInv(10));
+		int addOff2 = mul(mul(add(c, mul(addOff, mulOff)), getInv(10)),
+				getInv(mulOff2));
+		addOff = addOff2;
+		mulOff = mulOff2;
+	}
+};
+
+class PrefixMap: public Map {
+public:
+
+	void move(int c) {
+		// real = (current + addOff1) * mulOff1
+		// (real * 10 + c) = (current + addOff2) * mulOff2
+		// (current + addOff1) * mulOff1 * 10 + c = (current + addOff2) * mulOff2
+
+		// current * mulOff1 * 10 + addOff1 * mulOff1 * 10 + c
+
+		// mulOff2 = mulOff1 * 10
+		// addOff2 = addOff1 * mulOff1 * 10 + c
+		int mulOff2 = mul(mulOff, 10);
+		int addOff2 = mul(add(mul(mul(addOff, mulOff), 10), c),
+				getInv(mulOff2));
+
+		addOff = addOff2;
+		mulOff = mulOff2;
+//		if (c == 7)
+//		cout << c << " " << addOff << " " << mulOff << "??????????" <<endl;
+	}
+};
+
+vector<pair<int, int> > g[100005];
+int cnt[100005];
+int maxChild[100005];
+long long ans = 0;
+
+void setTree(int node, int parent) {
+	cnt[node] = 1;
+	maxChild[node] = -1;
+	for (int i = 0; i < int(g[node].size()); i++) {
+		int child = g[node][i].first;
+		if (child == parent)
+			continue;
+		setTree(child, node);
+		cnt[node] += cnt[child];
+		if (maxChild[node] == -1 || cnt[child] > cnt[maxChild[node]])
+			maxChild[node] = child;
+	}
+}
+
+void solve(int node, int parent, vector<Map*> v) {
+//	cout << "IN: " << node << endl;
+	for (int i = 0; i < int(g[node].size()); i++) {
+		int child = g[node][i].first;
+		if (child != maxChild[node])
+			continue;
+		solve(child, node, v);
+//		cout << "CHILD: " << child << endl;
+		for (int j = 0; j < int(v.size()); j++)
+			v[j]->addItem(0, 1), v[j]->move(g[node][i].second), ans +=
+					v[j]->getOcc(0);
+	}
+	for (int i = 0; i < int(g[node].size()); i++) {
+		int child = g[node][i].first;
+		if (child == parent || child == maxChild[node])
+			continue;
+
+		vector<Map*> vv;
+		vv.push_back(new PrefixMap());
+		vv.push_back(new SuffixMap());
+		solve(child, node, vv);
+
+//		cout << "CHILD: " << child << endl;
+		for (int j = 0; j < int(vv.size()); j++)
+			vv[j]->addItem(0, 1), vv[j]->move(g[node][i].second), ans +=
+					vv[j]->getOcc(0);
+
+		for (int j = 0; j < int(vv.size()); j++) {
+			for (map<int, int>::iterator it = vv[j]->M.begin();
+					it != vv[j]->M.end(); it++) {
+				int val = it->first;
+				vv[j]->convertToRealValue(val);
+				val = add(-val, mod);
+				ans += v[1 - j]->getOcc(val) * 1LL * it->second;
+			}
+		}
+
+		for (int j = 0; j < int(vv.size()); j++) {
+			for (map<int, int>::iterator it = vv[j]->M.begin();
+					it != vv[j]->M.end(); it++) {
+				int val = it->first;
+				vv[j]->convertToRealValue(val);
+				v[j]->addItem(val, it->second);
+			}
+		}
+
+	}
+
+////	cout << "NODE DATA: " << node << ": " << endl;
+////	cout << v[0]->addOff << " " << v[0]->mulOff << "!!!" << endl;
+//	for (int i = 0; i < int(v.size()); i++) {
+//		cout << (i == 0 ? "Prefix: " : "Suffix ") << " : " << endl;
+//		for (map<int, int>::iterator it = v[i]->M.begin(); it != v[i]->M.end(); it++) {
+//			int val = it->first;
+//			v[i]->convertToRealValue(val);
+//			assert(val == 0);
+//			cout << (it->first) << " " << val << " " << (it->second) << endl;
+//		}
+//		cout << "-----" << endl;
+//	}
+//	cout << "========" << endl;
+
+//	cout << "OUT : " << node << endl;
+
+}
+
+int main() {
+	ios::sync_with_stdio(false);
+	scanf("%d%d", &n, &mod);
+
+	for (int i = 0; i < n - 1; i++) {
+		int u, v, w;
+		scanf("%d%d%d", &u, &v, &w);
+//		u = i + 1;
+//		v = rand() % (i + 1);
+//		w = 0;
+		g[u].push_back(make_pair(v, w));
+		g[v].push_back(make_pair(u, w));
+	}
+	for (int x = 0; x < 1; x++) {
+		setTree(x, -1);
+		vector<Map*> v;
+		v.push_back(new PrefixMap());
+		v.push_back(new SuffixMap());
+		ans = 0;
+		solve(x, -1, v);
+		printf("%lld\n", ans);
+	}
+	return 0;
+}

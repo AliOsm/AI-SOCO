@@ -1,0 +1,86 @@
+#include <iostream>
+#include <stdio.h>
+#include <string>
+#include <memory.h>
+#include <set>
+#include <map>
+#include <vector>
+#include <queue>
+#include <time.h>
+#include <assert.h>
+#include <cmath>
+#include <stack>
+#include <string.h>
+#include <sstream>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const int N = 100;
+const int oo = 1e9;
+int a[N], b[N], c[N];
+int n;
+int dp[N][1 << 4][1 << 10];
+int id[4][4];
+bool good[1 << 10];
+int who[N], ch[N];
+int calc(int i, int mask, int mask2) {
+	if (i == n) {
+		int x = 0;
+		for (int i = 0; i < 4; ++i)
+			if ((mask >> i) & 1)
+				++x;
+		return x <= 2 && good[mask2] ? 0 : -oo;
+	}
+	int &ret = dp[i][mask][mask2];
+	if (ret != -1)
+		return ret;
+	ret = calc(i + 1, mask, mask2);
+	ret = max(ret, c[i] + calc(i + 1, mask^ch[i], mask2 | who[i]));
+	return ret;
+}
+int p[4];
+int find(int u) {
+	if (p[u] == u)
+		return u;
+	return p[u] = find(p[u]);
+}
+int main()
+{
+	scanf("%d", &n);
+	int ID = 0;
+	for (int i = 0; i < 4; ++i)
+		for (int j = i; j < 4; ++j)
+			id[j][i] = id[i][j] = ID++;
+	for (int i = 0; i < n; ++i) {
+		scanf("%d%d%d", &a[i], &c[i], &b[i]);
+		--a[i]; --b[i];
+		who[i] = 1 << id[a[i]][b[i]];
+		ch[i] = (1 << a[i]) ^ (1 << b[i]);
+	}
+	memset(dp, -1, sizeof(dp));
+	for (int mask = 0; mask < (1 << ID); ++mask) {
+		for (int i = 0; i < 4; ++i)
+			p[i] = i;
+		set<int> ap;
+		for (int i = 0; i < 4; ++i)
+			for (int j = i; j < 4; ++j)
+				if ((mask >> id[i][j]) & 1) {
+					p[find(i)] = find(j);
+					ap.insert(i);
+					ap.insert(j);
+				}
+		if (ap.empty()) {
+			good[mask] = true;
+			continue;
+		}
+		int root = find(*ap.begin());
+		good[mask] = true;
+		for (auto x : ap)
+			if (find(x) != root) {
+				good[mask] = false;
+				break;
+			}
+	}
+	printf("%d\n", calc(0, 0, 0));
+	return 0;
+}

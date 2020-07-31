@@ -1,0 +1,111 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <memory>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <unordered_set>
+#include <functional>
+#include <climits>
+#include <cstring>
+#include <cmath>
+#include <numeric>
+#include <random>
+
+using namespace std;
+using ll = long long;
+const int oo = numeric_limits<int>::max() / 2;
+
+static int gcd(int a, int b) {
+	return (b == 0) ? a : gcd(b, a % b);
+}
+
+struct Point {
+	ll x, y;
+	Point(int x_, int y_): x(x_), y(y_) {}
+
+	bool operator<(const Point& rhs) const {
+		if (x != rhs.x) {
+			return x < rhs.x;
+		}
+		return y < rhs.y;
+	}
+
+	bool operator==(const Point& rhs) const {
+		return x == rhs.x && y == rhs.y;
+	}
+};
+
+struct Segment {
+	Segment(Point p1_, Point p2_): p1(move(p1_)), p2(move(p2_)) {
+		a = p2.y - p1.y;
+		b = p1.x - p2.x;
+		c = -a * p1.x - b * p1.y;
+	}
+
+	int dots() const {
+		return gcd(abs(p1.x - p2.x), abs(p1.y - p2.y)) + 1;
+	}
+
+	bool contains(const Point& p) const {
+		bool btw = min(p1.x, p2.x) <= p.x && p.x <= max(p1.x, p2.x) &&
+							 min(p1.y, p2.y) <= p.y && p.y <= max(p1.y, p2.y);
+		return btw && (a * p.x + b * p.y + c == 0);
+	}
+	
+	Point p1, p2;
+	ll a, b, c;
+};
+
+inline void process(const Segment& s1, const Segment& s2, set<Point>& st) {
+	ll mult = s1.a * s2.b - s2.a * s1.b;
+	if (mult == 0) {
+		return;
+	}
+	
+	ll num = s2.b * s1.c - s1.b * s2.c;
+	if (num % mult != 0) {
+		return;
+	}
+	ll x = -num / mult;
+	num = s1.a * s2.c - s2.a * s1.c;
+	if (num % mult != 0) {
+		return;
+	}
+	ll y = -num / mult;
+	Point p(x, y);
+	if (s1.contains(p) && s2.contains(p)) {
+		st.insert(p);
+	}
+}
+
+int main() {
+	ios_base::sync_with_stdio(0);
+	cin.tie(nullptr);
+	int n;
+	cin >> n;
+	vector<Segment> s;
+	for(int i = 0; i < n; ++i) {
+		int x1, y1, x2, y2;
+		cin >> x1 >> y1 >> x2 >> y2;
+		s.emplace_back(Point(x1, y1), Point(x2, y2));
+	}
+	ll ret = 0;
+	for(const auto& seg : s) {
+		ret += seg.dots();
+	}
+
+	set<Point> st;
+	for(int i = 0; i < n; ++i) {
+		st.clear();
+		for(int j = 0; j < i; ++j) {
+			process(s[i], s[j], st);	
+		}
+		ret -= st.size();
+	}
+
+	cout << ret << endl;
+	return 0;
+}

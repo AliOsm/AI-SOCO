@@ -1,0 +1,185 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef unsigned long long ll;
+
+const ll inf = 2LL* 1000LL * 1000LL * 1000LL * 1000LL * 1000LL * 1001LL;
+
+struct Node
+{
+    int v, idx;
+    ll cst;
+    Node(){}
+    Node(int a , int b , ll c)
+    {
+        v = a;
+        idx = b;
+        cst = c;
+    }
+
+};
+
+//https://codeforces.com/blog/entry/53170
+///HLD path query + Euler tour(pre-order traversal) subtree query
+
+const int MAXN = 200050;	/// max no. of nodes;
+
+int n;	///number of nodes;
+vector<Node> adjlist[MAXN];
+int sub[MAXN];	///sub[u] = size of subtree u;
+int head[MAXN];	///head[u] = head of node u's chain;
+int par[MAXN];	///par[u] = parent of node u; parent of root node is -1;
+int depth[MAXN];	///depth[u] = depth of node u;
+int edge[MAXN];
+int tin[MAXN];
+int tout[MAXN];
+int timer;
+
+
+ll arr[MAXN];	/// contains the values for the segment tree
+ll tree[MAXN * 4];
+
+ll func(ll a , ll b)
+{
+    ll ans , d;
+    d = inf/a;
+    if(d < b)
+    {
+        ans = inf;
+    }
+    else ans = a*b;
+
+    return ans;
+}
+
+void init_hld( int node, int l, int r )
+{
+	if( l == r ) {
+		tree[node] = arr[l];
+		return;
+	}
+	int mid = (l + r)/2;
+	init_hld( 2*node, l, mid );
+	init_hld( 2*node+1, mid+1, r );
+	tree[node] = func( tree[2*node], tree[2*node+1] );
+}
+
+void update_hld( int node, int l, int r, int b, int x )	///point update
+{
+
+	if( l == r ) {
+		tree[node] = arr[l];
+		return;
+	}
+	int mid = (l + r)/2;
+	if( mid >= b ) update_hld( 2*node, l, mid, b, x );
+	else update_hld( 2*node+1, mid+1, r, b, x );
+	tree[node] = func( tree[2*node], tree[2*node+1] );
+}
+
+ll query_hld( int node, int l, int r, int b, int e )
+{
+	if( l > e || r < b ) return 1LL;
+	if( l >= b && r <= e ) return tree[node];
+	int mid = (l + r)/2;
+	return func( query_hld( 2*node, l, mid, b, e ), query_hld( 2*node+1, mid+1, r, b, e ) );
+}
+
+void dfs_sub( int u, int p, int dep ) {
+    sub[u] = 1;
+    par[u] = p;
+    depth[u] = dep;
+    int cur = 0 , i , v , l = adjlist[u].size();
+    for(i = 0 ;i < l ; i++) {
+        v = adjlist[u][i].v;
+		if( v == p ) continue;
+        dfs_sub(v, u, dep+1);
+        sub[u] += sub[v];
+        if(sub[v] > cur) {
+	        cur = sub[v];
+            swap(adjlist[u][i], adjlist[u][0]);
+        }
+    }
+}
+
+void dfs_hld( int u, int p ) {
+    tin[u] = timer++;
+    int i , v , l = adjlist[u].size();
+    for( i = 0  ; i < l ; i++ ) {
+        v = adjlist[u][i].v;
+		if( v == p ) continue;
+		edge[adjlist[u][i].idx] = v;
+		arr[timer] = adjlist[u][i].cst;
+        head[v] = (v == adjlist[u][0].v ? head[u] : v);
+        dfs_hld(v, u);
+    }
+    tout[u] = timer-1;
+}
+
+void preprocess(int root)
+{
+	timer = 1;
+	head[root] = root;
+	dfs_sub(root, -1, 0);
+	dfs_hld(root, -1);
+}
+
+ll ultimate_query_hld(int u, int v) {
+	ll ans = 1LL;
+	while(head[u] != head[v]) {
+		if(depth[head[u]] > depth[head[v]]) swap(u, v);
+		ans = func(ans, query_hld(1, 1, n, tin[head[v]], tin[v]));
+		v = par[head[v]];
+	}
+	if(depth[u] > depth[v]) swap(u, v);
+	ans = func(ans, query_hld(1, 1, n, tin[u]+1, tin[v]));
+
+	return ans;
+}
+
+
+int main()
+{
+
+    int i , j , k , p , q , m;
+    scanf("%d %d",&n,&m);
+
+    int u , v;
+    ll cst;
+
+    for(i = 1 ; i < n ; i++)
+    {
+        scanf("%d %d %lld",&u,&v,&cst);
+        adjlist[u].push_back(Node(v,i,cst));
+        adjlist[v].push_back(Node(u,i,cst));
+    }
+
+    preprocess(1);
+
+    arr[1] = 1;
+    init_hld(1,1,n);
+
+    int ty;
+    ll ans;
+
+    while(m--)
+    {
+        scanf("%d",&ty);
+        if(ty == 1)
+        {
+            scanf("%d %d %lld",&u,&v,&cst);
+            ans = ultimate_query_hld(u,v);
+            ans = cst/ans;
+            printf("%lld\n",ans);
+        }
+        else
+        {
+            scanf("%d %lld",&u,&cst);
+            k = edge[u];
+            arr[tin[k]] = cst;
+            update_hld(1,1,n,tin[k],0);
+        }
+    }
+
+}

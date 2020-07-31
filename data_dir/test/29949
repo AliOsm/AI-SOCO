@@ -1,0 +1,122 @@
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#define lson step<<1
+#define rson step<<1|1
+#define LL long long 
+using namespace std;
+const int N = 200005;
+const int MOD = 1000000000;
+struct SegTree{
+    int left,right;
+    int lazy;
+    LL s0,s1;
+    int dist(){
+        return right-left+1;
+    }
+}L[N<<2];
+struct Matrix{
+    LL m[2][2];
+    Matrix(){
+        m[0][0]=m[1][1]=1;m[0][1]=m[1][0]=0;
+    }
+    Matrix(int a,int b,int c,int d){
+        m[0][0]=a;m[0][1]=b;m[1][0]=c;m[1][1]=d;
+    }
+    Matrix operator*(const Matrix &a)const{
+        Matrix ret;
+        for(int i=0;i<2;i++){
+            for(int j=0;j<2;j++){
+                ret.m[i][j]=0;
+                for(int k=0;k<2;k++){
+                    ret.m[i][j]+=m[i][k]*a.m[k][j];
+                    ret.m[i][j]%=MOD;
+                }
+            }
+        }
+        return ret;
+    }
+    void out(){
+        for(int i=0;i<2;i++){
+            for(int j=0;j<2;j++)
+                cout<<m[i][j]<<" ";
+            cout<<endl;
+        }
+    }
+}M[N];
+int n,q,a[N];
+LL add(LL a,LL b){
+    return (a+b)%MOD;
+}
+LL mul(LL a,LL b){
+    return (a*b)%MOD;
+}
+void push_up(int step){
+    int l=L[lson].dist();
+    L[step].s0=add(L[lson].s0,add(mul(L[rson].s1,M[l-1].m[0][0]),mul(L[rson].s0,M[l-1].m[0][1])));
+    L[step].s1=add(L[lson].s1,add(mul(L[rson].s1,M[l].m[0][0]),mul(L[rson].s0,M[l].m[0][1])));
+
+}
+void bulid(int step,int l,int r){
+    L[step].left=l;
+    L[step].right=r;
+    L[step].lazy=0;
+    if(l==r){
+        L[step].s0=L[step].s1=a[l]%MOD;
+        return ;
+    }
+    int m=(L[step].left+L[step].right)>>1;
+    bulid(lson,l,m);
+    bulid(rson,m+1,r);
+    push_up(step);
+    // printf("%d %d %I64d %I64d\n",L[step].left,L[step].right,L[step].s0,L[step].s1);
+}
+void update(int step,int p,int v){
+    if(L[step].left==L[step].right){
+        L[step].s0=L[step].s1=v%MOD;
+        return ;
+    }
+    int m=(L[step].left+L[step].right)>>1;
+    if(p<=m) update(lson,p,v);
+    else update(rson,p,v);
+    push_up(step);
+}
+LL query(int step,int l,int r,int k){
+    if(L[step].left==l&&L[step].right==r){
+        if(k==0) return L[step].s0;
+        k--;
+        return add(mul(L[step].s1,M[k].m[0][0]),mul(L[step].s0,M[k].m[0][1]));
+    }
+    int m=(L[step].left+L[step].right)>>1;
+    if(r<=m) return query(lson,l,r,k);
+    else if(l>m) return query(rson,l,r,k);
+    else return add(query(lson,l,m,k),query(rson,m+1,r,k+(m-l+1)));
+}
+void Init(){
+    M[0]=Matrix();
+    for(int i=1;i<N;i++)
+        M[i]=M[i-1]*Matrix(1,1,1,0);
+}
+int main(){
+    // freopen("input.txt","r",stdin);
+    Init();
+        scanf("%d%d",&n,&q);
+        for(int i=1;i<=n;i++)
+            scanf("%d",&a[i]);
+        bulid(1,1,n);
+        while(q--){
+            int kind;
+            scanf("%d",&kind);
+            if(kind==1){
+                int p,v;
+                scanf("%d%d",&p,&v);
+                update(1,p,v);
+            }
+            else if(kind==2){
+                int l,r;
+                scanf("%d%d",&l,&r);
+                printf("%I64d\n",query(1,l,r,0));
+            }
+        }
+    return 0;
+}

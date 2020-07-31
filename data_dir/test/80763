@@ -1,0 +1,170 @@
+#include<bits/stdc++.h>
+
+using namespace std;
+const int MAXN = 100100;
+const int INF = 0x3f3f3f3f;
+
+vector<int> grafo[MAXN];
+int v[MAXN];
+int memo[MAXN][20];
+int pai[MAXN];
+int nivel[MAXN];
+
+int dfs(int x){
+	
+	for(int i = 0;i < grafo[x].size();i++){
+		int at = grafo[x][i];
+		if(pai[x] == at) continue;
+		
+		nivel[at] = nivel[x] + 1;
+		pai[at] = x;
+		
+		dfs(at);
+	}
+}
+
+int pd(int i,int j){
+	if(j == 0) return pai[i];
+	if(memo[i][j] != -1) return memo[i][j];
+	return memo[i][j] = pd(pd(i,j-1),j-1);
+}
+
+int lca(int u,int v){
+	
+	if(nivel[u] < nivel[v]) swap(u,v);
+	
+	for(int i = 20;i >= 0;i--){
+		if(nivel[u] - (1 << i) >= nivel[v])
+			u = pd(u,i);
+	}
+	
+	if(u == v) return u;
+	
+	for(int i = 20;i >= 0;i--){
+		if(nivel[u] - (1 << i) >= 0 && pd(u,i) != pd(v,i))
+			u = pd(u,i) , v = pd(v,i);
+	}
+	
+	return pai[u];
+}
+
+struct str{
+	int a,b,L;
+};
+
+struct st{
+	
+	st *fe,*fd;
+	int l,r,meio;
+	str k;
+	
+	st(int x,int y){
+		l = x,r = y;
+		meio = (l+r)/2;
+		k.a = k.b = k.L = 0;
+		
+		if(x == y) return;
+		
+		fe = new st(x,meio);
+		fd = new st(meio + 1,y);		
+	}
+	   
+	    void up(int pos,int val){
+		
+		if(l == r){
+			k.a = val , k.b = val , k.L= val;
+			return;
+		}
+		
+		if(pos <= meio) fe->up(pos,val);
+		else fd->up(pos,val);
+		
+		k.L = lca(fe->k.L,fd->k.L);
+		if(lca(fe->k.a,fd->k.b) == k.L) k.a = fe->k.a , k.b = fd->k.b;
+		else if(lca(fe->k.a,fe->k.b) == k.L) k.a = fe->k.a , k.b = fe->k.b;
+		else if(lca(fe->k.b,fd->k.a) == k.L) k.a = fe->k.b , k.b = fd->k.a;
+		else if(lca(fd->k.a,fd->k.b) == k.L) k.a = fd->k.a , k.b = fd->k.b;
+		else if(lca(fe->k.a,fd->k.a) == k.L) k.a = fe->k.a , k.b = fd->k.a;
+		else if(lca(fe->k.b,fd->k.b) == k.L) k.a = fe->k.b , k.b = fd->k.b;
+	}
+	
+	str get(int a,int b){
+		if(l >= a && r <= b) return k;
+		if(l > b || r < a){
+			str r;
+			r.a = r.b = r.L = -INF;
+			return r;
+		}
+		
+		str e = fe->get(a,b) ,d = fd->get(a,b);
+		
+		str r;
+		
+		if(e.L == -INF) return d;
+		else if(d.L == -INF) return e;
+		
+		r.L = lca(e.L,d.L);
+		if(lca(e.a,d.b) == r.L) r.a = e.a , r.b = d.b;
+		else if(lca(e.a,e.b) == r.L) r.a = e.a , r.b = e.b;
+		else if(lca(e.b,d.a) == r.L) r.a = e.b , r.b = d.a;
+		else if(lca(d.a,d.b) == r.L) r.a = d.a , r.b = d.b;
+		else if(lca(e.a,d.a) == r.L) r.a = e.a , r.b = d.a;
+		else if(lca(e.b,d.b) == r.L) r.a = e.b , r.b = d.b;
+		
+		return r;
+	}
+	
+};
+
+st seg(1,MAXN);
+
+int main(){
+	memset(memo,-1,sizeof memo);
+	
+	int n,q;
+	scanf("%d %d",&n,&q);
+	
+	for(int i = 2;i <= n;i++){
+		int x;
+		scanf("%d",&x);
+		
+		grafo[x].push_back(i);
+		grafo[i].push_back(x);
+	}
+	
+	pai[1] = 0;
+	nivel[1] = 0;
+ 	
+	dfs(1);
+	
+	for(int i = 1;i <= n;i++) seg.up(i,i);
+	
+	for(int i = 1;i <= q;i++){
+		int x,y;
+		scanf("%d %d",&x,&y);
+		
+		str h = seg.get(x,y);
+		
+		int t1,t2;
+		if(h.a - 1 < x) t1 = seg.get(h.a + 1,y).L;
+		else t1 = seg.get(x,h.a - 1).L;
+		
+		if(h.a + 1 > y) t2 = seg.get(x,h.a - 1).L;
+		else t2 = seg.get(h.a + 1,y).L;
+		
+		int r1 = lca(t1,t2);
+		
+		if(h.b - 1 < x) t1 = seg.get(h.b + 1,y).L;
+		else t1 = seg.get(x,h.b - 1).L;
+		
+		if(h.b + 1 > y) t2 = seg.get(x,h.b - 1).L;
+		else t2 = seg.get(h.b + 1,y).L;
+		
+		int r2 = lca(t1,t2);
+		
+		if(nivel[r2] > nivel[r1]) printf("%d %d\n",h.b,nivel[r2]);
+		else printf("%d %d\n",h.a,nivel[r1]); 
+			
+	}
+	
+}

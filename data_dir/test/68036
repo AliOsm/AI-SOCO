@@ -1,0 +1,186 @@
+#include<bits/stdc++.h>
+#include<ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+#define ll long long
+//increase stack size
+#pragma comment(linker, "/STACK:16777216")
+
+ll mxm() {return LLONG_MIN;}
+template<typename... Args>
+ll mxm(ll a, Args... args) { return max(a,mxm(args...)); }
+
+ll mnm() {return LLONG_MAX;}
+template<typename... Args>
+ll mnm(ll a, Args... args) { return min(a,mnm(args...)); }
+
+template<class T> ostream& operator<<(ostream& os,vector<T> V){
+	os<<"[ ";for(auto v:V)os<<v<<" ";return os<<"]";
+}
+template<class L,class R> ostream& operator<<(ostream& os,pair<L,R> P){
+	return os<<"("<<P.first<<","<<P.second<<")";
+}
+
+#define TRACE
+#ifdef TRACE
+#define trace(...) __f(#__VA_ARGS__,__VA_ARGS__)
+template<typename Arg1>
+void __f(const char* name,Arg1&& arg1){
+	cout<<name<<" : "<<arg1<<endl;
+}
+template <typename Arg1,typename... Args>
+void __f(const char* names,Arg1&& arg1,Args&&... args){
+	const char* comma=strchr(names+1,',');cout.write(names,comma-names)<<" : "<<arg1<<" | ";__f(comma+1,args...);
+}
+#else
+#define trace(...) 1
+#endif
+
+#define ld long double
+#define pll pair<ll,ll>
+#define ii pair<int,int>
+#define vll vector<ll>
+#define vii vector<ii>
+#define vi vector<int>
+#define vpll vector<pll>
+#define vld vector<ld>
+#define vvld vector<vld>
+#define vvi vector<vi>
+#define vvll vector<vll>
+#define vvpll vector<vpll>
+#define vvii vector<vii>
+#define I insert
+#define F first
+#define S second
+#define pb push_back
+#define endl "\n"
+#define all(x)	x.begin(),x.end()
+
+const int mod=1e9+7;
+// 128 bit: __int128
+inline int add(int a,int b){a+=b;if(a>=mod)a-=mod;return a;}
+inline int sub(int a,int b){a-=b;if(a<0)a+=mod;return a;}
+inline int mul(int a,int b){return (a*1ll*b)%mod;}
+inline int power(int a,int b){int rt=1;while(b>0){if(b&1)rt=mul(rt,a);a=mul(a,a);b>>=1;}return rt;}
+inline int inv(int a){return power(a,mod-2);}
+
+struct compare{
+	bool operator() (const int &a,const int &b) const{
+		return a>b;
+	}
+};
+class SegmentTree{
+public:
+	vector<int> array;
+	vector<pair<int, int> > minmax;
+	vector<vector<int> > mergesorttree;
+	int n;
+	SegmentTree(vector<int> &v){
+		n = v.size();
+		array = v;
+		minmax.resize(4 * n);
+		mergesorttree.resize(4 * n);
+		this->buildmergesort(0, n - 1);
+	}
+	void build(int start, int end, int pos = 1){
+		if(start == end){
+			minmax[pos] = {array[start], array[start]};
+			return;
+		}
+		int mid = start + end >> 1;
+		build(start, mid, pos * 2);
+		build(mid + 1, end, pos * 2 + 1);
+		minmax[pos] = {min(minmax[pos * 2].F, minmax[pos * 2 + 1].F), max(minmax[pos * 2].S, minmax[pos * 2 + 1].S)};
+	}
+	void merge(int left, int right, int idx){
+		int n = mergesorttree[left].size(), m = mergesorttree[right].size();
+		int i = 0, j = 0;
+		while(i < n && j < m)
+			mergesorttree[idx].push_back(mergesorttree[left][i] <= mergesorttree[right][j] ? mergesorttree[left][i++] : mergesorttree[right][j++]);
+		while(i < n)
+			mergesorttree[idx].push_back(mergesorttree[left][i++]);
+		while(j < m)
+			mergesorttree[idx].push_back(mergesorttree[right][j++]);
+	}
+	void buildmergesort(int start, int end, int pos = 1){
+		if(start == end){
+			mergesorttree[pos].push_back(array[start]);
+			return;
+		}
+		int mid = start + end >> 1;
+		buildmergesort(start, mid, pos * 2);
+		buildmergesort(mid + 1, end, pos * 2 + 1);
+		merge(pos * 2, pos * 2 + 1, pos);
+	}
+	int getmin(int l, int r){
+		return this->getmin(0, n - 1, l, r);
+	}
+	int getmax(int l, int r){
+		return this->getmax(0, n - 1, l, r);
+	}
+	int get_lower_bound(int l, int r, int num){
+		return this->get_lower_bound(0, n - 1, l, r, num);
+	}
+	int getmin(int start, int end, int l, int r, int pos = 1){
+		if(start > r || end < l)
+			return INT_MAX;
+		if(start >= l && end <= r)
+			return minmax[pos].F;
+		int mid = start + end >> 1;
+		return min(getmin(start, mid, l, r, pos * 2), getmin(mid + 1, end, l, r, pos * 2 + 1));
+	}
+	int getmax(int start, int end, int l, int r, int pos = 1){
+		if(start > r || end < l)
+			return INT_MIN;
+		if(start >= l && end <= r)
+			return minmax[pos].S;
+		int mid = start + end >> 1;
+		return max(getmax(start, mid, l, r, pos * 2), getmax(mid + 1, end, l, r, pos * 2 + 1));
+	}
+	int get_lower_bound(int start, int end, int l, int r, int num, int pos = 1){
+		if(start > r || end < l)
+			return INT_MAX;
+		if(start >= l && end <= r){
+			int idx = lower_bound(mergesorttree[pos].begin(), mergesorttree[pos].end(), num) - mergesorttree[pos].begin();
+			if(idx == end - start + 1)
+				return INT_MAX;
+			return mergesorttree[pos][idx];
+		}
+		int mid = start + end >> 1;
+		return min(get_lower_bound(start, mid, l, r, num, pos * 2), get_lower_bound(mid + 1, end, l, r, num, pos * 2 + 1));
+	}
+};
+bool chk(vii A, vii B){
+	int n = A.size();
+	vector<pair<ii, int> > v1(n);
+	vii v2(n);
+	for(int i = 0; i < n; i++)
+		v1[i].F=A[i], v2[i] = B[i], v1[i].S = i;
+	sort(all(v1));
+	vi vl, vr;
+	for(auto i:v1)
+		vl.pb(v2[i.S].F), vr.pb(v2[i.S].S);
+	SegmentTree li(vl), ri(vr);
+	for(int i = 0; i < n; i++){
+		int l1 = v1[i].F.F, r1 = v1[i].F.S, idx = v1[i].S, lb = v2[idx].F, rb = v2[idx].S;
+		pair<ii, int> p = {{r1 + 1, - 1}, -1};
+		int id = lower_bound(all(v1), p) - v1.begin();
+		if(id == n)continue;
+		int val1 = li.get_lower_bound(id, n - 1, lb), val2 = ri.get_lower_bound(id, n - 1, lb);
+		if(min(val1, val2) <= rb)
+			return 1;
+	}
+	return 0;
+}
+int main()
+{
+	ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);cout<<setprecision(25);
+	int n;cin>>n;
+	vii A(n), B(n);
+	for(int i = 0; i < n; i++)
+		cin >> A[i].F >> A[i].S >> B[i].F >> B[i].S;
+	if(chk(A, B) || chk(B , A))
+		cout << "NO" << endl;
+	else cout << "YES" << endl;
+
+}

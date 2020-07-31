@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e6 + 5;
+const long long inf = 1e18;
+
+// [day] = city - cost
+vector<pair<int, int>> out[N], in[N];
+long long c_in[N], c_out[N];  // day
+long long tmp_in[N], tmp_out[N]; // city
+
+int main() {
+  int n, m, k;
+  scanf("%d %d %d", &n, &m, &k);
+  for (int i = 0; i < m; i++) {
+    int d, f, t, c;
+    scanf("%d %d %d %d", &d, &f, &t, &c);
+    if (f == 0) {
+      out[d].emplace_back(t, c);
+    } else {
+      in[d].emplace_back(f, c);
+    }
+  }
+  fill(c_in, c_in + N, inf);
+  fill(c_out, c_out + N, inf);
+  
+  fill(tmp_in, tmp_in + N, -1);
+  fill(tmp_out, tmp_out + N, -1);
+  
+  long long now_cost = 0;
+  int done = 0;
+  for (int i = 0; i < N; i++) {
+    for (auto it : in[i]) {
+      int city, cost;
+      tie(city, cost) = it;
+      if (tmp_in[city] == -1) {
+        done++;
+        now_cost += cost;
+        tmp_in[city] = cost;
+      } else if (cost < tmp_in[city]) {
+        now_cost += cost - tmp_in[city];
+        tmp_in[city] = cost;
+      }
+    }
+    if (done == n) {
+      c_in[i] = now_cost;
+    }    
+  }
+  
+  now_cost = 0;
+  done = 0;
+  for (int i = N - 1; i >= 0; i--) {
+    for (auto it : out[i]) {
+      int city, cost;
+      tie(city, cost) = it;
+      if (tmp_out[city] == -1) {
+        done++;
+        now_cost += cost;
+        tmp_out[city] = cost;
+      } else if (cost < tmp_out[city]) {
+        now_cost += cost - tmp_out[city];
+        tmp_out[city] = cost;
+      }
+    }
+    if (done == n) {
+      c_out[i] = now_cost;
+    }    
+  }
+  long long ans = inf;
+  for (int i = 0; i + k + 1 < N; i++) {
+    ans = min(ans, c_in[i] + c_out[i + k + 1]);
+  }
+  if (ans >= inf) ans = -1;
+  cout << ans << endl;
+  return 0;
+}

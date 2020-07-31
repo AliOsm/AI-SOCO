@@ -1,0 +1,112 @@
+#include <cstdio>
+using namespace std;
+
+// 网络流 By 猛犸也钻地 @ 2012.02.10
+
+#include <cstring>
+#include <queue>
+#include <algorithm>
+using namespace std;
+
+class Network{
+public:
+    typedef double VAL;    // 费用的类型
+    static const int SIZE = 1005;       // 最大点数
+    static const int INF = 1000000007;  // 流量的极大值
+    typedef struct ARC{int t,c; VAL w; ARC* o;}* PTR;
+    ARC arc[200005];    // 最大边数，注意一次普通加边操作需要占用两条边
+    PTR now[SIZE],e[SIZE];      // cnt[]为该层次下的点数，l[]为层次标号
+    int cnt[SIZE],l[SIZE],r[SIZE],edge; // now[]为当前弧，e[]为出边链表
+    VAL sum;
+    void clear(){memset(e,edge=sum=0,sizeof(e));}
+    ARC& REV(PTR x){return arc[(x-arc)^1];}
+    int flow(int S, int T){return spfa_johnson(S,T,INF);}
+    PTR add_edge(int x, int y, int c, VAL w = 0){
+        e[x]=&(arc[edge++]=(ARC){y,c,+w,e[x]});
+        e[y]=&(arc[edge++]=(ARC){x,0,-w,e[y]});
+        return e[x];
+    }
+    PTR add_edge_simple(int x, int y, int c){
+        e[x]=&(arc[edge++]=(ARC){y,c,0,e[x]});
+        e[y]=&(arc[edge++]=(ARC){x,c,0,e[y]});
+        return e[x];
+    }
+    int aug(int S, int T, int& can){
+        int x,z=T,use=can;
+        for(x=S;x!=T;x=now[x]->t) if(use>now[x]->c) use=now[z=x]->c;
+        for(x=S;x!=T;x=now[x]->t){
+                now[x]->c-=use;
+            REV(now[x]).c+=use;
+            sum+=use*now[x]->w;
+        }
+        can-=use;
+        return z;
+    }
+    // 连续最短路增广算法，可以处理不含负费用圈的费用流，返回流量
+    int spfa_johnson(int S, int T, int can){ // can为本次增广的流量上限
+        if(S==T) return can;
+        int in=can,x,m;
+        VAL phi[SIZE],len[SIZE],MAXW=1000000007; // 费用的极大值
+        memset(l,0,sizeof(l));
+        fill_n(phi,SIZE,MAXW);
+        phi[r[0]=T]=0;
+        for(int i=m=0;i<=m;i++){ // 从汇点出发反向SPFA
+            l[x=r[i%SIZE]]=0;
+            for(PTR u=e[x];u;u=u->o){ // 下面这行如果是浮点比较要加EPS
+                if(phi[x]+REV(u).w>=phi[u->t]-1e-9 || !REV(u).c) continue;
+                phi[u->t]=phi[x]+REV(u).w;
+                if(!l[u->t]) l[r[++m%SIZE]=u->t]=1;
+            }
+        }
+        do{
+            typedef pair<VAL,int> TPL;
+            priority_queue<TPL> q;
+            fill_n(len,SIZE,MAXW);
+            memset(l,0,sizeof(l));
+            q.push(TPL(len[T]=0,T));
+            while(q.size()){
+                x=q.top().second; q.pop();
+                if(!l[x]) l[x]=1; else continue;
+                for(PTR u=e[x];u;u=u->o){
+                    if(!REV(u).c || l[u->t]) continue;
+                    VAL at=len[x]+phi[x]+REV(u).w-phi[u->t];
+                    if(at>=len[u->t]-1e-9) continue; // 如果是浮点比较要加EPS
+                    len[u->t]=at;
+                    now[u->t]=&REV(u);
+                    q.push(TPL(-at,u->t));
+                }
+            }
+            for(x=0;x<SIZE;x++) phi[x]+=len[x];
+        }while(phi[S]<MAXW && aug(S,T,can)!=T);
+        // 使用phi[S]<MAXW求最小费用最大流，使用phi[S]<0求最小费用流
+        return in-can;
+    }
+}net;
+
+
+double sqr(double x){
+    return x*x;
+}
+
+double dis(int i, int j, int x[], int y[]){
+    return sqrt(sqr(x[i]-x[j])+sqr(y[i]-y[j]));
+}
+
+int main(){
+    int n,x[405],y[405];
+    scanf("%d",&n);
+    for(int i=0;i<n;i++) scanf("%d%d",x+i,y+i);
+    for(int i=0;i<n;i++) for(int j=0;j<n;j++){
+        if(y[i]>y[j]) net.add_edge(i,n+j,1,dis(i,j,x,y));
+    }
+    int top=*max_element(y,y+n),cnt=0;
+    for(int i=0;i<n;i++) if(y[i]==top) cnt++;
+    if(cnt>=2) return puts("-1"),0;
+    int S=n+n,T=S+1;
+    for(int i=0;i<n;i++){
+        net.add_edge(S,i,2,0);
+        if(y[i]!=top) net.add_edge(i+n,T,1,0);
+    }
+    if(net.flow(S,T)!=n-1) return puts("-1"),0;
+    printf("%.15f\n",net.sum);
+}

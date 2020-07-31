@@ -1,0 +1,40 @@
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
+    int n;
+    std::cin >> n;
+    std::vector<int> a(n);
+    for (auto& ai : a) { 
+        std::cin >> ai;
+    }
+
+    int cnt = 0;
+    for (int i = 0; i < n; ++i) {
+        if (a[i] == i) {
+            ++cnt;
+        }
+    }
+
+    bool flag = false;;
+    for (int i = 0; i < n; ++i) {
+        if (a[i] != i) {
+            if (a[a[i]] == i) {
+                cnt += 2;
+                flag = true;
+                break;
+            }
+        }
+    }
+
+    if (!flag && cnt < n) {
+        ++cnt;
+    }
+
+    std::cout << cnt;
+
+    return 0;
+}

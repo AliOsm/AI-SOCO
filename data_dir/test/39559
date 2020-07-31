@@ -1,0 +1,235 @@
+#include<iostream>
+#include<cstdio>
+
+#include<string>
+#include<vector>
+#include<set>
+#include<map>
+#include<queue>
+#include<deque>
+#include<stack>
+
+#include<iomanip>
+#include<algorithm>
+#include<cstring>
+#include<ctime>
+#include<cassert>
+
+using namespace std;
+
+#define forn(i, n) for(int i = 0; i < (int)(n); ++i)
+#define forr(i, n) for(int i = (int)(n) - 1; i >= 0; --i)
+#define for1(i, n) for(int i = 1; i < (int)(n); ++i)
+#define forft(i, from, to) for(int i = (int) (from); i < (int)(to); ++i)
+#define correct(x, y, n, m) (0 <= x && x < n && 0 <= y && y < m)
+#define X first
+#define Y second
+#define all(a) a.begin(), a.end()
+#define pb push_back
+#define mp make_pair
+#define ms(a, val) memset(a, val, sizeof(a))
+#define sz(v) (int)(v.size())
+#define int li
+template<typename T> inline T abs(T a){ return ((a < 0) ? -a : a); }
+template<typename T> inline T sqr(T a){ return a * a; }
+
+typedef long long li;
+typedef unsigned long long uli;
+typedef long double ld;
+typedef pair<int, int> pt;
+typedef pair<ld, ld> pd;
+
+const int N = (int)(5e4) + 10;
+const int logN = 22;
+const int SQN = 350;
+const int MOD = int(1e9) + 7;
+const int INF = 1e9 + 100;
+const li INF_LL = 2e18;
+const li INF64 = 2e18;
+const ld PI = 3.1415926535897932384626433832795;
+const ld EPS = 1e-8;
+
+int dx[] = {0, 0, -1, 1};
+int dy[] = {-1, 1, 0, 0};
+
+li k;
+int mod;
+int n, m, a[N];
+set <li> bad;
+map <li, int> M;
+
+struct mat{
+	int a[2][2];
+
+	mat (){
+		a[0][0] = a[1][1] = 0;
+		a[0][1] = a[1][0] = 0;
+	}
+
+	mat (int v){
+		a[0][0] = a[1][1] = v;
+		a[0][1] = a[1][0] = 0;
+	}
+};
+
+inline int mul(int a, int b){
+	return (li(a) * b) % mod;
+}
+
+inline int add(int &a, int b){
+	a += b;
+	while(a >= mod)
+		a -= mod;
+	while(a < 0)
+		a += mod;
+	return a;
+}
+
+inline mat operator * (const mat &a, const mat &b){
+	mat res(0);
+	forn(i, 2)
+		forn(j, 2)
+			forn(k, 2)
+				add(res.a[i][j], mul(a.a[i][k], b.a[k][j]));
+	return res;
+}
+
+mat t[N * 4];
+
+mat getInPoint(li x){
+	mat res(0);
+	res.a[0][1] = 1;
+	if(M.count(x + 1) == 0)
+		res.a[0][0] = a[(x + 1) % n];
+	else
+		res.a[0][0] = M[(x + 1)];
+
+	if(M.count(x) == 0)
+		res.a[1][0] = a[x % n];
+	else
+		res.a[1][0] = M[x];
+	return res;
+}
+
+mat get(int v, int l, int r, int L, int R){
+	//assert(l <= r && L <= R);
+	assert(l <= L && r >= R || v == 0);
+	if(l == L && r == R)
+		return t[v];
+
+	int m = (l + r) / 2;
+	if(R <= m)
+		return get(v * 2 + 1, l, m, L, R);
+	if(L > m)
+		return get(v * 2 + 2, m + 1, r, L, R);
+	return get(v * 2 + 1, l, m, L, m) * get(v * 2 + 2, m + 1, r, m + 1, R);
+}
+
+mat bp(mat cur, li n){
+	mat res(1);
+	while(n){
+		if(n & 1)
+			res = res * cur;
+		cur = cur * cur;
+		n >>= 1;
+	}		
+	return res;
+}
+
+int szt;
+mat getLR(li l, li r){
+	mat res(1);
+	if(l / szt == r / szt)
+		return get(0, 0, szt - 1, l % szt, r % szt);
+	if(l % szt != 0){
+		res = res * get(0, 0, szt - 1, l % szt, szt - 1);
+		l += szt - (l % szt);
+	}
+	assert(l % szt == 0);
+	if(l / szt == r / szt)
+		return res * get(0, 0, szt - 1, l % szt, r % szt);
+
+	res = res * bp(t[0], r / szt - l /szt);
+            	l += (r / szt - l /szt) * szt;
+	return res * get(0, 0, szt - 1, l % szt, r % szt);
+}
+
+int rr;
+void build(int v, int l, int r){
+	if(l == r){
+		if(r == rr){
+			t[v].a[0][1] = 1;
+			t[v].a[1][1] = 0;
+			t[v].a[0][0] = a[0];
+			t[v].a[1][0] = a[l];
+		}
+		else
+			t[v] = getInPoint(l);
+		return;
+	}
+
+	int m = (l + r) / 2;
+	build(v * 2 + 1, l, m);
+	build(v * 2 + 2, m + 1, r);
+	t[v] = t[v * 2 + 1] * t[v * 2 + 2];
+}
+
+void solve(){
+	cin >> k >> mod >> n;
+	if(k == 0 || mod == 1){
+		cout << 0;
+		return;
+	}
+	--k;
+	forn(i, n)
+		cin >> a[i], a[i] %= mod;
+	if(n == 1)
+		a[1] = a[0], ++n;
+
+	szt = n;
+	cin >> m;
+	forn(i, m){
+		li x;
+		int y;
+		cin >> x >> y;
+		y %= mod;
+		bad.insert(x);
+		bad.insert(x - 1);
+		M[x] = y;
+	}
+
+	rr = szt - 1;
+	build(0, 0, szt - 1);
+	mat res(0); res.a[0][0] = 1;
+	int cur = 0;
+	
+	while(cur < k){
+		if(bad.count(cur) != 0){
+			res = res * getInPoint(cur);
+			assert(*bad.begin() == cur);
+			++cur;
+			
+			bad.erase(bad.begin());
+		}
+		else{
+			li l = cur, r = k - 1;
+			if(sz(bad) > 0)
+				r = min(r, (*bad.begin()) - 1);				
+			res = res * getLR(l, r);
+			cur = r + 1;
+		}
+	}
+
+	cout << res.a[0][0];
+}
+void main(){
+  //  freopen("input.txt", "r", stdin);
+  //  freopen("output.txt", "w", stdout);
+	srand(time(NULL));
+	cout << setprecision(10) << fixed;
+	cerr << setprecision(10) << fixed;   
+
+	solve();
+
+	//return 0;
+}

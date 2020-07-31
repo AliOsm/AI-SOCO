@@ -1,0 +1,145 @@
+//Khodaya aghideye man ra az dast oghde am masoon dar!
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using namespace std;
+template <typename T> using ordered_set =  tree<T, null_type, greater<T>, rb_tree_tag, tree_order_statistics_node_update>;
+template <typename T> using ordered_multiset =  tree<T, null_type, greater_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+typedef long long ll;
+typedef long double ld;
+#pragma optimize O3
+const int MOD = (int)1e9 + 7;
+const int MAXN = (int)1e5 + 3;
+const int infint = (ll)1e9;
+const ll inf = (ll)1e18;
+const int bit_sz = (int)1007;
+int n, m;
+void cyc_shift(bitset<bit_sz> &b, int k)
+{
+	b = b << k | b >> (m - k);
+}
+bitset<bit_sz> emp;
+int pr[MAXN], a[MAXN];
+vector<int> G[MAXN];
+int st[MAXN], ft[MAXN], b[MAXN];
+pair<int, int> P[MAXN];
+bitset<bit_sz> seg[4 * MAXN];
+int lazy[4 * MAXN];
+int tme = 0;
+void dfs(int u, int p)
+{
+	st[u] = tme;
+	for (auto v : G[u])
+		if(v != p)	
+		{
+			tme++;
+			dfs(v, u);
+		}
+	ft[u] = tme;
+}
+void build(int node, int st, int en)
+{
+	if(en - st < 2)
+	{
+		seg[node][b[st] % m] = 1;
+		return;
+	}
+	int mid = (st + en) >> 1;
+	build(node << 1, st, mid);
+	build(node << 1 | 1, mid, en);
+	seg[node] = seg[node << 1] | seg[node << 1 | 1];
+	return;
+}
+void upd(int node, int st, int en, int val)
+{
+	lazy[node] += val, lazy[node] %= m;
+	cyc_shift(seg[node], val % m);
+}
+void shift(int node, int st, int en)
+{
+	int mid = (st + en) >> 1;
+	upd(node << 1, st, mid, lazy[node]);
+	upd(node << 1 | 1, mid, en, lazy[node]);
+	lazy[node] = 0;
+}
+void increase(int node, int st, int en, int l, int r, int x)
+{
+	if(l >= en || st >= r)
+		return;
+	if(l <= st && en <= r)
+	{
+		upd(node, st, en, x);
+		return;
+	}
+	shift(node, st, en);
+	int mid = (st + en) >> 1;
+	increase(node << 1, st, mid, l, r, x);
+	increase(node << 1 | 1, mid, en, l, r, x);
+	seg[node] = seg[node << 1] | seg[node << 1 | 1];
+}
+bitset<bit_sz> get(int node, int st, int en, int l, int r)
+{
+	if(l >= en || st >= r)
+		return emp;
+	if(l <= st && en <= r)
+		return seg[node];
+	shift(node, st, en);
+	int mid = (st + en) >> 1;
+	return get(node << 1, st, mid, l, r) | get(node << 1 | 1, mid, en, l, r);
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	cin >> n >> m;
+	for (int i = 1; i <= n; i++)
+		cin >> a[i];
+	//primes in set [1, m]
+	for (int i = 2; i < m; i++)
+		if(!pr[i])
+			for (int j = i * i; j < m; j += i)
+				pr[j] = 1;
+	//tree to segment representation.
+	for (int i = 0; i < n - 1; i++)
+	{
+		int u, v;
+		cin >> u >> v;
+		G[u].push_back(v);
+		G[v].push_back(u);
+	}
+	dfs(1, -1);
+	for (int i = 1; i <= n; i++)
+		b[st[i]] = a[i];
+	//handle queries.
+	build(1, 0, n);
+	bitset<bit_sz> cur = get(1, 0, n, 1, n);
+	int q;
+	cin >> q;
+	for (int i = 0; i < q; i++)
+	{
+		int type;
+		cin >> type;
+		if(type == 1)
+		{
+			int v, x;
+			cin >> v >> x;
+			int s = st[v], e = ft[v] + 1;
+			increase(1, 0, n, s, e, x);
+		}
+		else
+		{
+			int v;
+			cin >> v;
+			int s = st[v], e = ft[v] + 1, ans = 0;
+			bitset<bit_sz> cur = get(1, 0, n, s, e);
+			for (int j = 2; j < m; j++)
+			{
+				ll t = cur[j];
+				if(!pr[j] && t)
+					ans++;
+			}
+			cout << ans << "\n";
+		}
+	}
+}

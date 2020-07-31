@@ -1,0 +1,109 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 11, L = 50010;
+int n, tot, l[N], r[N], ll[N];
+char s[L], t[N][L];
+
+struct node {
+  int len, num;
+  node *ch[37], *fa;
+  node() {
+    len = 0;
+    fa = 0;
+    for (int i = 0; i < 37; ++i)
+      ch[i] = 0;
+  }
+} *last, *root, *pool[N * L];
+
+void extend(int c) {
+  node *np = pool[++tot] = new node;
+  np->num = tot;
+  np->len = last->len + 1;
+  node *p = last;
+  while (p && !p->ch[c]) {
+    p->ch[c] = np;
+    p = p->fa;
+  }
+  if (!p) {
+    np->fa = root;
+  }
+  else {
+    node *q = p->ch[c];
+    if (q->len != p->len + 1) {
+      node *nq = pool[++tot] = new node;
+      nq->num = tot;
+      nq->len = p->len + 1;
+      for (int i = 0; i < 37; ++i) {
+        nq->ch[i] = q->ch[i];
+      }
+      nq->fa = q->fa;
+      q->fa = np->fa = nq;
+      while (p && p->ch[c] == q) {
+        p->ch[c] = nq;
+        p = p->fa;
+      }
+    }
+    else {
+      np->fa = q;
+    }
+  }
+  last = np;
+}
+
+long long ans;
+int dp[N * L][N];
+bool vis[N * L];
+
+void dfs(int u) {
+  if (vis[u])
+    return;
+  vis[u] = 1;
+  for (int i = 0; i <= n; ++i) {
+    if (pool[u]->ch[26 + i]) {
+      dp[u][i] = 1;
+    }
+  }
+  for (int i = 0; i < 26; ++i) {
+    if (pool[u]->ch[i]) {
+      int v = pool[u]->ch[i]->num;
+      dfs(v);
+      for (int j = 0; j <= n; ++j) {
+        dp[u][j] += dp[v][j];
+      }
+    }
+  }
+  if (u && dp[u][0]) {
+    bool ff = 1;
+    for (int i = 1; i <= n && ff; ++i) {
+      ff = l[i] <= dp[u][i] && dp[u][i] <= r[i];
+    }
+    if (ff) {
+      ans += pool[u]->len - pool[u]->fa->len;
+    }
+  }
+}
+
+int main() {
+  last = root = pool[tot] = new node;
+  scanf("%s", s);
+  int m = strlen(s);
+  for (int i = 0; i < m; ++i) {
+    extend(s[i] - 'a');
+  }
+  extend(26);
+  scanf("%d", &n);
+  for (int i = 1; i <= n; ++i) {
+    scanf("%s%d%d", t[i], l + i, r + i);
+    ll[i] = strlen(t[i]);
+    for (int j = 0; j < ll[i]; ++j) {
+      extend(t[i][j] - 'a');
+    }
+    extend(26 + i);
+  }
+  ans = 0;
+  dfs(0);
+  printf("%lld\n", ans);
+  return 0;
+}

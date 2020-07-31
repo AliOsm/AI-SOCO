@@ -1,0 +1,158 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define mod 1000000007 
+#define oo 1000000010
+const int N = 500010 , M = 301;
+long long seg[4 * N] , lazy[4 * N] , arr[N];
+int seg2[4 * N] , lazy2[4 * N] , arr2[N] , n , q , cur[M];
+vector< int > v;
+long long val[M] , Val;
+bool isprime[M];
+
+int fres = 1;
+
+inline int fastpower(int num,int po){
+	fres = 1;
+	while(po > 0){
+		if(po & 1)
+			fres = (long long)fres * num % mod;
+		num = (long long)num * num % mod;
+		po >>= 1;
+	}
+	return fres;
+}
+
+long long build(int s,int e,int idx){
+	if(s == e){
+		return seg[idx] = arr[s];
+	}
+	seg[idx] = (build(s,((s+e)>>1),(idx << 1)) | build(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+	return seg[idx];
+}
+
+int build2(int s,int e,int idx){
+	if(s == e){
+		lazy2[idx] = 1;
+		return seg2[idx] = arr2[s];
+	}
+	lazy2[idx] = 1;
+	return seg2[idx] = (long long)build2(s,((s+e)>>1),(idx << 1)) * (long long)build2(((s+e) >> 1) + 1,e,(idx << 1) + 1) % mod;;
+}
+
+inline void fix2(int s,int e,int idx){
+	if(s != e){
+		lazy2[(idx << 1)] = (long long)lazy2[(idx << 1)] * lazy2[idx] % mod;
+		lazy2[(idx << 1) + 1] = (long long)lazy2[(idx << 1) + 1] * lazy2[idx] % mod;
+	}
+	if(lazy2[idx] != 1)lazy2[idx] = fastpower(lazy2[idx] , (e - s + 1));
+	seg2[idx] = (long long)seg2[idx] * lazy2[idx] % mod;
+	lazy2[idx] = 1;
+}
+
+
+inline void fix(int s,int e,int idx){
+	if(s != e){
+		lazy[(idx << 1)] |= lazy[idx];
+		lazy[(idx << 1) + 1] |= lazy[idx];
+	}
+	seg[idx] |= lazy[idx];
+	lazy[idx] = 0;
+}
+
+int l , r , x;
+
+long long update(int s,int e,int idx){
+	fix(s,e,idx);
+	if(s > r || e < l)
+		return seg[idx];
+	if(s >= l && e <= r){
+		lazy[idx] |= Val;
+		fix(s,e,idx);
+		return seg[idx];
+	}
+	return seg[idx] = (update(s,((s+e)>>1),(idx << 1)) | update(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+}
+
+int update2(int s,int e,int idx){
+	fix2(s,e,idx);
+	if(s > r || e < l)
+		return seg2[idx];
+	if(s >= l && e <= r){
+		lazy2[idx] = x;
+		fix2(s,e,idx);
+		return seg2[idx];
+	}
+	return seg2[idx] = (long long)update2(s,((s+e)>>1),(idx << 1)) * update2(((s+e) >> 1) + 1,e,(idx << 1) + 1) % mod;
+}
+
+long long getor(int s,int e,int idx){
+	fix(s,e,idx);
+	if(s > r || e < l)
+		return 0;
+	if(s >= l && e <= r)
+		return seg[idx];
+	return (getor(s,((s+e)>>1),(idx << 1)) | getor(((s+e) >> 1) + 1,e,(idx << 1) + 1));
+}
+
+int getmul(int s,int e,int idx){
+	fix2(s,e,idx);
+	if(s > r || e < l)
+		return 1;
+	if(s >= l && e <= r)
+		return seg2[idx];
+	return (long long)getmul(s,((s+e)>>1),(idx << 1)) * getmul(((s+e) >> 1) + 1,e,(idx << 1) + 1) % mod;
+}
+
+char tmpread[23];
+
+int tmp = 0;
+
+int main(){
+	for(int i = 2;i<M;i++)
+		isprime[i] = true;
+	for(int i = 2;i<M;i++){
+		if(!isprime[i]) continue;
+		cur[(int)v.size()] = fastpower(i , mod - 2);
+		cur[(int)v.size()] = 1 - cur[(int)v.size()];
+		if(cur[(int)v.size()] < 0) cur[(int)v.size()] += mod;
+		v.push_back(i);
+		for(int j = i + i;j<M;j+=i)
+			isprime[j] = false;
+	}
+	for(int i = 1;i<M;i++){
+		for(int j=0;j<(int)v.size();j++){
+			if(i % v[j] == 0)
+				val[i] |= ((long long)1 << (long long)j);
+		}
+	}
+	scanf("%d%d",&n,&q);
+	for(int i=0;i<n;i++){
+		scanf("%d",&arr2[i]);
+		arr[i] = val[arr2[i]];
+	}
+	build(0, n - 1,1);
+	build2(0,n-1,1);
+	while(q--){
+		scanf(" %s",tmpread);
+		if(tmpread[0] == 'M'){
+			scanf("%d%d%d",&l,&r,&x);
+			Val = val[x];
+			l--,r--;
+			update(0, n - 1,1);
+			update2(0, n - 1,1);
+		}
+		else{
+			scanf("%d%d",&l,&r);
+			l--,r--;
+			Val = getor(0 , n - 1, 1);
+			x = getmul(0, n - 1, 1);
+			for(int i=0;i<(int)v.size();i++){
+				if(((Val >> i) & (long long)1) == (long long)1){
+					x = (long long)x * cur[i] % mod;
+				}
+			}
+			printf("%d\n",x);
+		}
+	}
+	return 0;
+}

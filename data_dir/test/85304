@@ -1,0 +1,146 @@
+#include <iostream>
+#include <complex>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+typedef complex<double> point;
+
+double prodesc(point p0,point p1)
+{
+  return real(conj(p0)*p1);
+}
+
+double sq(double x)
+{
+  return x*x;
+}
+
+point leer()
+{
+  double x,y;
+  cin>>x>>y;
+  return point(x,y);
+}
+
+point unitary(point p)
+{
+  return p/abs(p);
+}
+
+double error=1e-9;
+
+int compara(double x,double y)
+{
+  double d=x-y;
+  if (d<-error) return -1;
+  if (d>error) return 1;
+  return 0;
+}
+
+int compara(point p1,point p2)
+{
+  if (compara(real(p1),real(p2))!=0) return compara(real(p1),real(p2));
+  return compara(imag(p1),imag(p2));
+}
+
+bool menor(point p1,point p2)
+{
+  return compara(p1,p2)==-1;
+}
+
+void purgar(vector<point> &v)
+{
+  sort(v.begin(),v.end(),menor);
+  vector<point> nextv;
+  for (int i=0;i<int(v.size());i++)
+    if (i==0 or menor(v[i-1],v[i]))
+      nextv.push_back(v[i]);
+  v=nextv;
+}
+
+int visto[8];
+int n;
+point p[3];
+double r[3];
+vector<point> lista[3];
+vector<point> global;
+
+vector<int> g[3];
+
+void recorre(int u)
+{
+  if (visto[u]) return;
+  visto[u]=1;
+  vector<int> &ar=g[u];
+  for (int i=0;i<int(ar.size());i++)
+    recorre(ar[i]);
+}
+
+int main()
+{
+  cin>>n;
+  for (int i=0;i<n;i++) {
+    p[i]=leer();
+    cin>>r[i];
+  }
+  for (int i=0;i<n;i++) {
+    for (int j=i+1;j<n;j++) {
+      point p0=p[i];
+      double r0=r[i];
+      point p1=p[j];
+      double r1=r[j];
+      if (p0!=p1) {
+	double d=abs(p1-p0);
+	if (d+min(r0,r1)<max(r0,r1)-error) {
+	} else if (d+min(r0,r1)<max(r0,r1)+error) {
+	  point c;
+	  if (r0>r1) c=p0+unitary(p1-p0)*r0;
+	  else c=p1+unitary(p0-p1)*r1;
+	  lista[i].push_back(c);
+	  lista[j].push_back(c);
+	  global.push_back(c);
+	  g[i].push_back(j);
+	  g[j].push_back(i);
+	} else if (abs(p1-p0)<r0+r1-error) {
+	  //cout<<"acos de "<<(sq(r0)+norm(p1-p0)-sq(r1))/(2*r0*abs(p1-p0))
+	  double a=acos((sq(r0)+norm(p1-p0)-sq(r1))/(2*r0*abs(p1-p0)));
+	  point c1=p0+unitary(p1-p0)*polar(r0,a);
+	  point c2=p0+unitary(p1-p0)*polar(r0,-a);
+	  lista[i].push_back(c1);
+	  lista[i].push_back(c2);
+	  lista[j].push_back(c1);
+	  lista[j].push_back(c2);
+	  global.push_back(c1);
+	  global.push_back(c2);
+	  g[i].push_back(j);
+	  g[j].push_back(i);
+	} else if (abs(p1-p0)<r0+r1+error) {
+	  point c=p0+unitary(p1-p0)*r0;
+	  lista[i].push_back(c);
+	  lista[j].push_back(c);
+	  global.push_back(c);
+	  g[i].push_back(j);
+	  g[j].push_back(i);
+	}
+      }
+    }
+  }
+  purgar(global);
+  int nv=int(global.size());
+  int na=0;
+  for (int i=0;i<n;i++) {
+    purgar(lista[i]);
+    na+=int(lista[i].size());
+  }
+  int nc=0;
+  for (int i=0;i<n;i++) {
+    if (not visto[i]) {
+      recorre(i);
+      nc++;
+    }
+  }
+  int sol=na-nv+nc+1;
+  cout<<sol<<endl;
+}

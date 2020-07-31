@@ -1,0 +1,166 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+
+const int INF = 1000000007;
+
+struct sTree {
+    int L, R;
+    int pl, pr;
+    int ind;
+} tree[200009];
+int treeSize;
+
+int BuildTree(int L, int R)
+{
+    int cur = treeSize++;
+    tree[cur].L = L;
+    tree[cur].R = R;
+    tree[cur].ind = L;
+    if (L < R) {
+        tree[cur].pl = BuildTree(L, (L+R)/2);
+        tree[cur].pr = BuildTree((L+R)/2+1, R);
+    }
+    return cur;
+}
+
+int LCP[100009];
+
+int GetInd(int L, int R, int cur)
+{
+    if (L <= tree[cur].L && R >= tree[cur].R)
+        return tree[cur].ind;
+
+    int ret = -1;
+    if (L <= tree[ tree[cur].pl ].R && tree[ tree[cur].pl ].L <= R) {
+        int tmp = GetInd(L, R, tree[cur].pl);
+        if (ret == -1 || LCP[tmp] < LCP[ret])
+            ret = tmp;
+    }
+    if (L <= tree[ tree[cur].pr ].R && tree[ tree[cur].pr ].L <= R) {
+        int tmp = GetInd(L, R, tree[cur].pr);
+        if (ret == -1 || LCP[tmp] < LCP[ret])
+            ret = tmp;
+    }
+
+    return ret;
+}
+
+void Update(int i, int cur)
+{
+    if (tree[cur].L == tree[cur].R) {
+        tree[cur].ind = i;
+        return;
+    }
+
+    if (i <= tree[ tree[cur].pl ].R)
+        Update(i, tree[cur].pl);
+    else
+        Update(i, tree[cur].pr);
+
+    int left = tree[ tree[cur].pl ].ind;
+    int right = tree[ tree[cur].pr ].ind;
+
+    if (LCP[left] > LCP[right])
+        tree[cur].ind = right;
+    else
+        tree[cur].ind = left;
+}
+
+int root;
+int N;
+char S[100009];
+int sufArr[100009];
+int posInSufArr[100009];
+int newSufArr[100009];
+int bucket[100009];
+int next[100009];
+bool update[100009];
+void BuildSufArr()
+{
+    int cnt[256]; memset(cnt, 0, sizeof(int) * 256);
+    for (int i = 0; i < N; i++) cnt[ S[i] ]++;
+    for (int i = 1; i < 256; i++) cnt[i] += cnt[i-1];
+    for (int i = 0; i < N; i++) sufArr[--cnt[S[i]]] = i;
+
+    root = BuildTree(0, N-1);
+
+    bucket[0] = 0;
+    LCP[0] = INF;
+    for (int i = 1; i < N; i++) {
+        if (S[ sufArr[i] ] != S[ sufArr[i-1] ]) {
+            bucket[i] = i;
+            LCP[i] = 0;
+            Update(i, root);
+        }
+        else {
+            bucket[i] = bucket[i-1];
+            LCP[i] = INF;
+        }
+    }
+
+
+    for (int step = 1; step < N; step *= 2) {
+        for (int i = 0; i < N; i++) {
+            posInSufArr[ sufArr[i] ] = i;
+            newSufArr[i] = sufArr[i];
+            next[i] = bucket[i];
+        }
+        for (int i = 0; i < N; i++) {
+            if (sufArr[i] >= step) {
+                newSufArr[ next[ bucket[ posInSufArr[ sufArr[i]-step ] ] ]++ ] = sufArr[i] - step;
+            }
+        }
+        for (int i = 1; i < N; i++) {
+            if (LCP[i] == INF && bucket[ posInSufArr[ newSufArr[i]+step ] ] != bucket[ posInSufArr[ newSufArr[i-1]+step ] ]) {
+                int L = posInSufArr[ newSufArr[i]+step ];
+                int R = posInSufArr[ newSufArr[i-1]+step ];
+                if (L > R) swap(L, R);
+                LCP[i] = step + LCP[ GetInd(L+1, R, root) ];
+                update[i] = true;
+            }
+        }
+
+        for (int i = 1; i < N; i++) {
+            sufArr[i] = newSufArr[i];
+            if (LCP[i] != INF) {
+                bucket[i] = i;
+            }
+            else {
+                bucket[i] = bucket[i-1];
+            }
+            if (update[i]) {
+                Update(i, root);
+                update[i] = false;
+            }
+        }
+    }
+}
+
+ll ans = 0;
+
+void Solve(int L, int R, int k)
+{
+    if (L == R) {
+        ans += (N - sufArr[L] - 1 - k);
+        return;
+    }
+
+    int i = GetInd(L+1, R, root);
+    ans += 1LL * (R - L + 1) * (R - L + 2) / 2 * (LCP[i] - k);
+    Solve(L, i-1, LCP[i]);
+    Solve(i, R, LCP[i]);
+}
+
+int main()
+{
+    //freopen("input.txt", "r", stdin);
+
+    ios::sync_with_stdio(false);
+    cin >> S;
+    N = strlen(S);
+    S[N++] = 'a'-1;
+    BuildSufArr();
+    Solve(1, N-1, 0);
+    cout << ans;
+}

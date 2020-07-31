@@ -1,0 +1,85 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Plan
+{
+	int l, r, c, p;
+};
+
+struct Node
+{
+	long long cnt, sum;
+	Node *left, *right;
+};
+
+const int MAXN = 200005;
+const int MAXM = 1000005;
+Plan a[MAXN];
+vector<int> vl[MAXM], vr[MAXM];
+Node *root;
+
+Node *build(int l, int r)
+{
+	Node *ret = new Node();
+	int mid = (l + r) >> 1;
+	
+	ret->cnt = ret->sum = 0;
+	if(l == r)
+		ret->left = ret->right = NULL;
+	else
+		ret->left = build(l, mid), ret->right = build(mid + 1, r);
+
+	return ret;
+}
+
+void update(Node *u, int l, int r, int pos, int val)
+{
+	int mid = (l + r) >> 1;
+
+	if(l == r)
+		u->sum += 1LL * pos * val, u->cnt += val;
+	else if(pos <= mid)
+		update(u->left, l, mid, pos, val);
+	else
+		update(u->right, mid + 1, r, pos, val);
+	if(l != r)
+		u->cnt = u->left->cnt + u->right->cnt,
+		u->sum = u->left->sum + u->right->sum;
+
+	return;
+}
+
+long long query(Node *u, int l, int r, long long k)
+{
+	int mid = (l + r) >> 1;
+
+	if(l == r)
+		return min(u->cnt, k) * r;
+	else if(u->left->cnt >= k)
+		return query(u->left, l, mid, k);
+	else
+		return u->left->sum + query(u->right, mid + 1, r, k - u->left->cnt);
+}
+
+int main()
+{
+	int n, k, m;
+	long long ans = 0;
+
+	scanf("%d%d%d", &n, &k, &m);
+	for(int i = 0; i < m; ++i)
+		scanf("%d%d%d%d", &a[i].l, &a[i].r, &a[i].c, &a[i].p),
+		vl[a[i].l].push_back(i), vr[a[i].r].push_back(i);
+	root = build(1, MAXM - 1);
+	for(int i = 1; i <= n; ++i)
+	{
+		for(auto &x : vl[i])
+			update(root, 1, MAXM - 1, a[x].p, a[x].c);
+		ans += query(root, 1, MAXM - 1, k);
+		for(auto &x : vr[i])
+			update(root, 1, MAXM - 1, a[x].p, -a[x].c);
+	}
+	printf("%lld\n", ans);
+
+	return 0;
+}

@@ -1,0 +1,176 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define rep(i,a,n) for (int i=(a);i<(n);i++)
+#define per(i,a,n) for (int i=(n)-1;i>=(a);i--)
+#define pb push_back
+#define mp make_pair
+#define all(x) (x).begin(),(x).end()
+#define fi first
+#define se second
+#define SZ(x) (int)x.size()
+
+typedef long long ll;
+typedef double ld;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll>pll;
+typedef vector<pii> vpii;
+
+template<typename T>
+T getint() {
+    T x=0,p=1;
+    char ch;
+    do{ch=getchar();}while(ch <= ' ');
+    if(ch=='-')p=-1,ch=getchar();
+    while(ch>='0'&&ch<='9')x=x*10+ch-'0',ch=getchar();
+    return x*p;
+}
+
+mt19937 gen(chrono::system_clock::now().time_since_epoch().count());
+
+template<typename T1,typename T2>bool umin(T1 &x,const T2&y){if(x>y)return x=y,true;return false;}
+template<typename T1,typename T2>bool umax(T1 &x,const T2&y){if(x<y)return x=y,true;return false;}
+
+const int maxn=(int)1e3+10;
+const int inf=(int)1e9+5;
+const int mod=(int)1e9+7;
+const ll llinf=(ll)1e18+5;
+const ld pi=acos(-1.0);
+
+int n;
+vi g[maxn];
+ll a[maxn],b[maxn],c[maxn],d[maxn];
+ll x[maxn],y[maxn];
+
+int dx[]={0,-1,1,0,0};
+int dy[]={0,0,0,-1,1};
+
+ll add[maxn];
+
+void dfs2(int v,int d,ll add){
+    a[v]+=dx[d]*add;
+    c[v]+=dx[d]*add;
+    x[v]+=dx[d]*add;
+    b[v]+=dy[d]*add;
+    ::d[v]+=dy[d]*add;
+    y[v]+=dy[d]*add;
+    for(auto x:g[v]){
+        dfs2(x,d,add);
+    }
+}
+
+typedef pair<pll,pll> rect;
+
+bool inter(ll a,ll b,ll c,ll d){
+    if(a>b)swap(a,b);
+    if(c>d)swap(c,d);
+    if(a<=c&&c<=b)return true;
+    if(a<=d&&d<=b)return true;
+    if(c<=a&&a<=d)return true;
+    if(c<=b&&b<=d)return true;
+    return false;
+}
+
+bool ok(vector<pii> &rects,ll add){
+    vector<rect> r;
+    for(auto x:rects){
+        int v=x.fi;
+        int d=x.se;
+        r.pb(mp(mp(a[v]+dx[d]*add,b[v]+dy[d]*add),
+                mp(c[v]+dx[d]*add,::d[v]+dy[d]*add)));
+    }
+    rep(i,0,r.size())rep(j,0,i){
+        if(inter(r[i].fi.fi,r[i].se.fi,r[j].fi.fi,r[j].se.fi)&&
+           inter(r[i].fi.se,r[i].se.se,r[j].fi.se,r[j].se.se))return false;
+    }
+    return true;
+}
+
+void dfs(int v,int par,int block=0){
+    if(par!=-1)g[v].erase(find(all(g[v]),par));
+    if(g[v].empty()){
+        a[v]=b[v]=0;
+        c[v]=d[v]=0;
+        x[v]=y[v]=0;
+        return;
+    }
+    int now=1;
+    vector<pii> rects;
+    for(int x:g[v]){
+        if(block==now)now++;
+        if(now>4){
+            cout<<"NO"<<endl;
+            exit(0);
+        }
+        int nb;
+        if(now==1)nb=2;
+        if(now==2)nb=1;
+        if(now==3)nb=4;
+        if(now==4)nb=3;
+        dfs(x,v,nb);
+        rects.pb(mp(x,now));
+        now++;
+    }
+    ok(rects,1);
+    ll lf=0,rg=llinf;
+    while(rg-lf>1){
+        ll md=(lf+rg)/2;
+        if(ok(rects,md)&&md>0){
+            rg=md;
+        }else lf=md;
+    }/*
+    cout<<"root "<<v<<endl;
+    for(auto x:rects){
+        cout<<x.fi<<' '<<x.se<<" kek ";
+        swap(x.fi,v);
+        cout<<a[v]<<' '<<b[v]<<' '<<c[v]<<' '<<d[v]<<' '<<::x[v]<<' '<<y[v]<<endl;
+        swap(x.fi,v);
+    }
+    cout<<rg<<endl;*/
+    x[v]=0,y[v]=0;
+    for(auto x:rects){
+        dfs2(x.fi,x.se,rg);
+    }
+    a[v]=b[v]=llinf;
+    c[v]=d[v]=-llinf;
+    for(auto x:g[v]){
+        umin(a[v],a[x]);
+        umin(a[v],c[x]);
+        umax(c[v],a[x]);
+        umax(c[v],c[x]);
+        umin(b[v],b[x]);
+        umin(b[v],d[x]);
+        umax(d[v],b[x]);
+        umax(d[v],d[x]);
+    }
+    a[v]--;
+    c[v]++;
+    b[v]--;
+    d[v]++;
+   // cout<<a[v]<<' '<<b[v]<<' '<<c[v]<<' '<<d[v]<<' '<<::x[v]<<' '<<y[v]<<endl;
+
+}
+
+int main(){
+  //  freopen("input.txt","r",stdin);
+   // freopen("output.txt","w",stdout);
+   // freopen("lamps.in","r",stdin);
+   // freopen("lamps.out","w",stdout);
+
+    cin>>n;
+    rep(i,0,n-1){
+        int x,y;
+        cin>>x>>y;
+        g[x].pb(y);
+        g[y].pb(x);
+    }
+    dfs(1,-1);
+    cout<<"YES\n";
+    rep(i,1,n+1){
+        cout<<x[i]<<' '<<y[i]<<endl;
+    }
+    return 0;
+}

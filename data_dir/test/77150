@@ -1,0 +1,230 @@
+#include<cstdio>
+#include<cstring>
+#include<set>
+#include<string>
+#include<iostream>
+#include<cmath>
+#include<vector>
+#include<map>
+#include<stack>
+#include<time.h>
+#include<queue>
+#include<cstdlib>
+#include<algorithm>
+using namespace std;
+#define lowbit(x) ((x)&(-(x)))
+#define sqr(x) ((x)*(x))
+#define PB push_back
+#define MP make_pair
+typedef long long lld;
+typedef vector<int> VI;
+typedef vector<string> VS;
+typedef pair<int,int> PII;
+#define lson l,m,rt<<1
+#define rson m+1,r,rt<<1|1
+const int inf = ~0u>>2;
+const int maxn = 1000010;
+// ~ segment tree
+int add[maxn<<2];
+int sum[maxn<<2];
+int L[maxn],R[maxn];
+//AC auto
+const int M = maxn;
+const int CD = 26;
+int sz;
+int ID[128];
+int val[M];
+int fail[M];
+int Q[M];
+int ch[M][CD];
+int mp[M];
+//failtree
+vector<int> edge[maxn];
+int tot;
+void Init()
+{
+    fail[0]=0;  val[0]=0;
+    sz=1;
+    memset(ch[0],0,sizeof(ch[0]));
+    for(int i=0;i<26;i++) ID[i+'a']=i;
+}
+void Insert(char *s,int id){
+    int p=0;
+    for( ; *s ; s++)    {
+        int c=ID[*s];
+        if(!ch[p][c])  {
+            memset(ch[sz],0,sizeof(ch[sz]));
+            val[sz] = 0;
+            ch[p][c] = sz++;
+        }
+        p=ch[p][c];
+    }
+    val[p] = 1;
+    mp[id] = p;
+}
+void Construct() {
+    int *s=Q,*e=Q;
+    for(int i=0;i<CD;i++) {
+        if(ch[0][i]) {
+            fail[ ch[0][i] ] = 0;
+            *e++ = ch[0][i];
+        }
+    }
+    while(s!=e) {
+        int u = *s++;
+        for(int i=0;i<CD;i++) {
+            int &v = ch[u][i];
+            if(v) {
+                *e++  = v;
+                fail[v] = ch[fail[u]][i];
+            } else {
+                v=ch[fail[u]][i];
+            }
+        }
+    }
+}
+void dfs(int u)  {
+    L[u]=++tot;
+    for(int i=0;i<edge[u].size();i++){
+        int v=edge[u][i];
+        dfs(v);
+    }
+    R[u]=tot;
+}
+void build(int l,int r,int rt) {
+    add[rt] = sum[rt] =0;
+    if(l == r)   {
+        return ;
+    }
+    int m = l+r>>1;
+    build(lson);
+    build(rson);
+}
+void pushdown(int rt,int m)
+{
+    if(add[rt])
+    {
+        add[rt<<1] += add[rt];
+        add[rt<<1|1] += add[rt];
+        sum[rt<<1] += add[rt] * (m-(m>>1));
+        sum[rt<<1|1] += add[rt]*(m>>1);
+        add[rt]=0;
+    }
+}
+void pushup(int rt)
+{
+    sum[rt] = sum[rt<<1] + sum[rt<<1|1];
+}
+void update(int L,int R,int v,int l,int r,int rt)
+{
+    if(L <= l && r <= R)
+    {
+        add[rt] += v;
+        sum[rt] += v;
+        return ;
+    }
+    pushdown(rt,r-l+1);
+    int m=l+r>>1;
+    if(L <= m) update(L , R , v , lson);
+    if(R > m)  update(L , R , v , rson);
+    pushup(rt);
+}
+int query(int p,int l,int r,int rt)
+{
+    if(l == r)
+    {
+        return  sum[rt];
+    }
+    pushdown(rt,r-l+1);
+    int m = l+r>>1;
+    if(p <= m) return query(p,lson);
+    if(p > m) return query(p,rson);
+}
+void failtree_init()
+{
+    tot=0;
+    for(int i=1;i<sz;i++)   edge[fail[i]].push_back(i);
+    dfs(0);
+    build(1,sz,1);
+    for(int i=1;i<sz;i++)
+    {
+        if(val[i]) 
+        {
+            //printf("i=%d %d %d\n",i,L[i],R[i]);
+
+            update(L[i],R[i],1,1,sz,1);
+        }
+    }
+}
+void AC(char *s)
+{
+    int p=0,ans=0;
+    for( ; *s ; s++)
+    {
+        int c = ID[*s];
+        p = ch[p][c];
+        ans+=query(L[p],1,sz,1);
+    }
+    printf("%d\n",ans);
+}
+int transform(char *s)
+{
+    int num=0;
+    for(;*s;s++)
+    {
+        num=num*10+*s-'0';
+    }
+    return num;
+}
+char s[maxn];
+bool flag[100010];
+int main()
+{
+    int n,k;
+    scanf("%d%d",&n,&k);
+    Init();
+    for(int i=0;i<k;i++)
+    {
+        scanf("%s",s);
+        Insert(s,i+1);
+        //printf("%d\n",val[sz-1]);
+    }
+    memset(flag,true,sizeof(flag));
+    //printf("sz=%d\n",sz);
+    Construct();//for(int i=1;i<sz;i++) printf("%d %d \n",fail[i],val[i]);puts("");
+    failtree_init();
+    //printf("ss  %d\n",query(L[2],1,sz,1));
+    while(n--)
+    {
+        scanf("%s",s);
+        if(s[0]=='?')
+        {
+            AC(s+1);
+        }
+        else if(s[0]=='+')
+        {
+            int num=transform(s+1);
+            if(flag[num]) continue;
+            flag[num]=true;
+            update(L[mp[num]],R[mp[num]],1,1,sz,1);
+        }
+        else 
+        {
+            int num=transform(s+1);
+            if(!flag[num]) continue;
+            flag[num]=false;
+            //printf("num=%d mp: %d %d %d\n",num,mp[num],L[mp[num]],R[mp[num]]);
+            update(L[mp[num]],R[mp[num]],-1,1,sz,1);
+            //printf("--  %d\n",query(L[4],1,sz,1));
+        }
+    }
+    return  0;
+}
+/*
+100 3
+bbaa
+baa
+aa
+-2
+?baabaa
+*/

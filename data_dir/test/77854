@@ -1,0 +1,197 @@
+#include "assert.h"
+#include <algorithm>
+#include <bitset>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <deque>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <string.h>
+#include <time.h>
+#include <vector>
+
+using namespace std;
+
+#if LOCAL
+	#define DO_NOT_SEND
+#endif
+
+typedef long long LL;
+
+int IntMaxVal = (int) 1e20;
+int IntMinVal = (int) -1e20;
+LL LongMaxVal = (LL) 1e20;
+LL LongMinVal = (LL) -1e20;
+
+#define FOR(i, a, b) for(int i = a; i < b ; ++i)
+#define FORD(i, a, b) for(int i = a; i >= b; --i)
+
+template<typename T> inline void minimize(T &a, T b) { a = std::min(a, b); }
+template<typename T> inline void maximize(T &a, T b) { a = std::max(a, b); }
+
+template<typename T> inline void swap(pair<T, T> &p) { swap(p.first , p.second ); }
+
+#define all(v) v.begin(),v.end()
+
+#define endl '\n'
+template<typename T> struct argument_type;
+template<typename T, typename U> struct argument_type<T(U)> { typedef U type; };
+#define next(t, i) argument_type<void(t)>::type i; cin >> i;
+
+template <typename T1, typename T2> istream& operator >>(istream& is, pair<T1, T2>& s) { is >> s.first >> s.second; return is; }
+template <typename T> ostream& operator << (ostream& os, const vector<T> &v) { for (int i = 0 ; i < v.size() ; i++) { if (i) os << ' '; os << v[i]; } os << endl; return os; }
+template <typename T1, typename T2> ostream& operator << (ostream& os, const vector<pair<T1, T2>> &v) { for (int i = 0 ; i < v.size() ; i++) { os << v[i] << endl; } return os; }
+template <typename T1, typename T2> ostream& operator <<(ostream& s, const pair<T1, T2>& t) { s << t.first << ' ' << t.second; return s; }
+template <typename T> vector<T> readVector(int n) { vector<T> res(n); for (int i = 0 ; i < n ; i++) cin >> res[i]; return res; }
+
+struct minsheap {
+	vector<int> v;
+
+	void add(int x) {
+		if (v.size() == 10 && x > v.back()) return;
+		if (v.size() == 10) v.back() = x;
+		else v.push_back(x);
+
+		for (int i = (int)(v.size()) - 2 ; i >= 0 ; i--) {
+			if (v[i] > v[i + 1]) swap(v[i], v[i + 1]);
+			else break;
+		}
+	}
+
+	void merge_here(const minsheap &h2) {
+		// for (auto x : h2.v) cout << x << endl;
+		for (auto x : h2.v) add(x);
+	}
+
+	void clear() {
+		v.clear();
+	}
+};
+
+vector<int> depths;
+vector<int> parent;
+vector<vector<int>> parents;
+
+int get_lca(int a, int b) {
+	if (depths[a] > depths[b]) swap(a, b);
+
+	int diff = depths[b] - depths[a];
+	FOR (i, 0, parents[b].size()) if (diff & (1 << i)) {
+		b = parents[b][i];
+	}
+
+	if (a == b) return a;
+
+	FORD (i, parents[b].size() - 1, 0) {
+		if (i < parents[b].size() && parents[b][i] != parents[a][i]) {
+			a = parents[a][i];
+			b = parents[b][i];
+		}
+	}
+
+	return parent[a];
+}
+
+vector<vector<minsheap>> mhs;
+
+minsheap res;
+
+void get_path_heap(int a, int root) {
+	FORD (i, mhs[a].size() - 1, 0) {
+		if ((1 << i) <= depths[a] - depths[root]) {
+			res.merge_here(mhs[a][i]);
+			a = parents[a][i];
+		}
+	}
+}
+
+
+int main() {
+	srand (time(NULL));
+	ios_base::sync_with_stdio(false); cin.tie(NULL);
+	
+	next(int, n);
+	next(int, m);
+	next(int, q);
+
+	auto roads_list = readVector<pair<int, int>>(n - 1);
+	vector<vector<int>> edges(n);
+	for (auto &r : roads_list) {
+		r.first--;
+		r.second--;
+
+		edges[r.first].push_back(r.second);
+		edges[r.second].push_back(r.first);
+	}
+
+	depths.resize(n);
+	parent.assign(n, -1);
+	parents.resize(n);
+
+	auto values = readVector<int>(m);
+	for (auto &x : values) x--;
+
+	vector<int> order = { 0 };
+	FOR (i, 0, n) {
+		int v = order[i];
+		for (auto c : edges[v]) if (c != parent[v]) {
+			order.push_back(c);
+			parent[c] = v;
+			depths[c] = depths[v] + 1;
+			parents[c].push_back(v);
+		}
+	}
+
+	for (auto v : order) if (parent[v] != -1) {
+		FOR (i, 0, n) {
+			if (i >= parents[parents[v][i]].size()) break;
+			parents[v].push_back(parents[parents[v][i]][i]);
+		}
+	}
+
+	mhs.resize(n);
+	for (auto v : order) {
+		mhs[v].resize(1);
+	}
+
+	FOR (i, 0, m) {
+		mhs[values[i]][0].add(i + 1);
+	}
+
+	for (auto v : order) {
+		FOR (i, 1, parents[v].size() + 1) {
+			if (i - 1 >= mhs[parents[v][i - 1]  ].size()) break;
+			mhs[v].push_back(mhs[v].back());
+			mhs[v][i].merge_here(mhs[  parents[v][i - 1]  ][i - 1]);
+		}
+	}
+
+	while (q --> 0) {
+		next(int, u); u--;
+		next(int, v); v--;
+		next(int, a);
+
+		auto l = get_lca(u, v);
+
+		res.clear();
+
+		res.merge_here(mhs[l][0]);
+		
+		get_path_heap(u, l);
+		get_path_heap(v, l);
+
+		while (res.v.size() > a) res.v.pop_back();
+
+		cout << res.v.size() << ' ' << res.v;
+	}
+}

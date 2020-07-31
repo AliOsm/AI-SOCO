@@ -1,0 +1,93 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+#define endl '\n'
+typedef long long ll;
+
+signed main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n, m;
+    cin >> n >> m;
+    vector<pair<int, int>> interval(n);
+    for(int i = 0; i < n; ++i) {
+        int l,r;
+        cin >> l >> r;
+        interval[i] = {l,r};
+    }
+    const int Log = 19;
+    vector<vector<int>> memo(Log, vector<int>(n));
+    sort(interval.begin(), interval.end());
+    vector<int> prefixMaxEnd(n);
+    prefixMaxEnd[0] = 0;
+    for(int i = 1; i < n; ++i) {
+        if(interval[prefixMaxEnd[i-1]].second >= interval[i].second) {
+            prefixMaxEnd[i] = prefixMaxEnd[i-1];
+        } else {
+            prefixMaxEnd[i] = i;
+        }
+    }
+    /*
+    for(int i = 0; i < n; ++i) {
+        cout << interval[i].first << ' ' << interval[i].second << endl;
+    }
+    for(int i = 0; i < n; ++i) {
+        cout << prefixMaxEnd[i] << ' ';
+    }
+    */
+
+    for(int i = 0; i < n; ++i) {
+        int start = 0, end = n, mid;
+        while(start+1 < end) {
+            mid = start+(end-start)/2;
+            if(interval[mid].first <= interval[i].second) {
+                start = mid;
+            } else end = mid;
+        }
+        memo[0][i] = prefixMaxEnd[start];
+        //cout << "here: i, next: " << i << ' ' << prefixMaxEnd[start] << endl;
+    }
+    for(int i = 1; i < Log; ++i) {
+        for(int j = 0; j < n; ++j) {
+            memo[i][j] = memo[i-1][memo[i-1][j]];
+        }
+    }
+    while(m--) {
+        int x,y;
+        cin >> x >> y;
+        //cout << "solving: " << x << ' ' << y << endl;
+        if(interval[0].first > x) {
+            cout << "-1\n";
+            continue;
+        }
+        int start = 0, end = n, mid;
+        while(start+1 < end) {
+            mid = start+(end-start)/2;
+            if(interval[mid].first <= x) {
+                start = mid;
+            } else end = mid;
+        }
+        int numIntervals = 1;
+        int posLastInterval = prefixMaxEnd[start];
+        if(interval[posLastInterval].second >= y) {
+            //cout << "here, answer is 1:\n";
+            cout << "1\n";
+            continue;
+        }
+        //cout << "here, posLastInterval: interval: " << posLastInterval << ' ' << interval[posLastInterval].first <<' ' << interval[posLastInterval].second << endl;
+        bool possible = false;
+        for(int i = Log-1; i >= 0; --i) {
+            if(interval[memo[i][posLastInterval]].second < y) {
+                //cout << "here, adding: " << (1<<i) << endl;
+                numIntervals += (1<<i);
+                posLastInterval = memo[i][posLastInterval];
+            } else possible = true;
+        }
+        if(!possible) {
+            cout << "-1\n";
+            continue;
+        }
+        cout << numIntervals+1 << endl;
+    }
+}

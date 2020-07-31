@@ -1,0 +1,89 @@
+#include<bits/stdc++.h>
+
+#define ssync ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0)
+#define F first
+#define S second
+#define SQR(a) ((a)*(a))
+
+using namespace std;
+
+typedef long long int ll;
+typedef vector<int> vi;
+typedef vector<vi> vvi;
+typedef vector<string> vs;
+typedef vector<vs> vvs;
+typedef vector<ll> vll;
+typedef vector<vll> vvl;
+typedef pair<int,int> pii;
+typedef pair<ll,int> pli;
+const ll MOD = 1000000007;
+const long double PI = 3.14159265;
+
+ll powerWithMod(ll base, ll exponent, ll modulus)
+{
+	ll result = 1;
+	base %= modulus;
+	while(exponent > 0)
+	{
+		if(exponent % 2 == 1)
+			result = (result * base) % modulus;
+		exponent >>= 1;
+		base = (base * base) % modulus;
+	}
+	return result;
+}
+
+ll gcdExtended(ll a, ll b, ll *x, ll *y)
+{
+	if (a == 0)
+	{
+		*x = 0, *y = 1;
+		return b;
+	}
+	ll x1, y1;
+	ll gcd = gcdExtended(b%a, a, &x1, &y1);
+	*x = y1 - (b/a) * x1;
+	*y = x1;
+	return gcd;
+}
+
+ll modInverse(ll a, ll m)
+{
+	ll x, y;
+	ll g = gcdExtended(a, m, &x, &y);
+	ll res = (x%m + m) % m;
+	return res;
+}
+
+ll getNumberOfCardsInFullHouse(ll floors)
+{
+  return 3 * floors * (floors + 1) / 2 - floors;
+}
+
+ll getMaxHeight(ll n)
+{
+	ll l = 0;
+	ll r = 10000000;
+	while (l + 1 < r)
+	{
+		ll m = (l + r) / 2;
+		if (getNumberOfCardsInFullHouse(m) <= n) l = m;
+		else r = m;
+	}
+	return l;
+}
+ 
+ll solve(ll n)
+{
+  ll mx = getMaxHeight(n);
+  while ((mx + n) % 3) mx--;
+  return (mx + 3 - 1) / 3;
+}
+int main()
+{
+	ssync;
+	ll n;
+	cin >> n;
+	cout << solve(n);
+	return 0;
+}

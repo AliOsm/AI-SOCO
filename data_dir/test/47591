@@ -1,0 +1,179 @@
+#include "bits/stdc++.h"
+#define FI first.first
+#define SE first.second
+#define TH second
+#define fi first
+#define se second
+#define th second
+
+using namespace std;
+
+class DebugStream {}LOG;
+template <typename T>DebugStream &operator<<(DebugStream &s, const T&) { return s; }
+#ifdef DEBUG
+#define LOG clog
+#endif
+
+typedef long long ll;
+typedef pair<ll, ll> ii;
+typedef long double ld;
+mt19937 rnd(time(NULL));
+const int maxN = 3e5 + 9, maxV = 1e6 + 9, MOD = 998244353, SQ = 335, lg = 20, bs = 29;
+
+inline int mul(int a,int b){return (a*1ll*b)%MOD;}
+inline int add(int a,int b){a+=b;if(a>=MOD)a-=MOD;return a;}
+inline int sub(int a,int b){a-=b;if(a<0)a+=MOD;return a;}
+inline int power(int a,int b){int rt=1;while(b>0){if(b&1)rt=mul(rt,a);a=mul(a,a);b>>=1;}return rt;}
+inline int inv(int a){return power(a,MOD-2);}
+inline void MODadd(int &a,int &b){a+=b;if(a>=MOD)a-=MOD;}
+
+int base = 1;
+vector<int> roots = {0, 1};
+vector<int> rev = {0, 1};
+const int max_base=20;  //x such that 2^x|(MOD-1) and 2^x>max answer size(=2*n)
+const int root=power(3, (MOD-1) >> max_base);       //primitive root^((MOD-1)/(2^max_base))
+
+void ensure_base(int nbase) {
+    if (nbase <= base) {
+      return;
+    }
+    assert(nbase <= max_base);
+    rev.resize(1 << nbase);
+    for (int i = 0; i < (1 << nbase); i++) {
+      rev[i] = (rev[i >> 1] >> 1) + ((i & 1) << (nbase - 1));
+    }
+    roots.resize(1 << nbase);
+    while (base < nbase) {
+      int z = power(root, 1 << (max_base - 1 - base));
+      for (int i = 1 << (base - 1); i < (1 << base); i++) {
+        roots[i << 1] = roots[i];
+        roots[(i << 1) + 1] = mul(roots[i], z);
+      }
+      base++;
+    }
+}
+
+void fft(vector<int> &a) {
+    int n = (int) a.size();
+    assert((n & (n - 1)) == 0);
+    int zeros = __builtin_ctz(n);
+    ensure_base(zeros);
+    int shift = base - zeros;
+    for (int i = 0; i < n; i++) {
+      if (i < (rev[i] >> shift)) {
+        swap(a[i], a[rev[i] >> shift]);
+      }
+    }
+    for (int k = 1; k < n; k <<= 1) {
+      for (int i = 0; i < n; i += 2 * k) {
+        for (int j = 0; j < k; j++) {
+          int x = a[i + j];
+          int y = mul(a[i + j + k], roots[j + k]);
+          a[i + j] = x + y - MOD;
+          if (a[i + j] < 0) a[i + j] += MOD;
+          a[i + j + k] = x - y + MOD;
+          if (a[i + j + k] >= MOD) a[i + j + k] -= MOD;
+        }
+      }
+    }
+}
+
+vector<int> multiply(vector<int> a, vector<int> b, int eq = 0) {
+    int need = (int) (a.size() + b.size() - 1);
+    int nbase = 0;
+    while ((1 << nbase) < need) nbase++;
+    ensure_base(nbase);
+    int sz = 1 << nbase;
+    a.resize(sz);
+    b.resize(sz);
+    fft(a);
+    if (eq) b = a; else fft(b);
+    int inv_sz = inv(sz);
+    for (int i = 0; i < sz; i++) {
+      a[i] = mul(mul(a[i], b[i]), inv_sz);
+    }
+    reverse(a.begin() + 1, a.end());
+    fft(a);
+    a.resize(need);
+    return a;
+}
+
+ll arr[maxN], brr[maxN], n, k, q, fac[maxN][2], tams[maxN], pots[maxN];
+map<ll, ll> mp, crm;
+int dist;
+
+ll ncr(int n, int k) {
+	return fac[n][0] * fac[k][1] % MOD * fac[n - k][1] % MOD;
+}
+
+ll fastPow(ll a, ll b) {
+	ll ret = 1;
+	while(b) {
+		if(b & 1) ret = ret * a % MOD;
+		b >>= 1, a = a * a % MOD;
+	}
+	return ret;
+}
+
+void print(vector<int> vc) {
+	for(auto el: vc)
+		LOG << el << ' ';
+	LOG << '\n';
+}
+
+void solve(int K) {
+	int uniq = 0, repe = 0;
+	vector<int> unv, repv;
+	for(auto el: crm)
+		if(el.fi < K) {
+			if(el.se == 1)
+				uniq++;
+			else repe++;
+		}
+	LOG << uniq << ' ' << repe << '\n';
+
+	for(int i = 0; i <= uniq; i++)
+		unv.push_back(ncr(uniq, i) * pots[i] % MOD);
+	for(int i = 0; i <= repe; i++)
+		repv.push_back(ncr(repe, i));
+	repv = multiply(repv, repv, 1);
+	//print(unv), print(repv);
+	auto mul = multiply(unv, repv);
+	for(int i = 0; i < mul.size(); i++) {
+		ll frm = (ll(K) + i + 1) * 2;
+		mp[frm] = (mp[frm] + mul[i]) % MOD;
+	}
+}
+
+int main() {
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+	#ifdef DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+	#endif
+
+	cin >> n >> k;
+	pots[0] = 1;
+	for(int i = 1; i <= n + 3; i++)
+		pots[i] = pots[i - 1] * 2 % MOD;
+	for(int i = 0; i < n; i++) cin >> arr[i];
+	for(int i = 0; i < k; i++) cin >> brr[i];
+	fac[0][0] = fac[0][1] = 1;
+	for(int i = 1; i <= n + 3; i++) {
+		fac[i][0] = fac[i - 1][0] * i % MOD;
+		fac[i][1] = fastPow(fac[i][0], MOD - 2);
+	}
+
+	for(int i = 0; i < n; i++)
+		crm[arr[i]]++;
+
+	for(int i = 0; i < k; i++) solve(brr[i]);
+	cin >> q;
+	while(q--) {
+		ll cur;
+		cin >> cur;
+		cout << mp[cur] << '\n';
+	}
+}

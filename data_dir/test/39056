@@ -1,0 +1,155 @@
+#include <bits/stdc++.h>
+#define MOD 1000000007
+#define Nmax 1000005
+#define pb push_back
+#define mp make_pair
+#define INF 1000000000
+#define eps 0.000000000001
+
+using namespace std;
+
+int n,tip[Nmax],val[Nmax],p[Nmax],l,coef[Nmax],nrfii[Nmax],nr[Nmax];
+int aint[4*Nmax],sum[4*Nmax],NOD,fat[Nmax],nod[Nmax];
+vector <int> L[Nmax];
+
+inline void Dfs(int nod, int tata)
+{
+    p[nod]=++l; fat[nod]=tata;
+    for(auto it : L[nod])
+    {
+        if(it==tata) continue;
+        Dfs(it,nod); nrfii[nod]+=nrfii[it]+1;
+    }
+}
+
+inline void Propag(int nod)
+{
+    if(aint[nod]==1) return;
+    aint[2*nod]=(1LL * aint[2*nod] * aint[nod])%MOD;
+    aint[2*nod+1]=(1LL * aint[2*nod+1] * aint[nod])%MOD;
+    sum[2*nod]=(1LL * sum[2*nod] * aint[nod])%MOD;
+    sum[2*nod+1]=(1LL * sum[2*nod+1] * aint[nod])%MOD;
+    aint[nod]=1;
+}
+
+
+inline int Qry(int nod, int st, int dr, int x, int y)
+{
+    if(st==x && y==dr) return sum[nod];
+    Propag(nod);
+    int mij=((st+dr)>>1);
+    if(y<=mij) return Qry(2*nod,st,mij,x,y);
+    else
+        if(x>mij) return Qry(2*nod+1,mij+1,dr,x,y);
+        else
+            return (Qry(2*nod,st,mij,x,mij) + Qry(2*nod+1,mij+1,dr,mij+1,y))%MOD;
+}
+
+inline int Pow_Log(int x, int p)
+{
+    int sol=1;
+    while(p)
+    {
+        if(p&1)
+        {
+            sol=(1LL*sol*x)%MOD; --p;
+        }
+        p>>=1; x=(1LL*x*x)%MOD;
+    }
+    return sol;
+}
+
+inline void Upd(int nod, int st, int dr, int x, int y, int val)
+{
+    if(st==x && y==dr)
+    {
+        aint[nod] = (1LL*aint[nod]*val)%MOD;
+        sum[nod] = (1LL*sum[nod]*val)%MOD;
+        NOD=nod;
+        return;
+    }
+    Propag(nod);
+    int mij=((st+dr)>>1);
+    if(y<=mij) Upd(2*nod,st,mij,x,y,val);
+    else
+        if(x>mij) Upd(2*nod+1,mij+1,dr,x,y,val);
+        else
+        {
+            Upd(2*nod,st,mij,x,mij,val);
+            Upd(2*nod+1,mij+1,dr,mij+1,y,val);
+        }
+    sum[nod]= (sum[2*nod] + sum[2*nod+1])%MOD;
+}
+
+inline int Coef(int nod)
+{
+    if(!nod) return 1;
+    Upd(1,1,n,p[nod],p[nod],1);
+    return (1LL * coef[nod] * aint[NOD])%MOD;
+}
+
+inline void Add(int nod, int st, int dr, int x, int val)
+{
+    if(st==dr)
+    {
+        sum[nod] = val;
+        return;
+    }
+    Propag(nod);
+    int mij=((st+dr)>>1);
+    if(x<=mij) Add(2*nod,st,mij,x,val);
+    else Add(2*nod+1,mij+1,dr,x,val);
+    sum[nod]= (sum[2*nod] + sum[2*nod+1])%MOD;
+}
+
+int main()
+{
+    int i,j,cnt=1,q;
+    #ifndef ONLINE_JUDGE
+        freopen ("date.in","r",stdin);
+        freopen ("date.out","w",stdout);
+    #endif
+    cin.sync_with_stdio(0);
+    cin>>val[1]>>q;
+    for(i=1;i<=q;++i)
+    {
+        cin>>tip[i];
+        if(tip[i]==2) cin>>nod[i];
+        else
+        {
+            ++cnt;
+            cin>>nod[i]>>val[cnt];
+            L[cnt].pb(nod[i]);
+            L[nod[i]].pb(cnt);
+        }
+    }
+    n=cnt;
+    for(i=1;i<=4*n;++i) aint[i]=1;
+    Dfs(1,0);
+    coef[1]=1; Add(1,1,n,1,val[1]);
+    for(i=cnt=1;i<=q;++i)
+        if(tip[i]==1)
+        {
+            ++cnt;
+
+            int kkt = (1LL * (nr[nod[i]]+2) * Pow_Log(nr[nod[i]]+1,MOD-2)) % MOD;
+
+            Upd(1,1,n,p[nod[i]],p[nod[i]]+nrfii[nod[i]],kkt);
+            Upd(1,1,n,p[cnt],p[cnt],1); aint[NOD]=1;
+            coef[cnt]=Coef(nod[i]);
+            Add(1,1,n,p[cnt],(1LL*val[cnt]*coef[cnt])%MOD);
+            //if(i==2) cout<<Qry(1,1,n,p[cnt]-2,p[cnt])<<"--\n";
+            ++nr[nod[i]];
+
+            //for(int k=1;k<=n;++k) cout<<Coef(k)<<" ";
+            //cout<<"\n";
+
+        }
+        else
+        {
+            int val = Qry(1,1,n,p[nod[i]],p[nod[i]] + nrfii[nod[i]]);
+            val = (1LL*val*Pow_Log(Coef(fat[nod[i]]) , MOD-2))%MOD;
+            cout<<val<<"\n";
+        }
+    return 0;
+}

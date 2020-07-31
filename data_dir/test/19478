@@ -1,0 +1,114 @@
+# include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e5 + 100;
+
+int n, m, tp[N], mt[N], used[N], ans, dp[1 << 20 + 5];
+string s[N];
+vector <int> vec, g[41];
+bitset <N> bit[41];
+bitset <41> can[41];
+
+int get(string s){
+      int h = 0, pw = 997, pr = 997, mod = 1e9 + 7;
+      for(int i = 0; i < s.size(); i ++){
+            h = (h + pw *1ll* s[i]) % mod;
+            pw = (pw * 1ll * pr) % mod;
+      }
+      return h;
+}
+
+int pos(int x){
+      int pos = lower_bound(vec.begin(), vec.end(), x) - vec.begin();
+      return pos + n + 1;
+}
+
+int main(){
+      cin >> n >> m;
+
+      for(int i = 1; i <= n; i ++){
+            cin >> tp[i];
+            if(tp[i] == 2){
+                  cin >> s[i];
+                  vec.push_back(get(s[i]));
+            }
+      }
+
+      sort(vec.begin(), vec.end());
+      vec.resize(unique(vec.begin(), vec.end()) - vec.begin());
+
+      for(int i = 1; i <= n;){
+            int j = i + 1, mx = 0;
+            while(tp[j] == 2){
+                  int p = pos(get(s[j]));
+                  bit[p - n][i] = 1;
+                  j ++;
+            }
+            i = j;
+      }
+
+      for(int i = 1; i <= m; i ++){
+            can[i-1][i-1] = 1;
+            for(int j = i + 1; j <= m; j ++){
+                  bitset <N> b = bit[i] & bit[j];
+                  if(!b.count()){
+                        can[i-1][j-1] = 1;
+                        can[j-1][i-1] = 1;
+                  }
+            }
+      }
+
+      int n1 = (m + 1) / 2, n2 = m / 2;
+
+      for(int mask = 0; mask < (1 << n1); mask ++){
+            bitset <41> bt;
+            for(int j = 0; j < m; j ++){
+                  bt[j] = 1;
+            }
+            for(int i = 0; i < n1; i ++)
+                  if(mask & (1 << i))
+                        bt &= can[i];
+            bool ok = 1;
+            for(int i = 0; i < n1; i ++){
+                  if(mask & (1 << i))
+                        ok &= bt[i];
+            }
+            if(ok)
+                  dp[mask] = __builtin_popcount(mask);
+            for(int i = 0; i < n1; i ++){
+                  if(mask & (1 << i)){
+                        int msk = mask - (1 << i);
+                        dp[mask] = max(dp[mask], dp[msk]);
+                  }
+            }
+            ans = max(ans, dp[mask]);
+      }
+
+      for(int mask = 0; mask < (1 << n2); mask ++){
+            bitset <41> bt;
+            for(int j = 0; j < m; j ++)
+                  bt[j] = 1;
+            for(int i = 0; i < n2; i ++){
+                  if(mask & (1 << i)){
+                        bt &= can[i + n1];
+                  }
+            }
+            bool ok = 1;
+            for(int i = 0; i < n2; i ++){
+                  if(mask & (1 << i))
+                        ok &= bt[i + n1];
+            }
+            if(!ok)
+                  continue;
+            int msk = 0;
+            for(int i = 0; i < n1; i ++)
+                  if(bt[i])
+                        msk += (1 << i);
+            int ret = __builtin_popcount(mask);
+            ret += dp[msk];
+            ans = max(ans, ret);
+      }
+
+      cout << ans << endl;
+}

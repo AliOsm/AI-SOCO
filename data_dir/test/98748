@@ -1,0 +1,45 @@
+// God & me
+// Don't forget me ...
+#include <bits/stdc++.h>
+#define pb push_back
+#define X first
+#define Y second
+//#define int long long
+using namespace std;
+template <class T, class L> bool smax(T &x, L y){  return x < y ? ( x = y, 1) : 0;  }
+template <class T, class L> bool smin(T &x, L y){  return y < x ? ( x = y, 1) : 0;  }
+typedef pair <int, int> pii;
+typedef long long ll;
+typedef long double ld;
+
+const int maxn = 2e5 + 17;
+struct node{  ld pre, suf, sum, ans;  }  iman[maxn << 1];
+node operator &(node l, node r){
+    return {max(l.pre, l.sum + r.pre), max(r.suf, l.suf + r.sum), l.sum + r.sum, max({l.ans, r.ans, l.suf + r.pre})};
+}
+int n, m, c, x[maxn];
+int main(){
+    ios::sync_with_stdio(0), cin.tie(0);
+    cin >> n >> m >> c;
+    for(int i = 0; i < maxn << 1; i++)  iman[i] = {0, 0, 0, 0};
+    for(int i = 0; i < n; i++)  cin >> x[i];
+    for(int i = 0, p; i < n - 1; i++){
+	cin >> p;
+	ld t = ld(x[i + 1] - x[i]) / 2. - ld(p) / 100. * c;
+	iman[n + i] = {t, t, t, max<ld>(0, t)};
+    }
+    for(int i = n - 1; i; i--)
+	iman[i] = iman[i << 1] & iman[i << 1 | 1];
+    ld ans = 0;
+    for(int l, r; m--; ){
+	cin >> l >> r, l--, r--;
+	node L({0, 0, 0, 0}), R({0, 0, 0, 0});
+	for(l += n, r += n; l < r; l >>= 1, r >>= 1){
+	    if(l & 1)  L = L & iman[l++];
+	    if(r & 1)  R = iman[--r] & R;
+	}
+	ans += (L & R).ans;
+    }
+    cout << fixed << setprecision(8) << ans << '\n';
+    return 0;
+}

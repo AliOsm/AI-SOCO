@@ -1,0 +1,113 @@
+#include <bits/stdc++.h>
+#ifdef DBP
+#define deb(...) fprintf(stderr,__VA_ARGS__)
+#else
+#define deb(...) 0
+#endif
+#define fst first
+#define snd second
+#define fore(x,a,b) for(int x=(a), qwerty=(b); x<qwerty; x++)
+#define pb push_back
+#define mset(a,v) memset((a),(v),sizeof(a))
+#define ALL(a) (a).begin(), (a).end()
+#define SZ(a) int((a).size())
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+using namespace std;
+typedef long long ll;
+
+struct STree { // example: range sum with range addition
+	vector<ll> st,lazy;int n;
+	STree(int n): st(4*n+5,0), lazy(4*n+5,0), n(n) {}
+	void push(int k, int s, int e){
+		if(!lazy[k])return; // if neutral, nothing to do
+		st[k]+=lazy[k]; // update st according to lazy
+		if(s+1<e){ // propagate to children
+			lazy[2*k]+=lazy[k];
+			lazy[2*k+1]+=lazy[k];
+		}
+		lazy[k]=0; // clear node lazy
+	}
+	void upd(int k, int s, int e, int a, int b, ll v){
+		push(k,s,e);
+		if(s>=b||e<=a)return;
+		if(s>=a&&e<=b){
+			lazy[k]+=v;
+			push(k,s,e);return;
+		}
+		int m=(s+e)/2;
+		upd(2*k,s,m,a,b,v);upd(2*k+1,m,e,a,b,v);
+		st[k]=max(st[2*k],st[2*k+1]);
+	}
+	int query(int k, int s, int e, int a, int b){
+		if(s>=b||e<=a)return -1;
+		push(k,s,e);
+		if(st[k]<=0)return -1;
+		if(s+1==e)return s;
+		int m=(s+e)/2;
+		int ans = query(2*k+1,m,e,a,b);
+		if(ans>=0)return ans;
+		return query(2*k,s,m,a,b);
+	}
+	void upd(int a, int b, int v){
+		upd(1,0,n,a,b,v);
+	}
+	int query(int a, int b){return query(1,0,n,a,b);}
+};
+
+const int N=5e5+5;
+vector<pair<int,ll> > qs;
+int q;
+int who[N];
+int main(){FIN;
+	cin >> q;
+	vector<pair<int,int> > asd, qq;
+	fore(x,0,q){
+		char c; int v; cin >> c >> v;
+		qs.pb({c=='+',v});qq.pb({v,x});
+		if(c=='+')asd.pb({v,x});
+	}
+	sort(ALL(asd));sort(ALL(qq));
+	fore(x,0,SZ(asd))who[asd[x].snd]=x;
+	fore(x,0,q){
+		queue<int> qadd;
+		qadd.push(qq[x].snd);
+		while(x+1<q && qq[x+1].fst==qq[x].fst){
+			x++;
+			if(qs[qq[x].snd].fst==0){
+				who[qq[x].snd]=who[qadd.front()];
+				qadd.pop();
+			}else{
+				qadd.push(qq[x].snd);
+			}
+		}
+	}
+	/*fore(x,0,q){
+		if(qs[x].fst==0){
+			queue<int> &q=ms[qs[x].snd];
+			who[x] = who[q.front()];
+			q.pop();
+		}
+	}*/
+	
+	int n=SZ(asd);
+	STree st(n);
+	int cur = 0;
+	fore(x,0,q){
+		if(qs[x].fst==1){
+			st.upd(who[x],who[x]+1,qs[x].snd);
+			st.upd(who[x]+1,n,-2LL*qs[x].snd);
+			cur++;
+		}else{
+			st.upd(who[x],who[x]+1,-qs[x].snd);
+			st.upd(who[x]+1,n,2LL*qs[x].snd);
+			cur--;
+		}
+		
+		int idx = n, ans = -1;
+		while(idx>=0){
+			idx = st.query(0,idx);
+			ans++;
+		}
+		cout << (cur - 1) - (ans-1) << "\n";
+	}
+}

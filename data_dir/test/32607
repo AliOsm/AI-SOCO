@@ -1,0 +1,126 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+const int infint = 1e9;
+const ll inf = 1e18;
+const int MOD = (int)1e9 + 7;
+const int MAXN = (int)1e5 + 7;
+int n, q, h[MAXN], par[MAXN][20], seg[4 * MAXN];
+vector<int> G[MAXN];
+void dfs(int u)
+{
+	for (auto v : G[u])
+	{
+		h[v] = h[u] + 1;
+		par[v][0] = u;
+		dfs(v);
+	}
+}
+int lca(int u, int v)
+{
+	if(u == 0)
+		return v;
+	if(v == 0)
+		return u;
+	if(h[u] > h[v])
+		swap(u, v); //h[v] >= h[u]
+	for (int i = 19; i >= 0; i--)
+		if(h[v] - (1 << i) >= h[u])
+			v = par[v][i];
+	if(u == v)
+		return u;
+	for (int i = 19; i >= 0; i--)
+		if(par[v][i] != -1 && par[u][i] != -1 && par[v][i] != par[u][i])
+			u = par[u][i], v = par[v][i];
+	return par[u][0];
+}
+void build(int node, int st, int en)
+{
+	if(en - st < 2)
+	{
+		seg[node] = st;
+		return;
+	}
+	int mid = (st + en) >> 1;
+	build(node << 1, st, mid);
+	build(node << 1 | 1, mid, en);
+	seg[node] = lca(seg[node << 1], seg[node << 1 | 1]);
+}
+int get(int node, int st, int en, int l, int r)
+{
+	if(l >= en || st >= r || en <= st)
+		return 0;
+	if(l <= st && en <= r)
+		return seg[node];
+	int mid = (st + en) >> 1;
+	int u = get(node << 1, st, mid, l, r), v = get(node << 1 | 1, mid, en, l, r);
+	return lca(u, v);
+}
+int get(int u, int H)
+{
+	H = h[u] - H;
+	for (int i = 19; i >= 0; i--)
+		if(H >= (1 << i))
+			u = par[u][i], H -= (1 << i);
+	return u;
+}
+int del(int l, int r, int lc)
+{
+	int c1 = get(1, 1, n + 1, l, lc), c2 = get(1, 1, n + 1, lc + 1, r);
+	return lca(c1, c2);
+}
+pair<int, int> solve(int l, int r)
+{
+	int lc = get(1, 1, n + 1, l, r);
+	if(l <= lc && lc < r)
+	{
+		if(del(l, r, lc) != lc)
+			return {lc, h[del(l, r, lc)]};
+		else
+			return {lc, h[lc]};
+	}
+	int L = 0, R = r - l;
+	while(R - L > 1)
+	{
+		int mid = (L + R) >> 1;
+		if(get(1, 1, n + 1, l, l + mid + 1) == lc)
+			R = mid;
+		else
+			L = mid;
+	}
+	R = R + l;
+	int C1 = h[del(l, r, R)], C2 = h[del(l, r, R - 1)];
+	if(C2 > C1)
+		return {R - 1, h[del(l, r, R - 1)]};
+	else
+		return {R, h[del(l, r, R)]};
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+	cin >> n >> q;
+	for (int i = 2; i <= n; i++)
+	{
+		int p;
+		cin >> p;
+		G[p].push_back(i);
+	}
+	memset(par, -1, sizeof par);
+	dfs(1);
+	for (int i = 1; i < 20; i++)
+		for (int j = 1; j <= n; j++)
+			if(par[j][i - 1] != -1)	
+				par[j][i] = par[par[j][i - 1]][i - 1];
+	
+	build(1, 1, n + 1);
+	cout << "\n";
+	for (int i = 0; i < q; i++)
+	{
+		int l, r;
+		cin >> l >> r;
+		pair<int, int> p = solve(l, r + 1);
+		cout << p.first << " " << p.second << "\n";
+	}
+}

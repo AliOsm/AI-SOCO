@@ -1,0 +1,99 @@
+#include<bits/stdc++.h>
+using namespace std;
+typedef long double ld;
+typedef pair<ld,ld> point;
+inline point operator + (point a, point b) {return point(a.first + b.first, a.second + b.second);}
+inline point operator - (point a, point b) {return point(a.first - b.first, a.second - b.second);}
+inline point operator * (point a, point b) {return point(a.first * b.first - a.second * b.second, a.first * b.second + a.second * b.first);}
+const ld PI = acos(-1.0);
+const int LG = 19, N = 1 << LG;
+point W[N], F1[N], F2[N];
+int rev[N];
+inline void Init()
+{
+	for (int i = 0; i < N; i++)
+		rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (LG - 1)),
+		W[i] = point(cos(2.0 * PI * i / N), sin(2.0 * PI * i / N));
+}
+inline void FFT(point * F, int n, bool inv)
+{
+	int d = LG - __builtin_ctz(n);
+	for (int i = 0; i < n; i++)
+		if (i < (rev[i] >> d))
+			swap(F[i], F[(rev[i] >> d)]);
+	for (int len = 1; len < n; len <<= 1)
+		for (int i = 0; i < n; i += (len << 1))
+			for (int j = i; j < i + len; j++)
+			{
+				point z = W[(j - i) << (LG - __builtin_ctz(len << 1))];
+				if (inv) z.second = -z.second;
+				z = z * F[j + len];
+				F[j + len] = F[j] - z;
+				F[j] = F[j] + z;
+			}
+	if (inv)
+		for (int i = 0; i < n; i++)
+			F[i] = point(F[i].first / n, F[i].second / n);
+}
+int n, m, k, P[N], M[N];
+char A[N], B[N];
+inline int Conv(char ch)
+{
+	if (ch == 'A')
+		return 0;
+	if (ch == 'C')
+		return 1;
+	if (ch == 'G')
+		return 2;
+	return 3;
+}
+int main()
+{
+	Init();
+	scanf("%d%d%d%s%s", &n, &m, &k, A, B);
+	for (int i = 0; i < n; i++)
+		A[i] = Conv(A[i]);
+	for (int i = 0; i < m; i++)
+		B[i] = Conv(B[i]);
+	reverse(B, B + m);
+
+	int d = 0;
+	while ((1 << d) < n + m)
+		d ++;
+	int len = 1 << d;
+
+	for (int w = 0; w <= 3; w++)
+	{
+		int cnt = 0;
+		for (int i = 0; i < n; i++)
+			if (A[i] == w)
+			{
+				P[max(i - k, 0)] ++;
+				P[min(i + k + 1, n)] --;
+			}
+		for (int i = 0; i < m; i++)
+			if (B[i] == w)
+				cnt ++;
+		for (int i = 0; i < len; i++)
+			F1[i] = F2[i] = point(0.0, 0.0);
+		for (int i = 0; i < n; i++)
+			P[i + 1] += P[i], F1[i] = point(P[i] ? 1.0 : 0.0, 0.0);
+		memset(P, 0, sizeof(P));
+		for (int i = 0; i < m; i++)
+			F2[i] = point((ld)(B[i] == w), 0.0);
+		FFT(F1, len, 0);
+		FFT(F2, len, 0);
+		for (int i = 0; i < len ; i++)
+			F1[i] = F1[i] * F2[i];
+		FFT(F1, len, 1);
+		for (int i = m - 1; i < n; i++)
+			if ((int)(F1[i].first + 0.5) == cnt)
+				M[i] ++;
+	}
+	int cnt = 0;
+	for (int i = 0; i < n; i++)
+		if (M[i] == 4)
+			cnt ++;
+	printf("%d\n", cnt);
+	return 0;
+}

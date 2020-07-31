@@ -1,0 +1,156 @@
+#include <bits/stdc++.h>
+#define MOD 1000000007
+#define Nmax 100005
+#define pb push_back
+#define mp make_pair
+#define INF 1000000000
+#define eps 0.000000000001
+
+using namespace std;
+
+struct el
+{
+    int r,v,ind;
+    bool operator <(const el &A) const
+    {
+        return r<A.r;
+    }
+} a[Nmax];
+int n,k,q,rr[Nmax],vv[Nmax],ans[Nmax],L[Nmax],R[Nmax],gr[Nmax],len,N,val[Nmax],grdr[Nmax];
+int vec[5*Nmax],aint[20*Nmax],poz[Nmax],aib[5*Nmax];
+vector <int> Qry[Nmax],T[Nmax];
+unordered_map <int,int> M;
+
+inline void Normalize()
+{
+    int i;
+    sort(vec+1,vec+len+1);
+    M[vec[1]]=1;
+    for(i=2;i<=len;++i)
+    {
+        M[vec[i]]=M[vec[i-1]];
+        if(vec[i]>vec[i-1]) ++M[vec[i]];
+    }
+    N=M[vec[len]];
+}
+
+inline void upd(int nod, int st, int dr, int p, int val)
+{
+    if(st==dr)
+    {
+        aint[nod]=max(aint[nod],val);
+        return;
+    }
+    int mij=((st+dr)>>1);
+    if(p<=mij) upd(2*nod,st,mij,p,val);
+    else upd(2*nod+1,mij+1,dr,p,val);
+    aint[nod]=max(aint[2*nod],aint[2*nod+1]);
+}
+
+inline int qry(int nod, int st, int dr, int x, int y)
+{
+    if(st==x && y==dr) return aint[nod];
+    int mij=((st+dr)>>1);
+    if(y<=mij) return qry(2*nod,st,mij,x,y);
+    else
+        if(x>mij) return qry(2*nod+1,mij+1,dr,x,y);
+        else return max(qry(2*nod,st,mij,x,mij),qry(2*nod+1,mij+1,dr,mij+1,y));
+}
+
+inline void Solve()
+{
+    int i;
+    for(i=n;i;--i)
+    {
+        upd(1,1,N,M[a[i].v],val[i]);
+        for(auto it : Qry[i]) ans[it]=qry(1,1,N,M[L[it]],M[R[it]]);
+    }
+}
+
+inline void Upd(int p)
+{
+    int i;
+    for(i=p;i<=N;i+=(i&(-i))) ++aib[i];
+}
+
+inline int Query(int p)
+{
+    int i,sol=0;
+    for(i=p;i;i-=(i&(-i))) sol+=aib[i];
+    return sol;
+}
+
+inline void Calc_Val()
+{
+    int i;
+    for(i=1;i<=n;++i)
+    {
+        Upd(M[a[i].v]);
+        for(auto it : T[i]) val[it]=Query(M[a[it].v+k])-Query(M[a[it].v-k-1]);
+    }
+}
+
+int main()
+{
+    int i,j,x,y,l1,r1,l2,r2;
+    #ifndef ONLINE_JUDGE
+        freopen ("date.in","r",stdin);
+        freopen ("date.out","w",stdout);
+    #endif
+    cin.sync_with_stdio(0);
+    cin>>n>>k;
+    for(i=1;i<=n;++i)
+    {
+        cin>>a[i].r; rr[i]=a[i].r;
+    }
+    for(i=1;i<=n;++i)
+    {
+        cin>>a[i].v; vv[i]=a[i].v;
+        vec[++len]=a[i].v;
+        vec[++len]=a[i].v-k-1;
+        vec[++len]=a[i].v+k;
+        a[i].ind=i;
+    }
+    sort(a+1,a+n+1);
+    for(i=1;i<=n;++i) poz[a[i].ind]=i;
+
+    gr[1]=1;
+    for(i=2;i<=n;++i)
+        if(a[i].r==a[i-1].r) gr[i]=gr[i-1];
+        else gr[i]=i;
+
+    grdr[n]=n;
+    for(i=n-1;i;--i)
+        if(a[i].r==a[i+1].r) grdr[i]=grdr[i+1];
+        else grdr[i]=i;
+
+    for(i=1;i<=n;++i) T[grdr[i]].pb(i);
+
+    cin>>q;
+    for(i=1;i<=q;++i)
+    {
+        cin>>x>>y;
+        if(poz[y]<poz[x]) swap(x,y);
+        int l1=vv[x]-k,r1=vv[x]+k,l2=vv[y]-k,r2=vv[y]+k;
+        L[i]=max(l1,l2); R[i]=min(r1,r2);
+        if(R[i]<L[i]) ans[i]=-1;
+        else
+        {
+            vec[++len]=L[i];
+            if(R[i]!=L[i]) vec[++len]=R[i];
+            Qry[gr[poz[y]]].pb(i);
+            //cout<<gr[poz[y]]<<" "<<L[i]<<" "<<R[i]<<"\n";
+        }
+    }
+    Normalize();
+    Calc_Val();
+
+   // for(i=1;i<=n;++i) cout<<val[i]<<" ";
+    //cout<<"\n";
+
+    Solve();
+    for(i=1;i<=q;++i)
+        if(!ans[i]) cout<<"-1\n";
+        else cout<<ans[i]<<"\n";
+    return 0;
+}

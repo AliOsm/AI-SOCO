@@ -1,0 +1,147 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+template<class T1, class T2>
+istream & operator>> (istream& is, pair<T1,T2> &p){
+    return is >> p.first >> p.second;
+}
+template<class T1, class T2>
+ostream & operator<< (ostream &os, pair<T1,T2> &p){
+    return os << p.first << " " << p.second;
+}
+
+const int N=100005;
+const int LOGN=17;
+const int magic=300;
+
+struct zapr{
+    int l,r;
+    int lca;
+    int num;
+    zapr(int l=0, int r=0, int lca=-1, int num=0):l(l),r(r),lca(lca),num(num){}
+    bool operator< (const zapr &rhs) const{
+        if(l/magic == rhs.l/magic){
+            if((l/magic)&1)return r > rhs.r;
+            else return r < rhs.r;
+        }
+        return l < rhs.l;
+    }
+};
+
+vector<int> g[N];
+int tin[N], tout[N];
+int up[LOGN][N];
+
+vector<int> order;
+
+void dfs(int v, int p){
+    up[0][v]= p==-1 ? v : p;
+    for(int i=1; i<LOGN; i++)up[i][v]=up[i-1][up[i-1][v]];
+    tin[v]=order.size();
+    order.push_back(v);
+    for(int u:g[v]){
+        if(u!=p)dfs(u,v);
+    }
+    tout[v]=order.size();
+    order.push_back(v);
+}
+
+inline bool is_anc(int a, int b){
+    return tin[a]<=tin[b] && tout[a]>=tout[b];
+}
+
+int lca(int a, int b){
+    if(tin[a]>tin[b])swap(a,b);
+    if(is_anc(a,b))return a;
+    for(int i=LOGN-1; i>=0; i--){
+        if(!is_anc(up[i][b],a))b=up[i][b];
+    }
+    return up[0][b];
+}
+
+int fav[N];
+int gender[N];
+
+int cou[2][N];
+bool used[N];
+long long res=0;
+
+inline void insert(int x){
+    cou[gender[x]][fav[x]]++;
+    res+=cou[1^gender[x]][fav[x]];
+}
+
+inline void erase(int x){
+    cou[gender[x]][fav[x]]--;
+    res-=cou[1^gender[x]][fav[x]];
+}
+
+int cur_l=0, cur_r=-1;
+inline void inc_r(){
+    cur_r++;
+    if(used[order[cur_r]])erase(order[cur_r]);
+    else insert(order[cur_r]);
+    used[order[cur_r]]^=1;
+}
+inline void dec_l(){
+    cur_l--;
+    if(used[order[cur_l]])erase(order[cur_l]);
+    else insert(order[cur_l]);
+    used[order[cur_l]]^=1;
+}
+inline void dec_r(){
+    if(used[order[cur_r]])erase(order[cur_r]);
+    else insert(order[cur_r]);
+    used[order[cur_r--]]^=1;
+}
+inline void inc_l(){
+    if(used[order[cur_l]])erase(order[cur_l]);
+    else insert(order[cur_l]);
+    used[order[cur_l++]]^=1;
+}
+signed main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    int n;
+    cin >> n;
+    for(int i=0; i<n; i++)cin >> gender[i];
+    vector<int> all(n);
+    for(int i=0; i<n; i++)cin >> fav[i], all[i]=fav[i];
+    sort(all.begin(),all.end());
+    all.resize(unique(all.begin(),all.end())-all.begin());
+    for(int i=0; i<n; i++)fav[i]=lower_bound(all.begin(),all.end(),fav[i])-all.begin();
+    for(int i=1; i<n; i++){
+        int a,b;
+        cin >> a >> b;
+        g[a-1].push_back(b-1);
+        g[b-1].push_back(a-1);
+    }
+    dfs(0,-1);
+    int q;
+    cin >> q;
+    vector<zapr> z(q);
+    vector<long long> ans(q);
+    for(int i=0; i<q; i++){
+        int a,b;
+        cin >> a >> b;
+        a--;b--;
+        if(tin[a]>tin[b])swap(a,b);
+        int c=lca(a,b);
+        if(a==c)z[i]={tin[a],tin[b],-1,i};
+        else z[i]={tout[a],tin[b],c,i};
+    }
+    sort(z.begin(),z.end());
+    for(int znum=0; znum<q; znum++){
+        int l=z[znum].l, r=z[znum].r, c=z[znum].lca, num=z[znum].num;
+        while(cur_r<r)inc_r();
+        while(cur_l>l)dec_l();
+        while(cur_r>r)dec_r();
+        while(cur_l<l)inc_l();
+        ans[num]=res;
+        if(c!=-1)ans[num]+=cou[1^gender[c]][fav[c]];
+    }
+    for(int i=0; i<q; i++)cout << ans[i] << "\n";
+}

@@ -1,0 +1,138 @@
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+#include <vector>
+
+int gcd(int a, int b)
+{
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+struct Node *nill;
+
+struct Node {
+    Node *ch[2];
+    int val;
+    int g;
+    int sz;
+
+    Node(int val = 0, int sz = 0) : val(val), sz(sz), g(val) {
+        ch[0] = ch[1] = nill;
+    }
+
+    void up() {
+        if (this == nill) return ;
+        g = gcd(val, gcd(ch[0]->g, ch[1]->g));
+        sz = ch[0]->sz + ch[1]->sz + 1;
+    }
+};
+
+void split(Node *a,Node *&b,Node *&c,int cnt) {
+    if (a == nill) {
+        b = c = nill;
+    } else if (a->sz == cnt) {
+        b = a;
+        c = nill;
+    } else if (cnt == 0) {
+        b = nill;
+        c = a;
+    } else if (a->ch[0]->sz + 1 <= cnt) {
+        b = a;
+        split(a->ch[1],b->ch[1],c,cnt - a->ch[0]->sz - 1);
+        b->up();
+    } else {
+        c = a;
+        split(a->ch[0],b,c->ch[0],cnt);
+        c->up();
+    }
+}
+
+unsigned ran() {
+    static unsigned ranx = 233233233;
+    return ranx += ranx << 2 | 1;
+}
+
+bool roll(int a,int b) {
+    return ran() % (a+b) < a;
+}
+
+void merge(Node *&a,Node *b,Node *c) {
+    if (b == nill) {
+        a = c;
+    } else if (c == nill) {
+        a = b;
+    } else if (roll(b->sz,c->sz)) {
+        a = b;
+        merge(a->ch[1],b->ch[1],c);
+        a->up();
+    } else {
+        a = c;
+        merge(a->ch[0],b,c->ch[0]);
+        a->up();
+    }
+}
+
+const int kN = 500000 + 5;
+int n, a[kN], nq;
+Node pool[kN], *node[kN], *alloc;
+
+Node *build(int l, int r)
+{
+    if (l == r)
+        return new(alloc ++) Node(a[l], 1);
+
+    int mid = l + r >> 1;
+    Node *ret;
+    merge(ret, build(l, mid), build(mid + 1, r));
+    return ret;
+}
+
+bool check(Node *u, int x, int left)
+{
+    if (u == nill) return true;
+    if (u->g % x == 0) return true;
+    if (!left) return false;
+    if (u->val % x != 0)
+        return check(u->ch[0], x, 0) && check(u->ch[1], x, 0);
+    if (gcd(u->ch[0]->g, x) == x)
+        return check(u->ch[1], x, left);
+    if (gcd(u->ch[1]->g, x) == x)
+        return check(u->ch[0], x, left);
+    return false;
+}
+
+int main()
+{
+    alloc = pool;
+    nill = new(alloc ++) Node(0, 0);
+    nill->ch[0] = nill->ch[1] = nill;
+    scanf("%d", &n);
+    for (int i = 1; i <= n; ++ i) {
+        scanf("%d", a + i);
+    }
+    Node *root = build(1, n);
+    scanf("%d", &nq);
+    while (nq --) {
+        int op;
+        scanf("%d", &op);
+        if (op == 1) {
+            int l, r, x;
+            scanf("%d%d%d", &l, &r, &x);
+            Node *q, *w, *e;
+            split(root, q, w, l - 1);
+            split(w, w, e, r - l + 1);
+            puts(check(w, x, 1) ? "YES" : "NO");
+            merge(w, w, e);
+            merge(root, q, w);
+        } else {
+            int i, y;
+            scanf("%d%d", &i, &y);
+            Node *q, *w, *e;
+            split(root, q, w, i - 1);
+            split(w, w, e, 1);
+            w->g = w->val = y;
+            merge(w, w, e);
+            merge(root, q, w);
+        }
+    }
+}

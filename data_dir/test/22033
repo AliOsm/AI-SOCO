@@ -1,0 +1,131 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define type(x) __typeof((x).begin())
+#define foreach(it, x) for(type(x) it = (x).begin(); it != (x).end(); it++)
+typedef long long ll;
+typedef pair < int, int > ii;
+
+const int inf = 1e9 + 333;
+const ll linf = 1e18 + inf;
+
+int n, m, q;
+vector < ii > lca[13];
+vector < int > sub[1 << 13];
+int pop[1 << 13], stBit[1 << 13], ch[13], need[13], val[1 << 13], nb[1 << 13];
+bool ok[13][1 << 13];
+ll dp[13][1 << 13][2];
+
+ll f(int dad, int mask, bool w) {
+	if(!w) {
+		int c = need[dad];
+		if(c & (1 << dad))
+			c ^= 1 << dad;
+		if((mask & c) != c)
+			return 0;
+	}
+	if(!mask)
+		return 1;
+	ll &r = dp[dad][mask][w];
+	if(r != -1)
+		return r;
+	r = 0;
+	foreach(it, sub[mask]) {
+		int x = *it;
+		if(!ok[dad][x])
+			continue;
+		int c = ch[dad] & x;
+		if(!c) {
+			for(int i = 0; i < n; i++) {
+				if(x & (1 << i)) {
+					int m1 = x;
+					int m2 = mask ^ x;
+					if(!(nb[m1] & m2) and !(nb[m2] & m1))
+						r += f(i, m1 ^ (1 << i), 0) * f(dad, m2, 1);
+				}
+			}
+		}
+		else if(c - (c & -c) == 0) {
+			int i = val[c];
+			int m1 = x;
+			int m2 = mask ^ x;
+			if(!(nb[m1] & m2) and !(nb[m2] & m1))
+				r += f(i, m1 ^ (1 << i), 0) * f(dad, m2, 1);
+		}
+	}
+	return r;
+}
+
+int main() {
+
+	scanf("%d %d %d", &n, &m, &q);
+
+	for(int i = 1; i <= m; i++) {
+		int x, y;
+		scanf("%d %d", &x, &y);
+		x--;
+		y--;
+		ch[x] |= 1 << y;
+		ch[y] |= 1 << x;
+	}
+
+	for(int i = 1; i <= q; i++) {
+		int a, b, c;
+		scanf("%d %d %d", &a, &b, &c);
+		a--;
+		b--;
+		c--;
+		lca[c].push_back(ii(a, b));
+		need[c] |= 1 << a;
+		need[c] |= 1 << b;
+	}
+
+	for(int i = 0; i < n; i++) {
+		for(int x = 0; x < (1 << n); x++) {
+			if(x & (1 << i))
+				continue;
+			bool flag = 0;
+			for(int j = 0; j < lca[i].size(); j++) {
+				int a = lca[i][j].first;
+				int b = lca[i][j].second;
+				if((x & (1 << a)) and (x & (1 << b))) {
+					flag = 1;
+					break;
+				}
+			}
+			ok[i][x] = !flag;
+		}
+	}
+
+	for(int i = 0; i < n; i++) {
+		val[1 << i] = i;
+	}
+
+	for(int i = 1; i < (1 << n); i++) {
+		nb[i] = nb[i - (i & -i)] | ch[val[i & -i]] | need[val[i & -i]];
+		pop[i] = pop[i - (i & -i)] + 1;
+		stBit[i] = i & -i;
+		vector < int > v;
+		for(int j = 0; j < n; j++) {
+			if(i & (1 << j))
+				v.push_back(j);
+		}
+		for(int x = 0; x < (1 << v.size()); x++) {
+			int res = 0;
+			for(int j = 0; j < v.size(); j++) {
+				if(x & (1 << j))
+					res |= 1 << v[j];
+			}
+			if(res & stBit[i])
+				sub[i].push_back(res);
+		}
+	}
+
+	memset(dp, -1, sizeof(dp));
+
+	printf("%lld\n", f(0, (1 << n) - 1 - 1, 0));
+
+	return 0;
+
+}

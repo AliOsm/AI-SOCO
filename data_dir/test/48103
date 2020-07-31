@@ -1,0 +1,123 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define f(i, x, n) for (int i = x; i < (int)(n); ++i)
+
+int const N = 200000;
+char s[N + 1];
+int n, fr[26], fn[N + 1];
+set<pair<int, int> > st, frs;
+set<int> ed[26], sm[26], one;
+vector<pair<int, int> > an;
+
+int gt(int i) { int an = 0; while (i)an += fn[i], i ^= i & -i; return an; }
+void ad(int i) { while (i <= n)--fn[i], i += i & -i; }
+
+void dcfr(int c){
+	frs.erase(make_pair(fr[c], c));
+	--fr[c];
+	if (fr[c])frs.insert(make_pair(fr[c], c));
+}
+
+void adan(int a, int b){
+	an.emplace_back(gt(a + 1), gt(b + 1));
+	for (auto it = one.find(a); it != one.end() && *it <= b; one.erase(it++))ad(*it + 1);
+}
+
+void rmed(int a, int b){
+	if (s[a] == s[b])sm[s[a] - 'a'].erase(a);
+	else {
+		ed[s[a] - 'a'].erase(a);
+		ed[s[b] - 'a'].erase(a);
+	}
+}
+
+void aded(int a, int b){
+	if (s[a] == s[b])sm[s[a] - 'a'].insert(a);
+	else {
+		ed[s[a] - 'a'].insert(a);
+		ed[s[b] - 'a'].insert(a);
+	}
+}
+
+void rm(int x){
+	auto b = st.lower_bound(make_pair(x, 0)), a = b++;
+	int ca = s[a->first] - 'a';
+	if (b == st.end()){
+		adan(a->second, n - 1);
+		st.erase(a);
+		dcfr(ca);
+		return;
+	}
+	int cb = s[b->first] - 'a';
+	adan(a->second, b->first);
+	rmed(a->first, b->first);
+	if (ca == cb){
+		st.insert(make_pair(a->first, b->second));
+		int t = b->first;
+		++b;
+		if (b != st.end()){
+			rmed(t, b->first);
+			aded(a->first, b->first);
+		}
+		--b;
+	}else {
+		int t = a->first;
+		if (a != st.begin()){
+			--a;
+			rmed(a->first, t);
+			++b;
+			if (b != st.end())aded(a->first, b->first);
+			--b;
+			++a;
+		}
+		t = b->first;
+		++b;
+		if (b != st.end())rmed(t, b->first);
+		--b;
+	}
+	st.erase(a);
+	st.erase(b);
+	dcfr(ca);
+	if (cb != ca)dcfr(cb);
+}
+
+void kl(int t){
+	if (!ed[t].empty())rm(*ed[t].begin());
+	else if (!sm[t].empty())rm(*sm[t].begin());
+	else rm(st.begin()->first);
+}
+
+void solve(){
+	scanf("%s", s);
+	n = strlen(s);
+	f(i, 0, n)one.insert(i);
+	f(i, 1, n + 1)fn[i] = i & -i;
+	f(i, 1, n)if (s[i] == s[i - 1]){
+		st.insert(make_pair(i - 1, i));
+		++fr[s[i] - 'a'];
+	}
+	f(i, 0, 26)if (fr[i])frs.insert(make_pair(fr[i], i));
+	if (!st.empty())for (auto it1 = st.begin(), it2 = ++st.begin(); it2 != st.end(); ++it1, ++it2){
+		int a = s[it1->first] - 'a', b = s[it2->first] - 'a';
+		if (a == b)sm[a].insert(it1->first);
+		else {
+			ed[a].insert(it1->first);
+			ed[b].insert(it1->first);
+		}
+	}
+	an.clear();
+	while (!frs.empty()){
+		int t = frs.rbegin()->second;
+		kl(t);
+	}
+	adan(0, n - 1);
+	printf("%d\n", (int)an.size());
+	for (auto &t: an)printf("%d %d\n", t.first, t.second);
+}
+
+int main(){
+	int t;
+	scanf("%d", &t);
+	while (t--)solve();
+}

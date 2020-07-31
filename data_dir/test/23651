@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+template<typename T>
+struct BIT {
+    int n;
+    vector<T> dat;
+
+    BIT(int n=0){
+        initialize(n);
+    }
+
+    void initialize(int nin){
+        n = nin;
+        dat.resize(n, 0);
+    }
+
+    T sum(int i){
+        T s = 0;
+        while(i >= 0){
+            s += dat[i];
+            i = (i & (i+1)) - 1;
+        }
+        return s;
+    }
+
+    T sum_between(int i, int j){
+        return sum(j) - sum(i-1);
+    }
+
+    void plus(int i, T x){
+        while(i < n){
+            dat[i] += x;
+            i |= i+1;
+        }
+    }
+
+    // a[0]+...+a[ret] >= x
+    int lower_bound(T x){
+        if(x < 0) return -1;
+        int ret = -1;
+        int k = 1;
+        while(2*k <= n) k <<= 1;
+        for( ;k>0; k>>=1){
+            if(ret+k < n && dat[ret+k] < x){
+                x -= dat[ret+k];
+                ret += k;
+            }
+        }
+        return ret + 1;
+    }
+};
+
+vector<int> edges[300000];
+
+set<int> st;
+vector<int> V;
+bitset<300000> visited;
+vector<vector<int>> cycles;
+void dfs(int i, int p){
+    if(st.count(i)){
+        int pt = V.size()-1;
+        vector<int> C = {V[pt]};
+        while(V[pt] != i){
+            pt--;
+            C.push_back(V[pt]);
+        }
+        cycles.push_back(C);
+        return;
+    }
+    if(visited[i]) return;
+    visited[i] = 1;
+    V.push_back(i);
+    st.insert(i);
+    for(int j : edges[i]) if(j != p){
+        dfs(j, i);
+    }
+    V.pop_back();
+    st.erase(i);
+}
+
+
+int main(){
+    int N, M;
+    cin >> N >> M;
+    for(int i=0; i<M; i++){
+        int a, b;
+        scanf("%d %d", &a, &b);
+        edges[a-1].push_back(b-1);
+        edges[b-1].push_back(a-1);
+    }
+    int Q;
+    cin >> Q;
+    vector<int> X(Q), Y(Q);
+    for(int i=0; i<Q; i++){
+        scanf("%d %d", &X[i], &Y[i]);
+        X[i]--; Y[i]--;
+    }
+
+    for(int i=0; i<N; i++) if(!visited[i]) dfs(i, -1);
+
+    vector<int> R(N, N);
+    for(auto& v : cycles){
+        int mn = *min_element(v.begin(), v.end());
+        int mx = *max_element(v.begin(), v.end());
+        R[mn] = mx-1;
+    }
+    for(int i=N-2; i>=0; i--) R[i] = min(R[i], R[i+1]);
+
+    static vector<int> R2L[300001];
+    for(int i=0; i<N; i++) R2L[R[i]].push_back(i);
+
+    BIT<int64_t> bit(N), bit_head(N);
+    for(int i=0; i<N; i++) {
+        bit_head.plus(i, 1);
+    }
+    static vector<vector<int>> R2LQ[300001];
+    for(int i=0; i<Q; i++) R2LQ[Y[i]].push_back({X[i], i});
+
+    vector<int64_t> ans(Q);
+    for(int r=0; r<N; r++){
+        for(int i : R2L[r]){
+            bit.plus(i, R[i]);
+            bit_head.plus(i, -1);
+        }
+        for(auto& p : R2LQ[r]){
+            int64_t l = p[0], q = p[1];
+            int64_t Ans = bit.sum_between(l, r) + bit_head.sum_between(l, r) * r;
+            Ans -= (l+r-2)*(r-l+1)/2;
+            ans[q] = Ans;
+        }
+    }
+    for(int64_t a : ans) printf("%lld\n", a);
+    return 0;
+}

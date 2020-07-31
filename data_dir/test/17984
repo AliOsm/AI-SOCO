@@ -1,0 +1,75 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define DEBUG 0
+#define BRUTE 1
+
+typedef long long ll;
+typedef pair<int,int> ii;
+#define fore(i,o,p) for(int i=o,ggd=p;i<ggd;i++)
+#define pb push_back
+#define SZ(a) ((int)(a).size())
+#define mset(a,b) memset(a,b,sizeof(a));
+#define ALL(a) a.begin(),a.end()
+#define fst first
+#define snd second
+
+const int N=1024;
+int n,vis[N],sz[N],d[N][N];
+vector<int>g[N];
+
+void centroid_dfs(int i,int pa) {
+  sz[i]=1;
+  for(int j:g[i])if(j!=pa){
+    centroid_dfs(j,i);
+    sz[i]+=sz[j];
+  }
+}
+bool is_centroid(int i) {
+  centroid_dfs(i,-1);
+  for(int j:g[i])if(sz[j]>n/2)return 0;
+  return 1;
+}
+int get_centroid() {
+  fore(i,0,n)if(is_centroid(i))return i;
+  assert(0);
+}
+void assign(int i,int pa,int st,int take,vector<int>&v) {
+  d[i][pa]=d[pa][i]=v[st]-take;
+  int cur=st+1;
+  for(int j:g[i])if(j!=pa) {
+    assign(j,i,cur,v[st],v);
+    cur+=sz[j];
+  }
+}
+
+int main() {
+  ios::sync_with_stdio(false);
+  cin>>n;
+  fore(i,0,n-1) {
+    int x,y;cin>>x>>y;x--,y--;
+    g[x].pb(y);
+    g[y].pb(x);
+  }
+  int c=get_centroid(),suml=0,sumr=0;
+  vector<int>l,r,v_l,v_r;
+  typedef pair<int,vector<int>>gr;
+  priority_queue<gr,vector<gr>,greater<gr>>pq;
+  for(int i:g[c])pq.push({sz[i],{i}});
+  while(SZ(pq)>2) {
+    auto t1=pq.top();pq.pop();
+    auto t2=pq.top();pq.pop();
+    for(auto it:t2.snd)t1.snd.pb(it);
+    t1.fst+=t2.fst;
+    pq.push(t1);
+  }
+  if(SZ(pq))l=pq.top().snd,suml=pq.top().fst,pq.pop();
+  if(SZ(pq))r=pq.top().snd,sumr=pq.top().fst,pq.pop();
+  fore(i,0,suml)v_l.pb(i+1);
+  fore(i,0,sumr)v_r.pb((suml+1)*(i+1));
+  int l_id=0,r_id=0;
+  for(int i:l)assign(i,c,l_id,0,v_l),l_id+=sz[i];
+  for(int i:r)assign(i,c,r_id,0,v_r),r_id+=sz[i];
+  fore(i,0,n)fore(j,i+1,n)if(d[i][j])
+    cout<<i+1<<" "<<j+1<<" "<<d[i][j]<<"\n";
+}

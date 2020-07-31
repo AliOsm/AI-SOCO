@@ -1,0 +1,135 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define REP(i, n) for (int i = 0; i < int(n); i++)
+#define FOR(i, a, b) for (int i = a; i < int(b); i++)
+#define FOREACH(i, v) for (__typeof((v).begin()) i = (v).begin(); i != (v).end(); i++)
+#define SIZE(v) ((int)(v).size())
+#define pb push_back
+#define mp make_pair
+#define st first
+#define nd second
+#define ll long long
+#define pii pair<int, int>
+
+const int MAX = 100100;
+
+bitset<MAX> visited, used;
+vector<int> adj[MAX];
+
+vector<ll> F[MAX], acc[MAX];
+
+int ps[MAX], f[MAX], id[MAX], sz[MAX], dm[MAX];
+
+int n, m, q;
+
+map<pii, ll> dic;
+
+int id_cnt = 0;
+pii dfs0(int u, int p) {
+	visited[u] = true;
+	ps[u] = u;
+	id[u] = id_cnt;
+	sz[id_cnt]++;
+	pii ans = mp(0, u);
+	FOREACH(v, adj[u]) if(*v != p) {
+		pii aux = dfs0(*v, u);
+		if(ans.st < aux.st + 1) {
+			ans = aux;
+			ans.st++;
+			ps[u] = *v;
+		}
+	}
+	return ans;
+}
+
+void dfs1(int u, int fs) {
+	//printf("u = %d, fs = %d\n", u, fs);
+	used[u] = true;
+	f[u] = fs;
+	F[id_cnt].pb(fs);
+	FOREACH(v, adj[u]) if(!used[*v]) dfs1(*v, fs + 1);
+}
+
+int main() {
+	scanf("%d %d %d", &n, &m, &q);
+	REP(i, m) {
+		int u, v; scanf("%d %d", &u, &v);
+		adj[u].pb(v);
+		adj[v].pb(u);
+	}
+	
+	for(int u = 1; u <= n; u++) if(!visited[u]) {
+		id_cnt++;
+		pii aux = dfs0(u, 0);
+		int vv = aux.nd;
+		aux = dfs0(aux.nd, 0);
+		int i = aux.st, j = 0, v = vv;
+		dm[id_cnt] = i;
+		while(true) {
+			f[v] = max(i, j);
+			//printf("vv = %d\n", v);
+			i--, j++;
+			used[v] = true;
+			if(ps[v] == v) break;
+			v = ps[v];
+		}
+		v = vv;
+		while(true) {
+			dfs1(v, f[v]);
+			if(ps[v] == v) break;
+			v = ps[v];
+		}
+		sort(F[id_cnt].begin(), F[id_cnt].end());
+		acc[id_cnt] = F[id_cnt];
+		
+		//printf("id_cnt = %d, st = %d, nd = %d\n", id_cnt, aux.st, aux.nd);
+		//FOREACH(s, F[id_cnt]) printf("%lld ", *s);
+		//printf("\n");
+		
+		int len = SIZE(acc[id_cnt]);
+		for(int i = len - 2; i >= 0; i--)
+			acc[id_cnt][i] += acc[id_cnt][i + 1];
+	}
+	
+	REP(i, q) {
+		int u, v; scanf("%d %d", &u, &v);
+		u = id[u], v = id[v];
+		if(u == v) printf("-1\n");
+		else {
+			ll ans = 0;
+			if(u > v) swap(u, v);
+			if(dic.count(mp(u, v)) == 1) ans = dic[mp(u, v)];
+			else {
+				if(sz[u] > sz[v]) swap(u, v);
+				ll d = max(dm[u], dm[v]);
+				
+				FOREACH(h, F[u]) {
+					ll a = *h;
+					ll Ca = d - a;
+					//printf("a = %lld, d = %lld\n", a, d);
+					int l = 0, m, r = SIZE(F[v]) - 1;
+					
+					if(F[v][r] < Ca) ans += d*(r + 1);
+					else {
+						while(l != r) {
+							m = (l + r)/2;
+							if(F[v][m] >= Ca) r = m;
+							else l = m + 1;
+						}
+						//printf("r = %d, acc[v][r] = %lld, size = %d\n", r, acc[v][r], SIZE(F[v])); 
+						ans += d*r;
+						ans += acc[v][r];
+						ans += (a + 1)*(SIZE(F[v]) - r);
+					}
+				}
+				if(u > v) swap(u, v);
+				dic[mp(u, v)] = ans;
+			}
+			//printf("<%lld>\n", ans);
+			double fans = 1.0*ans/SIZE(F[u])/SIZE(F[v]);
+			printf("%.8f\n", fans);
+		}
+	}
+	
+	
+}

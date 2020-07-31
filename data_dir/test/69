@@ -1,0 +1,66 @@
+#include <iostream>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <functional>
+
+constexpr int INF = 1.01e9;
+
+void upd(int &x, int y) {
+	x = std::min(x, y);
+}
+
+std::vector<int> mul(std::vector<int> &x, std::vector<int> &y) {
+	std::vector<int> z(x.size() + y.size() - 1, INF);
+	for (int i = 0; i < x.size(); i++) {
+		for (int j = 0; j < y.size(); j++) {
+			upd(z[i + j], x[i] + y[j]);
+		}
+	}
+	return z;
+}
+
+int main() {
+	int n, w;
+	std::cin >> n >> w;
+
+	std::vector<std::vector<int>> g(n);
+	std::vector<int> a(n), b(n);
+	for (int i = 0; i < n; i++) {
+		scanf("%d %d", &a[i], &b[i]);
+		b[i] = a[i] - b[i];
+		if (i > 0) {
+			int p;
+			scanf("%d", &p);
+			g[p - 1].push_back(i);
+		}
+	}
+
+	std::vector<std::vector<int>> dp0(n);
+	std::vector<std::vector<int>> dp1(n);
+	std::vector<std::vector<int>> dp01(n);
+
+	std::function<void(int)> dfs = [&](int u) {
+		dp0[u] = { 0, a[u] };
+		dp1[u] = { INF, b[u] };
+		for (int v : g[u]) {
+			dfs(v);
+			dp1[u] = mul(dp1[u], dp01[v]);
+			dp0[u] = mul(dp0[u], dp0[v]);
+		}
+		dp01[u].resize(dp0[u].size());
+		for (int i = 0; i < dp0[u].size(); i++) {
+			dp01[u][i] = std::min(dp0[u][i], dp1[u][i]);
+		}
+	};
+	dfs(0);
+
+	int ans = 0;
+	for (int i = 0; i < dp01[0].size(); i++) {
+		if (dp01[0][i] <= w) {
+			ans = i;
+		}
+	}
+	std::cout << ans << std::endl;
+}

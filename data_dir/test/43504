@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+const int MAXN = 100005;
+ll t[4 * MAXN];
+void addOnRange(int i, int l, int r, int lx, int rx)
+{
+	if (l == lx && r == rx)
+		t[i]++;
+	else
+	{
+		int mid = (l + r) / 2;
+		if (lx <= mid)
+			addOnRange(2 * i + 1, l, mid, lx, min(rx, mid));
+		if (rx > mid)
+			addOnRange(2 * i + 2, mid + 1, r, max(lx, mid + 1), rx);
+	}
+}
+ll get(int i, int l, int r, int pos)
+{
+	if (l == r)
+		return t[i];
+	else
+	{
+		int mid = (l + r) / 2;
+		if (pos <= mid)
+			return t[i] + get(2 * i + 1, l, mid, pos);
+		else
+			return t[i] + get(2 * i + 2, mid + 1, r, pos);
+	}
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	int n; cin >> n;
+	vector<ll> v(n);
+	for (int i = 0; i < n; i++)
+		cin >> v[i];
+	vector<ll> t(n);
+	for (int i = 0; i < n; i++)
+		cin >> t[i];
+	vector<ll> prefSumT(n);
+	prefSumT[0] = t[0];
+	for (int i = 1; i < n; i++)
+		prefSumT[i] = prefSumT[i - 1] + t[i];
+	vector<ll> partAdd(n, 0);
+	for (int i = 0; i < n; i++)
+	{
+		auto it = lower_bound(prefSumT.begin(), prefSumT.end(), v[i] + (i == 0 ? 0 : prefSumT[i - 1]));
+		if (it == prefSumT.end())
+		{
+			//cout << "ADD " << i << " " << (n - 1) << endl;
+			addOnRange(0, 0, n - 1, i, n - 1);
+		}
+		else
+		{
+			int index = it - prefSumT.begin();
+			int val = (*it) - (i == 0 ? 0 : prefSumT[i - 1]);
+			if (val == v[i])
+			{
+				if (i <= index)
+				{
+					//cout << "ADD " << i << " " << index << endl;
+					addOnRange(0, 0, n - 1, i, index);
+				}
+			}
+			else
+			{
+				if (index - 1 >= 0 && i <= index - 1)
+				{
+					//cout << "ADD " << i << " " << (index - 1) << endl;
+					addOnRange(0, 0, n - 1, i, index - 1);
+				}
+				//cout << "ADD_PART " << index << ": " << (v[i] - (index == 0 ? 0 : prefSumT[index - 1]) + (i == 0 ? 0 : prefSumT[i - 1])) << endl;
+				partAdd[index] += v[i] - (index == 0 ? 0 : prefSumT[index - 1]) + (i == 0 ? 0 : prefSumT[i - 1]);
+			}
+		}
+	}
+	for (int i = 0; i < n; i++)
+	{
+		//cout << "GET " << i << " " << get(0, 0, n - 1, i) << endl;
+		//cout << "PART_ADD: " << i << " " << partAdd[i] << endl;
+		ll todayResult = t[i] * get(0, 0, n - 1, i) + partAdd[i];
+		cout << todayResult << " ";
+	}
+	cout << endl;
+}

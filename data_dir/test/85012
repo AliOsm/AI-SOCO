@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N=100005;
+
+struct node{
+    int mx, add;
+    node(int val=-2000000):mx(val),add(0){};
+    node(const node &l, const node &r):mx(max(l.mx,r.mx)),add(0){};
+} t[N<<2];
+
+int a[N];
+
+void build(int v, int tl, int tr){
+    if(tl>tr)return;
+    if(tl==tr)return void(t[v]=a[tl]);
+    int tm=(tl+tr)>>1;
+    build(v+v,tl,tm);
+    build(v+v+1,tm+1,tr);
+    t[v].mx=max(t[v+v].mx,t[v+v+1].mx);
+}
+
+void seg_add(int v, int tl, int tr, int l, int r, int delta){
+    if(tl>tr || l>r || l>tr || tl>r)return;
+    if(tl>=l && tr<=r){
+        t[v].mx+=delta;
+        t[v].add+=delta;
+        return;
+    }
+    int tm=(tl+tr)>>1;
+    seg_add(v+v,tl,tm,l,r,delta);
+    seg_add(v+v+1,tm+1,tr,l,r,delta);
+    t[v].mx=max(t[v+v].mx,t[v+v+1].mx)+t[v].add;
+}
+
+signed main()
+{
+#ifdef files
+	ifstream cin("input.txt");
+	ofstream cout("output.txt");
+#endif
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    int n,m;
+    cin >> n >> m;
+    for(int i=0; i<n; i++){
+        cin >> a[i];
+    }
+    build(1,0,n-1);
+    vector<pair<int,int> > otr(m);
+    vector<pair<pair<int,int>,int> > z;
+    for(int i=0; i<m; i++){
+        int l,r;
+        cin >> l >> r;
+        l--;
+        r--;
+        otr[i]={l,r};
+        z.push_back({{l,-1},i});
+        z.push_back({{r+1,1},i});
+    }
+    sort(z.begin(),z.end());
+    int pos=0;
+    int ans=-2000000000, ansi=0;
+    int curdelta=0;
+    for(int i=0; i<n; i++){
+        int tpos=pos;
+        while(tpos<z.size() && z[tpos].first.first<=i){
+            seg_add(1,0,n-1,otr[z[tpos].second].first,otr[z[tpos].second].second,z[tpos].first.second);
+            curdelta+=z[tpos].first.second;
+            tpos++;
+        }
+        pos=tpos;
+        if(ans<t[1].mx-a[i]-curdelta){
+            ans=t[1].mx-a[i]-curdelta;
+            ansi=i;
+        }
+    }
+    cout << ans << "\n";
+    vector<int> res;
+    for(int i=0; i<m; i++){
+        if(otr[i].first<=ansi && otr[i].second>=ansi)res.push_back(i);
+    }
+    cout << res.size() << "\n";
+    for(int x:res)cout << x+1 << " ";
+}

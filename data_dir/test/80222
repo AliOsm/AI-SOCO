@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define FOR(i, j, k) for (int i = j; i < (int)k; i++)
+
+const int N = 200;
+int G, S, n, m;
+int par[N];
+bool vis[N];
+unordered_set<int> adj[N];
+int mat[N][N];
+
+void dfs(int u)
+{
+    vis[u] = true;
+    for (int v : adj[u])
+        if (v != par[u] && !vis[v])
+        {
+            par[v] = u;
+            dfs(v);
+        }
+}
+
+struct edge
+{
+    int x, y, g, s;
+    bool operator<(const edge &e)
+    {
+        return g < e.g;
+    }
+};
+
+int main()
+{
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    cin >> n >> m >> G >> S;
+    edge a[m];
+    for (int i = 0; i < m; i++)
+    {
+        cin >> a[i].x >> a[i].y >> a[i].g >> a[i].s;
+        a[i].x--;
+        a[i].y--;
+    }
+    sort(a, a + m);
+    ll ans = (ll)5e18;
+
+    for (int i = 0; i < m; i++)
+    {
+        par[a[i].x] = -1;
+        memset(vis, false, sizeof vis);
+        dfs(a[i].x);
+        if (!vis[a[i].y])
+        {
+            mat[a[i].x][a[i].y] = mat[a[i].y][a[i].x] = a[i].s;
+            adj[a[i].x].insert(a[i].y);
+            adj[a[i].y].insert(a[i].x);
+            par[a[i].x] = -1;
+            memset(vis, false, sizeof vis);
+            dfs(a[i].x);
+        }
+        else
+        {
+            int mx = 0;
+            int cur = a[i].y;
+            while (cur != a[i].x)
+            {
+                mx = max(mx, mat[cur][par[cur]]);
+                cur = par[cur];
+            }
+            if (mx > a[i].s)
+            {
+                mat[a[i].x][a[i].y] = mat[a[i].y][a[i].x] = a[i].s;
+                adj[a[i].x].insert(a[i].y);
+                adj[a[i].y].insert(a[i].x);
+                cur = a[i].y;
+                while (cur != a[i].x)
+                {
+                    if (mat[cur][par[cur]] == mx)
+                    {
+                        mat[cur][par[cur]] = mat[par[cur]][cur] = 0;
+                        adj[cur].erase(par[cur]);
+                        adj[par[cur]].erase(cur);
+                        break;
+                    }
+                    cur = par[cur];
+                }
+            }
+        }
+        bool ok = true;
+        int mxSilver = 0;
+        for (int j = 0; j < n; j++)
+        {
+            if (!vis[j])
+            {
+                ok = false;
+                break;
+            }
+            for (int x : adj[j])
+                mxSilver = max(mxSilver, mat[j][x]);
+        }
+        if (ok)
+            ans = min(ans, 1ll * a[i].g * G + 1ll * mxSilver * S);
+    }
+
+    cout << (ans == (ll)5e18 ? -1 : ans);
+}

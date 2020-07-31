@@ -1,0 +1,205 @@
+#ifdef DEBUG
+#endif
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+mt19937 mrand(random_device{} ()); 
+
+int rnd(int x) {
+  return mrand() % x;
+}
+
+typedef long double ld;
+typedef long long ll;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf(stderr, __VA_ARGS__), fflush(stderr)
+#else
+#define eprintf(...) ;
+#endif
+
+#define pb push_back
+#define mp make_pair
+#define sz(x) ((int) (x).size())
+#define TASK "text"
+
+const int inf = (int) 1.01e9;
+const ld eps = 1e-9;
+const ld pi = acos((ld) -1.0);
+
+const int mod = (int) 1e9 + 7;
+
+void add(int &x, int y) {
+  if ((x += y) >= mod) {
+    x -= mod;
+  }
+}
+
+int mult(int x, int y) {
+  return (long long) x * y % mod;
+}
+
+int power(int x, int pw) {
+  int res = 1;
+  for (; pw; pw >>= 1) {
+    if (pw & 1) {
+      res = mult(res, x);
+    }
+    x = mult(x, x);
+  }
+  return res;
+}
+
+void precalc() {
+}
+
+
+int k, q;
+
+int S;
+
+int read() {
+  if (scanf("%d%d%d", &k, &q, &S) < 3) {
+    return 0;
+  }
+  --S;
+  return 1;
+}
+
+vector<vector<int> > es, cs;
+
+int n0;
+
+void makee(int v, int l, int r, int l0, int r0, int type, int v0) {
+  if (l >= r0 || l0 >= r) {
+    return;
+  }
+
+  if (l0 <= l && r <= r0) {
+    int s = v0, t = v;
+    if (type == 3) {
+      t += 2 * n0;
+      swap(s, t);
+    }
+    es[s].pb(t);
+    cs[s].pb(0);
+    return;
+  }
+
+
+  int m = (l + r) / 2;
+  makee(2 * v, l, m, l0, r0, type, v0);
+  makee(2 * v + 1, m, r, l0, r0, type, v0);
+}
+
+const long long infll = 1e18;
+
+vector<long long> dist;
+
+void getd(int S) {
+  typedef pair<long long, int> pli;
+  priority_queue<pli, vector<pli>, greater<pli> > tree;
+
+  int n = sz(es);
+  dist = vector<long long>(n, infll);
+  dist[S] = 0;
+  tree.push(mp(dist[S], S));
+
+  while (sz(tree)) {
+    auto top = tree.top();
+    tree.pop();
+    int v = top.second;
+    if (top.first != dist[v]) {
+      continue;
+    }
+    for (int it = 0; it < sz(es[v]); ++it) {
+      int u = es[v][it];
+      auto nval = dist[v] + cs[v][it];
+      if (dist[u] > nval) {
+        //eprintf("%d->%d (%lld)\n", v, u, nval);
+        dist[u] = nval;
+        tree.push(mp(dist[u], u));
+      }
+    }
+  }
+}
+
+void solve() {
+  n0 = 1;
+  for (; n0 < k; n0 <<= 1) ;
+
+  int cntv = 4 * n0 + q;
+  //eprintf("n0 = %d\n", n0);
+  es = cs = vector<vector<int> >(cntv);
+
+  for (int i = 1; i < n0; ++i) {
+    for (int it = 0; it < 2; ++it) {
+      int u = i * 2 + it;
+      es[i].pb(u), cs[i].pb(0);
+      es[u + 2 * n0].pb(i + 2 * n0), cs[u + 2 * n0].pb(0);
+    }
+  }
+  for (int i = 0; i < n0; ++i) {
+    int s = i + n0, t = s + 2 * n0;
+    es[s].pb(t), cs[s].pb(0);
+    es[t].pb(s), cs[t].pb(0);
+  }
+
+  for (int iter = 0; iter < q; ++iter) {
+    int type;
+    scanf("%d", &type);
+    if (type == 1) {
+      int v, u, w;
+      scanf("%d%d%d", &v, &u, &w);
+      --v, --u;
+      es[v + n0].pb(u + n0);
+      cs[v + n0].pb(w);
+    } else {
+      int v, l, r, w;
+      scanf("%d%d%d%d", &v, &l, &r, &w);
+      --v;
+      --l;
+      int v0 = 4 * n0 + iter;
+      makee(1, 0, n0, l, r, type, v0);
+
+      if (type == 2) {
+        es[n0 + v].pb(v0);
+        cs[n0 + v].pb(w);
+      } else {
+        es[v0].pb(n0 + v);
+        cs[v0].pb(w);
+      }
+    }
+  }
+
+  getd(S + n0);
+  for (int i = 0; i < k; ++i) {
+    int v = i + n0;
+    auto d = dist[v];
+    if (d >= infll) {
+      d = -1;
+    }
+    printf("%lld%c", d, " \n"[i == k - 1]);
+  }
+}
+
+int main() {
+  precalc();
+#ifdef LOCAL
+  freopen(TASK ".out", "w", stdout);
+  assert(freopen(TASK ".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time %.2f\n", (double) clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

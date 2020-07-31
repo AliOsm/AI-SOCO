@@ -1,0 +1,116 @@
+#include <iostream>
+#include <cstdio>
+#include <cmath>
+#include <cstring>
+#include <vector>
+#include <algorithm>
+#include <queue>
+#include <set>
+#include <map>
+#pragma comment(linker, "/STACK:1024000000,1024000000")    
+using namespace std;
+typedef long long LL;
+const int MOD = 1000000007;
+const int N = 505;
+int n , m , r , a[N][N] , l[N][N] , num[N][N];
+int dif[N] , Left_Max[N][N] , Left_Cnt[N][N] , Right_Max[N][N] , Right_Cnt[N][N];
+LL update (LL &a , LL &b , LL c , LL d) {
+    if (c > a) {
+        a = c;
+        b = d;
+    }
+    else if (c == a) {
+        b += d;
+    }
+}
+int main () { 
+    #ifndef ONLINE_JUDGE
+        freopen ("input.txt" , "r" , stdin);
+        // freopen ("output.txt" , "w" , stdout);
+    #endif
+    scanf ("%d %d %d" , &n , &m , &r);
+    for (int i = 1 ; i <= n ; i ++) {
+        for (int j = 1 ; j <= m ; j ++) {
+            scanf ("%d" , &a[i][j]);
+            l[i][j] = l[i][j - 1] + a[i][j];
+        }
+    }
+    for (int i = r + 1 ; i <= n - r ; i ++) {
+        for (int j = r + 1 ; j <= m - r ; j ++) {
+            num[i][j] = 0;
+            for (int k = -r ; k <= r ; k ++) {
+                int len = sqrt (r * r - k * k);
+                num[i][j] += l[i - k][j + len] - l[i - k][j - len - 1]; 
+            }
+            // cout << i << " " << j << " " << num[i][j] << endl;
+        }
+    }
+    for (int i = r + 1 ; i <= n - r ; i ++) {
+        for (int j = r + 1 ; j <= m - r ; j ++) {
+            if (num[i][j] > Left_Max[i][j - 1]) {
+                Left_Max[i][j] = num[i][j];
+                Left_Cnt[i][j] ++;
+            }
+            else if (num[i][j] == Left_Max[i][j - 1]) {
+                Left_Max[i][j] = Left_Max[i][j - 1];
+                Left_Cnt[i][j] = Left_Cnt[i][j - 1] + 1;
+            }
+            else {
+                Left_Max[i][j] = Left_Max[i][j - 1];
+                Left_Cnt[i][j] = Left_Cnt[i][j - 1];
+            }
+        }
+    }
+    for (int i = r + 1 ; i <= n - r ; i ++) {
+        for (int j = m - r ; j >= r + 1 ; j --) {
+            if (num[i][j] > Right_Max[i][j + 1]) {
+                Right_Max[i][j] = num[i][j];
+                Right_Cnt[i][j] ++;
+            }
+            else if (num[i][j] == Right_Max[i][j + 1]) {
+                Right_Max[i][j] = Right_Max[i][j + 1];
+                Right_Cnt[i][j] = Right_Cnt[i][j + 1] + 1;
+            }
+            else {
+                Right_Max[i][j] = Right_Max[i][j + 1];
+                Right_Cnt[i][j] = Right_Cnt[i][j + 1];
+            }
+        }
+    }
+    // the difference of row is i
+    for (int i = 0 ; i <= 2 * r ; i ++) {
+        #define gao(m) ((int)sqrt(r * r - (m) * (m))) 
+        int mindif = 0;
+        for (int j = 0 ; j <= r ; j ++) {
+            mindif = max (mindif , gao (j) + 1 + gao (abs (i - j)));
+        }
+        // least difference of col
+        dif[i] = mindif;
+        // cout << dif[i] << endl;
+    }
+    LL ans = 0 , ret = 0;
+    for (int i = r + 1 ; i <= n - r ; i ++) {
+        for (int j = r + 1 ; j <= m - r ; j ++) {
+            for (int k = r + 1 ; k <= n - r ; k ++) {
+                if (abs (k - i) > 2 * r) {
+                    LL val = num[i][j] + Left_Max[k][m - r] , cnt = Left_Cnt[k][m - r];
+                    update (ans , ret , val , cnt);
+                    // cout << i << " " << j << " " << k << " " << val << " " << cnt << endl;
+                }
+                else {
+                    int Left = j - dif[abs (k - i)] , Right = j + dif[abs (k - i)];
+                    // cout << Left << " " << Right << endl;
+                    LL val = num[i][j] + Left_Max[k][Left] , cnt = Left_Cnt[k][Left];
+                    update (ans , ret , val , cnt);
+                    // cout << i << " " << j << " " << k << " " << val << " " << cnt << endl;
+                    val = num[i][j] + Right_Max[k][Right] , cnt = Right_Cnt[k][Right];
+                    update (ans , ret , val , cnt);
+                    // cout << i << " " << j << " " << k << " " << val << " " << cnt << endl;
+                }
+            }
+        }
+    }
+    if (ret / 2 == 0) ans = 0;
+    printf ("%I64d %I64d\n" , ans , ret / 2);
+    return 0;
+}

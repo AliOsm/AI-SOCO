@@ -1,0 +1,166 @@
+///WRONG LIFE
+///DIE(RETRY)
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+
+#include "bits/stdc++.h"
+using namespace std;
+
+#define pb push_back
+#define F first
+#define S second
+#define f(i,a,b)  for(int i = a; i < b; i++)
+#define endl '\n'
+
+using ll = long long;
+using db = long double;
+using row = vector<int>;
+using ii = pair<int, int>;
+
+const int N = 1e6 + 5, A = 6561, LG = 19, MOD = 998244353;
+const int SQ = 450;
+const long double EPS = 1e-7;
+int cnt[N];
+vector<int> go[N];
+vector<int> adj[N];
+int pr[N];
+vector<int>FuctMe(int x){
+  vector<int> ret;
+  while(x > 1){
+    if(ret.empty()||ret.back()!=pr[x])
+    ret.pb(pr[x]);
+    x /= pr[x];
+  }
+  return ret;
+}
+int ID[N];
+void init(){
+  map<vector<int>,int> mp;
+  for(int i = 1; i < N; i++){
+    bool f = (!pr[i] && (i > 1));
+    for(int j = i; j < N; j += i){
+      cnt[j]++;
+      if(f)pr[j] = i;
+    }
+  }
+  vector<vector<int>> vk;
+  f(i,1,N){
+    auto x = FuctMe(i);
+    vector<int> cnt;
+    int cur = i;
+    for(auto v : x){
+      int tmp = 0;
+      while(cur%v==0){
+        cur/=v;
+        tmp++;
+      }
+      cnt.pb(tmp);
+    }
+    sort(cnt.begin(),cnt.end());
+    if(mp.count(cnt) == 0){
+      int id = mp.size();
+      mp[cnt] = id;
+      vk.pb(cnt);
+    }
+    ID[i] = mp[cnt];
+  }
+  int mx = 0;
+  f(i,1,N){
+    auto x = FuctMe(i);
+    go[cnt[i]].pb(ID[i]);
+    // for(auto v : x){
+    //   adj[ID[i/v]].pb(ID[i]);
+    //   adj[ID[i]].pb(ID[i/v]);
+    // }
+  }
+  for(int i = 0; i < vk.size() && vk.size() < 5000; i++){
+    int divs = 1;
+    for(auto x : vk[i])divs *= (x + 1);
+    for(auto &x : vk[i]){
+      divs /= (x + 1);
+      x++;
+      divs *= (x + 1);
+      auto tmp = vk[i];
+      sort(tmp.begin(),tmp.end());
+      if(mp.count(tmp) == 0){
+        int id = mp.size();
+        mp[tmp] = id;
+        go[divs].pb(id);
+        vk.pb(tmp);
+      }
+      mx = max(mx, divs);
+      // assert(mp.count(tmp));
+      divs /= (x + 1);
+      x--;
+      divs *= (x + 1);
+      adj[mp[vk[i]]].pb(mp[tmp]);
+      adj[mp[tmp]].pb(mp[vk[i]]);
+    }
+    auto tmp = vk[i];
+    tmp.insert(tmp.begin(), 1);
+    if(mp.count(tmp) == 0){
+      int id = mp.size();
+      mp[tmp] = id;
+      go[divs+divs].pb(id);
+      vk.pb(tmp);
+    }
+    adj[mp[vk[i]]].pb(mp[tmp]);
+    adj[mp[tmp]].pb(mp[vk[i]]);
+  }
+  // cout << mx << endl;
+  // cout<<mp.size()<<' '<<vk.size()<<endl;
+}
+int dist[N], q[N], vis[N], h, t;
+void push(int x){q[t++] = x;}
+int pop(){return q[h++];}
+void enk7(int idx){
+  h = t = 0;
+  int cnt = 0;
+  int val = idx;
+  for(auto u : go[val]){
+    if(vis[u]!=idx){
+      vis[u] = idx;
+      dist[u] = 0;
+      push(u);
+    }
+  }
+
+  while(h < t){
+    int cur = pop();
+    for(auto v : adj[cur])
+    if(vis[v] != idx){
+      vis[v] = idx;
+      dist[v] = dist[cur] + 1;
+      push(v);
+      cnt++;
+    }
+  }
+
+}
+int x[N], y[N];
+int ans[N];
+int32_t main(){
+#ifdef ONLINE_JUDGE
+  ios_base::sync_with_stdio(0);
+  cin.tie(0);
+#endif // ONLINE_JUDGE
+  init();
+  int ptr = 0;
+   int q;  cin >> q;
+   f(i,0,q){
+     cin >> x[i] >> y[i];
+     x[i] = ID[x[i]];
+     y[i] = ID[y[i]];
+     ans[i] = INT_MAX;
+   }
+   f(i,1,N)
+     if(go[i].size()){
+       enk7(i);
+       f(j,0,q)if(vis[x[j]] ==i&& vis[y[j]] == i)ans[j] = min(ans[j], dist[x[j]] + dist[y[j]]);
+     }
+
+   f(i,0,q)cout << ans[i] << '\n';
+
+
+  return 0;
+}

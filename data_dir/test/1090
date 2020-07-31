@@ -1,0 +1,101 @@
+#include <bits/stdc++.h>
+
+#define ff first
+#define ss second
+#define pb push_back
+
+using namespace std;
+using ll = long long;
+using ii = pair<int, int>;
+
+const int N = 20005;
+ll dp[55][N];
+ll psum[55][2*N];
+ll pmax[2*N], smax[2*N];
+
+ll sum(int i, int l, int r){
+	return psum[i][r] - (l ? psum[i][l-1] : 0);
+}
+
+template<typename T>
+class maxQ{
+	list<tuple<T, int> > p;
+	T delta;
+	int sz;
+public:
+	maxQ() : delta(0), sz(0) {}
+	inline int size() const{ return sz; }
+	inline void add(T x){ delta += x; }
+	inline void push(T x){
+		x -= delta, sz++;
+		int t = 1;
+		while(p.size() > 0 && get<0>(p.back()) <= x)
+			t += get<1>(p.back()), p.pop_back();
+		p.emplace_back(x, t);
+	}
+	inline void pop(){
+		get<1>(p.front())--, sz--;
+		if(!get<1>(p.front())) p.pop_front();
+	}
+	T getmax() const{ return sz ? get<0>(p.front())+delta : 0; }
+};
+
+int main() {
+	int n, m, k;
+	scanf("%d %d %d", &n, &m, &k);
+	for(int i = 0; i < n; i++){
+		for(int j = 0; j < m; j++){
+			scanf("%lld", &psum[i][j]);
+			if(j){
+				psum[i][j] += psum[i][j-1];
+			}
+		}
+		for(int j = m; j <= m + k; j++){
+			psum[i][j] = psum[i][j-1];
+		}
+	}
+	ll ans = 0;
+	for(int i = 0; i < m; i++){
+		dp[0][i] = sum(0, i, i + k - 1) + sum(1, i, i + k - 1);
+		ans = max(ans, dp[0][i]);
+	}
+	maxQ<ll> q, q2;
+	for(int i = 1; i < n; i++){
+		while(q.size()){
+			q.pop();
+		}
+		while(q2.size()){
+			q2.pop();
+		}
+		pmax[0] = dp[i-1][0];
+		for(int j = 1; j < m; j++){
+			pmax[j] = max(dp[i-1][j], pmax[j-1]);
+		}
+		smax[m-1] = dp[i-1][m-1];
+		for(int j = m-2; j >= 0; j--){
+			smax[j] = max(dp[i-1][j], smax[j+1]);
+		}
+		for(int j = 0; j < k; j++){
+			q.push(dp[i-1][j] - sum(i, j, k-1));
+		}
+		for(int j = 0; j < m; j++){
+			ll val = sum(i, j, j + k - 1) + sum(i+1, j, j + k - 1);
+			dp[i][j] = max(j - k >= 0 ? pmax[j-k] : 0, smax[j + k]) + val;
+			dp[i][j] = max(dp[i][j], val + q.getmax());
+			dp[i][j] = max(dp[i][j], val + q2.getmax());
+			q.pop();
+			if(j + k < m){
+				q.push(dp[i-1][j+k]);
+				q.add(-sum(i, j+k, j+k));
+			}
+			q2.push(dp[i-1][j] - sum(i, j, j + k-1));
+			q2.add(sum(i, j, j));
+			if(j - k + 1 >= 0){
+				q2.pop();
+			}
+			ans = max(ans, dp[i][j]);
+		}
+	}
+	printf("%lld\n", ans);
+	return 0;
+}

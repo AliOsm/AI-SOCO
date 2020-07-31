@@ -1,0 +1,117 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define fi first
+#define se second
+
+const int N = 1010, M = 3e5 + 10;
+
+typedef pair<int, int> pii;
+typedef pair<int, vector<int> > pivi;
+
+int n, m;
+int s, t;
+int edge[M][3], eid[M];
+bool vis[M], mark[M];
+
+int tot, dfn[N], low[N];
+int fa[N];
+vector<pii> e[N];
+
+vector<int> testLst;
+
+int find(int x) {
+  return x == fa[x] ? x : (fa[x] = find(fa[x]));
+}
+
+bool dfs1(int u) {
+  if (u == t) return 1;
+  dfn[u] = 1;
+  for (int v, i = 0; i < e[u].size(); ++i) {
+    if (!dfn[v = e[u][i].fi]) {
+      testLst.push_back(e[u][i].se);
+      if (dfs1(e[u][i].fi))
+        return 1;
+      testLst.pop_back();
+    }
+  }
+  return false;
+}
+
+void dfs2(int u) {
+  dfn[u] = low[u] = ++tot;
+  for (int v, i = 0; i < e[u].size(); ++i) {
+    if (vis[e[u][i].se])
+      continue;
+    vis[e[u][i].se] = 1;
+    if (!dfn[v = e[u][i].fi]) {
+      dfs2(v);
+      if (dfn[u] < low[v])
+        mark[e[u][i].se] = 1;
+      low[u] = min(low[u], low[v]);
+    }
+    else
+      low[u] = min(low[u], dfn[v]);
+  }
+}
+
+pivi solve(int sp) {
+  fill_n(vis, m, false);
+  vis[sp] = 1;
+  fill_n(mark, m, false);
+  fill_n(dfn + 1, n, 0);
+  tot = 0;
+  dfs2(s);
+  for (int i = 1; i <= n; ++i)
+    fa[i] = i;
+  for (int i = 0; i < m; ++i)
+    if (!mark[i] && i != sp)
+      fa[find(edge[i][0])] = find(edge[i][1]);
+  if (find(s) == find(t))
+    return pivi(INT_MAX, vector<int>());
+  pivi ret(edge[sp][2], vector<int>(1, sp));
+  for (int j, i = 0; i < m; ++i) {
+    if (mark[j = eid[i]]) {
+      fa[find(edge[j][0])] = find(edge[j][1]);
+      if (find(s) == find(t)) {
+        ret.fi += edge[j][2];
+        ret.se.push_back(j);
+        break;
+      }
+    }
+  }
+  return ret;
+}
+
+int main() {
+  scanf("%d%d", &n, &m);
+  scanf("%d%d", &s, &t);
+  for (int u, v, i = 0; i < m; ++i) {
+    scanf("%d%d%d", &u, &v, edge[i] + 2);
+    edge[i][0] = u, edge[i][1] = v;
+    eid[i] = i;
+    e[u].push_back(pii(v, i));
+    e[v].push_back(pii(u, i));
+  }
+  sort(eid, eid + m, [&](const int &l, const int &r)->bool{return edge[l][2] > edge[r][2];});
+  //for (int i = 0; i < m; ++i) printf("%d ", eid[i]); puts("");
+  dfs1(s);
+  if (testLst.size() == 0)
+    puts("0\n0\n");
+  else {
+    pivi ans;
+    ans.fi = INT_MAX;
+    for (int i = 0; i < testLst.size(); ++i)
+      ans = min(ans, solve(testLst[i]));
+    if (ans.fi == INT_MAX)
+      puts("-1");
+    else {
+      printf("%d\n%d\n", ans.fi, ans.se.size());
+      sort(ans.se.begin(), ans.se.end());
+      for (int i = 0; i < ans.se.size(); ++i)
+        printf("%d%c", ans.se[i] + 1, " \n"[i == (int)ans.se.size() - 1]);
+    }
+  }
+  return 0;
+}

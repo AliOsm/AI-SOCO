@@ -1,0 +1,208 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+const int N = 200200;
+const int Mod = 1e9 + 7;
+
+void add_self(int& x, int y)
+{
+    if((x += y) >= Mod) x -= Mod;
+}
+
+void sub_self(int& x, int y)
+{
+    if((x -= y) < 0)    x += Mod;
+}
+
+int add(int x, int y)
+{
+    return add_self(x, y), x;
+}
+
+int sub(int x, int y)
+{
+    return sub_self(x, y), x;
+}
+
+int mul(int x, int y)
+{
+    return (ll) x * y % Mod;
+}
+
+template <typename type>
+struct SegmentTreeWithoutLazyPropagation
+{
+    #define Miid ((L + R) >> 1)
+    #define Leeft (Node << 1)
+    #define Riight (Node << 1 | 1)
+
+    private : const type E = 0;         /// identity element        /// Check this
+    private : static const int Nax = 4 * N;                         /// Check this
+
+    private : int n;    /// Array length
+    private : type Tree[Nax];
+
+    public : SegmentTreeWithoutLazyPropagation(int n = 0) : n(n)
+    {
+        for(int Node = 0; Node < Nax; Node++)
+            Tree[Node] = E;
+    }
+
+    private : virtual type Unite(type x, type y) = 0;
+
+    private : void Merge(int Node)
+    {
+        Tree[Node] = Unite(Tree[Leeft], Tree[Riight]);
+    }
+
+    public : void Build(const vector <type>& a)
+    {
+        Clear();
+        n = a.size();
+        Build(a, 1, 0, n - 1);
+    }
+
+    private : void Build(const vector <type>& a, int Node, int L, int R)
+    {
+        Tree[Node] = E;
+
+        if(L == R)  return void(Tree[Node] = a[L]);
+
+        Build(a, Leeft, L, Miid);
+        Build(a, Riight, Miid + 1, R);
+
+        Merge(Node);
+    }
+
+    public : void Update(int i, type x)
+    {
+        if(n <= 0)  return ;
+        Update(i, x, 1, 0, n - 1);
+    }
+
+    private : void Update(int i, type x, int Node, int L, int R)
+    {
+        if(i < L || R < i)      return ;
+        if(L == R)              return void(Tree[Node] = x);    /// Check This
+
+        Update(i, x, Leeft, L, Miid);
+        Update(i, x, Riight, Miid + 1, R);
+
+        Merge(Node);
+    }
+
+    public : type Query(int i, int j)
+    {
+        if(n <= 0 || i > j) return E;
+        return Query(i, j, 1, 0, n - 1);
+    }
+
+    private : type Query(int i, int j, int Node, int L, int R)
+    {
+        if(j < L || R < i)      return E;
+        if(i <= L && R <= j)    return Tree[Node];
+
+        return Unite(Query(i, j, Leeft, L, Miid), Query(i, j, Riight, Miid + 1, R));
+    }
+
+    public : void Clear()
+    {
+        for(int Node = 0; Node <= 4 * n; Node++)
+            Tree[Node] = E;
+        n = 0;
+    }
+};
+
+template <typename type>
+struct SegmentTreeSum : public SegmentTreeWithoutLazyPropagation <type>
+{
+    private : type Unite(type x, type y)
+    {
+        return x + y;
+    };
+};
+
+template <typename type>
+struct SegmentTreeSumMod : public SegmentTreeWithoutLazyPropagation <type>
+{
+    private : type Unite(type x, type y)
+    {
+        return add(x, y);
+    };
+};
+
+SegmentTreeSum <ll> MyTreeW;
+SegmentTreeSumMod <int> MyTreeWA;
+
+int main()
+{
+    int n, q;   cin >> n >> q;
+
+    vector <int> a(n);
+    for(int& x : a) scanf("%d", &x);
+
+    vector <ll> w(n);
+    for(ll& x : w)  scanf("%I64d", &x);
+
+    vector <int> WA(n);
+    for(int i = 0; i < n; i++)  WA[i] = mul(w[i], sub(a[i], i));
+
+    MyTreeW.Build(w);
+    MyTreeWA.Build(WA);
+
+    while(q--)
+    {
+        int x, y;   scanf("%d%d", &x, &y);
+
+        if(x < 0)
+        {
+            int i = -x - 1, nw = y;
+
+            w[i] = nw;
+            MyTreeW.Update(i, nw);
+            MyTreeWA.Update(i, mul(nw, sub(a[i], i)));
+        }
+
+        else
+        {
+            int L = x - 1, R = y - 1;
+
+            int i = L - 1;
+            int Low = L, High = R - 1;
+
+            ll Sum = MyTreeW.Query(L, R);
+
+            while(Low <= High)
+            {
+                int Mid = Low + (High - Low) / 2;
+
+                ll S = MyTreeW.Query(L, Mid);
+
+                if(2 * S <= Sum)
+                {
+                    i = Mid;
+                    Low = Mid + 1;
+                }
+
+                else
+                {
+                    High = Mid - 1;
+                }
+            }
+
+            i++;
+
+            int Ans = 0;
+
+            add_self(Ans, mul(a[i] - i, MyTreeW.Query(L, i - 1) % Mod));
+            sub_self(Ans, MyTreeWA.Query(L, i - 1));
+            sub_self(Ans, mul(a[i] - i, MyTreeW.Query(i + 1, R) % Mod));
+            add_self(Ans, MyTreeWA.Query(i + 1, R));
+
+            printf("%d\n", Ans);
+        }
+    }
+}

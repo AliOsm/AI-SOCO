@@ -1,0 +1,204 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+//typedef long long ll;
+typedef long double ld;
+
+const int MAX_LEN = 100005;
+
+//int primes[4] = { 2, 3, 5, 7 };
+int numToPrimes[10][4]
+{
+	// 2   3   5   7
+	{  0,  0,  0,  0 }, // 0
+	{  0,  0,  0,  0 }, // 1
+	{  1,  0,  0,  0 }, // 2
+	{  0,  1,  0,  0 }, // 3
+	{  2,  0,  0,  0 }, // 4
+	{  0,  0,  1,  0 }, // 5
+	{  1,  1,  0,  0 }, // 6
+	{  0,  0,  0,  1 }, // 7
+	{  3,  0,  0,  0 }, // 8
+	{  0,  2,  0,  0 }  // 9
+};
+ld primesLogs[4] = { log(2.0L), log(3.0L), log(5.0L), log(7.0L) };
+
+struct num
+{
+	bool used, isZero;
+	int coeffs[4];
+
+	num()
+	{
+		used = true;
+		isZero = false;
+		memset(coeffs, 0, sizeof(coeffs));
+	}
+
+	num(int digit)
+	{
+		used = true;
+		isZero = digit == 0;
+		for (int i = 0; i < 4; i++)
+			coeffs[i] = numToPrimes[digit][i];
+	};
+
+	num operator*(const num& other) const
+	{
+		if (!used || !other.used)
+		{
+			num res;
+			res.used = false;
+			return res;
+		}
+		if (isZero || other.isZero)
+			return num(0);
+		num res;
+		res.isZero = false;
+		for (int i = 0; i < 4; i++)
+			res.coeffs[i] = coeffs[i] + other.coeffs[i];
+		return res;
+	}
+
+	bool operator==(const num& other) const
+	{
+		if (!used)
+			return !other.used;
+		if (!other.used)
+			return !used;
+		if (isZero)
+			return other.isZero;
+		if (other.isZero)
+			return isZero;
+		return (coeffs[0] == other.coeffs[0]) && (coeffs[1] == other.coeffs[1]) && (coeffs[2] == other.coeffs[2]) && (coeffs[3] == other.coeffs[3]);
+	}
+
+	bool operator!=(const num& other) const
+	{
+		if (!used)
+			return other.used;
+		if (isZero)
+			return !other.isZero;
+		return (coeffs[0] != other.coeffs[0]) || (coeffs[1] != other.coeffs[1]) || (coeffs[2] != other.coeffs[2]) || (coeffs[3] != other.coeffs[3]);
+	}
+
+	bool operator<(const num& other) const
+	{
+		if (isZero && other.isZero)
+			return false;
+		if (isZero || other.isZero)
+			return isZero;
+		ld res = 0;
+		for (int i = 0; i < 4; i++)
+			res += (coeffs[i] - other.coeffs[i]) * primesLogs[i];
+		return res < 0;
+	}
+};
+
+int mx;
+string x, y;
+vector<int> v1, v2;
+
+num dp[MAX_LEN][2][2][2];
+string res;
+
+num call(int pos, int ch, int br, int flag)
+{
+	if (pos == mx)
+	{
+		if (flag)
+			return num(1);
+		else
+			return num(0);
+	}
+
+	num& ret = dp[pos][ch][br][flag];
+	if (ret.used)
+		return ret;
+
+	num ans(0);
+
+	int mx = ch ? 9 : v2[pos];
+	int mn = br ? 0 : v1[pos];
+
+	for (int i = mn; i <= mx; i++)
+	{
+		num mul(1);
+		int ff = flag || (i > 0);
+		if (ff)
+			mul = num(i);
+		ans = max(ans, mul * call(pos + 1, ch || (i < mx), br || (i > mn), ff));
+	}
+	return ret = ans;
+}
+
+num backtrack(int pos, int ch, int br, int flag)
+{
+	if (pos == mx)
+	{
+		if (flag)
+			return num(1);
+		else
+			return num(0);
+	}
+
+	num& ret = dp[pos][ch][br][flag];
+
+	int mx = ch ? 9 : v2[pos];
+	int mn = br ? 0 : v1[pos];
+
+	for (int i = mn; i <= mx; i++)
+	{
+		num mul(1);
+		int ff = flag || (i > 0);
+		if (ff)
+			mul = num(i);
+		if (ret == mul * call(pos + 1, ch || (i < mx), br || (i > mn), ff))
+		{
+			if (ff)
+				res += to_string(i);//cout << i;
+			backtrack(pos + 1, ch || (i < mx), br || (i > mn), ff);
+			break;
+		}
+	}
+	return ret;
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	x = "1";
+	cin >> y;
+	mx = max(x.size(), y.size());
+	if ((int)x.size() != mx)
+		x.insert(0, (mx - x.size()), '0');
+	else if ((int)y.size() != mx)
+		y.insert(0, (mx - y.size()), '0');
+
+	v1.reserve(mx);
+	v2.reserve(mx);
+	for (int i = 0; i < mx; i++)
+	{
+		v1.push_back(x[i] - '0');
+		v2.push_back(y[i] - '0');
+	}
+
+	for (int i = 0; i < MAX_LEN; i++)
+		for (int j = 0; j < 2; j++)
+			for (int k = 0; k < 2; k++)
+				for (int l = 0; l < 2; l++)
+				{
+					dp[i][j][k][l] = num();
+					dp[i][j][k][l].used = false;
+				}
+
+	call(0, 0, 0, 0);
+	backtrack(0, 0, 0, 0);
+
+	long long result = 1;
+	for (char c : res)
+		result *= (long long)(c - '0');
+	cout << result << endl;
+}

@@ -1,0 +1,184 @@
+// 9:30
+
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 4;
+
+vector <int> eqn[N], var[N];
+vector <int> G[N];
+vector <pair<int,int>> GG[N];
+
+int vis[N];
+int edge, nodes;
+int done[N];
+vector <int> List;
+int comp = 0;
+int value[N];
+
+void dfs(int u) {
+    vis[u] = comp;
+    nodes++;
+    edge += G[u].size();
+    for(int v : G[u]) {
+        if(vis[v] == 0) {
+            dfs(v);
+        }
+    }
+}
+
+int rt;
+
+void dfs2(int u, int p = -1) {
+    vis[u] = comp;
+    for(int v : G[u]) {
+        if (v == p) continue;
+        if (vis[v] == comp) {
+            rt = v;
+            return;
+        }
+        dfs2(v,u);
+    }
+}
+
+void solve(int u, int p = -1) {
+    int cnt = 0;
+    vis[u] = comp;
+    for(int i = 0; i < GG[u].size(); i++) {
+        int v = GG[u][i].first;
+        int x = abs(GG[u][i].second);
+        if (value[x] == -1) {
+            if (GG[u][i].second > 0) {
+                value[x] = 1;
+            } else {
+                value[x] = 0;
+            }
+        }
+        if (v == p or vis[v] == comp) continue;
+        solve(v, u);
+    }
+}
+
+
+int main() {
+
+   // freopen ("in.txt", "r", stdin);
+    int n, m;
+    cin >> n >> m;
+    for(int i = 1; i <= n; i++) {
+        int k; cin >> k;
+        for(int j = 1; j <= k; j++) {
+            int x; cin >> x;
+            eqn[i].push_back(x);
+            if (x < 0) var[abs(x)].push_back(-i);
+            else var[x].push_back(i);
+        }
+    }
+    queue <int> que;
+    memset(value, -1, sizeof value);
+    for(int i = 1; i <= m; i++) {
+        if (var[i].size() == 0) {
+            value[i] = 1;
+            continue;
+        }
+        if (var[i].size() == 1) {
+            int x = var[i][0];
+            if (x < 0) value[i] = 0;
+            else value[i] = 1;
+            x = abs(x);
+            if (vis[x] == 0) {
+                vis[x] = 1;
+                que.push(x);
+            }
+            var[i].pop_back();
+        }
+        if (var[i].size() == 2) {
+            int x = var[i][0], y = var[i][1];
+            if (x < 0 && y < 0) {
+                value[i] = 0;
+            }
+            else if (x > 0 && y > 0) {
+                value[i] = 1;
+            }
+            if (value[i] != -1) {
+                x = abs(x);
+                y = abs(y);
+                if (vis[x] == 0) {
+                    vis[x] = 1;
+                    que.push(x);
+                }
+                if (vis[y] == 0) {
+                    vis[y] = 1;
+                    que.push(y);
+                }
+                var[i].pop_back();
+                var[i].pop_back();
+            }
+        }
+    }
+
+    while(que.size() > 0) {
+        int u = que.front();
+        que.pop();
+        for(int v : eqn[u]) {
+            int w = abs(v);
+            if (find(var[w].begin(), var[w].end(),u) != var[w].end()) var[w].erase(find(var[w].begin(), var[w].end(),u));
+            if (find(var[w].begin(), var[w].end(),-u) != var[w].end()) var[w].erase(find(var[w].begin(), var[w].end(),-u));
+            if (var[w].size() == 1) {
+                int nxt = abs(var[w][0]);
+                if (vis[nxt] == 0) {
+                    vis[nxt] = 1;
+                    que.push(nxt);
+                    if (var[w][0] < 0) {
+                        value[w] = 0;
+                    } else {
+                        value[w] = 1;
+                    }
+                }
+                var[w].pop_back();
+            }
+        }
+    }
+//    for(int i = 1; i <= m; i++) {
+//        cout << value[i] << " ";
+//    }
+    for(int i = 1; i <= m; i++) {
+        if (var[i].size() == 2) {
+//            cout << i << " " << var[i][0] << " " << var[i][1] << endl;
+            assert((var[i][0] > 0 && var[i][1] < 0) or ((var[i][0] < 0 && var[i][1] > 0)));
+            int u = abs(var[i][0]), v = abs(var[i][1]);
+            G[u].push_back(v);
+            G[v].push_back(u);
+            if(var[i][0] > 0) {
+                GG[u].push_back({v, -i});
+                GG[v].push_back({u, i});
+            }
+            else {
+                GG[u].push_back({v, i});
+                GG[v].push_back({u, -i});
+            }
+        }
+    }
+    comp = 1;
+    for(int i = 1; i <= n; ++i) {
+        if (vis[i] == 0) {
+            edge = 0;
+            nodes = 0;
+            ++comp;
+            dfs(i);
+            if (edge == 2*(nodes - 1)) {
+                cout << "NO";
+                return 0;
+            }
+            ++comp;
+            dfs2(i);
+            ++comp;
+            solve(rt);
+        }
+    }
+    cout << "YES" << endl;
+    for(int i = 1; i <= m; i++) {
+        if(value[i] == -1) value[i] = 1;
+        cout << value[i];
+    }
+}

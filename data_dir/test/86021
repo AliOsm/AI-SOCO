@@ -1,0 +1,298 @@
+#include "assert.h"
+#include <algorithm>
+#include <bitset>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <deque>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <string.h>
+#include <time.h>
+#include <vector>
+
+#if LOCAL
+	#define DO_NOT_SEND
+#endif
+
+typedef long long LL;
+
+int IntMaxVal = (int) 1e20;
+int IntMinVal = (int) -1e20;
+LL LongMaxVal = (LL) 1e20;
+LL LongMinVal = (LL) -1e20;
+
+#define FOR(i, a, b) for(int i = a; i < b ; ++i)
+#define FORD(i, a, b) for(int i = a; i >= b; --i)
+
+template<typename T> inline void minimize(T &a, T b) { a = std::min(a, b); }
+template<typename T> inline void maximize(T &a, T b) { a = std::max(a, b); }
+
+#define all(v) v.begin(),v.end()
+
+using namespace std;
+
+#define endl '\n'
+template<typename T> struct argument_type;
+template<typename T, typename U> struct argument_type<T(U)> { typedef U type; };
+#define next(t, i) argument_type<void(t)>::type i; cin >> i;
+#define nextVector(t, v, size) vector< argument_type<void(t)>::type > v(size); { for (int i = 0 ; i < size ; i++) cin >> v[i]; }
+
+#define range(name, start, count) vector<int> name(count); { for (int i = 0 ; i < count ; i++) name[i] = i + start; }
+
+template <typename T1, typename T2> istream& operator >>(istream& is, pair<T1, T2>& s) { is >> s.first >> s.second; return is; }
+template <typename T> ostream& operator << (ostream& os, const vector<T> &v) { for (int i = 0 ; i < v.size() ; i++) os << v[i] << ' '; os << endl; return os; }
+template <typename T1, typename T2> ostream& operator <<(ostream& s, pair<T1, T2>& t) { s << t.first << ' ' << t.second; return s; }
+template <typename T> vector<T> readVector(int n) { vector<T> res(n); for (int i = 0 ; i < n ; i++) cin >> res[i]; return res; }
+
+struct node2 {
+	int weight;
+	LL level;
+	int lBorder, rBorder;
+	vector<pair<int, LL>> edges;
+};
+
+bool byLevel(const node2 &n1 , const node2 &n2) {
+	return n1.level < n2.level;
+}
+
+class dsuClass {
+	public:
+
+	int n;
+	vector<int> parent;
+	vector<int> size;
+	
+	int sccCount;
+	
+	void init(int n) {
+		this->n = n;
+		parent.resize(n);
+		size.resize(n);
+		reset();
+	}
+	
+	void reset() {
+		sccCount = n;
+		FOR (i, 0, n) parent[i] = i;
+		FOR (i, 0, n) size[i] = 1;
+	}
+	
+	int update(int a) {
+		if (parent[a] == a) return a;
+		return parent[a] = update(parent[a]);
+	}
+	
+	void join(int a, int b) {
+		a = update(a);
+		b = update(b);
+		if (size[b] > size[a]) swap(a, b);
+		if (a == b) return;
+		
+		size[a] += size[b];
+
+		parent[b] = a;
+		sccCount--;
+	}
+	
+	bool isMaster(int v) {
+		return parent[v] == v;
+	}
+
+	void updateAll() {
+		FOR (i, 0, n) update(i);
+	}
+};
+
+dsuClass dsu;
+
+void numerate(int v, vector<node2> &nodes, vector<int> &parent) {
+	static int curCounter = 0;
+	nodes[v].lBorder = nodes[v].rBorder = curCounter;
+	
+	curCounter++;
+	
+	for (auto e : nodes[v].edges) if (e.first != parent[v]) {
+		numerate(e.first, nodes, parent);
+		nodes[v].rBorder = nodes[e.first].rBorder;
+	}
+}
+
+template <typename T>
+class SumTree {
+	public:
+	int gp2(int n) {
+		int x = 2;
+		while (x < n) x *= 2;
+		return x;
+	}
+	
+	int n;
+	vector<T> data;
+		
+	void reset() {
+		data.assign(2*n, 0);
+	}
+	
+	void init(int n) {
+		this->n = n = gp2(n);
+		reset();
+	}
+	
+	T combine(T p1, T p2) {
+		return p1 + p2;
+	}
+	
+	void set(int i, T item) {
+		i += n;
+		data[i] = item;
+		i /= 2;
+		while (i) {
+			data[i] = combine(data[2*i], data[2*i + 1]);
+			i /= 2;
+		}
+	}
+	
+	T getValue(int l, int r, int i, int fullL, int fullR) {
+		if (l == fullL && r + 1 == fullR)
+			return data[i];
+		else {
+			int m = (fullL + fullR) / 2;
+			if (l < m && r >= m) return combine(getValue(l, m - 1, 2 * i, fullL, m),
+												getValue(m, r, 2 * i + 1, m, fullR));
+			else if (l < m) return getValue(l, r, 2 * i, fullL, m);
+			else return getValue(l, r, 2 * i + 1, m, fullR);
+		}
+	}
+	
+	T getValue(int l, int r) {
+		return getValue(l, r, 1, 0 , n);
+	}
+};
+
+SumTree<int> sumTree;
+
+void solve(vector<node2> nodes) {
+	int root = -1;
+	int n = nodes.size();
+	FOR (i, 0, n) if (root == -1 || nodes[i].level < nodes[root].level) root = i;
+	vector<int> parent(n, -1);
+	vector<int> order = { root };
+	FOR (i, 0, n) {
+		int v = order[i];
+		for (auto e : nodes[v].edges) if (e.first != parent[v]) {
+			order.push_back(e.first);
+			parent[e.first] = v;
+		}
+	}
+	
+	numerate(root, nodes, parent);
+	
+	sumTree.init(n);
+	
+	sort(all(nodes), byLevel);
+	
+	next(int, q);
+	while (q --> 0) {
+		next(LL, l);
+		sumTree.reset();
+		int nextNodeToAdd = 0;
+		int ans = 1;
+		FOR (i, 0, n) {
+			while (nextNodeToAdd < n && nodes[nextNodeToAdd].level <= nodes[i].level + l) {
+				sumTree.set(nodes[nextNodeToAdd].lBorder, nodes[nextNodeToAdd].weight);
+				nextNodeToAdd++;
+			}
+			maximize(ans, sumTree.getValue(nodes[i].lBorder, nodes[i].rBorder));
+		}
+		cout << ans << endl;
+	}
+}
+
+int main() {
+	srand (time(NULL));
+	ios_base::sync_with_stdio(false); cin.tie(NULL);
+	
+	next(int, n);
+	vector<vector<pair<int, int>>> edges(n);
+	FOR (i, 0, n - 1) {
+		next(int, a); a--;
+		next(int, b); b--;
+		next(int, v);
+		edges[a].push_back( { b , v } );
+		edges[b].push_back( { a , v } );
+	}
+	
+	auto root = 0;
+	vector<int> order = { root };
+	vector<int> parent(n, -1);
+	vector<int> path_up(n);
+	
+	FOR (i, 0, n) {
+		int v = order[i];
+		for (auto p : edges[v]) if (p.first != parent[v]) {
+			parent[p.first] = v;
+			path_up[p.first] = p.second;
+			order.push_back(p.first);
+		}
+	}
+	
+	vector<LL> dist_down(n, 0);
+	FORD (i, n - 1, 0) {
+		int v = order[i];
+		for (auto p : edges[v]) if (p.first != parent[v]) maximize(dist_down[v] , p.second + dist_down[p.first]);
+	}
+	
+	vector<pair<pair<LL, int> , pair<LL, int>>> max_dists_down(n , { { -100000000LL , -1 } , { -100000000LL , -1} });
+	for (auto v : order) for (auto p : edges[v]) if (p.first != parent[v]) {
+		maximize(max_dists_down[v].second , { dist_down[p.first] + p.second , p.first });
+		if (max_dists_down[v].second > max_dists_down[v].first)
+			swap(max_dists_down[v].second , max_dists_down[v].first);
+	}
+	
+	vector<LL> max_dist_up(n);
+	for (auto v : order) {
+		if (parent[v] != -1) {
+			if (max_dists_down[parent[v]].first.second == v)
+				maximize(max_dist_up[v] , path_up[v] + max_dists_down[parent[v]].second.first);
+			else 
+				maximize(max_dist_up[v] , path_up[v] + max_dists_down[parent[v]].first.first);
+			maximize(max_dist_up[v] , path_up[v] + max_dist_up[parent[v]]);
+		}
+	}
+	
+	FOR (v, 0, n) maximize(dist_down[v], max_dist_up[v]);
+	
+	dsu.init(n);
+	FOR (v, 0, n) for (auto p : edges[v]) {
+		if (dist_down[v] == dist_down[p.first]) dsu.join(v, p.first);
+	}
+	
+	vector<node2> nodes;
+	vector<int> newNodePtr(n, -1);
+	FOR (v, 0, n) if (dsu.isMaster(v)) {
+		newNodePtr[v] = nodes.size();
+		nodes.push_back(node2());
+		nodes.back().weight = 0;
+		nodes.back().level = dist_down[v];
+		nodes.back().edges.clear();
+	}
+	
+	FOR (v, 0, n) {
+		nodes[newNodePtr[dsu.update(v)]].weight++;
+		for (auto p : edges[v])
+			if (dsu.update(v) != dsu.update(p.first))
+				nodes[newNodePtr[dsu.update(v)]].edges.push_back( { newNodePtr[dsu.update(p.first)] , p.second } );
+	}
+	
+	solve(nodes);
+}

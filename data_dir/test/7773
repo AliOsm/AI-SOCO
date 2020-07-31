@@ -1,0 +1,107 @@
+#include "bits/stdc++.h"
+using namespace std;
+#ifdef ONLINE_JUDGE
+#define trace(...)
+#endif
+
+using LL = long long;
+
+bool check(LL n, LL sz, const int bf) {
+	LL low = 0;
+	LL len = 1, dep = 0;
+	while (n > 0) {
+		low += min(n, len) * dep;
+		dep++;
+		n -= len;
+		len *= bf;
+	}
+	return sz >= low;
+}
+
+const int N = 1e5 + 10;
+int par[N], dep[N];
+int chain[N];
+
+int main() {
+	ios_base::sync_with_stdio(false); cin.tie(NULL);
+
+	int n; LL s; cin >> n >> s;
+	trace(n, s);
+	s -= n;
+	if (s > (n * 1ll * (n - 1)) / 2 || s < n - 1) {
+		cout << "NO\n";
+		return 0;
+	}
+
+	int lo = 1, hi = n;
+	while (lo + 1 < hi) {
+		int mid = (lo + hi) / 2;
+		if (check(n, s, mid)) hi = mid;
+		else lo = mid;
+	}
+	
+	int bf = lo + 1;
+	trace(check(n,s,bf));
+	if (bf == 1) {
+		cout << "YES\n";
+		for (int i = 2; i <= n; i++) cout << i - 1 << ' ';
+		cout << '\n';
+		return 0;
+	}
+
+	trace(bf);
+
+	vector<vector<int>> nodes;
+	nodes.emplace_back(1, 1); // [1]
+	par[1] = -1;
+	dep[1] = 0;
+	chain[0] = 1;
+	for (LL st = 2, len = bf; st <= n; st += len, len *= bf) {
+		len = min(len, n - st + 1);
+		s -= nodes.size() * len;
+		nodes.emplace_back(len);
+		int d = (int) nodes.size() - 1;
+		for (int i = 0; i < len; i++) {
+			nodes.back()[i] = st + i;
+			par[st + i] = (nodes.end() - 2)->at(i / bf);
+			dep[st + i] = d;
+		}
+		chain[d] = nodes.back()[0];
+	}
+	trace(s);
+	// for (auto& v: nodes) {
+	// 	cout << ">> "; 
+	// 	for (auto& u: v) cout << par[u] <<' ';
+	// 		cout << endl;
+	// 	for (auto& u: v) cout << u <<' ';
+	// 	cout << endl;
+	// }
+
+	int chend = (int) nodes.size() - 1;
+
+	for (int it = chend; s > 0 && it > 0; it--) {
+		auto& curr = nodes[it];
+		for (int j = 1; s > 0 && j < (int) curr.size(); j++) {
+			int u = curr[j];
+			if (chend + 1 - dep[u] <= s) {
+				s -= (chend + 1 - dep[u]);
+				par[u] = chain[chend];
+				chain[++chend] = u;
+				dep[u] = chend;
+			} else {
+				chend = s + dep[u] - 1;
+				par[u] = chain[chend];
+				s = 0;
+			}
+		}
+	}
+	assert(s == 0);
+
+
+	cout << "YES\n";
+	for (int i = 2; i <= n; i++) {
+		cout << par[i] << ' ';
+	} cout << endl;
+
+	return 0;
+}

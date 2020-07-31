@@ -1,0 +1,165 @@
+/**********************************************************************
+ *                                                                    *
+ *             ==>> BG_PeaceMind(BISHAL)                       @NEPAL *
+ **********************************************************************/
+#include<bits/stdc++.h>
+#define PI acos(-1.0)
+#define nl puts("")
+#define SZ(x) x.size()
+#define pb(x) push_back(x)
+#define X first
+#define Y second
+#define pii pair<ll,ll>
+#define mpr(a,b) make_pair(a,b)
+#define S(a) scanf("%d",&a)
+#define P(a) printf("%d",a)
+#define SL(a) scanf("%lld",&a)
+#define S2(a,b) scanf("%d%d",&a,&b)
+#define SL2(a,b) scanf("%lld%lld",&a,&b)
+#define all(v) v.begin(),v.end()
+#define clr(a) memset(a,0,sizeof(a))
+#define SET(a) memset(a,-1,sizeof(a))
+#define fr(i,a,n) for(i=a;i<=n;i++)
+#define rf(i,a,n) for(i=n;i>=a;i--)
+#define MXE(x) *max_element(all(x))
+#define MNE(x) *min_element(all(x))
+#define LB(v,k) lower_bound(v.begin(),v.end(),k)
+#define _cin ios_base::sync_with_stdio(0),cin.tie(0)
+#define ct(x) cerr<<__LINE__<< ":: "<<#x<<"= "<<x<<endl
+#define fi(it,n) for(__typeof(n.begin()) it=n.begin();it!=n.end();it++)
+using namespace std;
+typedef long long ll;
+/// atoi( str.c_str() ); // char string to int
+/// sprintf(str,"%d",num);// num to char string
+///int month[]={-1,31,28,31,30,31,30,31,31,30,31,30,31}; //Not Leap Yr
+///int dx[]={1,0,-1,0};int dy[]={0,1,0,-1}; //4 Dir
+///int dx[]={1,1,0,-1,-1,-1,0,1};int dy[]={0,1,1,1,0,-1,-1,-1};//8 Dir
+///int dx[]={2,1,-1,-2,-2,-1,1,2};int dy[]={1,2,2,1,-1,-2,-2,-1};//Knight
+/************************************************************************
+ * /////////////////////////////////////////////////////////////////////*
+ ************************************************************************/
+
+/// Digit  012345678910
+#define MX 200105
+ll N,M[MX+5][21],A[MX+5],M2[MX+5][21];
+
+void sparse_table_max() {
+    int i, j;
+    for (i = 0; i < N; i++) M[i][0] = i;
+    for( j = 1; 1 << j <= N; j++)
+        for( i = 0; i + (1 << j) - 1 < N; i++)
+            if (A[ M[i][j - 1] ] > A[ M[i + (1 << (j - 1))][j - 1] ])
+                M[i][j] = M[i][j - 1];
+            else
+                M[i][j] = M[i + (1 << (j - 1))][j - 1];
+}
+
+int mxQ(int i, int j) {
+    int k = log2(j-i+1);
+    int pk= (1<<k);
+    return A[M[i][k]]>=A[M[j-pk+1][k]]?A[ M[i][k] ]: A[ M[j-pk+1][k] ];
+}
+
+void sparse_table_min() {
+    int i, j;
+    for (i = 0; i < N; i++)
+        M2[i][0] = i;
+    for( j = 1; 1 << j <= N; j++)
+        for( i = 0; i + (1 << j) - 1 < N; i++)
+            if (A[ M2[i][j - 1] ] < A[ M2[i + (1 << (j - 1))][j - 1] ])
+                M2[i][j] = M2[i][j - 1];
+            else
+                M2[i][j] = M2[i + (1 << (j - 1))][j - 1];
+}
+
+int mnQ(int i, int j) {
+    int k = log2(j-i+1);
+    int pk= (1<<k);
+    return A[M2[i][k]]<=A[M2[j-pk+1][k]]?A[ M2[i][k] ]: A[ M2[j-pk+1][k] ];
+}
+
+int Qr(int x,int y) {
+    return mxQ(x-1,y-1)-mnQ(x-1,y-1);
+}
+
+ll n,s,l,dp[MX+5];
+ll nd[(4*MX)+5];
+
+void Ins(int id,int l,int r,int pos,int val) {
+    if( l==pos && r==pos ) {
+        nd[id]=val;
+        return;
+    }
+    int md=(l+r)>>1,lft=(id<<1),rgt=lft+1;
+    if( pos<= md) Ins(lft,l,md,pos,val);
+    else Ins(rgt,md+1,r,pos,val);
+    nd[id]=min(nd[lft],nd[rgt]);
+}
+
+ll Qry(int id,int l,int r,int q1,int q2) {
+    if( l==q1 && r==q2 ) {
+        return nd[id];
+    }
+    int md=(l+r)>>1,lft=(id<<1),rgt=lft+1;
+    if(q2<=md ) return Qry(lft,l,md,q1,q2);
+    else if( q1>md ) return Qry(rgt,md+1,r,q1,q2);
+    else {
+        ll x=Qry(lft,l,md,q1,md);
+        ll y=Qry(rgt,md+1,r,md+1,q2);
+        return min( x, y );
+    }
+}
+
+
+ll go(int pos ) {
+    for(int i=pos ; i<=n; i++) {
+        int lo=1;
+        int hi=(i-l+1);
+        //cout<<lo<< " "<<hi<<endl;
+        if( hi<1 || ( hi>=1 && Qr(hi,i) > s) ) {
+            dp[i]=INT_MAX;
+            Ins(1,0,n,i,dp[i]);
+            // cout<<i<< " -- "<<dp[i]<<endl;
+            continue;
+        }
+        int lb=-1,l=lo,r=hi;
+        while(lo<=hi) {
+            int md=(lo+hi)/2;
+            if( Qr(md,i)<=s ) {
+                lb=md;
+                hi=md-1;
+            } else lo=md+1;
+        }
+        dp[i]=Qry(1,0,n,lb-1,r-1)+1LL;
+        Ins(1,0,n,i,dp[i]);
+    }
+    return dp[n];
+}
+
+int main() {
+
+    _cin;
+    clr(nd);
+    int i;
+    cin>>n>>s>>l;
+    fr(i,0,n-1) {
+        cin>>A[i];
+    }
+    if(l>n) {
+        cout<<-1<<endl;
+        return 0;
+    }
+    N=n;
+    sparse_table_max();
+    sparse_table_min();
+    if( Qr(1,n) <=s ) {
+        cout<<1<<endl;
+        return 0;
+    }
+    Ins(1,0,n,0,0);
+    ll ans=go(1);
+    if(ans>=INT_MAX || ans<=0 )cout<<-1<<endl;
+    else cout<<ans<<endl;
+
+    return 0;
+}

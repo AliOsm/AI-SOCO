@@ -1,0 +1,175 @@
+/**
+ *    +--+--+--++--++--In the name of ALLAH--++--++--+--+--+
+ *
+ *    author:  skmonir
+ *    created: 16-Nov-2018 17:30:11
+**/
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define endl                '\n'
+#define TN                  typename
+#define mod                 1000000007LL
+#define len(x)              (int) x.size()
+#define all(x)              x.begin(), x.end()
+#define rall(x)             x.rbegin(), x.rend()
+#define mem(x, y)           memset(x, y, sizeof x)
+#define FOR(x, l, r)        for (int x = l; x <= r; ++x)
+#define ROF(x, l, r)        for (int x = l; x >= r; --x)
+
+template <TN T> inline void Int(T &n) {
+    n = 0; int f = 1; register int ch = getchar();
+    for (; !isdigit(ch); ch = getchar()) if (ch == '-') f = -1;
+    for (; isdigit(ch); ch = getchar()) n = (n << 3) + (n << 1) + ch - '0';
+    n = n * f;
+}
+
+template <TN T> T gcd(T a, T b) {return !b ? a : gcd(b, a % b);}
+template <TN T> inline void umin(T &a, T b) {a = a < b ? a : b;}
+template <TN T> inline void umax(T &a, T b) {a = a > b ? a : b;}
+template <TN T, TN W> inline void Int(T &x, W &y) {Int(x), Int(y);}
+template <TN T, TN W, TN Q> void Int(T &x, W &y, Q &z) {Int(x, y), Int(z);}
+
+const int N = 2e5 + 7;
+const int inf = 1e9 + 7;
+
+vector <int> g[N];
+
+char s[N];
+int n, m, nd;
+long long dp[N], res[N];
+int sz[N], used[N], cnt[8 * N];
+
+void GetSize(int u, int p) {
+    nd++, sz[u] = 1;
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        GetSize(v, u), sz[u] += sz[v];
+    }
+}
+
+int GetCenter(int u, int p) {
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        if (sz[v] > nd / 2) return GetCenter(v, u);
+    }
+    return u;
+}
+
+void GetRes(int u, int p, int mask) {
+    dp[u] += cnt[mask];
+    for (int i = 0; i < 20; ++i) {
+        dp[u] += cnt[mask ^ (1 << i)];
+    }
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        GetRes(v, u, mask ^ (1 << (s[v] - 'a')));
+        dp[u] += dp[v];
+    }
+}
+
+void Modify(int u, int p, int mask, int val) {
+    cnt[mask] += val;
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        Modify(v, u, mask ^ (1 << (s[v] - 'a')), val);
+    }
+}
+
+void Clear(int u, int p, int mask) {
+    res[u] += dp[u];
+    cnt[mask] = dp[u] = 0;
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (v == p or used[v]) continue;
+        Clear(v, u, mask ^ (1 << (s[v] - 'a')));
+    }
+}
+
+void Conquer(int u) {
+    int mask = 1 << (s[u] - 'a');
+
+    cnt[mask] = 1;
+
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (!used[v]) {
+            Modify(v, u, mask ^ (1 << (s[v] - 'a')), +1);
+        }
+    }
+
+    long long root_cnt = 0;
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (!used[v]) {
+            Modify(v, u, mask ^ (1 << (s[v] - 'a')), -1);
+            GetRes(v, u, 1 << (s[v] - 'a'));
+            Modify(v, u, mask ^ (1 << (s[v] - 'a')), +1);
+
+            root_cnt += dp[v];
+        }
+    }
+    root_cnt += cnt[0];
+    for (int i = 0; i < 20; ++i) {
+        root_cnt += cnt[1 << i];
+    }
+    --root_cnt;
+
+    res[u] += root_cnt / 2;
+
+    cnt[mask] = 0;
+    for (int i = 0; i < g[u].size(); i++) {
+        int v = g[u][i];
+        if (!used[v]) {
+            Clear(v, u, mask ^ (1 << (s[v] - 'a')));
+        }
+    }
+}
+
+void Divide(int u, int p) {
+    nd = 0;
+    GetSize(u, u);
+    int center = GetCenter(u, u);
+    used[center] = 1;
+    Conquer(center);
+    for (int i = 0; i < g[center].size(); i++) {
+        int v = g[center][i];
+        if (!used[v]) Divide(v, center);
+    }
+}
+
+int solve() {
+    Int(n);
+    for (int i = 1; i < n; i++) {
+        int u, v; Int(u, v);
+        g[u].push_back(v);
+        g[v].push_back(u);
+    }
+
+    scanf("%s", s + 1);
+
+    Divide(1, 0);
+
+    FOR (i, 1, n) printf("%lld ", res[i] + 1);
+    printf("\n");
+
+    return 0;
+}
+
+int main() {
+    int tests = 1, CaseNo = 0; //Int(tests);
+    while (tests--) {
+        //printf("Case %d: ", ++CaseNo);
+        solve();
+    }
+    return 0;
+}

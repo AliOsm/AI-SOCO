@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef pair<double, int> pdi;
+typedef pair<double, double> pdd;
+const int MOD = 1000000007;
+const int oo = 1000000001;
+const int N = 200111;
+
+int dsu[310],n,freq[310];
+ll fc[N],inv[N],a[N];
+ll dp[310][310];
+bool perfect(ll a){
+	ll x = (ll) (sqrt(a)+0.5);
+	return x*x == a;
+}
+int find(int u){
+	return dsu[u]==u?u:dsu[u]=find(dsu[u]);
+}
+
+ll fast(ll a , ll b){
+	if(!b)return 1ll;
+	ll res = fast(a,b/2);
+	if(b&1)
+		return ((res * res)%MOD * a)%MOD;
+	return (res * res)%MOD;
+}
+ll nck(ll n , ll k){
+	return ((fc[n]*inv[k])%MOD*(inv[n-k]))%MOD;
+}
+int main() {
+	//freopen("input.txt", "r", stdin);
+	scanf("%d",&n);
+	for (int i = 1; i <= n; ++i){
+		scanf("%lld",&a[i]);
+		dsu[i]=i;
+	}
+	fc[0]=1;
+	inv[0] = fast(fc[0],MOD-2);
+	for (int i = 1 ; i <= 1000; ++i){
+		fc[i] = (i * fc[i-1])%MOD;
+		inv[i] = fast(fc[i],MOD-2);
+	}
+	for (int i = 1; i <= n; ++i){
+		for(int j = i+1 ; j <= n ; j++){
+			if(perfect(a[i]*a[j])){
+				dsu[find(i)] = dsu[find(j)];
+			}
+		}
+	}
+	vector<int> p;
+	for (int i = 1; i <= n; ++i){
+		if(find(i)==i){
+			p.push_back(i);
+		}
+		freq[find(i)]++;
+	}
+	int sum = freq[p[0]];
+	dp[1][freq[p[0]]-1] = fc[freq[p[0]]];
+	for(int i = 1 ; i < p.size() ; i++){
+		int cur = freq[p[i]];
+
+		for(int j = 0 ; j < sum ; j++){
+			for(int k = 1 ; k <= min(cur,sum+1);++k){
+				for(int l = 0 ; l <= min(k,j);++l){
+					int nGood = k-l;
+					int remGood = (sum+1)-j;
+					if(nGood > remGood)continue;
+					ll numWays = (nck(remGood,nGood) * nck(j,l))%MOD;
+					numWays = (numWays * nck(freq[p[i]]-1,k-1))%MOD;
+					numWays = (numWays * fc[freq[p[i]]])%MOD;
+					numWays = (numWays * dp[i][j])%MOD;
+					dp[i+1][j-l+freq[p[i]] -k] = ( dp[i+1][j-l+freq[p[i]] -k] + numWays)%MOD;
+
+				}
+			}
+		}
+		sum += freq[p[i]];
+	}
+	printf("%lld\n",dp[p.size()][0] );
+	return 0;
+}

@@ -1,0 +1,73 @@
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+int d[205];
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int n; cin >> n;
+    string s; cin >> s;
+    for (int i = 0; i < n; i++) {
+        d[i] = (s[i] == 'B') ? 1 : 0;
+    }
+    /*
+    for (int i = 0; i < n; i++) {
+        cout << d[i];
+    }
+    cout << '\n';
+    */
+    vector<int> ans;
+    for (int i = 0; i < n-1; i++) {
+        if (d[i] == 0 && d[i+1] == 0) {
+            ans.push_back(i);
+            d[i] = 1;
+            d[i+1] = 1;
+        }
+    }
+
+    /*
+    for (int i = 0; i < n; i++) {
+        cout << d[i];
+    }
+    cout << '\n';
+    */
+
+    for (int i = n-2; i >= 0; i--) {
+        if (d[i+1] == 0) {
+            ans.push_back(i);
+            d[i+1] ^= 1;
+            d[i] ^= 1;
+        }
+    }
+    if (d[0] == 0) {
+        for (int i = 1; i < n-1; i++) {
+            if (d[i] == 1 && d[i+1] == 1) {
+                d[i] = 0;
+                d[i+1] = 0;
+                ans.push_back(i);
+            }
+        }
+    }
+    /*
+    for (int i = 0; i < n; i++) {
+        cout << d[i];
+    }
+    cout << '\n';
+    */
+    bool poss = true;
+    for (int i = 0; i < n-1; i++) {
+        if (d[i] != d[i+1]) poss = false;
+    }
+    if (!poss) {
+        cout << -1 << '\n';
+    }
+    else {
+        cout << ans.size() << '\n';
+        for (auto i: ans) {
+            cout << i+1 << ' ';
+        }
+        cout << '\n';
+    }
+}
+

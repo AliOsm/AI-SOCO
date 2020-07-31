@@ -1,0 +1,193 @@
+#include <iostream>
+#include <bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define ll long long
+#define F first
+#define S second
+#define PI acos(-1)
+#define EPS 1e-8
+#define BASE 53ll
+#define mod 1000000007ll
+
+#define MAX 900001
+#define NIL 0
+#define INF (1<<28)
+
+typedef pair<int,int>ii;
+typedef pair<int,ii>edge;
+typedef pair<vector<int>,int>vii;
+const int N=200005;
+const int M=105;
+
+ll gcd(ll a, ll b) { return b == 0 ? a : gcd(b, a % b); }
+ll lcm(ll a, ll b) { return a * (b / gcd(a, b)); }
+ll fact(ll n){ll ret=1;for(int i=1;i<=n;i++)ret*=i;return ret;}
+bool is_vowel(char c){if(c=='a'||c=='e'||c=='i'||c=='o'||c=='u'||c=='y')return 1;return 0;}
+
+struct query{
+   int l,r,t,idx;
+   query(int a,int b,int c,int d){
+      l=a;r=b;t=c;idx=d;
+   }
+};
+int a[N],tmp[N],sol[N],cnt[N],kam[N];
+ll root;
+bool operator < (query a,query b){
+    if(a.r!=b.r)return a.r<b.r;
+    return a.idx<b.idx;
+}
+vector<ii>updates,updates2[50];
+vector<query>solve;
+vector<query>all[50][50];
+stack<int>st[100005];
+int main()
+{
+    //freopen("test.in","r",stdin);
+    int n,q,koko=0;
+    set<int>stt;
+    map<int,int>mp;
+    scanf("%d%d",&n,&q);
+    root=max(n,q);
+    root*=root;
+    for(ll i=1;i<=3000;i++){
+        ll c=i*i*i;
+        if(c>root){
+            root=max(1ll,i-1);
+            break;
+        }
+    }
+    /// root=n^2/3
+    for(int i=0;i<n;i++)scanf("%d",&a[i]),stt.insert(a[i]);
+    int total=0,REALIDX=0;
+    for(int i=0;i<q;i++){
+        int a,b,c;
+        scanf("%d%d%d",&a,&b,&c);
+        if(a==2){
+            updates.pb(ii(b-1,c));/// change a[b] to c
+            stt.insert(c);
+            total++;
+        }
+        else{
+            solve.pb(query(b-1,c-1,total,i));
+            if(solve.size()==48260)REALIDX=i;
+        }
+    }
+    for(set<int>::iterator it=stt.begin();it!=stt.end();it++)mp[*it]=koko++;
+    for(int i=0;i<n;i++)a[i]=mp[a[i]],tmp[i]=a[i];
+    for(int i=0;i<updates.size();i++)updates[i].S=mp[updates[i].S];
+    /// values are now ranked
+    for(int i=0;i<solve.size();i++){
+        int l=solve[i].l,t=solve[i].t;
+        all[t/root][l/root].pb(solve[i]);/// push by r then l to sort by r
+    }
+    for(int i=0;i<updates.size();i++){
+        updates2[i/root].pb(updates[i]);
+    }
+    for(int i=0;i<50;i++)for(int j=0;j<50;j++)sort(all[i][j].begin(),all[i][j].end());
+    int t=0;/// last non inclusive update
+    /// cnt holds for interger x mwgod kam mara
+    /// kam holds feh kam integer mwgod j mrat
+    memset(sol,-1,sizeof(sol));
+    int sigma=0;
+    for(int i=0;i<50;i++){
+        for(int j=0;j<50;j++){
+            if(all[i][j].size()){
+                memset(cnt,0,sizeof(cnt));
+                memset(kam,0,sizeof(kam));
+            }
+            int lft,rgt;
+            for(int k=0;k<all[i][j].size();k++){
+                int l=all[i][j][k].l,r=all[i][j][k].r,total=all[i][j][k].t,idx=all[i][j][k].idx;
+                if(!k){
+                    lft=l;
+                    rgt=r;
+                    kam[0]=n;
+                    while(t<total){/// update yasta
+                        st[updates[t].F].push(a[updates[t].F]);
+                        a[updates[t].F]=updates[t].S;
+                        t++;
+                    }
+                    while(t>total){
+                        t--;
+                        a[updates[t].F]=st[updates[t].F].top();
+                        st[updates[t].F].pop();
+                    }
+                    for(int koko=lft;koko<=rgt;koko++){
+                        kam[cnt[a[koko]]]--;
+                        cnt[a[koko]]++;
+                        kam[cnt[a[koko]]]++;
+                    }
+                }
+                else{
+                     /// move left or right awl
+                     /// then make needed changes and if one of them is in your range l,r update yasta
+                     while(rgt<r){
+                        rgt++;
+                        kam[cnt[a[rgt]]]--;
+                        cnt[a[rgt]]++;
+                        kam[cnt[a[rgt]]]++;
+                     }
+                     while(l<lft){
+                        lft--;
+                        kam[cnt[a[lft]]]--;
+                        cnt[a[lft]]++;
+                        kam[cnt[a[lft]]]++;
+                     }
+                     while(l>lft){
+                        kam[cnt[a[lft]]]--;
+                        cnt[a[lft]]--;
+                        kam[cnt[a[lft]]]++;
+                        lft++;
+                     }
+                     while(t<total){
+                            int pos=updates[t].F;
+                            if(l<=pos&&pos<=r){
+                             kam[cnt[a[pos]]]--;
+                             cnt[a[pos]]--;
+                             kam[cnt[a[pos]]]++;
+                            }
+                            st[updates[t].F].push(a[pos]);
+                            a[pos]=updates[t].S;
+                            if(l<=pos&&pos<=r){
+                             kam[cnt[a[pos]]]--;
+                             cnt[a[pos]]++;
+                             kam[cnt[a[pos]]]++;
+                            }
+                            t++;
+                     }
+                     while(t>total){
+                            t--;
+                            int pos=updates[t].F;
+                            if(l<=pos&&pos<=r){
+                             kam[cnt[a[pos]]]--;
+                             cnt[a[pos]]--;
+                             kam[cnt[a[pos]]]++;
+                            }
+                            a[pos]=st[updates[t].F].top();
+                            st[updates[t].F].pop();
+                            if(l<=pos&&pos<=r){
+                             kam[cnt[a[pos]]]--;
+                             cnt[a[pos]]++;
+                             kam[cnt[a[pos]]]++;
+                            }
+                     }
+                }
+                for(int lp=1;lp<500;lp++){
+                    if(kam[lp]==0){
+                        sol[idx]=lp;
+                        break;
+                    }
+                }
+            }
+        }
+        for(int j=0;j<updates2[i].size();j++)a[updates2[i][j].F]=updates2[i][j].S,tmp[updates2[i][j].F]=updates2[i][j].S,sigma++;
+        t=sigma;
+    }
+    for(int i=0;i<q;i++){
+        if(sol[i]==-1)continue;
+        printf("%d\n",sol[i]);
+    }
+   return 0;
+}

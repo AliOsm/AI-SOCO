@@ -1,0 +1,182 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <assert.h>
+#include <set>
+#include <map>
+#include <cmath>
+#include <queue>
+#include <stack>
+#include <bitset>
+#include <string>
+#include <sstream>
+#include <memory.h>
+#include <time.h>
+#include <string.h>
+#include <stdlib.h>
+#include <functional>
+#include <algorithm>
+using namespace std;
+typedef long long ll;
+const int N = 1000001;
+
+const long long Q = 9223372036854775807ll;
+struct line {
+	long long m, p;
+	mutable set<line>::iterator prev;
+};
+set<line>::iterator null;
+bool operator<(const line& a, const line& b)
+{
+	if (b.p != Q && a.p != Q) {
+		return a.m < b.m;
+	}
+	if (b.p == Q) {
+		if (a.prev == null)
+			return true;
+		bool ok = true;
+		if ((a.prev->m - a.m) < 0)
+			ok = !ok;
+		if (ok) {
+			return (a.p - a.prev->p) < (a.prev->m - a.m) * b.m;
+		}
+		else {
+			return (a.p - a.prev->p) > (a.prev->m - a.m) * b.m;
+		}
+	}
+	else {
+		if (b.prev == null)
+			return false;
+		bool ok = true;
+		if ((b.prev->m - b.m) < 0)
+			ok = !ok;
+		if (ok) {
+			return !((b.p - b.prev->p) < a.m * (b.prev->m - b.m));
+		}
+		else {
+			return !((b.p - b.prev->p) > a.m * (b.prev->m - b.m));
+		}
+	}
+}
+class convex_hull {
+public:
+	set<line> convex;
+	set<line>::iterator next(set<line>::iterator ii)
+	{
+		set<line>::iterator gg = ii;
+		gg++;
+		return gg;
+	}
+	set<line>::iterator prev(set<line>::iterator ii)
+	{
+		set<line>::iterator gg = ii;
+		gg--;
+		return gg;
+	}
+	bool bad(set<line>::iterator jj)
+	{
+		set<line>::iterator ii, kk;
+		if (jj == convex.begin())
+			return false;
+		kk = next(jj);
+		if (kk == convex.end())
+			return false;
+		ii = prev(jj);
+		line a = *ii, c = *kk, b = *jj;
+		bool ok = true;
+		if ((b.m - a.m) < 0)
+			ok = !ok;
+		if ((b.m - c.m) < 0)
+			ok = !ok;
+		if (ok) {
+			return (c.p - b.p) * (long double)(b.m - a.m) <= (a.p - b.p) * (long double)(b.m - c.m);
+		}
+		else {
+			return (c.p - b.p) * (long double)(b.m - a.m) >= (a.p - b.p) * (long double)(b.m - c.m);
+		}
+	}
+	void del(set<line>::iterator ii)
+	{
+		set<line>::iterator jj = next(ii);
+		if (jj != convex.end()) {
+			jj->prev = ii->prev;
+		}
+		convex.erase(ii);
+	}
+	void add(long long m, long long p)
+	{
+		null = convex.end();
+		line g;
+		g.m = m;
+		g.p = p;
+		set<line>::iterator ii = convex.find(g);
+		if (ii != convex.end()) {
+			if (ii->p >= p)
+				return;
+			del(ii);
+		}
+		convex.insert(g);
+		ii = convex.find(g);
+		set<line>::iterator jj = next(ii);
+		if (jj != convex.end())
+			jj->prev = ii;
+		if (ii != convex.begin()) {
+			ii->prev = prev(ii);
+		}
+		else {
+			ii->prev = convex.end();
+		}
+		if (bad(ii)) {
+			del(ii);
+			return;
+		}
+		jj = next(ii);
+		while (jj != convex.end() && bad(jj)) {
+			del(jj);
+			jj = next(ii);
+		}
+		if (ii != convex.begin()) {
+			jj = prev(ii);
+			while (ii != convex.begin() && bad(jj)) {
+				del(jj);
+				jj = prev(ii);
+			}
+		}
+	}
+	long long query(long long x)
+	{
+		null = convex.end();
+		line y;
+		y.m = x;
+		y.p = Q;
+		set<line>::iterator ii = convex.lower_bound(y);
+		ii--;
+		return ii->m * x + ii->p;
+	}
+};
+struct Rect {
+	ll w, h, val;
+	bool operator<(const Rect &r)const {
+		if (w != r.w)
+			return w>r.w;
+		return h<r.h;
+	}
+}v[N];
+int main()
+{
+	int n;
+	scanf("%d", &n);
+	for (int i = 0; i < n; ++i)
+		scanf("%lld%lld%lld", &v[i].w, &v[i].h, &v[i].val);
+	sort(v, v + n);
+	convex_hull H;
+	H.add(0, 0);
+	ll res = 0;
+	for (int i = 0; i < n; ++i) {
+		ll cur = -v[i].val + v[i].w*v[i].h + H.query(v[i].w);
+		H.add(-v[i].h, cur);
+		res = max(res, cur);
+	}
+	printf("%lld\n", res);
+	return 0;
+}

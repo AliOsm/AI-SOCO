@@ -1,0 +1,79 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include<bits\stdc++.h>
+using namespace std;
+typedef long long ll;
+#define N 100100
+#define B 40
+
+int suff[N][B];
+int pref[N][B];
+ll a[N];
+
+struct Trie{
+	int cnt;
+	Trie* child[2];
+
+	Trie(){
+		child[0] = child[1] = 0;
+		cnt = 0;
+	}
+
+	void add(int i, int j){
+		cnt++;
+		if (j == B) return;
+		if (child[suff[i][j]] == 0) child[suff[i][j]] = new Trie();
+		child[suff[i][j]]->add(i, j + 1);
+	}
+
+	void del(int i, int j){
+		cnt--;
+		if (j == B) return;
+		child[suff[i][j]]->del(i, j + 1);
+		if (child[suff[i][j]]->cnt == 0){
+			delete child[suff[i][j]];
+			child[suff[i][j]] = 0;
+		}
+	}
+
+	ll get(int i, int j){
+		if (j == B) return 0;
+		if (child[!pref[i][j]] != 0) return (1LL << (B - j - 1)) + child[!pref[i][j]]->get(i, j + 1);
+		if (child[pref[i][j]] != 0) return child[pref[i][j]]->get(i, j + 1);
+		return 0;
+	}
+};
+
+int main(){
+	//freopen("in.in", "r", stdin);
+	//freopen("out.out", "w", stdout);
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	
+	Trie* root = new Trie();
+	int n; cin >> n;
+	for (int i = 0; i < n; i++) cin >> a[i];
+	ll XOR = 0;
+	for (int i = 0; i < n; i++){
+		XOR ^= a[i];
+		ll X = XOR;
+		for (int j = 0; j < B; j++) pref[i][j] = X % 2, X /= 2;
+		reverse(pref[i], pref[i] + B);
+	}
+	XOR = 0;
+	for (int i = n; i >= 0; i--){
+		XOR ^= a[i];
+		ll X = XOR;
+		for (int j = 0; j < B; j++) suff[i][j] = X % 2, X /= 2;
+		reverse(suff[i], suff[i] + B);
+		root->add(i, 0);
+	}
+	ll ans = root->get(n, 0);
+	for (int i = 0; i < n; i++){
+		root->del(i, 0);
+		ll res = root->get(i, 0);
+		ans = max(ans, res);
+	}
+	cout << ans << endl;
+
+	return 0;
+}

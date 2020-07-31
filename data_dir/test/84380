@@ -1,0 +1,214 @@
+#include<iostream>
+#include<vector>
+#include<map>
+#include<set>
+#include<cassert>
+#include<cassert>
+#include<unordered_map>
+#include<unordered_set>
+#include<functional>
+#include<queue>
+#include<stack>
+#include<cstring>
+#include<algorithm>
+#include<cmath>
+#include<sstream>
+#include<iomanip>
+#include<cstdio>
+#include<cstdlib>
+#include<numeric>
+#include<random>
+#include<chrono>
+#include<bitset>
+using namespace std;
+
+#define all(x) (x).begin(), (x).end()
+#define pb push_back
+#define xx first
+#define yy second
+#define sz(x) (int)(x).size()
+#define gc getchar
+#define IO ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0)
+#define mp make_pair
+
+#ifndef ONLINE_JUDGE
+#  define LOG(x) (cerr << #x << " = " << (x) << endl)
+#else
+#  define LOG(x) ((void)0)
+#endif
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+
+const double PI=3.1415926535897932384626433832795;
+const ll INF = 1LL<<62;
+const ll MINF = -1LL<<62;
+
+template<typename T> T getint() {
+	T val=0;
+	char c;
+	
+	bool neg=false;
+	while((c=gc()) && !(c>='0' && c<='9')) {
+		neg|=c=='-';
+	}
+
+	do {
+		val=(val*10)+c-'0';
+	} while((c=gc()) && (c>='0' && c<='9'));
+
+	return val*(neg?-1:1);
+}
+
+//mt19937 rng(chrono::steady_clock::now().time_since_epoch().count()); uniform_int_distribution<int>(0, n-1)(rng)
+const int MAXN=200001;
+int n,m;
+ll w[MAXN];
+
+int par[MAXN], sz[MAXN];
+
+void init() {
+	memset(par, -1, sizeof par);
+	for(int i=0;i<MAXN;++i) sz[i]=1;
+}
+
+int get(int x) {
+	if(par[x]==-1) return x;
+	return par[x]=get(par[x]);
+}
+
+void merge(int x, int y) {
+	int px=get(x), py=get(y);
+	
+	if(px==py) return ;
+	
+	if(sz[px]>sz[py]) {
+		swap(px, py);
+		swap(x, y); //:) lyft
+	}
+	
+	par[px]=py;
+	sz[py]+=sz[px];
+	w[py]+=w[px];
+}
+
+
+vector<int> adj[MAXN];
+int lo[MAXN], nu[MAXN], idx=1;
+map<pair<int,int>, int> brd;
+void dfs1(int x, int par=-1) {
+	lo[x]=nu[x]=idx++;
+	for(auto j:adj[x]) {
+		if(par==j) continue ;
+		if(!lo[j]) {
+			dfs1(j, x);
+			lo[x]=min(lo[j], lo[x]);
+		}else {
+			lo[x]=min(nu[j], lo[x]);
+		}
+	}
+	
+	for(auto j:adj[x]) {
+		//cerr<<x<<" -> "<<j<<" "<<lo[j]<<" "<<nu[x]<<"\n";
+		if(lo[j]>nu[x]) {
+			brd[{x,j}]++;
+			brd[{j,x}]++;
+		}
+	}
+}
+
+int n2;
+vector<int> adj2[MAXN];
+
+//{vissza jőve, lenn maradva}
+pair<ll,ll> calc(int x, int par=-1) {
+	//cerr<<x<<"\n";
+	pair<ll,ll> ans={-(1LL<<60), -(1LL<<60)};
+
+	ans.yy=w[x];
+	if(sz[x]>1) {
+		ans.xx=w[x];
+	}
+	
+	vector<pair<ll,ll>> vals;
+	vector<pair<int,ll>> pos_ret;
+	ll sum_of_returns=0, max_gone=0;
+	int ind=0;
+	for(int i:adj2[x]) {
+		if(i==par) continue ;
+		auto res=calc(i,x);
+		vals.pb(res);
+		
+		if(res.xx>=0) {
+			pos_ret.push_back({ind, res.xx});
+			sum_of_returns+=res.xx;
+		}
+		
+		max_gone=max(res.yy, max_gone);
+		ind++;
+	}
+	
+	if(ans.xx<0) {
+		if(pos_ret.size()>0) {
+			ans.xx=w[x];
+		}
+	}
+	
+	ans.xx+=sum_of_returns;
+	
+	ll mx_add=0;
+	ind=0;
+	for(int i:adj2[x]) {
+		if(i==par) continue ;
+		
+		ll add=vals[ind].yy;
+		if(vals[ind].xx>0) add-=vals[ind].xx;
+		
+		mx_add=max(mx_add, sum_of_returns+add);
+		
+		ind++;
+	}
+	
+	ans.yy+=mx_add;
+	
+	return ans;
+}
+
+int main() {
+	IO;
+	cin>>n>>m;
+	for(int i=1;i<=n;++i) cin>>w[i];
+	for(int i=0;i<m;++i) {
+		int a,b;
+		cin>>a>>b;
+		adj[a].pb(b);
+		adj[b].pb(a);
+	}
+
+	init();
+	dfs1(1);
+	for(int i=1;i<=n;++i) {
+		for(auto j:adj[i]) {
+			if(brd.count({i,j})==0) {
+				merge(i,j);
+			}
+		}
+	}
+	
+	for(int i=1;i<=n;++i) {
+		for(auto j:adj[i]) {
+			if(get(i)!=get(j)) {
+				adj2[get(i)].push_back(get(j));
+			}
+		}
+	}
+
+	int s;
+	cin>>s;
+	
+	auto ans=calc(get(s));
+	cout<<max(ans.xx, ans.yy)<<"\n";
+	
+	return 0;
+}

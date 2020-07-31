@@ -1,0 +1,125 @@
+// Remember...
+ 
+#include<bits/stdc++.h>
+ 
+#define F first
+#define S second
+#define PB push_back
+#define sz(s) int((s).size())
+#define bit(n,k) (((n)>>(k))&1)
+ 
+using namespace std;
+ 
+typedef long long ll;
+typedef pair<int,int> pii;
+typedef pair<ll,ll> pll;
+ 
+const int maxn=1e5+10,mod=1e9+7;
+const ll inf=1e18;
+ 
+template<int Max,int S> struct pres_tree_char{
+    int nxt[Max][S], val[Max], C=1, rt[maxn];
+ 
+    int add(string &s,int id,int x,int pos=0){// if id==0 means that there is nothing
+	int nw=++C;
+	val[nw]= val[id];
+	int toc= pos==sz(s) ? -1 : s[pos]-'a';	
+	for(int i=0;i<S;i++)
+	    if(i!=toc) nxt[nw][i]= nxt[id][i];	
+	if(toc==-1)
+	    val[nw]=x;
+	else
+	    nxt[nw][toc]= add(s,nxt[id][toc],x,pos+1);	
+	return nw;
+    }
+    int fnd(string &s,int id){
+	for(char ch:s)
+	    id= nxt[id][ch-'a'];
+	return val[id];
+    }
+};
+template<int Max,int S> struct pres_tree_bin{
+    int nxt[Max][S], val[Max], C=1, rt[maxn];
+ 
+    int add(string &s,int id,int x,int pos=0){// if id==0 means that there is nothing
+	int nw=++C;
+	val[nw]= val[id] +x;
+	int toc= pos==sz(s) ? -1 : s[pos]-'0';	
+	for(int i=0;i<S;i++)
+	    if(i!=toc) nxt[nw][i]= nxt[id][i];	
+	if(toc!=-1)
+	    nxt[nw][toc]= add(s,nxt[id][toc],x,pos+1);	
+	return nw;
+    }
+    int lss(string s,int id){
+	int ans=0;
+	for(char ch:s){
+	    if(ch=='1') ans+= val[ nxt[id][0] ];
+	    id= nxt[id][ch-'0']; 	    
+	}
+	return ans;
+    }
+};
+ 
+pres_tree_char<16*maxn,26> name;
+pres_tree_bin<32*maxn*2,2> numb;
+ 
+int main(){
+    ios_base::sync_with_stdio(false); cin.tie(0); cout.tie();
+    
+    auto tostr= [](int x){
+	string s;
+	for(int i=30;i>=0;i--)// or 29
+	    s+='0'+bit(x,i);
+	return s;
+    };
+    name.rt[0]=1, numb.rt[0]=1;
+    
+    int q; cin>>q;
+      
+    for(int i=1;i<=q;i++){
+	string task; cin>>task;
+	
+	name.rt[i]= name.rt[i-1];
+	numb.rt[i]= numb.rt[i-1];
+	
+	if(task=="set"){
+	    string s; cin>>s;
+	    int num; cin>>num;
+	    string x= tostr(num);
+	    int id= name.fnd(s, name.rt[i]);
+	    name.rt[i]= name.add(s, name.rt[i], num);
+	    numb.rt[i]= numb.add(x, numb.rt[i], 1);
+	    if(id!=0) x= tostr(id), numb.rt[i]= numb.add(x, numb.rt[i], -1);
+	}
+	if(task=="remove"){
+	    string s; cin>>s;
+	    int id= name.fnd(s, name.rt[i]);
+	    if(id==0) continue;
+	    string x= tostr(id);
+	    name.rt[i]= name.add(s, name.rt[i], 0);
+	    numb.rt[i]= numb.add(x, numb.rt[i],-1); 
+	}
+	if(task=="query"){
+	    string s; cin>>s;
+	    int id=name.fnd(s, name.rt[i]), ans=-1;
+	    if(id!=0)
+		ans= numb.lss(tostr(id), numb.rt[i]);
+	    cout<<ans<<endl;
+	}
+	if(task=="undo"){
+	    int d; cin>>d;	    
+	    name.rt[i]= name.rt[i-d-1];
+	    numb.rt[i]= numb.rt[i-d-1];	
+	}
+    }
+    return 0;
+}
+// Deathly mistakes:
+//  * Read the problem carefully.
+//  * Check maxn.
+//  * Overflows.
+ 
+ 
+// #pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math")
+// #pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")

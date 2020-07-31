@@ -1,0 +1,38 @@
+#include <bits/stdc++.h>
+#define pb push_back
+#define mp make_pair
+#define pp pair<int, int>
+#define ppp pair<pp, int>
+#define fi first
+#define se second
+#define esp 1e-9
+#define inf 1000000001
+#define mod 1000000007
+#define N 501
+#define base 311097
+typedef long long ll;
+typedef long double ld;
+using namespace std;
+int n, m;
+
+int main() {
+    //freopen("in.in", "r", stdin);// freopen("ou.ou", "w", stdout);
+    ios::sync_with_stdio(false);
+    cin >> n >> m;
+    int d1 = 0;
+    int d2 = 0;
+    int d3 = 0;
+    for (int i = 1; i <= n; i++)
+    for (int j = 1; j <= m; j++) {
+        char c;
+        cin >> c;
+        if (c == 'B') d1++;
+        if (c == 'W') d2++;
+        if (c == 'G') d3++;
+    }
+    if (d1 + d2 + d3 == m * n)
+        cout << "#Black&White";
+    else
+        cout << "#Color";
+    /**/ return 0;
+}

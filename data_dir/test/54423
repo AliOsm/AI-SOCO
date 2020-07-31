@@ -1,0 +1,199 @@
+#include<iostream>
+#include<algorithm>
+#include<vector>
+#include<queue>
+#include<map>
+#include<utility>
+#include<set>
+#include<stack>
+#include<list>
+#include<deque>
+#include<bitset>
+#include<iomanip>
+#include<cstring>
+#include<sstream>
+#include<cstdio>
+#include<cstdlib>
+#include<climits>
+#include<cmath>
+#include<cctype>
+#include<limits>
+
+#define pb push_back
+#define mp make_pair
+#define rep(i,a,b) for(int i=a;i<=b;i++)
+#define ren(i,a,b) for(int i=a;i>=b;i--)
+#define ff first
+#define ss second
+#define pll pair<long long int,long long int>
+#define pii pair<int,int>
+#define vll vector<long long int>
+#define vii vector<int>
+#define gi(n) scanf("%d",&n)
+#define gll(n) scanf("%lld",&n)
+#define gstr(n) scanf("%s",n)
+#define gl(n) cin >> n
+#define oi(n) printf("%d",n)
+#define oll(n) printf("%lld",n)
+#define ostr(n) printf("%s",n)
+#define ol(n) cout << n
+#define os cout<<" "
+#define on cout<<"\n"
+#define o2(a,b) cout<<a<<" "<<b
+#define all(n) n.begin(),n.end()
+#define present(s,x) (s.find(x) != s.end())
+#define cpresent(s,x) (find(all(s),x) != s.end())
+#define tr(container, it) for(__typeof(container.begin()) it = container.begin(); it != container.end(); it++)
+using namespace std;
+
+typedef unsigned long long int ull;
+typedef long long int ll;
+typedef vector<vector<ll> > mat;
+
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+typedef float L;
+typedef vector<L> VL;
+typedef vector<VL> VVL;
+typedef pair<int, int> PII;
+typedef vector<PII> VPII;
+
+L INF = 1e18;
+
+struct MinCostMaxFlow 
+{
+  int N;
+  VVL cap, flow, cost;
+  VI found;
+  VL dist, pi, width;
+  VPII dad;
+
+  MinCostMaxFlow(int N) : 
+    N(N), cap(N, VL(N)), flow(N, VL(N)), cost(N, VL(N)), 
+    found(N), dist(N), pi(N), width(N), dad(N) {}
+  
+  void AddEdge(int from, int to, L cap, L cost) 
+  {
+    this->cap[from][to] = cap;
+    this->cost[from][to] = cost;
+  }
+  
+  void Relax(int s, int k, L cap, L cost, int dir) 
+  {
+    L val = dist[s] + pi[s] - pi[k] + cost;
+    if (cap && val < dist[k]) 
+	{
+      dist[k] = val;
+      dad[k] = make_pair(s, dir);
+      width[k] = min(cap, width[s]);
+    }
+  }
+
+  L Dijkstra(int s, int t) 
+  {
+    fill(found.begin(), found.end(), false);
+    fill(dist.begin(), dist.end(), INF);
+    fill(width.begin(), width.end(), 0);
+    dist[s] = 0;
+    width[s] = INF;
+    
+    while (s != -1) 
+	{
+      int best = -1;
+      found[s] = true;
+      for (int k = 0; k < N; k++) 
+	  {
+        if (found[k]) continue;
+        Relax(s, k, cap[s][k] - flow[s][k], cost[s][k], 1);
+        Relax(s, k, flow[k][s], -cost[k][s], -1);
+        if (best == -1 || dist[k] < dist[best]) best = k;
+      }
+      s = best;
+    }
+
+    for (int k = 0; k < N; k++)
+      pi[k] = min(pi[k] + dist[k], INF);
+    return width[t];
+  }
+
+  pair<L, L> GetMaxFlow(int s, int t) 
+  {
+    L totflow = 0, totcost = 0;
+    while (L amt = Dijkstra(s, t)) 
+	{
+      totflow += amt;
+      for (int x = t; x != s; x = dad[x].first) 
+	  {
+        if (dad[x].second == 1) 
+		{
+          flow[dad[x].first][x] += amt;
+          totcost += amt * cost[dad[x].first][x];
+        } else 
+		{
+          flow[x][dad[x].first] -= amt;
+          totcost -= amt * cost[x][dad[x].first];
+        }
+      }
+    }
+    return make_pair(totflow, totcost);
+  }
+};
+
+
+int main()
+{ios_base::sync_with_stdio(false);
+int n,x[405],y[405],mx=-1e5;
+cin>>n;
+
+rep(i,0,n-1)
+{
+	cin>>x[i]>>y[i];
+	mx=max(mx,y[i]);
+}
+
+int cnt=0,root=-1;
+
+rep(i,0,n-1)
+if(y[i]==mx)cnt++,root=i;
+
+if(cnt!=1)
+{
+	ol("-1");
+	return 0;
+}
+
+MinCostMaxFlow mcmw(2*n+2);
+
+rep(i,0,n-1)
+{
+	if(root!=i)
+	mcmw.AddEdge(0,i+1,1,0);
+	mcmw.AddEdge(n+i+1,2*n+1,2,0);
+}
+
+rep(i,0,n-1)
+{
+	rep(j,0,n-1)
+	{
+		if(y[i]<y[j])
+		{
+			L dis=(x[i]-x[j])*(x[i]-x[j])+(y[i]-y[j])*(y[i]-y[j]);
+			dis=sqrt(dis);
+			mcmw.AddEdge(i+1,n+j+1,1,dis);
+		}
+	}
+}
+
+pair<L,L> p=mcmw.GetMaxFlow(0,2*n+1);
+
+if(p.ff!=n-1)
+{
+	ol("-1");
+}
+else
+{
+	cout<<fixed<<setprecision(10)<<p.ss;
+}
+return 0;
+}
+

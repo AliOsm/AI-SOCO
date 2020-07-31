@@ -1,0 +1,182 @@
+/*
+Till the roof comes off, till the lights go out
+Till my legs give out, can’t shut my mouth.
+Till the smoke clears out. Am I high? Perhaps
+I'ma rip this shit till my bones collapse.
+*/
+#include <stdio.h>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <stack>
+#include <string.h>
+#include <map>
+#define ll long long
+
+using namespace std;
+
+const int N=100001;
+typedef pair<ll,int>ii;
+
+struct query{
+  int type;
+  ll l,r;
+  query(int a,ll b,ll c){
+    type=a;
+    l=b;
+    r=c;
+  }
+};
+
+vector<query>v;
+set<ii>id;
+map<int,ll>mp;
+int cnt=0;
+
+void rankny(){
+  set<ll>st;
+  for(int i=0;i<v.size();i++){
+    st.insert(v[i].l);
+    st.insert(v[i].r);
+  }
+  ll last=0;
+  for(set<ll>::iterator it=st.begin();it!=st.end();it++){
+        ll cur=*it;
+        if(last+1<cur){
+          id.insert(ii(last+1,cnt++));
+          mp[cnt-1]=last+1;
+        }
+        id.insert(ii(cur,cnt++));
+        mp[cnt-1]=cur;
+        last=cur;
+  }
+  id.insert(ii(last+1,cnt++));
+  mp[cnt-1]=last+1;
+}
+int tree[N*4*5],lazy[N*4*5];
+void relax(int p,int s,int e){
+ if(lazy[p]==-1||s==e)
+    return;
+ int mid=(s+e)/2;
+ if(lazy[p]==1){
+    tree[p*2]=mid-s+1;
+    tree[p*2+1]=e-mid;
+ }
+ if(lazy[p]==0){
+  tree[p*2]=tree[p*2+1]=0;
+ }
+ if(lazy[p]==2){
+  tree[p*2]=mid-s+1-tree[p*2];
+  tree[p*2+1]=e-mid-tree[p*2+1];
+ }
+ if(s!=e){
+    if(lazy[p]==2){
+        if(lazy[p*2]==-1)lazy[p*2]=2;
+        else if(lazy[p*2]==1)lazy[p*2]=0;
+        else if (lazy[p*2]==2)lazy[p*2]=-1;
+        else lazy[p*2]=1;
+
+        if(lazy[p*2+1]==-1)lazy[p*2+1]=2;
+        else if(lazy[p*2+1]==1)lazy[p*2+1]=0;
+        else if (lazy[p*2+1]==2)lazy[p*2+1]=-1;
+        else lazy[p*2+1]=1;
+    }
+    else
+        lazy[p*2]=lazy[p*2+1]=lazy[p];
+ }
+ lazy[p]=-1;
+}
+void display(int p,int s,int e){
+ relax(p,s,e);
+ if(s==e){
+    //cout<<tree[p]<<' ';
+    return ;
+ }
+ display(p*2,s,(s+e)/2);
+ display(p*2+1,(s+e)/2+1,e);
+}
+void sheel(int p,int s,int e,int from,int to){
+    relax(p,s,e);
+    if(e<from||to<s)return;
+    if(from<=s&&e<=to){
+        tree[p]=0;
+        lazy[p]=0;
+        return;
+    }
+    sheel(p*2,s,(s+e)/2,from,to);
+    sheel(p*2+1,(s+e)/2+1,e,from,to);
+    tree[p]=tree[p*2]+tree[p*2+1];
+}
+void add(int p,int s,int e,int from,int to){
+    relax(p,s,e);
+    if(e<from||to<s)return;
+    if(from<=s&&e<=to){
+        tree[p]=e-s+1;
+        lazy[p]=1;
+        return;
+    }
+    add(p*2,s,(s+e)/2,from,to);
+    add(p*2+1,(s+e)/2+1,e,from,to);
+    tree[p]=tree[p*2]+tree[p*2+1];
+}
+void revert(int p,int s,int e,int from,int to){
+    relax(p,s,e);
+    if(e<from||to<s)return;
+    if(from<=s&&e<=to){
+        tree[p]=e-s+1-tree[p];
+        lazy[p]=2;
+        return;
+    }
+    revert(p*2,s,(s+e)/2,from,to);
+    revert(p*2+1,(s+e)/2+1,e,from,to);
+    tree[p]=tree[p*2]+tree[p*2+1];
+}
+int get(ll a){
+    set<ii>::iterator it=id.upper_bound(ii(a,cnt));
+    if(it!=id.begin())it--;
+    return it->second;
+}
+int hat(int p,int s,int e){//cout<<s<<' '<<e<<"  "<<lazy[p]<<"U"<<' '<<tree[p*2]<<' '<<tree[p*2+1]<<endl;
+  relax(p,s,e);//cout<<s<<' '<<e<<"  "<<lazy[p]<<"U"<<' '<<tree[p*2]<<' '<<tree[p*2+1]<<endl;
+  if(s==e)return s;
+  int mid=(e+s)/2;
+  int lft=mid-s+1,rgt=e-mid;//cout<<s<<' '<<e<<' '<<tree[p*2]<<' '<<tree[p*2+1]<<"   ";
+  if(tree[p*2]<lft)return hat(p*2,s,mid);
+  return hat(p*2+1,mid+1,e);
+}
+int main()
+{
+   // freopen("test.in","r",stdin);
+    // freopen("test.out","w",stdout);
+    int q;
+    scanf("%d",&q);
+    memset(lazy,-1,sizeof(lazy));
+    for(int i=0;i<q;i++){
+        int a;
+        ll b,c;
+        scanf("%d%I64d%I64d",&a,&b,&c);
+        v.push_back(query(a,b,c));
+    }
+    rankny();
+   /* for(set<ii>::iterator it=id.begin();it!=id.end();it++)
+        cout<<it->first;
+  */  for(int i=0;i<q;i++){
+        v[i].l=get(v[i].l);
+        v[i].r=get(v[i].r);//cout<<v[i].l<<' '<<v[i].r<<endl;
+        if(v[i].type==1){
+            add(1,0,cnt,v[i].l,v[i].r);
+        }
+        if(v[i].type==2){
+            sheel(1,0,cnt,v[i].l,v[i].r);
+        }
+        if(v[i].type==3){
+            revert(1,0,cnt,v[i].l,v[i].r);
+        }
+       // display(1,0,cnt);
+        printf("%I64d\n",mp[hat(1,0,cnt)]);
+     //   cout<<endl;
+    }
+    return 0;
+}

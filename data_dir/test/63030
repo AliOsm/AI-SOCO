@@ -1,0 +1,105 @@
+// Let's bring the sky down :)
+#include<bits/stdc++.h>
+#define ll long long
+using namespace std;
+const int N = 1e5 + 5;
+int p[N], sz[N];
+int ans[N];         // 0 for none
+                    // 1 for any
+                    // -1 for at least one
+
+int timer = 0;
+
+vector<pair<int, int> > v[N];
+vector<pair<int, int> > vBridge[N];
+void pre(){
+    for(int i = 0; i < N; i++) p[i] = i, sz[i] = 1;
+}
+int find(int x){
+    if(x == p[x]) return x;
+    return(p[x] = find(p[x]));
+}
+void join(int x, int y){
+    x = find(x);
+    y = find(y);
+    if(x == y) return;
+    if(sz[x] > sz[y]) swap(x, y);
+    sz[y] += sz[x];
+    p[x] = y;
+}
+bool vis[N];
+int low[N], in[N];
+void dfs(int s, int e){         // bridge finding
+    vis[s] = 1;
+    in[s] = low[s] = ++timer;
+    for(auto i : vBridge[s]){
+        if(i.second == e) continue;
+        if(!vis[i.first]){
+            dfs(i.first, i.second);
+                low[s] = min(low[s], low[i.first]);
+                if(in[s] < low[i.first]) ans[i.second] = 1; // bridge here
+        }
+        else low[s] = min(low[s], in[i.first]);
+    }
+}
+int main()
+{
+    ios_base ::sync_with_stdio(false); cin.tie(NULL); cout.tie(NULL);
+    int n, m;
+    cin >> n >> m;
+    int x, y, z;
+    map<pair<int, int>, int> edgeToIdx;
+    vector<pair<int, pair<int, int> > > edges;
+    for(int i = 0; i < m; i++){
+        cin >> x >> y >> z;
+        v[x].push_back({y, z});
+        v[y].push_back({x, z});
+        edges.push_back({z, {x, y}});
+        edgeToIdx[{x, y}] = i;
+        edgeToIdx[{y, x}] = i;
+    }
+    sort(edges.begin(), edges.end());
+    pre();
+    int parx, pary;
+    vector<pair<int, int> > toBeJoinedEdges;
+    set<int> newComponents;
+    for(int i = 0; i < edges.size();){
+        z = edges[i].first;
+        while(i < edges.size() && edges[i].first == z){
+            x = edges[i].second.first, y = edges[i].second.second;
+            parx = find(x), pary = find(y);
+            int idx = edgeToIdx[{x, y}];
+            if(parx == pary){
+                ans[idx] = 0;
+                i++;
+                continue;
+            }
+            toBeJoinedEdges.push_back({x, y});
+            vBridge[parx].push_back({pary, idx});
+            vBridge[pary].push_back({parx, idx});
+            newComponents.insert(parx);
+            newComponents.insert(pary);
+            i++;
+        }
+
+        for(auto edge : toBeJoinedEdges){
+            join(edge.first, edge.second);
+            ans[edgeToIdx[{edge.first, edge.second}]] = -1;
+        }
+        toBeJoinedEdges.clear();
+
+        for(auto components : newComponents){
+            if(!vis[components])
+                dfs(components, -1);
+            vBridge[components].clear();
+            vis[components] = 0;
+        }
+        newComponents.clear();
+    }
+    for(int i = 0; i < m; i++){
+        if(ans[i] == 1) cout << "any\n";
+        else if(ans[i] == 0) cout << "none\n";
+        else cout << "at least one\n";
+    }
+return 0;
+}

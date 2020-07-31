@@ -1,0 +1,153 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+typedef long long ll;
+const int N = 1e5 + 7;
+const int SS = 4 * N;
+const int A = 10;
+const int L = 11;
+
+struct Node{
+	ll val[A];
+	Node()
+	{
+		for (int i=0; i<A; i++)
+			val[i] = 0;
+	}
+	ll& operator [] (int x)
+	{
+		return val[x];
+	}
+};
+
+int lazy[SS][A];
+Node seg[SS];
+int a[N];
+int n, q;
+int tmp[A], ltmp[A];
+
+inline Node merge(Node &a, Node &b)
+{
+	Node res;
+	for (int i=0; i<A; i++)
+		res[i] = a[i] + b[i];
+	return res;
+}
+
+void build(int s = 0, int e = n, int v = 1)
+{
+	for (int i=0; i<A; i++)
+		lazy[v][i] = 1 << i;
+	if (e - s < 2)
+	{
+		ll k = 1;
+		ll num = a[s];
+		for (int i=0; i<L && num; i++)
+		{
+			seg[v][num % 10] += k;
+			num /= 10;
+			k *= 10;
+		}
+		return;
+	}
+	int mid = (s + e) / 2;
+	build(s, mid, 2 * v);
+	build(mid, e, 2 * v + 1);
+	seg[v] = merge(seg[2 * v], seg[2 * v + 1]);
+}
+
+inline void update(int v, int *laz)
+{
+	memset(tmp, 0, sizeof tmp);
+	memset(ltmp, 0, sizeof ltmp);
+	for (int i=0; i<A; i++)
+	{
+		int num = laz[i];
+		while (num)
+		{
+			int lb = __builtin_ctz(num);
+			num ^= (1 << lb);
+			tmp[i] += seg[v][lb];
+			ltmp[i] |= lazy[v][lb];
+		}
+	}
+	memcpy(seg[v].val, tmp, sizeof tmp);
+	memcpy(lazy[v], ltmp, sizeof ltmp);
+}
+
+inline void shift(int v)
+{
+	update(2 * v, lazy[v]);
+	update(2 * v + 1, lazy[v]);
+	for (int i=0; i<A; i++)
+		lazy[v][i] = 1 << i;
+}
+
+void modif(int l, int r, int X, int Y, int s = 0, int e = n, int v = 1)
+{
+	if (X == Y)
+		return;
+	if (l >= e || r <= s)
+		return;
+	if (l <= s && e <= r)
+	{
+		int x[A];
+		for (int i=0; i<A; i++)
+			x[i] = 1 << i;
+		x[X] = 0;
+		x[Y] |= 1 << X;
+		update(v, x);
+		return;
+	}
+	shift(v);
+	int mid = (s + e) / 2;
+	modif(l, r, X, Y, s, mid, 2 * v);
+	modif(l, r, X, Y, mid, e, 2 * v + 1);
+	seg[v] = merge(seg[2 * v], seg[2 * v + 1]);
+}
+
+Node get(int l, int r, int s = 0, int e = n, int v = 1)
+{
+	if (l >= e || r <= s)
+		return Node();
+	if (l <= s && e <= r)
+		return seg[v];
+	shift(v);
+	int mid = (s + e) / 2;
+	Node A = get(l, r, s, mid, 2 * v);
+	Node B = get(l, r, mid, e, 2 * v + 1);
+	seg[v] = merge(seg[2 * v], seg[2 * v + 1]);
+	return merge(A, B);
+}
+
+int32_t main()
+{
+	ios::sync_with_stdio(false);
+
+	cin >> n >> q;
+	for (int i=0; i<n; i++)
+		cin >> a[i];
+	build();
+	while (q--)
+	{
+		int t, l, r;
+		cin >> t >> l >> r;
+		l--;
+		if (t == 1)
+		{
+			int A, B;
+			cin >> A >> B;
+			modif(l, r, A, B);
+		}
+		else
+		{
+			Node res = get(l, r);
+			ll ans = 0;
+			for (int i=0; i<A; i++)
+				ans = ans + i * res[i];
+			cout << ans << "\n";
+		}
+	}
+
+	return 0;
+}

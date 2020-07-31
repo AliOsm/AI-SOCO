@@ -1,0 +1,164 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+class trie {
+  struct node {
+    map<char, vector<int>> next;
+  };
+
+public:
+  int ptr = 0;
+  vector<node> t;
+
+  trie() {
+    t.push_back(node());
+    ++ptr;
+  }
+
+  void add(int k, char c) {
+    t.push_back(node());
+    t[k].next[c].push_back(ptr++);
+  }
+
+  node& operator[](int i) {
+    return t[i];
+  }
+} songs;
+
+class aho_corasick {
+  struct node {
+    int link = -1, p = -1;
+    char c;
+    map<char, int> next;
+  };
+
+  vector<node> trie;
+public:
+  int ptr = 0;
+
+  aho_corasick() {
+    ++ptr;
+    trie.push_back(node());
+  }
+
+  int add_word(const string& s) {
+    int v = 0;
+    for (char c : s) {
+      if (!trie[v].next.count(c)) {
+        trie.push_back(node());
+        trie[ptr].p = v;
+        trie[ptr].c = c;
+        trie[v].next[c] = ptr++;
+      }
+      v = trie[v].next[c];
+    }
+    return v;
+  }
+
+  int get(int v) {
+    if (trie[v].link == -1) {
+      if (v == 0 or trie[v].p == 0) {
+        trie[v].link = 0;
+      } else {
+        trie[v].link = go(get(trie[v].p), trie[v].c);
+        get(trie[v].link);
+      }
+    }
+    return trie[v].link;
+  }
+
+  int go(int v, char c) {
+    if (!trie[v].next.count(c)) {
+      trie[v].next[c] = (v ? go(get(v), c) : 0);
+    }
+    return trie[v].next[c];
+  }
+} qr;
+
+vector<vector<int>> g, qq;
+vector<int> tin, tout, f, ans, id;
+int t = 0;
+
+void update(int v, int x) {
+  for (v = tin[v]; v < t; v |= v + 1) {
+    f[v] += x;
+  }
+}
+
+int sum(int i) {
+  int res = 0;
+  for (i; i >= 0; i = (i & (i + 1)) - 1) {
+    res += f[i];
+  }
+  return res;
+}
+
+int get(int v) {
+  return sum(tout[v]) - sum(tin[v] - 1);
+}
+
+void dfs_init(int v = 0) {
+  tin[v] = t++;
+  for (int to : g[v]) {
+    dfs_init(to);
+  }
+  tout[v] = t - 1;
+}
+
+void dfs(int v = 0, int cur = 0) {
+  update(cur, 1);
+  for (int req : qq[v]) {
+    ans[req] = get(id[req]);
+  }
+  for (auto [c, x] : songs[v].next) {
+    for (int to : x) {
+      dfs(to, qr.go(cur, c));
+    }
+  }
+  update(cur, -1);
+}
+
+int main() {
+  ios::sync_with_stdio(0);
+  cin.tie(0), cout.tie(0);
+
+  int n;
+  cin >> n;
+  for (int i = 0; i < n; ++i) {
+    int tp;
+    cin >> tp;
+    int j = 0;
+    if (tp == 2) {
+      cin >> j;
+    }
+    char c;
+    cin >> c;
+    songs.add(j, c);
+  }
+  qq.resize(n + 1);
+  int q;
+  cin >> q;
+  for (int i = 0; i < q; ++i) {
+    int k;
+    string t;
+    cin >> k >> t;
+    qq[k].push_back(i);
+    id.push_back(qr.add_word(t));
+  }
+  ans.resize(q);
+  int m = qr.ptr;
+  g.resize(m);
+  tin.resize(m), tout.resize(m);
+  f.resize(m);
+  for (int i = 1; i < m; ++i) {
+    g[qr.get(i)].push_back(i);
+  }
+  dfs_init();
+  dfs();
+  for (int i = 0; i < q; ++i) {
+    cout << ans[i] << '\n';
+  }
+
+  return 0;
+}

@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+#define FOR(x,n) for(int x = 0; x < n; x++)
+#define ALL(a) (a).begin(), (a).end()
+#define MXN ((int)1e6+1)
+using namespace std;
+
+int t[15*MXN] = {}, L[15*MXN] = {}, R[15*MXN] = {}, lazy[15*MXN] = {}, T=0;
+
+int get(int n) {
+  int nn = T++;
+  t[nn] = t[n];
+  L[nn] = L[n];
+  R[nn] = R[n];
+  lazy[nn] = lazy[n];
+  return nn;  
+}
+
+void push(int n, int l, int r) {
+  if(lazy[n]) {
+    t[n] = (r-l+1) - t[n];
+    if(l != r) {
+      if(L[n] < n) L[n] = get(L[n]);lazy[L[n]] ^= 1;
+      if(R[n] < n) R[n] = get(R[n]);lazy[R[n]] ^= 1;
+    }
+    lazy[n] = 0;
+  }
+}
+
+int update(int n, int l, int r, int a, int b, int f, int v) {
+  
+  if(l > b || r < a) return n;
+  else if(a <= l && r <= b) {
+    push(n, l, r);
+    int nn = T++;
+    t[nn] = t[n];
+    L[nn] = L[n];
+    R[nn] = R[n];
+    if(f == 1)
+      t[nn] = v;
+    else
+      lazy[nn] ^= 1;
+    return nn;
+  } else {
+    push(n, l, r);
+    int nn = T++, mid = (l+r)/2;
+    L[nn] = update(L[n], l, mid, a,b,f, v); push(L[nn], l, mid);
+    R[nn] = update(R[n], mid+1, r, a,b,f, v); push(R[nn], mid+1, r);
+    t[nn] = t[L[nn]] + t[R[nn]];\
+    return nn;
+  }
+}
+
+int build(int l, int r) {
+  int n = T++;
+  if(l != r) {
+    int mid = (l+r)/2;
+    L[n] = build(l,mid);
+    R[n] = build(mid+1,r);
+  }
+  return n;
+}
+
+int roots[MXN] = {};
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+  int N, M, Q; cin >> N >> M >> Q;
+  roots[0] = build(0,N*M-1);
+  FOR(x,Q) {
+    int type; cin >> type;
+    if(type == 1 || type == 2) {
+      int i, j; cin >> i >> j; int pos = (i-1) * M + j - 1;
+      roots[x+1] = update(roots[x], 0, N*M-1, pos, pos, 1, type & 1);
+    } else if(type == 3) {
+      int i; cin >> i; int pos = (i-1) * M;
+      roots[x+1] = update(roots[x], 0, N*M-1, pos, pos + M-1, 2, 0);
+    } else {
+      int i; cin >> i;
+      roots[x+1] = roots[i];
+    }
+    push(roots[x+1], 0, N*M-1);
+    cout << t[roots[x+1]] << '\n';
+  }
+}

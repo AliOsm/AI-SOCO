@@ -1,0 +1,233 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vl;
+typedef pair<int,int> pii;
+typedef pair<ll, ll> pll;
+typedef vector<pii> vii;
+typedef vector<pll> vll;
+typedef pair<pii,int> piii;
+
+#define PB push_back
+//#define PB emplace_back
+#define F first
+#define S second
+#define MP make_pair
+#define endl '\n'
+
+const double eps = 1e-9;
+const int inf = 2000000000;
+const ll infLL = 9000000000000000000;
+#define MOD 1000000007
+
+#define mem(a,b) memset(a, b, sizeof(a) )
+#define gcd(a,b) __gcd(a,b)
+#define lcm(a,b) (a*(b/gcd(a,b)))
+
+#define optimize() ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+#define fraction() cout.unsetf(ios::floatfield); cout.precision(10); cout.setf(ios::fixed,ios::floatfield);
+
+//
+//debug
+template<typename F,typename S>ostream&operator<<(ostream&os,const pair<F,S>&p){return os<<"("<<p.first<<", "<<p.second<<")";}
+template<typename T>ostream&operator<<(ostream&os,const vector<T>&v){os<<"{";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"}";}
+template<typename T>ostream&operator<<(ostream&os,const set<T>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<",";os<<*it;}return os<<"]";}
+template<typename T>ostream&operator<<(ostream&os,const multiset<T>&v) {os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<*it;}return os<<"]";}
+template<typename F,typename S>ostream&operator<<(ostream&os,const map<F,S>&v){os<<"[";for(auto it=v.begin();it!=v.end();++it){if(it!=v.begin())os<<", ";os<<it->first<<" = "<<it->second;}return os<<"]";}
+#define dbg(args...) do {cerr << #args << " : "; faltu(args); } while(0)
+void faltu(){cerr << endl;}
+template<typename T>void faltu(T a[],int n){for(int i=0;i<n;++i)cerr<<a[i]<<' ';cerr<<endl;}
+template<typename T,typename...hello>void faltu(T arg,const hello&...rest){cerr<<arg<<' ';faltu(rest...);}
+//#else
+//#define dbg(args...)
+
+const int mx = 2e5+5;
+
+int n, l;
+vector<vector<int>> adjlist;
+
+int timer;
+vector<int> tin, tout;
+vector<vector<int>> up;
+vector<int> depth;
+
+void dfs_lca(int u, int par, int dep)
+{
+	depth[u] = dep;
+    tin[u] = ++timer;
+    up[u][0] = par;
+    for (int i = 1; i <= l; ++i) up[u][i] = up[up[u][i-1]][i-1];
+    for (auto v : adjlist[u]) {
+        if (v != par) dfs_lca(v, u, dep+1);
+    }
+    tout[u] = ++timer;
+}
+
+bool is_ancestor(int u, int v)	///is u an ancestor of v?
+{
+    return tin[u] <= tin[v] && tout[u] >= tout[v];
+}
+
+int lca(int u, int v)
+{
+    if (is_ancestor(u, v)) return u;
+    if (is_ancestor(v, u)) return v;
+    for (int i = l; i >= 0; --i) {
+        if (!is_ancestor(up[u][i], v)) u = up[u][i];
+    }
+    return up[u][0];
+}
+
+int get_dist( int u, int v )
+{
+	return depth[u]+depth[v]-2*depth[lca(u,v)];
+}
+
+void preprocess(int root) {
+    tin.resize(n+1);
+    tout.resize(n+1);
+    depth.resize(n+1);
+    timer = 0;
+    l = ceil(log2(n+1));
+    up.assign(n+1, vector<int>(l + 1));
+    dfs_lca(root, root, 0);
+}
+
+bool cmp( const int &lhs, const int &rhs )
+{
+	return tin[lhs] < tin[rhs];
+}
+
+struct virus{
+	int city, s;
+	virus(int city_, int s_) : city(city_), s(s_) {}
+};
+vector<virus> viruses;
+bool is_imp[mx];
+vector<pii> aux[mx];
+pii dist[mx];
+int dist3[mx];
+priority_queue< piii, vector<piii>, greater<piii> > pq;
+
+void relax( int u, int v, int virus_id, int dissst )
+{
+	int dist2 = dist3[u]+dissst;
+	int jump = viruses[virus_id].s;
+	int extra = (dist2+jump-1)/jump;
+	if( MP( extra, virus_id ) < dist[v] ) {
+		dist[v] = MP( extra, virus_id );
+		pq.push( MP(dist[v], v) );
+		dist3[v] = dist2;
+	}
+}
+
+void djikstra()
+{
+	while (!pq.empty()) {
+		piii Front = pq.top(); pq.pop();
+		pii d = Front.first;
+		int u = Front.second;
+		//if( d.F <= 0 ) dbg(d, u);
+		if (d > dist[u]) continue;
+		for (int j = 0; j < aux[u].size(); j++) {
+			pii v = aux[u][j];
+			relax( u, v.F, d.S, v.S );
+		}
+	}
+}
+
+int main()
+{
+	optimize();
+	cin >> n;
+	adjlist.resize(n+1);
+	for( int i = 0; i < n-1; ++i ) {
+		int x, y;
+		cin >> x >> y;
+		adjlist[x].PB(y);
+		adjlist[y].PB(x);
+	}
+	preprocess(1);
+	int q;
+	cin >> q;
+	while(q--) {
+		//dbg(q);
+		int k, m;
+		cin >> k >> m;
+		viruses.clear();
+		vector<int> imp;
+		vector<int> special;
+		for( int i = 0; i < k; ++i ) {
+			int city, s;
+			cin >> city >> s;
+			viruses.PB( virus(city, s) );
+			special.PB( city );
+		}
+		for( int i = 0; i < m; ++i ) {
+			int u;
+			cin >> u;
+			imp.PB(u);
+			special.PB(u);
+		}
+		sort( special.begin(), special.end(), cmp );
+		special.erase( unique( special.begin(), special.end() ), special.end() );
+		for( int i = special.size()-1; i > 0; --i ) {
+			special.PB( lca(special[i], special[i-1]) );
+		}
+		sort( special.begin(), special.end(), cmp );
+		special.erase( unique( special.begin(), special.end() ), special.end() );
+		while(!pq.empty()) pq.pop();
+		for( auto x : special ) {
+			aux[x].clear();
+			is_imp[x] = 0;
+			dist[x] = MP(inf, inf);
+			dist3[x] = inf;
+		}
+		for( auto x : imp ) {
+			is_imp[x] = 1;
+		}
+		stack<int> st;
+		st.push(special[0]);
+		for( int i = 1; i < special.size(); ++i ) {
+			while( !is_ancestor(st.top(), special[i]) ) st.pop();
+			int u = st.top(), v = special[i];
+			int temp = get_dist(u, v);
+			aux[u].PB( MP(v, temp) );
+			aux[v].PB( MP(u, temp) );
+			st.push(special[i]);
+		}
+		for( int i = 0; i < viruses.size(); ++i ) {
+			dist[viruses[i].city] = MP(0, i);
+			dist3[viruses[i].city] = 0;
+			pq.push( MP( MP(0, i), viruses[i].city ) );
+		}
+		djikstra();
+		for( int i = 0; i < imp.size(); ++i ) {
+			cout << dist[imp[i]].S+1 << " ";
+		}
+		cout << endl;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,148 @@
+#pragma GCC optimize("Ofast,unroll-loops,no-stack-protector,fast-math")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+#pragma comment(linker, "/STACK:16777216")
+
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+using namespace __gnu_pbds;
+using matrix = vector<vector<long long>>;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> pii;
+typedef pair<ll, ll> pll;
+typedef complex<double> num;
+typedef tree<int, null_type, less<int>, rb_tree_tag, tree_order_statistics_node_update> ordered_set;
+
+#define all(x) (x).begin(), (x).end()
+//#define int ll
+
+void FAST_IO() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    //cout.setf(ios::fixed);
+    //cout.precision(20);
+    #ifdef _offline
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+    #endif // _offline
+}
+
+const int MAXN = 2e5 + 100;
+int arr[MAXN], ans[MAXN];
+vector<int> poses[MAXN];
+set<int> setik, nused, zeroes;
+
+void work(int l, int r, int q, bool need) {
+    auto it = nused.lower_bound(l);
+    while (true) {
+        if (it == nused.begin()) {
+            break;
+        }
+        auto prv = prev(it);
+        if (arr[*prv] == 0) {
+            ans[*prv] = q;
+            zeroes.erase(*prv);
+            nused.erase(prv);
+        }
+        else {
+            break;
+        }
+    }
+    it = nused.lower_bound(r);
+    while (true) {
+        auto nxt = next(it);
+        if (nxt == nused.end()) {
+            break;
+        }
+        if (arr[*nxt] == 0) {
+            ans[*nxt] = q;
+            zeroes.erase(*nxt);
+            nused.erase(nxt);
+        }
+        else {
+            break;
+        }
+    }
+    it = nused.lower_bound(l);
+    if (!need) {
+        ans[*it] = q;
+        zeroes.erase(*it);
+        nused.erase(it);
+        return;
+    }
+    while (true) {
+        ans[*it] = q;
+        if (arr[*it] == 0) {
+            zeroes.erase(*it);
+        }
+        else {
+            setik.erase(*it);
+        }
+        auto nxt = next(it);
+        nused.erase(it);
+        if (nxt == nused.end() || *nxt > r) {
+            break;
+        }
+        it = nxt;
+    }
+}
+
+signed main() {
+    FAST_IO();
+    int n, q;
+    cin >> n >> q;
+    for (int i = 0; i < n; ++i) {
+        int x;
+        cin >> x;
+        if (x != 0) {
+            setik.insert(i);
+        }
+        else {
+            zeroes.insert(i);
+        }
+        nused.insert(i);
+        poses[x].push_back(i);
+        arr[i] = x;
+    }
+    for (int i = q; i >= 1; --i) {
+        if (poses[i].size() == 0) {
+            if (!zeroes.empty()) {
+                work(*zeroes.begin(), *zeroes.begin(), i, false);
+            }
+            else {
+                if (i == q) {
+                    cout << "NO\n";
+                    return 0;
+                }
+            }
+        }
+        else if (poses[i].size() == 1) {
+            work(poses[i][0], poses[i][0], i, true);
+        }
+        else {
+            for (int j = 1; j < poses[i].size(); ++j) {
+                auto it = setik.upper_bound(poses[i][j - 1]);
+                if (*it != poses[i][j]) {
+                    cout << "NO\n";
+                    return 0;
+                }
+            }
+            work(poses[i][0], poses[i][poses[i].size() - 1], i, true);
+        }
+    }
+    if (nused.empty()) {
+        cout << "YES\n";
+    }
+    else {
+        cout << "NO\n";
+        return 0;
+    }
+    for (int i = 0; i < n; ++i) {
+        cout << ans[i] << ' ';
+    }
+}

@@ -1,0 +1,151 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef complex<ld> point;
+#define F first
+#define S second
+
+template<typename T>
+struct rmq
+{
+	vector<vector<T>> dp;
+
+	void build(vector<T> &a)
+	{
+		int n = a.size(), lg = __lg(n);
+		dp.resize(n, vector<T>(lg+1));
+
+		for (auto &i : a) dp[&i-&a[0]][0] = i;
+		for (int j = 1; j <= lg; ++j)
+			for (int i = 0; i+(1<<j) <= n; ++i)
+				dp[i][j] = min(dp[i][j-1], dp[i+(1<<(j-1))][j-1]);
+	}
+
+	T query(int a, int b)
+	{
+		int l = __lg(b - a);
+		return min(dp[a][l], dp[b-(1<<l)][l]);
+	}
+};
+
+struct seg_tree
+{
+	struct node
+	{
+		int m, lz;
+		node *l, *r;
+		node() : m(0), lz(0), l(0), r(0) {}
+	};
+
+	int k, _n;
+	rmq<int> R;
+	seg_tree(vector<int> &a, int _k)
+	{
+		_n = a.size();
+		k = _k;
+		R.build(a);
+	}
+
+	void push(node *cur)
+	{
+		if (cur->lz)
+		{
+			if (!cur->l)
+				cur->l = new node();
+			cur->l->m = cur->lz, cur->l->lz = cur->lz;
+			if (!cur->r)
+				cur->r = new node();
+			cur->r->m = cur->lz, cur->r->lz = cur->lz;
+			cur->lz = 0;
+		}
+	}
+
+	void update(node *cur, int b, int e, int l ,int h, int x)
+	{
+		if (l <= b && e <= h)
+		{
+			cur->m = x;
+			cur->lz = x;
+			return;
+		}
+
+		push(cur);
+		int m = (b+e) >> 1;
+		if (l < m)
+		{
+			if (!cur->l)
+				cur->l = new node();
+			update(cur->l, b, m, l, h, x);
+		}
+		if (m < h)
+		{
+			if (!cur->r)
+				cur->r = new node();
+			update(cur->r, m, e, l, h, x);
+		}
+		cur->m = min((cur->l ? cur->l->m : query(0, 0, _n*k, b, m)), (cur->r ? cur->r->m : query(0, 0, _n*k, m, e)));
+	}
+
+	int query(node *cur, int b, int e, int l, int h)
+	{
+		if (!cur)
+		{
+			l = max(l, b);
+			h = min(h, e);
+
+			int n = R.dp.size();
+			if (h-l >= n)
+				return R.query(0, n);
+
+			--h;
+			int p1 = l - l/n * n, p2 = h - h/n * n;
+			if (n-p1 >= p2-p1+1 && p2 >= p1)
+				return R.query(p1, p2+1);
+
+			return min(R.query(p1, n), R.query(0, p2+1));
+		}
+		if (l <= b && e <= h)
+			return cur->m;
+		push(cur);
+		int m = (b+e) >> 1, ret = 1<<30;
+		if (l < m)
+			ret = query(cur->l, b, m, l, h);
+		if (m < h)
+			ret = min(ret, query(cur->r, m, e, l, h));
+		return ret;
+	}
+};
+
+int main()
+{
+	ios_base::sync_with_stdio(0), cin.tie(0);
+
+	int n, k;
+	cin >> n >> k;
+	vector<int> a(n);
+	for (auto &i : a)
+		cin >> i;
+
+	seg_tree st(a, k);
+	auto *root = new seg_tree::node();
+	root->m = st.R.query(0, n);
+
+	int q;
+	cin >> q;
+	for (int t, l, r, x; q--; )
+	{
+		cin >> t >> l >> r;
+		if (t == 2)
+			cout << st.query(root, 0, k*n, --l, r) << "\n";
+		else
+		{
+			cin >> x;
+			st.update(root, 0, n*k, --l, r, x);
+		}
+	}
+
+	return 0;
+}

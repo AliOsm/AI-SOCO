@@ -1,0 +1,87 @@
+#include <bits/stdc++.h>
+using LL = long long ;
+#define ALL(v) (v).begin(),(v).end()
+#define showtime printf("time = %.15f\n",clock() / (double)CLOCKS_PER_SEC)
+
+struct Point {
+    int x,y;
+    Point(int _x = 0,int _y = 0) : x(_x),y(_y) {}
+    Point operator + (const Point &rhs) const {
+        return Point(x + rhs.x,y + rhs.y);
+    }
+    Point operator - (const Point &rhs) const {
+        return Point(x - rhs.x,y - rhs.y);
+    }
+    void show() const {
+        printf("%d %d\n",x,y);
+    }
+};
+
+LL det(const Point &a,const Point &b) {
+    return a.x * 1ll * b.y - a.y * 1ll * b.x;
+}
+
+LL dot(const Point &a,const Point &b) {
+    return a.x * 1ll * b.x + a.y * 1ll * b.y;
+}
+
+const int N = 5000 + 5;
+Point points[N];
+int n;
+
+std::vector<Point> getConvex() {
+    std::vector<Point> stack;
+    std::sort(points,points + n,[](const Point &a,const Point &b){
+                if (a.x != b.x) return a.x < b.x;
+                return a.y < b.y;
+            });
+    for (int i = 0; i < n; ++ i) {
+        while (stack.size() >= 2 && det(points[i] - stack[stack.size() - 2],stack.back() - stack[stack.size() - 2]) <= 0) stack.pop_back();
+        stack.push_back(points[i]);
+    }
+    int p = stack.size() - 1;
+    for (int i = n - 1; i >= 0; -- i) {
+        while (stack.size() - p >= 2 && det(points[i] - stack[stack.size() - 2],stack.back() - stack[stack.size() - 2]) <= 0) stack.pop_back();
+        stack.push_back(points[i]);
+    }
+    stack.pop_back();
+    return stack;
+}
+
+int main() {
+    scanf("%d%*I64d",&n);
+    for (int i = 0; i < n; ++ i) {
+        int x,y;
+        scanf("%d%d",&x,&y);
+        points[i] = Point(x,y);
+    }
+    auto vec = getConvex();
+    int a = 0,b = 1,c = 2;
+    int ba = 0,bb = 1,bc = 2;
+    int m = vec.size();
+    auto area = [&](int a,int b,int c) {
+        return std::abs(det(vec[c] - vec[a],vec[b] - vec[a]));
+    };
+    while (true) {
+        while (true) {
+            while (area(a,b,c) <= area(a,b,(c + 1) % m)) c = (c + 1) % m;
+            if (area(a,b,c) <= area(a,(b + 1) % m,c)) {
+                b = (b + 1) % m;
+                continue;
+            } else {
+                break;
+            }
+        }
+        if (area(a,b,c) > area(ba,bb,bc)) {
+            ba = a; bb = b; bc = c;
+        }
+        a = (a + 1) % m;
+        if (a == b) b = (b + 1) % m;
+        if (b == c) c = (c + 1) % m;
+        if (a == 0) break;
+    }
+    (vec[ba] - (vec[bb] - vec[bc])).show();
+    (vec[ba] + (vec[bb] - vec[bc])).show();
+    (vec[bb] + (vec[bc] - vec[ba])).show();
+
+}

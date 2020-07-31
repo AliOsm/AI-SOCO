@@ -1,0 +1,205 @@
+#include<bits/stdc++.h>
+using namespace std;
+int n, m, x, y ,z, p, q, r;
+
+int segtree[28][400000];
+int lazy[28][400000];
+
+char str[200000], str1[200000];
+
+void relax(int id, int node, int beg, int end)
+{
+    segtree[id][node] = (end - beg + 1) * lazy[id][node];
+    if(beg == end) return;
+
+    int lft = 2 * node;
+    int rgh = lft + 1;
+
+    lazy[id][lft] = lazy[id][rgh] = lazy[id][node];
+    lazy[id][node] = -1;
+
+
+}
+
+void update(int id, int node, int beg, int end, int i, int j, int k)
+{
+    if(lazy[id][node] != -1) relax(id, node, beg, end);
+    if(beg > end || beg > j || end < i) return;
+    if(beg >= i && end <= j){
+
+        lazy[id][node] = k;
+        relax(id, node, beg, end);
+
+        return;
+    }
+
+    int mid = (beg + end) / 2;
+    int lft = 2 * node;
+    int rgh = lft + 1;
+
+    update(id, lft, beg, mid, i, j, k);
+    update(id, rgh, mid + 1, end, i, j, k);
+
+    segtree[id][node] = segtree[id][lft] + segtree[id][rgh];
+
+}
+
+int query(int id, int node, int beg, int end, int i, int j)
+{
+    if(lazy[id][node] != -1) relax(id, node, beg, end);
+    if(beg > end || beg > j || end < i) return 0;
+    if(beg >= i && end <= j){
+        return segtree[id][node];
+    }
+
+    int mid = (beg + end) / 2;
+    int lft = 2 * node;
+    int rgh = lft + 1;
+    int p = 0, q = 0;
+
+    p = query(id, lft, beg, mid, i, j);
+    q = query(id, rgh, mid + 1, end, i, j);
+
+    return (p + q);
+
+}
+
+int curcnt[30];
+
+int main()
+{
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+    memset(lazy, -1, sizeof(lazy));
+
+    scanf("%d %d", &n, &m);
+    scanf("%s", str1);
+
+    for(int i = 0; i < n; i++) str[i + 1] = str1[i];
+
+    str[0] = '!';
+
+
+    for(int i = 1; i <= n; i++){
+        int cur = str[i] - 'a';
+        update(cur, 1, 1, n, i, i, 1);
+    }
+
+    while(m--){
+
+        scanf("%d %d", &x, &y);
+
+        int odds = 0, evns = 0;
+
+        for(int i = 0; i < 26; i++){
+            curcnt[i] = 0;
+            curcnt[i] = query(i, 1, 1, n, x, y);
+//            if(i <= 3) cout << i << ' ' << curcnt[i] << endl;
+
+            if(curcnt[i] % 2) odds++;
+            else evns++;
+
+        }
+
+        int len = y - x + 1;
+
+        if(len % 2 == 0){
+            if(odds) continue;
+
+
+            int st = x;
+            int ed = y;
+
+            for(int i = 0; i < 26; i++){
+                if(curcnt[i] == 0) continue;
+
+//                if(i < 20)cout << "old : " << i << ' ' << st << ' ' << ed << endl;
+
+                int nst = st + (curcnt[i] / 2) - 1;
+                int ned = ed - (curcnt[i] / 2) + 1;
+
+                update(i, 1, 1, n, x, y, 0);
+
+                update(i, 1, 1, n, st, nst, 1);
+                update(i, 1, 1, n, ned, ed, 1);
+
+                st = nst + 1;
+                ed = ned - 1;
+
+//                if(i < 20)cout << "new : " << i << ' ' << st << ' ' << ed << endl;
+
+            }
+
+
+        }
+        else{
+
+            if(odds > 1) continue;
+
+            int mid = (x + y) / 2;
+
+            for(int i = 0; i < 26; i++) update(i, 1, 1, n, x, y, 0);
+
+            for(int i = 0; i < 26; i++){
+                if(curcnt[i] % 2){
+//                    cout << "as : " << i << ' ' << mid << endl;
+                    update(i, 1, 1, n, mid, mid, 1);
+                    curcnt[i]--;
+                }
+            }
+
+            int st = x;
+            int ed = y;
+
+            for(int i = 0; i < 26; i++){
+                if(curcnt[i] == 0) continue;
+
+//                if(i < 29)cout << "old : " << i << ' ' << st << ' ' << ed << endl;
+
+                int nst = st + (curcnt[i] / 2) - 1;
+                int ned = ed - (curcnt[i] / 2) + 1;
+
+                update(i, 1, 1, n, st, nst, 1);
+                update(i, 1, 1, n, ned, ed, 1);
+
+                st = nst + 1;
+                ed = ned - 1;
+
+//                if(i < 209)cout << "new : " << i << ' ' << st << ' ' << ed << endl;
+
+            }
+
+
+
+        }
+
+//        cout << endl << endl;
+
+
+    }
+
+    for(int i = 1; i <= n; i++){
+        int xx = 0;
+
+        for(int j = 0; j < 26; j++){
+            if(query(j, 1, 1, n, i, i) == 1){
+                printf("%c", 'a' + j);
+                break;
+
+//                cout << "sss : " << i << ' ' << j << endl;
+            }
+        }
+
+//        if(xx != 1){
+//            while(true){
+////                cout << i << endl;
+//            }
+//        }
+
+    }
+
+    printf("\n");
+
+
+    return 0;
+}

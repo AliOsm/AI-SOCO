@@ -1,0 +1,193 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+#define ff first
+#define ss second
+#define pb push_back
+
+const int N = 100005;
+
+typedef long long unsigned int llui;
+typedef long long int lli;
+typedef long double float64;
+
+llui mul_mod(llui a, llui b, llui m){
+	llui y = (llui)((float64)a*(float64)b/m+(float64)1/2);
+	y = y * m;
+	llui x = a * b;
+	llui r = x - y;
+	if ( (lli)r < 0 ){
+		r = r + m; y = y - 1;
+	}
+	return r;
+}
+
+llui C,a,b;
+llui gcd(){
+	llui c;
+	if(a>b){
+		c = a; a = b; b = c;
+	}
+	while(1){
+		if(a == 1LL) return 1LL;
+		if(a == 0 || a == b) return b;
+		c = a; a = b%a;
+		b = c;
+	}
+}
+
+llui f(llui a, llui b){
+	llui tmp;
+	tmp = mul_mod(a,a,b);
+	tmp+=C; tmp%=b;
+	return tmp;
+}
+
+llui pollard(llui n){
+	if(!(n&1)) return 2;
+	C=0;
+	llui iteracoes = 0;
+	while(iteracoes <= 1000){
+		llui x,y,d;
+		x = y = 2; d = 1;
+		while(d == 1){
+			x = f(x,n);
+			y = f(f(y,n),n);
+			llui m = (x>y)?(x-y):(y-x);
+			a = m; b = n; d = gcd();
+		}
+		if(d != n)
+			return d;
+		iteracoes++; C = rand();
+	}
+	return 1;
+}
+
+llui pot(llui a, llui b, llui c){
+	if(b == 0) return 1;
+	if(b == 1) return a%c;
+	llui resp = pot(a,b>>1,c);
+	resp = mul_mod(resp,resp,c);
+	if(b&1)
+		resp = mul_mod(resp,a,c);
+	return resp;
+}
+
+// Rabin-Miller primality testing algorithm
+bool isPrime(llui n){
+	llui d = n-1;
+	llui s = 0;
+	if(n <=3 || n == 5) return true;
+	if(!(n&1)) return false;
+	while(!(d&1)){ s++; d>>=1; }
+	for(llui i = 0;i<32;i++){
+		llui a = rand();
+		a <<=32;
+		a+=rand();
+		a%=(n-3); a+=2;
+		llui x = pot(a,d,n);
+		if(x == 1 || x == n-1) continue;
+		for(llui j = 1;j<= s-1;j++){
+			x = mul_mod(x,x,n);
+			if(x == 1) return false;
+			if(x == n-1)break;
+		}
+		if(x != n-1) return false;
+	}
+	return true;
+}
+map<llui,int> factors;
+// Precondition: factors is an empty map, n is a positive integer
+// Postcondition: factors[p] is the exponent of p in prime factorization of n
+void fact(llui n){
+	if(!isPrime(n)){
+		llui fac = pollard(n);
+		fact(n/fac); fact(fac);
+	}else{
+		map<llui,int>::iterator it;
+		it = factors.find(n);
+		if(it != factors.end()){
+			(*it).second++;
+		}else{
+			factors[n] = 1;
+		}
+	}
+}
+
+vector<pair<ll, int>> fs;
+
+vector<ll> divz;
+
+void divs(ll x, int id){
+	if(id == fs.size()){
+		divz.pb(x);
+		return;
+	}
+
+	for(int i = 0; i <= fs[id].ss; i++){
+		divs(x, id+1);
+		x *= fs[id].ff;
+	}
+}
+
+int main(){
+	ll n, m, k;
+	scanf("%lld %lld %lld", &n, &m, &k);
+	ll a = n*m;
+	if((a * 2) % k){
+		printf("NO\n");
+		return 0;
+	}
+	else{
+		a = a * 2 / k;
+		ll p1x, p1y, p2x, p2y, p3x, p3y;
+		p1x = p1y = 0;
+		if(a <= max(n, m)){
+			if(n > m){
+				p2x = a;
+				p2y = 0;
+				p3x = a;
+				p3y = 1;
+			}
+			else{
+				p2y = a;
+				p2x = 0;
+				p3y = a;
+				p3x = 1;
+			}
+			printf("YES\n");
+			printf("%lld %lld\n", p1x, p1y);
+			printf("%lld %lld\n", p2x, p2y);
+			printf("%lld %lld\n", p3x, p3y);
+			return 0;
+		}
+		else{
+			fact(a);
+			for(auto i : factors){
+				fs.pb(i);
+			}
+			cout << endl;
+			divs(1, 0);
+			for(ll i : divz){
+				if(min(i, a/i) <= min(n, m) && max(i, a / i) <= max(n, m)){
+					p2x = max(a/i, i);
+					p2y = 0;
+					p3x = max(a/i, i);
+					p3y = min(a/i, i);
+					if(m > n){
+						swap(p2x, p2y);
+						swap(p3x, p3y);
+					}
+					printf("YES\n");
+					printf("%lld %lld\n", p1x, p1y);
+					printf("%lld %lld\n", p2x, p2y);
+					printf("%lld %lld\n", p3x, p3y);
+					return 0;
+				}
+			}
+		}
+	}
+	printf("NO\n");
+	return 0;
+}

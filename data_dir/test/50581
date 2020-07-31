@@ -1,0 +1,169 @@
+#include <iostream>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cassert>
+#include <ctime>
+#include <sstream>
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <string>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <map>
+#include <set>
+
+using namespace std;
+
+#define f first
+#define s second
+#define pb push_back
+#define mp make_pair
+#define ll long long
+#define pii pair < int, int >
+#define pll pair < long long, long long>
+#define ull unsigned long long
+#define y1 stupid_cmath
+#define left stupid_left
+#define right stupid_right
+#define vi vector <int>
+#define sz(a) (int)a.size()
+#define forit(it, s) for(__typeof(s.begin()) it = s.begin(); it != s.end(); it++)
+#define all(a) a.begin(), a.end()
+#define sqr(x) ((x) * (x))
+
+const int inf = (int)1e9;
+const int mod = inf + 7;
+const double eps = 1e-9;
+const double pi = acos(-1.0);
+
+ll read_long() {
+    ll ans = 0;
+    char c;
+    bool started = false;
+    bool is_negative = false;
+    while (true) {
+        c = getchar();
+        if ((c < '0' || c > '9') && c != '-' && !started) continue;
+        if ((c < '0' || c > '9') && c != '-' && started) break;
+        if (started) {
+            ans = ans * 10;
+        }
+        started = true;
+        if (c == '-') is_negative = true;
+        else ans += c - '0';
+    }
+    if (is_negative) ans *= -1;
+    return ans;
+}
+
+int n, a[100100];
+vector<int> pos;
+int nxt[100100];
+stack<int> s;
+int dp[100100];
+int two[100100];
+pii g[17][100100];
+
+void precalc() {
+    two[0] = -1;
+    for (int i = 1; i < 100100; i++) two[i] = 1 + two[i >> 1];
+    for (int i = 0; i < n; i++) {
+        g[0][i] = mp(a[i], i);
+    }
+    for (int lvl = 1; (1 << lvl) <= n; lvl++) {
+        for (int i = 0; i + (1 << lvl) <= n; i++) {
+            g[lvl][i] = max(g[lvl - 1][i],
+                            g[lvl - 1][i + (1 << (lvl - 1))]);
+        }
+    }
+}
+
+pii get(int l, int r) {
+    if (l > r) return mp(-inf, -1);
+    int lvl = two[r - l + 1];
+    pii ans1 = g[lvl][l];
+    pii ans2 = g[lvl][r - (1 << lvl) + 1];
+    return max(ans1, ans2);
+}
+
+int find(int ind, int val) {
+    int l = ind, r = n - 1, best = n;
+    while (l <= r) {
+        int mid = (l + r) >> 1;
+        pii p = get(ind, mid);
+        if (p.f > val) {
+            best = mid;
+            r = mid - 1;
+        } else l = mid + 1;
+    }
+    return best;
+}
+
+int mex(vector<int> &pos) {
+    map<int, int> used;
+    forit (it, pos) used[a[*it]] = 1;
+    for (int i = 1;; i++) {
+        if (!used[i]) return i;
+    }
+}
+
+int main(){
+
+    n = read_long();
+    for (int i = 0; i < n; i++) {
+        a[i] = read_long();
+        if (pos.empty() || a[pos.back()] < a[i]) {
+            pos.pb(i);
+        }
+    }
+
+    precalc();
+
+    if (pos.size() == n) printf("1\n");
+    else {
+        int mx = -inf;
+        int ans = 0;
+        int res = a[0];
+        for (int i = 1; i < n; i++) {
+            if (a[i] > mx) {
+                ans++;
+                mx = a[i];
+            }
+        }
+        if (pos.size() > ans) {
+            ans = pos.size();
+            res = mex(pos);
+        } else if (pos.size() == ans) {
+            if (res > mex(pos)) res = mex(pos);
+        }
+
+        stack<int> st;
+        for (int i = n - 1; i >= 0; i--) {
+            while (!st.empty() && a[i] > a[st.top()]) st.pop();
+            if (st.empty()) nxt[i] = n;
+            else nxt[i] = st.top();
+            st.push(i);
+        }
+        dp[n] = 0;
+        for (int i = n - 1; i >= 0; i--) dp[i] = 1 + dp[nxt[i]];
+
+        for (int i = 1; i < pos.size(); i++) {
+            int cur = i;
+            int val = a[pos[i - 1]];
+            int ind = pos[i] + 1;
+            int ind2 = find(ind, val);
+            cur += dp[ind2];
+            if (cur > ans) {
+                ans = cur;
+                res = a[pos[i]];
+            } else if (cur == ans) res = min(res, a[pos[i]]);
+        }
+        printf("%d\n", res);
+    }
+
+    return 0;
+}

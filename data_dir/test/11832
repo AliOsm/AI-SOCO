@@ -1,0 +1,131 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <vector>
+#include <set>
+#include <map>
+#include <algorithm>
+#include <queue>
+#include <cmath>
+#include <iomanip>
+#include <cstdio>
+#include <cstring>
+
+using namespace std;
+
+int p[1000000];
+int Pr[1000000];
+int Next[1000000];
+int c[1000000];
+int n;
+int sz[1000000];
+int ans[1000000];
+int Ne[1000000];
+int V, Add;
+int Q[40000000];
+
+void dfs(int v) {
+    sz[v] = 1;
+    int mx = 0, ne = -1;
+    for (int i = Pr[v]; i; i = Next[i]) {
+        dfs(i);
+        sz[v] += sz[i];
+        if (sz[i] > mx) {
+            mx = sz[i];
+            ne = i;
+        }
+    }
+    Ne[v] = ne;
+}
+
+void write(int v, int mask, int length, int add) {
+    if (add == 1) {
+        Q[mask ^ V] = max(Q[mask ^ V], length - Add);
+    }
+    else {
+        Q[mask ^ V] = -1000000000;
+    }
+    //cout << v << " " << mask << " " << length << " " << add << endl;
+    for (int i = Pr[v]; i; i = Next[i]) {
+        write(i, mask ^ c[i], length + 1, add);
+    }
+}
+
+void calc(int v, int mask, int length, int &ret) {
+    if (Q[mask ^ V] + Add + length > ret) {
+        ret = Q[mask ^ V] + length + Add;
+    }
+    for (int c = 0; c < 24; c++) {
+        if (Q[mask ^ V ^ (1 << c)] + Add + length > ret) {
+            ret = Q[mask ^ V ^ (1 << c)] + length + Add;
+        }
+    }
+    for (int i = Pr[v]; i; i = Next[i]) {
+        calc(i, mask ^ c[i], length + 1, ret);
+    }
+}
+
+void go(int v, int clean) {
+    for (int i = Pr[v]; i; i = Next[i]) {
+        if (Ne[v] == i) {
+            continue;
+        }
+        go(i, 1);
+    }
+    if (Ne[v] != -1) {
+        go(Ne[v], 0);
+        V = V ^ c[Ne[v]];
+        Add++;
+        for (int i = Pr[v]; i; i = Next[i]) {
+            if (Ne[v] == i) {
+                ans[v] = max(ans[i], ans[v]);
+                continue;
+            }
+            ans[v] = max(ans[i], ans[v]);
+            calc(i, c[i], 1, ans[v]);
+            write(i, c[i], 1, 1);
+        }
+    }
+    ans[v] = max(ans[v], Q[V] + Add);
+    //cout << v << " " << V << " " << Q[V ^ 1] + Add << endl;
+    for (int c = 0; c < 24; c++) {
+        ans[v] = max(ans[v], Q[V ^ (1 << c)] + Add);
+    }
+    if (clean == 1) {
+        write(v, 0, 0, -1);
+        V = 0;
+        Add = 0;
+    }
+    else {
+        Q[V] = max(Q[V], -Add);
+    }
+}
+
+int main() {
+    //freopen("input.txt", "r", stdin);
+    // freopen("output.txt", "w", stdout);
+    ios_base::sync_with_stdio(false);
+    cout << fixed << setprecision(10);
+
+    cin >> n;
+    for (int i = 2; i <= n; i++) {
+        char ch;
+        cin >> p[i] >> ch;
+        c[i] = 1 << (ch - 'a');
+        Next[i] = Pr[p[i]];
+        Pr[p[i]] = i;
+    }
+
+    for (int i = 0; i < 40000000; i++) {
+        Q[i] = -1000000000;
+    }
+
+    dfs(1);
+    go(1, 0);
+
+    for (int i = 1; i < n; i++) {
+        cout << ans[i] << " ";
+    }
+    cout << ans[n] << endl;
+
+    return 0;
+}

@@ -1,0 +1,77 @@
+#include <bits/stdc++.h>
+using namespace std;
+mt19937 rng(std::chrono::system_clock::now().time_since_epoch().count());
+const int N = 1e6;
+int n,m,p[N],a,b,c,depth[N],ans[N];
+pair<int,int>dp[17][N];
+int get(int u){return p[u] == u ? u : p[u] = get(p[u]);}
+struct edge{
+	int u,v,w,id;
+	edge(int a = 0,int b = 0,int c = 0,int d = 0){
+		u = a;v = b;w = c;id = d;
+	}
+	bool operator<(edge &a){return w < a.w;}
+};
+bool dont[N];
+vector<edge>v;
+vector<pair<int,int>>g[N];
+void dfs(int u,int p){
+	dp[0][u].first = p;
+	for(int i = 1;i < 17;i++)
+		if(dp[i - 1][u].first != -1){
+			dp[i][u].first = dp[i - 1][dp[i - 1][u].first].first;
+			dp[i][u].second = max(dp[i - 1][u].second,dp[i - 1][dp[i - 1][u].first].second);
+		}
+	for(auto i : g[u])
+		if(i.first != p){
+			depth[i.first] = depth[u] + 1;
+			dp[0][i.first].second = i.second;
+			dfs(i.first,u);
+		}
+}
+pair<int,int> lca(int u,int v){
+	if(depth[u] < depth[v])swap(u,v);
+	int val = -1;
+	for(int i = 16;i + 1;i--)
+		if(depth[u] - (1<<i) >= depth[v]){
+			val = max(val,dp[i][u].second);
+			u = dp[i][u].first;
+		}
+	if(u == v)return {u,val};
+	for(int i = 16;i + 1;i--)
+		if(dp[i][u].first != dp[i][v].first){
+			val = max(val,max(dp[i][u].second,dp[i][v].second));
+			u = dp[i][u].first;
+			v = dp[i][v].first;
+		}
+	val = max(val,max(dp[0][u].second,dp[0][v].second));
+	return {dp[0][u].first,val};
+}
+int main(){
+// 	freopen("input.txt","r",stdin);
+	memset(dp,-1,sizeof dp);
+	scanf("%d%d",&n,&m);
+	for(int i = 0;i < n;i++)p[i] = i;
+	for(int i = 0,a,b,c;i < m;i++){
+		scanf("%d%d%d",&a,&b,&c);
+		v.push_back({a - 1,b - 1,c,i});
+	}
+	sort(v.begin(),v.end());
+	for(auto i : v){
+		if(get(i.u) != get(i.v)){
+			dont[i.id] = 1;
+			g[i.u].push_back({i.v,i.w});
+			g[i.v].push_back({i.u,i.w});
+		}
+		p[get(i.u)] = get(i.v);
+	}
+	dfs(0,-1);
+	for(auto i : v)
+		if(!dont[i.id]){
+			pair<int,int> temp = lca(i.u,i.v);
+			ans[i.id] = temp.second;
+		}
+	for(int i = 0;i < m;i++)
+		if(!dont[i])
+			printf("%d\n",ans[i]);
+}

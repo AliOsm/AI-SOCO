@@ -1,0 +1,86 @@
+#include <cstdio>
+#include <vector>
+using namespace std;
+struct E {
+	int to, cap, rev;
+};
+vector<E> g[200010];
+void add_edge(int fr, int to, int cap) {
+	g[fr].push_back((E){to, cap, (int)g[to].size()});
+	g[to].push_back((E){fr, 0, (int)g[fr].size()-1});
+}
+int p[5010], q[5010];
+int n, m;
+void reset(int so, int si, int v) {
+	for (int i = 0; i <= si; i++) {
+		g[i].clear();
+	}
+	for (int i = 0; i < m; i++) {
+		add_edge(i, p[i] + m, 1);
+		add_edge(i, q[i] + m, 1);
+	}
+	for (int i = 0; i < m; i++) {
+		add_edge(so, i, 1);
+	}
+	for (int i = 0; i < n; i++) {
+		add_edge(i + m, si, v);
+	}
+}
+int done[200010];
+int flow(int v, int si, int c) {
+	done[v] = 1;
+	if (v == si) return c;
+	for (int i = 0; i < g[v].size(); i++) {
+		E &e = g[v][i];
+		if (e.cap == 0 || done[e.to]) continue;
+		int f = flow(e.to, si, min(c, e.cap));
+		if (f) {
+			e.cap -= f;
+			g[e.to][e.rev].cap += f;
+			return f;
+		}
+	}
+	return 0;
+}
+int mf(int so, int si) {
+	int res = 0;
+	for (;;) {
+		for (int i = 0; i <= si; i++) {
+			done[i] = 0;
+		}
+		int f = flow(so, si, m);
+		if (!f) return res;
+		res += f;
+	}
+}
+int main() {
+	scanf("%d%d", &n, &m);
+	for (int i = 0; i < m; i++) {
+		int x, y;
+		scanf("%d%d", &x, &y);
+		--x; --y;
+		p[i] = x; q[i] = y;
+	}
+	int so = m + n, si = m + n + 1;
+	int lo = 0, hi = m;
+	while (lo + 1 < hi) {
+		int mid = (lo + hi) / 2;
+		reset(so, si, mid);
+		if (mf(so, si) >= m) {
+			hi = mid;
+		} else {
+			lo = mid;
+		}
+	}
+	reset(so, si, hi);
+	mf(so, si);
+	printf("%d\n", hi);
+	for (int i = 0; i < m; i++) {
+		if (g[i][0].cap == 0) {
+			printf("%d %d\n", p[i] + 1, q[i] + 1);
+		} else {
+			printf("%d %d\n", q[i] + 1, p[i] + 1);
+		}
+	}
+	return 0;
+}

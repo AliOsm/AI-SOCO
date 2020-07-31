@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+//#define int           long long
+#define S             second
+#define F             first
+#define pb            push_back
+#define B(c)          (c).begin()
+#define E(c)          (c).end()
+#define all(c)        (c).begin(),(c).end()
+#define rall(c)       (c).rbegin(),(c).rend() 
+#define lb            lower_bound
+#define si(c)         (int)((c).size())
+#define lcm(a, b)      (a * (b / __gcd(a,b)))  
+#define inf           (int)(1e9)
+#define endl          '\n'
+#define pow(x, n)     (int)(pow(x, n))
+#define mp            make_pair
+#define tp            template
+#define ty            typename
+
+typedef vector<int>                           vi;
+typedef pair<int,int>                         pii;
+typedef vector<pii>                           vpi;
+typedef priority_queue<pii, vector<pii>, greater<pii> > pq;
+
+clock_t start;
+mt19937_64 rng(chrono::system_clock::now().time_since_epoch().count());
+
+tp<ty T1, ty T2> istream& operator>>(istream& in, pair<T1, T2> &q){
+    in >> q.F >> q.S; return in;
+}
+tp<ty T1, ty T2> ostream& operator<<(ostream& out, pair<T1, T2> &q){
+    out << q.F << " " << q.S; return out;
+}
+tp< ty T1, ty T2> pair<T1, T2> operator+(pair<T1, T2> p1, pair<T1, T2> p2){
+    return {p1.F+p2.F, p1.S+p2.S};
+}
+tp< ty T1, ty T2> pair<T1, T2> operator-(pair<T1, T2> p1, pair<T1, T2> p2){
+    return {p1.F-p2.F, p1.S-p2.S};
+}
+
+const int N = 2e4+10;
+int seg[4*N], lazy[4*N], dp[N];
+
+struct range_seg{
+
+    void push(int v, int s, int e){
+        if(s != e){lazy[2*v] += lazy[v], lazy[2*v+1] += lazy[v];}
+        seg[v] += lazy[v], lazy[v] = 0;
+    }
+
+    void build(int s, int e, int v){
+        lazy[v] = 0;
+        if(s == e){seg[v] = dp[e]; return;}
+        int m = (s+e)>>1;
+        build(s, m, 2*v), build(m+1, e, 2*v+1);
+        seg[v] = max(seg[2*v], seg[2*v+1]);
+    }
+
+    void upd(int s, int e, int v, int l, int r, int x){
+        if(lazy[v])push(v, s, e);
+        if(r < l || s > e || r < s || l > e) return;
+        if(l <= s && r >= e){lazy[v] += x, push(v, s, e); return;}
+        int m = (s+e)>>1;
+        upd(s, m, 2*v, l, r, x);
+        upd(m+1, e, 2*v+1, l, r, x);
+        seg[v] = max(seg[2*v], seg[2*v+1]);
+    }
+
+    int query(int s, int e, int v, int l, int r){
+        if(lazy[v])push(v, s, e);
+        if(r < l || s > e || r < s || l > e)return -inf;
+        if(l <= s && r >= e) return seg[v];
+        int m = (s+e)>>1;
+        int ll = query(s, m, 2*v, l, r);
+        int rr = query(m+1, e, 2*v+1, l, r);
+        return max(ll, rr);
+    }
+}st;
+
+void solve(){
+    int n, m, k;
+    cin >> n >> m >> k;
+
+    int sum[n+2][m+2];
+    memset(sum, 0, sizeof(sum));
+
+    for(int i = 1; i <= n; i++){
+        for(int j = 1; j <= m; j++){
+            cin >> sum[i][j];
+            sum[i][j] += sum[i][j-1];
+        }
+    }
+    for(int i = 2; i <= n+1; i++){
+        for(int j = 1; j <= m; j++){
+            if(j < k){
+                dp[j] = st.query(1, m, 1, k, m);
+                continue;
+            }
+            int x = sum[i][j]-sum[i][j-k];
+            x += sum[i-1][j]-sum[i-1][j-k];
+            if(j == k && i != 2){
+                for(int l = k; l < min(2*k, m+1); l++)
+                    st.upd(1, m, 1, l, l, -sum[i-1][k]+sum[i-1][l-k]);
+            }
+            else if(i != 2){
+                st.upd(1, m, 1, max(j-k, k), j-1, sum[i-1][j-k]-sum[i-1][j-k-1]);
+                st.upd(1, m, 1, j, min(j+k-1, m), -sum[i-1][j]+sum[i-1][j-1]);
+            }
+            dp[j] = st.query(1, m, 1, 1, m)+x;
+        }
+        st.build(1, m, 1);
+    }
+    cout << st.query(1, m, 1, 1, m) << endl;
+}
+
+signed main(){
+
+    ios_base::sync_with_stdio(0); 
+    cin.tie(0); cout.tie(0);   
+
+    int t = 1;
+    start = clock(); 
+
+    cout << fixed << setprecision(7);
+
+    #ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin); 
+    freopen("output.txt", "w", stdout);
+    freopen("error.txt", "w", stderr);
+    #endif
+    
+    //cin >> t;
+
+    for(int i = 1;i <= t; i++){
+        solve();
+    }
+
+    double time_taken = double(clock() - start) / double(CLOCKS_PER_SEC); 
+    cerr << time_taken;
+    return 0;
+}

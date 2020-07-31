@@ -1,0 +1,158 @@
+#include<bits/stdc++.h>
+#define pb push_back
+#define x first
+#define y second
+using namespace std;
+const int N = 1e5 + 10;
+struct Node
+{
+    int n, cnt, lim, SQ;
+    int *S, *P;
+    pair < int , int > *A;
+    vector < int > *V;
+    Node (int _n = 0, int _lim = 0)
+    {
+        if (!_n)
+            return ;
+        n = _n; lim = _lim;
+        SQ = ceil(sqrt(n));
+        S = new int[SQ + 2];
+        P = new int[SQ + 2];
+        A = new pair < int , int >[n + SQ];
+        V = new vector < int >[SQ + 2];
+        for (int i = 0; i <= SQ; i++)
+            S[i] = P[i] = 0, V[i].clear();
+        for (int i = 0; i < n + SQ; i++)
+            A[i] = {-1e9, i};
+    }
+    void Set(int i, int val)
+    {
+        A[i] = {val, i};
+    }
+    void Init(int le = 0, int ri = 0)
+    {
+        if (!ri) ri = (n - 1) / SQ;
+        for (int i = le, l = i * SQ; i <= ri; i++, l += SQ)
+        {
+            if (V[i].size())
+                cnt -= l + SQ - V[i][P[i]];
+            sort(A + l, A + l + SQ);
+            V[i].clear(); V[i].pb(l);
+            for (int j = l + 1; j < l + SQ; j++)
+                if (A[j].x != A[j - 1].x)
+                    V[i].pb(j);
+            P[i] = V[i].size(); V[i].pb(l + SQ);
+            for (int j = 0; j < P[i]; j++)
+                if (A[V[i][j]].x + S[i] > lim)
+                    P[i] = j;
+            cnt += l + SQ - V[i][P[i]];
+        }
+    }
+    void Modify(int l, int r, int val)
+    {
+        int i = l / SQ;
+        vector < pair < int , int > > T[2];
+        cnt -= l + SQ - V[i][P[i]];
+        for (int j = l; j < l + SQ; j++)
+            T[(A[j].y <= r)].pb(A[j]);
+        for (int j = 0; j < T[1].size(); j++)
+            T[1][j].x += val;
+        merge(T[0].begin(), T[0].end(), T[1].begin(), T[1].end(), A + l);
+        V[i].clear(); V[i].pb(l);
+        for (int j = l + 1; j < l + SQ; j++)
+            if (A[j].x != A[j - 1].x)
+                V[i].pb(j);
+        P[i] = V[i].size(); V[i].pb(l + SQ);
+        for (int j = 0; j < P[i]; j++)
+            if (A[V[i][j]].x + S[i] > lim)
+                P[i] = j;
+        cnt += l + SQ - V[i][P[i]];
+    }
+    void Add(int r, int val)
+    {
+        for (int i = 0; i < r / SQ; i++)
+        {
+            S[i] += val;
+            if (val > 0 && P[i] && A[V[i][P[i] - 1]].x + S[i] > lim)
+                cnt += V[i][P[i]] - V[i][P[i] - 1], P[i] --;
+            if (val < 0 && P[i] < V[i].size() - 1 && A[V[i][P[i]]].x + S[i] <= lim)
+                cnt -= V[i][P[i] + 1] - V[i][P[i]], P[i] ++;
+        }
+        Modify((r / SQ) * SQ, r, val);
+    }
+};
+int n, q, ts, tot, C[N], T[N], Cnt[N], sz[N], id[N], nxt[N];
+vector < int > Adj[N];
+Node A[N];
+int DFS(int v)
+{
+    sz[v] = 1;
+    for (auto X : Adj[v])
+        DFS(X), sz[v] += sz[X];
+    for (auto X : Adj[v])
+        if (sz[X] + sz[X] >= sz[v])
+            C[v] = C[X];
+    if (!C[v] && !Adj[v].size())
+        C[v] = ++ ts;
+    if (!C[v])
+        C[v] = C[Adj[v][0]];
+    Cnt[C[v]] ++;
+}
+void DFS2(int v, int p)
+{
+    if (C[v] == C[p])
+        id[v] = id[p] + 1, nxt[v] = nxt[p];
+    else
+        nxt[v] = p;
+    for (auto X : Adj[v])
+        DFS2(X, v);
+}
+int main()
+{
+    scanf("%d%d", &n, &q);
+    for (int i = 2, p; i <= n; i++)
+        scanf("%d", &p), Adj[p].push_back(i);
+    DFS(1); DFS2(1, 0);
+    for (int i = 1; i <= ts; i++)
+        A[i] = Node(Cnt[i], 1e5);
+    for (int i = 1; i <= n; i++)
+        scanf("%d", &T[i]), A[C[i]].Set(id[i], 1e5 - T[i]);
+    for (int i = 1; i <= ts; i++)
+        A[i].Init();
+    while (q --)
+    {
+        int v, tp, buc, w = 1; scanf("%d", &v);
+        tp = (v < 0); v = abs(v);
+        buc = id[v] / A[C[v]].SQ;
+        if (!tp)
+        {
+            tot -= A[C[v]].cnt;
+            for (int l = buc * A[C[v]].SQ; l < (buc + 1) * A[C[v]].SQ; l++)
+                if (A[C[v]].A[l].y == id[v])
+                    A[C[v]].A[l].x -= sz[v] - T[v] - 1;
+            A[C[v]].Init(id[v] / A[C[v]].SQ, id[v] / A[C[v]].SQ);
+            tot += A[C[v]].cnt;
+        }
+        else
+        {
+            tot -= A[C[v]].cnt;
+            for (int l = buc * A[C[v]].SQ; l < (buc + 1) * A[C[v]].SQ; l++)
+                if (A[C[v]].A[l].y == id[v])
+                    A[C[v]].A[l].x += sz[v] - T[v] - 1;
+            A[C[v]].Init(id[v] / A[C[v]].SQ, id[v] / A[C[v]].SQ);
+            tot += A[C[v]].cnt;
+        }
+        while (v)
+        {
+            tot -= A[C[v]].cnt;
+            if (!tp && id[v] - w >= 0)
+                A[C[v]].Add(id[v] - w, 1);
+            if (tp && id[v] - w >= 0)
+                A[C[v]].Add(id[v] - w, -1);
+            tot += A[C[v]].cnt;
+            v = nxt[v]; w = 0;
+        }
+        printf("%d ", tot);
+    }
+    return (0);
+}

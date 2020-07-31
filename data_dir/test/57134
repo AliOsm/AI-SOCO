@@ -1,0 +1,35 @@
+#include <iostream>
+#include <cstdio>
+#include <string>
+#include <algorithm>
+#include <cctype>
+#include <vector>
+using namespace std;
+const int N = 20005;
+int a[N] ,  f[N];
+int n , m;
+vector <int> s , t;
+int main () {
+#ifndef ONLINE_JUDGE
+    freopen ("input.txt" , "r" , stdin);
+#endif
+    cin >> n >> m;
+    for (int i = 0 ; i < n ; i ++) {
+        cin >> a[i];
+    }
+    for (int i = 0 ; i < m ; i ++) {
+        int k;cin >> k;k --;f[k] = 1;
+    }
+    long long now = 0;
+    for (int i = 0 ; i < n ; i ++) {
+        if (f[i]) s.push_back (a[i]);
+        else now += a[i];
+    }
+    sort (s.begin () , s.end ());
+    reverse (s.begin () , s.end ());
+    for (int i = 0 ; i < s.size() ; i ++) {
+        now += max (0LL + s[i] , now);
+    }
+    cout << now << endl;
+    return 0;
+}

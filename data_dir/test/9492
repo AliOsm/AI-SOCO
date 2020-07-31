@@ -1,0 +1,172 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
+#define N	300000
+#define Q	300000
+#define N_	(N + Q)
+#define MD	1000000007
+
+void srand_() {
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_sec ^ tv.tv_usec);
+}
+
+int rand_(int n) {
+	return (rand() * 76543LL + rand()) % n;
+}
+
+int p2[N + 1], ip2[N + 1];
+
+void init(int n) {
+	int i, v;
+
+	srand_();
+	v = (MD + 1) / 2;
+	p2[0] = ip2[0] = 1;
+	for (i = 1; i <= n; i++) {
+		p2[i] = p2[i - 1] * 2 % MD;
+		ip2[i] = (long long) ip2[i - 1] * v % MD;
+	}
+}
+
+int aa[N_], aa_[N_], jj[N_];
+
+int compare(const void *a, const void *b) {
+	int i = *(int *) a;
+	int j = *(int *) b;
+
+	return aa[i] - aa[j];
+}
+
+void sort(int *ii, int n) {
+	int i;
+
+	for (i = 0; i < n; i++) {
+		int j = rand_(i + 1), tmp;
+
+		tmp = ii[i], ii[i] = ii[j], ii[j] = tmp;
+	}
+	qsort(ii, n, sizeof *ii, compare);
+}
+
+void compress(int n) {
+	static int ii[N_];
+	int i;
+
+	for (i = 0; i < n; i++)
+		ii[i] = i;
+	sort(ii, n);
+	for (i = 0; i < n; i++) {
+		aa_[i] = aa[ii[i]];
+		jj[ii[i]] = i;
+	}
+}
+
+long long st[N_ * 2], ist[N_ * 2]; int kk[N_ * 2], n_;
+
+void pul(int i) {
+	int l = i << 1, r = i << 1 | 1;
+
+	kk[i] = kk[l] + kk[r];
+	st[i] = (st[l] + st[r] * p2[kk[l]]) % MD;
+	ist[i] = (ist[l] + ist[r] * ip2[kk[l]]) % MD;
+}
+
+void pull(int i) {
+	while (i > 1)
+		pul(i >>= 1);
+}
+
+long long x_; int k_;
+
+void query(int l, int r, int inv) {
+	long long x1, x2;
+	int k1, k2;
+
+	x1 = k1 = 0, x2 = k2 = 0;
+	for (l += n_, r += n_; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1) {
+			x1 = (inv ? x1 + ist[l] * ip2[k1] : x1 + st[l] * p2[k1]) % MD;
+			k1 += kk[l];
+			l++;
+		}
+		if ((r & 1) == 0) {
+			x2 = (inv ? ist[r] + x2 * ip2[kk[r]] : st[r] + x2 * p2[kk[r]]) % MD;
+			k2 += kk[r];
+			r--;
+		}
+	}
+	x_ = (x1 + x2 * (inv ? ip2[k1] : p2[k1])) % MD;
+	k_ = k1 + k2;
+}
+
+long long add(int i) {
+	long long xp, xq, a, d;
+	int kp, kq;
+
+	a = aa_[i];
+	query(0, i - 1, 0);
+	kp = k_, xp = kp == 0 ? 0 : x_ * ip2[kp - 1] % MD;
+	query(i + 1, n_ - 1, 1);
+	kq = k_, xq = kq == 0 ? 0 : x_;
+	d = 0;
+	d = (d - xp * xq % MD * ip2[2] % MD + MD) % MD;
+	d = (d + xp * xq % MD * ip2[3] % MD) % MD;
+	d = (d + xp * ip2[2] % MD * a) % MD;
+	d = (d + xq * ip2[2] % MD * a) % MD;
+	i += n_;
+	kk[i] = 1, st[i] = ist[i] = a;
+	pull(i);
+	return d;
+}
+
+long long clear(int i) {
+	long long xp, xq, a, d;
+	int kp, kq;
+
+	a = aa_[i];
+	query(0, i - 1, 0);
+	kp = k_, xp = kp == 0 ? 0 : x_ * ip2[kp - 1] % MD;
+	query(i + 1, n_ - 1, 1);
+	kq = k_, xq = kq == 0 ? 0 : x_;
+	d = 0;
+	d = (d - xp * xq % MD * ip2[2] % MD + MD) % MD;
+	d = (d + xp * xq % MD * ip2[3] % MD) % MD;
+	d = (d + xp * ip2[2] % MD * a) % MD;
+	d = (d + xq * ip2[2] % MD * a) % MD;
+	i += n_;
+	kk[i] = 0, st[i] = ist[i] = 0;
+	pull(i);
+	return d;
+}
+
+int main() {
+	static int ii[Q];
+	int n, q, h, i;
+	long long x;
+
+	scanf("%d", &n), init(n > 3 ? n : 3);
+	for (i = 0; i < n; i++)
+		scanf("%d", &aa[i]);
+	scanf("%d", &q);
+	for (h = 0; h < q; h++)
+		scanf("%d%d", &ii[h], &aa[n + h]), ii[h]--;
+	compress(n_ = n + q);
+	x = 0;
+	for (i = 0; i < n; i++)
+		x = (x + add(jj[i])) % MD;
+	printf("%lld\n", x);
+	for (h = 0; h < q; h++) {
+		int j;
+
+		i = ii[h], j = jj[n + h];
+		x = (x - clear(jj[i]) + MD) % MD;
+		jj[i] = j;
+		x = (x + add(jj[i])) % MD;
+		printf("%lld\n", x);
+	}
+	return 0;
+}

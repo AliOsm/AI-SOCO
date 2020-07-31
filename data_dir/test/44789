@@ -1,0 +1,138 @@
+#include <iostream>
+#include <vector>
+#include <cstring>
+#include <deque>
+#include <cassert>
+using namespace std;
+
+int T, H;
+vector<int> adj[200];
+bool asked[200];
+deque<int> dq;
+int numQ;
+
+void answer(int x)
+{
+    cout << "! " << x << "\n";
+    fflush(stdout);
+}
+
+void ask(int x)
+{
+    cout << "? " << x << "\n";
+    fflush(stdout);
+    int k;
+    cin >> k;
+    for (int i = 0, v; i < k; i++)
+    {
+        cin >> v;
+        adj[x].push_back(v);
+    }
+    asked[x] = true;
+    numQ++;
+}
+
+bool get_leaf(int cur, bool way)
+{
+    if (way)
+        dq.push_back(cur);
+    else
+        dq.push_front(cur);
+
+    ask(cur);
+    if (adj[cur].size() == 2)
+    {
+        answer(cur);
+        return true;
+    }
+    if (adj[cur].size() == 1)
+        return false;
+
+    for (int i = 0; i < adj[cur].size(); i++)
+        if (!asked[adj[cur][i]])
+            return get_leaf(adj[cur][i], way);
+    return false;
+}
+
+bool dfs(int cur, int level)
+{
+    if (numQ == 16)
+    {
+        answer(cur);
+        return true;
+    }
+
+    ask(cur);
+    if (adj[cur].size() == 2)
+    {
+        answer(cur);
+        return true;
+    }
+
+    if (level > 0)
+    {
+        for (int i = 0; i < adj[cur].size(); i++)
+            if (!asked[adj[cur][i]])
+                if (dfs(adj[cur][i], level - 1))
+                    return true;
+    }
+    return false;
+}
+
+void go()
+{
+    for (int i = 1; i < 200; i++)
+        adj[i].clear();
+    memset(asked, 0, sizeof(asked));
+    dq.clear();
+    numQ = 0;
+
+    ask(1);
+    if (adj[1].size() == 2)
+        return answer(1);
+    
+    dq.push_back(1);   
+    if (get_leaf(adj[1][0], true))
+        return;
+    if (adj[1].size() == 3 && get_leaf(adj[1][1], false))
+        return;
+
+    int dep = dq.size()/2 + 1;
+    while (dep < min(4, H))
+    {
+        for (int i = 0; i < dep - 1; i++)
+            dq.pop_back();
+        for (int i = 0; i < adj[dq.back()].size(); i++)
+            if (!asked[adj[dq.back()][i]])
+            {
+                if (get_leaf(adj[dq.back()][i], true))
+                    return;
+                break;
+            }
+        dep = dq.size()/2 + 1;
+    }
+
+    for (int i = 0; i < dep - 1; i++)
+        dq.pop_back();
+    int node = 0;
+    for (int i = 0; i < adj[dq.back()].size(); i++)
+        if (!asked[adj[dq.back()][i]])
+        {
+            node = adj[dq.back()][i];
+            break;
+        }
+
+    dfs(node, 2);
+}
+
+int main()
+{
+    cin >> T;
+    for (int i = 0; i < T; i++)
+    {
+        cin >> H;
+        go();
+    }
+
+    return 0;
+}

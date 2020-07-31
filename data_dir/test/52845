@@ -1,0 +1,88 @@
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#define mem(a,b) memset(a,b,sizeof(a))
+#define N 100005
+#define lson step<<1
+#define rson step<<1|1
+#define LL long long 
+using namespace std;
+struct Seg_tree{
+    int left,right;
+    LL sum[7][10];
+}L[N<<2];
+int s[7][10];
+int n,m,a[N];
+void Init(){
+    for(int i=2;i<=6;i++){
+        for(int j=0;j<2*(i-1);j++)
+            if(j==0) s[i][j]=2;
+            else if(j<=i) s[i][j]=j;
+            else if(j>i) s[i][j]=2*i-j;
+    }
+}
+void push_up(int step){
+    for(int i=2;i<=6;i++)
+        for(int j=0;j<2*(i-1);j++){
+            int d=L[lson].right-L[lson].left+1;
+            L[step].sum[i][j]=(L[lson].sum[i][j]+L[rson].sum[i][(j+d)%(2*(i-1))]);
+        }
+}
+void bulid(int step,int l,int r){
+    L[step].left=l;
+    L[step].right=r;
+    if(l==r){
+        for(int i=2;i<=6;i++)
+            for(int j=0;j<2*(i-1);j++)
+                L[step].sum[i][j]=(LL)s[i][j]*a[l];
+        return ;
+    }
+    int m=(l+r)>>1;
+    bulid(lson,l,m);
+    bulid(rson,m+1,r);
+    push_up(step);
+}
+LL query(int step,int l,int r,int z,int x){
+    if(L[step].left==l&&L[step].right==r){
+        // mod z == x
+        return L[step].sum[z][x];
+    }
+    int m=(L[step].left+L[step].right)>>1;
+    if(r<=m) return query(lson,l,r,z,x);
+    else if(l>m) return query(rson,l,r,z,x);
+    else return query(lson,l,m,z,x)+query(rson,m+1,r,z,(x+(m-l+1))%(2*(z-1)));
+}
+void update(int step,int pos,int val){
+    if(L[step].left==pos&&L[step].right==pos){
+        // mod (2*(i-1)) == j
+        for(int i=2;i<=6;i++)
+            for(int j=0;j<2*(i-1);j++)
+                L[step].sum[i][j]=(LL)val*s[i][j];
+        return ;
+    }
+    int m=(L[step].left+L[step].right)>>1;
+    if(pos<=m) update(lson,pos,val);
+    else update(rson,pos,val);
+    push_up(step);
+}
+int main(){
+    Init();
+    scanf("%d",&n);
+    for(int i=1;i<=n;i++)
+        scanf("%d",&a[i]);
+    bulid(1,1,n);
+    scanf("%d",&m);
+    while(m--){
+        int k,l,r,z;
+        scanf("%d",&k);
+        if(k==1){
+            scanf("%d%d",&l,&z);
+            update(1,l,z);
+        }
+        else{
+            scanf("%d%d%d",&l,&r,&z);
+            printf("%I64d\n",query(1,l,r,z,1));
+        }
+    }
+    return 0;
+}

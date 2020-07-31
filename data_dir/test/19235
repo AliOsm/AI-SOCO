@@ -1,0 +1,160 @@
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+#include <deque>
+#include <stack>
+#include <algorithm>
+#include <functional>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <cmath>
+#include <tuple>
+#include <numeric>
+#include <ctime>
+#include <random>
+
+#define ll long long
+using namespace std;
+
+pair<ll,int> A[111111];
+ll S[111111][8];
+
+ll dp1[2][(1<<7)+2];
+ll dp2[2][(1<<7)+2][8];
+
+
+ll Get(int pos, int mask, int num_members_selected, int n, int p, int k) {
+    if (num_members_selected < k) {
+            return dp2[pos&1][mask][pos-num_members_selected];
+        // dp2[pos][pos-num_members_selected][mask]
+    } else {
+            return dp1[pos&1][mask];
+    }
+}
+
+ll SolveDP(int n, int p, int k) {
+    
+   
+    vector<int> vacancies[1<<10];
+    
+    for(int mask=0;mask<(1<<p);mask++) {
+        for(int x=0;x<p;x++) {
+            if ((mask>>x)&1)
+                continue;
+            vacancies[mask].push_back(x);
+        }
+    }
+    
+    
+    for(int pos=n;pos>=0;pos--)
+        for(int mask=0;mask<(1<<p);mask++)
+            for(int filled=0;filled<=1;filled++) {
+                int min_num_members_selected,  max_num_members_selected;
+                
+                if (filled) {
+                    min_num_members_selected = max_num_members_selected = k;
+                } else {
+                    min_num_members_selected = pos-p;
+                    max_num_members_selected = pos;
+                }
+                
+                for(int num_members_selected=min_num_members_selected;
+                    num_members_selected <=max_num_members_selected;
+                    num_members_selected++) {
+                    
+                    ll* ref;
+                    
+                    if (!filled) {
+                        ref=&dp2[pos&1][mask][pos-num_members_selected];
+                        // dp2[pos][pos-num_members_selected][mask]
+                    } else {
+                        ref=&dp1[pos&1][mask];
+                    }
+                    
+                    if (__builtin_popcount(mask) == p && filled) {
+                        *ref = 0;
+                        continue;
+                    }
+                    
+                    if (pos == n) {
+                        *ref =  -(1ll<<60);
+                        continue;
+                    }
+                    
+                    
+                    ll ans = 0;
+                    for(int x : vacancies[mask]) {
+                        // either select it
+                        ans = max(ans, S[pos][x]+Get(pos+1, mask | (1<<x), num_members_selected, n, p, k));
+                    }
+                    
+                    // select as a member of the audience if num_members_selected < k.
+                    if (!filled) {
+                        ans = max(ans, A[pos].first + Get(pos+1, mask,num_members_selected+1,n, p, k));
+                    }
+                    
+                    // you can skip only if num_members_selected == k.
+                    if (filled) {
+                        ans = max(ans, Get(pos+1, mask,num_members_selected,n, p, k));
+                    }
+                    *ref=ans;
+                }
+                
+            }
+
+    return dp2[0][0][0];
+    
+}
+
+int pos[111111];
+
+
+char buf[58000000];
+
+
+int readint() {
+    int m;
+    static char *bp=buf;
+    if(*bp<'0' || *bp>'9')
+        *bp++;
+    
+    for(m=*bp++-48; *bp>=48; bp++) m = m*10+*bp-48;
+    bp++;
+    return m;
+}
+
+
+int main() {
+    fread(buf, 1, 51000100, stdin);
+    int n=readint();
+    int p=readint();
+    int k=readint();
+    
+    for(int i=0;i<n;i++) {
+        A[i].first=readint();
+        A[i].second=i;
+    }
+    
+    sort(A,A+n,greater<pair<int,int>>());
+    
+    for(int i=0;i<n;i++) {
+        pos[A[i].second]=i;
+    }
+    
+    
+    for(int i=0;i<n;i++) {
+        int posi = pos[i];
+        for(int j=0;j<p;j++) {
+            S[posi][j]=readint();
+        }
+    }
+    
+    
+    // 0 to p+k-1 is relevant.
+
+    
+    cout << SolveDP(n, p, k) << endl;
+    
+}

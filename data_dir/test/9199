@@ -1,0 +1,75 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 2e5 + 5;
+const int INF = 2e9;
+
+int n;
+int a[N], b[N];
+int ans[N], pos[N];
+vector<pair<int, int>> start[N];
+pair<int, int> t[4 * N];
+
+void build(int v, int s, int e) {
+    if (s == e) {
+        t[v] = {a[pos[s]], s};
+    } else {
+        int mid = (s + e) >> 1;
+        build(v << 1, s, mid);
+        build(v << 1 | 1, mid + 1, e);
+        t[v] = min(t[v << 1], t[v << 1 | 1]);
+    }
+}
+
+pair<int, int> get(int v, int s, int e, int l, int r) {
+    if (e < l || s > r || l > r) {
+        return make_pair(INF, INF);
+    }
+    if (l <= s && e <= r) {
+        return t[v];
+    }
+    int mid = (s + e) >> 1;
+    return min(get(v << 1, s, mid, l, r), get(v << 1 | 1, mid + 1, e, l, r));
+}
+
+void show() {
+    for (int i = 1; i <= n; i++) {
+        cout << ans[i] << (i == n ? '\n' : ' ');
+    }
+}
+
+int main() { 
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+
+    cin >> n;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i] >> b[i];
+        start[a[i]].push_back({b[i], i});
+    }
+    set<pair<int, int>> active; // (right, index)
+    for (int i = 1; i <= n; i++) {
+        active.insert(start[i].begin(), start[i].end());
+        ans[active.begin()->second] = i;
+        pos[i] = active.begin()->second;
+        active.erase(active.begin());
+    }
+    build(1, 1, n);
+    for (int i = 1; i <= n; i++) {
+        int j = get(1, 1, n, i + 1, b[pos[i]]).second;
+        if (j == INF) continue;
+        if (a[pos[j]] <= i) {
+            cout << "NO" << '\n';
+            show();
+            swap(ans[pos[i]], ans[pos[j]]);
+            show();
+            return 0;
+        }
+    }
+    cout << "YES" << '\n';
+    show();
+
+    return 0;
+}

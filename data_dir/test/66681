@@ -1,0 +1,113 @@
+//#pragma optimization_level 3
+//#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math,O3")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+//#pragma GCC target("avx,avx2,fma")
+#include<bits/stdc++.h>
+#define F first
+#define S second
+#define vec vector
+#define ms multiset
+#define pb push_back
+#define pll pair<ll,ll>
+#define pdd pair<ld, ld>
+#define pq priority_queue
+#define umap unordered_map
+#define uset unordered_set
+#define pii pair<int, int>
+#define pnn pair<Node*, Node*>
+#define uid uniform_int_distribution
+#define FILE ifstream in("input.txt");ofstream out("output.txt");
+#define fast cin.tie(0);cout.tie(0);cin.sync_with_stdio(0);cout.sync_with_stdio(0);
+using namespace std;
+typedef string str;
+typedef long long ll;
+typedef long double ld;
+mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count()); //uid<int> u1(5, 10); u1(rnd);
+
+const int G = 300005;
+int a,k;
+int bit[G];
+vec<int> m;
+vec<vec<int>> pos;
+vec<pii> o;
+
+void add(int ps, int val){
+    for(; ps<G; ps += ps&-ps){
+        //cout<<ps<<endl;
+        bit[ps]+=val;
+    }
+}
+
+int sum_pref(int p){
+    int sum = 0;
+    for(; p>0; p -= p&-p){
+        sum += bit[p];
+    }
+    return sum;
+}
+
+int sumBIT(int l, int r){
+    return sum_pref(r) - sum_pref(l-1);
+}
+
+struct ZP{
+    int l, r, c;
+
+    ZP(){}
+
+    ZP(int a, int b, int C){
+        l = a, r = b;
+        c = C;
+    }
+};
+
+int main(){
+    fast; FILE;
+    cin>>a>>k;
+    m = vec<int>(k);
+    o = vec<pii>(a);
+    pos = vec<vec<int>>(a+1, vec<int>());
+    for(int q=0; q<a; q++) o[q] = {q+1, q+1};
+    for(int q=0; q<k; q++){
+        cin>>m[q];
+        pos[m[q]].pb(q);
+        o[m[q]-1].F = 1;
+    }
+    vec<ZP> zap;
+    memset(bit, 0, sizeof(bit));
+    set<int> s;
+    for(int q=0; q<k; q++){
+        if(s.count(m[q])) continue;
+        s.insert(m[q]);
+        ll cnt = sumBIT(m[q]+1, G-1);
+        //cout<<m[q]<<": "<<cnt<<endl;
+        o[m[q]-1].S += cnt;
+        add(m[q],1);
+    }
+    for(int q=1; q<=a; q++){
+        if(s.count(q)) continue;
+        o[q-1].S += sumBIT(q+1, G-1);
+    }
+    for(int q=1; q<=a; q++){
+        for(int w=0; w<pos[q].size(); w++){
+            int l = pos[q][w], r = w+1==pos[q].size() ? k-1 : pos[q][w+1]-1;
+            zap.pb(ZP(l,r,q-1));
+        }
+    }
+    memset(bit, 0, sizeof(bit));
+    sort(zap.begin(), zap.end(), [](ZP &z1, ZP &z2){return z1.r < z2.r;});
+    int rg = -1;
+    map<int, int> mp;
+    for(ZP &z : zap){
+        int l = z.l, r = z.r, num = z.c;
+        for(; rg<r; rg++){
+            int u = m[rg+1];
+            add(rg+2, 1);
+            if(mp.count(u)) add(mp[u], -1);
+            mp[u] = rg+2;
+        }
+        int diff = sumBIT(l+1,r+1);
+        o[num].S = max(o[num].S, diff);
+    }
+    for(pii p : o) cout<<p.F<<" "<<p.S<<"\n";
+}

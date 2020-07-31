@@ -1,0 +1,91 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+
+const int maxn = 200010;
+
+int n;
+ll tree[maxn << 2], lazy[maxn << 2], a[maxn];
+
+void shift(int node) {
+  if (lazy[node]) {
+    lazy[node << 1] += lazy[node];
+    lazy[node << 1 | 1] += lazy[node];
+    tree[node << 1] += lazy[node];
+    tree[node << 1 | 1] += lazy[node];
+    lazy[node] = 0;
+  }
+}
+
+void build(int node, int l, int r) {
+  if (l == r) {
+    tree[node] = a[l];
+    return;
+  }
+  int m = l + r >> 1;
+  build(node << 1, l, m);
+  build(node << 1 | 1, m + 1, r);
+  tree[node] = min(tree[node << 1], tree[node << 1 | 1]);
+}
+
+void update(int node, int l, int r, int i, int j, ll v) {
+  if(r < i || l > j) return;
+  if(i <= l && r <= j) {
+    lazy[node] += v;
+    tree[node] += v;
+    return;
+  }
+  shift(node);
+  int m = l + r >> 1;
+  update(node << 1, l, m, i, j, v); 
+  update(node << 1 | 1, m + 1, r, i, j, v); 
+  tree[node] = min(tree[node << 1], tree[node << 1 | 1]); 
+}
+
+ll query(int node, int l, int r, int i, int j) {
+  if(r < i || l > j) return INT_MAX;
+  if(i <= l && r <= j) return tree[node];
+  shift(node); 
+  int m = l + r >> 1;
+  return min(query(node << 1, l, m, i, j), query(node << 1 | 1, m + 1, r, i, j)); 
+}
+
+int main() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(0);
+  int n;
+  cin >> n;
+  for (int i = 1; i <= n; ++i) cin >> a[i];
+  build(1, 1, n);
+  int q;
+  cin >> q;
+  cin >> ws;
+  string s;
+  int num;
+  vector<int> v;
+  while (q--) {
+    getline(cin, s);
+    stringstream ss(s);
+    while(ss >> num) {
+      num++;
+      v.push_back(num);
+    } 
+    if (v.size() == 3) {
+      if (v[0] > v[1]) {
+        update(1, 1, n, v[0], n, v[2]-1);
+        update(1, 1, n, 1, v[1], v[2]-1);
+      }
+      else update(1, 1, n, v[0], v[1], v[2]-1);
+    }
+    else {
+      if (v[0] > v[1]) {
+        ll ans = min(query(1, 1, n, v[0], n), query(1, 1, n, 1, v[1]));
+        cout << ans << '\n';
+      }
+      else cout << query(1, 1, n, v[0], v[1]) << '\n';
+    }
+    v.clear();
+  }
+}

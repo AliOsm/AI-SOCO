@@ -1,0 +1,89 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+struct Seg {
+  int sum = 0;
+  int l, m, r;
+  int apply = -1;
+  Seg* ch[2] = {};
+  void pull() { sum = ch[0]->sum + ch[1]->sum; }
+  void push() {
+    if (apply != -1) {
+      for (int i : {0, 1}) {
+        ch[i]->sum = ch[i]->size() * apply;
+        ch[i]->apply = apply;
+      }
+      apply = -1;
+    }
+  }
+  int size() { return r - l; }
+  Seg(int l, int r) : l(l), r(r), m(l + r >> 1) {
+    if (r - l > 1) {
+      ch[0] = new Seg(l, m);
+      ch[1] = new Seg(m, r);
+    }
+  }
+  int query(int ql, int qr) {
+    if (ql <= l and r <= qr) return sum;
+    else {
+      int ans = 0;
+      push();
+      if (ql < m) ans += ch[0]->query(ql, qr);
+      if (m < qr) ans += ch[1]->query(ql, qr);
+      pull();
+      return ans;
+    }
+  }
+  void set(int ql, int qr, int v) {
+    if (ql == qr) return;
+    if (ql <= l and r <= qr) sum = size() * v, apply = v;
+    else {
+      push();
+      if (ql < m) ch[0]->set(ql, qr, v);
+      if (m < qr) ch[1]->set(ql, qr, v);
+      pull();
+    }
+  }
+  ~Seg() {
+    for (int i : {0, 1}) {
+      if (ch[i]) ch[i]->~Seg();
+      delete ch[i];
+    }
+  }
+};
+
+
+Seg* VS[26] = {0};
+
+int main() {
+  ios_base::sync_with_stdio(false); cin.tie(0);
+  int n, q; cin >> n >> q;
+  string s; cin >> s;
+  for (int i = 0; i < 26; ++i) VS[i] = new Seg(0, n);
+  for (int i = 0; i < n; ++i) {
+    VS[s[i] - 'a']->set(i, i + 1, 1);
+  }
+  while (q--) {
+    int cnt[26] = {0};
+    int l, r, f; cin >> l >> r >> f;
+    --l;
+    for (int i = 0; i < 26; ++i) {
+      cnt[i] = VS[i]->query(l, r);
+    }
+    vector<int> order(26); iota(order.begin(), order.end(), 0);
+    if (f == 0) reverse(order.begin(), order.end());
+    int col = 0;
+    for (int j : order) {
+      VS[j]->set(l, r, 0);
+      VS[j]->set(l + col, l + col + cnt[j], 1);
+      col += cnt[j];
+    }
+    assert(col == r - l);
+  }
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < 26; ++j) {
+      if (VS[j]->query(i, i + 1)) cout << char(j + 'a');
+    }
+  }
+  cout << '\n';
+}

@@ -1,0 +1,169 @@
+//satyaki3794
+#include <bits/stdc++.h>
+#define ff first
+#define ss second
+#define pb push_back
+#define MOD (1000000007LL)
+#define LEFT(n) (2*(n))
+#define RIGHT(n) (2*(n)+1)
+ 
+using namespace std;
+typedef long long ll;
+typedef pair<int, int> ii;
+typedef pair<int, ii> iii;
+
+ll pwr(ll base, ll p, ll mod = MOD){
+ll ans = 1;while(p){if(p&1)ans=(ans*base)%mod;base=(base*base)%mod;p/=2;}return ans;
+}
+ 
+
+ll gcd(ll a, ll b){
+    if(b == 0)  return a;
+    return gcd(b, a%b);
+}
+
+
+const int N = 100005;
+int n, e, ticks, disc[N], low[N], comp[N], arr[N], depth[N], par[20][N];
+vector<ii> edge_list;
+vector<int> adj[N];
+bool instack[N], bridge[N];
+
+
+void find_bridges(int v, int last){
+
+	disc[v] = low[v] = ++ticks;
+	instack[v] = true;
+
+	for(auto e : adj[v]){
+		int vv = v ^ edge_list[e].ff ^ edge_list[e].ss;
+		if(disc[vv] == -1){
+			find_bridges(vv, v);
+			low[v] = min(low[v], low[vv]);
+			if(low[vv] > disc[v]){
+				bridge[e] = true;
+			}
+		}
+		else if(vv != last)
+			low[v] = min(low[v], disc[vv]);
+	}
+	instack[v] = false;
+}
+
+
+void create_bridge_tree(int v){
+	comp[v] = ticks;
+	arr[ticks]++;
+	for(auto e : adj[v]){
+		if(bridge[e])	continue;
+		int vv = v ^ edge_list[e].ff ^ edge_list[e].ss;
+		if(comp[vv] == -1)
+			create_bridge_tree(vv);
+	}
+}
+
+
+void dfs(int v, int p){
+	depth[v] = (p == -1 ? 0 : 1 + depth[p]);
+	par[0][v] = p;
+	if(p != -1)
+		arr[v] += arr[p];
+	for(auto vv : adj[v])
+		if(vv != p)
+			dfs(vv, v);
+}
+
+
+int LCA(int a, int b){
+    
+    if(depth[a] < depth[b]) swap(a, b);
+ 
+    int diff = depth[a] - depth[b];
+    for(int i=0;i<20;i++)
+        if((diff & (1<<i)) > 0)
+        	a = par[i][a];
+ 
+    if(a == b)  return a;
+    for(int i=19;i>=0;i--)
+        if(par[i][a] != par[i][b]){
+            a = par[i][a];  b = par[i][b];
+        }
+ 
+    a = par[0][a];
+    return a;
+}
+
+int main(){
+ 
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+
+    cin>>n>>e;
+    for(int i=0;i<e;i++){
+    	int a, b;
+    	cin>>a>>b;
+    	edge_list.pb({a, b});
+    	adj[a].pb(i);
+    	adj[b].pb(i);
+    }
+
+    memset(disc, -1, sizeof(disc));
+    find_bridges(1, -1);
+
+
+// cout<<"edge_list: ";for(auto e : edge_list)	cout<<e.ff<<":"<<e.ss<<" ";cout<<endl;
+// cout<<"bridge: ";for(int i=0;i<e;i++)	cout<<bridge[i]<<" ";cout<<endl;
+
+    ticks = 0;
+    memset(comp, -1, sizeof(comp));
+    for(int i=1;i<=n;i++)
+    	if(comp[i] == -1){
+    		ticks++;
+    		create_bridge_tree(i);
+    	}
+
+// cout<<"comp: ";for(int i=1;i<=n;i++)	cout<<comp[i]<<" ";cout<<endl;
+
+    for(int i=1;i<=ticks;i++)
+    	arr[i] = (arr[i] > 1);
+
+    for(int i=1;i<=n;i++)
+    	adj[i].clear();
+    for(auto e : edge_list)
+    	if(comp[e.ff] != comp[e.ss]){
+    		adj[comp[e.ff]].pb(comp[e.ss]);
+    		adj[comp[e.ss]].pb(comp[e.ff]);
+    	}
+
+    memset(par, -1, sizeof(par));
+    dfs(1, -1);
+    for(int j=0;j<19;j++)
+    	for(int i=1;i<=ticks;i++)
+    		if(par[j][i] != -1)
+    			par[j+1][i] = par[j][par[j][i]];
+
+// cout<<ticks<<endl;
+// cout<<"arr: ";for(int i=1;i<=ticks;i++)	cout<<arr[i]<<" ";cout<<endl;
+
+	int q;
+	cin>>q;
+	while(q--){
+
+		int a, b;
+		cin>>a>>b;
+
+		a = comp[a], b = comp[b];
+		int lca = LCA(a, b);
+		int ans = arr[a] + arr[b] - arr[lca];
+		if(par[0][lca] != -1)
+			ans -= arr[par[0][lca]];
+		cout<<pwr(2, ans)<<endl;
+	}
+    return 0;
+}
+
+
+
+
+ 
+ 

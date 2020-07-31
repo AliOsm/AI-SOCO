@@ -1,0 +1,128 @@
+#include <bits/stdc++.h>
+using namespace std;
+typedef int Long;
+
+const Long MX = 2e5 + 10;
+const Long INF = 1e9;
+
+pair<Long,Long> st[9][MX<<2];
+Long A[MX];
+Long B[9][MX];
+
+pair<Long,Long> get_par(pair<Long,Long> &a, pair<Long,Long> &b){
+	if(a.first <= b.first){
+		if(a.second <= b.first){
+			return make_pair(a.first,a.second);
+		}else{
+			return make_pair(a.first,b.first);
+		}
+	}else{
+		if(b.second <= a.first){
+			return make_pair(b.first,b.second);
+		}else{
+			return make_pair(b.first,a.first);
+		}
+	}
+	return make_pair(0,0);
+}
+
+void build(Long lvl, Long l, Long r, Long nodo){
+	if(l == r){
+		st[lvl][nodo] = {B[lvl][r],INF};
+		return;
+	}
+	Long med=(l+r)/2;
+	build(lvl,l,med,nodo<<1);
+	build(lvl,med+1,r,nodo<<1|1);
+	st[lvl][nodo] = get_par(st[lvl][nodo<<1],st[lvl][nodo<<1|1]);
+	return;
+}
+
+void update(Long &lvl, Long &a, Long &v, Long l, Long r, Long nodo){
+	if(a<l || r<a) return;
+	if(l == r){
+		st[lvl][nodo] = {v,INF};
+		return;
+	}
+	Long med=(l+r)/2;
+	update(lvl,a,v,l,med,nodo<<1);
+	update(lvl,a,v,med+1,r,nodo<<1|1);
+	st[lvl][nodo] = get_par(st[lvl][nodo<<1],st[lvl][nodo<<1|1]);
+	return;
+}
+
+pair<Long,Long> query(Long &lvl, Long &ini, Long &fin, Long l, Long r, Long nodo){
+	if(fin<l || r<ini) return {INF,INF};
+	if(ini<=l && r<=fin) return st[lvl][nodo];
+	Long med=(l+r)/2;
+	pair<Long,Long> L=query(lvl,ini,fin,l,med,nodo<<1);
+	pair<Long,Long> R=query(lvl,ini,fin,med+1,r,nodo<<1|1);
+	return get_par(L,R);
+}
+
+void actualiza(Long pos, Long n){
+	Long num = A[pos];
+	for(Long i = 0; i < 9; i++){
+		Long val = num % 10;
+		if(val == 0){
+			val = INF;
+		}else{
+			val = A[pos];
+		}
+		update(i,pos,val,0,n-1,1);
+		num /= 10;
+	}
+	return;
+}
+
+Long consulta(Long l, Long r, Long n){
+	Long mn = INF + INF;
+	for(Long i = 0; i < 9; i++){
+		pair<Long,Long> aux = query(i,l,r,0,n-1,1);
+		if(aux.first != INF && aux.second != INF){
+			mn = min(aux.first+aux.second,mn);
+		}
+	}
+	if(mn == INF + INF) mn = -1;
+	return mn;
+}
+
+int main(){
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	cout.tie(NULL);
+	cout.precision(10);
+	cout << fixed;
+	
+	Long n, m, t, l, r;
+	cin >> n >> m;
+	for(Long i = 0; i < n; i++){
+		cin >> A[i];
+		Long num = A[i];
+		for(Long j = 0; j < 9; j++){
+			Long val = num%10;
+			if(val == 0){
+				val = INF;
+			}else{
+				val = A[i];
+			}
+			B[j][i] = val;
+			num /= 10;
+		}
+	}
+	
+	for(Long i = 0; i < 9; i++){
+		build(i,0,n-1,1);
+	}
+	
+	for(Long i = 0; i < m; i++){
+		cin >> t >> l >> r;
+		if(t == 1){
+			A[l-1] = r;
+			actualiza(l-1,n);
+		}else{
+			cout << consulta(l-1,r-1,n) << "\n";
+		}
+	}
+	return 0;
+}

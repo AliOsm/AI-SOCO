@@ -1,0 +1,145 @@
+/** 
+ * Dont raise your voice, improve your argument.
+ * --Desmond Tutu
+ */
+
+#include <bits/stdc++.h>
+using namespace std;
+
+/* see https://github.com/pllk/cphb/ */
+#include <ext/pb_ds/assoc_container.hpp>
+using namespace __gnu_pbds;
+typedef tree<int,null_type,less<int>,rb_tree_tag,
+    tree_order_statistics_node_update> indexed_set;
+
+typedef unsigned int uint;
+typedef long long ll;
+//typedef __int128 lll;
+
+#define fori(n) for(ll i=0; i<(n); i++)
+
+typedef pair<int, int> pii;
+typedef vector<bool> vb;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef vector<vi> vvi;
+typedef vector<vll> vvll;
+
+template <typename E>
+class SegmentTree {
+private:
+    vector<E> tree;
+    E neutral;
+    function<E (E, E)> cumul;
+
+    int treeDataOffset;
+    const int ROOT = 1;
+
+    inline int leftChild(const int treeIdx) {
+        return  treeIdx * 2;
+    }
+    inline int rightChild(const int treeIdx) {
+        return treeIdx * 2 + 1;
+    }
+    inline int parent(const int treeIdx) {
+        return treeIdx / 2;
+    }
+    inline bool isOdd(const int idx) {
+        return (idx & 0x1);
+    }
+
+public:
+/** SegmentTree. Note that you can hold your data in your own storage and give
+ * an Array of indices to a SegmentTree.
+ * @param beg, end The initial data.
+ * @param pNeutral the Element neutral to cumul, ie 0 for sum, 1 for product etc
+ * @param pCumul The cumulative function to create the "sum" of two nodes.
+**/
+    template<typename Iterator>
+    SegmentTree(Iterator beg, Iterator end, E pNeutral, function<E (E, E)> pCumul) {
+        neutral=pNeutral;
+        cumul=pCumul;
+        treeDataOffset=(int)distance(beg, end);
+        tree=vector<E>(treeDataOffset*2, pNeutral);
+
+        int i=treeDataOffset;
+        for (auto it=beg; it!=end; it++)
+            tree[i++] = *it;
+
+        for (int j=treeDataOffset - 1; j>=1; j--)
+            tree[j] = cumul(tree[leftChild(j)], tree[rightChild(j)]);
+    }
+
+    /** Updates the data at dataIdx to value. */
+    void update(int dataIdx, E value) {
+        int treeIdx = treeDataOffset + dataIdx;
+        tree[treeIdx] = value;
+
+        while (treeIdx != ROOT) {
+            treeIdx = parent(treeIdx);
+            tree[treeIdx] = cumul(tree[leftChild(treeIdx)], tree[rightChild(treeIdx)]);
+        }
+    }
+
+    /** @return the cumul(idxL, idxR], iE idxL inclusive, idxR exclusive. */
+    E get(int pIdxL, int pIdxR) {
+        int idxL = pIdxL + treeDataOffset;
+        int idxR = pIdxR + treeDataOffset;
+        E cum = neutral;
+        while (idxL < idxR) {
+            if (isOdd(idxL)) { // left is odd
+                cum = cumul(cum, tree[idxL]);
+                idxL++;
+            }
+            if (isOdd(idxR)) {
+                idxR--;
+                cum = cumul(cum, tree[idxR]);
+            }
+            idxL = parent(idxL);
+            idxR = parent(idxR);
+        }
+        return cum;
+    }
+
+};
+
+int main() {
+cin.tie(nullptr);
+std::ios::sync_with_stdio(false);
+    int n;
+    cin>>n;
+    vector<pii> s(n);
+
+    fori(n) {
+        int x;
+        cin>>x;
+        s[i]={ x, 0 };
+    }
+
+    auto cumul= [](pii p1, pii p2) {
+        int sum=p1.first+p2.first;
+        int add=sum>=10?1:0;
+        return make_pair(sum%10, add+p1.second+p2.second);
+    };
+
+    SegmentTree<pii> even(s.begin(), s.end(), { 0, 0 }, cumul);
+    SegmentTree<pii> odd(s.begin()+1, s.end(), { 0, 0 }, cumul);
+
+    int q;
+    cin>>q;
+    fori(q) {
+        int l, r;
+        cin>>l>>r;
+        l--;
+        r--;
+        if(l%2==0) {
+            auto ans=even.get(l, r+1);
+            cout<<ans.second<<endl;
+        } else {
+            auto ans=odd.get(l-1, r+1-1);
+            cout<<ans.second<<endl;
+        }
+    }
+
+}
+

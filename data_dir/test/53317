@@ -1,0 +1,202 @@
+#include <cstdio>
+
+#include <cstring>
+
+#include <string>
+#include <vector>
+#include <algorithm>
+
+#include <stack>
+
+using namespace std;
+
+#define SZ(a) int((a).size())
+#define REP(i,n) for(int i=0,_n=(n);i<_n;++i)
+#define FOR(i,a,b) for(int i=(a),_b=(b);i<=_b;++i)
+
+typedef long long llong;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+struct Edge {
+   int u, v, w;
+};
+
+class TarjanSCC {
+   int N;
+   int id;    // DFS depth "counter"
+
+   stack<int> S;
+   vector<bool> in_stack;  // flag to indicate if node is in stack S
+
+   VI  low;
+   VI  dfs_order;
+
+   void dfs(int u);
+
+public:
+   // input: adjacency list of directed graph
+   VVI adj;
+   vector<Edge> edges;
+
+   // output
+   VVI SCC;   // list of strongly connected components
+              // each strongly connected component is a list of vertices
+   VI  memberSCC;  // memberSCC[u] = strongly connected component id of vertex u
+
+   TarjanSCC(int _N) : N(_N), adj(_N) {}
+   void add_edge(int u, int v, int w) {
+      int eid = edges.size();
+      edges.push_back({u, v, w});
+      adj[u].push_back(eid);
+   }
+   void run();
+
+   // return new graph where SCCs are collapsed into supernodes
+   vector< vector<Edge> > get_condensed_DAG();
+};
+
+void TarjanSCC::run() {
+   N  = adj.size();
+   id = 0;
+
+   S = stack<int>();
+   in_stack  = vector<bool>(N, false);
+
+   low = VI(N);
+   dfs_order = VI(N, 0);
+
+   SCC.clear();
+   memberSCC = VI(N, 0);
+
+   for (int u = 0; u < N; ++u)
+      if (dfs_order[u] == 0)      // not visited
+         dfs(u);                  // start dfs at node u
+}
+
+void TarjanSCC::dfs(int u) {
+   dfs_order[u] = low[u] = ++id;
+   S.push(u);
+   in_stack[u] = true;
+   for (int eid : adj[u]) {
+      int v = edges[eid].v;       // v is succesor of u
+      if (dfs_order[v] == 0) {    // v is unvisited, tree edge
+         dfs(v);
+         low[u] = min(low[u], low[v]);
+      }
+      else
+      if (in_stack[v])            // v is back edge
+         low[u] = min(low[u], dfs_order[v]);
+   }
+   if (low[u] == dfs_order[u]) {
+      int nSCC = SCC.size();
+      SCC.push_back(vector<int>());
+      while (true) {
+         int v = S.top();
+         S.pop();
+         in_stack[v] = false;
+         SCC[nSCC].push_back(v);
+         memberSCC[v] = nSCC;
+         if (v == u)
+            break;
+      }
+   }
+}
+
+
+vector< vector<Edge> > TarjanSCC::get_condensed_DAG() {
+   run();
+   vector< vector<Edge> > res( SCC.size() );
+   for (int u = 0; u < (int) adj.size(); ++u) {
+      int u_scc = memberSCC[u];
+      for (int eid : adj[u]) {
+         int v = edges[eid].v;
+         int v_scc = memberSCC[v];
+         if (u_scc == v_scc) continue;
+         res[u_scc].push_back({u_scc, v_scc, edges[eid].w});
+      }
+   }
+   return res;
+}
+
+
+
+#define MAXT 14200
+int T[MAXT+1];
+llong sumT[MAXT+1];
+void precompute() {
+   for (int n = 1; n <= MAXT; ++n) {
+      T[n] = n*(n+1)/2;
+      sumT[n] = sumT[n-1] + T[n];
+   // if (n <= 8) fprintf(stderr, "%d: %d %lld\n", n, T[n], sumT[n]);
+   }
+}
+
+llong get_cost(int w) {
+   int n = upper_bound(T, T+MAXT, w) - T - 1;
+   //fprintf(stderr, "n = %d\n", n);
+
+   return w * 1LL * (n+1) - sumT[n];
+}
+
+int main(int argc, char* argv[]) {
+   precompute();
+
+   int N, M;
+   scanf("%d %d", &N, &M);
+
+   TarjanSCC scc(N);
+   REP(m, M) {
+      int u, v, w;
+      scanf("%d %d %d", &u, &v, &w);
+      --u, --v;
+      scc.add_edge(u, v, w);
+   }
+
+   int s;
+   scanf("%d", &s);
+   --s;
+
+   scc.run();
+
+/*
+   for (int i = 0; i < (int) scc.SCC.size(); ++i) {
+      fprintf(stderr, "SCC #%d:", i);
+      for (int j = 0; j < (int) scc.SCC[i].size(); ++j)
+         fprintf(stderr, " %d", scc.SCC[i][j]);
+      fprintf(stderr, "\n");
+   }
+*/
+
+   vector<llong> A( SZ(scc.SCC) );
+   for (int i = 0; i < SZ(A); ++i) {
+      for (int u : scc.SCC[i]) {
+         for (int eid : scc.adj[u]) {
+            int v = scc.edges[eid].v;
+            if (scc.memberSCC[u] != scc.memberSCC[v]) continue;
+            int w = scc.edges[eid].w;
+         // fprintf(stderr, "# %d -> %d %d +%lld\n", u+1, v+1, w, get_cost(w));
+            A[i] += get_cost(w);
+         }
+      }
+   }
+
+   vector<llong> DP( SZ(A) );
+   for (int i = 0; i < SZ(A); ++i) {
+      for (int u : scc.SCC[i]) {
+         for (int eid : scc.adj[u]) {
+            int v = scc.edges[eid].v;
+            if (scc.memberSCC[u] == scc.memberSCC[v]) continue;
+            int w = scc.edges[eid].w;
+         // fprintf(stderr, "* %d -> %d  %d -> %d %d\n", u+1, v+1, i, scc.memberSCC[v], w);
+            DP[i] = max(DP[i], w + DP[ scc.memberSCC[v] ]);
+         }
+      }
+      DP[i] += A[i];
+   }
+
+   llong res = DP[ scc.memberSCC[s] ];
+   printf("%lld\n", res);
+
+   return 0;
+}

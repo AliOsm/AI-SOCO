@@ -1,0 +1,217 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define IOS ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
+#define endl "\n"
+#define mod 1000000007
+// #define int long long
+#define ll long long
+#define EPS 0.00000000000001
+#define ld long double
+#define inf 200000000
+#define N 510005
+ 
+vector<int> g[N];
+vector<int> tim(N,0),in(N,0),out(N,0),sz(N,0),s(4*N),lazy(4*N),depth(N,0),nxt(N,0),parent(N,0),path(4*N,0);
+int t = 0;
+int n;
+void prop(int id)
+{
+	if(lazy[id] != 0)
+	{
+		if(2*id < 4*N)
+		{
+			lazy[2*id] += lazy[id];
+			lazy[2*id+1] += lazy[id];
+			
+			if(lazy[2*id] >= mod)
+				lazy[2*id] -= mod;
+ 
+			if(lazy[2*id+1] >= mod)
+				lazy[2*id+1] -= mod;
+ 
+			
+		}
+		s[id] += lazy[id];
+		if(s[id] >= mod)
+			s[id] -= mod;
+		lazy[id] = 0;
+	}
+}
+void update_range(int id,int lo,int hi,int l,int r,int val)
+{
+	prop(id);
+	if(lo > r or hi < l)
+		return;
+	if(lo >= l and hi <= r)
+	{
+		s[id] += val;
+		if(2*id < 4*N)
+		{
+			lazy[2*id] += val;
+			lazy[2*id+1] += val;
+ 
+			if(lazy[2*id] >= mod)
+				lazy[2*id] -= mod;
+ 
+			if(lazy[2*id+1] >= mod)
+				lazy[2*id+1] -= mod;
+		}
+		if(s[id] >= mod)
+			s[id] -= mod;
+		return;
+	}
+	int mid = (lo + hi) >> 1;
+	update_range(2*id,lo,mid,l,r,val);
+	update_range(2*id+1,mid+1,hi,l,r,val);
+	s[id] = s[2*id] + s[2*id+1];
+	if(s[id] >= mod)
+		s[id] -= mod;
+}
+void update_point(int id,int lo,int hi,int pos,int x,int k)
+{
+	if(lo == hi)
+	{
+ 
+		path[id] += (((ll)depth[tim[lo]] * (ll)k)%mod + x)%mod;
+		if(path[id] >= mod)
+			path[id] -= mod;
+		return;
+	}
+	int mid = (lo + hi) >> 1;
+	if(pos <= mid)
+		update_point(2*id,lo,mid,pos,x,k);
+	else
+		update_point(2*id+1,mid+1,hi,pos,x,k);
+	path[id] = path[2*id+1] + path[2*id];
+	if(path[id] >= mod)
+		path[id] -= mod;
+ 
+}
+ 
+int query_point(int id,int lo,int hi,int pos)
+{
+	prop(id);
+	if(lo == hi)
+	{
+		return  s[id];
+	}
+	int mid = (lo + hi) >> 1;
+	int ans;
+	if(pos <= mid)
+		ans = query_point(2*id,lo,mid,pos);
+	else
+		ans = query_point(2*id+1,mid+1,hi,pos);
+	s[id] = s[2*id+1] + s[2*id];
+	if(s[id] >= mod)
+		s[id] -= mod;
+	return ans;
+}
+int query_range(int id,int lo,int hi,int l,int r)
+{
+	if(lo > r or hi < l)
+		return 0;
+	if(lo >= l and hi <= r)
+	{
+		return path[id];
+	}
+	int mid = (lo + hi) >> 1;
+	return (query_range(2*id,lo,mid,l,r) + query_range(2*id+1,mid+1,hi,l,r))%mod;
+}
+ 
+int query_hld(int a,int b)
+{
+	int res = 0;
+    for(;nxt[a] != nxt[b];b = parent[nxt[b]])
+    {
+        if(depth[nxt[a]] > depth[nxt[b]])
+            swap(a,b);
+        res += query_range(1,1,n,in[nxt[b]],in[b]);
+        if(res >= mod)
+        	res -= mod;
+    }
+    if(depth[a] > depth[b])
+        swap(a,b);
+    res += query_range(1,1,n,in[a],in[b]);
+    if(res >= mod)
+    	res -= mod;
+    return res;
+}
+ 
+void dfs_sz(int src = 1,int p = 1)
+{
+    
+    sz[src] = 1;
+    parent[src] = p;
+    depth[src] = depth[p] + 1;
+    for(auto &it:g[src])
+    {
+        if(it != p)
+        {
+            dfs_sz(it,src);
+            sz[src] += sz[it];
+            if(sz[it] > sz[g[src][0]] or g[src][0] == p)
+                swap(g[src][0],it);
+        }
+    }
+} 
+void dfs_hld(int src = 1,int p = 1)
+{
+    in[src] = ++t;
+    tim[t] = src;
+ 
+    for(auto &it:g[src])
+    {
+        if(it!=p)
+        {
+            nxt[it] = ((it == g[src][0])? nxt[src] : it);
+            dfs_hld(it,src);
+        }
+        
+    }
+    out[src] = t;
+}
+ 
+ 
+int32_t main()
+{
+	IOS;
+	#ifndef ONLINE_JUDGE
+	freopen("int.txt","r",stdin);
+	freopen("out.txt","w",stdout);
+	#endif
+	cin >> n;
+	for(int i = 2;i <= n;i++)
+	{
+		int p;
+		cin >> p;
+		g[p].push_back(i);
+	}
+	dfs_sz();
+	nxt[1] = 1;
+	dfs_hld();
+ 
+	int q;
+	cin >> q;
+	while(q--)
+	{
+		int type;
+		cin >> type;
+		if(type == 1)
+		{
+			int v,x,k;
+			cin >> v >> x >> k;
+			update_point(1,1,n,in[v],x,k);
+			update_range(1,1,n,in[v],out[v],k);
+		}
+		else
+		{
+			int v;
+			cin >> v;
+			int k_sum = query_point(1,1,n,in[v]);
+			int path_sum = query_hld(1,v);
+			int ans = ((path_sum - ((ll)depth[v] * (ll)k_sum)%mod) % mod + mod)%mod;
+			cout << ans << endl;
+		}
+	}
+    return 0;
+}

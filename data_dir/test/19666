@@ -1,0 +1,136 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define int long long
+typedef long long ll;
+
+///////////////////////////////////////////////////////////////////////////
+// code credit : https://github.com/niklasb/contest-algos/
+// blob/master/convex_hull/dynamic.cpp
+const ll is_query = -(1LL<<62);
+struct Line {
+    ll m, b;
+    mutable function<const Line*()> succ;
+    bool operator<(const Line& rhs) const {
+        if (rhs.b != is_query) return m < rhs.m;
+        const Line* s = succ();
+        if (!s) return 0;
+        ll x = rhs.m;
+        return b - s->b < (s->m - m) * x;
+    }
+};
+struct HullDynamic : public multiset<Line> { // will maintain upper hull for maximum
+    bool bad(iterator y) {
+        auto z = next(y);
+        if (y == begin()) {
+            if (z == end()) return 0;
+            return y->m == z->m && y->b <= z->b;
+        }
+        auto x = prev(y);
+        if (z == end()) return y->m == x->m && y->b <= x->b;
+        return (x->b - y->b) * (long double)(z->m - y->m) >= (y->b - z->b) * (long double)(y->m - x->m);
+        //return (x->b - y->b)*(z->m - y->m) >= (y->b - z->b)*(y->m - x->m);
+    }
+    void insert_line(ll m, ll b) {
+        auto y = insert({ m, b });
+        y->succ = [=] { return next(y) == end() ? 0 : &*next(y); };
+        if (bad(y)) { erase(y); return; }
+        while (next(y) != end() && bad(next(y))) erase(next(y));
+        while (y != begin() && bad(prev(y))) erase(prev(y));
+    }
+    ll getVal(ll x) {
+        auto l = *lower_bound((Line) { x, is_query });
+        return l.m * x + l.b;
+    }
+};
+///////////////////////////////////////////////////////////////////////////
+
+const int Max = 1e5+10;
+int a[Max], b[Max], memo[Max] = {0}, subSize[Max] = {0}, P[Max];
+vector<int> adj[Max];
+HullDynamic hd[Max];
+vector<pair<int, int>> lines[Max];
+
+void dfs(int node, int par) {
+    subSize[node] = 1;
+    if(adj[node].size() == 1 && node != 1) {
+        hd[node].insert_line(-b[node], -memo[node]);
+        lines[node].push_back({-b[node], -memo[node]});
+        return;
+    }
+    int largeChild, large = -1;
+    for(int to : adj[node]) {
+        if(to == par) continue;
+        dfs(to, node);
+        subSize[node] += subSize[to];
+        if(subSize[to] > large) {
+            large = subSize[to];
+            largeChild = to;
+        }
+    }
+    P[node] = P[largeChild];
+    for(int to : adj[node]) {
+        if(to == par) continue;
+        if(to == largeChild) continue;
+        for(auto &p : lines[P[to]]) {
+            hd[P[node]].insert_line(p.first, p.second);
+            lines[P[node]].push_back(p);
+        }
+    }
+    memo[node] = -hd[P[node]].getVal(a[node]);
+    hd[P[node]].insert_line(-b[node], -memo[node]);
+    lines[P[node]].push_back({-b[node], -memo[node]});
+}
+
+int32_t main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n;
+    cin >> n;
+    for(int i = 1; i <= n; ++i) {
+        cin >> a[i];
+        P[i] = i;
+    }
+    for(int i = 1; i <= n; ++i) {
+        cin >> b[i];
+    }
+    int u, v;
+    for(int i = 1; i <= n-1; ++i) {
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    dfs(1, 1);
+    for(int i = 1; i <= n; ++i) {
+        cout << memo[i] << ' ';
+    }
+    cout << '\n';
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

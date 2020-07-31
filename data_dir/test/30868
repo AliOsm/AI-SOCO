@@ -1,0 +1,88 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+int main() {
+	ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+	int N; cin >> N;
+	if (N <= 2) {
+		cout << -1 << '\n';
+		exit(0);
+	}
+
+	vector<vector<bool>> queenAdj(9, vector<bool>(9));
+	vector<vector<bool>> rookAdj(9, vector<bool>(9));
+	for (int x1 = 0; x1 < 3; x1++) {
+		for (int y1 = 0; y1 < 3; y1++) {
+			for (int x2 = 0; x2 < 3; x2++) {
+				for (int y2 = 0; y2 < 3; y2++) {
+					rookAdj[x1*3+y1][x2*3+y2] = (x1 == x2 || y1 == y2);
+					queenAdj[x1*3+y1][x2*3+y2] = (x1 == x2 || y1 == y2 || x1-y1 == x2-y2 || x1+y1 == x2+y2);
+				}
+			}
+		}
+	}
+
+	vector<int> range9(9); iota(range9.begin(), range9.end(), 0);
+
+	auto simulate = [&](vector<int> nums, vector<vector<bool>> adj) -> int {
+		int ans = 0;
+		vector<bool> vis(9);
+		int cur = int(find(nums.begin(), nums.end(), 1) - nums.begin());
+		for (int z = 0; z+1 < 9; z++) {
+			assert(!vis[cur]);
+			vis[cur] = true;
+			int nxt = *min_element(range9.begin(), range9.end(), [&](int a, int b) { return make_tuple(vis[a], !adj[cur][a], nums[a]) < make_tuple(vis[b], !adj[cur][b], nums[b]); });
+			ans += !adj[cur][nxt];
+			cur = nxt;
+		}
+		return ans;
+	};
+
+	vector<int> cnd(9);
+	iota(cnd.begin(), cnd.end(), 1);
+
+	do {
+		if (simulate(cnd, queenAdj) > simulate(cnd, rookAdj)) {
+			vector<vector<int>> G(N, vector<int>(N));
+
+			assert(cnd[0] == 1);
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++) {
+					G[i][j] = N * N - 9 + cnd[i*3+j];
+				}
+			}
+
+			int idx = 0;
+			for (int i = N-1; i >= 3; i--) {
+				if (i % 2 == 0) {
+					for (int j = 0; j < i; j++) {
+						G[i][j] = ++idx;
+					}
+					for (int j = i; j >= 0; j--) {
+						G[j][i] = ++idx;
+					}
+				} else {
+					for (int j = 0; j < i; j++) {
+						G[j][i] = ++idx;
+					}
+					for (int j = i; j >= 0; j--) {
+						G[i][j] = ++idx;
+					}
+				}
+			}
+
+			for (int i = 0; i < N; i++) {
+				for (int j = 0; j < N; j++) {
+					cout << G[i][j] << " ";
+				}
+				cout << '\n';
+			}
+
+			exit(0);
+		}
+	} while (next_permutation(cnd.begin(), cnd.end()));
+
+	assert(false);
+
+	return 0;
+}

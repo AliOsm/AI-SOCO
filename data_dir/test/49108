@@ -1,0 +1,127 @@
+////////////////////////////////////////////    _LeMur_
+//#pragma GCC optimize("Ofast,no-stack-protector")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,avx2,tune=native")
+#define _CRT_SECURE_NO_WARNINGS
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <chrono>
+#include <random>
+#include <bitset>
+#include <cstdio>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <list>
+#include <map>
+#include <set>
+
+using namespace std;
+
+const int N = 1000005;
+const int inf = 1000 * 1000 * 1000;
+const int mod = 998244353;
+
+int n , w , l;
+
+int b[N];
+int tt[4 * N];
+
+void build(int v,int s,int e){
+    if(s == e){
+        tt[v] = b[s];
+        return ;
+    }
+    int m = (s + e) / 2;
+    build(2 * v , s , m);
+    build(2 * v + 1 , m + 1 , e);
+    tt[v] = max(tt[2 * v] , tt[2 * v + 1]);
+}
+
+int get(int v,int s,int e,int l,int r){
+    if(l > r)return -inf;
+    if(s == l && e == r)return tt[v];
+    int m = (s + e) / 2;
+    return max( get(2 * v , s , m , l , min(r , m)) , get(2 * v + 1 , m + 1 , e , max(m + 1 , l) , r) );
+}
+
+long long t[4 * N];
+long long d[4 * N];
+
+void push(int v,int s,int e){
+    if(d[v] == 0)return ;
+    t[v] += (e - s + 1) * 1ll * d[v];
+    if(s != e){
+        d[2 * v] += d[v];
+        d[2 * v + 1] += d[v];
+    }
+    d[v] = 0;
+}
+
+void update(int v,int s,int e,int l,int r,int delta){
+    push(v , s , e);
+    if(l > r)return ;
+    if(s == l && e == r){
+        d[v] += delta;
+        push(v , s , e);
+        return ;
+    }
+    int m = (s + e) / 2;
+    update(2 * v , s , m , l , min(r , m) , delta);
+    update(2 * v + 1 , m + 1 , e , max(m + 1 , l) , r , delta);
+    t[v] = t[2 * v] + t[2 * v + 1];
+}
+
+long long query(int v,int s,int e,int l,int r){
+    push(v , s , e);
+    if(l > r)return 0;
+    if(s == l && e == r)return t[v];
+    int m = (s + e) / 2;
+    return query(2 * v , s , m , l , min(r , m)) + query(2 * v + 1 , m + 1 , e , max(m + 1 , l) , r);
+}
+
+int main(){
+	mt19937 myrand(chrono::steady_clock::now().time_since_epoch().count());
+    cin >> n >> w;
+    for(int i=1;i<=n;i++){
+        int l;
+        scanf("%d",&l);
+        b[0] = b[l + 1] = 0;
+        for(int j=1;j<=l;j++){
+            scanf("%d",&b[j]);
+        }
+        build(1 , 0 , l + 1);
+        ///
+        if(2 * l < w){
+            for(int j=1;j<=l;j++){
+                int s = get(1 , 0 , l + 1 , 0 , j);
+                update(1 , 1 , w , j , j , s);
+            }
+            update(1 , 1 , w , l + 1 , w - l , tt[1]);
+            for(int j=w-l+1;j<=w;j++){
+                int s = get(1 , 0 , l + 1 , j - w + l , l + 1);
+                update(1 , 1 , w , j , j , s);
+            }
+        }
+        else{
+            for(int j=1;j<=w;j++){
+                int L = max(0 , l - (w - j));
+                int R = min(l + 1 , j);
+                int s = get(1 , 0 , l + 1 , L , R);
+                update(1 , 1 , w , j , j , s);
+            }
+        }
+    }
+    for(int i=1;i<=w;i++){
+        printf("%lld ",query(1 , 1 , w , i , i));
+    }
+    cout << endl;
+    return 0;
+}

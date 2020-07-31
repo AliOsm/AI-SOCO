@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+#define rep(i, a, b) for(int i = a; i < (b); ++i)
+#define trav(a, x) for(auto& a : x)
+#define all(x) x.begin(), x.end()
+#define sz(x) (int)(x).size()
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef vector<int> vi;
+
+const int limN = 1e5 + 5;
+
+struct AhoCorasick {
+	enum {alpha = 26, first = 'a'};
+	struct Node {
+		// (nmatches is optional)
+		int back, next[alpha], start = -1, end = -1, nmatches = 0;
+		Node(int v) { memset(next, v, sizeof(next)); }
+	};
+	vector<Node> N;
+	vector<int> backp;
+	void insert(string& s, int j) {
+		assert(!s.empty());
+		int n = 0;
+		trav(c, s) {
+			int& m = N[n].next[c - first];
+			if (m == -1) { n = m = sz(N); N.emplace_back(-1); }
+			else n = m;
+		}
+		if (N[n].end == -1) N[n].start = j;
+		backp.push_back(N[n].end);
+		N[n].end = j;
+		N[n].nmatches++;
+	}
+	AhoCorasick(vector<string>& pat) {
+		N.emplace_back(-1);
+		rep(i,0,sz(pat)) insert(pat[i], i);
+		N[0].back = sz(N);
+		N.emplace_back(0);
+
+		queue<int> q;
+		for (q.push(0); !q.empty(); q.pop()) {
+			int n = q.front(), prev = N[n].back;
+			rep(i,0,alpha) {
+				int &ed = N[n].next[i], y = N[prev].next[i];
+				if (ed == -1) ed = y;
+				else {
+					N[ed].back = y;
+					(N[ed].end == -1 ? N[ed].end : backp[N[ed].start])
+						= N[y].end;
+					N[ed].nmatches += N[y].nmatches;
+					q.push(ed);
+				}
+			}
+		}
+	}
+	vi find(string word) {
+		int n = 0;
+		vi res;
+		trav(c, word) {
+			n = N[n].next[c - first];
+			res.push_back(N[n].end);
+		}
+		return res;
+	}
+	vector<vi> findAll(vector<string>& pat, string word) {
+		vi r = find(word);
+		vector<vi> res(sz(word));
+		rep(i,0,sz(word)) {
+			int ind = r[i];
+			while (ind != -1) {
+				res[i - sz(pat[ind]) + 1].push_back(ind);
+				ind = backp[ind];
+			}
+		}
+		return res;
+	}
+};
+
+
+int main() {
+	char tmp[limN];
+    string orgo;
+    int N ;
+    vi req;
+    vector <string> wds;
+    vector<vi> aprs;
+    vector <vi> revo;
+
+    scanf("%s", tmp);
+    orgo = tmp;
+    scanf("%d", &N);
+    wds.resize(N), req.resize(N), revo.resize(N);    
+    for(int i=0; i<N; i++) {
+        scanf("%d", &req[i]);
+        scanf("%s", tmp);
+        wds[i] = tmp;
+    }
+    AhoCorasick A = {wds};
+
+    aprs = A.findAll(wds, orgo);
+    int L = (int) aprs.size();
+    for(int i=0; i<L; i++) {
+        for(int &c : aprs[i]) {
+            revo[c].push_back(i);
+        }
+    }
+
+    for(int i=0; i<N; i++) {
+        if((int) revo[i].size() < req[i]) {
+            printf("-1\n");
+            continue;
+        }
+        int k=req[i], ans = (1<<30), len = wds[i].size();
+        for(int j=revo[i].size()-1; j >= k-1; j--) {
+            ans = min(ans, (revo[i][j] + len) - revo[i][j-k+1]);
+        }
+        printf("%d\n", ans);
+    }
+}

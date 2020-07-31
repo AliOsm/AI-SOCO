@@ -1,0 +1,102 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+
+const int N = (1 << 16) + 5;
+bool red[16];
+int cost1[16], cost2[16];
+int n;
+
+int dp[N][450][2];
+
+int solve(int mask, int have, bool IsRed)
+{
+    if(mask == (1 << n) - 1)
+    {
+        return have;
+    }
+    int &ret = dp[mask][have][IsRed];
+    if(ret != -1)
+        return ret;
+    int Red = 0, Blue = 0;
+    for(int i = 0; i < n; i++)
+    {
+        if(mask & (1 << i))
+        {
+            if(red[i])
+                Red++;
+            else
+                Blue++;
+        }
+    }
+    ret = 1e9;
+    for(int i = 0; i < n; i++)
+    {
+        if(!(mask & (1 << i)))
+        {
+            int c1 = max(cost1[i] - Red, 0);
+            int c2 = max(cost2[i] - Blue, 0);
+            if(IsRed)
+                c1 += have;
+            else
+                c2 += have;
+            int minn = min(c1, c2);
+            c1 -= minn, c2 -= minn;
+            if(c1 > 0)
+                ret = min(ret, minn + solve(mask | (1 << i), c1, 1));
+            else
+                ret = min(ret, minn + solve(mask | (1 << i), c2, 0));
+        }
+    }
+    return ret;
+}
+
+int main()
+{
+    ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+    cin >> n;
+    int c1 = 0, c2 = 0;
+    for(int i = 0; i < n; i++)
+    {
+        char c;
+        cin >> c;
+        if(c == 'R')
+            red[i] = 1;
+        cin >> cost1[i] >> cost2[i];
+        if(cost1[i] > n)
+        {
+            c1 += cost1[i] - n;
+            cost1[i] = n;
+        }
+        if(cost2[i] > n)
+        {
+            c2 += cost2[i] - n;
+            cost2[i] = n;
+        }
+    }
+    memset(dp, -1, sizeof dp);
+    int minimum = min(c1, c2);
+    c1 -= minimum, c2 -= minimum;
+    if(c1 > n * 16)
+    {
+        for(int i = 0; i < n; i++)
+            cost2[i] = 0;
+        minimum += c1;
+        c1 = 0;
+    }
+    else if(c2 > n * 16)
+    {
+        for(int i = 0; i < n; i++)
+            cost1[i] = 0;
+        minimum += c2;
+        c2 = 0;
+    }
+    if(c1 >= c2)
+        cout << solve(0, c1, 1) + n + minimum;
+    else
+        cout << solve(0, c2 , 0) + n + minimum;
+    return 0;
+}

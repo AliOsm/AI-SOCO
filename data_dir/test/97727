@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+#define f first
+#define s second
+
+using namespace std;
+
+typedef long long ll;
+
+
+struct SegmentTree{
+	vector <int> tree;
+	int N;
+	SegmentTree(vector <int> &A){
+		N = A.size();
+		tree.resize(4*N);
+		build(0, 0, N-1, A);
+	}
+
+	int merge(int a, int b){
+		return max(a,b);
+	}
+
+	void build(int n, int l, int r, vector <int> &A){
+		if(l == r){ // caso hoja
+			tree[n] = A[l];
+			return;
+		}
+		int mid = (l+r)/2; // caso general
+		build(2*n+1, l, mid, A);
+		build(2*n+2, mid+1, r, A);
+		tree[n] = merge(tree[2*n+1], tree[2*n+2]);
+	}
+
+	int query(int i, int j){
+		return(query(0, 0, N-1, i, j));
+	}
+
+	int query(int n, int l, int r, int i, int j){
+		if(i <= l && r <= j){ // contenido completamente
+			return tree[n];
+		}
+		if(r < i || j < l){ // fuera del rango
+			return -1;
+		}
+		int mid = (l+r)/2; // contenido parcialmente
+		int a = query(2*n+1, l, mid, i, j);
+		int b = query(2*n+2, mid+1, r, i, j);
+		return merge(a, b);
+	}
+
+	void update(int i){
+		update(0, 0, N-1, i);
+	}
+
+	void update(int n, int l, int r, int i){
+		if(l == r && r == i){ // hoja
+			tree[n]--;
+			return;
+		}
+		if(i < l || r < i) return; // fuera del rango
+		int mid = (l+r)/2; // contenido parcialmente
+		update(2*n+1, l, mid, i);
+		update(2*n+2, mid+1, r, i);
+		tree[n] = merge(tree[2*n+1], tree[2*n+2]);
+	}
+};
+
+int main(){
+    ios_base::sync_with_stdio(0); cin.tie(0);
+    int n; cin >> n;
+    vector <ll> nums(n);
+    for(int i=0; i<n; i++) cin >> nums[i];
+    vector <ll> aux = nums;
+    sort(aux.begin(), aux.end());
+    map <ll, int> compress;
+    int cur = 0;
+    for(int i=0; i<n; i++){
+        compress[aux[i]] = cur; 
+        if(i == n-1 || aux[i] != aux[i+1]) cur++;
+    }
+    for(int i=0; i<n; i++){
+        nums[i] = compress[nums[i]];
+    }
+    vector <int> freq(n,0);
+    for(int i=0; i<n; i++){
+        freq[nums[i]]++;
+    }
+    int ans = n-1;
+    SegmentTree placeholder(freq);
+    if(placeholder.query(0,n-1) < 2){
+        cout << 0 << '\n';
+        return 0;
+    }
+    for(int i=0; i<n; i++){
+        SegmentTree st= placeholder; 
+        for(int j=i; j<n; j++){
+            st.update(nums[j]); //update resta 1
+            if(st.query(0, n-1) <= 1){
+                ans = min(ans, j-i+1);
+            }
+        }
+    }
+    cout << ans << '\n'; 
+    return 0;
+}

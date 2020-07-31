@@ -1,0 +1,104 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define lc (t[p].ch[0])
+#define rc (t[p].ch[1])
+int n,g,r,l[100010],T;
+typedef long long ll;
+ll f[100010],pos[100010];
+class node
+{
+	public:
+		int ch[2],mn,lzy;
+}t[12000010];
+int nodecnt=0,rt=0;
+inline int newnode()
+{
+	int p=++nodecnt;
+	t[p].ch[0]=t[p].ch[1]=t[p].lzy=0;
+	t[p].mn=0x3f3f3f3f;
+	return p;
+}
+void pushup(int p)
+{
+	t[p].mn=min(t[lc].mn,t[rc].mn);
+}
+void pushnow(int p,int v)
+{
+	if(p)t[p].mn=t[p].lzy=v;
+}
+void pushdown(int p)
+{
+	if(t[p].lzy)
+	{
+		if(!lc)lc=newnode();
+		if(!rc)rc=newnode();
+		pushnow(lc,t[p].lzy);
+		pushnow(rc,t[p].lzy);
+		t[p].lzy=0;
+	}
+}
+void modify(int &p,int l,int r,int ml,int mr,int v)
+{
+	if(!p)p=newnode();
+	if(ml<=l&&r<=mr)
+	{
+		pushnow(p,v);
+		return;
+	}
+	pushdown(p);
+	int mid=(l+r)>>1;
+	if(ml<=mid)modify(lc,l,mid,ml,mr,v);
+	if(mr>mid)modify(rc,mid+1,r,ml,mr,v);
+	pushup(p);
+}
+int query(int p,int l,int r,int ql,int qr)
+{
+	if(!p)return 0x3f3f3f3f;
+	if(ql<=l&&r<=qr)return t[p].mn;
+	pushdown(p);
+	int mid=(l+r)>>1,ret=0x3f3f3f3f;
+	if(ql<=mid)ret=query(lc,l,mid,ql,qr);
+	if(qr>mid)ret=min(ret,query(rc,mid+1,r,ql,qr));
+	return ret;
+}
+inline void modify(int l,int r,int v)
+{
+	if(l<=r)modify(rt,0,T-1,l,r,v);
+	else modify(rt,0,T-1,0,r,v),modify(rt,0,T-1,l,T-1,v);
+}
+inline int query(int l,int r)
+{
+	if(l<=r)return query(rt,0,T-1,l,r);
+	return min(query(rt,0,T-1,0,r),query(rt,0,T-1,l,T-1));
+}
+int Q;
+int main()
+{
+	scanf("%d%d%d",&n,&g,&r);
+	T=g+r;
+	for(int i=0;i<=n;i++)
+		scanf("%d",&l[i]);
+	pos[1]=l[0];
+	for(int i=1;i<=n+1;i++)pos[i]=l[i-1]+pos[i-1];
+	f[n]=l[n];
+	t[0].mn=0x3f3f3f3f;
+	modify((pos[n]+1)%T,(pos[n]+T-g)%T,n);
+	for(int i=n-1;i>=1;i--)
+	{
+		int p=query(pos[i]%T,pos[i]%T);
+		if(p==0x3f3f3f3f)f[i]=pos[n+1]-pos[i];
+		else f[i]=pos[p]-pos[i]+f[p]+(T-(pos[p]-pos[i])%T)%T;
+		modify((pos[i]+1)%T,(pos[i]+T-g)%T,i);
+	}
+	scanf("%d",&Q);
+	for(int i=1;i<=Q;i++)
+	{
+		ll tim;
+		scanf("%lld",&tim);
+		int x=(T-tim%T)%T;
+		int p=query(x,x);
+		if(p==0x3f3f3f3f)printf("%lld\n",tim+pos[n+1]);
+		else printf("%lld\n",tim+pos[p]+f[p]+(T-(tim+pos[p])%T)%T);
+	}
+	return 0;
+}

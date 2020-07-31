@@ -1,0 +1,131 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+#define ll long long
+
+struct P {
+    ll x, y;
+    ll getLen() {
+        return x * x + y * y;
+        }
+};
+
+P operator - (P a, P b) {
+    return {a.x - b.x, a.y - b.y};
+}
+ll operator * (P a, P b) {
+    return a.x * b.y - a.y * b.x;
+}
+ll operator / (P a, P b) {
+    return a.x * b.x + a.y * b.y;
+}
+bool operator < (P a, P b) {
+    return a.x == b.x ? a.y < b.y : a.x < b.x;
+}
+
+vector<P> convexHull(vector<P> v) {
+    bool isLine = true;
+    for (int i = 1; i < v.size(); i++) {
+        if (v[i] < v[0])
+            swap(v[i], v[0]);
+        if ((v[i] - v[0]) * (v[1] - v[0]) != 0)
+            isLine = false;
+    }
+
+    sort(v.begin() + 1, v.end(), [&](P a, P b) {
+        P x = (a - v[0]), y = (b - v[0]);
+        ll prod = x * y;
+        return prod < 0 || prod == 0 && x.getLen() < y.getLen();
+    });
+
+    if (isLine) {
+        return {v[0], v.back(), v[0]};
+    }
+
+    v.push_back(v[0]);
+
+    vector<P> z;
+
+    for (int i = 0; i < v.size(); i++) {
+        while (z.size() > 1) {
+            if ((v[i] - z[z.size() - 2]) * (z[z.size() - 1] - z[z.size() - 2]) <= 0) {
+                z.pop_back();
+            }
+            else {
+                break;
+            }
+        }
+        z.push_back(v[i]);
+    }
+
+    return z;
+}
+
+void transform(vector<P> &a, vector<pair<int, pair<ll, ll>>> &p) {
+    a.push_back(a[1]);
+    for (int i = 0; i < a.size() - 2; i++) {
+        p.push_back({0, {(a[i + 1] - a[i]).getLen(), 0}});
+        p.push_back({1, {(a[i + 1] - a[i]) * (a[i + 2] - a[i + 1]),
+                         (a[i + 1] - a[i]) / (a[i + 2] - a[i + 1])}});
+    }
+}
+
+const int N = 1e6 + 100;
+int w[N];
+
+int main() {
+#ifdef HOME
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+#endif
+    int n, m;
+    scanf("%d%d", &n, &m);
+
+    vector<P> a, b;
+    for (int i = 0; i < n; i++) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        a.push_back({x, y});
+    }
+
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        scanf("%d%d", &x, &y);
+        b.push_back({x, y});
+    }
+
+    a = convexHull(a);
+    b = convexHull(b);
+
+    if (a.size() != b.size()) {
+        printf("NO");
+        return 0;
+    }
+
+    vector<pair<int, pair<ll, ll>>> p, q;
+    transform(a, p);
+    transform(b, q);
+
+    p.push_back({-1, {-1, -1}});
+    p.insert(p.end(), q.begin(), q.end());
+    p.insert(p.end(), q.begin(), q.end());
+
+    for (int i = 1; i < p.size(); i++) {
+        int z = w[i - 1];
+        while (z > 0 && p[z] != p[i])
+            z = w[z - 1];
+        if (p[z] == p[i])
+            z++;
+        w[i] = z;
+
+        if (z == q.size()) {
+            printf("YES");
+            return 0;
+        }
+    }
+
+    printf("NO");
+
+    return 0;
+}

@@ -1,0 +1,227 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+
+using namespace std;
+const int MAXN = (int)6e4 + 42;
+const int MAXLOG = 22;
+const int inf = (int)1e6 + 42;
+
+struct trie
+{
+	struct state
+	{
+		int idx, mx;
+		state() {idx = 0; mx = 0;}
+		state(int _idx, int _mx)
+		{
+			idx = _idx;
+			mx = _mx;
+		}
+	};
+
+	int psz, root;
+	int mx[MAXLOG * MAXN];
+	int cnt[MAXLOG * MAXN], tr[MAXLOG * MAXN][2];
+
+	state st[MAXN * MAXLOG];
+	int stsz = 0;
+
+	trie() {memset(cnt, 0, sizeof(cnt)); memset(tr, -1, sizeof(tr)); psz = 1; root = 0;} 
+	
+	void init() 
+	{
+		for(int i = 0; i < MAXN * MAXLOG; i++) mx[i] = -inf;
+		memset(cnt, 0, sizeof(cnt)); 
+		memset(tr, -1, sizeof(tr)); 
+		psz = 1; 
+		root = 0;
+		stsz = 0;
+	} 
+	
+	void insert(int x, int _mx)
+	{
+		int idx = root;
+		cnt[idx]++;
+		st[stsz++] = state(idx, mx[idx]);
+		mx[idx] = max(mx[idx], _mx);
+
+		for(int pw = MAXLOG - 1; pw >= 0; pw--)
+			if(x & (1ll << pw))
+			{
+				if(tr[idx][1] == -1) tr[idx][1] = psz++;
+				idx = tr[idx][1];
+				st[stsz++]= state(idx, mx[idx]);
+				mx[idx] = max(mx[idx], _mx);
+				cnt[idx]++;
+			}			
+			else
+			{
+				if(tr[idx][0] == -1) tr[idx][0] = psz++;
+				idx = tr[idx][0];
+				st[stsz++] = state(idx, mx[idx]);
+				mx[idx] = max(mx[idx], _mx);
+				cnt[idx]++;
+			}
+	}
+
+	void snapshot()
+	{
+		st[stsz++] = state(-42, -42);
+	}
+
+	void rollback()
+	{
+		while(stsz)
+		{
+			if(st[stsz - 1].idx == -42)
+				return;
+
+			mx[st[stsz - 1].idx] = st[stsz - 1].mx;
+			cnt[st[stsz - 1].idx]--;
+			stsz--;
+		}
+	}
+
+	int rec(int x, int mn_possible)
+	{
+		int idx = root, val = 0;
+		bool sat = 0;
+
+		for(int pw = MAXLOG - 1; pw >= 0; pw--)
+		{
+			if(x & (1ll << pw))
+			{
+				if(tr[idx][0] != -1 && cnt[tr[idx][0]] != 0 && mn_possible <= mx[tr[idx][0]]) 
+					idx = tr[idx][0], val = val * 2 + 1;
+				else idx = tr[idx][1], val = val * 2;
+			}
+			else 
+			{
+				if(tr[idx][1] != -1 && cnt[tr[idx][1]] != 0 && mn_possible <= mx[tr[idx][1]]) 
+					idx = tr[idx][1], val = val * 2 + 1;
+				else idx = tr[idx][0], val = val * 2;
+		}
+
+		}
+		
+		return val;
+	}	
+};	
+
+struct query
+{
+	int l, r, idx;
+	query() {l = 0; r = 0; idx = 0;}
+	query(int _l, int _r, int _idx)
+	{
+		l = _l;
+		r = _r;
+		idx = _idx;
+	}
+};
+
+int xorf(int n) 
+{
+	if(n % 2 == 1) return (n % 4 == 1) ? 1 : 0; 
+	return (n % 4 == 0) ? n : n + 1;
+}
+
+int m, n, a[MAXN];
+query q[MAXN];
+
+void read()
+{
+	cin >> n >> m;
+	for(int i = 1; i <= n; i++)
+		cin >> a[i];	
+}
+
+int rt;
+bool cmp(query A, query B)
+{
+	if(A.l / rt != B.l / rt) return A.l / rt < B.l / rt;
+	return A.r < B.r;
+}
+
+int border, last, last_block, block, answer[MAXN], ans;
+trie t1, t2;
+
+void add(int idx)
+{
+	t1.insert(xorf(a[idx]), a[idx]);
+	t2.insert(xorf(a[idx] - 1), -a[idx]);
+	ans = max(ans, t2.rec(xorf(a[idx]), -a[idx]));
+	ans = max(ans, t1.rec(xorf(a[idx] - 1), a[idx]));
+}
+
+void solve()
+{
+	t1.init();
+	t2.init();
+	ans = 0;
+	rt = sqrt(n);
+	t1.snapshot();
+	t2.snapshot();
+
+	for(int i = 0; i < m; i++)
+	{
+		int l, r;
+		cin >> l >> r;
+		q[i] = query(l, r, i);
+
+		if(r - l + 1 <= rt)
+		{
+			for(int pos = l; pos <= r; pos++) add(pos);
+			answer[i] = ans;
+			t1.rollback();
+			t2.rollback();
+			ans = 0;
+		}
+	}
+
+	sort(q, q + m, cmp);
+	last_block = -1;
+
+	for(int idx = 0; idx < m; idx++)
+	{
+		if(q[idx].r - q[idx].l + 1 <= rt)
+			continue;
+
+		block = q[idx].l / rt;
+
+		if(last_block != block)
+		{
+			ans = 0;
+			t1.init();
+			t2.init();
+			border = rt * (block + 1);
+			last = border;
+		}
+
+		last_block = block;
+		for(int i = last + 1; i <= q[idx].r; i++) add(i);
+		answer[q[idx].idx] = ans;
+		t1.snapshot();
+		t2.snapshot();
+		
+		for(int i = q[idx].l; i <= border; i++) add(i);
+		swap(answer[q[idx].idx], ans);
+		t1.rollback();
+		t2.rollback();
+		last = q[idx].r;
+	}
+
+	for(int i = 0; i < m; i++)
+		cout << answer[i] << endl;
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+
+	read();
+	solve();
+	return 0;
+}
+

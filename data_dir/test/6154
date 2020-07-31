@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
+//#pragma GCC optimize("O3")
+//#pragma GCC target("sse4")
+//#pragma GCC target("avx2")
+
+#define deb(x) cout << #x << " = " << x << "\n"
+#define all(x) (x).begin(), (x).end()
+#define len(x) (int) x.size()
+#define lsb(x) (x) & -(x)
+#define l(x) (x << 1) + 1
+#define r(x) (x << 1) + 2
+
+#define xx first
+#define yy second
+#define mp make_pair
+#define pb push_back
+#define lb lower_bound
+#define ub upper_bound
+
+using namespace std;
+using namespace __gnu_pbds;
+typedef long long ll;
+typedef long double ld;
+typedef pair <int, int> pii;
+typedef pair <ld, ld> pld;
+typedef pair <ll, ll> pll;
+
+template <class T1, class T2 = less <T1>> using pb_heap = __gnu_pbds::priority_queue <T1, T2, binary_heap_tag>;
+template <class T1, class T2 = null_type, class T3 = less <T1>> using pb_map = tree <T1, T2, T3, rb_tree_tag, tree_order_statistics_node_update>;
+template <class T1, class T2 = null_type, class T3 = hash <T1>> using pb_umap = gp_hash_table <T1, T2, T3>;
+template <class T1, class T2, class T3 = hash <T1>> using umap = unordered_map <T1, T2, T3>;
+template <class T> using uset = unordered_set <T>;
+template <class T> using vec = vector <T>;
+
+const ll infll = numeric_limits <ll>::max() >> 1;
+const int inf = numeric_limits <int>::max() >> 1;
+const int N = 1e5 + 1;
+const int L = 20;
+int n, k, t = -1, cur = 1;
+int arr[N];
+int ord[N];
+int pos[N];
+int spt[N][L];
+
+vec <int> ans;
+
+struct Graph {
+    int lef[N];
+    int rig[N];
+    int par[N];
+    int lea[N];
+    vec <int> adj[N];
+} graph;
+
+inline int lg(int x) {
+    return 31 - __builtin_clz(x);
+}
+
+void calc_spt() {
+    for(int i = 0; i < n; ++i) {
+        spt[i][0] = arr[i];
+    }
+    for(int j = 1; j < L; ++j) {
+        for(int i = 0; i + (1 << j) <= n; ++i) {
+            spt[i][j] = min(spt[i][j - 1], spt[i + (1 << j - 1)][j - 1]);
+        }
+    }
+}
+
+int query(int l, int r) {
+    int lgx = lg(r - l + 1);
+    return min(spt[l][lgx], spt[r - (1 << lgx) + 1][lgx]);
+}
+
+void dfs(int u) {
+    graph.lef[u] = ++t;
+    graph.lea[u] = 1;
+    for(int v: graph.adj[u]) {
+        if(graph.par[u] == v) {
+            continue;
+        }
+        graph.par[v] = u;
+        graph.lea[u] = 0;
+        dfs(v);
+    }
+    k += graph.lea[u];
+    graph.rig[u] = t;
+}
+
+void input() {
+    cin >> n;
+    for(int i = 1; i < n; ++i) {
+        int u; cin >> u;
+        int v; cin >> v;
+        graph.adj[u].pb(v);
+        graph.adj[v].pb(u);
+    }
+}
+
+void dfs_ans(int u) {
+    vec <pii> adj;
+    for(int v: graph.adj[u]) {
+        if(graph.par[u] == v) {
+            continue;
+        }
+        adj.pb({query(graph.lef[v], graph.rig[v]), v});
+    }
+    sort(all(adj));
+    ans.pb(u);
+    if(graph.lea[u]) {
+        if(pos[u] != cur++) {
+            cout << "-1\n";
+            exit(0);
+        }
+    }
+    for(pii p: adj) {
+        int v = p.yy;
+        dfs_ans(v);
+        ans.pb(u);
+    }
+}
+
+void solve() {
+    dfs(1);
+    for(int i = 1; i <= k; ++i) {
+        cin >> ord[i];
+        pos[ord[i]] = i;
+    }
+    for(int i = 1; i <= n; ++i) {
+        if(graph.lea[i]) {
+            arr[graph.lef[i]] = pos[i];
+        } else {
+            arr[graph.lef[i]] = inf;
+        }
+    }
+    calc_spt();
+    dfs_ans(1);
+    for(int e: ans) {
+        cout << e << " ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0), cout.tie(0);
+    input();
+    solve();
+}

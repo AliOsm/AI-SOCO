@@ -1,0 +1,117 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int MX=300009;
+struct node{
+    int mn , cnt , flag;
+}tree[MX*4];
+void build(int x , int a , int b){
+    tree[x].mn = 0 , tree[x].cnt = b - a + 1 , tree[x].flag = 0;
+    if(a == b) return;
+    build(x*2 , a , (a+b)/2);
+    build(x*2+1 , (a+b)/2+1 , b);
+}
+int st , en , upd;
+void push(int x){
+    tree[x*2].mn += tree[x].flag; tree[x*2].flag += tree[x].flag;
+    tree[x*2+1].mn += tree[x].flag; tree[x*2+1].flag += tree[x].flag;
+    tree[x].flag = 0;
+}
+void update(int x , int a , int b){
+    if(st > b || en < a) return;
+    if(a>=st && b<=en){
+        tree[x].flag += upd; tree[x].mn += upd;
+        return;
+    }
+    push(x);
+    update(x*2 , a , (a+b)/2);
+    update(x*2+1 , (a+b)/2+1 , b);
+    tree[x].flag = 0 , tree[x].cnt = 0;
+    tree[x].mn = min(tree[x*2].mn , tree[x*2+1].mn);
+    if(tree[x].mn == tree[x*2].mn) tree[x].cnt += tree[x*2].cnt;
+    if(tree[x].mn == tree[x*2+1].mn) tree[x].cnt += tree[x*2+1].cnt;
+}
+int n;
+int arr[MX] , mnidx[MX] , mxidx[MX];
+void addmax(int x , int coef){
+    //cout<<x<<" # "<<mxidx[x]<<endl;
+    st = x , en = mxidx[x] , upd = coef * arr[x];
+    update(1,1,n);
+}
+void addmin(int x , int coef){
+    //cout<<x<<" @ "<<mnidx[x]<<endl;
+    st = x , en = mnidx[x] , upd = - coef * arr[x];
+    update(1,1,n);
+}
+void dfs(int x , int a , int b){
+    if(a == b){
+        //cout<<tree[x].mn<<' ';
+        return;
+    }
+    push(x);
+    dfs(x*2 , a ,(a+b)/2);
+    dfs(x*2+1 , (a+b)/2+1 , b);
+}
+vector < int > rmx[MX] , rmn[MX];
+pair < int , int > A[MX];
+
+int main(){
+    scanf("%d",&n);
+    for(int j=1;j<=n;j++) scanf("%d %d",&A[j].first,&A[j].second);
+    sort(A+1 , A+1+n);
+    build(1,1,n);
+    st = 1 , en = n , upd = 1;
+    update(1,1,n);
+    //cout<<tree[1].mn<<' '<<tree[1].cnt<<endl;
+    for(int j=1;j<=n;j++){
+        arr[j] = A[j].second;
+    //    cout<<arr[j]<<' ';
+    } //cout<<endl;
+    stack < int > S;
+
+    for(int j = n ; j ; j--){
+        while(!S.empty() && arr[S.top()] < arr[j]){
+            rmx[j].push_back(S.top());
+            S.pop();
+        }
+        if(S.empty()) mxidx[j] = n;
+        else mxidx[j] = S.top() - 1;
+        S.push(j);
+    }
+    while(!S.empty()){
+        addmax(S.top() , 1);
+        S.pop();
+    }
+    for(int j=n;j;j--){
+        while(!S.empty() && arr[S.top()] > arr[j]){
+            rmn[j].push_back(S.top());
+            S.pop();
+        }
+        if(S.empty()) mnidx[j] = n;
+        else mnidx[j] = S.top() - 1;
+        S.push(j);
+    }
+    while(!S.empty()){
+        addmin(S.top() , 1);
+        S.pop();
+    }
+    for(int j=1;j<=n;j++){
+        st = j , en = j , upd = -j;
+        update(1,1,n);
+    }
+    //for(int j=1;j<=n;j++) cout<<mnidx[j]<<' '<<mxidx[j]<<endl;
+    long long ans = 0;
+    //cout<<tree[1].mn<<' '<<tree[1].cnt<<endl;
+   for(int j=1;j<=n;j++){
+        if(tree[1].mn == 0) ans += tree[1].cnt;
+        //cout<<tree[1].mn<<"!!"<<' '<<tree[1].cnt<<endl;
+        //dfs(1 , 1 ,n); puts("");
+        addmax(j , -1);
+        addmin(j , -1);
+        st = j + 1 , en = n , upd = 1;
+        update(1,1,n);
+        for(auto pp : rmx[j]) addmax(pp , 1);
+        for(auto pp : rmn[j]) addmin(pp , 1);
+        st = j , en = j , upd = (1<<28); update(1,1,n);
+    }
+    cout<<ans<<endl;
+}

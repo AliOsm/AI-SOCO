@@ -1,0 +1,122 @@
+#include <bits/stdc++.h>
+#define vi vector <int>
+using namespace std;
+
+#define NMAX 720
+
+int stare[11][11][11][11];
+vector <int> nr[1000];
+int staremax;
+int dp[2018][11][NMAX];
+int a[2018], b[2018];
+
+int id(vector <int> & v)
+{
+    return stare[v[0]][v[1]][v[2]][v[3]];
+}
+int add(int poz, int c)
+{
+    auto x = nr[poz];
+    x[0] = c;
+    for (int i = 0; i < 3 && x[i + 1] < x[i]; i++)
+        swap(x[i + 1], x[i]);
+    return id(x);
+}
+int rem(int poz, int c)
+{
+    auto x = nr[poz];
+    while (1) {
+        int q = find(x.begin(), x.end(), c) - x.begin();
+        if (q == 4)
+            return id(x);
+        x[q] = 0;
+        while (q)
+            swap(x[q - 1], x[q]), q--;
+    }
+}
+
+void precalc()
+{
+    memset(dp[0], 0x3333, sizeof dp[0]);
+    for (int i = 1; i <= 9; i++)
+        dp[0][i][0] = i - 1;
+
+    nr[0] = { 0, 0, 0, 0 };
+    int act = 1;
+    for (int i = 1; i <= 9; i++) {
+        nr[act] = { 0, 0, 0, i };
+        stare[0][0][0][i] = act++;
+        for (int j = i; j <= 9; j++) {
+            nr[act] = { 0, 0, i, j };
+            stare[0][0][i][j] = act++;
+            for (int k = j; k <= 9; k++) {
+                nr[act] = { 0, i, j, k };
+                stare[0][i][j][k] = act++;
+                for (int l = k; l <= 9; l++) {
+                    nr[act] = { i, j, k, l };
+                    stare[i][j][k][l] = act++;
+                }
+            }
+        }
+    }
+    staremax = act - 1;
+}
+
+void calc_dp(int poz)
+{
+    memset(dp[poz], 0x3333, sizeof dp[poz]);
+
+    priority_queue <pair <int, pair <int, int>>> q;
+
+    for (int prec = 0; prec <= staremax; prec++) {
+        if (nr[prec][0] != 0)
+            continue;
+        int where = add(prec, b[poz]);
+        dp[poz][a[poz]][where] = dp[poz - 1][a[poz]][prec];
+        q.push({ -dp[poz][a[poz]][where], { a[poz], where } });
+    }
+    while (!q.empty()) {
+        int cost = -q.top().first;
+        int h = q.top().second.first;
+        int mask = q.top().second.second;
+        q.pop();
+        if (dp[poz][h][mask] != cost)
+            continue;
+        int newmask = rem(mask, h);
+        if (dp[poz][h][newmask] > cost) {
+            dp[poz][h][newmask] = cost;
+            q.push({ -cost, { h, newmask } });
+        }
+        if (h > 1 && dp[poz][h - 1][mask] > cost + 1) {
+            dp[poz][h - 1][mask] = 1 + cost;
+            q.push({ -cost - 1, { h - 1, mask } });
+        }
+        if (h < 9 && dp[poz][h + 1][mask] > cost + 1) {
+            dp[poz][h + 1][mask] = cost + 1;
+            q.push({ -cost - 1, { h + 1, mask } });
+        }
+    }
+}
+
+int main()
+{
+    precalc();
+    int n;
+
+    cin >> n;
+
+    for (int i = 1; i <= n; i++)
+        cin >> a[i] >> b[i];
+
+    for (int i = 1; i <= n; i++)
+        calc_dp(i);
+
+    int best = 1e9;
+
+    for (int i = 1; i <= 9; i++)
+        best = min(best, dp[n][i][0]);
+
+    cout << best + 2 * n << '\n';
+
+    return 0;
+}

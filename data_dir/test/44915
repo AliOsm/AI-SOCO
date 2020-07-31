@@ -1,0 +1,242 @@
+/******************************************
+,--,     ,--,  .--.--.     ,----..   
+ |'. \   / .`| /  /    '.  /   /   \  
+ ; \ `\ /' / ;|  :  /`. / |   :     : 
+ `. \  /  / .';  |  |--`  .   |  ;. / 
+  \  \/  / ./ |  :  ;_    .   ; /--`  
+   \  \.'  /   \  \    `. ;   | ;     
+    \  ;  ;     `----.   \|   : |     
+   / \  \  \    __ \  \  |.   | '___  
+  ;  /\  \  \  /  /`--'  /'   ; : .'| 
+./__;  \  ;  \'--'.     / '   | '/  : 
+|   : / \  \  ; `--'---'  |   :    /  
+;   |/   \  ' |            \   \ .'   
+`---'     `--`              `---`     
+   
+ ******************************************/
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize ("unroll-loops")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx")
+
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
+#include <cctype>
+#include <cassert>
+#include <climits>
+
+#include <iostream>
+#include <algorithm>
+#include <utility>
+#include <memory>
+#include <numeric>
+#include <set>
+#include <string>
+#include <stack>
+#include <vector>
+#include <map>
+#include <queue>
+
+#include <limits>
+#include <bitset>
+#include <deque>
+#include <list>
+#include <new>
+#include <iterator>
+
+#if __cpluplus >= 201103L
+#include <functional>
+#include <cinttypes>
+#include <cstdint>
+#include <array>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+
+#include <initializer_list>
+#include <complex>
+#endif 
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+
+typedef std::pair < int, int > pii ;
+typedef std::vector< int > vi ;
+typedef std::vector< pii > vii ;
+
+
+template< typename T > T gcd(T a, T b){ T m; while(b != T(0) ){ m = a % b; a = b; b= m; } return a; } 
+template< typename T > T lcm(T a, T b){ return a == 0 && b == 0 ? 0 : ( a / gcd(a,b) )  * b ;}
+ 
+#define PI   3.1415926535897932384626433832795
+#define all(x)    (x).begin(), (x).end() 
+#define fi   first
+#define se   second
+#define pb   push_back
+#define DO_UNIQUE(c)   (c).erase( std::unique( all( c ) ), (c).end() ) 
+/***********************************************************************************************/
+int const MAXN = 1<<18;
+
+vi g[MAXN];
+int  in[MAXN], out[MAXN];
+ 
+int N, Q, timer;
+  
+
+void dfs(int x, int pa)
+{
+    in[x] = ++timer;
+    for(int y : g[x] ) {
+        
+        if (y == pa)continue;
+        
+        dfs(y, x);
+     }
+    
+    out[x] = timer;
+}
+
+class segment_tree
+{
+    vi t, lz;
+    int n ;
+public:
+    explicit segment_tree( int n )
+    {
+        t.resize( 4 * n );
+        lz.resize( 4 * n );
+        this->n = n;
+    }
+    ~segment_tree(){};
+    
+    int query_sum(int x, int y)
+    {
+        return get( 1, 1, n, x, y ) ;
+    }
+    
+    void update_interval(int x, int y)
+    {
+        update(1, 1, n, x, y );
+    }
+private:
+    void push(int n, int l, int r )
+    {
+        if ( lz[ n ] ) 
+        {
+            lz[n] = 0;
+            if (l != r )
+            {
+                lz[n << 1 | 0 ] ^= 1 ;
+                lz[n << 1 | 1 ] ^= 1 ;
+            }
+            t[n] = ( r - l + 1 )  - t[ n ] ;
+        }
+        lz[n] = 0;
+    } 
+    
+    void update(int n, int s, int e, int l, int r ){
+        push(n, s, e);
+        
+        if ( s > r || e < l ) 
+            return ;
+        
+        if ( s >= l && e <= r )
+        {
+            lz[ n ] = 1;
+            push(n, s, e ) ;
+            return ;
+        }
+        int m = (s+e)>>1;
+        
+        update(2*n, s , m, l, r ) ;
+        update(2*n+1, m+1, e, l, r ) ;
+        t[n] = t[n*2] + t[n*2+1];
+    }
+    
+    int get(int n, int s, int e, int l, int r )
+    {
+        push(n, s, e ) ;
+        
+        if (s > r || e < l ) return 0;
+        
+        if (s >= l && e <= r ) return t[n];
+        
+        int m = (s + e)>>1;
+        
+        return get(n*2, s, m, l, r ) + get(n*2+1, m+1, e, l, r ) ;
+    }
+    
+};
+
+int solve()
+{  
+    scanf("%d",&N);
+    for(int i = 2; i <= N; ++i)
+    {
+        int  p;
+        scanf("%d", &p);
+        g[p].pb(i);
+    }
+    
+    timer = 0;
+    
+    dfs(1, 0);
+    
+    segment_tree  tree( N );
+    
+    for(int i= 1; i<= N; ++i)
+    {
+        int t;
+         
+        scanf("%d", &t);
+         
+        if(t != 0 )
+        {
+            tree.update_interval( in[ i ], in[ i ] ) ;
+        }
+    }
+    
+    scanf("%d", &Q);
+    for(int q = 0; q < Q; ++q)
+    {
+        char s[16];
+        int v;
+        scanf("%s %d", s, &v);
+        
+        int i = v;
+        
+        if (s[0] == 'g') // get
+        {
+            
+            printf("%d\n", tree.query_sum(in[i], out[i]) ) ;
+        }  else {
+            tree.update_interval(in[i], out[i]);
+        }
+        
+        
+        
+    }
+     
+    
+    return 0;
+}
+
+int main(int argc, char* argv[] ) 
+{
+    
+#ifndef ONLINE_JUDGE
+    freopen("input.txt", "r", stdin);
+    freopen("output.txt" , "w", stdout);
+#endif 
+    ::std::ios::sync_with_stdio(false);
+    ::std::cin.tie(0);
+    ::std::cout.tie(0);
+  
+    solve();
+    
+    return 0;
+}

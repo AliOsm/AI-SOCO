@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	200000
+#define N_	(N * 2)
+#define INF	0x3f3f3f3f
+
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
+char aa[N_ + 1];
+int sa[N_], pp[N_], a0[N_], a1[N_], kk[N_ + 2];
+
+int compare(const void *a, const void *b) {
+	int i = *(int *) a;
+	int j = *(int *) b;
+
+	return aa[i] - aa[j];
+}
+
+void compress(int n) {
+	int i, a;
+
+	for (i = 0, a = 0; i < n; i++)
+		a0[sa[i]] = i + 1 == n || a0[sa[i + 1]] != a0[sa[i]] || a1[sa[i + 1]] != a1[sa[i]] ? a++ : a;
+}
+
+void extend(int n, int m) {
+	int i;
+
+	for (i = 0; i < n; i++)
+		a1[i] = i + m < n ? a0[i + m] : -1;
+}
+
+void sort(int *aa, int *ii, int *jj, int n) {
+	int i, a;
+
+	memset(kk, 0, (n + 2) * sizeof *kk);
+	for (i = 0; i < n; i++) {
+		a = aa[i] + 2;
+		kk[a]++;
+	}
+	for (a = 1; a < n + 2; a++)
+		kk[a] += kk[a - 1];
+	for (i = 0; i < n; i++) {
+		int j = ii[i];
+
+		a = aa[j] + 2;
+		jj[kk[a - 1]++] = j;
+	}
+}
+
+int st[N_ * 2], n_;
+
+void build_st(int *aa, int n) {
+	int i;
+
+	n_ = n;
+	for (i = 0; i < n; i++)
+		st[n_ + i] = aa[i];
+	for (i = n_ - 1; i > 0; i--)
+		st[i] = min(st[i << 1], st[i << 1 | 1]);
+}
+
+int query(int l, int r) {
+	int x = INF;
+
+	for (l += n_, r += n_; l <= r; l >>= 1, r >>= 1) {
+		if ((l & 1) == 1)
+			x = min(x, st[l++]);
+		if ((r & 1) == 0)
+			x = min(x, st[r--]);
+	}
+	return x;
+}
+
+void build_sa(int n) {
+	int i, m, p;
+
+	for (i = 0; i < n; i++) {
+		sa[i] = i;
+		a0[i] = aa[i];
+	}
+	qsort(sa, n, sizeof *sa, compare);
+	compress(n);
+	for (m = 1; m < n; m <<= 1) {
+		extend(n, m);
+		sort(a1, sa, pp, n);
+		sort(a0, pp, sa, n);
+		compress(n);
+	}
+	for (i = 0, p = 0; i < n; i++, p--) {
+		int a = a0[i];
+
+		if (a + 1 < n) {
+			int j = sa[a + 1];
+
+			p = max(p, 0);
+			while (j + p < n && aa[i + p] == aa[j + p])
+				p++;
+			pp[a] = p;
+		}
+	}
+	build_st(pp, n - 1);
+}
+
+int lcp(int i, int j) {
+	int tmp;
+
+	if (a0[i] > a0[j])
+		tmp = i, i = j, j = tmp;
+	return query(a0[i], a0[j] - 1);
+}
+
+int main() {
+	static char cc[N + 1];
+	static int hh[N + 1];
+	int n, m, q, h, i, j;
+
+	scanf("%d%s", &n, cc);
+	for (h = 0, i = 0; i < n; i++) {
+		if (cc[i] == '0')
+			aa[h] = (i - h) % 2, h++;
+		hh[i] = h;
+	}
+	m = h;
+	for (h = 0; h < m; h++)
+		aa[m + h] = aa[h] ^ 1;
+	build_sa(m * 2);
+	scanf("%d", &q);
+	while (q--) {
+		int l, il, ir, jl, jr;
+
+		scanf("%d%d%d", &i, &j, &l), i--, j--;
+		il = i == 0 ? 0 : hh[i - 1], ir = hh[i + l - 1];
+		if ((i - il) % 2 != 0)
+			il += m, ir += m;
+		jl = j == 0 ? 0 : hh[j - 1], jr = hh[j + l - 1];
+		if ((j - jl) % 2 != 0)
+			jl += m, jr += m;
+		printf(ir - il == jr - jl && lcp(il, jl) >= ir - il ? "Yes\n" : "No\n");
+	}
+	return 0;
+}

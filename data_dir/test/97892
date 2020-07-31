@@ -1,0 +1,20 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int a, b;
+    scanf("%d%d", &a, &b);
+
+    if(a==1 && b==10) {
+        printf("-1\n");
+        return 0;
+    }
+
+    if(b==10)
+        b /= 10;
+
+    printf("%d", b);
+    for(int i=1; i<a; i++)
+        printf("0");
+    printf("\n");
+}

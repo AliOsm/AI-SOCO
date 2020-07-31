@@ -1,0 +1,134 @@
+#pragma GCC optimize ("O3")
+#pragma GCC optimize ("unroll-loops")
+#pragma comment(linker, "/STACK:2000000")
+
+#include "bits/stdc++.h"
+
+using namespace std;
+
+template<int D, typename T>
+struct Vec : public vector<Vec<D - 1, T>> {
+  static_assert(D >= 1, "Vector dimension must be greater than zero!");
+  template<typename... Args>
+  Vec(int n = 0, Args... args) : vector<Vec<D - 1, T>>(n, Vec<D - 1, T>(args...)) {
+  }
+};
+template<typename T>
+struct Vec<1, T> : public vector<T> {
+  Vec(int n = 0, T val = T()) : vector<T>(n, val) {
+  }
+};
+
+#define pb push_back
+#define F first
+#define S second
+#define f(i,a,b)  for(int i = a; i < b; i++)
+// #define endl '\n'
+using ll = long long;
+using db = long double;
+using ii = pair<int, int>;
+
+const int N = 2e6+5, LG = 19, MOD = 998244353;
+const int SQ =320;
+const long double EPS = 1e-7;
+int dp[2005][2005][11];
+int t, n, val[2005];
+int C[4005][4005];
+int fact[2005];
+int32_t main(){
+#ifdef ONLINE_JUDGE
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+#endif // ONLINE_JUDGE
+  fact[0] = 1;
+  f(i,1,2005)fact[i] = 1ll * i * fact[i-1] % MOD;
+  f(i,0,4005)
+    f(j,0,i+1)if(i==j||j==0)C[i][j] = 1;
+    else C[i][j] = (C[i-1][j] + C[i-1][j-1]) % MOD;
+  cin >> t;
+  while(t--){
+    cin >> n;
+    vector<int> odd, even;
+    f(i,0,n){
+      string s;
+      cin >> s;
+      reverse(s.begin(),s.end());
+      val[i] = 0;
+      f(j,0,s.size())
+        (val[i] += (j & 1) ? 11 - (s[j] - '0') : (s[j] - '0')) %= 11;
+      if(s.size()&1)odd.pb(val[i]);
+      else
+        even.pb(val[i]);
+    }
+
+    ///first solve odd
+    ///those that have odd positions will have sum = val[i]
+    ///those that have even sums will have sum = 11 - val[i]
+    ///find number of ways to put (n + 1) / 2 numbers in their places then multiply them with (n + 1) / 2 ! * n / 2 !
+
+    n = odd.size();
+    memset(dp[0], 0, sizeof dp[0]);
+    dp[0][(n+1)/2][0] = 1;
+    f(i,0,n){
+      memset(dp[i+1],0,sizeof dp[i+1]);
+      for(int cnt = (n + 1) / 2; cnt >= 0; --cnt){
+        for(int sum = 0; sum < 11; sum++){
+          if(cnt){///choose this as odd
+            dp[i+1][cnt-1][(sum + odd[i])%11]
+            += dp[i][cnt][sum];
+            if(dp[i+1][cnt-1][(sum + odd[i])] >= MOD)dp[i+1][cnt-1][(sum + odd[i])] -= MOD;
+          }
+          dp[i+1][cnt][(sum + 11 - odd[i])%11]
+          += dp[i][cnt][sum];
+          if(dp[i+1][cnt][(sum + 11 - odd[i])%11] >= MOD)dp[i+1][cnt][(sum + 11 - odd[i])%11]-= MOD;
+        }
+      }
+    }
+    int ans[11] = {};
+    f(s,0,11)ans[s] = 1ll * dp[n][0][s] * fact[n>>1] % MOD * fact[(n+1) >> 1] % MOD;  ///solved odd
+    ///solve even
+    n = even.size();
+    memset(dp[0], 0, sizeof dp[0]);
+    dp[0][0][0] = 1;
+    f(i,0,n){
+      memset(dp[i+1],0,sizeof dp[i+1]);
+      f(j,0,i+1){
+        f(s,0,11){
+          ///take
+          dp[i+1][j+1][(s+even[i])%11] += dp[i][j][s];
+          if(dp[i+1][j+1][(s+even[i])%11] >= MOD)dp[i+1][j+1][(s + even[i]) % 11] -= MOD;
+          ///leave
+          dp[i+1][j][s] += dp[i][j][s];
+          if(dp[i+1][j][s] >= MOD)dp[i+1][j][s] -= MOD;
+        }
+      }
+    }
+    int tot = 0;
+    if(!even.empty())
+    tot = accumulate(even.begin(),even.end(), 0) % 11;
+    int evenPos = (odd.size() + 2) / 2;
+    int oddPos = (odd.size()+1) / 2;
+    int out = 0;
+    for(int cnt = 0; cnt <= even.size(); cnt++){
+        for(int sum = 0; sum < 11; sum++){
+          int lft = tot - sum;
+          lft = 11 - lft;
+          lft = (lft%11 + 11)%11;
+          int kollo = (lft + sum) % 11;
+          int ss = ans[(11 - kollo) % 11];
+          ss = 1ll * ss * dp[n][cnt][sum] % MOD;
+          ss = 1ll * ss * fact[cnt] % MOD;
+          ss = 1ll * ss * fact[n - cnt] % MOD;
+          ss = 1ll * ss * C[cnt + evenPos - 1][evenPos-1] % MOD;
+          if(oddPos){
+            ss = 1ll * ss * C[(n-cnt) + oddPos - 1][oddPos - 1] % MOD;
+          } else
+            ss *= (cnt == even.size());
+          (out += ss) %= MOD;
+        }
+    }
+    cout << out << endl;
+
+  }
+  return 0;
+}

@@ -1,0 +1,143 @@
+#include <bits/stdc++.h>
+
+#define debug(x) cout << #x << " = " << x << endl
+#define fori(i, ini, lim) for(int i = int(ini); i < int(lim); i++)
+#define ford(i, ini, lim) for(int i = int(ini); i >= int(lim); i--)
+
+using namespace std;
+
+typedef long long ll;
+typedef long double ld;
+typedef pair<int, int> ii;
+
+const int MAX = 3e3 + 5;
+int n, m;
+vector<ii> factors[MAX];
+int arr[MAX];
+int node_cnt = 1;
+
+vector<ii> find_factors(int x) {
+	vector<ii> f;
+	for(int i = 2; i * i <= x; i++) {
+		int total = 0;
+		while(x % i == 0) {
+			x /= i;
+			total++;
+		}
+		if(total) {
+			f.emplace_back(i, total);
+		}
+	}
+	if(x != 1) {
+		f.emplace_back(x, 1);
+	}
+	return f;
+}
+
+map<ii, int> mask;
+
+const int MAXN = MAX;
+const int INF = 1000000000;
+ 
+struct edge {
+	int a, b, cap, flow;
+};
+ 
+int d[MAXN], ptr[MAXN], q[MAXN];
+vector<edge> e;
+vector<int> g[MAXN];
+ 
+void add_edge (int a, int b, int cap) {
+	edge e1 = { a, b, cap, 0 };
+	edge e2 = { b, a, 0, 0 };
+	g[a].push_back ((int) e.size());
+	e.push_back (e1);
+	g[b].push_back ((int) e.size());
+	e.push_back (e2);
+}
+ 
+bool bfs(int s, int t) {
+	int qh=0, qt=0;
+	q[qt++] = s;
+	memset (d, -1, (node_cnt + 1) * sizeof d[0]);
+	d[s] = 0;
+	while (qh < qt && d[t] == -1) {
+		int v = q[qh++];
+		for (size_t i=0; i<g[v].size(); ++i) {
+			int id = g[v][i],
+				to = e[id].b;
+			if (d[to] == -1 && e[id].flow < e[id].cap) {
+				q[qt++] = to;
+				d[to] = d[v] + 1;
+			}
+		}
+	}
+	return d[t] != -1;
+}
+ 
+int dfs (int v, int flow, const int &t) {
+	if (!flow)  return 0;
+	if (v == t)  return flow;
+	for (; ptr[v]<(int)g[v].size(); ++ptr[v]) {
+		int id = g[v][ptr[v]],
+			to = e[id].b;
+		if (d[to] != d[v] + 1)  continue;
+		int pushed = dfs (to, min (flow, e[id].cap - e[id].flow), t);
+		if (pushed) {
+			e[id].flow += pushed;
+			e[id^1].flow -= pushed;
+			return pushed;
+		}
+	}
+	return 0;
+}
+ 
+int dinic(int s, int t) {
+	int flow = 0;
+	for (;;) {
+		if (!bfs(s, t))  break;
+		memset (ptr, 0, (node_cnt + 1) * sizeof ptr[0]);
+		while (int pushed = dfs (s, INF, t))
+			flow += pushed;
+	}
+	return flow;
+}
+
+int main() {
+	scanf("%d %d", &n, &m);
+	fori(i, 1, n + 1) {
+		scanf("%d", arr + i);
+		factors[i] = find_factors(arr[i]);
+		for(auto &each : factors[i]) {
+			mask[make_pair(i, each.first)] = node_cnt++;
+		}
+	}
+	for(int i = 1; i <= n; i += 2) {
+		for(auto &each : factors[i]) {
+			add_edge(0, mask[make_pair(i, each.first)], each.second); 	
+		}
+	}
+	fori(i, 0, m) {
+		int a, b;
+		scanf("%d %d", &a, &b);
+		if(b & 1) {
+			swap(a, b);
+		}
+		for(auto &each : factors[a]) {
+			if(arr[b] % each.first == 0) {
+				add_edge(mask[make_pair(a, each.first)], mask[make_pair(b, each.first)], 1 << 30);
+			}
+		}
+	}
+
+	
+	for(int i = 2; i <= n; i += 2) {
+		for(auto &each : factors[i]) {
+			add_edge(mask[make_pair(i, each.first)], node_cnt, each.second);
+		}
+	}
+
+	cout << dinic(0, node_cnt) << '\n';
+
+	return 0;
+}

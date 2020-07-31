@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+using ll = long long;
+
+const int N = 1000006;
+
+ll st[4*N], lz[4*N];
+
+void prop(int p, int L, int R) {
+	if(lz[p]) {
+		st[p] += lz[p];
+		if(L < R) {
+			lz[2 * p] += lz[p];
+			lz[2 * p + 1] += lz[p];
+		}
+		lz[p] = 0;
+	}
+}
+
+ll query(int p, int L, int R, int i, int j) {
+	prop(p, L, R);
+	if(i > R or j < L) return -1e18;
+	if(L >= i and R <= j) return st[p];
+	int mid = (L + R) / 2;
+	return max(query(2 * p, L, mid, i, j),
+			   query(2 * p + 1, mid + 1, R, i, j));
+}
+void update(int p, int L, int R, int i, int j, ll val) {
+	prop(p, L, R);
+	if(i > R or j < L) return;
+	if(L >= i and R <= j){
+		(lz[p] = val, prop(p, L, R));
+		return;
+	}
+	int mid = (L + R) / 2;
+	update(2 * p, L, mid, i, j, val);
+	update(2 * p + 1, mid + 1, R, i, j, val);
+	st[p] = max(st[2 * p], st[2 * p + 1]);
+}
+
+int n;
+ll a[N];
+ll dp[N];
+
+int main() {
+
+	scanf("%d", &n);
+
+	for(int i = 1; i <= n; i++) {
+		scanf("%lld", a + i);
+	}
+
+	stack<int> pmin, pmax;
+	for(int i = n; i >= 1; i--) {
+		int last = i;
+		while(!pmin.empty() and a[pmin.top()] >= a[i]) {
+			last = pmin.top();
+			ll old_v = a[pmin.top()];
+			pmin.pop();
+			int tmp = pmin.empty() ? n + 1 : pmin.top();
+			update(1, 1, n+1, last+1, tmp, -a[i]+old_v);
+		}
+		last = i;
+		while(!pmax.empty() and a[pmax.top()] <= a[i]) {
+			last = pmax.top();
+			ll old_v = a[pmax.top()];
+			pmax.pop();
+			int tmp = pmax.empty() ? n + 1 : pmax.top();
+			update(1, 1, n+1, last+1, tmp, a[i]-old_v);
+		}
+		/*int id = big.empty() ? n + 1 : big.top();
+		update(1, 1, n+1, i+1, id+1, a[i]);
+		id = small.empty() ? n + 1 : small.top();
+		update(1, 1, n+1, i+1, id+1, -a[i]);*/
+		pmin.push(i);
+		pmax.push(i);
+		dp[i] = query(1, 1, n+1, i+1, n+1);
+		update(1, 1, n+1, i, i, dp[i]);
+		// dp[i] = max(C[i..j] + dp[j + 1]);
+		// cout << dp[i] << endl;
+		// if(i == n - 2) return 0;
+	}
+
+	printf("%lld\n", dp[1]);
+}

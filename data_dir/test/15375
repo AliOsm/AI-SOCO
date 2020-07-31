@@ -1,0 +1,45 @@
+#include <bits/stdc++.h>
+#define nmax 1001
+using namespace std;
+int n, a[nmax];
+int main()
+{
+    cin>>n;
+    for (int i=1;i<=n;++i){
+        cin>>a[i];
+    }
+    for (int i=1;i<n;++i){
+        for (int j=i+1;j<=n;++j){
+            int nw = 1;
+            bool ok = true;
+            for (int k=1;k<i&&ok;++k){
+                if (a[k]!=nw){
+                    ok = false;
+                    break;
+                }
+                ++nw;
+            }
+            for (int k=j;k>=i&&ok;--k){
+                if (a[k]!=nw){
+                    ok=false;
+                    break;
+                }
+                ++nw;
+            }
+            for (int k=j+1;k<=n&&ok;++k){
+                if (a[k]!=nw){
+                    ok=false;
+                    break;
+                }
+                ++nw;
+            }
+            if (ok){
+                cout<<i<<' '<<j<<'\n';
+                return 0;
+            }
+        }
+    }
+
+    cout<<"0 0\n";
+    return 0;
+}

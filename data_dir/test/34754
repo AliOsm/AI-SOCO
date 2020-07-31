@@ -1,0 +1,165 @@
+#include <bits/stdc++.h>
+#define db(x) cout<<#x<<" = "<<x<<"\n"
+#define fst first
+#define snd second
+#define fore(i,a,b) for(int i=a,ThxDem=b;i<ThxDem;++i)
+#define pb push_back
+#define ALL(s) s.begin(),s.end()
+#define FIN ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0)
+#define SZ(s) int(s.size())
+using namespace std;
+typedef long long ll;
+typedef pair<int,int> ii;
+
+const int MAXN=1<<22;
+struct CD{
+	double r,i;
+	CD(double r=0,double i=0):r(r),i(i){}
+	double real()const{return r;}
+	void operator/=(const int c){r/=c,i/=c;}
+};
+CD operator*(const CD& a, const CD& b){
+	return CD(a.r*b.r-a.i*b.i,a.r*b.i+a.i*b.r);}
+CD operator+(const CD& a, const CD& b){return CD(a.r+b.r,a.i+b.i);}
+CD operator-(const CD& a, const CD& b){return CD(a.r-b.r,a.i-b.i);}
+const double pi=acos(-1);
+CD cp1[MAXN+9],cp2[MAXN+9];
+int R[MAXN+9];
+void dft(CD *a,int n,bool inv){
+	fore(i,0,n)if(R[i]<i)swap(a[R[i]],a[i]);
+	for(int m=2;m<=n;m*=2){
+		double z=2*pi/m*(inv?-1:1);
+		CD wi=CD(cos(z),sin(z));
+		for(int j=0;j<n;j+=m){
+			CD w(1);
+			for(int k=j,k2=j+m/2;k2<j+m;k++,k2++){
+				CD u=a[k];CD v=a[k2]*w;a[k]=u+v;a[k2]=u-v;w=w*wi;
+			}
+		}
+	}
+	if(inv)fore(i,0,n)a[i]/=n;
+}
+vector<int> multiply(vector<int> &p1, vector<int> &p2){
+	int n=SZ(p1)+SZ(p2)+1;
+	int m=1,cnt=0;
+	while(m<=n)m+=m,cnt++;
+	fore(i,0,m){R[i]=0;fore(j,0,cnt)R[i]=(R[i]<<1)|((i>>j)&1);}
+	fore(i,0,m)cp1[i]=0,cp2[i]=0;
+	fore(i,0,p1.size())cp1[i]=p1[i];
+	fore(i,0,p2.size())cp2[i]=p2[i];
+	dft(cp1,m,0); dft(cp2,m,0);
+	fore(i,0,m)cp1[i]=cp1[i]*cp2[i];
+	dft(cp1,m,1);
+	n-=2;
+	vector<int> res;
+	fore(i,0,n)res.pb((ll)floor(cp1[i].real()+.5));
+	return res;
+}
+
+
+vector<int> mul(vector<int> &x, vector<int> &y){
+	auto ans=multiply(x,y);
+	int carry=0;
+	int pos=0;
+	while(pos<SZ(ans)){
+		carry+=ans[pos];
+		ans[pos]=carry%10;
+		carry/=10;
+		if(carry&&pos+1==SZ(ans)) ans.pb(0);
+		pos++;
+	}
+	return ans;
+}
+
+
+vector<int> pow3(ll exp) {
+	vector<int> result = {1};
+	vector<int> base={3};
+	while(exp){
+		if(exp & 1) result = mul(result,base);
+		exp >>= 1;
+		base=mul(base,base);
+	}
+	reverse(ALL(result));
+	return result;
+}
+
+bool low(vector<int> &a, vector<int> &b){
+	if(SZ(a)!=SZ(b))return SZ(a)<SZ(b);
+	fore(i,0,SZ(a)) if(b[i]!=a[i]) return a[i]<b[i];
+	return 0;
+}
+
+void mul3(vector<int> &ans){
+	int carry=0;
+	int pos=0;
+	reverse(ALL(ans));
+	while(pos<SZ(ans)){
+		carry+=ans[pos]*3;
+		ans[pos]=carry%10;
+		carry/=10;
+		if(carry&&pos+1==SZ(ans)) ans.pb(0);
+		pos++;
+	}
+	reverse(ALL(ans));
+}
+
+void sum(vector<int> &a, int asd){
+	int carry=asd;
+	for(int i=SZ(a)-1;i>=0;i--){
+		if(!carry)break;
+		carry+=a[i];
+		a[i]=carry%10;
+		carry/=10;
+	}
+}
+
+vector<int> div2(vector<int> a){
+	vector<int> ans=a;
+	int carry=0;
+	fore(i,0,SZ(ans)){
+		carry=(10*carry)+ans[i];
+		ans[i]=carry/2;
+		carry=carry&1;
+	}
+	if(carry) sum(ans,1);
+	if(SZ(ans)>1&&ans[0]==0) ans=vector<int>(ans.begin()+1,ans.end());
+	return ans;
+}
+
+void print(vector<int> &a){
+	for(auto x:a)cout<<x;cout<<"\n";
+}
+
+int main(){FIN;
+	string s; cin>>s;
+	if(s=="1")cout<<"1\n",exit(0);
+	vector<int> n;
+	for(auto x:s) n.pb(x-'0');
+	div2(n);
+
+	auto n2=div2(n);
+	auto n4=div2(n2);
+
+	double lg10=log(10)/log(3);
+	int k=ceil((SZ(s)-1)*lg10);
+	
+	int mx=max(0,k-4);
+	auto ans=pow3(mx);
+	
+	
+	while(low(ans,n4)) mul3(ans),mx++;
+	int x4=mx;
+	
+	while(low(ans,n2)) mul3(ans),mx++;
+	int x2=mx;
+	
+	while(low(ans,n)) mul3(ans),mx++;
+	int x=mx;
+	
+	x=3*x;
+	x2=3*x2+2;
+	x4=3*x4+4;
+	
+	cout<<min({x,x2,x4})<<"\n";
+}

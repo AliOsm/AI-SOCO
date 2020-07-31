@@ -1,0 +1,121 @@
+#include <bits/stdc++.h>
+#define mp make_pair
+#define rep(i,X,n) for( int (i) = (X) ; (i)<(n) ; (i) ++)
+using namespace std;
+
+string s[105];
+int a[105];
+int cnt[105];
+inline int gInd(int x) {
+    return (x) % 2 ? (x) - 1 : (x) + 1;
+}
+int n, m;
+struct Edge {
+    int fr, to, cost, flow;
+    Edge() {
+        fr = to = cost = flow = -1;
+    }
+    Edge(int a, int b, int c, int d) :
+        fr(a), to(b), cost(c), flow(d) {
+    }
+};
+
+struct MinCostMaxFlow {
+    vector<Edge> es;
+    int flow[205];
+    int cost[205];
+    int p[205];
+    void AddEdge(int fr, int to, int co, int fl) {
+        es.push_back(Edge(fr, to, co, fl));
+        es.push_back(Edge(to, fr, -co, 0));
+    }
+    MinCostMaxFlow() {
+        clear();
+    }
+    int getPath(int src, int sink) {
+        memset(flow, 0, sizeof(flow));
+        fill(cost, cost + n + m + 2, 100000000);
+        cost[src] = 0;
+        flow[src] = 100000000;
+        memset(p, -1, sizeof(p));
+        for (int i = 0; i < n + m + 2; i++) {
+            bool fl = 0;
+            for (int j = 0; j < int(es.size()); j++) {
+                if (cost[es[j].to] > cost[es[j].fr] + es[j].cost && es[j].flow
+                        != 0) {
+                    cost[es[j].to] = cost[es[j].fr] + es[j].cost;
+                    flow[es[j].to] = min(flow[es[j].fr], es[j].flow);
+                    p[es[j].to] = j;
+                    fl = 1;
+                }
+            }
+            if (!fl)
+                break;
+        }
+        return flow[sink];
+    }
+    pair<int, int> MCMF(int src, int sink) {
+        if (src == sink)
+            return make_pair(100000000, 0);
+        int fl, totc = 0, totf = 0, cur;
+        while (1) {
+            fl = getPath(src, sink);
+            if (p[sink] == -1)
+                break;
+            cur = sink;
+            while (p[cur] != -1) {
+                es[p[cur]].flow -= fl;
+                es[gInd(p[cur])].flow += fl;
+                totc += fl * es[p[cur]].cost;
+                cur = es[p[cur]].fr;
+            }
+            totf += fl;
+        }
+        return make_pair(totf, totc);
+    }
+    void clear() {
+        es.clear();
+        memset(flow, 0, sizeof(flow));
+        memset(cost, 0, sizeof(cost));
+        memset(p, -1, sizeof(p));
+    }
+};
+
+int main() {
+    ios::sync_with_stdio(false);
+    string t;
+    cin >> t;
+    int N;
+    cin >> N;
+    for (int i = 0; i < N; i++)
+        cin >> s[i] >> a[i];
+
+    MinCostMaxFlow problem = MinCostMaxFlow();
+    n = N;
+    m = 26;
+
+    for (int i = 0; i < N; i++)
+        problem.AddEdge(0, i + 1, 0, a[i]);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < 26; j++)
+            cnt[j] = 0;
+        for (int j = 0; j < int(s[i].size()); j++)
+            cnt[s[i][j] - 'a']++;
+        for (int j = 0; j < 26; j++)
+            if (cnt[j])
+                problem.AddEdge(i + 1, N + j + 1, i+1, cnt[j]);
+    }
+
+    for (int i = 0; i < 26; i++)
+        cnt[i] = 0;
+    for (int i = 0; i < int(t.size()); i++)
+        cnt[t[i] - 'a']++;
+    for (int i = 0; i < 26; i++)
+        if (cnt[i])
+            problem.AddEdge(N + i + 1, N + 27, 0, cnt[i]);
+    pair<int, int> ans = problem.MCMF(0, N + 27);
+    if(ans.first == int(t.size()))cout<<ans.second<<endl;
+    else cout<<-1<<endl;
+
+    return 0;
+}

@@ -1,0 +1,166 @@
+#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <string>
+#include <cmath>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <chrono>
+#include <stack>
+#include <cassert>
+#include <queue>
+#include <deque>
+#include <climits>
+#include <cstring>
+#include <random>
+#include <bitset>
+#include <functional>
+
+using namespace std;
+
+const int inf = 1e9 + 239;
+
+vector<int> used;
+vector<int> where;
+vector<vector<int>> comps;
+vector<vector<int>> g;
+
+void dfs1(int cur, int comp) {
+    used[cur] = 1;
+    where[cur] = comp;
+    comps[comp].push_back(cur);
+    for (auto t : g[cur]) {
+        if (!used[t]) {
+            dfs1(t, comp);
+        }
+    }
+}
+
+vector<int> who;
+
+int mh = -1;
+
+void dfs2(int cur, int h) {
+    mh = max(mh, h);
+    used[cur] =1;
+    for (auto t : g[cur]) {
+        if (!used[t]) {
+            dfs2(t, h + 1);
+        }
+    }
+}
+
+void find_min_comps(int n) {
+    used.resize(n, false);
+    where.resize(n);
+    int cnt = 0;
+    for (int i = 0; i < n; i++) {
+        if (!used[i]) {
+            comps.push_back(vector<int> (0));
+            dfs1(i, cnt);
+            cnt++;
+        }
+    }
+    used.assign(n, false);
+    who.resize((int)comps.size(), -1);
+    for (int i = 0; i < (int)comps.size(); i++) {
+        int mn = inf;
+        int uu = -1;
+        for (auto cur : comps[i]) {
+            mh = -1;
+            used.assign(n, false);
+            dfs2(cur, 0);
+            if (mh < mn) {
+                mn = mh;
+                uu = cur;
+            }
+        }
+        who[i] = uu;
+    }
+}
+
+int md = -1;
+int ll = -1;
+
+void dfs3(int cur, int h, vector<vector<int>> &ng) {
+    if (h > md) {
+        md = h;
+        ll = cur;
+    }
+    used[cur] = 1;
+    for (auto t : ng[cur]) {
+        if (!used[t]) {
+            dfs3(t, h + 1, ng);
+        }
+    }
+}
+
+int find_d(int n,vector<vector<int>> &ng) {
+    md = -1;
+    ll = -1;
+    used.assign(n, false);
+    dfs3(0, 0, ng);
+//
+    int who = ll;
+    md = -1;
+    ll = -1;
+    used.assign(n, false);
+    dfs3(who, 0, ng);
+//
+    return md;
+}
+
+vector<pair<int, int>> add;
+
+int solve(int n, int root) {
+    add.clear();
+    vector<vector<int>> ng = g;
+    for (int i = 0; i < (int)comps.size(); i++) {
+        if (i != where[root]) {
+            add.push_back({root, who[i]});
+            ng[root].push_back(who[i]);
+            ng[who[i]].push_back(root);
+        }
+    }
+    return find_d(n, ng);
+}
+
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    #ifdef LOCAL
+    assert(freopen("input.txt", "r", stdin));
+    assert(freopen("output.txt", "w", stdout));
+    #endif
+    
+    int n, m;
+    cin >> n >> m;
+    g.resize(n);
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        cin >> a >> b;
+        a--;
+        b--;
+        g[a].push_back(b);
+        g[b].push_back(a);
+    }
+    find_min_comps(n);
+    int best = inf;
+    vector<pair<int, int>> ans;
+    for (int i = 0; i < n; i++) {
+        int cur = solve(n, i);
+        if (cur < best) {
+            best = cur;
+            ans = add;
+        }
+    }
+    cout << best << endl;
+    for (auto [f, s] : ans) {
+        cout << f + 1 << ' ' << s + 1 << '\n';
+    }
+}

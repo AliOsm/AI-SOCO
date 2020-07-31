@@ -1,0 +1,84 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+typedef long long ll;
+
+const int N = 206;
+const ll oo = 1e18 + 10;
+
+int s[N];
+int sz;
+int n, m;
+
+int tr[N][2];
+
+void build_automaton(){
+    int j = 0;
+    tr[0][ s[0] ] = 1, tr[0][ !s[0] ] = 0;
+
+    for(int i = 1; i < sz; i++){
+        tr[i][ !s[i] ] = tr[j][ !s[i] ];
+        tr[i][ s[i] ] = i+1;
+        j = tr[j][ s[i] ];
+    }
+    tr[sz][0] = tr[j][0], tr[sz][1] = tr[j][1];
+}
+
+int pass;
+int mgo[N][N], dgo[N][N];
+
+// start at state s and feed the automaton with fib(k)
+int go(int st, int k){
+    if(k <= 1) return tr[st][k];
+    if(mgo[st][k] == pass) return dgo[st][k];
+    mgo[st][k] = pass;
+    return dgo[st][k] = go(go(st, k-2), k-1);
+}
+
+int mcnt[N][N];
+ll dcnt[N][N];
+ll cnt(int st, int k){
+    if(k <= 1) return tr[st][k] == sz;
+    if(mcnt[st][k] == pass) return dcnt[st][k];
+    mcnt[st][k] = pass;
+    ll &ans = dcnt[st][k];
+    ans = cnt(st, k-2);
+    ans += cnt(go(st, k-2), k-1);
+    if(ans > oo) ans = oo;
+    return ans;
+}
+
+
+ll k;
+void solve(){
+    pass++;
+
+    for(int i = 0; i < m && k > 0; i++){
+
+        s[sz++] = 0;
+        build_automaton();
+        pass++;
+        if(cnt(0, n) >= k) continue;
+        k -= cnt(0, n);
+        sz--;
+        s[sz++] = 1;
+        build_automaton();
+        pass++;
+        if(cnt(0, n) == 0){
+            sz--;
+            return;
+        }
+        if(go(0, n) == sz) k--;
+    }
+}
+
+int main(){
+
+    scanf("%d %lld %d", &n, &k, &m);
+
+    solve();
+
+    for(int i = 0; i < sz; i++) printf("%d", s[i]);
+    printf("\n");
+}
+

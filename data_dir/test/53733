@@ -1,0 +1,163 @@
+		//			- -- --- ---- -----be name khoda----- ---- --- -- -			\\
+
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+const int N = 5005, MOD = 1e9 + 7;
+
+#define next nex
+#define prev maskhareeeee
+
+//ll f[N][N], g[N][N], sum[N][N], pSum[N][N], pMin[N][N];
+int **f, **g, **sum, **pSum, **pMin, **next, **diff, **prev, n;
+string x;
+
+void make(int **&ki)
+{
+	ki = new int*[N];
+	for(int i = 0; i < N; i++)
+	{
+		ki[i] = new int[N];
+		fill(ki[i], ki[i] + N, 0);
+	}
+}
+
+void out(int **&ki)
+{
+	for(int i = 0; i < N; i++)
+		delete[] ki[i];
+	delete[] ki;
+}
+
+void fSum()
+{
+	make(sum);
+	for(int i = 0; i < n; i++)
+		for(int j = i + 1; j <= n; j++)
+			sum[i][j] = (sum[i][j - 1] * 2 + x[j - 1] - '0') % MOD;
+}
+
+void fDiff()
+{
+	make(diff);
+	for(int i = 0; i < n; i++)
+		diff[i][n] = diff[n][i] = n;
+	for(int i = n - 1; i >= 0; i--)
+		for(int j = n - 1; j >= 0; j--)
+			diff[i][j] = (x[i] != x[j] ? i : diff[i + 1][j + 1]);
+}
+
+void fNext()
+{
+	make(next);
+	fDiff();
+	for(int i = 0; i < n; i++)
+		for(int j = i + 1; j <= n; j++)
+		{
+			int p = 2 * j - i;
+			if(p <= n)
+				if(diff[i][j] >= j || x[diff[i][j]] < x[diff[j][i]])
+					next[i][j] = p;
+				else
+					next[i][j] = p + 1;
+			else
+				next[i][j] = n + 1;
+		}
+}
+
+void fPrev()
+{
+	make(prev);
+	for(int i = 0; i < n; i++)
+		for(int j = i + 1; j <= n; j++)
+		{
+			int p = 2 * i - j;
+			if(p >= 0)
+				if(diff[p][i] >= i || x[diff[p][i]] < x[diff[i][p]])
+					prev[i][j] = p;
+				else
+					prev[i][j] = p + 1;
+			else
+				prev[i][j] = 0;
+	//		cerr << "prev[" << i << "][" << j << "] = " << prev[i][j] << endl;
+		}
+	out(diff);
+}
+
+ll fF()
+{
+	make(f);
+	make(pSum);
+	fNext();
+	for(int i = 0; i < n; i++)
+		if(x[i] != '0')
+			f[i][n] = 1;
+	for(int i = n - 1; i >= 0; i--)
+		if(x[i] != '0')
+		{
+			for(int j = i + 1; j < n; j++)
+				if(x[j] != '0')
+					f[i][j] = pSum[j][next[i][j]];
+			for(int j = n; j >= 0; j--)
+				pSum[i][j] = (pSum[i][j + 1] + f[i][j]) % MOD;
+		}
+	ll tot = pSum[0][0];
+	out(pSum);
+	out(f);
+	out(next);
+	return tot;
+}
+
+ll fG()
+{
+	make(g);
+	make(pMin);
+	fPrev();
+	for(int i = 0; i <= n; i++)
+	{
+		fill(g[i], g[i] + N, n + 1);
+		fill(pMin[i], pMin[i] + N, n + 1);
+	}
+	for(int i = 1; i <= n; i++)
+		if(x[i] != '0')
+			g[0][i] = 1;
+
+	for(int j = 1; j <= n; j++)
+	{
+		if(j == 0 || x[j] != '0')
+			for(int i = j - 1; i; i--)
+				if(x[i] != '0')
+				{
+					g[i][j] = pMin[prev[i][j]][i] + 1;
+//					cerr << "g[" << i << "][" << j << "] = " << g[i][j] << endl;
+				}
+		for(int i = j - 1; i >= 0; i--)
+			pMin[i][j] = min(pMin[i + 1][j], g[i][j]);
+	}
+	out(pMin);
+	fSum();
+	ll res = -1;
+	for(int i = max(0, n - 22); i < n; i++)
+		if(x[i] != '0' && g[i][n] <= n)
+			if(res == -1)
+				res = g[i][n] + sum[i][n];
+			else
+				res = min <ll> (res, g[i][n] + sum[i][n]);
+	if(res != -1)
+		return res;
+	for(int i = n - 1; i >= 0; i--)
+		if(x[i] != '0' && g[i][n] <= n)
+			return (g[i][n] + sum[i][n]) % MOD;
+}
+
+int main()
+{
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	cin >> x;
+	n = x.size();
+	cout << fF() << endl;
+	cout << fG() << endl;
+}

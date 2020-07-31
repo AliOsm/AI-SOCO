@@ -1,0 +1,31 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+  int qq;
+  scanf("%d", &qq);
+  while (qq--) {
+    int n, m;
+    int odd1 = 0, even1 = 0, odd2 = 0, even2 = 0;
+    scanf("%d", &n);
+    for (int i = 0; i < n; ++i) {
+      int x;
+      scanf("%d", &x);
+      if (x % 2 == 0)
+        ++odd1;
+      else
+        ++even1;
+    }
+    scanf("%d", &m);
+    for (int i = 0; i < m; ++i) {
+      int x;
+      scanf("%d", &x);
+      if (x % 2 == 0)
+        ++odd2;
+      else
+        ++even2;
+    }
+    printf("%lld\n", 1LL * odd1 * odd2 + 1LL * even1 * even2);
+  }
+  return 0;
+}

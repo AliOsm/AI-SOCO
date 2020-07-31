@@ -1,0 +1,100 @@
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC target("tune=native")
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+typedef long double ld;
+
+const ll INF = 1000000000000000000LL;
+const int MAX_N = 305;
+
+const int dX[4]{ -1, 1, 0, 0 };
+const int dY[4]{ 0, 0, -1, 1 };
+
+int n, m, p;
+int a[MAX_N][MAX_N];
+vector<pair<int, int>> posByA[MAX_N * MAX_N];
+vector<ll> dp[MAX_N * MAX_N];
+ll dist[MAX_N][MAX_N];
+
+int32_t main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+
+	cin >> n >> m >> p;
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+		{
+			cin >> a[i][j];
+			posByA[a[i][j]].emplace_back(i, j);
+		}
+
+	for (int i = 1; i <= p; i++)
+		dp[i].resize(posByA[i].size(), 0);
+	for (int i = 0; i < (int)posByA[1].size(); i++)
+		dp[1][i] = posByA[1][i].first + posByA[1][i].second;
+
+	for (int lvl = 2; lvl <= p; lvl++)
+	{
+		if (posByA[lvl - 1].size() * posByA[lvl].size() < 10 * MAX_N * MAX_N)
+		{
+			for (int i = 0; i < (int)posByA[lvl].size(); i++)
+			{
+				dp[lvl][i] = INF;
+				for (int j = 0; j < (int)posByA[lvl - 1].size(); j++)
+				{
+					dp[lvl][i] = min(dp[lvl][i], dp[lvl - 1][j] +
+						(ll)abs(posByA[lvl][i].first - posByA[lvl - 1][j].first) +
+						(ll)abs(posByA[lvl][i].second - posByA[lvl - 1][j].second));
+				}
+			}
+		}
+		else
+		{
+			for (int i = 0; i < n; i++)
+				for (int j = 0; j < m; j++)
+					dist[i][j] = INF;
+
+			priority_queue<tuple<ll, int, int>, vector<tuple<ll, int, int>>, greater<tuple<ll, int, int>>> s;
+			for (int i = 0; i < (int)posByA[lvl - 1].size(); i++)
+			{
+				s.emplace(dp[lvl - 1][i], posByA[lvl - 1][i].first, posByA[lvl - 1][i].second);
+				dist[posByA[lvl - 1][i].first][posByA[lvl - 1][i].second] = dp[lvl - 1][i];
+			}
+
+			while (!s.empty())
+			{
+				ll currDist; int uR, uC;
+				tie(currDist, uR, uC) = s.top();
+				s.pop();
+				if (currDist > dist[uR][uC])
+					continue;
+
+				for (int dir = 0; dir < 4; dir++)
+				{
+					int vR = uR + dX[dir], vC = uC + dY[dir];
+					if (vR < 0 || vR >= n || vC < 0 || vC >= m)
+						continue;
+					if (dist[uR][uC] + 1 < dist[vR][vC])
+					{
+						dist[vR][vC] = dist[uR][uC] + 1;
+						s.emplace(dist[vR][vC], vR, vC);
+					}
+				}
+			}
+
+			for (int i = 0; i < (int)posByA[lvl].size(); i++)
+				dp[lvl][i] = dist[posByA[lvl][i].first][posByA[lvl][i].second];
+		}
+	}
+
+	ll result = INF;
+	for (const ll& x : dp[p])
+		result = min(result, x);
+	cout << result << endl;
+
+	return 0;
+}

@@ -1,0 +1,78 @@
+#include <cstdio>
+#include <map>
+using namespace std;
+const int mod = 1000000000;
+typedef pair<long long, long long> P;
+typedef map<int, P> S;
+void add(int &x, int v) {
+	x += v;
+	if (x >= mod) x -= mod;
+}
+S merge(S &a, S &b) {
+	P p;
+	S::iterator ia = a.begin();
+	S::iterator ib = b.begin();
+	S res;
+	while (ia != a.end() && ib != b.end()) {
+		p.first = ia->second.first + ib->second.first;
+		p.second = ia->second.second + ib->second.second;
+		if (ia->first == ib->first) {
+			res[ia->first] = p;
+			ia++;
+			ib++;
+		} else if (ia->first < ib->first) {
+			res[ia->first] = p;
+			ia++;
+		} else {
+			res[ib->first] = p;
+			ib++;
+		}
+	}
+	return res;
+}
+const int N = 1 << 17;
+S b[N*2];
+long long go(S &s, long long x) {
+	P p = s.lower_bound(x)->second;
+	long long res = (p.first * x) + p.second;
+	return res;
+}
+long long query(int l, int r, int x, int L = 0, int R = N, int p = 1) {
+	if (R <= l || r <= L) return 0;
+	if (l <= L && R <= r) {
+		return go(b[p], x);
+	}
+	long long res = 0;
+	res += query(l, r, x, L, (L+R)/2, p + p);
+	res += query(l, r, x, (L+R)/2, R, p + p + 1);
+	return res;
+}
+int main() {
+	int n;
+	scanf("%d", &n);
+	for (int i = 0; i < N; i++) {
+		b[i+N][mod] = make_pair(0, 0);
+	}
+	for (int i = 0; i < n; i++) {
+		int x1, x2, y1, a, c, y2;
+		scanf("%d%d%d%d%d%d", &x1, &x2, &y1, &a, &c, &y2);
+		b[i+N][x1] = make_pair(0, y1);
+		b[i+N][x2] = make_pair(a, c);
+		b[i+N][mod] = make_pair(0, y2);
+	}
+	for (int i = N - 1; i > 0; i--) {
+		b[i] = merge(b[i+i], b[i+i+1]);
+	}
+	int m;
+	scanf("%d", &m);
+	long long last = 0;
+	while (m--) {
+		int l, r, x;
+		scanf("%d%d%d", &l, &r, &x);
+		--l;
+		add(x, (int)(last % mod));
+		last = query(l, r, x);
+		printf("%I64d\n", last);
+	}
+	return 0;
+}

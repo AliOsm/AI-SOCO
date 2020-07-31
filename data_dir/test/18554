@@ -1,0 +1,173 @@
+#pragma optimize GCC ("O3")
+#pragma target GCC ("avx")
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <functional>
+#include <ctime>
+
+using namespace std;
+
+const int mod = 1e9 + 7;
+
+struct Modint {
+  int n;
+  Modint(int n = 0) : n(n) {}
+};
+
+Modint operator+(Modint a, Modint b) { return Modint((a.n += b.n) >= mod ? a.n - mod : a.n); }
+Modint operator-(Modint a, Modint b) { return Modint((a.n -= b.n) < 0 ? a.n + mod : a.n); }
+Modint operator*(Modint a, Modint b) { return Modint(1LL * a.n * b.n % mod); }
+Modint &operator+=(Modint &a, Modint b) { return a = a + b; }
+Modint &operator-=(Modint &a, Modint b) { return a = a - b; }
+Modint &operator*=(Modint &a, Modint b) { return a = a * b; }
+
+Modint modpow(Modint a, long long b) {
+  Modint res = 1;
+  while (b > 0) {
+    if (b & 1) res *= a;
+    a *= a;
+    b >>= 1;
+  }
+  return res;
+}
+
+void fast_zeta_transform(vector<Modint> &f) {
+  for (int i = 0; (1 << i) < f.size(); i++) {
+    for (int j = 0; j < f.size(); j++) {
+      if (j & 1 << i) {
+        f[j] += f[j ^ 1 << i];
+      }
+    }
+  }
+}
+
+void fast_mobius_transform(vector<Modint> &f) {
+  for (int i = 0; (1 << i) < f.size(); i++) {
+    for (int j = 0; j < f.size(); j++) {
+      if (j & 1 << i) {
+        f[j] -= f[j ^ 1 << i];
+      }
+    }
+  }
+}
+
+void hadamard_transform(std::vector<Modint> &a, int l, int r) {
+  if (r - l == 1) return;
+  int n = (r - l) / 2;
+  int m = (l + r) / 2;
+  hadamard_transform(a, l, m);
+  hadamard_transform(a, m, r);
+  for (int i = 0; i < n; i++) {
+    Modint x = a[l + i], y = a[m + i];
+    a[l + i] = x + y;
+    a[m + i] = x - y;
+  }
+}
+
+vector<Modint> xor_convolution(vector<Modint> a) {
+  hadamard_transform(a, 0, a.size());
+  vector<Modint> res(a.size());
+  for (int i = 0; i < a.size(); i++) {
+    res[i] = a[i] * a[i];
+  }
+  hadamard_transform(res, 0, res.size());
+  Modint inv = modpow(res.size(), mod - 2);
+  for (int i = 0; i < res.size(); i++) {
+    res[i] *= inv;
+  }
+  return res;
+}
+
+int bitcnt[1 << 17];
+
+vector<Modint> or_convolution(vector<Modint> a) {
+  vector<Modint> res(a.size());
+  vector<vector<Modint>> cnt(18, vector<Modint>(a.size()));
+
+  for (int i = 0; i < a.size(); i++) {
+    cnt[bitcnt[i]][i] += a[i];
+  }
+  for (int i = 0; i <= 17; i++) {
+    fast_zeta_transform(cnt[i]);
+  }
+  for (int i = 0; i <= 17; i++) {
+    vector<Modint> tmp(a.size());
+    for (int j = 0; j <= i; j++) {
+      int k = i - j;
+      for (int l = 0; l < a.size(); l++) {
+        tmp[l] += cnt[j][l] * cnt[k][l];
+      }
+    }
+    fast_mobius_transform(tmp);
+    for (int j = 0; j < a.size(); j++) {
+      if (bitcnt[j] == i) {
+        res[j] += tmp[j];
+      }
+    }
+  }
+  return res;
+}
+
+vector<Modint> and_convolution(vector<Modint> a, vector<Modint> b) {
+  function<void(int, int)> f = [&](int l, int r) {
+    const int n = r - l;
+    if (n == 1) {
+      a[l] *= b[l];
+      return;
+    }
+    const int m = (l + r) / 2;
+    for (int i = 0; i < n / 2; i++) {
+      a[l + i] += a[m + i];
+      b[l + i] += b[m + i];
+    }
+    f(l, m);
+    f(m, r);
+    for (int i = 0; i < n / 2; i++) {
+      a[l + i] -= a[m + i];
+    }
+  };
+  f(0, a.size());
+  return a;
+}
+
+int main() {
+  int n;
+  cin >> n;
+
+  for (int i = 1; i < 1 << 17; i++) {
+    bitcnt[i] = bitcnt[i & i - 1] + 1;
+  }
+
+  vector<Modint> f(1 << 17);
+  for (int i = 0; i < n; i++) {
+    int s;
+    scanf("%d", &s);
+    f[s] += 1;
+  }
+
+  vector<Modint> fib(1 << 17);
+  fib[0] = 0;
+  fib[1] = 1;
+  for (int i = 2; i < 1 << 17; i++) {
+    fib[i] = fib[i - 1] + fib[i - 2];
+  }
+
+  auto a = or_convolution(f);
+  auto b = xor_convolution(f);
+
+  for (int i = 0; i < a.size(); i++) {
+    a[i] = fib[i] * a[i];
+    b[i] = fib[i] * b[i];
+    f[i] = fib[i] * f[i];
+  }
+  a = and_convolution(a, b);
+  a = and_convolution(a, f);
+
+  Modint ans;
+  for (int i = 0; i < 17; i++) {
+    ans += a[1 << i];
+  }
+  cout << ans.n << endl;
+}

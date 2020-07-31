@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 2e5 + 10;
+const int inf = 2e9;
+
+int n;
+int a[N], st[4 * N];
+
+void build(int l, int r, int at) {
+  if (l == r) {
+    st[at] = a[l];
+    return;
+  }
+  int mid = (l + r) / 2;
+  build(l, mid, 2 * at + 1);
+  build(mid + 1, r, 2 * at + 2);
+  st[at] = min(st[2 * at + 1], st[2 * at + 2]);
+}
+
+int rmq(int sl, int sr, int ql, int qr, int at) {
+  if (qr < sl || ql > sr)
+    return inf;
+  if (ql <= sl && qr >= sr)
+    return st[at];
+  int mid = (sl + sr) / 2;
+  int left_ans = rmq(sl, mid, ql, qr, 2 * at + 1);
+  int right_ans = rmq(mid + 1, sr, ql, qr, 2 * at + 2);
+  return min(left_ans, right_ans);
+}
+
+int sub(int x, int y) {
+  x -= y;
+  if (x < 0)
+    x += n;
+  return x;
+}
+
+int main() {
+  scanf("%d", &n);
+  for (int i = 0; i < n; ++i) {
+    scanf("%d", &a[i]);
+    a[i + n] = a[i];
+  }
+  vector<int> cost(n, inf);
+  build(0, n + n - 1, 0);
+  for (int i = 0; i < n; ++i) {
+    int low = i, high = n + n;
+    while (low + 1 < high) {
+      int mid = (low + high) / 2;
+      if (rmq(0, n + n - 1, i, mid, 0) < (a[i] + 1) / 2)
+        high = mid;
+      else
+        low = mid;
+    }
+    cost[i] = (high == n + n ? inf : high - i);
+  }
+  int mn = *min_element(cost.begin(), cost.end());
+  if (mn == inf) {
+    for (int i = 0; i < n; ++i) {
+      if (i > 0)
+        printf(" ");
+      printf("-1");
+    }
+    return 0 * puts("");
+  }
+  int x, c;
+  for (int i = 0; i < n; ++i) {
+    if (cost[i] == mn) {
+      x = i;
+      c = cost[i];
+      break;
+    }
+  }
+  int iter = 0, delta = 0;
+  vector<int> ans(cost);
+  while (iter < n) {
+    ++iter;
+    ++delta;
+    x = sub(x, 1);
+    if (cost[x] == -1) {
+      ans[x] = min(ans[x], delta + c);
+      continue;
+    }
+    int new_c = cost[x];
+    if (new_c < delta + c) {
+      delta = 0;
+      c = new_c;
+    }
+    ans[x] = delta + c;
+  }
+  for (int i = 0; i < n; ++i) {
+    if (i > 0)
+      printf(" ");
+    printf("%d", ans[i]);
+  }
+  puts("");
+  return 0;
+}

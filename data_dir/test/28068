@@ -1,0 +1,50 @@
+#include <bits/stdc++.h>
+#define endl '\n'
+#define LL long long
+#define LD long double
+#define pb push_back
+#define sz(a) (int)a.size()
+#define all(a) a.begin(),a.end()
+#define rall(a) a.rbegin(),a.rend()
+#define debug(x) cerr << #x << " is " << x << endl;
+using namespace std;
+int const MAXN = 2e6 + 9;
+bool sub (string s, string t){
+    int i = 0;
+    int j = 0;
+    int n = s.size();
+    int m = t.size();
+    while (i < n  && j < m){
+        if(s[i] == t[j]){
+            i++;
+            j++;
+        }else {
+            j++;
+        }
+    }
+    return i == n;
+}
+int main(){
+    ios_base::sync_with_stdio (0),cin.tie(0);
+    int T;
+    cin >> T;
+    while (T--){
+       string s,t,p;
+       cin >> s >> t >> p;
+       map<char,int> mp;
+       for(auto c : t){
+           mp[c]++;
+       }
+       for(auto c : s){
+           mp[c]--;
+       }
+       for(auto c : p){
+           mp[c]--;
+       }
+       bool cond = sub(s,t);
+       for(auto cur : mp){
+           if (cur.second > 0) cond = false;
+       }
+       cout << ((cond)? "YES" : "NO") << endl;
+    }
+}

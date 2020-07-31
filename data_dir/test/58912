@@ -1,0 +1,34 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#define pb push_back
+#define ll long long
+#define maxn 500005
+#define fr(i,j,k) for(int i=j;i<k;i++)
+#define f(n) fr(i,0,n)
+#define f1(n) fr(i,1,n+1)
+#define ms(i) memset(i,0,sizeof(i));
+
+int main(){
+	ios::sync_with_stdio(0);cin.tie(0);
+	int n,q;
+	while(cin >> n >> q){
+		int cont[n+5] = {};
+		int sum=0;
+		f(n){
+			cin >> cont[i];
+		}
+		f1(n-1){
+			if(cont[i]+cont[i-1]<q){
+				sum += q-cont[i]-cont[i-1];
+				cont[i]=q-cont[i-1];
+			}
+		}
+		cout<<sum<<endl;
+		f(n){
+			cout<<cont[i]<<' ';
+		}
+		cout<<endl;
+	}
+	
+}

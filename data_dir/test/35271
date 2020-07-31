@@ -1,0 +1,107 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+typedef long long LL;
+typedef pair<int, int> PII;
+typedef vector<int> VI;
+typedef vector<VI> VVI;
+
+const int INF = 1e9+7;
+
+struct EdmondsKarp
+{
+    int n;
+    VVI cap, adj;
+
+    EdmondsKarp(int nn) {
+        n = nn;
+        cap = VVI(n,  VI(n));
+        adj = VVI(n);
+    }
+
+    void AddEdge(int u, int v, int c) {
+        if (u==v)   return;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+        cap[u][v] += c;
+        ///cap[v][u] += c;      // For Undirected Graphs.
+    }
+
+    int bfs(int s, int t) {
+        VI par(n, -1);
+        par[s] = -2;
+        queue<PII> q;
+        q.push({s, INF});
+        int ans = 0;
+
+        while (!q.empty()) {
+            int u = q.front().first;
+            int flow = q.front().second;
+            q.pop();
+
+            for (int v : adj[u]) {
+                if (par[v] == -1 && cap[u][v]) {
+                    par[v] = u;
+                    int new_flow = min(flow, cap[u][v]);
+                    if (v == t) {ans = new_flow; break;}
+                    q.push({v, new_flow});
+                }
+            }
+        }
+
+        if (ans == 0)   return 0;
+        int cur = t;
+        while (cur != s) {
+            int prev = par[cur];
+            cap[prev][cur] -= ans;
+            cap[cur][prev] += ans;
+            cur = prev;
+        }
+        return ans;
+    }
+
+    int maxflow(int s, int t) {
+        int flow = 0;
+        int new_flow;
+        while ((new_flow = bfs(s, t)))
+            flow += new_flow;
+        return flow;
+    }
+};
+
+struct ed {
+    int u, v, c;
+} edges[507];
+
+int n, m, x;
+bool canDo(double perBear)
+{
+    EdmondsKarp ekarp(n+1);
+    for (int i = 1; i <= m; i++) {
+        ekarp.AddEdge(edges[i].u, edges[i].v, edges[i].c/perBear);
+    }
+    return ekarp.maxflow(1, n) >= x;
+}
+
+int main()
+{
+    cin >> n >> m >> x;
+
+    for (int i = 1; i <= m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].c;
+    }
+
+    double lo = 1, hi = 1e8;
+    double mid;
+
+    while (abs(lo-hi) > 1e-8) {
+        mid = (lo+hi)/2;
+        if (canDo(mid/x)) lo = mid;
+        else hi = mid;
+    }
+
+    mid = (lo+hi)/2;
+    cout << fixed << setprecision(10) << mid << endl;
+
+    return 0;
+}

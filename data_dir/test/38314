@@ -1,0 +1,138 @@
+//marico el que lo lea
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <stdlib.h>
+#include <assert.h>
+using namespace std;
+
+typedef long long ll;
+typedef vector<int> vi;
+typedef vector<ll> vll;
+typedef pair<int, int> ii;
+
+void fastIO() {
+	std::ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+}
+
+#define FOR(i,f,t) for(int i=f; i<(int)t; i++)
+#define FORR(i,f,t) for(int i=f; i>(int)t; i--)
+#define FORE(i,c) for(auto i = (c).begin(); i != (c).end(); i++)
+#define pb push_back
+#define all(obj) obj.begin(), obj.end()
+#define ms(obj, val) memset(obj, val, sizeof(obj))
+#define ms2(obj, val, sz) memset(obj, val, sizeof(obj[0])*sz)
+
+#define fst first
+#define snd second
+
+template<typename T, typename U> inline void mnze(T &x, U y) { if(y < x) x = y; }
+template<typename T, typename U> inline void mxze(T &x, U y) { if(x < y) x = y; }
+
+void _scan( int &x ) { scanf("%d",&x); }
+void _scan( long long &x ) { scanf("%lld",&x); }
+void _scan( double &x ) { scanf("%lf",&x); }
+void _scan( char &x ) { scanf(" %c",&x); }
+void _scan( char *x ) { scanf("%s",x); }
+void scan() {}
+template<typename T, typename... U>
+void scan( T& head, U&... tail ) { _scan(head); scan(tail...);}
+
+template<typename T> void _dbg(const char* sdbg, T h) { cerr<<sdbg<<"="<<h<<"\n"; }
+template<typename T, typename... U> void _dbg(const char* sdbg, T h, U... t) {
+	while(*sdbg != ',')cerr<<*sdbg++;
+	cerr<<"="<<h<<","; _dbg(sdbg+1, t...);
+}
+
+#ifdef LOCAL
+#define debug(...) _dbg(#__VA_ARGS__, __VA_ARGS__)
+#define debugv(x) {{cerr <<#x <<" = "; FORE(_i, (x)) cerr <<*_i <<", "; cerr <<"\n"; }}
+#define debuga(x, sz) {{cerr <<#x <<" = "; FOR(_i, 0, sz) cerr << x[_i] <<", "; cerr <<"\n"; }}
+#else
+#define debug(...) (__VA_ARGS__)
+#define debugv(x)
+#define debuga(x, sz)
+#define cerr if(0)cout
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+
+const ll MOD = 998244353;
+
+ll pot[18];
+ll dig(int pos, ll x){
+	return (x/pot[pos])%10;
+}
+
+ll x;
+ll dp[19][2<<10][2][2];
+ll dps[19][2<<10][2][2];
+ll f(int pos, int k, int msk, int lss, int ldz){
+	if(k<0) return 0;
+	if(pos==-1) return 1;
+	ll &ret = dp[pos][msk][lss][ldz];
+	if(ret!=-1) return ret;
+	ret = 0;
+	int xd = dig(pos, x);
+	//debug(pos, k, xd);
+	FOR(d,0,10){
+		int nmsk = msk & (~(1<<d));
+		if(ldz && d==0) nmsk = msk;
+		int nk = k - (msk!=nmsk);
+		if(lss){
+			ret = (ret + f(pos-1, nk, nmsk, lss, ldz&&(d==0))) %MOD;
+		}else{
+			if(d > xd) continue;
+			ret = (ret + f(pos-1, nk, nmsk, d < xd, ldz&&(d==0))) %MOD;
+		}
+	}
+	return ret;
+}
+ll fs(int pos, int k, int msk, int lss, int ldz){
+	if(k<0) return 0;
+	if(pos==-1) return 0;
+	ll &ret = dps[pos][msk][lss][ldz];
+	if(ret!=-1) return ret;
+	ret = 0;
+	int xd = dig(pos, x);
+	FOR(d,0,10){
+		int nmsk = msk & (~(1<<d));
+		if(ldz && d==0) nmsk = msk;
+		int nk = k - (msk!=nmsk);
+		if(lss){
+			ll cnt = f(pos-1, nk, nmsk, lss, ldz&&(d==0));
+			ll subs = fs(pos-1, nk, nmsk, lss, ldz&&(d==0));
+			ret = (ret + pot[pos]*d %MOD * cnt %MOD + subs) %MOD;
+		}else{
+			if(d > xd) continue;
+			ll cnt = f(pos-1, nk, nmsk, d<xd, ldz&&(d==0));
+			ll subs = fs(pos-1, nk, nmsk, d<xd, ldz&&(d==0));
+			ret = (ret + pot[pos]*d %MOD * cnt %MOD + subs) %MOD;
+		}
+	}
+	return ret;
+}
+
+ll ff(ll X, int k){
+	ms(dp,-1);
+	ms(dps,-1);
+	x = X;
+	return fs(17,k,(1<<10)-1,0,1);
+}
+
+int main(){
+	pot[0] = 1;
+	FOR(i,1,18) pot[i] = 10*pot[i-1];
+	ll l, r;
+	int k;
+	scan(l,r,k);
+	printf("%lld\n", (ff(r,k)-ff(l-1,k)+MOD)%MOD);
+}

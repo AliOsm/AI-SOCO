@@ -1,0 +1,109 @@
+#include <iostream>
+#include <vector>
+#include <tuple>
+using namespace std;
+
+typedef long long int uli;
+const int kMaxN = 1e5+5;
+
+struct Edge {
+  public:
+    int node, index;
+    uli cost;
+
+    Edge(int node, int index, uli cost)
+      : node(node), index(index), cost(cost) { }
+};
+// Graph edges
+vector<Edge> edges[kMaxN];
+
+// Cycle xor values
+vector<uli> cycleValues;
+// Used to compute the xor on the path from a node to an ancestor.
+vector<uli> xorStack;
+
+// Depth of a node in the dfs traversal.
+int depth[kMaxN];
+bool visited[kMaxN];
+
+// Index of the edge from which a node was expended.
+int edgeParent[kMaxN];
+int xlyr[kMaxN];
+
+void dfs(int node,int xr=0) {
+  visited[node] = true;
+  xlyr[node]=xr;
+  for (auto& edge : edges[node]) {
+    if (edgeParent[node] == edge.index) {
+      continue;
+    }
+
+    if (visited[edge.node]) {
+      // Check if the edge is from a node to a ancester, in this case
+      // he'll still be in the stack.
+      if (depth[edge.node] > depth[node]) {
+        continue;
+      }
+
+      // The xor of the cycle is the xor of the edge ^ the xor of the
+      // edges from node to the ancester(edge.node).
+      cycleValues.push_back(xorStack[depth[node]]
+          ^ xorStack[depth[edge.node]] ^ edge.cost);
+    } else {
+      depth[edge.node] = depth[node] + 1;
+      edgeParent[edge.node] = edge.index;
+
+      // Add the new value to the xor stack so the child doesn't need to
+      // worry about this.
+      xorStack.push_back(xorStack.back() ^ edge.cost);
+      dfs(edge.node,xr^edge.cost);
+    }
+  }
+  xorStack.pop_back();
+}
+int bat(uli v,int i){
+  if(v&(1ll<<i))return 1;
+  return 0;
+}
+int main() {
+  int n, m;
+  cin >> n >> m;
+
+  for (int i = 1; i <= m; i += 1) {
+    int a, b; uli cost;
+    cin >> a >> b >> cost;
+
+    edges[a].push_back(Edge(b, i, cost));
+
+    // Don't put double edges.
+    if (a != b) {
+      edges[b].push_back(Edge(a, i, cost));
+    }
+  }
+
+  // Add the xor on stack for the first element (the root)
+  xorStack.push_back(0);
+  depth[0] = 1;
+  dfs(1);
+
+  //everything upside is in csacademy :)
+  //cycleValues
+  int i=0,j=27;
+  int sz=cycleValues.size();
+  uli ans=xlyr[n];
+  while(i<sz && j>=0){
+    int r=i;
+    while(r<sz && bat(cycleValues[r],j)==0)r++;
+    if(r>=sz || bat(cycleValues[r],j)==0){
+      j--;
+      continue;
+    }
+    swap(cycleValues[r],cycleValues[i]);
+    for(int r=i+1;r<sz;r++)if(bat(cycleValues[r],j)==1)cycleValues[r]^=cycleValues[i];
+
+    if(bat(ans,j)==1)ans^=cycleValues[i];
+    i++;
+  }
+  cout<<ans<<endl;
+  return 0;
+}

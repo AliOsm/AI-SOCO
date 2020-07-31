@@ -1,0 +1,104 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+ll mod = 1000000007, oo = 1000000009;
+
+void Emsawy() {
+#ifndef ONLINE_JUDGE
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	cout.tie(0);
+}
+
+#define clr(v,d)     memset(v, d, sizeof(v))
+#define sz(v)	     ((int)((v).size()))
+#define all(v)	     ((v).begin()), ((v).end())
+#define allr(v)	     ((v).rbegin()), ((v).rend())
+#define V	         vector
+#define MP	         make_pair
+#define bug(n)           cout<< #n <<" = "<< n << endl;
+int dx[] = { 0, 0, 1, -1, 1, -1 };
+int dy[] = { 2, -2, 1, -1, -1, 1 };
+
+V<V<int> > adj;
+const ll N = 2000 + 5;
+ll n, m, l, k, w;
+
+string s[5];
+int mask[200][200];
+pair<int, int> me[200];
+int sizeMsk = 0;
+short pos(int x, int y) {
+	if (mask[x][y] == 0) return 21;
+	return mask[x][y] - 1;
+}
+
+short dp[(1 << 19)][2];
+short go(int msk, int player) {
+	if (msk == 0)
+		return dp[msk][player] = player ? 1 : -1;
+
+	short &ret = dp[msk][player];
+	if (ret != -10)
+		return ret;
+	ret = player ? 9 : -9;
+	for (int i = 0; i < sizeMsk; i++) {
+		if (((msk >> i) & 1)) {
+			pair<int,int> po = me[i];
+			for (int j = 0; j < 6; j++) {
+				int x = po.first;
+				int y = po.second;
+				int imask = msk;
+				if (player) {
+					do {
+						imask &= ~(1 << pos(x,y));
+						ret = min(go(imask, (player + 1) & 1), ret);
+						x = dx[j] + x;
+						y = dy[j] + y;
+					} while (!(x < 0 || x >= n || y < 0 || y >= m || !(imask & (1 << pos(x,y)))));
+				}
+				else {
+					do {
+						imask &= ~(1 << pos(x,y));
+						ret = max(go(imask, (player + 1) & 1), ret);
+						x = dx[j] + x;
+						y = dy[j] + y;
+					} while (!(x < 0 || x >= n || y < 0 || y >= m || !(imask & (1 << pos(x,y)))));
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+int main() {
+
+	Emsawy();
+	for (int i = 0; i < 5; i++) {
+		getline(cin, s[i]);
+		while (s[i].size() < 9)
+			s[i] += ' ';
+	}
+	int msk = 0;
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < s[i].size(); j++) {
+			if (s[i][j] == 'O') {
+				mask[i][j] = sizeMsk + 1;
+				msk |= (1 << sizeMsk);
+				me[sizeMsk] = MP(i, j);
+				sizeMsk++;
+			}
+		}
+	}
+	n = 5, m = s[0].size();
+	fill(&dp[0][0], &dp[0][0] + (1 << 19) * 2, -10);
+	if (go(msk, 0) > 0) cout << "Karlsson" << endl;
+	else cout << "Lillebror" << endl;
+	return 0;
+}

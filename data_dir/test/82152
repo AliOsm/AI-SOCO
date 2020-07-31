@@ -1,0 +1,178 @@
+#include<bits/stdc++.h>
+using namespace std;
+const int MAXN = 3e5+7; /// change this
+
+struct nd {
+    int mn, cnt;
+};
+
+nd tr[4*MAXN];
+int lazy[4*MAXN];
+
+///1. Merge left and right
+nd combine(const nd &a, const nd &b) {
+    if (a.mn < b.mn) return a;
+    else if (a.mn > b.mn) return b;
+    nd rt;
+    rt.mn = a.mn;
+    rt.cnt = a.cnt+b.cnt;
+    return rt;
+}
+
+///2. Push lazy down and merge lazy
+void propagate(int u, int l, int r) {
+    if (lazy[u]) {
+        tr[u].mn += lazy[u];
+        if (l != r) {
+            lazy[u*2] += lazy[u];
+            lazy[u*2+1] += lazy[u];
+        }
+        lazy[u] = 0;
+    }
+}
+
+int a[MAXN];
+void build(int u, int l, int r) {
+    lazy[u] = 0;         ///3. Initialize
+    if (l==r) {
+        tr[u].mn = a[l];
+        tr[u].cnt = 1;
+        return;
+    }
+    int mid = (l+r)/2;
+    build(u*2, l, mid);
+    build(u*2+1, mid+1, r);
+    tr[u] = combine(tr[u*2], tr[u*2+1]);
+}
+
+void update(int u, int l, int r, int x, int y, int v) {
+    assert(x <= y);
+//    cout << "upd " << l << " , " << r << endl;
+    propagate(u, l, r);
+    if (r < x || y < l) return;
+    if (x <= l && r <= y) {
+        lazy[u] += v;            ///4. Merge lazy
+        propagate(u, l, r);
+        return;
+    }
+    int mid = (l+r)/2;
+    update(u*2, l, mid, x, y, v);
+    update(u*2+1, mid+1, r, x, y, v);
+    tr[u] = combine(tr[u*2], tr[u*2+1]);
+}
+
+nd query(int u, int l, int r, int x, int y) {
+    assert(x <= y);
+    propagate(u, l, r);
+    if (x <= l && r <= y) return tr[u];
+    int mid = (l+r)/2;
+    if (y <= mid) return query(u*2, l, mid, x, y);
+    if (mid < x) return query(u*2+1, mid+1, r, x, y);
+    return combine(query(u*2, l, mid, x, y), query(u*2+1, mid+1, r, x, y));
+}
+
+int p[MAXN];
+long long ans;
+int n;
+
+void solve (int l, int r) {
+    if (l==r) {
+        ans += p[l]==1;
+        return;
+    }
+
+    int mid = (l+r)/2;
+    solve(l, mid);
+    solve(mid+1, r);
+
+    set< int >st;
+    int dan;
+    for (dan = mid; dan+1 <= r && st.count(p[dan+1])==0; dan++) {
+        st.insert(p[dan+1]);
+    }
+
+//    cout << "solving " << l << " , " << r << endl;
+//    cout << "dan: " << dan << endl;
+
+    stack< int >minStack, maxStack;
+    for (int i = dan; i > mid; i--) {
+        while (!minStack.empty() && p[i] <= p[minStack.top()]) minStack.pop();
+        minStack.push(i);
+        while (!maxStack.empty() && p[i] >= p[maxStack.top()]) maxStack.pop();
+        maxStack.push(i);
+    }
+
+    int mx = p[mid+1], mn = p[mid+1];
+    int one = r+1;
+    for (int R = mid+1; R <= dan; R++) {
+        mx = max(mx, p[R]);
+        mn = min(mn, p[R]);
+        a[R-mid] = mx-mn-R;
+        if (p[R]==1) one = R;
+//        cout << "a[" << R << "] = " << a[R] << endl;
+    }
+
+    int m = dan-mid;
+    build(1, 1, m);
+//    cout << "built: " << mid+1 << ", " << dan << endl;
+
+    for (int L = mid; L >= l; L--) {
+        while (st.count(p[L]) == 1 && mid < dan) {
+//            cout << dan << " bad dao" << endl;
+            st.erase(p[dan]);
+            dan--;
+        }
+        if (dan <= mid) break;
+        st.insert(p[L]);
+        if (p[L] == 1) one = L;
+//        cout << "index " << L << endl;
+
+        while (!minStack.empty() && minStack.top() <= dan && p[L] <= p[minStack.top()]) {
+            int x = minStack.top();
+            minStack.pop();
+            int y = minStack.empty()?dan:minStack.top()-1;
+            int del = p[L]-p[x];
+//            cout << "min (" << x << ", " << y << ") " << -del << endl;
+            update(1, 1, m, x-mid, min(y, dan)-mid, -del);
+        }
+        minStack.push(L);
+        while (!maxStack.empty() && maxStack.top() <= dan && p[L] >= p[maxStack.top()])  {
+            int x = maxStack.top();
+            maxStack.pop();
+            int y = maxStack.empty()?dan:maxStack.top()-1;
+            int del = p[L]-p[x];
+//            cout << "max (" << x << ", " << y << ") " << del << endl;
+            update(1, 1, m, x-mid, min(y, dan)-mid, del);
+        }
+        maxStack.push(L);
+
+        if (one <= dan) {
+            nd q = query(1, 1, m, max(mid+1, one)-mid, dan-mid);
+            assert(q.mn >= -L);
+            if (q.mn == -L) {
+//                cout << "found " << q.cnt << " from " << L << endl;
+                ans += q.cnt;
+            }
+        }
+
+    }
+//    cout << endl;
+}
+
+
+
+
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n;
+    for (int i = 1; i <= n; i++) cin >> p[i];
+
+    solve(1, n);
+    cout << ans << endl;
+
+
+    return 0;
+}

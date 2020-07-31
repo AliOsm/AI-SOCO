@@ -1,0 +1,214 @@
+#ifdef DEBUG
+#define _GLIBCXX_DEBUG
+#endif
+
+#include <random>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <set>
+#include <map>
+#include <cassert>
+#include <ctime>
+#include <string>
+#include <queue>
+
+using namespace std;
+
+mt19937 mrand(random_device{} ()); 
+
+int rnd(int x) {
+  return mrand() % x;
+}
+
+#ifdef _WIN32
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
+typedef long double ld;
+typedef long long ll;
+
+#ifdef DEBUG
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define eprintf(...) ;
+#endif
+
+#define pb push_back
+#define mp make_pair
+#define sz(x) ((int)(x).size())
+#define TASKNAME "text"
+
+const int inf = (int) 1.01e9;
+const ld eps = 1e-9;
+const ld pi = acos((ld) -1.0);
+
+void precalc() {
+}
+
+const int maxn = (int) 3e5 + 10;
+int n, m;
+
+vector<vector<int> > es;
+
+vector<pair<int, int> > up[maxn];
+
+int read() {
+  if (scanf("%d%d", &n, &m) < 2) {
+    return 0;
+  }
+  es = vector<vector<int> >(n);
+  for (int i = 0; i < n - 1; ++i) {
+    int s, t;
+    scanf("%d%d", &s, &t);
+    --s, --t;
+    es[s].pb(t), es[t].pb(s);
+  }
+
+  for (int i = 0; i < n; ++i) {
+    up[i].clear();
+  }
+  for (int iter = 0; iter < m; ++iter) {
+    int s, t, c;
+    scanf("%d%d%d", &s, &t, &c);
+    --s, --t;
+    up[s].pb(mp(t, c));
+  }
+  return 1;
+}
+
+struct T {
+  set<pair<int, long long> > tree;
+  long long toadd;
+  long long mnval;
+
+  T() : toadd(0) {
+  }
+
+  void add(pair<int, long long> cur) {
+    //eprintf("add (%d,%lld)\n", cur.first, cur.second);
+    tree.insert(cur);
+    {
+      auto iter = tree.find(cur);
+      assert(iter != tree.end());
+      if (iter != tree.begin()) {
+        --iter;
+        if (iter->second <= cur.second) {
+          tree.erase(cur);
+          return;
+        }
+      }
+    }
+    while (1) {
+      auto iter = tree.find(cur);
+      assert(iter != tree.end());
+      ++iter;
+      if (iter != tree.end()) {
+        if (iter->second >= cur.second) {
+          tree.erase(iter);
+          continue;
+        }
+      }
+      break;
+    }
+  }
+};
+
+int depth[maxn];
+
+bool fail;
+
+T* dfs(int v, int pr) {
+  T* res = new T();
+  res->add(mp(depth[v], 0ll));
+  for (int i = 0; i < sz(up[v]); ++i) {
+    res->add(mp(depth[up[v][i].first], (long long) up[v][i].second));
+  }
+  for (int it = 0; it < sz(es[v]); ++it) {
+    int u = es[v][it];
+    if (u == pr) {
+      continue;
+    }
+    depth[u] = depth[v] + 1;
+    T* got = dfs(u, v);
+    if (fail) {
+      return res;
+    }
+
+    while (sz(got->tree) && got->tree.rbegin()->first > depth[v]) {
+      auto iter = got->tree.end();
+      --iter;
+      got->tree.erase(iter);
+    }
+    /*eprintf("%d: got %d\n", v, u);
+    for (auto iter = got->tree.begin(); iter != got->tree.end(); ++iter) {
+      eprintf("(%d,%lld) ", iter->first, iter->second + got->toadd);
+    }
+    eprintf("\n");*/
+
+    if (!sz(got->tree)) {
+      fail = 1;
+      return res;
+    }
+
+    if (sz(res->tree) < sz(got->tree)) {
+      swap(res, got);
+    }
+
+    long long toaddg = res->tree.rbegin()->second + res->toadd;
+
+    res->toadd += got->tree.rbegin()->second + got->toadd;
+    for (auto iterg = got->tree.begin(); iterg != got->tree.end(); ++iterg) {
+      int dep = iterg->first;
+      long long val = iterg->second + toaddg + got->toadd;
+      pair<int, long long> cur(dep, val - res->toadd);
+      res->add(cur);
+    }
+    /*eprintf("end edge %d\n", u);
+    for (auto iter = res->tree.begin(); iter != res->tree.end(); ++iter) {
+      eprintf("(%d,%lld) ", iter->first, iter->second + res->toadd);
+    }
+    eprintf("\n");*/
+  }
+  /*eprintf("finish %d\n", v);
+  for (auto iter = res->tree.begin(); iter != res->tree.end(); ++iter) {
+    eprintf("(%d,%lld) ", iter->first, iter->second + res->toadd);
+  }
+  eprintf("\n");*/
+  return res;
+}
+void solve() {
+  depth[0] = 0;
+  fail = 0;
+  T* res = dfs(0, -1);
+  if (fail) {
+    printf("-1\n");
+    return;
+  }
+  printf(LLD "\n", res->tree.rbegin()->second + res->toadd);
+}
+
+int main() {
+  precalc();
+#ifdef LOCAL
+  freopen(TASKNAME".out", "w", stdout);
+  assert(freopen(TASKNAME".in", "r", stdin));
+#endif
+
+  while (1) {
+    if (!read()) {
+      break;
+    }
+    solve();
+#ifdef DEBUG
+    eprintf("Time %.2f\n", (double) clock() / CLOCKS_PER_SEC);
+#endif
+  }
+  return 0;
+}

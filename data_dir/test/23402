@@ -1,0 +1,99 @@
+#include <bits/stdc++.h>
+#define ll long long
+#define pll pair<ll,ll>
+#define fr first
+#define sc second
+
+using namespace std;
+
+const ll N = 100100;
+const ll Mod = 1e9 + 7;
+const pll ZERO = pll(0,1);
+const pll ONE = pll(1,1);
+
+vector <ll> D[N];
+vector <ll> Dp1[N];
+pll Dp2[N];
+
+ll n;
+pll Rec(ll g);
+ll mul(ll x,ll y){
+    return x*y %Mod;
+}
+
+ll GCD(ll x,ll y){
+    return y ? GCD(y,x%y) : x ;
+}
+
+ll FastPower(ll x,ll y){
+    if(!y)  return 1;
+    ll Res = FastPower(x,y>>1); Res = (Res*Res)%Mod;
+    if(y&1) Res = (Res*x)%Mod;
+    return Res;
+}
+
+ll InverseMod(pll a){
+    ll G = GCD(a.fr,a.sc);    a.fr /= G ; a.sc /= G;
+    return (a.fr*FastPower(a.sc,Mod-2))%Mod;
+}
+
+const pll operator+(const pll& a,const pll& b){
+    return make_pair( (a.fr*b.sc + a.sc*b.fr)%Mod , (a.sc*b.sc)%Mod );
+}
+
+const pll operator*(const pll& a,const pll& b){
+    return make_pair( (a.fr*b.fr)%Mod , (a.sc*b.sc)%Mod );
+}
+
+int main()
+{
+    for(ll i=0;i<N;i++) Dp2[i] = pll(-1,-1);
+
+    cin>>n;
+
+    for(ll i=1;i<=n;i++)    D[0].push_back(i);
+
+    for(ll i=1;i<=n;i++)
+        for(ll j=i;j<=n;j+=i)
+            D[j].push_back(i);
+
+    for(ll i=0;i<=n;i++)    sort(D[i].begin(),D[i].end(),greater<ll>()) , Dp1[i] = vector <ll> ( D[i].size() , 0 );
+
+    /// Dp1[i][j] - the number of numbers x that GCD(i,x) == D[i][j]
+
+    for(ll j=1;j<=n;j++)    Dp1[0][j-1] = 1;
+    for(ll i=1;i<=n;i++)
+    {
+        for(ll j=0;j<D[i].size();j++)
+        {
+            Dp1[i][j] = n/D[i][j];
+
+            for(ll k=0;k<j;k++)
+                if(D[i][k]%D[i][j]==0)
+                    Dp1[i][j] -= Dp1[i][k];
+        }
+    }
+
+    /// Dp2[g] - The Expected Length if the current GCD == g
+
+    cout<<InverseMod(Rec(0));
+}
+
+pll Rec(ll g)
+{
+    if(g==1)    return ZERO;
+
+    if(Dp2[g].fr+1) return Dp2[g];
+
+    pll Res = ZERO;
+
+    for(ll j=0;j<D[g].size();j++)
+        if(g!=D[g][j])
+            Res = Res + pll(Dp1[g][j],n)*( ONE + Rec(D[g][j]) );
+
+    if(g)   /// R = pll(n-n/g,n)*Res + pll(n/g,n)*( ONE + R );
+        Res = ( Res + pll(n/g,n) )*pll(n,n-n/g);
+
+    return Dp2[g] = Res;
+}
+

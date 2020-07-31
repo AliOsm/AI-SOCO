@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Node{
+	int l, r, id;
+};
+
+typedef pair <int, int> P;
+
+const int N = 5e5 + 10;
+const long long INF = 1e18;
+
+vector <P> G[N];
+vector <Node> sav[N];
+int st[N], ed[N];
+long long d[N], minv[N << 2], addv[N << 2], ans[N];
+long long minx;
+int n, tot;
+
+void dfs1(int x, long long dist){
+	int u, w;
+	if (G[x].empty()) d[x] = dist;
+	else d[x] = INF;
+	st[x] = ++tot;
+	for (int i = 0; i < (int)G[x].size(); i++){
+		u = G[x][i].first; w = G[x][i].second;
+		dfs1(u, dist + w);
+	}
+	ed[x] = tot;
+}
+
+void maintain(int rt, int l, int r){
+	minv[rt] = 0;
+	if (r > l) minv[rt] = min(minv[rt << 1], minv[rt << 1 | 1]);
+	minv[rt] += addv[rt];
+}
+
+void build(int rt, int l, int r){
+	if (l == r){
+		addv[rt] = minv[rt] = d[l];
+		return;
+	}
+	int mid = (l + r) >> 1;
+	build(rt << 1, l, mid);
+	build(rt << 1 | 1, mid + 1, r);
+	maintain(rt, l, r);
+}
+
+void update(int ql, int qr, long long v, int rt, int l, int r){
+	if (ql <= l && r <= qr) addv[rt] += v;
+	else{
+		int mid = (l + r) >> 1;
+		if (ql <= mid) update(ql, qr, v, rt << 1, l, mid);
+		if (qr > mid) update(ql, qr, v, rt << 1 | 1, mid + 1, r);
+	}
+	maintain(rt, l, r);
+}
+
+void query(int ql, int qr, int rt, int l, int r, long long add){
+	if (ql <= l && qr >= r) minx = min(minx, minv[rt] + add);
+	else{
+		int mid = (l + r) >> 1;
+		if (ql <= mid) query(ql, qr, rt << 1, l, mid, add + addv[rt]);
+		if (qr > mid) query(ql, qr, rt << 1 | 1, mid + 1, r, add + addv[rt]);
+	}
+}
+
+void dfs2(int x, long long v){
+	int l, r, id, u, w;
+	if (v){
+		update(1, n, v, 1, 1, n);
+		update(st[x], ed[x], -v * 2, 1, 1, n);
+	}
+	for (int i = 0; i < (int)sav[x].size(); i++){
+		l = sav[x][i].l; r = sav[x][i].r; id = sav[x][i].id;
+		minx = INF;
+		query(l, r, 1, 1, n, 0);
+		ans[id] = minx;
+	}
+	for (int i = 0; i < (int)G[x].size(); i++){
+		u = G[x][i].first; w = G[x][i].second;
+		dfs2(u, w);
+	}
+	if (v){
+		update(1, n, -v, 1, 1, n);
+		update(st[x], ed[x], v * 2, 1, 1, n);
+	}
+}
+
+int main(){
+	int q, u, w, l, r;
+	scanf("%d %d",&n,&q);
+	for (int i = 2; i <= n; i++){
+		scanf("%d %d",&u,&w);
+		G[u].push_back({i, w});
+	}
+	for (int i = 1; i <= q; i++){
+		scanf("%d %d %d",&u,&l,&r);
+		sav[u].push_back((Node){l, r, i});
+	}
+	tot = 0;
+	dfs1(1, 0);
+	build(1, 1, n);
+	dfs2(1, 0);
+	for (int i = 1; i <= q; i++) printf("%I64d\n", ans[i]);
+	return 0;
+}

@@ -1,0 +1,103 @@
+
+// ~/BAU/ACM-ICPC/Teams/Republic_of_Coders/Corvus
+// ~/sudo apt-get verdict Accpeted
+
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <memory.h>
+#include <limits.h>
+#include <math.h>
+#include <string.h>
+#include <string>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+
+using namespace std;
+
+typedef long long ll;
+typedef unsigned long long ull;
+const int N = 200001;
+const ll MOD = 1e9 + 7;
+
+int n, v[N], sz[N], at[N][2], dpth[N], parent[N];
+ll contrib[N][2];
+vector<vector<int> > g;
+
+void dfs(int u, int p, int d) {
+	sz[u] = 1;
+	at[u][d]++;
+	dpth[u] = d;
+	parent[u] = p;
+	for (int i = 0; i < g[u].size(); i++)
+		if (g[u][i] != p) {
+			dfs(g[u][i], u, d ^ 1);
+			sz[u] += sz[g[u][i]];
+			at[u][0] += at[g[u][i]][0];
+			at[u][1] += at[g[u][i]][1];
+		}
+}
+
+int main() {
+#ifndef ONLINE_JUDGE
+	freopen("input.in", "r", stdin);
+#endif
+
+	scanf("%d", &n);
+	for (int i = 0; i < n; i++)
+		scanf("%d", v + i);
+
+	g.resize(n);
+	for (int i = 1, a, b; i < n; i++) {
+		scanf("%d%d", &a, &b);
+		a--, b--;
+		g[a].push_back(b);
+		g[b].push_back(a);
+	}
+
+	dfs(0, -1, 0);
+
+	ll ans = 0;
+	for (int i = 0; i < n; i++) {
+		contrib[i][0] = n;
+		ll cur = sz[i];
+		cur = ((at[0][dpth[i]] - at[i][dpth[i]]) * cur) % MOD;
+		contrib[i][0] = (contrib[i][0] + cur) % MOD;
+
+		cur = sz[i];
+		cur = ((at[0][dpth[i] ^ 1] - at[i][dpth[i] ^ 1]) * cur) % MOD;
+		contrib[i][1] = (contrib[i][1] + cur) % MOD;
+
+		for (int j = 0; j < g[i].size(); j++) {
+			int u = g[i][j];
+			if (u == parent[i])
+				continue;
+			cur = at[u][dpth[i]];
+			cur = ((n - sz[u]) * cur) % MOD;
+			contrib[i][0] = (contrib[i][0] + cur) % MOD;
+
+			cur = at[u][dpth[i] ^ 1];
+			cur = ((n - sz[u]) * cur) % MOD;
+			contrib[i][1] = (contrib[i][1] + cur) % MOD;
+		}
+		
+		if (v[i] < 0) {
+			v[i] *= -1;
+			swap(contrib[i][0], contrib[i][1]);
+		}
+	
+		cur = (v[i] * ((contrib[i][0] - contrib[i][1] + MOD)%MOD)) % MOD;
+		ans = (ans + cur) % MOD;
+	}
+	
+	printf("%lld\n", ans);
+	return 0;
+}

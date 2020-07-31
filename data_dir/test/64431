@@ -1,0 +1,132 @@
+#include <iostream>
+#include <cassert>
+#include <numeric>
+#include <limits>
+#include <deque>
+#include <cstring>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
+#include <vector>
+#include <algorithm>
+#define all(v) (v).begin(), (v).end()
+using namespace std;
+using ll = long long int;
+using pii = pair<int, int>;
+using pll = pair<ll, ll>;
+
+constexpr int MOD = 998244353;
+constexpr int MAXN = 5005;
+
+void upd(int &a, int b) {
+    a += b;
+    a %= MOD;
+}
+
+int mul(int a, int b) {
+    return (a * 1LL * b) % MOD;
+}
+
+int bp(int a, int n) {
+    int res = 1;
+    for (; n > 0; n >>= 1) {
+        if (n & 1) {
+            res = mul(res, a);
+        }
+        a = mul(a, a);
+    }
+    return res;
+}
+
+int get_inv(int a) {
+    int ia = bp(a, MOD - 2);
+    assert(mul(a, ia) == 1);
+    return ia;
+}
+
+vector<int> inv(MAXN);
+int calced[2][MAXN][MAXN];
+
+int dp(vector<int> &cnt, int n, int took_this, int pos, int taken) {
+    int &ans = calced[took_this][pos][taken];
+    if (ans != -1) {
+        return ans;
+    }
+
+    ans = 0;
+    if (took_this && cnt[pos] != 1) {
+        // can win! choose the same
+        int nom = cnt[pos] - 1;
+        int denom = n - taken;
+        int ver = mul(nom, inv[denom]);
+        upd(ans, mul(ver, 1));
+    }
+
+    // go to the next value if can
+    if (pos != cnt.size() - 1) {
+        upd(ans, mul(1, dp(cnt, n, 0, pos + 1, taken)));
+    }
+
+    // took this if not taken
+    if (took_this == 0) {
+        int this_place = cnt[pos];
+
+        int nom = this_place;
+        int denom = n - taken;
+        int ver = mul(nom, inv[denom]);
+
+        upd(ans, mul(ver, dp(cnt, n, 1, pos, taken + 1)));
+    }
+
+    return ans;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    for (int i = 1; i < MAXN; i++) {
+        inv[i] = get_inv(i); // i^(-1) mod DIV
+    }
+
+    int n;
+    while (cin >> n) {
+        /*
+        vector<int> cnt(n + 1);
+        for (int i = 0; i < n; i++) {
+            int tmp;
+            cin >> tmp;
+            cnt[tmp]++;
+        }
+        int pos = 0;
+        while (pos < cnt.size()) {
+            while (pos < cnt.size() && cnt[pos] == 0) {
+                cnt.erase(cnt.begin() + pos);
+            }
+            pos++;
+        }
+
+        vector<int> suf = pos;
+        for (int i = suf.size() - 2; i >= 0; i--) {
+            suf[i] += suf[i + 1];
+        }
+        */
+
+        memset(calced, -1, sizeof(calced));
+
+        map<int, int> mp;
+        mp[0]++;
+        for (int i = 0; i < n; i++) {
+            int tmp;
+            cin >> tmp;
+            mp[tmp]++;
+        }
+        vector<int> cnt;
+        for (auto it : mp) {
+            cnt.push_back(it.second);
+        }
+
+        cout << dp(cnt, n + 1, 1, 0, 1) << endl;
+    }
+}

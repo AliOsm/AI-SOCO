@@ -1,0 +1,58 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pb push_back
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(), (x).end()
+
+const int N = 2e5 + 5;
+
+int n, m, k, t;
+int a[N];
+pair<int, pair<int, int>> trap[N];
+
+bool check(int cnt)
+{
+  int minPower = a[m - cnt];
+  vector<pair<int, int>> seg;
+  for(int i = 0 ; i < k ; i++)
+    if(trap[i].first > minPower)
+      seg.pb(trap[i].second);
+  sort(all(seg));
+  int minTime = n + 1;
+  for(int i = 0 ; i < sz(seg) ; i++){
+    int j = i;
+    int right = seg[i].second;
+    while(j < sz(seg) && seg[j].first <= right){
+      right = max(right, seg[j].second);
+      j++;
+    }
+    minTime += 2 * (right - seg[i].first + 1);
+    i = --j;
+  }
+  return minTime <= t;
+}
+
+int main()
+{
+  scanf("%d%d%d%d", &m, &n, &k, &t);
+  for(int i = 0 ; i < m ; i++)
+    scanf("%d", a + i);
+  sort(a, a + m);
+  for(int i = 0 ; i < k ; i++){
+    int l, r, d;
+    scanf("%d%d%d", &l, &r, &d);
+    trap[i] = { d, {l, r} };
+  }
+  int lo = 1, hi = m, best = 0;
+  while(lo <= hi){
+    int mid = (lo + hi) / 2;
+    if(check(mid)){
+      best = mid;
+      lo = mid + 1;
+    }else{
+      hi = mid - 1;
+    }
+  }
+  printf("%d\n", best);
+  return 0;
+}

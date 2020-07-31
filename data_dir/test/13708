@@ -1,0 +1,82 @@
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <map>
+#include <string>
+#include <stack>
+#include <queue>
+#include <cmath>
+#include <ctime>
+#include <utility>
+using namespace std;
+#define REP(I,N) for (I=0;I<N;I++)
+#define rREP(I,N) for (I=N-1;I>=0;I--)
+#define rep(I,S,N) for (I=S;I<N;I++)
+#define rrep(I,S,N) for (I=N-1;I>=S;I--)
+#define FOR(I,S,N) for (I=S;I<=N;I++)
+#define rFOR(I,S,N) for (I=N;I>=S;I--)
+typedef unsigned long long ULL;
+typedef long long LL;
+const int INF=0x3f3f3f3f;
+const LL INFF=0x3f3f3f3f3f3f3f3fll;
+const LL MOD=1e9+7;
+const LL maxn=3000+7;
+const double eps=0.00000001;
+LL gcd(LL a,LL b){return b?gcd(b,a%b):a;}
+template<typename T>inline T abs(T a) {return a>0?a:-a;}
+template<typename T>inline T powMM(T a,T b){T ret=1;for (;b;b>>=1ll,a=a*a%MOD) ret=1ll*ret*a%MOD;return ret;}
+
+#define next nxt
+int n,m,T;
+int i,j,k;
+int fa[maxn*maxn*2];
+int a[maxn][maxn*2];
+int q[maxn*maxn*2],qf[maxn*maxn*2];
+int tot,ans;
+int getid(int x,int y){
+	return (x-1)*m*2+y;
+}
+int getfather(int x){
+	if (fa[x]==x) return x;
+	q[tot]=x;qf[tot++]=fa[x];
+	return fa[x]=getfather(fa[x]);
+}
+void change(int x,int y){
+	int xx,yy,i,j;
+	FOR(i,-1,1)
+		FOR(j,-1,1){
+			int xx=x+i,yy=y+j;
+			if (xx==x&&yy==y) continue;
+			if (yy==0) yy=m*2;
+			if (yy==2*m+1) yy=1;
+			if (xx>0&&xx<=n&&a[xx][yy]){
+				int u=getfather(getid(xx,yy)),v=getfather(getid(x,y));
+				q[tot]=v;qf[tot++]=fa[v];
+				fa[v]=u;
+			}
+		}
+}
+int main(){
+	scanf("%d%d%d",&n,&m,&T);
+	FOR(i,1,n*m*2) fa[i]=i;
+	while(T--){
+		int x,y;
+		scanf("%d%d",&x,&y);
+		tot=0;
+		a[x][y]=a[x][y+m]=1;
+		change(x,y);
+		change(x,y+m);
+		if (getfather(getid(x,y))==getfather(getid(x,y+m))){
+			a[x][y]=a[x][y+m]=0;
+			while (tot--){
+				fa[q[tot]]=qf[tot];
+			}
+		}
+		else ans++;
+	}
+	printf("%d",ans);
+}
+/*
+*/

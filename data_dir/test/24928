@@ -1,0 +1,112 @@
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <vector>
+using namespace std;
+
+const int MAX_BITS = 20;
+
+struct solution {
+    int n = 0;
+    int basis[MAX_BITS];
+
+    int get_max() const {
+        int answer = 0;
+
+        for (int i = 0; i < n; i++)
+            answer = max(answer, answer ^ basis[i]);
+
+        return answer;
+    }
+
+    void add(int x) {
+
+        for (int i = 0; i < n; i++)
+            x = min(x, x ^ basis[i]);
+
+        if (x != 0) {
+            basis[n++] = x;
+
+            // Insertion sort.
+            for (int k = n - 1; k > 0 && basis[k] > basis[k - 1]; k--)
+                swap(basis[k], basis[k - 1]);
+        }
+    }
+
+    void join(const solution &other) {
+        for (int i = 0; i < other.n; i++)
+            add(other.basis[i]);
+    }
+
+    void join(const solution &a, const solution &b) {
+        *this = a;
+        join(b);
+    }
+};
+
+struct query {
+    int L, R, index;
+};
+
+int N, Q;
+vector<int> burgers;
+vector<int> answers;
+vector<solution> solutions;
+
+void solve(int start, int end, const vector<query> &queries) {
+    if (start >= end)
+        return;
+
+    int mid = (start + end) / 2;
+    solutions[mid].n = 0;
+
+    for (int i = mid - 1; i >= start; i--) {
+        solutions[i] = solutions[i + 1];
+        solutions[i].add(burgers[i]);
+    }
+
+    for (int i = mid; i < end; i++) {
+        solutions[i + 1] = solutions[i];
+        solutions[i + 1].add(burgers[i]);
+    }
+
+    vector<query> left_queries, right_queries;
+    solution sol;
+
+    for (const query &q : queries)
+        if (q.R < mid) {
+            left_queries.push_back(q);
+        } else if (q.L > mid) {
+            right_queries.push_back(q);
+        } else {
+            sol.join(solutions[q.L], solutions[q.R]);
+            answers[q.index] = sol.get_max();
+        }
+
+    solve(start, mid - 1, left_queries);
+    solve(mid + 1, end, right_queries);
+}
+
+int main() {
+    scanf("%d", &N);
+    burgers.resize(N);
+    solutions.resize(N + 1);
+
+    for (int &burger : burgers)
+        scanf("%d", &burger);
+
+    scanf("%d", &Q);
+    vector<query> queries(Q);
+    answers.resize(Q);
+
+    for (int q = 0; q < Q; q++) {
+        scanf("%d %d", &queries[q].L, &queries[q].R);
+        queries[q].L--;
+        queries[q].index = q;
+    }
+
+    solve(0, N, queries);
+
+    for (int q = 0; q < Q; q++)
+        printf("%d\n", answers[q]);
+}

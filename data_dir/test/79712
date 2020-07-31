@@ -1,0 +1,217 @@
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+ 
+using namespace std;
+using namespace __gnu_pbds;
+ 
+#define fi first
+#define se second
+#define mp make_pair
+#define pb push_back
+#define fbo find_by_order
+#define ook order_of_key
+ 
+typedef long long ll;
+typedef pair<ll,ll> ii;
+typedef vector<int> vi;
+typedef long double ld; 
+typedef tree<ll, null_type, less<ll>, rb_tree_tag, tree_order_statistics_node_update> pbds;
+typedef set<ll>::iterator sit;
+typedef map<ll,ll>::iterator mit;
+
+const long long INF = ll(1e18);
+class ConvexHullDynamic {
+	public:
+	typedef long long coef_t;
+	typedef long long coord_t;
+	typedef long long val_t;
+
+	struct Line {
+		coef_t a, b;
+		double xLeft;
+
+		enum Type {
+			line, maxQuery, minQuery
+		} type;
+		coord_t val;
+
+		explicit Line(coef_t aa = 0, coef_t bb = 0) :
+				a(aa), b(bb), xLeft(-INF), type(Type::line), val(0) {
+		}
+		val_t valueAt(coord_t x) const {
+			return a * x + b;
+		}
+		friend bool areParallel(const Line& l1, const Line& l2) {
+			return l1.a == l2.a;
+		}
+		friend double intersectX(const Line& l1, const Line& l2) {
+			return areParallel(l1, l2) ?
+					INF : 1.0 * (l2.b - l1.b) / (l1.a - l2.a);
+		}
+		bool operator<(const Line& l2) const {
+			if (l2.type == line)
+				return this->a < l2.a;
+			if (l2.type == maxQuery)
+				return this->xLeft < l2.val;
+			if (l2.type == minQuery)
+				return this->xLeft > l2.val;
+
+			return 0;
+		}
+	};
+
+	bool isMax;
+	std::set<Line> hull;
+
+	bool hasPrev(std::set<Line>::iterator it) {
+		return it != hull.begin();
+	}
+	bool hasNext(std::set<Line>::iterator it) {
+		return it != hull.end() && std::next(it) != hull.end();
+	}
+	bool irrelevant(const Line& l1, const Line& l2, const Line& l3) {
+		return intersectX(l1, l3) <= intersectX(l1, l2);
+	}
+	bool irrelevant(std::set<Line>::iterator it) {
+		return hasPrev(it) && hasNext(it) && ((isMax && irrelevant(*std::prev(it), *it, *std::next(it)))
+						|| (!isMax && irrelevant(*std::next(it), *it,
+										*std::prev(it))));
+	}
+
+	std::set<Line>::iterator updateLeftBorder(std::set<Line>::iterator it) {
+		if ((isMax && !hasPrev(it)) || (!isMax && !hasNext(it)))
+			return it;
+
+		double val = intersectX(*it, isMax ? *std::prev(it) : *std::next(it));
+		Line buf(*it);
+		it = hull.erase(it);
+		buf.xLeft = val;
+		it = hull.insert(it, buf);
+		return it;
+	}
+
+	ConvexHullDynamic() {
+		isMax = false;
+	}
+
+	void addLine(coef_t a, coef_t b) {
+		Line l3 = Line(a, b);
+		auto it = hull.lower_bound(l3);
+
+		if (it != hull.end() && areParallel(*it, l3)) {
+			if ((isMax && it->b < b) || (!isMax && it->b > b))
+				it = hull.erase(it);
+			else
+				return;
+		}
+
+		it = hull.insert(it, l3);
+		if (irrelevant(it)) {
+			hull.erase(it);
+			return;
+		}
+
+		while (hasPrev(it) && irrelevant(std::prev(it)))
+			hull.erase(std::prev(it));
+		while (hasNext(it) && irrelevant(std::next(it)))
+			hull.erase(std::next(it));
+
+		it = updateLeftBorder(it);
+		if (hasPrev(it))
+			updateLeftBorder(std::prev(it));
+		if (hasNext(it))
+			updateLeftBorder(std::next(it));
+	}
+	
+	val_t getBest(coord_t x) const {
+		if (hull.size() == 0) {
+			return -INF;
+		}
+		Line q;
+		q.val = x;
+		q.type = isMax ? Line::Type::maxQuery : Line::Type::minQuery;
+
+		auto bestLine = hull.lower_bound(q);
+		if (isMax)
+			--bestLine;
+		return bestLine->valueAt(x);
+	}
+};
+
+ConvexHullDynamic buffer[200011];
+ConvexHullDynamic *dp[100011];
+ll a[111111];
+ll b[111111];
+vi adj[111111];
+int sub[111111];
+ll ans[111111];
+
+void prep(int u, int p)
+{
+	sub[u]=1;
+	for(int v:adj[u])
+	{
+		if(v==p) continue;
+		prep(v,u); sub[u]+=sub[v];
+	}
+}
+
+int cnt=0;
+
+void dfs(int u, int p)
+{
+	int mc=-1; int mx=0;
+	for(int v:adj[u])
+	{
+		if(v==p) continue;
+		dfs(v,u);
+		if(sub[v]>mx)
+		{
+			mx=sub[v]; mc=v;
+		}
+	}
+	if(mc==-1)
+	{
+		ans[u]=0;
+		dp[u] = &(buffer[cnt++]);
+		dp[u]->addLine(b[u], 0);
+		return ;
+	}
+	dp[u] = dp[mc];
+	for(int v:adj[u])
+	{
+		if(v==p) continue;
+		if(v!=mc)
+		{
+			for(auto it=dp[v]->hull.begin();it!=dp[v]->hull.end();it++)
+			{
+				dp[u]->addLine(it->a, it->b);
+			}
+		}
+	}
+	ans[u] = dp[u]->getBest(a[u]);
+	dp[u]->addLine(b[u], ans[u]);
+	//add here
+}
+
+int main()
+{
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	int n; cin>>n;
+	for(int i=0;i<n;i++) cin>>a[i];
+	for(int i=0;i<n;i++) cin>>b[i];
+	for(int i=0;i<n-1;i++)
+	{
+		int u,v; cin>>u>>v; u--; v--;
+		adj[u].pb(v); adj[v].pb(u);
+	}
+	prep(0,-1);
+	dfs(0,-1);
+	for(int i=0;i<n;i++)
+	{
+		cout<<ans[i];
+		if(i+1<n) cout<<' ';
+	}
+	cout<<'\n';
+}

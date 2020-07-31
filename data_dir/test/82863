@@ -1,0 +1,125 @@
+/**********************************************
+*||  Code written by Akikaze                ||*
+*||  Duy-Bach Le, #Team4T's Chief Executor  ||*
+**********************************************/
+
+// File name: CFGR3E.cpp
+// Time created: Sat Jun 01 2019 14:20
+
+/************** [OPTIMIZATION PROTOCOL] **************/
+#pragma GCC optimize("Ofast")
+/*****************************************************/
+
+/************** [LIBRARY PROTOCOL] **************/
+#include <bits/stdc++.h>
+using namespace std;
+/************************************************/
+
+/************** [GNU OMISSIONS] **************/
+#define y0 withindarkness
+#define y1 apinklotusbloomed
+#define yn carryingapurplesoul
+#define j1 togetherformingtheTeam
+/*********************************************/
+
+/************** [LEGENDS/CONSTANTS] **************/
+#define endl '\n'
+#define i64 long long
+#define ld long double
+const long long Mod = 1000000007LL, INF = 1e9, LINF = 1e18;
+const long double Pi = 3.141592653589793116L;
+const long double EPS = 0.000000001L, Gold = ((1.0L+sqrt(5.0L))/2.0L);
+long long keymod[] = {1000000007LL, 1000000009LL, 1000000021LL, 1000000033LL};
+mt19937 rng32(chrono::steady_clock::now().time_since_epoch().count());
+mt19937_64 rng64(chrono::steady_clock::now().time_since_epoch().count());
+/*************************************************/
+
+/************** [MASTER CONTROLS - PHASE 1] **************/
+int OImode = 0;
+int MultiTest = 0;
+int Interactive = 0;
+
+char infile[] = "FILE.IN";
+char outfile[] = "FILE.OUT";
+/*********************************************************/
+
+/************** [GLOBAL VARIABLES] **************/
+int n; vector<int> s, t;
+/************************************************/
+
+/************** [FUNCTIONS] **************/
+
+
+void Input() {
+	cin >> n; s.resize(n); t.resize(n);
+	for (auto &z: s) cin >> z;
+	for (auto &z: t) cin >> z;
+}
+
+void Solve() {
+	vector<pair<int, int>> vs; vector<int> vt = t;
+	for (int i=0; i<n; i++) vs.push_back({s[i], i + 1});
+	sort(vs.begin(), vs.end()); sort(vt.begin(), vt.end());
+
+	multiset<pair<pair<int, int>, int>> Ml, Mr;
+	for (int i=0; i<n; i++) {
+		if (vs[i].first == vt[i]) continue;
+		if (vs[i].first < vt[i]) Ml.insert({{vs[i].first, vt[i]}, vs[i].second});
+		if (vs[i].first > vt[i]) Mr.insert({{vs[i].first, vt[i]}, vs[i].second});
+	}
+
+	vector<pair<pair<int, int>, int>> Movements;
+
+	while (!Ml.empty() && !Mr.empty()) {
+		pair<pair<int, int>, int> Tl = *Ml.begin(); Ml.erase(Ml.find(Tl));
+		pair<pair<int, int>, int> Tr = *Mr.begin(); Mr.erase(Mr.find(Tr));
+
+		int d = min({Tl.first.second - Tl.first.first, Tr.first.first - Tr.first.second, (Tr.first.first - Tl.first.first) / 2});
+
+		if (d != Tl.first.second - Tl.first.first && d != Tr.first.first - Tr.first.second) {cout << "NO\n"; return;}
+		if (d < 0) {cout << "NO\n"; return;}
+
+		Movements.push_back({{Tl.second, Tr.second}, d});
+		Tl.first.first += d; Tr.first.first -= d;
+
+		assert(Movements.size() <= n * 5);
+		
+		if (Tl.first.first < Tl.first.second) Ml.insert(Tl);
+		if (Tr.first.first > Tr.first.second) Mr.insert(Tr);
+	}
+
+	if (!Ml.empty() || !Mr.empty()) {cout << "NO\n"; return;}
+
+	cout << "YES\n" << Movements.size() << endl;
+	for (auto Token: Movements) {
+		int i = Token.first.first, j = Token.first.second;
+		int d = Token.second;
+		cout << i << " " << j << " " << d << endl;
+	}
+}
+/*****************************************/
+
+/************** [MAIN] **************/
+int main(int argc, char* argv[]) {
+	#ifdef Akikaze
+		cout << "Source code by #Team4T-Akikaze.\n";
+		cout << "Input: " << ((OImode) ? infile : "stdin");
+		cout << " | Output: " << ((OImode) ? outfile : "stdout") << endl << endl;
+		cout << "MultiTest-Mode: " << ((MultiTest) ? "ON\n" : "OFF\n");
+		cout << "Interactive-Mode: " << ((Interactive) ? "ON\n\n" : "OFF\n\n");
+	#else
+		if (OImode) {
+			freopen(infile, "r", stdin);
+			freopen(outfile, "w", stdout);
+		}
+	#endif
+	
+	ios_base::sync_with_stdio(false);
+	if (!Interactive) cin.tie(NULL);
+	
+	int T = 1; if (MultiTest) cin >> T;
+	while(T--) {Input(); Solve();}
+	
+	return 0;
+}
+/************************************/

@@ -1,0 +1,257 @@
+//#define ONLINE_JUDGE
+
+#if defined(ONLINE_JUDGE)
+#define _SECURE_SCL 0
+#endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <deque>
+#include <set>
+#include <map>
+#include <functional>
+#include <memory>
+#include <cmath>
+#include <climits>
+#include <numeric>
+#include <tuple>
+#include <memory.h>
+#include <stdint.h>
+
+#if !defined(__GNUC__)
+#else // !defined(__GNUC__)
+#define _CrtDbgBreak() __builtin_trap()
+#endif // !defined(__GNUC__)
+
+#if defined(ONLINE_JUDGE)
+#define LOCAL_TEST 0
+#else 
+#define LOCAL_TEST 1
+#endif
+
+#if LOCAL_TEST
+struct AssertsCounter
+{
+    AssertsCounter(): counter(0) {}
+    ~AssertsCounter() { std::cout << std::endl << "DIAG: " << (counter == 0 ? "OK" : "!!!") << " Asserts count: " << counter << std::endl; }
+    void Increment() { counter++; }
+    uint32_t counter;
+};
+AssertsCounter g_assertsCounter;
+#define LOCAL_ASSERT(expr) { if (!(expr)) {std::cout << "ASSERT FAILED: '" << #expr << "'" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#define LOCAL_ASSERT_EQ(expr1, expr2) { if ((expr1) != (expr2)) {std::cout << "ASSERT FAILED: '" << #expr1 << "' == '" << #expr2 << "' (" << (expr1) << " vs " << (expr2) << "')" << std::endl; g_assertsCounter.Increment(); _CrtDbgBreak(); } }
+#else
+#define LOCAL_ASSERT(expr)
+#define LOCAL_ASSERT_EQ(expr1, expr2)
+#endif
+
+typedef std::string string8_t;
+
+typedef std::vector<size_t> vector_size_t;
+typedef std::vector<int32_t> vector_int32_t;
+typedef std::vector<uint32_t> vector_uint32_t;
+typedef std::vector<int64_t> vector_int64_t;
+typedef std::vector<uint64_t> vector_uint64_t;
+
+typedef std::vector<vector_size_t> vector_2d_size_t;
+typedef std::vector<string8_t> vector_string8_t;
+
+typedef std::set<size_t> set_size_t;
+typedef std::set<int32_t> set_int32_t;
+typedef std::set<uint32_t> set_uint32_t;
+typedef std::set<int64_t> set_int64_t;
+typedef std::set<uint64_t> set_uint64_t;
+
+typedef std::set<string8_t> set_string8_t;
+typedef std::multiset<string8_t> multiset_string8_t;
+
+// Auxiliary functions definition
+// 
+template<typename T> inline T Abs(const T a) { return a < 0 ? -a : a; }
+template<typename T> inline T Min(const T a, const T b) {return a < b ? a : b;}
+template<typename T> inline T Max(const T a, const T b) {return a > b ? a : b;}
+template<typename T> inline void UpdateMin(T& a, const T b) {a = Min(a, b);}
+template<typename T> inline void UpdateMax(T& a, const T b) {a = Max(a, b);}
+
+static const double eps = 1.0e-09;
+template<typename T> inline bool IsEqual(const T a, const T b) { return Abs(a - b) < eps; }
+template<typename T> inline bool IsGreater(const T a, const T b) { return a > b + eps; }
+template<typename T> inline bool IsLess(const T a, const T b) { return a + eps < b; }
+
+template<typename T> inline string8_t ToStr(const T& val) { std::ostringstream ostr; ostr << val; return ostr.str(); }
+template<typename T> inline bool FromStr(const string8_t& str, T& val) {std::istringstream istr(str); istr >> val; return !!istr; }
+
+template<typename T> inline std::istream& operator>>(std::istream& ist, std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { ist >> data[i]; }
+    return ist;
+}
+
+template<typename T> inline std::ostream& operator<<(std::ostream& ost, const std::vector<T>& data)
+{
+    for (size_t i = 0; i < data.size(); i++) { if (i != 0) { ost << ' '; } ost << data[i]; }
+    return ost;
+}
+
+#if defined(ONLINE_JUDGE)
+template<size_t id> class StopWatch { };
+#else
+#include <library/lib_stopwatch.h>
+#include <library/lib_random.h>
+library::random::Rand g_rnd;
+#endif
+
+struct road_t
+{
+    size_t a;
+    size_t b;
+    uint32_t l;
+    size_t index;
+};
+
+typedef std::vector<road_t> vector_road_t;
+typedef std::vector<vector_road_t> vector_2d_road_t;
+typedef std::vector<double> vector_double_t;
+
+double GetW(const uint64_t n, const uint64_t k1, const uint64_t k2)
+{
+    const uint64_t total = n * (n - 1) * (n - 2) / 6;
+
+    uint64_t ways = 0;
+    if (k1 > 1)
+    {
+        ways += (k1 * (k1 - 1) * k2) / 2;
+    }
+    if (k2 > 1)
+    {
+        ways += (k2 * (k2 - 1) * k1) / 2;
+    }
+
+    const double ans = (double)ways / (double)total;
+    return ans;
+}
+
+void Dfs(const size_t start, const vector_2d_road_t& links, vector_size_t& wasHere, vector_size_t& childsCount, vector_double_t& weights)
+{
+    LOCAL_ASSERT(wasHere[start] == 0);
+    wasHere[start] = 1;
+    size_t sum = 0;
+    for (size_t i = 0; i < links[start].size(); i++)
+    {
+        const road_t& r = links[start][i];
+        LOCAL_ASSERT(links[start][i].b == links[start][i].a);
+        const size_t next = links[start][i].b;
+        if (!wasHere[next])
+        {
+            Dfs(next, links, wasHere, childsCount, weights);
+            sum += childsCount[next] + 1;
+
+            const size_t rem = links.size() - childsCount[next] - 1;
+            weights[r.index] = GetW(links.size(), childsCount[next] + 1, rem);
+
+        }
+    }
+
+    childsCount[start] = sum;
+}
+
+bool Solve(std::istream& ist, std::ostream& ost, const bool multipleTestMode)
+{
+    StopWatch<1> sw; (void)sw;
+
+    // 
+    size_t n;
+    ist >> n;
+
+    if (multipleTestMode && !ist)
+        return false;
+
+#if LOCAL_TEST
+    ost << std::endl << "Next test" << std::endl;
+#endif
+    
+    vector_2d_road_t links(n);
+
+    // 
+    vector_road_t roads(n - 1);
+    for (size_t i = 0; i + 1 < n; i++)
+    {
+        size_t a;
+        size_t b;
+        uint32_t l;
+        ist >> a >> b >> l;
+        --a; --b;
+
+        roads[i].a = a;
+        roads[i].b = b;
+        roads[i].l = l;
+        roads[i].index = i;
+
+        road_t ra = roads[i];
+        ra.b = ra.a;
+        road_t rb = roads[i];
+        rb.a = rb.b;
+
+        links[a].push_back(rb);
+        links[b].push_back(ra);
+    }
+
+    vector_size_t wasHere(n);
+    vector_size_t childsCount(n);
+    vector_double_t weights(n - 1);
+    Dfs(0, links, wasHere, childsCount, weights);
+
+    double totalSum = 0.0;
+    for (size_t i = 0; i + 1 < n; i++)
+    {
+        totalSum += weights[i] * roads[i].l;
+    }
+
+    size_t q;
+    ist >> q;
+    for (size_t i = 0; i < q; i++)
+    {
+        size_t ri;
+        uint32_t li;
+        ist >> ri >> li;
+        --ri;
+
+        uint32_t d = roads[ri].l - li;
+        roads[ri].l = li;
+
+        totalSum -= (double)d * weights[ri];
+        ost << std::fixed << std::setprecision(10) << totalSum * 2.0 << std::endl;
+    }
+
+    return multipleTestMode;
+}
+
+int main(int argc, const char *argv[])
+{
+    std::ios_base::sync_with_stdio(false);
+    std::istream* ist = &std::cin;
+    std::ostream* ost = &std::cout;
+    
+    std::unique_ptr<std::istream> fileInput;
+    
+    if (argc > 1)
+    {
+        fileInput.reset(new std::ifstream(argv[1]));
+        if (!(*fileInput))
+        {
+            std::cout << "File not found: " << argv[1] << std::endl;
+        }
+        ist = fileInput.get();
+    }    
+    
+#if defined(ONLINE_JUDGE)
+    Solve(*ist, *ost, false);
+#else
+    while(Solve(*ist, *ost, true)) {};
+#endif
+}

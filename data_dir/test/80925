@@ -1,0 +1,99 @@
+/// You just can't beat the person who never gives up
+/// ICPC next year
+
+#pragma GCC optimize("Ofast,no-stack-protector,unroll-loops,fast-math,O3")
+#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include<bits/stdc++.h>
+using namespace std ;
+const int N = 1e6+5 ;
+
+int n ,m ,u ,v ,height[N] ;
+int spars[30][N] ,LG[N] ;
+int nodetoindex[N] ,indextonode[N] ,sz ;
+vector<int> adj[N] ;
+int depth[N] ;
+
+void build(){
+    LG[0] = -1 ;
+    for(int i=0;i<sz;++i){
+        LG[i+1] = LG[i] + !(i&(i+1)) ;
+        spars[0][i] = i ;
+    }
+    for(int lg = 1 ;(1<<lg)<=sz ;++lg){
+        for(int i =0;i+(1<<lg)<=sz;++i){
+            int a = spars[lg-1][i] ;
+            int b = spars[lg-1][i+(1<<(lg-1))] ;
+            spars[lg][i] = height[a]<height[b] ? a : b ;
+        }
+    }
+}
+int RMQ(int s,int e){
+    if(s>e)swap(s,e) ;
+    int siz = e - s + 1 ;
+    int lg = LG[siz] ;
+    int a = spars[lg][s] ;
+    int b = spars[lg][e-(1<<lg)+1] ;
+    return height[a]<height[b] ? a : b ;
+}
+void dfs(int p,int gp,int d=0){
+    depth[p] = d ;
+    nodetoindex[p] = sz ;
+    indextonode[sz] = p ;
+    height[sz++] = d ;
+    for(int ch:adj[p]){
+        if(ch==gp) continue ;
+        dfs(ch,p,d+1) ;
+        nodetoindex[p] = sz ;
+        indextonode[sz] = p ;
+        height[sz++] = d ;
+    }
+}
+int lca(int u, int v) {
+    u = nodetoindex[u] ;
+    v = nodetoindex[v] ;
+    return indextonode[RMQ(u,v)];
+}
+int distance(int u,int v){
+    int p = lca(u,v) ;
+    if(p==u) return depth[v] - depth[u] ;
+    if(p==v) return depth[u] - depth[v] ;
+    return depth[u] + depth[v] - 2*depth[p] ;
+}
+
+int main(){
+    scanf("%d%d",&n,&m);
+    for(int i=1;i<n;++i){
+        scanf("%d%d",&u,&v);
+        --u ,--v ;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    dfs(0,0) ;
+    build() ;
+    while(m--){
+        int sz ;
+        vector<pair<int,int>> v ;
+        scanf("%d",&sz);
+        while(sz--){
+            scanf("%d",&u);
+            --u;
+            v.push_back({depth[u],u});
+        }
+        sort(v.rbegin(),v.rend());
+        ///for(auto go:v) cout << go.first << " " << go.second << endl ;
+        int cur = v[0].second ;
+        bool ok = 1 ;
+        for(int i=1;i<v.size();++i){
+            int to = v[i].second ;
+            int p = lca(cur,to) ;
+            if(distance(p,to)>1){
+                ok = 0 ;
+                break ;
+            }
+            cur = p ;
+        }
+        puts(ok?"YES":"NO");
+    }
+    return 0;
+}

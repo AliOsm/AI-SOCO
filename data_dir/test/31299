@@ -1,0 +1,134 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+bool first = true;
+vector<int> adj[100010];
+vector<int> vis; //0 - unvisited, 1 - active, 2 - inactive
+vector<int> path;
+vector<int> poss;
+vector<int> h;
+vector<int> hh;
+vector<int> highest;
+vector<int> feasible;
+int gst = 0;
+int dfs(int loc)
+{
+    vis[loc] = 1;
+    path.push_back(loc);
+    highest[loc] = loc;
+    hh[loc] = h[loc];
+    for(auto &i:adj[loc])
+    {
+        switch(vis[i])
+        {
+            case 0://forward edge, unvisited node
+            h[i] = h[loc]+1;
+            dfs(i);
+            if(hh[i]<hh[loc])
+            {
+                hh[loc] = hh[i];
+                highest[loc] = highest[i];
+            }
+            break;
+            case 1://backward edge, active node
+            if(first)
+            {
+                poss.assign(path.begin()+h[i],path.end());
+                feasible.assign(poss.size()+1,0);
+                first = false;
+            }
+            else
+            {
+                int st = 0, en = poss.size();
+                while(st<en)
+                {
+                    int mid = (st+en)/2;
+                    if(vis[poss[mid]]==1)
+                        st = mid+1;
+                    else
+                        en = mid;
+                }
+                poss.resize(en);
+                st = 0, en = poss.size();
+                while(st<en)
+                {
+                    int mid = (st+en)/2;
+                    if(h[poss[mid]]<h[i])
+                        st = mid+1;
+                    else
+                        en = mid;
+                }
+                feasible[0]--;
+                feasible[en]++;
+            }
+            if(h[i]<hh[loc])
+            {
+                hh[loc] = h[i];
+                highest[loc] = i;
+            }
+            break;
+            case 2://cross edge, inactive node
+            //1.figure out the highest node reachable from i
+            //1a.don't need to care about cycle attached to cycle from i,
+            //as that would anyway restrict my soln, and validity is guaranteed
+            //2.check if this node is in path to loc
+            //3.need to work only if it is
+            if(vis[highest[i]]==1)
+            {
+                int st = 0, en = poss.size();
+                while(st<en)
+                {
+                    int mid = (st+en)/2;
+                    if(h[poss[mid]]<h[i])
+                        st = mid+1;
+                    else
+                        en = mid;
+                }
+                feasible[en]++;
+                st = gst, en = poss.size();
+                while(st<en)
+                {
+                    int mid = (st+en)/2;
+                    if(vis[poss[mid]] == 1)
+                        st = mid+1;
+                    else
+                        en = mid;
+                }
+                feasible[en]--;
+            }
+            if(hh[i]<hh[loc])
+            {
+                hh[loc] = hh[i];
+                highest[loc] = highest[i];
+            }
+            break;
+        }
+    }
+    path.pop_back();
+    vis[loc] = 2;
+}
+int32_t main() {
+    ios::sync_with_stdio(false);cin.tie(0);
+    int n,m,x,y;
+    cin>>n>>m;
+    h.resize(n+1,0);
+    hh.resize(n+1,0);
+    highest.resize(n+1,0);
+    vis.resize(n+1,0);
+    for(int i=0;i<m;i++)
+    {
+        cin>>x>>y;
+        adj[x].push_back(y);
+    }
+    for(int i=1;i<=n;i++)
+        if(!vis[i]) dfs(i);
+    int sm = 0;
+    for(int i=0;i<poss.size();i++)
+    {
+        sm += feasible[i];
+        if(sm>=0)
+            return cout<<poss[i],0;
+    }
+    cout<<-1;
+    return 0;
+}

@@ -1,0 +1,241 @@
+/*
+ID: Tariqul
+PROG:
+LANG: C++
+*/
+
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <iostream>
+#include <list>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+#define fo(i,j,n) for(i=j;i<n;++i)
+#define Fo(i,j,n) for(i=n-1;i>=j;--i)
+#define foo(i,j,v) fo(i,j,sz(v))
+#define Foo(i,j,v) Fo(i,j,sz(v))
+#define li(v) v.begin(),v.end()
+#define sz(v) ((int)v.size())
+#define CLR(a,v) memset((a),(v),sizeof(a))
+#define inf 1e9
+typedef long long Long;
+//typedef __int64 Long;
+#define pi (2*acos(0))
+#define eps 1e-9
+
+#define two(X) (1<<(X))
+#define twoL(X) (((Long)(1))<<(X))
+#define contain(S,X) (((S)&two(X))!=0)
+#define containL(S,X) (((S)&twoL(X))!=0)
+
+char BUFFER[100000 + 5];
+bool readn(int &n)	{ return scanf("%d",&n) == 1; }
+bool readl(Long &n)	{ return scanf("%I64d",&n) == 1; }
+bool readd(double &n){ return scanf("%lf",&n) == 1; }
+bool reads(string &s){ s = ""; int n = scanf("%s",BUFFER); if(n == 1)s = BUFFER; return n == 1; }
+bool readln(string &s){ char *valid = gets(BUFFER); if(valid)s = BUFFER; return ((bool)valid); }
+
+struct Edge
+{
+    int id, u, v;
+    Long capacity, flow;
+    Edge() :
+      id(-1), u(-1), v(-1), capacity(0), flow(0) { }
+    Edge(int id_, int u_, int v_, Long capacity_ = 0) :
+      id(id_), u(u_), v(v_), capacity(capacity_), flow(0) { }
+};
+
+bool operator<(const Edge &a, const Edge &b)
+{
+    return (a.capacity < b.capacity);
+}
+
+class MaximumFlow {
+// Directed edge should be used in bipartite matching related problem and also where group needs to be displayed
+// In order to get only the amount of flow, edge does not matter on Undirected or directed
+// If problems statement clearly mentions undirected graph then undirected edge should be used.
+
+private:
+	int n, s, d;
+	vector<int> prev;
+	vector<bool> vis;
+	priority_queue<Edge> Q;
+	map<pair<int,int>, int> mp;
+
+    void init(int number, int source = -1, int destination = -1)
+	{
+        s = source; d = destination;
+        n = number;
+	edges.clear();
+	graph.clear();
+	mp.clear();
+	graph.resize(n,vector<int>(0));
+	prev.resize(n);
+	vis.resize(n);
+    }
+
+    void updateFlow(int e1, Long flow)
+    {
+        int e2 = e1 ^ 1;
+        edges[e1].capacity -= flow;
+        edges[e2].capacity += flow;
+        edges[e1].flow += flow;
+        if(edges[e1].flow < edges[e2].flow) swap(e1,e2);
+        edges[e1].flow -= edges[e2].flow;
+        edges[e2].flow = 0;
+    }
+
+    Long augment()
+    {
+        while(!Q.empty())Q.pop();
+        fill(li(prev),-1); fill(li(vis),false);
+        int i, from, to;
+        Long flow = 0, capacity;
+        Edge x; Q.push(Edge(-1, -1, s, inf));
+        while(!Q.empty())
+        {
+            x = Q.top(); Q.pop();
+            from = x.v; capacity = x.capacity; prev[from] = x.id;
+            if(vis[from])continue; vis[from] = true;
+            if(from == d){ flow = capacity; break; }
+            foo(i,0,graph[from])
+            {
+                x = edges[graph[from][i]]; to = x.v; if(vis[to])continue;
+                if(x.capacity <= 0)continue;
+                Q.push(Edge(x.id, from,to,min(x.capacity,capacity)));
+            }
+        }
+
+        to = d;
+        while(prev[to] >= 0)
+        {
+            x = edges[prev[to]];
+            from = x.u;
+            updateFlow(x.id, flow);
+            to = from;
+        }
+        return flow;
+    }
+
+public:
+
+	vector <Edge> edges;
+	vector <vector <int> > graph;
+
+	MaximumFlow() { init(0); }
+
+	MaximumFlow(int number, int source = -1, int destination = -1) { init(number, source, destination); }
+
+    Long result() {
+        Long max_flow_amount = 0, x;
+        x = augment();
+        while (x)
+        {
+            max_flow_amount += x;
+            x = augment();
+        }
+        return max_flow_amount;
+    }
+
+	void addEdge(int u, int v, Long capacity, bool isDirectedEdge = false) {
+		int e1 = (int)(edges.size()), e2 = e1 + 1;
+        if(mp.find(make_pair(u,v)) != mp.end())
+        {
+            e1 = mp[make_pair(u,v)];
+            e2 = mp[make_pair(v,u)];
+        }
+        else
+        {
+            graph[u].push_back(e1);
+            graph[v].push_back(e2);
+            edges.push_back(Edge(e1, u, v));
+            edges.push_back(Edge(e2, v, u));
+            mp[make_pair(u,v)] = e1;
+            mp[make_pair(v,u)] = e1;
+        }
+        edges[e1].capacity += capacity;
+        if(!isDirectedEdge) edges[e2].capacity += capacity;
+	}
+};
+
+vector<int> v;
+set<int> st;
+
+int gcd(int a, int b)
+{
+	if(b == 0)return a;
+	return gcd(b,a%b);
+}
+
+int nof(int n, int i)
+{
+	int cnt = 0;
+	while(n%i == 0)
+    {
+        cnt++;
+        n /= i;
+    }
+	return cnt;
+}
+
+void LPF(int n)
+{
+	int i;
+	for(i = 2; i * i <= n; i++)if(n%i == 0)
+	{
+        st.insert(i);
+		while(n%i == 0) n /= i;
+	}
+	if(n > 1)st.insert(n);
+}
+
+vector<int> a,b,d;
+
+int main()
+{
+	#ifdef localhost
+	freopen("/home/tariqul/APC/Contest/input.txt","r",stdin);
+	//freopen("/home/tariqul/APC/Contest/output.txt","w",stdout);
+	#endif
+
+	int i,n,m,cnt = 0,val;
+
+    st.clear();
+	cin >> n >>  m; v.resize(n); a.resize(m); b.resize(m); d.resize(m);
+	fo(i,0,n){ cin >> v[i]; LPF(v[i]); }
+	fo(i,0,m){ cin >> a[i] >> b[i]; a[i]--; b[i]--; if(a[i]%2)swap(a[i],b[i]); d[i] = gcd(v[a[i]],v[b[i]]); }
+    set<int>::iterator p = st.begin();
+    while(p != st.end())
+    {
+        MaximumFlow F(n + 2, n, n + 1);
+        fo(i,0,n)
+        {
+            if(i%2)F.addEdge(i,n+1,nof(v[i],*p),true);
+            else F.addEdge(n,i,nof(v[i],*p),true);
+        }
+
+        fo(i,0,m)
+        {
+            val = nof(d[i],*p);
+            if(val > 0)F.addEdge(a[i],b[i],val,true);
+        }
+        cnt += F.result();
+        p++;
+    }
+	cout << cnt << endl;
+	return 0;
+}

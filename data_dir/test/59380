@@ -1,0 +1,127 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+typedef long long ll;
+typedef pair<ll,ll> ii;
+typedef vector<int> vi;
+typedef vector< ii > vii;
+
+#define INF 0x3F3F3F3F
+#define LINF 0x3F3F3F3F3F3F3F3FLL
+#define pb push_back
+#define mp make_pair
+#define pq priority_queue
+#define LSONE(s) ((s)&(-s)) //LASTBIT
+#define EPS 1e-7
+#define PI  3.1415926535897932384626433832795028841971693993
+#define DEG_to_RAD(X)   (X * PI / 180)
+
+//////////////////////
+int dx[] = {1,-1,0,0};
+int dy[] = {0,0,-1,1};  
+//////////////////////
+
+const int N = 100100;
+ll n,d;
+ll v[N], tree[4*N];
+ll b[N];
+
+int query(int no, int l, int r, int i, int j){
+    if( l>j || r<i ) return -INF;
+    if( l>=i&&r<=j ) return tree[no];
+    int nxt = (no<<1);
+    int mid = (l+r)>>1;
+    int p1 = query(nxt,l,mid,i,j);
+    int p2 = query(nxt+1,mid+1,r,i,j);
+    if(p1==-INF) return p2;
+    if(p2==-INF) return p1;
+    return (b[p1]>b[p2])?p1:p2;
+}
+
+void update(int no, int l, int r, int pos, int val){
+    if( l == r && l == pos ){
+        b[l] = val;
+        tree[no] = l;
+        return;
+    }
+    int nxt = (no<<1);
+    int mid = (l+r)>>1;
+    if(pos<=mid) update(nxt,l,mid,pos,val);
+    else update(nxt+1,mid+1,r,pos,val);
+    int p1 = tree[nxt], p2 = tree[nxt+1];
+    tree[no] = (b[p1]>b[p2]) ? p1 : p2;
+}
+
+ii g[N];
+int nor[N];
+int pai[N];
+
+
+int main()
+{
+    scanf("%lld %lld",&n,&d);
+
+    for(int i=1;i<=n;++i)
+    {
+        scanf("%lld",v+i);
+        g[i] = (mp(v[i],i));
+    }
+
+    memset(pai,-1,sizeof pai);
+    sort(g+1,g+n+1);
+    ll maxi = 0;
+    ll id;
+
+    for(int i=1;i<=n;++i){
+        nor[g[i].second]=i;
+    }
+
+    //for(int i=1;i<=n;++i) printf("%d\n",nor[i]);
+
+    //b[0] = b[n+1] = -INF;
+    
+    for(int i=1;i<=n;++i)
+    {
+        ll dx = v[i]+d;
+        ll dy = v[i]-d;
+        int p1 = lower_bound(g+1,g+n+1,ii(dy,INF))-g;
+        int p2 = upper_bound(g+1,g+n+1,ii(dx,-INF))-g;
+        p1--;
+        // p1 < 1 || p2 > n
+
+        int x1 = (p1<1)?-INF:b[query(1,1,n,1,p1)]+1;
+        int x2 = (p2>n)?-INF:b[query(1,1,n,p2,n)]+1;
+        
+        ll at;
+        if(x1>x2)
+        {
+            at = x1;
+            if(at>1) pai[i] = g[query(1,1,n,0,p1)].second;
+        }
+        else
+        {
+            at = x2;
+            if(at>1) pai[i] = g[query(1,1,n,p2,n)].second;
+        }
+        if(at>maxi) 
+        {
+            id = i;
+            maxi = at;
+        }
+        update(1,1,n,nor[i],at); 
+    }
+
+    printf("%lld\n",b[tree[1]]);
+    vi resp;
+    int cnt = b[tree[1]];
+    while(cnt--)
+    {
+        resp.pb(id);
+        id = pai[id];
+        if(id==-1)break;
+    }
+    for(int i=resp.size()-1;i>=0;--i) printf("%d ",resp[i]);
+    printf("\n");
+    return 0;
+}

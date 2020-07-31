@@ -1,0 +1,99 @@
+//besmellah
+#include <bits/stdc++.h>
+using namespace std;
+
+#define int long long
+
+const int maxn = 1e5 + 5;
+int segsuff[4 * maxn], segpref[4 * maxn], a[maxn];
+map <int, int> M;
+
+void addsuff(int id, int L, int R, int idx, int val) {
+	if (idx < L || idx >= R)
+		return;
+	if (R == L + 1){
+		segsuff[id] += val;
+		return;
+	}
+	int mid = (L + R) / 2;
+	addsuff(2 * id + 0, L, mid, idx, val);
+	addsuff(2 * id + 1, mid, R, idx, val);
+	segsuff[id] = segsuff[2 * id + 0] + segsuff[2 * id + 1];
+}
+
+int getsuff(int id, int L, int R, int l, int r){
+	if (R <= l || r <= L)
+		return 0;
+	if (L >= l && R <= r)
+		return segsuff[id];
+	int mid = (L + R) / 2;
+	return getsuff(2 * id + 0, L, mid, l, r) + getsuff(2 * id + 1, mid, R, l, r);
+}
+
+void addpref(int id, int L, int R, int idx, int val) {
+	if (idx < L || idx >= R)
+		return;
+	if (R == L + 1){
+		segpref[id] += val;
+		return;
+	}
+	int mid = (L + R) / 2;
+	addpref(2 * id + 0, L, mid, idx, val);
+	addpref(2 * id + 1, mid, R, idx, val);
+	segpref[id] = segpref[2 * id + 0] + segpref[2 * id + 1];
+}
+
+int getpref(int id, int L, int R, int l, int r){
+	if (R <= l || r <= L)
+		return 0;
+	if (L >= l && R <= r)
+		return segpref[id];
+	int mid = (L + R) / 2;
+	return getpref(2 * id + 0, L, mid, l, r) + getpref(2 * id + 1, mid, R, l, r);
+}
+
+
+int32_t main() {
+	ios::sync_with_stdio(false);
+	cin.tie(0);
+	int n, k;
+	cin >> n >> k;
+	vector <int> compress;
+	for (int i = 0; i < n; i++){
+		cin >> a[i];
+		compress.push_back(a[i]);
+	}
+	sort(compress.begin(), compress.end());
+	compress.resize(unique(compress.begin(), compress.end()) - compress.begin());
+	for (int i = 0; i < compress.size(); i++){
+		M[compress[i]] = i;
+	}
+	for (int i = 0; i < n; i++) {
+		a[i] = M[a[i]];
+	}
+	int ans = 0, inv = 0;
+	int ptr2 = n;
+	while (inv <= k && ptr2){
+		if (getsuff(1, 0, n, 0, a[ptr2 - 1]) + inv > k)
+			break;
+		ptr2--;
+		inv += getsuff(1, 0, n, 0, a[ptr2]);
+		addsuff(1, 0, n, a[ptr2], +1);
+	}
+	if (!ptr2){
+		cout << n * (n - 1ll) / 2ll;
+		return 0;
+	}
+	for (int ptr1 = 0; ptr1 < n - 1; ptr1++) {
+		inv += getpref(1, 0, n, a[ptr1] + 1, n) + getsuff(1, 0, n, 0, a[ptr1]);
+		addpref(1, 0, n, a[ptr1], +1);
+		while (inv > k && ptr2 < n){
+			inv -= getsuff(1, 0, n, 0, a[ptr2]) + getpref(1, 0, n, a[ptr2] + 1, n);
+			addsuff(1, 0, n, a[ptr2], -1);
+			ptr2 ++;
+		}
+//		cout << ptr1 << ' ' << ptr2 << endl;
+		ans += n - max(ptr2, ptr1 + 1);
+	}
+	cout << ans;
+}

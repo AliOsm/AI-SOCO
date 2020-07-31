@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <assert.h>
+#include <queue>
+#include <string.h>
+#include <string>
+#include <set>
+#include <memory.h>
+#include <functional>
+#include <bitset>
+using namespace std;
+#define ll long long
+const int mod = 1e9 + 7;
+
+int add(int x, int y) {
+	int ret = (x + y) % mod;
+	if (ret<0) {
+		ret += mod;
+	}
+	return ret;
+}
+int mul(int x, int y) {
+	return (ll)x*y%mod;
+}
+const int N = 1e5 + 15;
+int id[256], num[256], fac[N];
+char s[N];
+int mypow(int x, int c) {
+	int ret = 1;
+	while (c>0) {
+		if (c & 1) {
+			ret = mul(ret, x);
+		}
+		x = mul(x, x);
+		c /= 2;
+	}
+	return ret;
+}
+
+int invFac[N];
+int combi(int n, int r) {
+	int ret = fac[n];
+	ret = mul(ret, invFac[r]);
+	ret = mul(ret, invFac[n - r]);
+	return ret;
+}
+
+const int GGG = 56;
+int sufDp[GGG][N], preDp[GGG][N];
+
+int RRR[255][255];
+void solve() {
+	fac[0] = 1;
+	for (int i = 1; i<N; ++i) {
+		fac[i] = mul(fac[i - 1], i);
+	}
+	for (int i = 0; i<N; ++i) {
+		invFac[i] = mypow(fac[i], mod - 2);
+	}
+
+	int pos = 1;
+	for (int i = 'a'; i <= 'z'; ++i) {
+		id[i] = pos++;
+	}
+	for (int i = 'A'; i <= 'Z'; ++i) {
+		id[i] = pos++;
+	}
+	scanf("%s", s + 1);
+	int n = (int)strlen(s + 1);
+	for (int i = 1; i <= n; ++i) {
+		++num[id[s[i]]];
+	}
+	int tmp = mul(fac[n / 2], fac[n / 2]);
+	for (int i = 0; i < pos; ++i) {
+		tmp = mul(tmp, invFac[num[i]]);
+	}
+
+	sufDp[pos][0] = 1;
+	for (int i = pos - 1; i >= 1; --i) {
+		for (int j = 0; j <= n / 2; ++j) {
+			sufDp[i][j] = sufDp[i + 1][j];
+		}
+		if (num[i] == 0) {
+			continue;
+		}
+		for (int j = 0; j + num[i] <= n / 2; ++j) {
+			sufDp[i][j + num[i]] = add(sufDp[i][j + num[i]], sufDp[i + 1][j]);
+		}
+	}
+
+	preDp[0][0] = 1;
+	int lim = n / 2;
+
+	for (int i = 1; i < pos; ++i) {
+		for (int j = 0; j <= lim; ++j) {
+			preDp[i][j] = preDp[i - 1][j];
+		}
+		if (num[i] == 0) {
+			continue;
+		}
+		for (int j = 0; j + num[i] <= lim; ++j) {
+			preDp[i][j + num[i]] = add(preDp[i][j + num[i]], preDp[i - 1][j]);
+		}
+	}
+ 
+	int tmpDp[N];
+	for (int i = 1; i < pos; ++i) {
+		for (int j = 0; j <= lim; ++j) {
+			tmpDp[j] = preDp[i-1][j];
+		}
+		for (int k = 0; k <= lim; ++k) {
+			RRR[i][i] = add(RRR[i][i], mul(tmpDp[k], sufDp[i + 1][lim - k]));
+		}
+		for (int j = i+1; j < pos; ++j) {
+			for (int k = 0; k <= lim; ++k) {
+				RRR[i][j] = add(RRR[i][j], mul(tmpDp[k], sufDp[j + 1][lim - k]));
+			}
+			if (num[j] > 0) {
+				for (int k = lim; k >= num[j]; --k) {
+					tmpDp[k] = add(tmpDp[k], tmpDp[k - num[j]]);
+				}
+			}
+		}
+	}
+
+	int q;
+	scanf("%d", &q);
+	tmp = mul(tmp, 2);
+	while (q--) {
+		int l, r;
+		scanf("%d %d", &l, &r);
+		l = id[s[l]], r = id[s[r]];
+		if (l > r) {
+			swap(l, r);
+		}
+		printf("%d\n", mul(tmp, RRR[l][r]));
+	}
+}
+int main() {
+	//freopen("input.txt", "r", stdin);
+	solve();
+}

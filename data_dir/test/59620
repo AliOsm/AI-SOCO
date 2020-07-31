@@ -1,0 +1,145 @@
+#pragma comment(linker,"/stack:256000000")
+
+#include <cmath> 
+#include <ctime> 
+#include <iostream> 
+#include <string> 
+#include <vector> 
+#include <algorithm> 
+#include <set> 
+#include <map> 
+#include <cstring> 
+#include <cstdlib> 
+#include <queue> 
+#include <cstdio> 
+#include <cfloat>
+#include <bitset>
+
+using namespace std; 
+
+#define REP(i, n) for (int (i) = 0; (i) < (n); (i)++) 
+#define sz(v) (int)(v).size() 
+#define all(v) (v).begin(), (v).end()
+
+const int N = 6410;
+const int INF = 1e9;
+
+struct Edge {
+	int a, b, cap, flow, cost;
+};
+
+vector <Edge> e;
+vector <int> g[N];
+int d[N], p[N], pt[N], n, s, t;
+bool u[N];
+
+void addEdge(int a, int b, int cap, int cost) {
+	Edge e1 = {a, b, cap, 0, cost};
+	Edge e2 = {b, a, 0, 0, -cost};
+	g[a].push_back(sz(e));
+	e.push_back(e1);
+	g[b].push_back(sz(e));
+	e.push_back(e2);
+}
+
+bool ford_bellman() {
+	fill(d, d + n, INF);
+	d[s] = 0;
+	fill(p, p + n, -1);
+	REP(i, n - 1) {
+		REP(j, sz(e)) {
+			if (d[e[j].b] > d[e[j].a] + e[j].cost && e[j].flow < e[j].cap) {
+				d[e[j].b] = d[e[j].a] + e[j].cost;
+				p[e[j].b] = j;
+			}
+		}
+	}
+	return d[t] != INF;
+}
+
+bool dijkstra() {
+	fill(d, d + n, INF);
+	fill(u, u + n, 0);
+	d[s] = 0;
+	fill(p, p + n, -1);
+	priority_queue <pair <int, int> > q;
+	q.push(make_pair(0, s));
+	while (!q.empty()) {
+		int v = q.top().second;
+		q.pop();
+		if (u[v]) continue;
+		u[v] = 1;
+		REP(i, sz(g[v])) {
+			int id = g[v][i];
+			int to = e[id].b;
+			if (!u[to] && d[to] > d[v] + e[id].cost + pt[v] - pt[to] && e[id].flow < e[id].cap) {
+				d[to] = d[v] + e[id].cost + pt[v] - pt[to];
+				p[to] = id;
+				q.push(make_pair(-d[to], to));
+			}
+		}
+	}
+	for (int i = 0; i < n; i++) {
+		d[i] = d[i] - pt[s] + pt[i];
+	}
+	for (int i = 0; i < n; i++) {
+		pt[i] = d[i];
+	}
+	return d[t] != INF;
+}
+
+pair <int, int> minCostFlow(int wanted) {
+	int flow = 0, cost = 0;
+	ford_bellman();
+	for (int i = 0; i < n; i++) {
+		pt[i] = d[i];
+	}
+	while (flow < wanted && dijkstra()) {
+		int push = INF, cur = t;
+		while (cur != s) {
+			push = min(push, e[p[cur]].cap - e[p[cur]].flow);
+			cur = e[p[cur]].a;
+		}
+		cur = t;
+		while (cur != s) {
+			cost += e[p[cur]].cost * push;
+			e[p[cur]].flow += push;
+			e[p[cur] ^ 1].flow -= push;
+			cur = e[p[cur]].a;
+		}
+		flow += push;
+	}
+	return make_pair(flow, cost);
+}
+
+int main() {
+#ifdef LOCAL
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	int n, m, a[81][81], b[81][81];
+	cin >> n >> m;
+	REP(i, n) REP(j, m) cin >> a[i][j];
+	::n = n * m + 2;
+	::s = 0;
+	::t = ::n - 1;
+	int cnt = 0;
+	REP(i, n) REP(j, m) if ((i + j) % 2 == 0) b[i][j] = ++cnt;
+	int even = cnt;
+	REP(i, n) REP(j, m) if ((i + j) % 2 == 1) b[i][j] = ++cnt;
+	int odd = cnt;
+	int dx[] = {-1, 1, 0, 0};
+	int dy[] = {0, 0, 1, -1};
+	REP(i, n) REP(j, m) REP(k, 4) {
+		int nx = i + dx[k];
+		int ny = j + dy[k];
+		if (0 <= nx && nx < n && 0 <= ny && ny < m) {
+			addEdge(b[i][j], b[nx][ny], 1, a[i][j] == a[nx][ny]? 0: 1);
+		}
+	}
+	for (int i = 1; i <= even; i++) addEdge(::s, i, 1, 0);
+	for (int i = even + 1; i <= odd; i++) addEdge(i, ::t, 1, 0);
+	pair <int, int> res = minCostFlow(n * m / 2);
+	cout << res.second << endl;
+	return 0;
+}

@@ -1,0 +1,144 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define forr(i, a, b) for(int i = (a); i < (int) (b); i++)
+#define forn(i, n) forr(i, 0, n)
+#define forall(it, v) for(auto it = v.begin(); it != v.end(); ++it)
+#define dforn(i, n) for(int i = ((int) n) - 1; i >= 0; i--)
+#define db(v) cerr << #v << " = " << v << endl
+#define pb push_back
+typedef long long ll;
+const int MAXN = 1 << 18;
+const int LOGN = 20;
+const int INF = 1 << 30;
+
+int n, m, ans[MAXN];
+vector<int> G[MAXN];
+
+/* LCA Specific */
+int f[MAXN][LOGN], L[MAXN];
+void dfs(int v, int fa = -1, int lvl = 0){
+  f[v][0] = fa; L[v] = lvl;
+  forall(it, G[v]){
+    if(*it != fa){
+      dfs(*it, v, lvl + 1);
+    }
+  }
+}
+void build(){
+  forn(k, LOGN - 1){
+    forn(i, n){
+      f[i][k + 1] = f[ f[i][k] ][k];
+    }
+  }
+}
+#define lg(x) (31 - __builtin_clz(x))
+int climb(int a, int d){
+  if(!d) return a;
+  dforn(i, lg(L[a]) + 1){
+    if(1 << i <= d){
+      a = f[a][i];
+      d -= 1 << i;
+    }
+  }
+  return a;
+}
+int lca(int a, int b){
+  if(L[a] < L[b]) swap(a, b);
+  a = climb(a, L[a] - L[b]);
+  if(a == b) return a;
+  dforn(i, lg(L[a]) + 1){
+    if(f[a][i] != f[b][i]){
+      a = f[a][i];
+      b = f[b][i];
+    }
+  }
+  return f[a][0];
+}
+int dist(int a, int b){
+  return L[a] + L[b] - 2*L[lca(a, b)];
+}
+/* End LCA Specific */
+
+/* Centroid Specific */
+bool taken[MAXN];
+int Cpadre[MAXN];
+int szt[MAXN];
+void calcsz(int v, int p){
+  szt[v] = 1;
+  forall(it, G[v]){
+    if(*it != p && !taken[*it]){
+      calcsz(*it, v);
+      szt[v] += szt[*it];
+    }
+  }
+}
+void centroid(int v = 0, int f = -1, int lvl = 0, int tam = -1){
+  if(tam == -1){
+    calcsz(v, -1);
+    tam = szt[v];
+  }
+  forall(it, G[v]){
+    if(!taken[*it] && szt[*it] >= tam/2){
+      szt[v] = 0;
+      centroid(*it, f, lvl, tam);
+      return;
+    }
+  }
+  taken[v] = true;
+  Cpadre[v] = f;
+  forall(it, G[v]){
+    if(!taken[*it]){
+      centroid(*it, v, lvl+1, -1);
+    }
+  }
+}
+/* End Centroid Specific */
+
+int main() {
+  //~ freopen("input.in", "r", stdin);
+  scanf("%d %d", &n, &m);
+  forn(i, n - 1){
+    int a, b;
+    scanf("%d %d", &a, &b);
+    --a; --b;
+    G[a].pb(b);
+    G[b].pb(a);
+  }
+  centroid();
+  dfs(0);
+  build();
+  forn(i, n){
+    //~ printf("El nodo %d tiene de padre a %d\n", i + 1, Cpadre[i] + 1);
+    ans[i] = INF;
+  }
+  
+  int orig = 0;
+  int v = 0;
+  while(v != -1){
+    ans[v] = min(ans[v], dist(orig, v));
+    v = Cpadre[v];
+  }
+
+  while(m--){
+    int t, v;
+    scanf("%d %d", &t, &v);
+    --t; --v;
+    if(t){ /* Consulta */
+      int ret = INF;
+      int orig = v;
+      while(v != -1){
+        ret = min(ret, ans[v] + dist(orig, v));
+        v = Cpadre[v];
+      }
+      printf("%d\n", ret);
+    }
+    else { /* Pintar */
+      int orig = v;
+      while(v != -1){
+        ans[v] = min(ans[v], dist(orig, v));
+        v = Cpadre[v];
+      }
+    }
+  }
+  return 0;
+}

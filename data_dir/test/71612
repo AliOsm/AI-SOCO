@@ -1,0 +1,112 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int N = 1 << 18;
+
+struct Tuple {
+	int dp[5][5];
+
+	Tuple(char c) : Tuple() {
+		// 0        1  2   3    4
+		// epsilon, 2, 20, 201, 2017
+		if (c == '2') dp[0][0] = 1, dp[0][1] = 0;
+		if (c == '0') dp[1][1] = 1, dp[1][2] = 0;
+		if (c == '1') dp[2][2] = 1, dp[2][3] = 0;
+		if (c == '6') dp[3][3] = 1, dp[4][4] = 1;
+		if (c == '7') dp[3][3] = 1, dp[3][4] = 0;
+	}
+
+	Tuple() {
+		for (int i = 0; i < 5; i++) {
+			for (int j = 0; j < 5; j++) {
+				dp[i][j] = 1e7;
+			}
+			dp[i][i] = 0;
+		}
+	}
+};
+
+Tuple dat[N * 2];
+
+Tuple operator*(const Tuple &a, const Tuple &b) {
+	Tuple ret;
+	for (int i = 0; i < 5; i++) {
+		ret.dp[i][i] = 1e7;
+	}
+	for (int i = 0; i < 5; i++) {
+		for (int j = i; j < 5; j++) {
+			for (int k = j; k < 5; k++) {
+				ret.dp[i][k] = min(ret.dp[i][k], a.dp[i][j] + b.dp[j][k]);
+			}
+		}
+	}
+	return ret;
+}
+
+int query(int l, int r) {
+	l += N;
+	r += N;
+	int dpL[5];
+	int dpR[5];
+	int tmp[5];
+	for (int i = 0; i < 5; i++) {
+		dpL[i] = 1e7;
+		dpR[i] = 1e7;
+	}
+	dpL[0] = 0;
+	dpR[4] = 0;
+	for (; l < r; l /= 2, r /= 2) {
+		if (l & 1) {
+			for (int i = 0; i < 5; i++) {
+				tmp[i] = dpL[i];
+				dpL[i] = 1e7;
+			}
+			for (int j = 0; j < 5; j++) {
+				for (int k = j; k < 5; k++) {
+					dpL[k] = min(dpL[k], tmp[j] + dat[l].dp[j][k]);
+				}
+			}
+			l++;
+		}
+		if (r & 1) {
+			r--;
+			for (int i = 0; i < 5; i++) {
+				tmp[i] = dpR[i];
+				dpR[i] = 1e7;
+			}
+			for (int j = 0; j < 5; j++) {
+				for (int i = 0; i <= j; i++) {
+					dpR[i] = min(dpR[i], dat[r].dp[i][j] + tmp[j]);
+				}
+			}
+		}
+	}
+	int ans = 1e7;
+	for (int i = 0; i < 5; i++) {
+		ans = min(ans, dpL[i] + dpR[i]);
+	}
+	return ans;
+}
+
+int main() {
+	int n, q;
+	cin >> n >> q;
+
+	string s;
+	cin >> s;
+
+	for (int i = 0; i < n; i++) {
+		dat[i + N] = Tuple(s[i]);
+	}
+	for (int i = N - 1; i >= 1; i--) {
+		dat[i] = dat[i * 2] * dat[i * 2 + 1];
+	}
+
+	for (int i = 0; i < q; i++) {
+		int l, r;
+		scanf("%d %d", &l, &r);
+		int ans = query(l - 1, r);
+		if (ans > n) ans = -1;
+		printf("%d\n", ans);
+	}
+}

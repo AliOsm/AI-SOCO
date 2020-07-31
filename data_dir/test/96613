@@ -1,0 +1,170 @@
+#include <iostream>
+#include <cstdio>
+#include <algorithm>
+#include <ctime>
+#include <cstdlib>
+#include <set>
+#include <map>
+#include <cmath>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <cstring>
+#include <fstream>
+#include <memory.h>
+#include <iomanip>
+#include <omp.h>
+#include <bitset>
+#include <string>
+#include <list>
+
+using namespace std;
+
+#define right asfdsg
+#define left asfdsvs
+#define MAXN 1000000000
+#define pb push_back
+#define F first
+#define S second
+#define mp make_pair
+#define x1 asicvlid
+#define y1 ascnsdkn
+
+typedef long long ll;
+typedef unsigned long long ull;
+typedef long double ld;
+typedef pair < int, int > pii;
+typedef pair < ll, ll > pll;
+
+int m;
+map < string, int > mpVer;
+string str[200500];
+int N = 0;
+int a[100500];
+vector < int > g[200500], g1[200500], gStart[200500];
+vector < int > orderFirst, orderLast;
+bool used[200500];
+int color[200500], curColor = 1;
+vector < int > vertex[200500];
+pair < int, int > data[200500];
+
+void topo(int v) {
+    used[v] = true;
+    for(int to : g[v])
+        if (!used[to])
+            topo(to);
+    orderFirst.push_back(v);
+}
+
+void topoDesc(int v) {
+    color[v] = curColor;
+    vertex[ curColor ].push_back(v);
+    for (int to : g1[v])
+        if (!color[to])
+            topoDesc(to);
+    orderLast.push_back(v);
+}
+
+void update(string &s) {
+    for (int i = 0; i < s.size(); i ++)
+        if (s[i] >= 'A' && s[i] <= 'Z')
+            s[i] = s[i] - 'A' + 'a';
+}
+
+void updateVertex() {
+    for (int v = 1; v < curColor; v ++) {
+        string first = str[ vertex[v][0] ];
+        int cntR = 0;
+        for (int i = 0; i < first.size(); i ++)
+            if (first[i] == 'R' || first[i] == 'r')
+                cntR ++;
+        data[v] = mp (cntR, (int)first.size());
+        for (int i = 1; i < vertex[v].size(); i ++) {
+            string x = str[ vertex[v][i] ];
+            int curR = 0;
+            for (int j = 0; j < x.size(); j ++)
+                if (x[j] == 'R' || x[j] == 'r')
+                    curR ++;
+            if (curR < cntR || (curR == cntR && first.size() > x.size())) {
+                vertex[v][0] = vertex[v][i];
+                first = x;
+                cntR = curR;
+            }
+            data[v] = min (data[v], mp (curR, (int)x.size()));
+        }
+    }
+}
+
+int d[200500];
+
+void bfs(int start) {
+    queue < int > q;
+    q.push(start);
+    while ( !q.empty() ) {
+        int v = q.front();
+        q.pop();
+        for(int to : gStart[v]) {
+            if (data[ v ] < data[ to ]) {
+                d[to] = d[v];
+                data[ to ] = data[ v ];
+                q.push(to);
+            }
+        }
+    }
+}
+
+int main() {
+    //freopen ("input.txt", "r", stdin);
+
+    cin >> m;
+    for (int i = 1; i <= m; i ++) {
+        string s;
+        cin >> s;
+        update(s);
+        if (mpVer.find(s) == mpVer.end())
+            mpVer[s] = ++N,
+            str[N] = s;
+        a[i] = mpVer[s];
+    }
+    int n;
+    cin >> n;
+    while ( n -- ) {
+        string sFrom, sTo;
+        cin >> sFrom >> sTo;
+        update(sFrom); update(sTo);
+        if (mpVer.find(sFrom) == mpVer.end()) mpVer[sFrom] = ++N, str[N] = sFrom;
+        if (mpVer.find(sTo) == mpVer.end()) mpVer[sTo] = ++N, str[N] = sTo;
+        int from = mpVer[sFrom];
+        int to = mpVer[sTo];
+        g[from].push_back(to);
+        g1[to].push_back(from);
+    }
+    for (int i = 1; i <= N; i ++)
+        if (!used[i])
+            topo(i);
+    reverse(orderFirst.begin(), orderFirst.end());
+    for (int v : orderFirst)
+        if (!color[v])
+            topoDesc(v), curColor ++;
+    for (int i = 1; i <= N; i ++)
+        for (int to : g[i])
+            if (color[i] != color[to])
+                gStart[ color[to] ].push_back( color[i] );
+    updateVertex();
+    for (int i = 1; i < curColor; i ++)
+        d[i] = vertex[i][0];
+    for (int i = 1; i < curColor; i ++) {
+        bfs(i);
+    }
+    ll ansSize = 0;
+    ll ansR = 0;
+    for (int i = 1; i <= m; i ++) {
+        a[i] = d[ color[ a[i] ] ];
+        ansR += 1ll * data[ color[ a[i] ] ].first;
+        ansSize += 1ll * data[  color[ a[i] ] ].second;
+        a[i] = d[ color[ a[i] ] ];
+    }
+
+    cout << ansR << " " << ansSize;
+    return 0;
+}

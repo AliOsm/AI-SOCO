@@ -1,0 +1,44 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 100;
+
+char s[N];
+
+int digit(int n) {
+  if (n == 0) return 0;
+  return 1 + digit(n / 10);
+}
+
+int main() {
+  int n;
+  scanf("%d %s", &n, s);
+  int dig = digit(n);
+  int len = strlen(s);
+  vector<int> v;
+  for (int i = len - 1; i >= 0; i--) {
+    int st = max(0, i - dig + 1);
+    bool done = 0;
+    for (int j = st; j <= i; j++) {
+      long long num = 0;
+      for (int k = j; k <= i; k++) {
+        num = num * 10 + s[k] - '0';
+      }
+      if (num < n && s[j] != '0') {
+        i = j;
+        v.push_back(num);
+        done = 1;
+        break;
+      }
+    }
+    if (!done) {
+      v.push_back(0);
+    }
+  }
+  reverse(v.begin(), v.end());
+  long long ans = 0;
+  for (auto it : v) ans = ans * n + it;
+  cout << ans << endl;
+  return 0;
+}

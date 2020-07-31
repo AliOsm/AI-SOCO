@@ -1,0 +1,155 @@
+#include <bits/stdc++.h>
+using namespace std;
+const int N = 1e5 + 5;
+int a[N], b[N];
+int pl[N], ln[N], lenl[N];
+int line = 0;
+int rt = 0, id = 0;
+vector<vector<pair<int, int> > > g;
+
+vector<vector<int> > seg;
+
+void dfs(int u, int p) {
+
+	ln[u] = line;
+	for (int i = 0; i < g[u].size(); i++) {
+		int v = g[u][i].first;
+		if (v != p) {
+			int in = g[u][i].second;
+			if (a[in] == u) swap(a[in], b[in]);
+			dfs(v, u);
+		}
+	}
+	id++;
+	pl[u] = id;
+}
+
+void update(int n, int l, int r, int s, int e, int x, int in) {
+
+	if (r < s || l > e) {
+		return;
+	}
+	if (l >= s && r <= e) {
+		seg[in][n] += x;
+		return;
+	}
+	int mid = (l + r) / 2;
+	update(n * 2 + 1, l, mid, s, e, x, in);
+	update(n * 2 + 2, mid + 1, r, s, e, x, in);
+	seg[in][n] = seg[in][n * 2 + 1] + seg[in][n * 2 + 2];
+}
+
+int get(int n, int l, int r, int s, int e, int in) {
+
+	if (r < s || l > e) {
+		return 0;
+	}
+	if (l >= s && r <= e) {
+		return seg[in][n];
+	}
+	int mid = (l + r) / 2;
+	return get(n * 2 + 1, l, mid, s, e, in)
+			+ get(n * 2 + 2, mid + 1, r, s, e, in);
+}
+
+int main() {
+
+//	freopen("readin.txt", "r", stdin);
+
+	//point on line, lnumber, length each line , edge in direction of root
+
+	int n;
+	scanf("%d", &n);
+	int rt = 0;
+	g.resize(n);
+	for (int i = 0; i < n - 1; i++) {
+		scanf("%d%d", &a[i], &b[i]);
+		a[i]--, b[i]--;
+		g[a[i]].push_back(make_pair(b[i], i));
+		swap(a[i], b[i]);
+		g[a[i]].push_back(make_pair(b[i], i));
+	}
+
+	for (int i = 0; i < n; i++) {
+		if (g[i].size() > 2) rt = i;
+	}
+	for (int i = 0; i < g[rt].size(); i++) {
+		line++;
+		id = 0;
+		dfs(g[rt][i].first, rt);
+		if (a[g[rt][i].second] == rt)
+			swap(a[g[rt][i].second], b[g[rt][i].second]);
+		lenl[line] = id;
+	}
+	seg.resize(line + 1);
+	for (int i = 1; i <= line; i++) {
+		seg[i].resize(5 * lenl[i]);
+	}
+
+	int q;
+	scanf("%d", &q);
+	while (q--) {
+
+		int ty;
+		scanf("%d", &ty);
+		if (ty == 1) {
+			int e;
+			scanf("%d", &e);
+			e--;
+			int u = a[e];
+			update(0, 0, lenl[ln[u]], pl[u], pl[u], -1, ln[u]);
+		}
+		else if (ty == 2) {
+			int e;
+			scanf("%d", &e);
+			e--;
+			int u = a[e];
+			update(0, 0, lenl[ln[u]], pl[u], pl[u], 1, ln[u]);
+		}
+		else {
+			int u, v;
+			scanf("%d%d", &u, &v);
+			if (u == v) {
+				puts("0");
+				continue;
+			}
+			u--, v--;
+			if (ln[u] == ln[v]) {
+				if (pl[u] > pl[v]) swap(u, v);
+				int temp = get(0, 0, lenl[ln[u]], pl[u], lenl[ln[u]], ln[u]);
+				temp -= get(0, 0, lenl[ln[u]], pl[v], lenl[ln[u]], ln[u]);
+				if (temp) {
+					puts("-1");
+					continue;
+				}
+				else
+					printf("%d\n", abs(pl[u] - pl[v]));
+
+			}
+			else {
+				bool f = false;
+				if (u == rt) {
+					u = v;
+					f = true;
+				}
+				if (v == rt) f = true;
+				int temp = get(0, 0, lenl[ln[u]], pl[u], lenl[ln[u]], ln[u]);
+				if (!f)
+					temp += get(0, 0, lenl[ln[v]], pl[v], lenl[ln[v]], ln[v]);
+
+				if (temp) {
+					puts("-1");
+					continue;
+				}
+				else {
+					int ans = (lenl[ln[u]] - pl[u] + 1);
+					if (!f) ans += lenl[ln[v]] - pl[v] + 1;
+					printf("%d\n", ans);
+				}
+			}
+
+		}
+	}
+
+	return 0;
+}

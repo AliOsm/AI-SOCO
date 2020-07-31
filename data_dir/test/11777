@@ -1,0 +1,105 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define mp make_pair
+#define pb push_back
+#define sz(x) ((int)(x).size())
+#define all(x) (x).begin(),(x).end()
+#define FOR(it,c) for (__typeof((c).begin()) it=(c).begin(); it!=(c).end(); it++)
+typedef long long ll;
+const int oo = (int) 1e9;
+const int mod = (int) 1e9 + 7;
+const double PI = acos(-1.0);
+
+const int MAX = 800005;
+int n;
+char s[5];
+vector<int> g[MAX];
+vector<int> nodes;
+int L[MAX], R[MAX], v[MAX];
+
+int st[MAX*4], lz[MAX*4];
+
+void dfs(int u)
+{
+    nodes.push_back(u);
+    L[u] = sz(nodes) - 1;
+    for(int i=0;i<sz(g[u]);i++)
+        dfs(g[u][i]);
+    R[u] = sz(nodes) - 1;
+}
+
+void build(int n,int s,int e)
+{
+    if(s == e){
+        st[n] = v[nodes[s]];
+        return;
+    }
+    int mid = (s+e)/2;
+    build(2*n,s,mid);
+    build(2*n+1,mid+1,e);
+    st[n] = st[2*n] + st[2*n+1];
+}
+
+void push_down(int n,int ns,int ne)
+{
+    if(lz[n]){
+        st[n] = (ne - ns + 1) - st[n];
+        if(ns != ne){
+            lz[2*n] ^= 1;
+            lz[2*n+1] ^= 1;
+        }
+        lz[n] = 0;
+    }
+}
+
+void switch_sbtr(int n,int ns,int ne,int qs,int qe)
+{
+    push_down(n, ns, ne);
+    if(ns > qe || ne < qs) return;
+    if(ns >= qs && ne <= qe){
+        st[n] = (ne - ns + 1) - st[n];
+        if(ns != ne){
+            lz[2*n] ^= 1;
+            lz[2*n+1] ^= 1;
+        }
+        return;
+    }
+    int mid = (ns+ne)/2;
+    switch_sbtr(2*n,ns,mid,qs,qe);
+    switch_sbtr(2*n+1,mid+1,ne,qs,qe);
+    st[n] = st[2*n] + st[2*n+1];
+}
+
+int get(int n,int ns,int ne,int qs,int qe)
+{
+    push_down(n, ns, ne);
+    if(ns > qe || ne < qs) return 0;
+    if(ns >= qs && ne <= qe) return st[n];
+    int mid = (ns+ne)/2;
+    return get(2*n,ns,mid,qs,qe) + get(2*n+1,mid+1,ne,qs,qe);
+}
+
+int main(int argc, char* argv[])
+{
+    scanf("%d",&n);
+    for(int i=1;i<n;i++){
+        int p; scanf("%d",&p);
+        g[--p].push_back(i);
+    }
+    for(int i=0;i<n;i++)
+        scanf("%d",&v[i]);
+    dfs(0);
+    build(1,0,sz(nodes)-1);
+    int q;
+    scanf("%d",&q);
+    while(q--){
+        int v;
+        scanf("%s%d", s, &v); --v;
+        if(s[0] == 'p'){
+            switch_sbtr(1, 0, sz(nodes)-1, L[v], R[v]);
+        }else{
+            printf("%d\n", get(1, 0, sz(nodes)-1, L[v], R[v]));
+        }
+    }
+    return 0;
+}

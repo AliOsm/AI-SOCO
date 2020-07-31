@@ -1,0 +1,143 @@
+#pragma comment(linker, "/STACK:536870912")
+#pragma warning(disable:4996)
+
+//#pragma GCC optimize("Ofast")
+//#pragma GCC target("sse,sse2,sse3,ssse3,sse4,popcnt,abm,mmx,avx,tune=native")
+
+#include<iostream>
+#include<algorithm>
+#include<queue>
+#include<string>
+#include<vector>
+#include<map>
+#include<list>
+#include<set>
+#include<cstring>
+#include<ctime>
+#include<cmath>
+#include<limits>
+#include<iterator>
+#include<functional>
+#include<unordered_map>
+#include<unordered_set>
+#include<stack>
+#include<bitset>
+#include<complex>
+
+#define all(v) v.begin(), v.end()
+#define setv(ar, val) memset(ar, val, sizeof(ar));
+#define ll long long int
+#define ull unsigned long long int
+#define PI 3.1415926535897932384626433832795
+using namespace std;
+
+const int N = 1005, M = 15, D = 1e6 + 100;
+vector<pair<string, int>> prj, dep[N];
+vector<string> allNames;
+vector<int> versOfProj[D];
+char t[M];
+int maxVer[D], d[D];
+
+vector<vector<pair<int, int>>> v[N];
+
+int getNum(string &s) {
+	return lower_bound(all(allNames), s) - allNames.begin();
+}
+int getVer(int s, int x) {
+	return lower_bound(all(versOfProj[s]), x) - versOfProj[s].begin();
+}
+
+int main() {
+#ifdef _DEBUG
+	freopen("input.txt", "r", stdin);
+	freopen("output.txt", "w", stdout);
+#endif
+	int n, rt, rv;
+	scanf("%d", &n);
+	
+	for (int i = 0; i < n; i++) {
+		int ver;
+		scanf(" %s%d", t, &ver);
+		prj.push_back({ t, ver });
+		allNames.push_back(t);
+
+		int z;
+		scanf("%d", &z);
+		while (z--) {
+			int cv;
+			scanf(" %s%d", t, &cv);
+			allNames.push_back(t);
+			dep[i].push_back({ t, cv });
+		}
+	}
+
+
+	sort(all(allNames));
+	allNames.erase(unique(all(allNames)), allNames.end());
+
+
+	for (int i = 0; i < n; i++) {
+		int numOfProj = getNum(prj[i].first);
+		versOfProj[numOfProj].push_back(prj[i].second);
+
+		for (auto &p : dep[i]) {
+			numOfProj = getNum(p.first);
+			versOfProj[numOfProj].push_back(p.second);
+		}
+	}
+
+	for (int i = 0; i < allNames.size(); i++) {
+		sort(all(versOfProj[i]));
+		versOfProj[i].erase(unique(all(versOfProj[i])), versOfProj[i].end());
+	}
+
+
+	for (int i = 0; i < allNames.size(); i++)
+		v[i].resize(versOfProj[i].size() + 10);
+
+
+	rt = getNum(prj[0].first);
+	rv = getVer(rt, prj[0].second);
+
+	for (int i = 0; i < n; i++) {
+		int num = getNum(prj[i].first),
+			ver = getVer(num, prj[i].second);
+		for (auto &p : dep[i]) {
+			int toNum = getNum(p.first), toVer = getVer(toNum, p.second);
+			v[num][ver].push_back({ toNum, toVer });
+		}
+	}
+
+	queue<int> q;
+	q.push(rt);
+	maxVer[rt] = rv;
+	setv(d, -1);
+	d[rt] = 0;
+
+	vector<int> ans;
+	while (!q.empty()) {
+		int node = q.front(), ver = maxVer[node];
+		q.pop();
+		ans.push_back(node);
+
+		for (auto p : v[node][ver]) {
+			int toNum = p.first, toVer = p.second;
+			if (d[toNum] == -1) {
+				d[toNum] = d[node] + 1;
+				q.push(toNum);
+			}
+			if (d[toNum] == d[node] + 1) {
+				maxVer[toNum] = max(maxVer[toNum], toVer);
+			}
+		}
+	}
+
+	sort(all(ans));
+	printf("%d\n", ans.size() - 1);
+	for (int i : ans) {
+		if (i != rt)
+			printf("%s %d\n", allNames[i].c_str(), versOfProj[i][maxVer[i]]);
+	}
+
+	return 0;
+}

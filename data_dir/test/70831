@@ -1,0 +1,43 @@
+#include <bits/stdc++.h>
+
+using namespace std;
+
+const int N = 1e6 + 5;
+
+int dp[N];
+vector<int> factors[N], id[N];
+
+int main() {
+  int n, m;
+  scanf("%d %d", &n, &m);
+  for(int i = 1; i <= n; i++) {
+    int num;
+    scanf("%d", &num);
+    if(num < N) {
+      id[num].push_back(i);
+    }
+  }
+  for(int i = 1; i < N; i++) {
+    for(int j = i; j < N; j += i) {
+      dp[j] += id[i].size();
+      factors[j].push_back(i);
+    }
+  }
+  int p = -1, best = -1;
+  for(int i = 1; i <= m; i++) {
+    if(dp[i] > best) {
+      best = dp[i];
+      p = i;
+    }
+  }
+  printf("%d %d\n", p, best);
+  vector<int> ans;
+  for(auto it : factors[p]) {
+    for(auto i : id[it]) {
+      ans.push_back(i);
+    }
+  }
+  sort(ans.begin(), ans.end());
+  for(auto it : ans) printf("%d ", it);
+  return 0;
+}

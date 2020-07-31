@@ -1,0 +1,128 @@
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <stack>
+#include <algorithm>
+#include <cmath>
+#include <queue>
+#include <map>
+#include <set>
+#include <cstdlib>
+#include <bitset>
+#include <tuple>
+#include <assert.h>
+#include <deque>
+#include <bitset>
+#include <iomanip>
+#include <limits>
+#include <chrono>
+#include <random>
+#include <array>
+#include <unordered_map>
+#include <functional>
+#include <complex>
+#include <numeric>
+
+template<class T> inline bool chmax(T& a, T b) { if (a < b) { a = b; return 1; } return 0; }
+template<class T> inline bool chmin(T& a, T b) { if (a > b) { a = b; return 1; } return 0; }
+
+constexpr long long MAX = 5100000;
+constexpr long long INF = 1LL << 62;
+constexpr int inf = 1000000007;
+constexpr long long mod = 1000000007LL;
+//constexpr long long mod = 998244353LL;
+const long double PI = acos(-1);
+
+using namespace std;
+typedef unsigned long long ull;
+typedef long long ll;
+
+template< typename SemiGroup >
+struct SlidingWindowAggregation {
+    using F = function< SemiGroup(SemiGroup, SemiGroup) >;
+
+    struct Node {
+        SemiGroup val, sum;
+
+        Node(const SemiGroup& val, const SemiGroup& sum) : val(val), sum(sum) {}
+    };
+
+    SlidingWindowAggregation(F f) : f(f) {}
+
+
+    const F f;
+    stack< Node > front, back;
+
+    bool empty() const {
+        return front.empty() && back.empty();
+    }
+
+    size_t size() const {
+        return front.size() + back.size();
+    }
+
+    SemiGroup fold_all() const {
+        if (front.empty()) {
+            return back.top().sum;
+        }
+        else if (back.empty()) {
+            return front.top().sum;
+        }
+        else {
+            return f(front.top().sum, back.top().sum);
+        }
+    }
+
+    void push(const SemiGroup& x) {
+        if (back.empty()) {
+            back.emplace(x, x);
+        }
+        else {
+            back.emplace(x, f(back.top().sum, x));
+        }
+    }
+
+    void pop() {
+        if (front.empty()) {
+            front.emplace(back.top().val, back.top().val);
+            back.pop();
+            while (!back.empty()) {
+                front.emplace(back.top().val, f(back.top().val, front.top().sum));
+                back.pop();
+            }
+        }
+        front.pop();
+    }
+};
+
+ll n, k;
+
+ll f(ll a, ll b) {
+    return a % k * b % k;
+}
+int main()
+{
+	/*
+	cin.tie(nullptr);
+	ios::sync_with_stdio(false);
+	*/
+
+    scanf("%lld %lld", &n, &k);
+    vector<ll> a(n); for (int i = 0; i < n; i++) scanf("%lld", &a[i]);
+    SlidingWindowAggregation<ll> swag(f);
+    ll right = 0;
+    ll res = 0;
+    for (ll left = 0; left < n; left++) {
+        while (right < n and (swag.empty() or swag.fold_all() != 0)) {
+            swag.push(a[right] % k);
+            right++;
+        }
+        if (!swag.empty() and swag.fold_all() == 0) res += (n - right + 1);
+        if (left == right) right++;
+        else swag.pop();
+    }
+    cout << res << endl;
+	return 0;
+
+}
