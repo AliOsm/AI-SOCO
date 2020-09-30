@@ -46,6 +46,11 @@ In `data_dir` directory there are the following:
 - `train` directory which contains 50K files, each file with different `pid` represents the C++ source code that will be the input to your system.
 - `dev.csv` file is similar to `train.csv`, but it will be used to evaluation your system while developing, so it is not allowed to use it in the training phase.
 - `dev` directory is similar to `train`, but it will be used to evaluation your system while developing, so it is not allowed to use it in the training phase.
+- `unlabeled_test.csv` file is similar to `train.csv`, but it will be used to evaluation your system, so it is not allowed to use it in the training phase.
+- `test` directory is similar to `train`, but it will be used to evaluation your system, so it is not allowed to use it in the training phase.
+
+### Note
+The data is now available on [Zenodo](https://zenodo.org/record/4059840#.X3ScgnX7Qno) with the test set labels.
 
 ## Baseline
 - [**Random Baseline**](random_baseline.py) is simply predicting a random writer for each piece of code from the list of 1,000 writers (from 0 to 999). Its accuracy reaches around **0.1%**.
