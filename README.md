@@ -72,7 +72,7 @@ Systems will be evaluated and ranked based on **Accuracy** metric. An evaluation
 - ~~7th September – Run submission deadline~~
 - ~~15th September – Results declared~~
 - ~~5th October – Working notes papers due~~
-- 5th November – Final version of working notes papers due
+- 10th November – Final version of working notes papers due
 - 16th-20th December - FIRE 2020 (Online Event)
 
 ## Notes
